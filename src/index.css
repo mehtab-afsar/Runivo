@@ -4,26 +4,48 @@
 
 @layer base {
   :root {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --radius: 0.5rem;
+    /* Light Theme - Breathable & Clean */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 14 100% 57%; /* Orange accent like Strava */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 14 100% 57%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 14 100% 57%;
+    --radius: 0.75rem;
+
+    /* Custom spacing for breathable design */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+
+    /* Liquid Blur System */
+    --glass-white-10: rgba(255, 255, 255, 0.1);
+    --glass-white-8: rgba(255, 255, 255, 0.08);
+    --glass-white-5: rgba(255, 255, 255, 0.05);
+    --glass-white-2: rgba(255, 255, 255, 0.02);
+    --glass-white-1: rgba(255, 255, 255, 0.01);
+    --glass-black-10: rgba(0, 0, 0, 0.1);
+
+    /* Backdrop Filters */
+    --blur-strong: blur(24px) saturate(180%);
+    --blur-medium: blur(16px) saturate(160%);
+    --blur-light: blur(12px) saturate(140%);
   }
 }
 
@@ -32,6 +54,204 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-light antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-normal;
+  }
+}
+
+@layer utilities {
+  /* Breathable spacing utilities */
+  .container-breathable {
+    @apply max-w-7xl mx-auto px-6 py-8;
+  }
+
+  .card-breathable {
+    @apply bg-card rounded-xl border border-border p-6 shadow-sm;
+  }
+
+  /* Typography utilities */
+  .text-thin {
+    font-weight: 300;
+  }
+
+  .text-extra-light {
+    font-weight: 200;
+  }
+
+  /* Stat display */
+  .stat-value {
+    @apply text-5xl font-light tracking-tight text-foreground;
+  }
+
+  .stat-label {
+    @apply text-sm font-light text-muted-foreground uppercase tracking-wide;
+  }
+
+  /* Liquid Blur Utilities */
+  .liquid-blur-header {
+    background: linear-gradient(
+      135deg,
+      var(--glass-white-10) 0%,
+      var(--glass-white-5) 50%,
+      var(--glass-white-2) 100%
+    );
+    backdrop-filter: var(--blur-strong);
+    -webkit-backdrop-filter: var(--blur-strong);
+    border: 1px solid var(--glass-white-10);
+    box-shadow:
+      0 8px 32px var(--glass-black-10),
+      inset 0 1px 0 var(--glass-white-10);
+  }
+
+  .liquid-blur-footer {
+    background: linear-gradient(
+      135deg,
+      var(--glass-white-8) 0%,
+      rgba(255, 255, 255, 0.04) 50%,
+      var(--glass-white-1) 100%
+    );
+    backdrop-filter: var(--blur-strong);
+    -webkit-backdrop-filter: var(--blur-strong);
+    border-top: 1px solid var(--glass-white-8);
+  }
+
+  .liquid-blur-card {
+    background: linear-gradient(
+      135deg,
+      var(--glass-white-10) 0%,
+      rgba(255, 255, 255, 0.06) 100%
+    );
+    backdrop-filter: var(--blur-medium);
+    -webkit-backdrop-filter: var(--blur-medium);
+    border: 1px solid var(--glass-white-8);
+    box-shadow: 0 4px 16px var(--glass-black-10);
+  }
+
+  .liquid-blur-subtle {
+    background: linear-gradient(
+      135deg,
+      var(--glass-white-8) 0%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+    backdrop-filter: var(--blur-light);
+    -webkit-backdrop-filter: var(--blur-light);
+  }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    .liquid-blur-header,
+    .liquid-blur-footer,
+    .liquid-blur-card {
+      backdrop-filter: blur(12px) saturate(150%);
+      -webkit-backdrop-filter: blur(12px) saturate(150%);
+    }
+  }
+
+  /* Fallback for older browsers */
+  @supports not (backdrop-filter: blur()) {
+    .liquid-blur-header,
+    .liquid-blur-footer,
+    .liquid-blur-card,
+    .liquid-blur-subtle {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
+  /* Smooth transitions for blur elements */
+  .liquid-blur-header,
+  .liquid-blur-footer,
+  .liquid-blur-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Safe area for mobile */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Sliding Drawer Styles */
+  .sliding-drawer {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 -8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .drawer-handle-container {
+    padding: 16px 0 12px;
+    display: flex;
+    justify-content: center;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .drawer-handle-container:active {
+    cursor: grabbing;
+  }
+
+  .drawer-handle {
+    width: 48px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .drawer-handle-container:hover .drawer-handle {
+    background: rgba(255, 255, 255, 0.8);
+    width: 60px;
+    height: 6px;
+  }
+
+  .drawer-content-wrapper {
+    height: calc(600px - 60px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 20px 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Custom scrollbar for drawer */
+  .drawer-content-wrapper::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .drawer-content-wrapper::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .drawer-content-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+  }
+
+  .drawer-content-wrapper::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Animation utilities */
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 10s linear infinite;
   }
 }

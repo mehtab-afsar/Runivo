@@ -1,242 +1,269 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { mockWeather } from '@/data/mockData';
-import { TargetIcon, ShieldIcon, MapIcon, SwordIcon, RunningIcon, ActivityIcon, RocketIcon } from '@/components/ui/icons';
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Play, MapPin, ChevronDown, AlertCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-interface RunType {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  color: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  estimatedTime: string;
-  territoriesAvailable: number;
+interface ActivityType {
+  id: string
+  label: string
+  icon: string
+  color: string
 }
 
-export const RunScreen: React.FC = () => {
-  const navigate = useNavigate();
-  const [selectedRunType, setSelectedRunType] = useState<string>('claim-territory');
+export const RunScreen = () => {
+  const navigate = useNavigate()
+  const [hasGPSPermission, setHasGPSPermission] = useState<boolean | null>(null)
+  const [isCheckingGPS, setIsCheckingGPS] = useState(true)
+  const [activityType, setActivityType] = useState<string>('run')
+  const [showActivityDropdown, setShowActivityDropdown] = useState(false)
+  const [gpsStatus, setGpsStatus] = useState<'searching' | 'found' | 'error'>('searching')
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null)
 
-  const runTypes: RunType[] = [
-    {
-      id: 'claim-territory',
-      title: 'CLAIM TERRITORY',
-      description: 'Expand your empire - Suggested: North Park (2.5km), Potential: +3 territories',
-      icon: 'target',
-      color: 'runner-lime',
-      difficulty: 'medium',
-      estimatedTime: '25-35 min',
-      territoriesAvailable: 8
-    },
-    {
-      id: 'defend-territories',
-      title: 'DEFEND TERRITORIES',
-      description: 'Strengthen your holdings - At Risk: 2 territories, Suggested route: 4.2km',
-      icon: 'shield',
-      color: 'runner-gold',
-      difficulty: 'easy',
-      estimatedTime: '15-25 min',
-      territoriesAvailable: 5
-    },
-    {
-      id: 'explore',
-      title: 'EXPLORE',
-      description: 'Discover new areas - Uncharted zones nearby, Bonus XP for new routes',
-      icon: 'map',
-      color: 'runner-info',
-      difficulty: 'easy',
-      estimatedTime: '20-30 min',
-      territoriesAvailable: 12
-    },
-    {
-      id: 'attack-run',
-      title: 'ATTACK RUN',
-      description: 'Target enemy territory - Weakest nearby: Central Bridge, Required: 3.5km minimum',
-      icon: 'sword',
-      color: 'runner-danger',
-      difficulty: 'hard',
-      estimatedTime: '30-45 min',
-      territoriesAvailable: 15
-    },
-    {
-      id: 'free-run',
-      title: 'FREE RUN',
-      description: 'Just run, no objectives - Track stats only, Peaceful mode',
-      icon: 'running',
-      color: 'runner-text-muted',
-      difficulty: 'easy',
-      estimatedTime: '15-60 min',
-      territoriesAvailable: 0
-    }
-  ];
+  const activityTypes: ActivityType[] = [
+    { id: 'run', label: 'Run', icon: '🏃‍♂️', color: 'bg-blue-500' },
+    { id: 'walk', label: 'Walk', icon: '🚶‍♂️', color: 'bg-green-500' },
+    { id: 'cycle', label: 'Cycle', icon: '🚴‍♂️', color: 'bg-purple-500' },
+    { id: 'hike', label: 'Hike', icon: '🥾', color: 'bg-orange-500' }
+  ]
 
-  const handleStartRun = () => {
-    navigate('/active-run', {
-      state: {
-        runType: selectedRunType,
-        targetTerritories: runTypes.find(t => t.id === selectedRunType)?.territoriesAvailable || 0
+  useEffect(() => {
+    checkGPSPermission()
+  }, [])
+
+  const checkGPSPermission = async () => {
+    setIsCheckingGPS(true)
+    try {
+      if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setCurrentLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            })
+            setHasGPSPermission(true)
+            setGpsStatus('found')
+          },
+          (error) => {
+            console.error('GPS Error:', error)
+            setHasGPSPermission(false)
+            setGpsStatus('error')
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        )
+      } else {
+        setHasGPSPermission(false)
+        setGpsStatus('error')
       }
-    });
-  };
+    } catch (error) {
+      setHasGPSPermission(false)
+      setGpsStatus('error')
+    } finally {
+      setIsCheckingGPS(false)
+    }
+  }
 
+  const requestGPSPermission = async () => {
+    setGpsStatus('searching')
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000
+        })
+      })
+      setCurrentLocation({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      })
+      setHasGPSPermission(true)
+      setGpsStatus('found')
+    } catch (error) {
+      setHasGPSPermission(false)
+      setGpsStatus('error')
+      alert('Please enable location permissions in your browser settings to track your runs.')
+    }
+  }
+
+  const handleStartActivity = () => {
+    if (hasGPSPermission && currentLocation) {
+      navigate('/active-run', { state: { activityType, startLocation: currentLocation } })
+    } else {
+      requestGPSPermission()
+    }
+  }
+
+  const getCurrentActivity = () => {
+    return activityTypes.find(type => type.id === activityType) || activityTypes[0]
+  }
+
+  const getGPSStatusColor = () => {
+    switch (gpsStatus) {
+      case 'found': return 'text-green-400'
+      case 'searching': return 'text-yellow-400'
+      case 'error': return 'text-red-400'
+      default: return 'text-white/40'
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-runner-black">
-      {/* Territory Runner Header */}
-      <div className="safe-top pt-6 pb-4 px-6 border-b border-runner-border">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-runner-text mb-1">
-            Choose Mission
-          </h1>
-          <p className="text-sm text-runner-text-muted">
-            Select your territory objective
-          </p>
+    <div className="min-h-screen bg-black pb-24">
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-50 liquid-blur-header">
+        <div className="px-6 py-4">
+          <h1 className="text-lg font-light text-white">Record Activity</h1>
         </div>
       </div>
 
-      <div className="px-6 py-6 space-y-6 pb-24">
-
-        {/* Current Conditions */}
-        <div className="bg-runner-card border border-runner-border rounded-lg p-4">
-          <div className="flex items-center justify-between">
+      {/* Content */}
+      <div className="pt-20 px-6 space-y-4">
+        {/* GPS Status */}
+        {isCheckingGPS ? (
+          <div className="liquid-blur-card rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-runner-warning/20 border border-runner-warning/40 flex items-center justify-center">
-                <span className="text-lg">☀️</span>
-              </div>
-              <div>
-                <div className="text-lg font-bold text-runner-text">
-                  {mockWeather.temperature}°C
-                </div>
-                <div className="text-xs text-runner-text-muted">
-                  Perfect conditions
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="bg-runner-success/20 border border-runner-success/40 rounded-lg px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-runner-success animate-pulse"></div>
-                  <span className="font-bold text-xs text-runner-success">OPTIMAL</span>
-                </div>
-              </div>
-              <div className="text-xs text-runner-text-subtle mt-1">
-                Wind {mockWeather.windSpeed}km/h • {mockWeather.humidity}% humidity
-              </div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              <span className="text-sm font-light text-white/70">
+                Checking GPS status...
+              </span>
             </div>
           </div>
-        </div>
-
-        {/* Mission Selection */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-runner-text">
-            Available Missions
-          </h2>
-          <div className="space-y-3">
-            {runTypes.map((runType) => {
-              const getDifficultyColor = (diff: string) => {
-                switch(diff) {
-                  case 'easy': return 'runner-success';
-                  case 'medium': return 'runner-warning';
-                  case 'hard': return 'runner-danger';
-                  default: return 'runner-text-muted';
-                }
-              };
-
-              return (
-                <div
-                  key={runType.id}
-                  onClick={() => setSelectedRunType(runType.id)}
-                  className={`bg-runner-card border rounded-lg p-4 cursor-pointer transition-all duration-200 hover:border-runner-border-light ${
-                    selectedRunType === runType.id
-                      ? 'border-runner-lime bg-runner-lime/5'
-                      : 'border-runner-border'
-                  }`}
+        ) : (
+          <div className={cn(
+            'liquid-blur-card rounded-xl p-4',
+            hasGPSPermission ? 'border border-green-500/20' : 'border border-orange-500/20'
+          )}>
+            <div className="flex items-start gap-3">
+              <MapPin
+                size={20}
+                className={hasGPSPermission ? 'text-green-500' : 'text-orange-500'}
+              />
+              <div className="flex-1">
+                <div className="text-sm font-light text-white mb-1">
+                  {hasGPSPermission ? 'GPS Ready' : 'GPS Permission Required'}
+                </div>
+                <p className="text-xs font-light text-white/60">
+                  {hasGPSPermission
+                    ? 'Location tracking is enabled and ready'
+                    : 'We need location access to track your activity'}
+                </p>
+              </div>
+              {!hasGPSPermission && (
+                <button
+                  onClick={requestGPSPermission}
+                  className="text-xs font-light text-primary hover:underline"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-runner-dark border border-runner-border flex items-center justify-center">
-                      {runType.icon === 'target' && <TargetIcon size={20} color="#CAFF00" />}
-                      {runType.icon === 'shield' && <ShieldIcon size={20} color="#FFD700" />}
-                      {runType.icon === 'map' && <MapIcon size={20} color="#00AAFF" />}
-                      {runType.icon === 'sword' && <SwordIcon size={20} color="#FF4444" />}
-                      {runType.icon === 'running' && <RunningIcon size={20} color="rgba(255, 255, 255, 0.6)" />}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-base font-bold text-runner-text">
-                          {runType.title}
-                        </h3>
-                        <span className={`text-xs font-bold px-2 py-1 rounded bg-${getDifficultyColor(runType.difficulty)}/20 text-${getDifficultyColor(runType.difficulty)}`}>
-                          {runType.difficulty.toUpperCase()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-runner-text-muted mb-3">
-                        {runType.description}
-                      </p>
-                      <div className="flex items-center gap-6 text-xs text-runner-text-subtle">
-                        <div className="flex items-center gap-1">
-                          <ActivityIcon size={14} color="rgba(255, 255, 255, 0.4)" />
-                          <span>{runType.estimatedTime}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TargetIcon size={14} color="rgba(255, 255, 255, 0.4)" />
-                          <span>{runType.territoriesAvailable} territories</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
-                        selectedRunType === runType.id
-                          ? 'border-runner-lime bg-runner-lime'
-                          : 'border-runner-text-subtle'
-                      }`}>
-                        {selectedRunType === runType.id && (
-                          <div className="w-full h-full rounded-full flex items-center justify-center">
-                            <div className="w-2 h-2 bg-runner-black rounded-full"></div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  Enable
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Activity Type Selector */}
+        <div className="space-y-2">
+          <label className="text-sm font-light text-white/70 px-2">Activity Type</label>
+          <div className="relative">
+            <button
+              onClick={() => setShowActivityDropdown(!showActivityDropdown)}
+              className="w-full liquid-blur-card rounded-xl p-4 flex items-center justify-between hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'w-10 h-10 rounded-xl flex items-center justify-center text-white',
+                  getCurrentActivity().color
+                )}>
+                  <span className="text-lg">{getCurrentActivity().icon}</span>
                 </div>
-              );
-            })}
+                <span className="font-light text-white">{getCurrentActivity().label}</span>
+              </div>
+              <ChevronDown className={cn(
+                'w-5 h-5 text-white/40 transition-transform',
+                showActivityDropdown && 'rotate-180'
+              )} />
+            </button>
+
+            {/* Dropdown */}
+            {showActivityDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-2 liquid-blur-card rounded-xl border border-white/10 overflow-hidden z-20">
+                {activityTypes.map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => {
+                      setActivityType(type.id)
+                      setShowActivityDropdown(false)
+                    }}
+                    className="w-full p-4 flex items-center gap-3 hover:bg-white/10 transition-colors"
+                  >
+                    <div className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center text-white',
+                      type.color
+                    )}>
+                      <span>{type.icon}</span>
+                    </div>
+                    <span className="font-light text-white">{type.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-
-        {/* Start Mission Button */}
-        <div className="space-y-4">
-          <button
-            onClick={handleStartRun}
-            disabled={!selectedRunType}
-            className="w-full h-14 bg-runner-lime hover:bg-runner-lime/90 text-runner-black font-bold text-lg tracking-wider rounded-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg"
-            style={{
-              boxShadow: '0 0 30px rgba(202, 255, 0, 0.3)'
-            }}
-          >
-            <div className="flex items-center justify-center gap-3">
-              <RocketIcon size={20} color="currentColor" />
-              <span>START MISSION</span>
+        {/* Stats Preview */}
+        <div className="liquid-blur-card rounded-xl p-6">
+          <h3 className="text-sm font-light text-white/70 mb-4">Today's Progress</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-light text-white">0.0</div>
+              <div className="text-xs text-white/60 mt-1">km</div>
             </div>
-          </button>
-
-          <div className="flex items-center justify-center gap-4 text-xs text-runner-text-subtle">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-runner-success"></div>
-              <span>GPS Ready</span>
+            <div className="text-center">
+              <div className="text-2xl font-light text-white">0</div>
+              <div className="text-xs text-white/60 mt-1">activities</div>
             </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-runner-warning"></div>
-              <span>Battery 85%</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-runner-lime animate-pulse"></div>
-              <span>Ready to Run</span>
+            <div className="text-center">
+              <div className="text-2xl font-light text-white">0</div>
+              <div className="text-xs text-white/60 mt-1">min</div>
             </div>
           </div>
         </div>
+
+        {/* Start Button */}
+        <button
+          onClick={handleStartActivity}
+          disabled={!hasGPSPermission}
+          className={cn(
+            'w-full py-4 bg-primary text-white rounded-xl font-light hover:bg-primary/90 transition-colors',
+            'flex items-center justify-center gap-3',
+            'disabled:bg-white/10 disabled:text-white/40 disabled:cursor-not-allowed'
+          )}
+        >
+          <Play size={20} fill="currentColor" />
+          <span>Start {getCurrentActivity().label}</span>
+        </button>
+
+        {/* GPS Status Indicator */}
+        <div className="flex items-center justify-center gap-2 text-sm">
+          <div className={cn(
+            'w-2 h-2 rounded-full',
+            gpsStatus === 'found' ? 'bg-green-400' :
+            gpsStatus === 'searching' ? 'bg-yellow-400 animate-pulse' :
+            'bg-red-400'
+          )} />
+          <span className={cn('font-light', getGPSStatusColor())}>
+            {gpsStatus === 'found' ? 'GPS Ready' :
+             gpsStatus === 'searching' ? 'Finding GPS...' :
+             'GPS Error'}
+          </span>
+        </div>
+
+        {!hasGPSPermission && (
+          <div className="flex items-start gap-2 text-xs font-light text-white/60 px-2">
+            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+            <p>
+              GPS permission is required to track your activity. Click "Enable" above or check your browser settings.
+            </p>
+          </div>
+        )}
       </div>
     </div>
-  );
-};
+  )
+}

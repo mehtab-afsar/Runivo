@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { MetricCard } from '@/components/cards/MetricCard'
 import { TerritoryMap } from '@/components/maps/TerritoryMap'
-import { GameHUD } from '@/components/game/GameHUD'
 import { formatTime, formatPace, generateMockTerritories } from '@/data/mockData'
 import { useGameState } from '@/hooks/useGameState'
+import { Clock, Zap, MapPin, Flame, Award, ArrowLeft } from 'lucide-react'
 import type { LiveRunData, Location } from '@/types'
 
 export const RunSummary: React.FC = () => {
@@ -14,8 +12,6 @@ export const RunSummary: React.FC = () => {
   const location = useLocation()
 
   const { playerStats } = useGameState()
-  const [showRewards, setShowRewards] = useState(true)
-  const [rewardsAnimating, setRewardsAnimating] = useState(false)
 
   // Get run data from navigation state or use defaults
   const runData: LiveRunData & { route?: Location[]; finalStats?: any; actionType?: string; success?: boolean } = location.state?.runData || {
@@ -64,16 +60,6 @@ export const RunSummary: React.FC = () => {
 
   const rewards = calculateRewards()
 
-  useEffect(() => {
-    if (showRewards) {
-      setRewardsAnimating(true)
-      const timer = setTimeout(() => {
-        setRewardsAnimating(false)
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [showRewards])
-
   const getActionTitle = () => {
     if (!runData.success) return `${runData.actionType || 'Action'} Failed`
     switch (runData.actionType) {
@@ -97,97 +83,84 @@ export const RunSummary: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-5 py-16 space-y-6">
-      {/* Game HUD */}
-      <div className="mb-6">
-        <GameHUD />
-      </div>
-
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-h1" style={{ color: runData.success ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
-          {getActionTitle()}
-        </h1>
-        <p className="text-body" style={{ color: 'var(--text-secondary)' }}>
-          {getActionDescription()}
-        </p>
-      </div>
-
-      {/* Rewards Section */}
-      {runData.success && showRewards && (
-        <div
-          className="glass-card p-6 rounded-3xl mb-6"
-          style={{
-            background: 'rgba(255, 71, 71, 0.1)',
-            borderColor: 'var(--accent-primary)',
-            animation: rewardsAnimating ? 'pulseGlow 1s ease-in-out 3' : 'none'
-          }}
-        >
-          <div className="text-center mb-4">
-            <h2 className="text-h2 font-bold" style={{ color: 'var(--accent-primary)' }}>
-              Mission Rewards
-            </h2>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-3xl mb-2">⚡</div>
-              <div className="font-bold text-lg" style={{ color: 'var(--accent-primary)' }}>
-                +{rewards.xp}
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                XP
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl mb-2">🪙</div>
-              <div className="font-bold text-lg" style={{ color: '#FFB800' }}>
-                +{rewards.coins}
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Coins
-              </div>
-            </div>
-            {rewards.gems > 0 && (
-              <div className="text-center">
-                <div className="text-3xl mb-2">💎</div>
-                <div className="font-bold text-lg" style={{ color: '#4FC3F7' }}>
-                  +{rewards.gems}
-                </div>
-                <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Gems
-                </div>
-              </div>
-            )}
-            <div className="text-center">
-              <div className="text-3xl mb-2">🏪</div>
-              <div className="font-bold text-lg" style={{ color: 'var(--accent-primary)' }}>
-                +{rewards.brandPoints}
-              </div>
-              <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Brand Points
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-black pb-20">
+      {/* Header with Back Button */}
+      <div className="sticky top-0 z-10 backdrop-blur-xl bg-black/50 border-b border-white/10">
+        <div className="container mx-auto px-5 py-4 flex items-center gap-4">
           <button
-            onClick={() => setShowRewards(false)}
-            className="w-full mt-4 py-2 rounded-2xl font-semibold"
-            style={{
-              background: 'var(--accent-primary)',
-              color: '#000000'
-            }}
+            onClick={handleBackToDashboard}
+            className="p-2 rounded-full hover:bg-white/10 transition-colors"
           >
-            Collect Rewards
+            <ArrowLeft className="text-white" size={24} />
           </button>
+          <div>
+            <h1 className="text-xl font-bold text-white">
+              {getActionTitle()}
+            </h1>
+            <p className="text-sm text-gray-400">
+              {getActionDescription()}
+            </p>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Route Map */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Route</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] rounded-2xl overflow-hidden">
+      <div className="container mx-auto px-5 py-6 space-y-5">
+        {/* Main Stats Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Distance */}
+          <div className="glass-card p-5 rounded-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="text-primary" size={18} />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Distance</span>
+            </div>
+            <div className="text-3xl font-bold text-white">
+              {runData.distance.toFixed(1)}
+              <span className="text-lg text-gray-400 ml-1">km</span>
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div className="glass-card p-5 rounded-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="text-primary" size={18} />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Time</span>
+            </div>
+            <div className="text-3xl font-bold text-white">
+              {formatTime(runData.duration)}
+            </div>
+          </div>
+
+          {/* Pace */}
+          <div className="glass-card p-5 rounded-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="text-primary" size={18} />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Pace</span>
+            </div>
+            <div className="text-3xl font-bold text-white">
+              {formatPace(runData.pace)}
+              <span className="text-lg text-gray-400 ml-1">/km</span>
+            </div>
+          </div>
+
+          {/* Calories */}
+          <div className="glass-card p-5 rounded-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Flame className="text-primary" size={18} />
+              <span className="text-xs text-gray-400 uppercase tracking-wide">Calories</span>
+            </div>
+            <div className="text-3xl font-bold text-white">
+              {calories}
+            </div>
+          </div>
+        </div>
+
+        {/* Route Map */}
+        <div className="glass-card p-4 rounded-2xl">
+          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <MapPin size={16} className="text-primary" />
+            Your Route
+          </h3>
+          <div className="h-[280px] rounded-xl overflow-hidden">
             <TerritoryMap
               territories={territories}
               runRoute={runData.route || []}
@@ -196,101 +169,80 @@ export const RunSummary: React.FC = () => {
               className="h-full"
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Performance Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="stats-grid">
-            <MetricCard
-              value={runData.distance.toFixed(1)}
-              unit="km"
-              label="distance"
-            />
-            <MetricCard
-              value={formatTime(runData.duration)}
-              unit=""
-              label="duration"
-            />
-            <MetricCard
-              value={formatPace(runData.pace)}
-              unit="/km"
-              label="pace"
-            />
-            <MetricCard
-              value={calories}
-              unit=""
-              label="calories"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Territory Metrics */}
-      <div
-        className="glass-card p-6 rounded-3xl"
-        style={{
-          background: 'var(--bg-card)',
-          borderColor: 'var(--border-light)'
-        }}
-      >
-        <h3 className="text-h3 font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-          {runData.actionType === 'attack' ? 'Territory Conquered' :
-           runData.actionType === 'claim' ? 'Territory Claimed' :
-           runData.actionType === 'defend' ? 'Territory Defended' : 'Territory Activity'}
-        </h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center">
-            <div className="text-2xl mb-2" style={{ color: 'var(--accent-primary)' }}>
-              {runData.success ? (runData.territoriesClaimed || 1) : 0}
-            </div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              {runData.actionType === 'defend' ? 'defended' : 'territories'}
+        {/* Rewards Section */}
+        {runData.success && (
+          <div className="glass-card p-5 rounded-2xl border border-primary/30">
+            <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+              <Award size={16} className="text-primary" />
+              Mission Rewards
+            </h3>
+            <div className="grid grid-cols-4 gap-3">
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">⚡</span>
+                </div>
+                <div className="text-lg font-bold text-primary">+{rewards.xp}</div>
+                <div className="text-xs text-gray-400">XP</div>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">🪙</span>
+                </div>
+                <div className="text-lg font-bold text-yellow-500">+{rewards.coins}</div>
+                <div className="text-xs text-gray-400">Coins</div>
+              </div>
+              {rewards.gems > 0 && (
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-2">
+                    <span className="text-xl">💎</span>
+                  </div>
+                  <div className="text-lg font-bold text-blue-400">+{rewards.gems}</div>
+                  <div className="text-xs text-gray-400">Gems</div>
+                </div>
+              )}
+              <div className="text-center">
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-2">
+                  <span className="text-xl">🏪</span>
+                </div>
+                <div className="text-lg font-bold text-primary">+{rewards.brandPoints}</div>
+                <div className="text-xs text-gray-400">Points</div>
+              </div>
             </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl mb-2" style={{ color: 'var(--accent-primary)' }}>
-              {runData.success ? Math.round(runData.territoriesClaimed * 2800 + Math.random() * 500) : 0}
+        )}
+
+        {/* Territory Info */}
+        <div className="glass-card p-5 rounded-2xl">
+          <h3 className="text-sm font-semibold text-white mb-4">
+            {runData.actionType === 'attack' ? 'Territory Conquered' :
+             runData.actionType === 'claim' ? 'Territory Claimed' :
+             runData.actionType === 'defend' ? 'Territory Defended' : 'Territory Activity'}
+          </h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-2xl font-bold text-white">
+                {runData.success ? (runData.territoriesClaimed || 1) : 0}
+              </div>
+              <div className="text-xs text-gray-400">
+                {runData.actionType === 'defend' ? 'Defended' : 'Territories'}
+              </div>
             </div>
-            <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              m² area
+            <div className="text-right">
+              <div className="text-2xl font-bold text-white">
+                {runData.success ? Math.round(runData.territoriesClaimed * 2800 + Math.random() * 500) : 0}
+              </div>
+              <div className="text-xs text-gray-400">m² Area</div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">
+                {playerStats.territories.owned}
+              </div>
+              <div className="text-xs text-gray-400">Total Owned</div>
             </div>
           </div>
         </div>
-
-        <div className="mt-6 flex justify-between items-center">
-          <div>
-            <div className="text-body" style={{ color: 'var(--text-primary)' }}>
-              Total Territory Owned
-            </div>
-            <div className="text-caption" style={{ color: 'var(--text-secondary)' }}>
-              Updated after this run
-            </div>
-          </div>
-          <div className="text-h2" style={{ color: 'var(--accent-primary)' }}>
-            {playerStats.territories.owned}
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="space-y-4">
-        <Button className="w-full">
-          <span>📱</span>
-          Share Achievement
-        </Button>
-        
-        <Button
-          variant="secondary"
-          className="w-full btn-secondary"
-          onClick={handleBackToDashboard}
-        >
-          ← Back to Map
-        </Button>
       </div>
     </div>
   )
