@@ -1,0 +1,47 @@
+export const GAME_CONFIG = {
+  HEX_RESOLUTION: 9,
+
+  CLAIM_NEUTRAL_SEC: 20,
+  CLAIM_ENEMY_BASE_SEC: 60,
+  CLAIM_ENEMY_PER_DEFENSE_SEC: 1.5,
+  MIN_SPEED_MPS: 0.8,
+  MAX_SPEED_MPS: 12.0,
+
+  INITIAL_DEFENSE: 50,
+  MAX_DEFENSE: 100,
+  DEFENSE_DECAY_PER_HOUR: 0.5,
+  ADJACENT_BONUS_DEFENSE: 5,
+  FORTIFY_PER_KM: 8,
+
+  XP_CLAIM_NEUTRAL: 25,
+  XP_CLAIM_ENEMY: 60,
+  XP_PER_KM: 30,
+  XP_FORTIFY: 10,
+  COINS_CLAIM_NEUTRAL: 10,
+  COINS_CLAIM_ENEMY: 25,
+  COINS_PER_KM: 5,
+  BASE_INCOME_PER_HEX_DAY: 5,
+
+  SPEED_BONUS_THRESHOLD_MPS: 3.5,
+  SPEED_BONUS_MULTIPLIER: 1.5,
+
+  MAX_ENERGY: 100,
+  ENERGY_REGEN_PER_HOUR: 10,
+  ENERGY_COST_SHIELD: 30,
+  ENERGY_COST_BOOST: 20,
+  ENERGY_COST_SCAN: 10,
+
+  MAX_TERRITORIES_FREE: 20,
+  MAX_TERRITORIES_PREMIUM: 100,
+
+  LEVEL_XP: [
+    0, 200, 500, 900, 1400, 2000, 2800, 3800, 5000, 6500,
+    8500, 11000, 14000, 17500, 22000, 27000, 33000, 40000, 48000, 58000,
+  ],
+  LEVEL_TITLES: [
+    'Scout', 'Pathfinder', 'Trailblazer', 'Ranger', 'Explorer',
+    'Captain', 'Vanguard', 'Commander', 'Warlord', 'General',
+    'Conqueror', 'Overlord', 'Sovereign', 'Emperor', 'Titan',
+    'Mythic', 'Immortal', 'Transcendent', 'Apex', 'Legend',
+  ],
+} as const;

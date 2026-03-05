@@ -162,3 +162,5 @@ export const LobbyChat = () => {
     </div>
   )
 }
+
+export default LobbyChat;

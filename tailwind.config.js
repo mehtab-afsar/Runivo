@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ["class"],
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
@@ -18,7 +17,17 @@ export default {
     },
     extend: {
       colors: {
-        
+        // Runner design system — light theme
+        runner: {
+          bg:      '#FAFAFA',
+          surface: '#FFFFFF',
+          elevated:'#F5F5F7',
+          teal:    '#00B4C6',
+          magenta: '#DC267F',
+          gold:    '#F59E0B',
+          green:   '#10B981',
+          orange:  '#F97316',
+        },
         // shadcn/ui colors
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -60,8 +69,10 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        display: ['SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'sans-serif'],
-        body: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'sans-serif'],
+        mono:    ['JetBrains Mono', 'monospace'],
+        body:    ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans:    ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       fontSize: {
         'hero': ['56px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '-0.02em' }],
@@ -96,8 +107,8 @@ export default {
           "50%": { opacity: "0.5" },
         },
         "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(202, 255, 0, 0.3)" },
-          "50%": { boxShadow: "0 0 40px rgba(202, 255, 0, 0.5)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(0, 180, 198, 0.15)" },
+          "50%": { boxShadow: "0 0 40px rgba(0, 180, 198, 0.25)" },
         },
         "float": {
           "0%, 100%": { transform: "translateY(0px)" },

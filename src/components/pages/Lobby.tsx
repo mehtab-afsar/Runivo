@@ -61,3 +61,5 @@ export const Lobby = () => {
     </div>
   )
 }
+
+export default Lobby;

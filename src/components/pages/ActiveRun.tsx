@@ -1,635 +1,532 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Play, Pause, Square, MapPin, Crosshair, ChevronDown, Target, Layers, Maximize2, Route, Wifi, Battery, PersonStanding, Bike, Mountain, Waves, Snowflake, Map as MapIcon, Bus, Navigation } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { MapLibreMap } from '@/components/map/MapLibreMap'
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { Flag, Swords } from 'lucide-react';
+import { useActiveRun } from '../../hooks/useActiveRun';
+import { AnimatedCounter } from '../ui/AnimatedCounter';
+import { haptic } from '../../lib/haptics';
+import {
+  addTerritoryOverlay,
+  animateClaimHex,
+  updateTerritoryData,
+} from '../../map/territoryLayer';
+import { getAllTerritories } from '../../game/store';
 
-interface RoutePoint {
-  lat: number
-  lng: number
-  timestamp: number
-}
+export default function ActiveRun() {
+  const navigate = useNavigate();
+  const routerLocation = useLocation();
+  const startLocation = (routerLocation.state as { startLocation?: { lat: number; lng: number } } | null)?.startLocation;
 
-interface ActivityType {
-  id: string
-  label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
-  color: string
-}
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const routeSourceAdded = useRef(false);
+  const userLngLatRef = useRef<[number, number] | null>(
+    startLocation ? [startLocation.lng, startLocation.lat] : null
+  );
+  const watchIdRef = useRef<number | null>(null);
 
-interface MapLayerType {
-  id: string
-  label: string
-  icon: React.ComponentType<{ size?: number; className?: string }>
-  description: string
-  layer: string
-}
+  const {
+    isRunning, isPaused, elapsed, distance, pace,
+    gpsPoints, currentZone, claimProgress,
+    territoriesClaimed, lastClaimEvent,
+    startRun, pauseRun, resumeRun, finishRun, player,
+  } = useActiveRun();
 
-export const ActiveRun = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { activityType: initialActivityType, startLocation } = location.state || {}
+  const [mapReady, setMapReady] = useState(false);
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
-  // State
-  const [isRunning, setIsRunning] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
-  const [activityType, setActivityType] = useState<string>(initialActivityType || 'run')
-  const [showActivityModal, setShowActivityModal] = useState(false)
-  const [showLayerModal, setShowLayerModal] = useState(false)
-  const [distance, setDistance] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const [pace, setPace] = useState(0)
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(startLocation || null)
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(startLocation || null)
-  const [routePoints, setRoutePoints] = useState<RoutePoint[]>([])
-  const [gpsStatus, setGpsStatus] = useState<'searching' | 'found' | 'error'>('searching')
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [selectedLayer, setSelectedLayer] = useState<string>('standard')
-  const [is3DEnabled, setIs3DEnabled] = useState(false)
-
-  // Refs
-  const watchId = useRef<number | null>(null)
-  const intervalId = useRef<NodeJS.Timeout | null>(null)
-  const startTime = useRef<number>(0)
-  const lastPosition = useRef<{ lat: number; lng: number } | null>(null)
-
-  const activityTypes: ActivityType[] = [
-    { id: 'run', label: 'Run', icon: PersonStanding, color: 'bg-blue-500' },
-    { id: 'walk', label: 'Walk', icon: PersonStanding, color: 'bg-green-500' },
-    { id: 'cycle', label: 'Cycle', icon: Bike, color: 'bg-purple-500' },
-    { id: 'hike', label: 'Hike', icon: Mountain, color: 'bg-orange-500' },
-    { id: 'swim', label: 'Swim', icon: Waves, color: 'bg-cyan-500' },
-    { id: 'ski', label: 'Ski', icon: Snowflake, color: 'bg-indigo-500' }
-  ]
-
-  const mapLayers: MapLayerType[] = [
-    { id: 'standard', label: 'Standard', icon: MapIcon, description: 'Default clean map', layer: 'mapnik' },
-    { id: 'cycle', label: 'Cycle', icon: Bike, description: 'Optimized for cycling', layer: 'cyclemap' },
-    { id: 'transport', label: 'Transport', icon: Bus, description: 'Shows public transport', layer: 'transportmap' },
-    { id: 'terrain', label: 'Terrain', icon: Mountain, description: 'Topographic view', layer: 'mapnik' }
-  ]
-
-  // Format time helper
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`
-  }
-
-  // Format distance helper
-  const formatDistance = (meters: number) => {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(2)} km`
-    }
-    return `${meters.toFixed(0)} m`
-  }
-
-  // Calculate distance between two points
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371000 // Earth's radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLon = (lon2 - lon1) * Math.PI / 180
-    const a =
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-    return R * c
-  }
-
-  // Start GPS tracking
-  const startGPSTracking = () => {
-    if (navigator.geolocation) {
-      watchId.current = navigator.geolocation.watchPosition(
-        (position) => {
-          const newPosition = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            timestamp: Date.now()
-          }
-
-          setCurrentLocation(newPosition)
-          setRoutePoints(prev => [...prev, newPosition])
-          setGpsStatus('found')
-
-          // Calculate distance if we have a previous position
-          if (lastPosition.current && isRunning && !isPaused) {
-            const distanceToAdd = calculateDistance(
-              lastPosition.current.lat,
-              lastPosition.current.lng,
-              newPosition.lat,
-              newPosition.lng
-            )
-
-            setDistance(prev => prev + distanceToAdd)
-          }
-
-          lastPosition.current = newPosition
-        },
-        (error) => {
-          console.error('GPS Tracking Error:', error)
-          if (error.code === 3) {
-            console.log('GPS timeout, continuing with last known position')
-          } else {
-            setGpsStatus('error')
-          }
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
-      )
-    }
-  }
-
-  // Stop GPS tracking
-  const stopGPSTracking = () => {
-    if (watchId.current !== null) {
-      navigator.geolocation.clearWatch(watchId.current)
-      watchId.current = null
-    }
-  }
-
-  // Start timer
-  const startTimer = () => {
-    startTime.current = Date.now() - (duration * 1000)
-    intervalId.current = setInterval(() => {
-      setDuration(Math.floor((Date.now() - startTime.current) / 1000))
-    }, 1000)
-  }
-
-  // Stop timer
-  const stopTimer = () => {
-    if (intervalId.current) {
-      clearInterval(intervalId.current)
-      intervalId.current = null
-    }
-  }
-
-  // Calculate pace
   useEffect(() => {
-    if (distance > 0 && duration > 0) {
-      const paceInMinPerKm = (duration / 60) / (distance / 1000)
-      setPace(paceInMinPerKm)
-    }
-  }, [distance, duration])
+    if (!mapContainer.current || mapRef.current) return;
 
-  // Start run
-  const handleStart = () => {
-    setIsRunning(true)
-    setIsPaused(false)
-    startGPSTracking()
-    startTimer()
-    lastPosition.current = currentLocation
-    setShowActivityModal(false)
-  }
+    const initCenter: [number, number] = userLngLatRef.current ?? [77.2090, 28.6139];
 
-  // Toggle fullscreen
-  const handleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
-  }
+    const map = new maplibregl.Map({
+      container: mapContainer.current,
+      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      center: initCenter,
+      zoom: 16,
+      pitch: 45,
+      attributionControl: false,
+    });
 
-  // Handle back button
-  const handleBack = () => {
-    if (isRunning) {
-      const confirm = window.confirm('Are you sure you want to exit? Your run will be lost.')
-      if (!confirm) return
-    }
-    navigate(-1)
-  }
+    map.on('load', async () => {
+      mapRef.current = map;
+      setMapReady(true);
+      setTimeout(() => map.resize(), 0);
 
-  // Get current map layer
-  const getCurrentLayer = () => {
-    return mapLayers.find(layer => layer.id === selectedLayer) || mapLayers[0]
-  }
-
-  // Pause run
-  const handlePause = () => {
-    setIsPaused(true)
-    stopTimer()
-  }
-
-  // Resume run
-  const handleResume = () => {
-    setIsPaused(false)
-    startTimer()
-  }
-
-  // Finish run
-  const handleFinish = () => {
-    setIsRunning(false)
-    setIsPaused(false)
-    stopTimer()
-    stopGPSTracking()
-
-    navigate('/run-summary/1', {
-      state: {
-        runData: {
-          activityType,
-          distance,
-          duration,
-          pace,
-          routePoints
-        }
+      if (player) {
+        const territories = await getAllTerritories();
+        addTerritoryOverlay(map, territories, {
+          playerId: player.id,
+          showLabels: true,
+        });
       }
-    })
-  }
 
-  // Reset run
-  const handleReset = () => {
-    setDistance(0)
-    setDuration(0)
-    setPace(0)
-    setRoutePoints([])
-    lastPosition.current = null
-  }
+      // Create marker element
+      const el = document.createElement('div');
+      el.className = 'user-marker';
+      el.style.position = 'relative';
+      el.innerHTML = `
+        <div style="
+          width: 20px; height: 20px;
+          background: #00B4C6;
+          border: 3px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 8px rgba(0,180,198,0.4);
+        "></div>
+        <div style="
+          position: absolute; top: -2px; left: -2px;
+          width: 24px; height: 24px;
+          border-radius: 50%;
+          border: 2px solid rgba(0,180,198,0.3);
+          animation: pulse-ring 2s ease-out infinite;
+        "></div>
+      `;
 
-  // Initialize GPS on mount
-  useEffect(() => {
-    if (navigator.geolocation && startLocation) {
-      setMapCenter(startLocation)
-    } else if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const initialLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
+      // Place marker immediately at known location if available
+      if (userLngLatRef.current) {
+        markerRef.current = new maplibregl.Marker({ element: el })
+          .setLngLat(userLngLatRef.current)
+          .addTo(map);
+      } else {
+        markerRef.current = new maplibregl.Marker({ element: el })
+          .setLngLat(initCenter);
+      }
+
+      // Continuously watch position for accurate tracking
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lngLat: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+          userLngLatRef.current = lngLat;
+          if (markerRef.current) {
+            markerRef.current.setLngLat(lngLat);
+            if (!markerRef.current.getElement().parentElement) {
+              markerRef.current.addTo(map);
+            }
           }
-          setCurrentLocation(initialLocation)
-          setMapCenter(initialLocation)
-          setGpsStatus('found')
         },
-        (error) => {
-          console.error('Initial GPS Error:', error)
-          setGpsStatus('error')
-          alert('Unable to get GPS location. Please enable location services and try again.')
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      )
-    }
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 5000 }
+      );
+    });
+
+    const ro = new ResizeObserver(() => {
+      if (mapRef.current) mapRef.current.resize();
+    });
+    ro.observe(mapContainer.current);
+
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes pulse-ring {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(3); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
 
     return () => {
-      stopTimer()
-      stopGPSTracking()
+      ro.disconnect();
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      map.remove();
+      mapRef.current = null;
+      style.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !mapReady || gpsPoints.length === 0) return;
+
+    const latest = gpsPoints[gpsPoints.length - 1];
+    const map = mapRef.current;
+
+    if (markerRef.current) {
+      markerRef.current.setLngLat([latest.lng, latest.lat]);
     }
-  }, [])
 
-  // Function to recenter map on current location
-  const handleRecenter = () => {
-    if (currentLocation) {
-      setMapCenter({ ...currentLocation })
+    if (isRunning && !isPaused) {
+      map.easeTo({ center: [latest.lng, latest.lat], duration: 1000 });
     }
-  }
 
-  const getCurrentActivity = () => {
-    return activityTypes.find(type => type.id === activityType) || activityTypes[0]
-  }
+    const routeCoords = gpsPoints.map(p => [p.lng, p.lat]);
 
-  const getGPSStatusColor = () => {
-    switch (gpsStatus) {
-      case 'found': return 'bg-green-400'
-      case 'searching': return 'bg-yellow-400 animate-pulse'
-      case 'error': return 'bg-red-400'
-      default: return 'bg-gray-400'
+    if (!routeSourceAdded.current) {
+      map.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: routeCoords },
+        },
+      });
+
+      map.addLayer({
+        id: 'route-glow',
+        type: 'line',
+        source: 'route',
+        paint: { 'line-color': 'rgba(0, 180, 198, 0.15)', 'line-width': 12, 'line-blur': 8 },
+      });
+
+      map.addLayer({
+        id: 'route-line',
+        type: 'line',
+        source: 'route',
+        paint: { 'line-color': '#00B4C6', 'line-width': 4, 'line-opacity': 0.9 },
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+      });
+
+      routeSourceAdded.current = true;
+    } else {
+      const source = map.getSource('route') as maplibregl.GeoJSONSource;
+      if (source) {
+        source.setData({
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'LineString', coordinates: routeCoords },
+        });
+      }
     }
-  }
+  }, [gpsPoints, mapReady, isRunning, isPaused]);
 
-  // Get current time
-  const getCurrentTime = () => {
-    const now = new Date()
-    return `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`
-  }
+  useEffect(() => {
+    if (!lastClaimEvent || lastClaimEvent.type !== 'claimed') return;
+    if (!mapRef.current) return;
 
-  // Format pace for display
-  const formatPace = (paceValue: number) => {
-    if (paceValue === 0) return '0:00'
-    const minutes = Math.floor(paceValue)
-    const seconds = Math.floor((paceValue % 1) * 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
+    animateClaimHex(mapRef.current, lastClaimEvent.hexId);
+
+    (async () => {
+      if (!mapRef.current || !player) return;
+      const territories = await getAllTerritories();
+      updateTerritoryData(mapRef.current, territories, player.id);
+    })();
+  }, [lastClaimEvent, player]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      console.log('Territory clicked:', detail);
+    };
+    window.addEventListener('territory-click', handler);
+    return () => window.removeEventListener('territory-click', handler);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0)
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const handleFinish = useCallback(async () => {
+    const result = await finishRun();
+    if (result) {
+      const lastPoint = result.gpsPoints?.[result.gpsPoints.length - 1];
+      navigate(`/run-summary/${result.runId}`, {
+        state: {
+          runData: {
+            distance: result.distance,
+            duration: result.elapsed,
+            pace: result.elapsed > 0 ? result.distance / result.elapsed : 0,
+            territoriesClaimed: result.territoriesClaimed,
+            currentLocation: lastPoint
+              ? { lat: lastPoint.lat, lng: lastPoint.lng }
+              : { lat: 0, lng: 0 },
+            isActive: false,
+            isPaused: false,
+            route: (result.gpsPoints || []).map((p: { lat: number; lng: number }) => ({
+              lat: p.lat,
+              lng: p.lng,
+            })),
+            actionType: 'claim',
+            success: true,
+          },
+        },
+      });
+    }
+  }, [finishRun, navigate]);
+
+  const recenterMap = () => {
+    if (!mapRef.current) return;
+    // Prefer latest GPS point from active run, fall back to watchPosition location
+    if (gpsPoints.length > 0) {
+      const latest = gpsPoints[gpsPoints.length - 1];
+      mapRef.current.flyTo({ center: [latest.lng, latest.lat], zoom: 16, pitch: 45, duration: 500 });
+    } else if (userLngLatRef.current) {
+      mapRef.current.flyTo({ center: userLngLatRef.current, zoom: 16, pitch: 45, duration: 500 });
+    }
+  };
+
+  const zoneGradients: Record<string, string> = {
+    owned: 'from-teal-500/15 via-transparent to-transparent',
+    enemy: 'from-pink-500/15 via-transparent to-transparent',
+    neutral: 'from-gray-500/5 via-transparent to-transparent',
+  };
 
   return (
-    <div className="fixed inset-0 bg-black z-[100]">
-      {/* Map Background */}
-      <div className="absolute inset-0">
-        {mapCenter ? (
-          <MapLibreMap
-            center={[mapCenter.lng, mapCenter.lat]}
-            zoom={16}
-            is3DEnabled={is3DEnabled}
-            selectedLayer={selectedLayer}
-            userLocation={currentLocation}
-            routePoints={routePoints}
+    <div className="fixed inset-0 bg-white" style={{ width: '100vw', height: '100dvh', minHeight: '100vh' }}>
+      <div ref={mapContainer} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} />
+
+      <AnimatePresence mode="wait">
+        {currentZone && (
+          <motion.div
+            key={currentZone}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className={`absolute top-0 left-0 right-0 h-40 bg-gradient-to-b ${zoneGradients[currentZone]} pointer-events-none z-10`}
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-            <div className="text-white/60 text-center">
-              <div className="animate-pulse mb-2">📍</div>
-              <div className="text-sm">Getting your location...</div>
-            </div>
-          </div>
         )}
-      </div>
+      </AnimatePresence>
 
-      {/* Status Bar - Top */}
-      <div className="absolute top-0 left-0 right-0 h-12 flex items-center justify-between px-4 z-20 bg-gradient-to-b from-black/60 to-transparent">
-        <span className="text-white text-sm font-light">{getCurrentTime()}</span>
-        <div className="flex items-center gap-2">
-          <Wifi size={16} className="text-white" />
-          <Battery size={16} className="text-white" />
-        </div>
-      </div>
-
-      {/* Back Button - Top Left */}
-      <button
-        onClick={handleBack}
-        className="absolute top-12 left-4 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center hover:bg-black/80 transition-colors"
-      >
-        <ChevronDown size={24} className="text-white" />
-      </button>
-
-      {/* Map Controls - Right Side */}
-      <div className="absolute top-1/3 right-4 z-20 flex flex-col gap-2">
-        <button
-          onClick={() => setShowLayerModal(true)}
-          className="w-10 h-10 rounded-lg bg-black/60 backdrop-blur-md flex items-center justify-center hover:bg-black/80 transition-colors"
-          title="Map layers"
-        >
-          <Layers size={20} className="text-white" />
-        </button>
-        <button
-          onClick={() => setIs3DEnabled(!is3DEnabled)}
-          className={cn(
-            "w-10 h-10 rounded-lg backdrop-blur-md flex items-center justify-center transition-colors text-white text-xs font-bold",
-            is3DEnabled
-              ? "bg-primary/80 hover:bg-primary"
-              : "bg-black/60 hover:bg-black/80"
-          )}
-          title={is3DEnabled ? "Disable 3D" : "Enable 3D"}
-        >
-          3D
-        </button>
-        <button
-          onClick={handleRecenter}
-          className="w-10 h-10 rounded-lg bg-black/60 backdrop-blur-md flex items-center justify-center hover:bg-black/80 transition-colors"
-          title="Center on my location"
-        >
-          <Crosshair size={20} className="text-white" />
-        </button>
-      </div>
-
-      {/* Fullscreen Toggle - Bottom Right */}
-      <button
-        onClick={handleFullscreen}
-        className="absolute bottom-32 right-4 z-20 w-10 h-10 rounded-lg bg-black/60 backdrop-blur-md flex items-center justify-center hover:bg-black/80 transition-colors"
-        title="Toggle fullscreen"
-      >
-        <Maximize2 size={20} className="text-white" />
-      </button>
-
-      {/* Bottom Activity Panel */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-auto pb-safe">
-        <div className="mx-3 mb-3">
-          {/* Activity Header Card */}
-          <div className="liquid-blur-card rounded-2xl px-4 py-2 mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {(() => {
-                const Icon = getCurrentActivity().icon
-                return <Icon size={24} className="text-white" />
-              })()}
-              <span className="text-white text-base font-light">{getCurrentActivity().label}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className={cn('w-2 h-2 rounded-full', getGPSStatusColor())} />
-            </div>
-          </div>
-
-          {/* Stats Grid Card */}
-          <div className="liquid-blur-card rounded-2xl px-4 py-3 mb-2">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <div className="text-white text-lg font-light tracking-wide">{formatTime(duration)}</div>
-                <div className="text-white/50 text-[10px] font-light uppercase tracking-wider mt-1">Time</div>
-              </div>
-              <div className="text-center">
-                <div className="text-white text-2xl font-light tracking-wide">{formatPace(pace)}</div>
-                <div className="text-white/50 text-[10px] font-light uppercase tracking-wider mt-1">Avg. Pace</div>
-              </div>
-              <div className="text-center">
-                <div className="text-white text-lg font-light tracking-wide">{(distance / 1000).toFixed(2)}</div>
-                <div className="text-white/50 text-[10px] font-light uppercase tracking-wider mt-1">Distance</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons Card */}
-          <div className="liquid-blur-card rounded-2xl px-3 py-3">
-            {!isRunning ? (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setShowActivityModal(true)}
-                  className="flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 backdrop-blur-sm border border-white/10 bg-white/10 hover:bg-white/20 hover:scale-105 active:scale-95"
-                >
-                  {(() => {
-                    const Icon = getCurrentActivity().icon
-                    return <Icon size={32} className="text-white mb-1.5" />
-                  })()}
-                  <span className="text-white/80 text-[10px] font-light">Change Sport</span>
-                </button>
-
-                <button
-                  onClick={handleStart}
-                  disabled={gpsStatus === 'error'}
-                  className="flex flex-col items-center justify-center py-4 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-white/10 disabled:to-white/5 disabled:cursor-not-allowed rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
-                >
-                  <Play size={26} fill="white" className="text-white mb-1.5" />
-                  <span className="text-white text-[10px] font-medium tracking-wide">START</span>
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={isPaused ? handleResume : handlePause}
-                    className={cn(
-                      'flex flex-col items-center justify-center py-4 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg',
-                      isPaused
-                        ? 'bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
-                        : 'bg-gradient-to-br from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
-                    )}
-                  >
-                    {isPaused ? (
-                      <Play size={26} fill="white" className="text-white mb-1.5" />
+      <AnimatePresence>
+        {claimProgress > 0 && claimProgress < 100 && (
+          <motion.div
+            initial={{ y: -80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -80, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25 }}
+            className="absolute left-4 right-4 z-20"
+            style={{ top: 'max(16px, env(safe-area-inset-top))' }}
+          >
+            <div className="bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-lg border border-gray-100">
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-medium text-gray-500">
+                    {currentZone === 'enemy' ? (
+                      <span className="flex items-center gap-1.5"><Swords className="w-3.5 h-3.5 text-pink-500" strokeWidth={2} /> Attacking Territory</span>
                     ) : (
-                      <Pause size={26} className="text-white mb-1.5" />
+                      <span className="flex items-center gap-1.5"><Flag className="w-3.5 h-3.5 text-teal-600" strokeWidth={2} /> Claiming Territory</span>
                     )}
-                    <span className="text-white text-[10px] font-medium tracking-wide">
-                      {isPaused ? 'RESUME' : 'PAUSE'}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={handleFinish}
-                    className="flex flex-col items-center justify-center py-4 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
-                  >
-                    <Square size={26} className="text-white mb-1.5" />
-                    <span className="text-white text-[10px] font-medium tracking-wide">FINISH</span>
-                  </button>
+                  </span>
+                  <span className="text-stat text-xs font-bold text-teal-600">
+                    {Math.round(claimProgress)}%
+                  </span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <motion.div
+                    className={`h-full rounded-full ${
+                      currentZone === 'enemy'
+                        ? 'bg-gradient-to-r from-pink-500 to-pink-400'
+                        : 'bg-gradient-to-r from-teal-500 to-teal-400'
+                    }`}
+                    animate={{ width: `${claimProgress}%` }}
+                    transition={{ type: 'spring', stiffness: 50, damping: 15 }}
+                  />
                 </div>
               </div>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className={`w-8 h-8 rounded-full border-2 ${
+                  currentZone === 'enemy'
+                    ? 'border-pink-200 border-t-pink-500'
+                    : 'border-teal-200 border-t-teal-500'
+                }`}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {lastClaimEvent?.type === 'claimed' && (
+          <motion.div
+            initial={{ y: -100, opacity: 0, scale: 0.85 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: -100, opacity: 0, scale: 0.85 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+            className="absolute left-4 right-4 z-30"
+            style={{ top: 'max(20px, env(safe-area-inset-top))' }}
+          >
+            <div className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-lg border border-teal-200">
+              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
+                <Flag className="w-6 h-6 text-teal-600" strokeWidth={2} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-gray-900">Territory Claimed!</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {lastClaimEvent.previousOwner ? 'Captured from enemy!' : 'New zone secured'}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-stat text-sm font-bold text-teal-600">
+                  +{lastClaimEvent.xpEarned} XP
+                </span>
+                <span className="text-stat text-xs font-bold text-amber-500">
+                  +{lastClaimEvent.coinsEarned} coins
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div
+        className="absolute right-4 z-20 flex flex-col gap-2"
+        style={{ top: 'max(16px, env(safe-area-inset-top))' }}
+      >
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={recenterMap}
+          className="w-11 h-11 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+          </svg>
+        </motion.button>
+      </div>
+
+      <motion.div
+        initial={{ y: 200 }}
+        animate={{ y: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200, delay: 0.2 }}
+        className="absolute bottom-0 left-0 right-0 z-20"
+      >
+        <div className="bg-white/95 backdrop-blur-xl rounded-t-3xl border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <div className="flex justify-center pt-2 pb-1">
+            <div className="w-8 h-1 rounded-full bg-gray-200" />
+          </div>
+
+          <div className="text-center pt-1 pb-3">
+            <div className="flex items-baseline justify-center gap-1">
+              <span className="text-stat text-6xl font-bold text-gray-900 tracking-tight leading-none">
+                <AnimatedCounter value={distance} decimals={2} />
+              </span>
+              <span className="text-stat text-xl text-gray-400 font-medium">km</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-around px-6 pb-4 border-b border-gray-100">
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Time</span>
+              <span className="text-stat text-2xl font-semibold text-gray-900">{formatTime(elapsed)}</span>
+            </div>
+            <div className="w-px h-10 bg-gray-200" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Pace</span>
+              <span className="text-stat text-2xl font-semibold text-gray-900">
+                {pace}<span className="text-sm text-gray-400 ml-0.5">/km</span>
+              </span>
+            </div>
+            <div className="w-px h-10 bg-gray-200" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Zones</span>
+              <span className="text-stat text-2xl font-bold text-teal-600">{territoriesClaimed}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-6 py-5 px-6 pb-safe">
+            {!isRunning ? (
+              <motion.button
+                whileTap={{ scale: 0.88 }}
+                onClick={startRun}
+                className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-teal-600
+                           flex items-center justify-center
+                           shadow-[0_4px_24px_rgba(0,180,198,0.3)]"
+              >
+                <svg width="28" height="32" viewBox="0 0 28 32" fill="white">
+                  <path d="M2 0L28 16L2 32V0Z" />
+                </svg>
+              </motion.button>
+            ) : (
+              <>
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
+                  onClick={() => { setShowFinishConfirm(true); haptic('medium'); }}
+                  className="w-14 h-14 rounded-full bg-red-50 border border-red-200
+                             flex items-center justify-center"
+                >
+                  <div className="w-5 h-5 rounded-sm bg-red-500" />
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
+                  onClick={isPaused ? resumeRun : pauseRun}
+                  className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
+                    isPaused
+                      ? 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_4px_24px_rgba(0,180,198,0.3)]'
+                      : 'bg-gray-100 border-2 border-gray-200'
+                  }`}
+                >
+                  {isPaused ? (
+                    <svg width="28" height="32" viewBox="0 0 28 32" fill="white">
+                      <path d="M2 0L28 16L2 32V0Z" />
+                    </svg>
+                  ) : (
+                    <div className="flex gap-2">
+                      <div className="w-3 h-7 bg-gray-600 rounded-sm" />
+                      <div className="w-3 h-7 bg-gray-600 rounded-sm" />
+                    </div>
+                  )}
+                </motion.button>
+
+                <motion.button
+                  whileTap={{ scale: 0.88 }}
+                  onClick={recenterMap}
+                  className="w-14 h-14 rounded-full bg-gray-50 border border-gray-200
+                             flex items-center justify-center"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+                  </svg>
+                </motion.button>
+              </>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Activity Selector Modal - Circular */}
-      {showActivityModal && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center animate-in fade-in duration-200"
-          onClick={() => setShowActivityModal(false)}
-        >
-          <div
-            className="relative w-[400px] h-[400px] animate-in zoom-in duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Circular Guide Ring */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-64 h-64 rounded-full border-2 border-dashed border-white/20 animate-spin-slow"></div>
-            </div>
-
-            {/* Center Circle */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-36 h-36 rounded-full liquid-blur-card flex flex-col items-center justify-center shadow-2xl ring-2 ring-white/20 animate-in zoom-in duration-300 delay-100">
-                {(() => {
-                  const Icon = getCurrentActivity().icon
-                  return <Icon size={48} className="text-white mb-2" strokeWidth={1.5} />
-                })()}
-                <span className="text-white text-base font-light">{getCurrentActivity().label}</span>
-                <span className="text-white/50 text-[10px] mt-1">Select Below</span>
-              </div>
-            </div>
-
-            {/* Circular Activity Options */}
-            {activityTypes.map((type, index) => {
-              const angle = (index * 360) / activityTypes.length - 90 // Start from top
-              const radius = 130
-              const x = Math.cos((angle * Math.PI) / 180) * radius
-              const y = Math.sin((angle * Math.PI) / 180) * radius
-              const Icon = type.icon
-
-              return (
-                <button
-                  key={type.id}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setActivityType(type.id)
-                    setShowActivityModal(false)
-                  }}
-                  className={cn(
-                    'absolute w-24 h-24 rounded-full flex flex-col items-center justify-center transition-all duration-300 z-10',
-                    'backdrop-blur-lg border-2 shadow-xl animate-in zoom-in cursor-pointer',
-                    activityType === type.id
-                      ? `${type.color} border-white/50 scale-110 shadow-2xl ring-4 ring-white/30`
-                      : 'bg-white/15 border-white/30 hover:bg-white/25 hover:scale-110 hover:border-white/50 active:scale-95'
-                  )}
-                  style={{
-                    left: `calc(50% + ${x}px - 48px)`,
-                    top: `calc(50% + ${y}px - 48px)`,
-                    animationDelay: `${index * 50}ms`,
-                  }}
-                >
-                  <Icon size={36} className="text-white mb-1 pointer-events-none" strokeWidth={1.5} />
-                  <span className="text-white text-[9px] font-medium uppercase tracking-wider pointer-events-none">{type.label}</span>
-                </button>
-              )
-            })}
-
-            {/* Close hint */}
-            <div className="absolute -bottom-16 left-0 right-0 text-center animate-in fade-in duration-300 delay-300 pointer-events-none">
-              <span className="text-white/60 text-sm font-light">Tap outside or select a sport</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Map Layer Selector Modal */}
-      {showLayerModal && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center animate-in fade-in duration-200"
-          onClick={() => setShowLayerModal(false)}
-        >
-          <div
-            className="w-full max-w-md mx-4 liquid-blur-card rounded-2xl p-6 animate-in zoom-in duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white text-xl font-light">Map Layers</h3>
-              <button
-                onClick={() => setShowLayerModal(false)}
-                className="text-white/60 hover:text-white transition-colors"
-              >
-                <ChevronDown size={24} />
-              </button>
-            </div>
-
-            {/* Layer Options Grid */}
-            <div className="space-y-3">
-              {mapLayers.map((layer) => {
-                const Icon = layer.icon
-                const isSelected = selectedLayer === layer.id
-
-                return (
+      <AnimatePresence>
+        {showFinishConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/30 z-40"
+              onClick={() => setShowFinishConfirm(false)}
+            />
+            <motion.div
+              initial={{ y: 200, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 200, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25 }}
+              className="fixed bottom-0 left-0 right-0 z-50 p-6 pb-safe"
+            >
+              <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xl">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Finish Run?</h3>
+                <p className="text-sm text-gray-500 mb-6">
+                  {distance.toFixed(2)} km · {formatTime(elapsed)} · {territoriesClaimed} territories claimed
+                </p>
+                <div className="flex gap-3">
                   <button
-                    key={layer.id}
-                    onClick={() => {
-                      setSelectedLayer(layer.id)
-                      setShowLayerModal(false)
-                    }}
-                    className={cn(
-                      'w-full flex items-center gap-4 p-4 rounded-xl transition-all duration-200',
-                      'backdrop-blur-sm border-2',
-                      isSelected
-                        ? 'bg-primary/20 border-primary/50 scale-[1.02]'
-                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-95'
-                    )}
+                    onClick={() => setShowFinishConfirm(false)}
+                    className="flex-1 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
+                               text-sm font-semibold text-gray-600 active:scale-[0.97] transition"
                   >
-                    {/* Icon */}
-                    <div className={cn(
-                      'w-12 h-12 rounded-lg flex items-center justify-center',
-                      isSelected ? 'bg-primary/30' : 'bg-white/10'
-                    )}>
-                      <Icon size={24} className="text-white" strokeWidth={1.5} />
-                    </div>
-
-                    {/* Label & Description */}
-                    <div className="flex-1 text-left">
-                      <div className="text-white font-light text-base">{layer.label}</div>
-                      <div className="text-white/50 text-xs font-light">{layer.description}</div>
-                    </div>
-
-                    {/* Selected Indicator */}
-                    {isSelected && (
-                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
-                      </div>
-                    )}
+                    Continue
                   </button>
-                )
-              })}
-            </div>
-
-            {/* Footer Note */}
-            <div className="mt-6 text-center">
-              <span className="text-white/40 text-xs font-light">
-                Switch between map styles for better visibility
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+                  <button
+                    onClick={handleFinish}
+                    className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
+                               text-sm font-bold text-white active:scale-[0.97] transition
+                               shadow-[0_4px_16px_rgba(0,180,198,0.25)]"
+                  >
+                    Finish
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
-  )
+  );
 }

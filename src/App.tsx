@@ -1,75 +1,96 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { OnboardingWrapper } from '@/components/onboarding/OnboardingFlow'
-import { Dashboard } from '@/components/pages/Dashboard'
-import { Feed } from '@/components/pages/Feed'
-import { Activity } from '@/components/pages/Activity'
-import { RunScreen } from '@/components/pages/RunScreen'
-import { ActiveRun } from '@/components/pages/ActiveRun'
-import { RunSummary } from '@/components/pages/RunSummary'
-import { Profile } from '@/components/pages/Profile'
-import { Leaderboard } from '@/components/pages/Leaderboard'
-import { Events } from '@/components/pages/Events'
-import { Territories } from '@/components/pages/Territories'
-import { History } from '@/components/pages/History'
-import { Club } from '@/components/pages/Club'
-import { Lobby } from '@/components/pages/Lobby'
-import { LobbyChat } from '@/components/pages/LobbyChat'
-// Legacy imports for backward compatibility
-import { TerritoryManagement } from '@/components/pages/TerritoryManagement'
-import { Leaderboards } from '@/components/pages/Leaderboards'
-import { RoutePlanner } from '@/components/pages/RoutePlanner'
-import { TerritoryExplorer } from '@/components/pages/TerritoryExplorer'
-import { CommunityHub } from '@/components/pages/CommunityHub'
-import { NotificationCenter } from '@/components/notifications/NotificationCenter'
-import { BottomNavigation } from '@/components/navigation/BottomNavigation'
-import './index.css'
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
+import { BottomNavigation } from '@/components/navigation/BottomNavigation';
+import { PageTransition } from '@/components/layout/PageTransition';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import './index.css';
 
-function App() {
+const Dashboard = lazy(() => import('./components/pages/Dashboard'));
+const Feed = lazy(() => import('./components/pages/Feed'));
+const RunScreen = lazy(() => import('./components/pages/RunScreen'));
+const ActiveRun = lazy(() => import('./components/pages/ActiveRun'));
+const RunSummary = lazy(() => import('./components/pages/RunSummary'));
+const Profile = lazy(() => import('./components/pages/Profile'));
+const TerritoryMap = lazy(() => import('./components/pages/TerritoryMap'));
+const Leaderboard = lazy(() => import('./components/pages/Leaderboard'));
+const Events = lazy(() => import('./components/pages/Events'));
+const History = lazy(() => import('./components/pages/History'));
+const Club = lazy(() => import('./components/pages/Club'));
+const Lobby = lazy(() => import('./components/pages/Lobby'));
+const LobbyChat = lazy(() => import('./components/pages/LobbyChat'));
+
+function LayoutWithNav({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Router>
-        <OnboardingWrapper>
-          <Routes>
-          {/* New 4-Tab Clean Architecture */}
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={<Dashboard />} />
-          <Route path="/feed" element={<Feed />} />
-          <Route path="/run" element={<RunScreen />} />
-          <Route path="/profile" element={<Profile />} />
-
-          {/* Dashboard Sub-Pages */}
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/territories" element={<Territories />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/club" element={<Club />} />
-          <Route path="/lobby" element={<Lobby />} />
-          <Route path="/lobby/:id" element={<LobbyChat />} />
-
-          {/* Activity & Run Routes */}
-          <Route path="/activity" element={<Activity />} />
-          <Route path="/activity/:id" element={<Activity />} />
-
-          {/* Legacy Territory Route */}
-          <Route path="/territory" element={<TerritoryManagement />} />
-
-          {/* Active Run & Summary */}
-          <Route path="/active-run" element={<ActiveRun />} />
-          <Route path="/run-summary/:runId" element={<RunSummary />} />
-
-          {/* Legacy Routes for Backward Compatibility */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/route-planner" element={<RoutePlanner />} />
-          <Route path="/territory-explorer" element={<TerritoryExplorer />} />
-          <Route path="/leaderboards" element={<Leaderboards />} />
-          <Route path="/community" element={<CommunityHub />} />
-          <Route path="/notifications" element={<NotificationCenter />} />
-          </Routes>
-          <BottomNavigation />
-        </OnboardingWrapper>
-      </Router>
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-hidden">
+        {children}
+      </div>
+      <BottomNavigation />
     </div>
-  )
+  );
 }
 
-export default App
+function FullscreenWithNav({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      <BottomNavigation />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <OnboardingWrapper>
+        <Suspense fallback={<LoadingScreen />}>
+          <Routes>
+            {/* Fullscreen pages (no bottom nav) */}
+            <Route path="/active-run" element={<ActiveRun />} />
+            <Route path="/run-summary/:id" element={<RunSummary />} />
+
+            {/* Map tab — fullscreen map with floating nav */}
+            <Route path="/territory-map" element={
+              <FullscreenWithNav><TerritoryMap /></FullscreenWithNav>
+            } />
+
+            {/* Pages with bottom nav */}
+            <Route path="/home" element={
+              <LayoutWithNav><PageTransition><Dashboard /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/feed" element={
+              <LayoutWithNav><PageTransition><Feed /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/run" element={<RunScreen />} />
+            <Route path="/profile" element={
+              <LayoutWithNav><PageTransition><Profile /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/leaderboard" element={
+              <LayoutWithNav><PageTransition><Leaderboard /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/events" element={
+              <LayoutWithNav><PageTransition><Events /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/history" element={
+              <LayoutWithNav><PageTransition><History /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/club" element={
+              <LayoutWithNav><PageTransition><Club /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/lobby" element={
+              <LayoutWithNav><PageTransition><Lobby /></PageTransition></LayoutWithNav>
+            } />
+            <Route path="/lobby/:id" element={
+              <LayoutWithNav><PageTransition><LobbyChat /></PageTransition></LayoutWithNav>
+            } />
+
+            {/* Default redirect */}
+            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="*" element={<Navigate to="/home" replace />} />
+          </Routes>
+        </Suspense>
+      </OnboardingWrapper>
+    </BrowserRouter>
+  );
+}

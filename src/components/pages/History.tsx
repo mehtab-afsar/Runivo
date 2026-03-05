@@ -1,125 +1,190 @@
-import React from 'react'
-import { PageHeader } from '@/components/common/PageHeader'
-import { History as HistoryIcon, MapPin, Trophy, Shield, Sword } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Activity, Footprints, Bike, Mountain } from 'lucide-react';
+import { getRuns, StoredRun } from '../../game/store';
 
-interface HistoryItem {
-  id: string
-  type: 'capture' | 'defend' | 'attack' | 'lost'
-  territory: string
-  timestamp: string
-  details?: string
-}
+export default function History() {
+  const navigate = useNavigate();
+  const [runs, setRuns] = useState<StoredRun[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export const History: React.FC = () => {
-  const historyItems: HistoryItem[] = [
-    { id: '1', type: 'capture', territory: 'Downtown', timestamp: '2 hours ago', details: 'First capture of the day' },
-    { id: '2', type: 'defend', territory: 'Central Park', timestamp: '5 hours ago', details: 'Successfully defended against attack' },
-    { id: '3', type: 'lost', territory: 'Riverside', timestamp: 'Yesterday', details: 'Territory captured by Mike Fast' },
-    { id: '4', type: 'capture', territory: 'Harbor District', timestamp: '2 days ago' },
-    { id: '5', type: 'defend', territory: 'Old Town', timestamp: '3 days ago' },
-    { id: '6', type: 'attack', territory: 'University', timestamp: '4 days ago', details: 'Attack attempt unsuccessful' },
-    { id: '7', type: 'capture', territory: 'Market Square', timestamp: '5 days ago' },
-    { id: '8', type: 'capture', territory: 'Tech Park', timestamp: '6 days ago' },
-  ]
+  useEffect(() => {
+    loadRuns();
+  }, []);
 
-  const getItemColor = (type: HistoryItem['type']) => {
-    switch (type) {
-      case 'capture': return 'text-green-600 bg-green-500/10'
-      case 'defend': return 'text-blue-600 bg-blue-500/10'
-      case 'attack': return 'text-orange-600 bg-orange-500/10'
-      case 'lost': return 'text-red-600 bg-red-500/10'
-      default: return 'text-muted-foreground bg-secondary'
+  const loadRuns = async () => {
+    setLoading(true);
+    const allRuns = await getRuns();
+    setRuns(allRuns);
+    setLoading(false);
+  };
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m ${s}s`;
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTimeOfDay = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const groupedRuns: { date: string; runs: StoredRun[] }[] = [];
+  runs.forEach(run => {
+    const dateStr = new Date(run.startTime).toDateString();
+    const existing = groupedRuns.find(g => g.date === dateStr);
+    if (existing) {
+      existing.runs.push(run);
+    } else {
+      groupedRuns.push({ date: dateStr, runs: [run] });
     }
-  }
+  });
 
-  const getItemIcon = (type: HistoryItem['type']) => {
-    switch (type) {
-      case 'capture': return Trophy
-      case 'defend': return Shield
-      case 'attack': return Sword
-      case 'lost': return MapPin
-      default: return HistoryIcon
-    }
-  }
+  const totalDistance = runs.reduce((s, r) => s + r.distanceMeters / 1000, 0);
+  const totalTime = runs.reduce((s, r) => s + r.durationSec, 0);
+  const totalTerritories = runs.reduce((s, r) => s + r.territoriesClaimed.length, 0);
 
-  const getItemLabel = (type: HistoryItem['type']) => {
-    switch (type) {
-      case 'capture': return 'Captured'
-      case 'defend': return 'Defended'
-      case 'attack': return 'Attacked'
-      case 'lost': return 'Lost'
-      default: return 'Activity'
-    }
-  }
+  const activityIcons: Record<string, ReactNode> = {
+    run: <Activity className="w-5 h-5 text-teal-600" strokeWidth={2} />,
+    walk: <Footprints className="w-5 h-5 text-emerald-500" strokeWidth={2} />,
+    cycle: <Bike className="w-5 h-5 text-purple-500" strokeWidth={2} />,
+    hike: <Mountain className="w-5 h-5 text-orange-500" strokeWidth={2} />,
+  };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Activity History" showBack={true} showProfile={true} />
-
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Stats Summary */}
-        <div className="grid grid-cols-4 gap-3 mb-6">
-          <div className="card-breathable text-center">
-            <div className="text-2xl font-light mb-1 text-green-600">12</div>
-            <div className="stat-label">Captured</div>
-          </div>
-          <div className="card-breathable text-center">
-            <div className="text-2xl font-light mb-1 text-blue-600">28</div>
-            <div className="stat-label">Defended</div>
-          </div>
-          <div className="card-breathable text-center">
-            <div className="text-2xl font-light mb-1 text-orange-600">15</div>
-            <div className="stat-label">Attacked</div>
-          </div>
-          <div className="card-breathable text-center">
-            <div className="text-2xl font-light mb-1 text-red-600">3</div>
-            <div className="stat-label">Lost</div>
-          </div>
+    <div className="min-h-screen bg-[#FAFAFA] pb-24">
+      <div className="px-5 pb-5" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
+        <div className="flex items-center justify-between mb-5">
+          <h1 className="text-xl font-bold text-gray-900">Run History</h1>
+          <span className="text-stat text-sm text-gray-400">{runs.length} runs</span>
         </div>
 
-        {/* History Timeline */}
-        <div className="card-breathable">
-          <div className="flex items-center gap-2 mb-4">
-            <HistoryIcon size={20} className="text-primary" strokeWidth={1.5} />
-            <h2 className="text-lg font-light">Recent Activity</h2>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-2xl shadow-sm p-3 text-center border border-gray-100">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 block mb-1">Distance</span>
+            <span className="text-stat text-lg font-bold text-gray-900">{totalDistance.toFixed(1)}</span>
+            <span className="text-stat text-xs text-gray-400 ml-0.5">km</span>
           </div>
-
-          <div className="space-y-3">
-            {historyItems.map((item) => {
-              const Icon = getItemIcon(item.type)
-              const colorClass = getItemColor(item.type)
-              const label = getItemLabel(item.type)
-
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-background border border-border hover:bg-secondary transition-all"
-                >
-                  <div className={cn('w-10 h-10 rounded-full flex items-center justify-center', colorClass)}>
-                    <Icon size={18} strokeWidth={1.5} />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-normal">{label}</span>
-                      <span className="text-sm font-light">{item.territory}</span>
-                    </div>
-                    {item.details && (
-                      <p className="text-xs font-light text-muted-foreground mb-1">
-                        {item.details}
-                      </p>
-                    )}
-                    <span className="text-xs font-light text-muted-foreground">
-                      {item.timestamp}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
+          <div className="bg-white rounded-2xl shadow-sm p-3 text-center border border-gray-100">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 block mb-1">Time</span>
+            <span className="text-stat text-lg font-bold text-gray-900">
+              {Math.floor(totalTime / 3600)}h {Math.floor((totalTime % 3600) / 60)}m
+            </span>
+          </div>
+          <div className="bg-white rounded-2xl shadow-sm p-3 text-center border border-gray-100">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 block mb-1">Zones</span>
+            <span className="text-stat text-lg font-bold text-teal-600">{totalTerritories}</span>
           </div>
         </div>
       </div>
+
+      <div className="px-5">
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100" />
+                  <div className="flex-1">
+                    <div className="h-3.5 w-32 bg-gray-100 rounded mb-2" />
+                    <div className="h-2.5 w-48 bg-gray-100 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : runs.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="flex justify-center mb-4"><Activity className="w-10 h-10 text-gray-300" strokeWidth={1.5} /></div>
+            <p className="text-lg font-semibold text-gray-900 mb-2">No runs yet</p>
+            <p className="text-sm text-gray-400 mb-6">Start your first run to begin claiming territories</p>
+            <button
+              onClick={() => navigate('/run')}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
+                         text-sm font-bold text-black shadow-[0_4px_16px_rgba(0,180,198,0.15)]"
+            >
+              Start Running
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {groupedRuns.map((group, gi) => (
+              <div key={group.date}>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {formatDate(new Date(group.date).getTime())}
+                  </span>
+                  <div className="flex-1 h-px bg-gray-200" />
+                </div>
+
+                <div className="space-y-2">
+                  {group.runs.map((run, ri) => (
+                    <motion.div
+                      key={run.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: gi * 0.05 + ri * 0.03 }}
+                      onClick={() => navigate(`/run-summary/${run.id}`, { state: run })}
+                      className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100
+                                 active:scale-[0.98] transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+                          {activityIcons[run.activityType] || <Activity className="w-5 h-5 text-teal-600" strokeWidth={2} />}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-gray-900 capitalize">{run.activityType}</span>
+                            <span className="text-[10px] text-gray-400">{formatTimeOfDay(run.startTime)}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-gray-500">
+                            <span className="text-stat">{(run.distanceMeters / 1000).toFixed(2)} km</span>
+                            <span className="text-gray-300">&middot;</span>
+                            <span className="text-stat">{formatTime(run.durationSec)}</span>
+                            <span className="text-gray-300">&middot;</span>
+                            <span className="text-stat">{run.avgPace}/km</span>
+                          </div>
+                        </div>
+
+                        {run.territoriesClaimed.length > 0 && (
+                          <div className="flex flex-col items-center shrink-0">
+                            <span className="text-stat text-lg font-bold text-teal-600">{run.territoriesClaimed.length}</span>
+                            <span className="text-[9px] text-gray-400 uppercase tracking-wider">zones</span>
+                          </div>
+                        )}
+
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(209,213,219,1)" strokeWidth="2">
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }
