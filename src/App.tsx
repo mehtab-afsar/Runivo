@@ -1,24 +1,24 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
-import { BottomNavigation } from '@/components/navigation/BottomNavigation';
-import { PageTransition } from '@/components/layout/PageTransition';
-import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { OnboardingWrapper } from '@features/onboarding/components/OnboardingWrapper';
+import { BottomNavigation } from '@shared/layout/BottomNavigation';
+import { PageTransition } from '@shared/layout/PageTransition';
+import { LoadingScreen } from '@shared/ui/LoadingScreen';
 import './index.css';
 
-const Dashboard = lazy(() => import('./components/pages/Dashboard'));
-const Feed = lazy(() => import('./components/pages/Feed'));
-const RunScreen = lazy(() => import('./components/pages/RunScreen'));
-const ActiveRun = lazy(() => import('./components/pages/ActiveRun'));
-const RunSummary = lazy(() => import('./components/pages/RunSummary'));
-const Profile = lazy(() => import('./components/pages/Profile'));
-const TerritoryMap = lazy(() => import('./components/pages/TerritoryMap'));
-const Leaderboard = lazy(() => import('./components/pages/Leaderboard'));
-const Events = lazy(() => import('./components/pages/Events'));
-const History = lazy(() => import('./components/pages/History'));
-const Club = lazy(() => import('./components/pages/Club'));
-const Lobby = lazy(() => import('./components/pages/Lobby'));
-const LobbyChat = lazy(() => import('./components/pages/LobbyChat'));
+const Dashboard    = lazy(() => import('@features/dashboard/pages/Dashboard'));
+const Feed         = lazy(() => import('@features/social/pages/Feed'));
+const RunScreen    = lazy(() => import('@features/run/pages/RunScreen'));
+const ActiveRun    = lazy(() => import('@features/run/pages/ActiveRun'));
+const RunSummary   = lazy(() => import('@features/run/pages/RunSummary'));
+const Profile      = lazy(() => import('@features/profile/pages/Profile'));
+const TerritoryMap = lazy(() => import('@features/territory/pages/TerritoryMap'));
+const Leaderboard  = lazy(() => import('@features/leaderboard/pages/Leaderboard'));
+const Events       = lazy(() => import('@features/events/pages/Events'));
+const History      = lazy(() => import('@features/history/pages/History'));
+const Club         = lazy(() => import('@features/club/pages/Club'));
+const Lobby        = lazy(() => import('@features/lobby/pages/Lobby'));
+const LobbyChat    = lazy(() => import('@features/lobby/pages/LobbyChat'));
 
 function LayoutWithNav({ children }: { children: React.ReactNode }) {
   return (
