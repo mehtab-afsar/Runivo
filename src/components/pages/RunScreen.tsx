@@ -20,16 +20,20 @@ type GpsState     = 'searching' | 'ready' | 'error';
 type SignalStrength = 'strong' | 'moderate' | 'weak' | 'searching';
 
 // ── Map styles ─────────────────────────────────────────────────────────────
-interface MapStyleDef { id: MapStyleId; label: string; preview: string; styleUrl?: string; rasterTiles?: string[] }
+interface MapStyleDef { id: MapStyleId; label: string; preview: string; styleUrl?: string; rasterTiles?: string[]; sourceMaxZoom?: number }
 const MAP_STYLES: MapStyleDef[] = [
   { id: 'standard',  label: 'Standard',  preview: '#E8F5E9', styleUrl: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
   { id: 'dark',      label: 'Dark',      preview: '#263238', styleUrl: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
   { id: 'light',     label: 'Light',     preview: '#FAFAFA', styleUrl: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
-  { id: 'terrain',   label: 'Terrain',   preview: '#C8E6C9', rasterTiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png','https://b.tile.opentopomap.org/{z}/{x}/{y}.png'] },
-  { id: 'satellite', label: 'Satellite', preview: '#1B5E20', rasterTiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'] },
+  { id: 'terrain',   label: 'Terrain',   preview: '#C8E6C9', rasterTiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png','https://b.tile.opentopomap.org/{z}/{x}/{y}.png'], sourceMaxZoom: 17 },
+  { id: 'satellite', label: 'Satellite', preview: '#1B5E20', rasterTiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], sourceMaxZoom: 18 },
 ];
-function buildRasterStyle(tiles: string[]): maplibregl.StyleSpecification {
-  return { version: 8, sources: { 'raster-tiles': { type: 'raster', tiles, tileSize: 256, attribution: '' } }, layers: [{ id: 'raster-layer', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 19 }] };
+function buildRasterStyle(tiles: string[], sourceMaxZoom = 19): maplibregl.StyleSpecification {
+  return {
+    version: 8,
+    sources: { 'raster-tiles': { type: 'raster', tiles, tileSize: 256, attribution: '', maxzoom: sourceMaxZoom } },
+    layers: [{ id: 'raster-layer', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 22 }],
+  };
 }
 
 // ── Activities ─────────────────────────────────────────────────────────────
@@ -235,7 +239,7 @@ export default function RunScreen() {
           if (!map.getBounds().contains(lngLat)) map.flyTo({ center: lngLat, zoom: 15, duration: 800 });
         },
         () => setGpsStatus('error'),
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
       );
     });
 
@@ -283,7 +287,7 @@ export default function RunScreen() {
     const styleDef = MAP_STYLES.find(s => s.id === styleId)!;
     const center = mapRef.current.getCenter();
     const zoom = mapRef.current.getZoom();
-    mapRef.current.setStyle(styleDef.rasterTiles ? buildRasterStyle(styleDef.rasterTiles) : styleDef.styleUrl!);
+    mapRef.current.setStyle(styleDef.rasterTiles ? buildRasterStyle(styleDef.rasterTiles, styleDef.sourceMaxZoom) : styleDef.styleUrl!);
     mapRef.current.once('style.load', async () => {
       mapRef.current?.jumpTo({ center, zoom });
       const p = await getPlayer();

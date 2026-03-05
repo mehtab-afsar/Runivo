@@ -96,7 +96,8 @@ export default function ActiveRun() {
           .setLngLat(initCenter);
       }
 
-      // Continuously watch position for accurate tracking
+      // Watch position with no cache — forces a fresh GPS fix so we don't
+      // jump to a stale cached location (e.g. the default Delhi coords).
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
           const lngLat: [number, number] = [pos.coords.longitude, pos.coords.latitude];
@@ -107,9 +108,13 @@ export default function ActiveRun() {
               markerRef.current.addTo(map);
             }
           }
+          // If run hasn't started yet, keep map centred on fresh position
+          if (!mapRef.current?.isMoving()) {
+            map.easeTo({ center: lngLat, zoom: 16, pitch: 45, duration: 600 });
+          }
         },
         () => {},
-        { enableHighAccuracy: true, maximumAge: 5000 }
+        { enableHighAccuracy: true, maximumAge: 0 }
       );
     });
 
