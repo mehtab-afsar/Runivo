@@ -1,9 +1,10 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { OnboardingWrapper } from '@features/onboarding/components/OnboardingWrapper';
 import { BottomNavigation } from '@shared/layout/BottomNavigation';
 import { PageTransition } from '@shared/layout/PageTransition';
 import { LoadingScreen } from '@shared/ui/LoadingScreen';
+import { NavVisibilityContext } from '@shared/hooks/useNavVisibility';
 import './index.css';
 
 const Dashboard    = lazy(() => import('@features/dashboard/pages/Dashboard'));
@@ -41,7 +42,10 @@ function FullscreenWithNav({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const [navVisible, setNavVisible] = useState(true);
+
   return (
+    <NavVisibilityContext.Provider value={{ navVisible, setNavVisible }}>
     <BrowserRouter>
       <OnboardingWrapper>
         <Suspense fallback={<LoadingScreen />}>
@@ -92,5 +96,6 @@ export default function App() {
         </Suspense>
       </OnboardingWrapper>
     </BrowserRouter>
+    </NavVisibilityContext.Provider>
   );
 }

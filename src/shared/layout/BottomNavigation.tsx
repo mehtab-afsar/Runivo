@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '@shared/lib/haptics'
+import { useNavVisibility } from '@shared/hooks/useNavVisibility'
 
 const tabs = [
   { id: 'home', label: 'Home', path: '/home', icon: 'home' },
@@ -54,6 +55,8 @@ function TabIcon({ type, active }: { type: string; active: boolean }) {
 export const BottomNavigation = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { navVisible } = useNavVisibility()
+  if (!navVisible) return null
 
   const isActive = (path: string) => {
     if (path === '/home') return location.pathname === '/' || location.pathname === '/home'

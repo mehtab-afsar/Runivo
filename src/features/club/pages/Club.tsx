@@ -8,6 +8,7 @@ import {
   Globe, Clock, Flag, MessageCircle, Lock,
 } from 'lucide-react';
 import { haptic } from '@shared/lib/haptics';
+import { useNavVisibility } from '@shared/hooks/useNavVisibility';
 import { CreateClubModal } from '@features/club/components/CreateClubModal';
 
 // --- Types ---
@@ -253,6 +254,7 @@ const policyDisplay: Record<JoinPolicy, { label: string; color: string; border: 
 // --- Main Component ---
 
 export default function Club() {
+  const { setNavVisible } = useNavVisibility();
   const [activeTab, setActiveTab] = useState<ClubTab>('my-clubs');
   const [view, setView] = useState<ClubView>('main');
   const [selectedClub, setSelectedClub] = useState<ClubData | null>(null);
@@ -263,6 +265,7 @@ export default function Club() {
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
+  const [chatHeight, setChatHeight] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -273,7 +276,18 @@ export default function Club() {
   const [requestMessage, setRequestMessage] = useState('');
   const [sheetStep, setSheetStep] = useState<SheetStep>('preview');
 
+  const [rankingSearch, setRankingSearch] = useState('');
+
   const activeRankedClubs = rankedClubsByScope[rankingScope];
+  const filteredRankedClubs = rankingSearch
+    ? activeRankedClubs.filter(c => c.name.toLowerCase().includes(rankingSearch.toLowerCase()))
+    : null;
+
+  // Hide bottom nav when in chat view
+  useEffect(() => {
+    setNavVisible(view !== 'chat');
+    return () => setNavVisible(true);
+  }, [view, setNavVisible]);
 
   useEffect(() => {
     if (view === 'chat' && selectedClub) {
@@ -281,6 +295,17 @@ export default function Club() {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [view, selectedClub]);
+
+  // Shrink chat to visual viewport height so keyboard doesn't hide the input on iOS
+  useEffect(() => {
+    if (view !== 'chat') { setChatHeight(undefined); return; }
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setChatHeight(`${vv.height}px`);
+    vv.addEventListener('resize', update);
+    update();
+    return () => vv.removeEventListener('resize', update);
+  }, [view]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -390,7 +415,7 @@ export default function Club() {
     let lastDate = '';
 
     return (
-      <div className="h-full flex flex-col bg-gray-50">
+      <div className="flex flex-col bg-gray-50" style={{ height: chatHeight ?? '100%' }}>
         {/* Header */}
         <div className="bg-white border-b border-gray-100 shadow-sm z-10"
              style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
@@ -861,7 +886,7 @@ export default function Club() {
                 return (
                   <button
                     key={scope}
-                    onClick={() => { setRankingScope(scope); haptic('light'); }}
+                    onClick={() => { setRankingScope(scope); setRankingSearch(''); haptic('light'); }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
                       rankingScope === scope
                         ? 'bg-teal-50 text-teal-600 border-teal-200'
@@ -874,6 +899,69 @@ export default function Club() {
                 );
               })}
             </div>
+
+            {/* Search bar */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" strokeWidth={2} />
+              <input
+                type="text"
+                value={rankingSearch}
+                onChange={e => setRankingSearch(e.target.value)}
+                placeholder="Search clubs..."
+                className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-9 pr-9 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-300 shadow-sm"
+              />
+              {rankingSearch && (
+                <button onClick={() => setRankingSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <X className="w-4 h-4 text-gray-400" strokeWidth={2} />
+                </button>
+              )}
+            </div>
+
+            {/* Search results */}
+            {filteredRankedClubs !== null ? (
+              filteredRankedClubs.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center mb-4">
+                  <p className="text-[14px] text-gray-400">No clubs found for "{rankingSearch}"</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
+                  {filteredRankedClubs.map((club, i) => {
+                    const status = joinRequests[club.id];
+                    return (
+                      <button
+                        key={club.id}
+                        onClick={() => handleClubTap(club)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 active:bg-gray-50 transition text-left ${
+                          i < filteredRankedClubs.length - 1 ? 'border-b border-gray-50' : ''
+                        }`}
+                      >
+                        <span className="text-[13px] font-bold text-gray-400 w-5 text-center">{club.rank}</span>
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-50 to-purple-50 flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-teal-600" strokeWidth={2} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[14px] font-medium text-gray-900 truncate">{club.name}</span>
+                            {status && (
+                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                status === 'joined' ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-600'
+                              }`}>
+                                {status === 'joined' ? 'Joined' : 'Pending'}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-gray-400">{club.members} members &middot; {club.region}</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-stat text-[14px] font-bold text-gray-900">{club.territories} <span className="text-[10px] text-gray-400 font-normal">zones</span></span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <>
 
             {/* Podium - top 3 */}
             <div className="bg-gradient-to-b from-teal-600 to-teal-700 rounded-2xl p-5 pb-3 mb-4 shadow-md">
@@ -995,6 +1083,8 @@ export default function Club() {
                 </div>
               </div>
             </div>
+            </>
+            )}
           </motion.div>
         )}
       </div>
