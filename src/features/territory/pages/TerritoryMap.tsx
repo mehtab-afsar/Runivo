@@ -113,12 +113,6 @@ export default function TerritoryMap() {
           <div style="position:absolute;inset:0;border-radius:50%;background:rgba(0,180,198,0.15);animation:pulse-ring 2s ease-out infinite;"></div>
           <div style="width:14px;height:14px;border-radius:50%;background:#00B4C6;border:3px solid white;box-shadow:0 2px 8px rgba(0,180,198,0.4);position:relative;z-index:1;"></div>
         </div>
-        <style>
-          @keyframes pulse-ring {
-            0% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(1.8); opacity: 0; }
-          }
-        </style>
       `;
       const marker = new maplibregl.Marker({ element: markerEl, anchor: 'center' })
         .setLngLat([77.2090, 28.6139]);

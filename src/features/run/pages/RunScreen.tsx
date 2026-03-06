@@ -148,9 +148,9 @@ export default function RunScreen() {
   const navigate = useNavigate();
 
   const [activityType, setActivityType]     = useState<ActivityType>('run');
-  const [gpsStatus, setGpsStatus]           = useState<GpsState>('searching');
-  const [gpsAccuracy, setGpsAccuracy]       = useState<number | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [gps, setGps] = useState<{ status: GpsState; accuracy: number | null; location: { lat: number; lng: number } | null }>({
+    status: 'searching', accuracy: null, location: null,
+  });
   const [showGpsLoader, setShowGpsLoader]   = useState(true);
   const [showActivityDial, setShowActivityDial] = useState(false);
   const [showRoutePicker, setShowRoutePicker]   = useState(false);
@@ -169,6 +169,7 @@ export default function RunScreen() {
   const watchIdRef      = useRef<number | null>(null);
   const gpsReadyRef     = useRef(false);
   const territoriesRef  = useRef<StoredTerritory[]>([]);
+  const lastGpsUpdateRef = useRef<number>(0);
 
   // GPS loader min 3s
   useEffect(() => {
@@ -228,25 +229,27 @@ export default function RunScreen() {
         pos => {
           const lngLat: [number, number] = [pos.coords.longitude, pos.coords.latitude];
           userLngLatRef.current = lngLat;
-          setCurrentLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          setGpsAccuracy(pos.coords.accuracy);
-          setGpsStatus('ready');
-          gpsReadyRef.current = true;
-          setShowGpsLoader(false);
+
+          // Always update marker position (DOM-only, no React re-render)
           if (userMarkerRef.current) {
             userMarkerRef.current.setLngLat(lngLat);
             if (!userMarkerRef.current.getElement().parentElement) userMarkerRef.current.addTo(map);
           }
+
+          // Throttle React state updates to max 1 per 2 seconds
+          const now = Date.now();
+          if (now - lastGpsUpdateRef.current < 2000 && gpsReadyRef.current) return;
+          lastGpsUpdateRef.current = now;
+
+          setGps({ status: 'ready', accuracy: pos.coords.accuracy, location: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+          gpsReadyRef.current = true;
+          setShowGpsLoader(false);
           if (!map.getBounds().contains(lngLat)) map.flyTo({ center: lngLat, zoom: 15, duration: 800 });
         },
-        () => setGpsStatus('error'),
+        () => setGps(prev => ({ ...prev, status: 'error' })),
         { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
       );
     });
-
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `@keyframes run-pulse { 0%{transform:scale(0.5);opacity:1} 100%{transform:scale(1.8);opacity:0} }`;
-    document.head.appendChild(styleEl);
 
     const ro = new ResizeObserver(() => { if (mapRef.current) mapRef.current.resize(); });
     ro.observe(mapContainer.current);
@@ -254,7 +257,6 @@ export default function RunScreen() {
     return () => {
       ro.disconnect();
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-      styleEl.remove();
       map.remove();
       mapRef.current = null;
     };
@@ -301,13 +303,13 @@ export default function RunScreen() {
   };
 
   const handleStart = () => {
-    if (gpsStatus === 'ready' && currentLocation) {
-      navigate('/active-run', { state: { activityType, startLocation: currentLocation } });
+    if (gps.status === 'ready' && gps.location) {
+      navigate('/active-run', { state: { activityType, startLocation: gps.location } });
       haptic('medium');
     }
   };
 
-  const signalStrength = getSignalStrength(gpsAccuracy, gpsStatus);
+  const signalStrength = getSignalStrength(gps.accuracy, gps.status);
   const currentActivity = ACTIVITIES.find(a => a.id === activityType)!;
   const CurrentIcon = currentActivity.iconEl;
 
@@ -445,9 +447,9 @@ export default function RunScreen() {
           <motion.button
             whileTap={{ scale: 0.93 }}
             onClick={handleStart}
-            disabled={gpsStatus !== 'ready'}
+            disabled={gps.status !== 'ready'}
             className={`w-20 h-20 rounded-full flex flex-col items-center justify-center transition-all ${
-              gpsStatus === 'ready'
+              gps.status === 'ready'
                 ? 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_6px_24px_rgba(0,180,198,0.38)]'
                 : 'bg-gray-300 shadow-md'
             }`}
@@ -456,7 +458,7 @@ export default function RunScreen() {
               <path d="M2 0L28 16L2 32V0Z" />
             </svg>
             <span className="text-[9px] font-bold text-white mt-1">
-              {gpsStatus === 'ready' ? 'START' : 'GPS...'}
+              {gps.status === 'ready' ? 'START' : 'GPS...'}
             </span>
           </motion.button>
 

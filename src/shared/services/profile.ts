@@ -1,4 +1,4 @@
-import { openDB } from 'idb';
+import { getDB } from './store';
 
 export interface PlayerProfile {
   playerId: string;
@@ -14,29 +14,7 @@ export interface PlayerProfile {
   onboardingCompletedAt: number;
 }
 
-const DB_NAME = 'runivo';
 const STORE_NAME = 'profile';
-
-async function getDB() {
-  return openDB(DB_NAME, 3, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 1) {
-        const runStore = db.createObjectStore('runs', { keyPath: 'id' });
-        runStore.createIndex('startTime', 'startTime');
-        runStore.createIndex('synced', 'synced');
-        db.createObjectStore('territories', { keyPath: 'hexId' });
-        db.createObjectStore('player', { keyPath: 'id' });
-        db.createObjectStore('pendingActions', { keyPath: 'id', autoIncrement: true });
-      }
-      if (oldVersion < 2) {
-        db.createObjectStore('missions', { keyPath: 'id' });
-      }
-      if (oldVersion < 3) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'playerId' });
-      }
-    },
-  });
-}
 
 export async function saveProfile(profile: PlayerProfile): Promise<void> {
   const db = await getDB();

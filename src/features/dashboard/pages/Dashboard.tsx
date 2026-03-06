@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -14,6 +14,16 @@ import { StatCard } from '@shared/ui/StatCard';
 import WeeklyGoalRing from '@shared/ui/WeeklyGoalRing';
 import { getRuns } from '@shared/services/store';
 import { haptic } from '@shared/lib/haptics';
+
+const stagger = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, damping: 22 } },
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -61,33 +71,24 @@ export default function Dashboard() {
     setWeeklyKm(Math.round(weekDist * 10) / 10);
   };
 
-  const missionsCompleted = missions.filter(m => m.completed).length;
-  const missionsTotal = missions.length;
+  const { missionsCompleted, missionsTotal, avgDefense, weakZones, enemyNearby } = useMemo(() => {
+    const completed = missions.filter(m => m.completed).length;
+    const total = missions.length;
+    const owned = territories.filter(t => player && t.ownerId === player.id);
+    const totalDef = owned.reduce((sum, t) => sum + t.defense, 0);
+    const avg = ownedCount > 0 ? Math.round(totalDef / ownedCount) : 0;
+    const weak = owned.filter(t => t.defense < 30);
+    const enemy = territories.filter(t => t.ownerId && player && t.ownerId !== player.id).length;
+    return { missionsCompleted: completed, missionsTotal: total, avgDefense: avg, weakZones: weak, enemyNearby: enemy };
+  }, [missions, territories, player, ownedCount]);
 
-  const totalDefense = territories
-    .filter(t => player && t.ownerId === player.id)
-    .reduce((sum, t) => sum + t.defense, 0);
-
-  const avgDefense =
-    ownedCount > 0 ? Math.round(totalDefense / ownedCount) : 0;
-
-  const weakZones = territories.filter(
-    t => player && t.ownerId === player.id && t.defense < 30
-  );
-
-  const enemyNearby = territories.filter(
-    t => t.ownerId && player && t.ownerId !== player.id
-  ).length;
-
-  const stagger = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.05 } },
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 14 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring' as const, damping: 22 } },
-  };
+  const motivation = useMemo(() => {
+    if (enemyNearby > 0) return `${enemyNearby} enemy zones nearby`;
+    if (weakZones.length > 0) return `${weakZones.length} zones losing defense`;
+    if (missions.length > 0 && missionsCompleted < missionsTotal)
+      return `${missionsTotal - missionsCompleted} missions to complete`;
+    return 'Claim territory and earn XP';
+  }, [enemyNearby, weakZones, missions, missionsCompleted, missionsTotal]);
 
   if (loading || !player) {
     return (
@@ -103,14 +104,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const getMotivation = (): string => {
-    if (enemyNearby > 0) return `${enemyNearby} enemy zones nearby`;
-    if (weakZones.length > 0) return `${weakZones.length} zones losing defense`;
-    if (missions.length > 0 && missionsCompleted < missionsTotal)
-      return `${missionsTotal - missionsCompleted} missions to complete`;
-    return 'Claim territory and earn XP';
-  };
 
   return (
     <div className="h-full bg-[#FAFAFA] relative overflow-hidden">
@@ -212,7 +205,7 @@ export default function Dashboard() {
               </svg>
               <span className="text-base font-bold text-white">Start Run</span>
             </motion.button>
-            <p className="text-center text-[11px] text-gray-400 mt-2">{getMotivation()}</p>
+            <p className="text-center text-[11px] text-gray-400 mt-2">{motivation}</p>
           </motion.div>
 
           {/* Empire Overview */}
@@ -253,10 +246,11 @@ export default function Dashboard() {
               {/* Defense bar */}
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-3">
                 <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${avgDefense}%` }}
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: avgDefense / 100 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
-                  className={`h-full rounded-full ${
+                  style={{ transformOrigin: 'left' }}
+                  className={`h-full w-full rounded-full ${
                     avgDefense > 60 ? 'bg-teal-500' : avgDefense > 30 ? 'bg-amber-400' : 'bg-red-400'
                   }`}
                 />
@@ -295,10 +289,11 @@ export default function Dashboard() {
                 <div className="p-4 border-b border-gray-100">
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(missionsCompleted / Math.max(missionsTotal, 1)) * 100}%` }}
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: missionsCompleted / Math.max(missionsTotal, 1) }}
                       transition={{ duration: 0.8, delay: 0.5 }}
-                      className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full"
+                      style={{ transformOrigin: 'left' }}
+                      className="h-full w-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full"
                     />
                   </div>
                 </div>

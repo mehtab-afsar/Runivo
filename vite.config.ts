@@ -15,6 +15,7 @@ export default defineConfig({
     port: 5170,
   },
   build: {
+    target: 'es2020',
     rollupOptions: {
       output: {
         manualChunks: {

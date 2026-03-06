@@ -14,6 +14,12 @@ import {
 } from '@features/territory/services/territoryLayer';
 import { getAllTerritories } from '@shared/services/store';
 
+const zoneGradients: Record<string, string> = {
+  owned: 'from-teal-500/15 via-transparent to-transparent',
+  enemy: 'from-pink-500/15 via-transparent to-transparent',
+  neutral: 'from-gray-500/5 via-transparent to-transparent',
+};
+
 export default function ActiveRun() {
   const navigate = useNavigate();
   const routerLocation = useLocation();
@@ -27,6 +33,8 @@ export default function ActiveRun() {
     startLocation ? [startLocation.lng, startLocation.lat] : null
   );
   const watchIdRef = useRef<number | null>(null);
+  const lastEaseRef = useRef<number>(0);
+  const lastEasePosRef = useRef<[number, number] | null>(null);
 
   const {
     isRunning, isPaused, elapsed, distance, pace,
@@ -123,21 +131,11 @@ export default function ActiveRun() {
     });
     ro.observe(mapContainer.current);
 
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes pulse-ring {
-        0% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(3); opacity: 0; }
-      }
-    `;
-    document.head.appendChild(style);
-
     return () => {
       ro.disconnect();
       if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
       map.remove();
       mapRef.current = null;
-      style.remove();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -152,8 +150,24 @@ export default function ActiveRun() {
       markerRef.current.setLngLat([latest.lng, latest.lat]);
     }
 
+    // Throttle easeTo to max every 2s and only if moved > 5m
     if (isRunning && !isPaused) {
-      map.easeTo({ center: [latest.lng, latest.lat], duration: 1000 });
+      const now = Date.now();
+      const lngLat: [number, number] = [latest.lng, latest.lat];
+      let shouldEase = now - lastEaseRef.current > 2000;
+      if (shouldEase && lastEasePosRef.current) {
+        const R = 6371000;
+        const dLat = ((latest.lat - lastEasePosRef.current[1]) * Math.PI) / 180;
+        const dLon = ((latest.lng - lastEasePosRef.current[0]) * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.cos((lastEasePosRef.current[1] * Math.PI) / 180) * Math.cos((latest.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+        const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        shouldEase = dist > 5;
+      }
+      if (shouldEase) {
+        lastEaseRef.current = now;
+        lastEasePosRef.current = lngLat;
+        map.easeTo({ center: lngLat, duration: 1000 });
+      }
     }
 
     const routeCoords = gpsPoints.map(p => [p.lng, p.lat]);
@@ -266,12 +280,6 @@ export default function ActiveRun() {
     }
   };
 
-  const zoneGradients: Record<string, string> = {
-    owned: 'from-teal-500/15 via-transparent to-transparent',
-    enemy: 'from-pink-500/15 via-transparent to-transparent',
-    neutral: 'from-gray-500/5 via-transparent to-transparent',
-  };
-
   return (
     <div className="fixed inset-0 bg-white" style={{ width: '100vw', height: '100dvh', minHeight: '100vh' }}>
       <div ref={mapContainer} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} />
@@ -315,12 +323,13 @@ export default function ActiveRun() {
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
-                    className={`h-full rounded-full ${
+                    className={`h-full w-full rounded-full ${
                       currentZone === 'enemy'
                         ? 'bg-gradient-to-r from-pink-500 to-pink-400'
                         : 'bg-gradient-to-r from-teal-500 to-teal-400'
                     }`}
-                    animate={{ width: `${claimProgress}%` }}
+                    animate={{ scaleX: claimProgress / 100 }}
+                    style={{ transformOrigin: 'left' }}
                     transition={{ type: 'spring', stiffness: 50, damping: 15 }}
                   />
                 </div>

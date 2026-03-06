@@ -53,6 +53,9 @@ export function useActiveRun() {
   const lastPositionRef = useRef<{ lat: number; lng: number } | null>(null);
   const runIdRef = useRef<string>(crypto.randomUUID());
   const seededRef = useRef(false);
+  const lastGpsStateUpdateRef = useRef<number>(0);
+  const gpsPointsRef = useRef<GPSPoint[]>([]);
+  const pendingDistanceRef = useRef<number>(0);
 
   useEffect(() => {
     return () => {
@@ -183,11 +186,36 @@ export function useActiveRun() {
       });
     }, 1000);
 
+    gpsPointsRef.current = [];
+    pendingDistanceRef.current = 0;
+
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, speed, accuracy } = position.coords;
         const now = Date.now();
         const gpsSpeed = speed ?? 0;
+
+        // Always update claim engine (needs high frequency for accuracy)
+        gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy);
+
+        // Skip if paused (check via ref to avoid stale closure)
+        // Distance accumulation happens in ref, not state
+        if (lastPositionRef.current) {
+          const d = haversine(
+            lastPositionRef.current.lat,
+            lastPositionRef.current.lng,
+            latitude,
+            longitude
+          );
+          if (d > 2 && d < 100) {
+            pendingDistanceRef.current += d / 1000;
+          } else if (d <= 2) {
+            // Skip point if barely moved (< 2m)
+            lastPositionRef.current = { lat: latitude, lng: longitude };
+            return;
+          }
+        }
+        lastPositionRef.current = { lat: latitude, lng: longitude };
 
         const point: GPSPoint = {
           lat: latitude,
@@ -196,37 +224,28 @@ export function useActiveRun() {
           speed: gpsSpeed,
           accuracy,
         };
+        gpsPointsRef.current.push(point);
+
+        // Throttle React state updates to max 1 per second
+        if (now - lastGpsStateUpdateRef.current < 1000) return;
+        lastGpsStateUpdateRef.current = now;
 
         setState(prev => {
           if (prev.isPaused) return prev;
 
-          let newDistance = prev.distance;
-
-          if (lastPositionRef.current) {
-            const d = haversine(
-              lastPositionRef.current.lat,
-              lastPositionRef.current.lng,
-              latitude,
-              longitude
-            );
-            if (d > 2 && d < 100) {
-              newDistance += d / 1000;
-            }
-          }
-          lastPositionRef.current = { lat: latitude, lng: longitude };
+          const newDistance = prev.distance + pendingDistanceRef.current;
+          pendingDistanceRef.current = 0;
 
           const elapsedSec = prev.elapsed > 0 ? prev.elapsed : 1;
           const kmPerSec = newDistance / elapsedSec;
           const pace = formatPace(kmPerSec);
-
-          gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy);
 
           return {
             ...prev,
             distance: Math.round(newDistance * 1000) / 1000,
             pace,
             currentSpeed: gpsSpeed,
-            gpsPoints: [...prev.gpsPoints, point],
+            gpsPoints: [...gpsPointsRef.current],
           };
         });
       },

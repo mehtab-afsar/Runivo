@@ -769,8 +769,8 @@ export default function Feed() {
                             const bg = runner.badge ? badgeConfig[runner.badge] : null;
                             const BI = bg?.icon;
                             return (
-                              <button key={runner.id} onClick={() => { setProfileRunner(runner); haptic('light'); }}
-                                className="w-[156px] flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center relative active:scale-[0.98] transition text-center">
+                              <div key={runner.id} onClick={() => { setProfileRunner(runner); haptic('light'); }}
+                                className="w-[156px] flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center relative active:scale-[0.98] transition text-center cursor-pointer">
                                 <button onClick={(e) => { e.stopPropagation(); dismissSuggestion(runner.id); }}
                                   className="absolute top-2 right-2 p-1 rounded-full active:bg-gray-100 transition">
                                   <X className="w-3.5 h-3.5 text-gray-300" strokeWidth={2} />
@@ -803,7 +803,7 @@ export default function Feed() {
                                   className={`w-full py-2 rounded-lg text-[12px] font-semibold transition-all ${
                                     following.has(runner.id) ? 'bg-gray-100 text-gray-500' : 'bg-teal-500 text-white active:bg-teal-600'
                                   }`}>{following.has(runner.id) ? 'Following' : 'Follow'}</div>
-                              </button>
+                              </div>
                             );
                           })}
                         </div>

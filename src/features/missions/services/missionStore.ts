@@ -1,31 +1,7 @@
-import { openDB } from 'idb';
+import { getDB } from '../../../shared/services/store';
 import { Mission, generateDailyMissions, updateMissionProgress } from './missions';
 
-const DB_NAME = 'runivo';
 const STORE_NAME = 'missions';
-
-async function getDB() {
-  return openDB(DB_NAME, 3, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 1) {
-        const runStore = db.createObjectStore('runs', { keyPath: 'id' });
-        runStore.createIndex('startTime', 'startTime');
-        runStore.createIndex('synced', 'synced');
-        db.createObjectStore('territories', { keyPath: 'hexId' });
-        db.createObjectStore('player', { keyPath: 'id' });
-        db.createObjectStore('pendingActions', { keyPath: 'id', autoIncrement: true });
-      }
-      if (oldVersion < 2) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
-      if (oldVersion < 3) {
-        if (!db.objectStoreNames.contains('profile')) {
-          db.createObjectStore('profile', { keyPath: 'id' });
-        }
-      }
-    },
-  });
-}
 
 export async function getTodaysMissions(): Promise<Mission[]> {
   const db = await getDB();

@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DB_NAME = 'runivo';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export interface StoredRun {
   id: string;
@@ -54,8 +54,17 @@ export interface StoredPlayer {
 
 let dbInstance: IDBPDatabase | null = null;
 
-async function getDB(): Promise<IDBPDatabase> {
-  if (dbInstance) return dbInstance;
+export async function getDB(): Promise<IDBPDatabase> {
+  if (dbInstance) {
+    // Check if connection is still usable
+    try {
+      dbInstance.transaction(dbInstance.objectStoreNames[0] || 'player', 'readonly');
+      return dbInstance;
+    } catch {
+      // Connection was closed — reopen
+      dbInstance = null;
+    }
+  }
 
   dbInstance = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
@@ -71,6 +80,15 @@ async function getDB(): Promise<IDBPDatabase> {
         db.createObjectStore('missions', { keyPath: 'id' });
       }
       if (oldVersion < 3) {
+        if (!db.objectStoreNames.contains('profile')) {
+          db.createObjectStore('profile', { keyPath: 'playerId' });
+        }
+      }
+      if (oldVersion < 4) {
+        // Fix: missionStore.ts previously created profile store with wrong keyPath 'id'
+        if (db.objectStoreNames.contains('profile')) {
+          db.deleteObjectStore('profile');
+        }
         db.createObjectStore('profile', { keyPath: 'playerId' });
       }
     },
