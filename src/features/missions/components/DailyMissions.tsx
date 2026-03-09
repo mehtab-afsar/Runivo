@@ -35,7 +35,7 @@ export function DailyMissions() {
           ...player,
           xp: player.xp + claimed.rewards.xp,
           coins: player.coins + claimed.rewards.coins,
-          gems: player.gems + (claimed.rewards.gems || 0),
+          diamonds: player.diamonds + (claimed.rewards.diamonds || 0),
         };
         await savePlayer(updated);
       }
@@ -165,8 +165,8 @@ export function DailyMissions() {
                     <div className="flex flex-col items-end gap-0.5">
                       <span className="text-stat text-[11px] text-teal-600">+{mission.rewards.xp} XP</span>
                       <span className="text-stat text-[11px] text-amber-500">+{mission.rewards.coins} coins</span>
-                      {mission.rewards.gems && (
-                        <span className="text-stat text-[11px] text-purple-500">+{mission.rewards.gems} gems</span>
+                      {mission.rewards.diamonds && (
+                        <span className="text-stat text-[11px] text-purple-500">+{mission.rewards.diamonds} diamonds</span>
                       )}
                     </div>
                   )}

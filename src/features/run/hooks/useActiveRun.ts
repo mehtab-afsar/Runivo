@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameEngine } from '@shared/hooks/useGameEngine';
-import { ClaimEvent, ClaimState } from '@features/territory/services/claimEngine';
+import { ClaimEvent } from '@features/territory/services/claimEngine';
 import { haptic } from '@shared/lib/haptics';
-import { seedTerritoryData } from '@shared/services/seedData';
 import { soundManager } from '@shared/audio/sounds';
 
 interface GPSPoint {
@@ -21,11 +20,10 @@ interface ActiveRunState {
   pace: string;
   currentSpeed: number;
   gpsPoints: GPSPoint[];
-  claimState: ClaimState | null;
-  currentZone: 'owned' | 'enemy' | 'neutral' | null;
   claimProgress: number;
   territoriesClaimed: number;
   lastClaimEvent: ClaimEvent | null;
+  energyBlocked: boolean;
 }
 
 export function useActiveRun() {
@@ -39,20 +37,19 @@ export function useActiveRun() {
     pace: '0:00',
     currentSpeed: 0,
     gpsPoints: [],
-    claimState: null,
-    currentZone: null,
     claimProgress: 0,
     territoriesClaimed: 0,
     lastClaimEvent: null,
+    energyBlocked: false,
   });
 
   const watchIdRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
-  const pausedTimeRef = useRef<number>(0);
+  const pauseStartRef = useRef<number>(0);
+  const totalPausedMsRef = useRef<number>(0);
   const lastPositionRef = useRef<{ lat: number; lng: number } | null>(null);
   const runIdRef = useRef<string>(crypto.randomUUID());
-  const seededRef = useRef(false);
   const lastGpsStateUpdateRef = useRef<number>(0);
   const gpsPointsRef = useRef<GPSPoint[]>([]);
   const pendingDistanceRef = useRef<number>(0);
@@ -73,20 +70,6 @@ export function useActiveRun() {
       setState(prev => ({ ...prev, lastClaimEvent: event }));
 
       switch (event.type) {
-        case 'entered_own':
-          setState(prev => ({ ...prev, currentZone: 'owned' }));
-          haptic('light');
-          soundManager.play('own_zone');
-          break;
-        case 'entered_enemy':
-          setState(prev => ({ ...prev, currentZone: 'enemy' }));
-          haptic('medium');
-          soundManager.play('enemy_zone');
-          break;
-        case 'entered_neutral':
-          setState(prev => ({ ...prev, currentZone: 'neutral' }));
-          haptic('light');
-          break;
         case 'claim_progress':
           setState(prev => ({ ...prev, claimProgress: event.progress ?? 0 }));
           if (event.progress && event.progress % 25 < 5) {
@@ -98,7 +81,7 @@ export function useActiveRun() {
             ...prev,
             territoriesClaimed: prev.territoriesClaimed + 1,
             claimProgress: 0,
-            currentZone: 'owned',
+            energyBlocked: false,
           }));
           haptic('success');
           soundManager.play('claim');
@@ -112,7 +95,8 @@ export function useActiveRun() {
             });
           }, 4000);
           break;
-        case 'fortified':
+        case 'energy_blocked':
+          setState(prev => ({ ...prev, energyBlocked: true }));
           haptic('light');
           break;
       }
@@ -142,24 +126,15 @@ export function useActiveRun() {
   };
 
   const startRun = useCallback(async () => {
-    if (!seededRef.current) {
-      try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
-        });
-        await seedTerritoryData(pos.coords.latitude, pos.coords.longitude);
-        seededRef.current = true;
-      } catch (e) {
-        console.warn('Failed to seed territory data:', e);
-      }
-    }
-
     await gameEngine.startClaimEngine();
 
     startTimeRef.current = Date.now();
-    pausedTimeRef.current = 0;
+    pauseStartRef.current = 0;
+    totalPausedMsRef.current = 0;
     lastPositionRef.current = null;
     runIdRef.current = crypto.randomUUID();
+    gpsPointsRef.current = [];
+    pendingDistanceRef.current = 0;
 
     setState(prev => ({
       ...prev,
@@ -171,7 +146,6 @@ export function useActiveRun() {
       gpsPoints: [],
       territoriesClaimed: 0,
       claimProgress: 0,
-      currentZone: null,
       lastClaimEvent: null,
     }));
 
@@ -180,14 +154,11 @@ export function useActiveRun() {
         if (prev.isPaused) return prev;
         const now = Date.now();
         const totalElapsed = Math.floor(
-          (now - startTimeRef.current - pausedTimeRef.current) / 1000
+          (now - startTimeRef.current - totalPausedMsRef.current) / 1000
         );
         return { ...prev, elapsed: totalElapsed };
       });
     }, 1000);
-
-    gpsPointsRef.current = [];
-    pendingDistanceRef.current = 0;
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
@@ -195,11 +166,7 @@ export function useActiveRun() {
         const now = Date.now();
         const gpsSpeed = speed ?? 0;
 
-        // Always update claim engine (needs high frequency for accuracy)
-        gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy);
-
-        // Skip if paused (check via ref to avoid stale closure)
-        // Distance accumulation happens in ref, not state
+        let deltaKm = 0;
         if (lastPositionRef.current) {
           const d = haversine(
             lastPositionRef.current.lat,
@@ -207,15 +174,19 @@ export function useActiveRun() {
             latitude,
             longitude
           );
-          if (d > 2 && d < 100) {
-            pendingDistanceRef.current += d / 1000;
-          } else if (d <= 2) {
-            // Skip point if barely moved (< 2m)
+          if (d >= 1 && d < 100) {
+            deltaKm = d / 1000;
+            pendingDistanceRef.current += deltaKm;
+          } else if (d < 1) {
+            // Sub-metre jitter — update claim but skip adding a GPS point
             lastPositionRef.current = { lat: latitude, lng: longitude };
+            gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy, 0);
             return;
           }
         }
         lastPositionRef.current = { lat: latitude, lng: longitude };
+        // Pass distanceDelta so energy regenerates in real-time
+        gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy, deltaKm);
 
         const point: GPSPoint = {
           lat: latitude,
@@ -254,7 +225,6 @@ export function useActiveRun() {
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
         maximumAge: 0,
       }
     );
@@ -265,13 +235,12 @@ export function useActiveRun() {
 
   const pauseRun = useCallback(() => {
     setState(prev => ({ ...prev, isPaused: true }));
-    pausedTimeRef.current = Date.now();
+    pauseStartRef.current = Date.now();
     haptic('light');
   }, []);
 
   const resumeRun = useCallback(() => {
-    const pauseDuration = Date.now() - pausedTimeRef.current;
-    pausedTimeRef.current = pauseDuration;
+    totalPausedMsRef.current += Date.now() - pauseStartRef.current;
     setState(prev => ({ ...prev, isPaused: false }));
     haptic('light');
   }, []);
@@ -290,20 +259,24 @@ export function useActiveRun() {
     haptic('success');
     soundManager.play('finish_run');
 
+    const finalDistance = state.distance + pendingDistanceRef.current;
+
     const result = await gameEngine.endRunSession({
       id: runIdRef.current,
       activityType: 'run',
       startTime: startTimeRef.current,
       endTime: Date.now(),
-      distanceMeters: state.distance * 1000,
+      distanceMeters: finalDistance * 1000,
       durationSec: state.elapsed,
       avgPace: state.pace,
-      gpsPoints: state.gpsPoints,
+      gpsPoints: gpsPointsRef.current,
     });
 
     return {
       runId: runIdRef.current,
       ...state,
+      distance: finalDistance,
+      gpsPoints: gpsPointsRef.current,
       ...result,
     };
   }, [gameEngine, state]);
@@ -316,5 +289,6 @@ export function useActiveRun() {
     finishRun,
     player: gameEngine.player,
     sessionStats: gameEngine.sessionStats,
+    sessionEnergy: gameEngine.sessionEnergy,
   };
 }

@@ -10,6 +10,7 @@ import {
 import { haptic } from '@shared/lib/haptics';
 import { useNavVisibility } from '@shared/hooks/useNavVisibility';
 import { CreateClubModal } from '@features/club/components/CreateClubModal';
+import { supabase } from '@shared/services/supabase';
 
 // --- Types ---
 
@@ -84,57 +85,7 @@ type SheetStep = 'preview' | 'message' | 'confirmed';
 
 // --- Mock Data ---
 
-const rankedClubsByScope: Record<RankingScope, RankedClub[]> = {
-  local: [
-    { id: 'l1', name: 'Manhattan Milers', rank: 1, territories: 145, members: 34, streak: 18, badge: 'zap', weeklyGain: +12, weeklyRuns: 89, region: 'New York', country: 'US', joinPolicy: 'open', description: 'NYC\'s top running crew. We own Manhattan one mile at a time.', topMembers: [{ name: 'Alex C.', level: 28 }, { name: 'Sam W.', level: 25 }, { name: 'Priya M.', level: 23 }] },
-    { id: 'l2', name: 'Brooklyn Blazers', rank: 2, territories: 128, members: 29, streak: 14, badge: 'flame', weeklyGain: +9, weeklyRuns: 72, region: 'New York', country: 'US', joinPolicy: 'request', description: 'Brooklyn born & bred. Prospect Park is our backyard.', topMembers: [{ name: 'Jay P.', level: 24 }, { name: 'Mia K.', level: 22 }, { name: 'Derek L.', level: 20 }] },
-    { id: 'l3', name: 'Queens Quicks', rank: 3, territories: 98, members: 22, streak: 10, badge: 'shield', weeklyGain: +6, weeklyRuns: 54, region: 'New York', country: 'US', joinPolicy: 'open', description: 'Queens represent! Early morning grinders.', topMembers: [{ name: 'Raj T.', level: 21 }, { name: 'Nina F.', level: 19 }, { name: 'Omar S.', level: 18 }] },
-    { id: 'l4', name: 'Bronx Bolts', rank: 4, territories: 76, members: 18, streak: 7, badge: 'mountain', weeklyGain: +4, weeklyRuns: 41, region: 'New York', country: 'US', joinPolicy: 'request', description: 'Bronx runners pushing limits every day.', topMembers: [{ name: 'Carlos R.', level: 20 }, { name: 'Tanya B.', level: 18 }] },
-    { id: 'l5', name: 'Harlem Hustlers', rank: 5, territories: 64, members: 15, streak: 5, badge: 'sun', weeklyGain: +2, weeklyRuns: 33, region: 'New York', country: 'US', joinPolicy: 'invite-only', description: 'Elite invite-only crew from Harlem. Prove yourself first.', topMembers: [{ name: 'Darius M.', level: 26 }, { name: 'Kesha W.', level: 24 }] },
-    { id: 'l6', name: 'Hudson Hawks', rank: 6, territories: 52, members: 20, streak: 3, badge: 'moon', weeklyGain: +1, weeklyRuns: 28, region: 'New York', country: 'US', joinPolicy: 'open', description: 'Running along the Hudson, rain or shine.', topMembers: [{ name: 'Liam O.', level: 17 }, { name: 'Eva S.', level: 16 }] },
-    { id: 'l7', name: 'Central Park Crew', rank: 7, territories: 45, members: 25, streak: 2, badge: 'star', weeklyGain: -1, weeklyRuns: 22, region: 'New York', country: 'US', joinPolicy: 'request', description: 'Central Park loops are our specialty.', topMembers: [{ name: 'Ben D.', level: 15 }, { name: 'Amy L.', level: 14 }] },
-    { id: 'l8', name: 'Staten Sprinters', rank: 8, territories: 32, members: 12, streak: 1, badge: 'shoe', weeklyGain: -2, weeklyRuns: 18, region: 'New York', country: 'US', joinPolicy: 'open', description: 'The forgotten borough? We\'ll show you.', topMembers: [{ name: 'Tony V.', level: 14 }, { name: 'Grace H.', level: 13 }] },
-  ],
-  national: [
-    { id: 'n1', name: 'Thunder Runners', rank: 1, territories: 312, members: 47, streak: 24, badge: 'zap', weeklyGain: +18, weeklyRuns: 156, region: 'New York', country: 'US', joinPolicy: 'request', description: 'Elite runners dominating territories nationwide. We run hard, capture harder.', topMembers: [{ name: 'Alex C.', level: 28 }, { name: 'Sarah P.', level: 25 }, { name: 'Mike R.', level: 23 }] },
-    { id: 'n2', name: 'Speed Demons', rank: 2, territories: 287, members: 52, streak: 18, badge: 'flame', weeklyGain: +12, weeklyRuns: 143, region: 'Los Angeles', country: 'US', joinPolicy: 'open', description: 'LA\'s fastest. We chase sunsets and PRs.', topMembers: [{ name: 'Jason T.', level: 27 }, { name: 'Kira N.', level: 24 }, { name: 'Zach F.', level: 22 }] },
-    { id: 'n3', name: 'Urban Wolves', rank: 3, territories: 256, members: 38, streak: 15, badge: 'wolf', weeklyGain: +9, weeklyRuns: 98, region: 'Chicago', country: 'US', joinPolicy: 'invite-only', description: 'Chicago\'s most feared pack. Invite only.', topMembers: [{ name: 'Marcus J.', level: 26 }, { name: 'Yuki A.', level: 23 }, { name: 'Dan W.', level: 21 }] },
-    { id: 'n4', name: 'Mile High Club', rank: 4, territories: 231, members: 41, streak: 12, badge: 'mountain', weeklyGain: +7, weeklyRuns: 87, region: 'Denver', country: 'US', joinPolicy: 'open', description: 'High altitude training, high altitude results.', topMembers: [{ name: 'Chris B.', level: 22 }, { name: 'Laura M.', level: 20 }] },
-    { id: 'n5', name: 'Road Warriors', rank: 5, territories: 198, members: 35, streak: 9, badge: 'shield', weeklyGain: +5, weeklyRuns: 76, region: 'Houston', country: 'US', joinPolicy: 'request', description: 'Texas-sized ambition. No terrain too tough.', topMembers: [{ name: 'Jake P.', level: 21 }, { name: 'Rosa G.', level: 19 }] },
-    { id: 'n6', name: 'Dawn Patrol', rank: 6, territories: 176, members: 29, streak: 7, badge: 'sun', weeklyGain: +3, weeklyRuns: 64, region: 'Miami', country: 'US', joinPolicy: 'open', description: 'Up before the sun, done before the heat.', topMembers: [{ name: 'Diego R.', level: 20 }, { name: 'Kim L.', level: 18 }] },
-    { id: 'n7', name: 'Night Owls', rank: 7, territories: 154, members: 33, streak: 5, badge: 'moon', weeklyGain: -2, weeklyRuns: 58, region: 'Seattle', country: 'US', joinPolicy: 'request', description: 'We run when the city sleeps.', topMembers: [{ name: 'Tyler S.', level: 19 }, { name: 'Ava C.', level: 17 }] },
-    { id: 'n8', name: 'Trail Blazers', rank: 8, territories: 142, members: 26, streak: 4, badge: 'fire', weeklyGain: +1, weeklyRuns: 44, region: 'Portland', country: 'US', joinPolicy: 'open', description: 'Portland trails are our playground.', topMembers: [{ name: 'Nate G.', level: 18 }, { name: 'Lily W.', level: 16 }] },
-    { id: 'n9', name: 'Pavement Pounders', rank: 9, territories: 128, members: 31, streak: 3, badge: 'shoe', weeklyGain: -1, weeklyRuns: 39, region: 'Boston', country: 'US', joinPolicy: 'invite-only', description: 'Boston Marathon veterans only.', topMembers: [{ name: 'Matt K.', level: 25 }, { name: 'Claire D.', level: 22 }] },
-    { id: 'n10', name: 'Endurance Elite', rank: 10, territories: 115, members: 22, streak: 2, badge: 'star', weeklyGain: +2, weeklyRuns: 33, region: 'San Francisco', country: 'US', joinPolicy: 'open', description: 'SF hills forge the strongest runners.', topMembers: [{ name: 'Leo H.', level: 17 }, { name: 'Mia Z.', level: 15 }] },
-  ],
-  international: [
-    { id: 'i1', name: 'Tokyo Striders', rank: 1, territories: 478, members: 63, streak: 31, badge: 'zap', weeklyGain: +24, weeklyRuns: 210, region: 'Tokyo', country: 'Japan', joinPolicy: 'request', description: 'Japan\'s #1 running club. Discipline meets speed.', topMembers: [{ name: 'Haruki T.', level: 32 }, { name: 'Yui S.', level: 29 }, { name: 'Kenji M.', level: 27 }] },
-    { id: 'i2', name: 'London Pacers', rank: 2, territories: 423, members: 58, streak: 27, badge: 'flame', weeklyGain: +19, weeklyRuns: 187, region: 'London', country: 'UK', joinPolicy: 'open', description: 'From Thames to territories. London\'s finest runners.', topMembers: [{ name: 'James B.', level: 30 }, { name: 'Sophie L.', level: 27 }, { name: 'Amir K.', level: 25 }] },
-    { id: 'i3', name: 'Thunder Runners', rank: 3, territories: 312, members: 47, streak: 24, badge: 'wolf', weeklyGain: +18, weeklyRuns: 156, region: 'New York', country: 'US', joinPolicy: 'request', description: 'Elite runners dominating territories worldwide.', topMembers: [{ name: 'Alex C.', level: 28 }, { name: 'Sarah P.', level: 25 }, { name: 'Mike R.', level: 23 }] },
-    { id: 'i4', name: 'Berlin Blitz', rank: 4, territories: 298, members: 44, streak: 20, badge: 'mountain', weeklyGain: +14, weeklyRuns: 134, region: 'Berlin', country: 'Germany', joinPolicy: 'open', description: 'Schnell! Germany\'s fastest growing club.', topMembers: [{ name: 'Hans W.', level: 26 }, { name: 'Lena F.', level: 24 }] },
-    { id: 'i5', name: 'Seoul Speedsters', rank: 5, territories: 267, members: 39, streak: 16, badge: 'shield', weeklyGain: +11, weeklyRuns: 112, region: 'Seoul', country: 'South Korea', joinPolicy: 'invite-only', description: 'K-run culture. Top runners only.', topMembers: [{ name: 'Min-jun P.', level: 27 }, { name: 'Ji-yeon K.', level: 24 }] },
-    { id: 'i6', name: 'Sydney Surge', rank: 6, territories: 234, members: 36, streak: 13, badge: 'sun', weeklyGain: +8, weeklyRuns: 95, region: 'Sydney', country: 'Australia', joinPolicy: 'open', description: 'Harbour Bridge views, harbour bridge runs.', topMembers: [{ name: 'Jack M.', level: 23 }, { name: 'Chloe R.', level: 21 }] },
-    { id: 'i7', name: 'Paris Runners', rank: 7, territories: 212, members: 41, streak: 11, badge: 'moon', weeklyGain: +5, weeklyRuns: 82, region: 'Paris', country: 'France', joinPolicy: 'request', description: 'Running through the city of lights.', topMembers: [{ name: 'Pierre D.', level: 22 }, { name: 'Camille B.', level: 20 }] },
-    { id: 'i8', name: 'Dubai Dashers', rank: 8, territories: 189, members: 28, streak: 8, badge: 'fire', weeklyGain: +3, weeklyRuns: 67, region: 'Dubai', country: 'UAE', joinPolicy: 'open', description: 'Desert heat forges desert warriors.', topMembers: [{ name: 'Omar A.', level: 21 }, { name: 'Fatima S.', level: 19 }] },
-    { id: 'i9', name: 'Mumbai Marathoners', rank: 9, territories: 156, members: 45, streak: 6, badge: 'shoe', weeklyGain: -1, weeklyRuns: 54, region: 'Mumbai', country: 'India', joinPolicy: 'request', description: 'From Marine Drive to the world.', topMembers: [{ name: 'Arjun V.', level: 20 }, { name: 'Neha P.', level: 18 }] },
-    { id: 'i10', name: 'Sao Paulo Sprints', rank: 10, territories: 134, members: 32, streak: 4, badge: 'star', weeklyGain: +1, weeklyRuns: 43, region: 'Sao Paulo', country: 'Brazil', joinPolicy: 'open', description: 'Brazil\'s running revolution starts here.', topMembers: [{ name: 'Lucas S.', level: 19 }, { name: 'Ana C.', level: 17 }] },
-  ],
-};
 
-const myClubs: ClubData[] = [
-  {
-    id: 'c1', name: 'Thunder Runners', level: 12, memberCount: 47, rank: 1,
-    badge: 'zap', totalTerritories: 312, weeklyRuns: 38, clubStreak: 24, dailyIncome: 3200,
-    description: 'Elite runners dominating territories worldwide. We run hard, capture harder.',
-    createdBy: 'Alex Chen', createdAt: 'Jan 15, 2025',
-  },
-  {
-    id: 'c-local', name: 'NYC Runners', level: 6, memberCount: 18, rank: 156,
-    badge: 'map', totalTerritories: 45, weeklyRuns: 12, clubStreak: 5, dailyIncome: 800,
-    description: 'Local NYC running crew. Morning runs in Central Park every weekday!',
-    createdBy: 'Dave Kim', createdAt: 'Mar 2, 2025',
-  },
-];
 
 const clubMembers: Record<string, Member[]> = {
   c1: [
@@ -262,6 +213,83 @@ export default function Club() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [muted, setMuted] = useState(false);
 
+  // Live club data from Supabase
+  const [myClubsData, setMyClubsData] = useState<ClubData[]>([]);
+  const [clubsLoading, setClubsLoading] = useState(true);
+  const [rankedClubs, setRankedClubs] = useState<RankedClub[]>([]);
+  const [rankingsLoading, setRankingsLoading] = useState(true);
+
+  useEffect(() => {
+    loadMyClubs();
+    loadRankings();
+  }, []);
+
+  const loadMyClubs = async () => {
+    setClubsLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setClubsLoading(false); return; }
+
+    const { data: memberships } = await supabase
+      .from('club_members')
+      .select('club_id, role, clubs(id, name, description, badge_emoji, owner_id, member_count, total_km, created_at)')
+      .eq('user_id', user.id);
+
+    const clubs: ClubData[] = (memberships ?? []).map(m => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const c = m.clubs as any as {
+        id: string; name: string; description: string | null; badge_emoji: string;
+        owner_id: string; member_count: number; total_km: number; created_at: string;
+      };
+      return {
+        id: c.id,
+        name: c.name,
+        level: 1,
+        memberCount: c.member_count,
+        rank: 0,
+        badge: c.badge_emoji ?? 'zap',
+        totalTerritories: 0,
+        weeklyRuns: 0,
+        clubStreak: 0,
+        dailyIncome: 0,
+        description: c.description ?? '',
+        createdBy: '',
+        createdAt: new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      };
+    });
+
+    setMyClubsData(clubs);
+    setClubsLoading(false);
+  };
+
+  const loadRankings = async () => {
+    setRankingsLoading(true);
+    const { data } = await supabase
+      .from('clubs')
+      .select('id, name, description, badge_emoji, member_count, total_km')
+      .order('member_count', { ascending: false })
+      .limit(20);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const clubs: RankedClub[] = (data ?? []).map((c: any, i: number) => ({
+      id: c.id,
+      name: c.name,
+      rank: i + 1,
+      territories: 0,
+      members: c.member_count ?? 0,
+      streak: 0,
+      badge: 'zap',
+      weeklyGain: 0,
+      weeklyRuns: 0,
+      region: 'Global',
+      country: '',
+      joinPolicy: 'open' as JoinPolicy,
+      description: c.description ?? '',
+      topMembers: [],
+    }));
+    setRankedClubs(clubs);
+    setRankingsLoading(false);
+  };
+
   // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
@@ -278,9 +306,8 @@ export default function Club() {
 
   const [rankingSearch, setRankingSearch] = useState('');
 
-  const activeRankedClubs = rankedClubsByScope[rankingScope];
   const filteredRankedClubs = rankingSearch
-    ? activeRankedClubs.filter(c => c.name.toLowerCase().includes(rankingSearch.toLowerCase()))
+    ? rankedClubs.filter(c => c.name.toLowerCase().includes(rankingSearch.toLowerCase()))
     : null;
 
   // Hide bottom nav when in chat view
@@ -368,8 +395,18 @@ export default function Club() {
     }, 800);
   };
 
-  const handleCreateClub = (data: { name: string; logoUrl: string; description: string }) => {
-    console.log('Creating club:', data);
+  const handleCreateClub = async (data: { name: string; logoUrl: string; description: string }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: club } = await supabase
+      .from('clubs')
+      .insert({ name: data.name, description: data.description, owner_id: user.id, badge_emoji: '🏃' })
+      .select()
+      .single();
+    if (club) {
+      await supabase.from('club_members').insert({ club_id: club.id, user_id: user.id, role: 'owner' });
+      await loadMyClubs();
+    }
     setShowCreateModal(false);
   };
 
@@ -809,7 +846,12 @@ export default function Club() {
         {/* MY CLUBS TAB */}
         {activeTab === 'my-clubs' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-            {myClubs.length === 0 ? (
+            {clubsLoading ? (
+              <div className="flex justify-center py-16">
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full" />
+              </div>
+            ) : myClubsData.length === 0 ? (
               <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-sm">
                 <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
                   <Users className="w-7 h-7 text-teal-500" strokeWidth={1.5} />
@@ -824,11 +866,9 @@ export default function Club() {
                 </button>
               </div>
             ) : (
-              myClubs.map(club => {
-                const acts = clubActivities[club.id] || [];
-                const latestActivity = acts[0];
-                const chats = clubChats[club.id] || [];
-                const lastMsg = [...chats].reverse().find(m => m.type === 'message');
+              myClubsData.map(club => {
+                const latestActivity = undefined as ActivityItem | undefined;
+                const lastMsg = undefined as ChatMessage | undefined;
                 return (
                   <motion.button
                     key={club.id}
@@ -879,6 +919,18 @@ export default function Club() {
         {/* RANKINGS TAB */}
         {activeTab === 'rankings' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {rankingsLoading && (
+              <div className="flex justify-center py-16">
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full" />
+              </div>
+            )}
+            {!rankingsLoading && rankedClubs.length === 0 && (
+              <div className="bg-white rounded-2xl p-10 text-center border border-gray-100 shadow-sm">
+                <p className="text-[14px] text-gray-400">No clubs yet — be the first to create one!</p>
+              </div>
+            )}
+            {!rankingsLoading && rankedClubs.length > 0 && <>
             {/* Scope Filter Pills */}
             <div className="flex gap-2 mb-4">
               {(['local', 'national', 'international'] as RankingScope[]).map(scope => {
@@ -972,7 +1024,7 @@ export default function Club() {
                 </span>
               </div>
               <div className="flex items-end justify-center gap-2">
-                {[activeRankedClubs[1], activeRankedClubs[0], activeRankedClubs[2]].map((club, idx) => {
+                {[rankedClubs[1], rankedClubs[0], rankedClubs[2]].map((club, idx) => {
                   const heights = [80, 104, 64];
                   const avatarSizes = ['w-11 h-11', 'w-14 h-14', 'w-10 h-10'];
                   const iconSizes = ['w-5 h-5', 'w-7 h-7', 'w-4 h-4'];
@@ -1025,14 +1077,14 @@ export default function Club() {
                   <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider w-10 text-right">+/-</span>
                 </div>
               </div>
-              {activeRankedClubs.slice(3).map((club, i) => {
+              {rankedClubs.slice(3).map((club, i) => {
                 const status = joinRequests[club.id];
                 return (
                   <button
                     key={club.id}
                     onClick={() => handleClubTap(club)}
                     className={`w-full flex items-center gap-3 px-4 py-3 active:bg-gray-50 transition text-left ${
-                      i < activeRankedClubs.length - 4 ? 'border-b border-gray-50' : ''
+                      i < rankedClubs.length - 4 ? 'border-b border-gray-50' : ''
                     }`}
                   >
                     <span className="text-[13px] font-bold text-gray-400 w-5 text-center">{club.rank}</span>
@@ -1065,26 +1117,9 @@ export default function Club() {
               })}
             </div>
 
-            {/* Your club highlight */}
-            <div className="bg-teal-50 rounded-2xl border border-teal-200 p-4 mb-2">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-teal-500 flex items-center justify-center shadow-sm">
-                  <Zap className="w-4.5 h-4.5 text-white" strokeWidth={2} />
-                </div>
-                <div className="flex-1">
-                  <span className="text-[13px] font-bold text-teal-800">Thunder Runners</span>
-                  <span className="text-[11px] text-teal-600 block">Your club &middot; #{
-                    rankingScope === 'international' ? '3' : rankingScope === 'national' ? '1' : '--'
-                  } {rankingScope}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-stat text-[15px] font-bold text-teal-700">312</span>
-                  <span className="text-[10px] text-teal-500 block">zones</span>
-                </div>
-              </div>
-            </div>
             </>
             )}
+            </>}
           </motion.div>
         )}
       </div>

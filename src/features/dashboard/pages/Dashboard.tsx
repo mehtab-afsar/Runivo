@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Flame, Coins, AlertTriangle,
-  Trophy, Calendar, Users, BarChart3, Zap, Gem, CheckCircle,
+  Trophy, Calendar, Users, BarChart3, Zap, Gem, CheckCircle, Target,
 } from 'lucide-react';
+import { NotificationBell } from '@features/notifications/components/NotificationBell';
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats';
 import { getTodaysMissions } from '@features/missions/services/missionStore';
 import { getAllTerritories, StoredTerritory } from '@shared/services/store';
@@ -27,7 +28,16 @@ const item = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { player, loading } = usePlayerStats();
+  const { player, loading, incomeCollected } = usePlayerStats();
+  const [showIncomeBadge, setShowIncomeBadge] = useState(false);
+
+  useEffect(() => {
+    if (incomeCollected > 0) {
+      setShowIncomeBadge(true);
+      const t = setTimeout(() => setShowIncomeBadge(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [incomeCollected]);
 
   const [missions, setMissions] = useState<Mission[]>([]);
   const [territories, setTerritories] = useState<StoredTerritory[]>([]);
@@ -71,6 +81,13 @@ export default function Dashboard() {
     setWeeklyKm(Math.round(weekDist * 10) / 10);
   };
 
+  const incomePausedDays = useMemo(() => {
+    if (!player?.lastRunDate) return null;
+    const last = new Date(player.lastRunDate);
+    const diff = Math.floor((Date.now() - last.getTime()) / (1000 * 60 * 60 * 24));
+    return diff >= 2 ? diff : null;
+  }, [player]);
+
   const { missionsCompleted, missionsTotal, avgDefense, weakZones, enemyNearby } = useMemo(() => {
     const completed = missions.filter(m => m.completed).length;
     const total = missions.length;
@@ -107,6 +124,25 @@ export default function Dashboard() {
 
   return (
     <div className="h-full bg-[#FAFAFA] relative overflow-hidden">
+      {/* Passive income collected toast */}
+      <AnimatePresence>
+        {showIncomeBadge && (
+          <motion.div
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+            className="fixed left-4 right-4 z-50 flex justify-center"
+            style={{ top: 'max(12px, env(safe-area-inset-top))' }}
+          >
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-amber-400 shadow-lg">
+              <span className="text-sm">🪙</span>
+              <span className="text-sm font-bold text-white">+{incomeCollected} coins collected from your zones</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-b from-[#FAFAFA] via-[#F0F7F8] to-[#FAFAFA]" />
@@ -129,21 +165,27 @@ export default function Dashboard() {
               <p className="text-xs text-gray-400 mb-0.5">{greeting}</p>
               <h1 className="text-xl font-bold text-gray-900">{player.username}</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {/* Currency pills */}
+              <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-white border border-yellow-100 shadow-sm">
+                <Coins className="w-3 h-3 text-yellow-400" strokeWidth={2} />
+                <span className="text-stat text-[11px] font-bold text-yellow-500">{player.coins.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-white border border-purple-100 shadow-sm">
+                <Gem className="w-3 h-3 text-purple-400" strokeWidth={2} />
+                <span className="text-stat text-[11px] font-bold text-purple-400">{player.diamonds}</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-white border border-teal-100 shadow-sm">
+                <Zap className="w-3 h-3 text-teal-500" strokeWidth={2} />
+                <span className="text-stat text-[11px] font-bold text-teal-500">{player.energy}</span>
+              </div>
               {player.streakDays > 0 && (
-                <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white border border-orange-200 shadow-sm">
-                  <Flame className="w-3.5 h-3.5 text-orange-400" strokeWidth={2} />
-                  <span className="text-stat text-xs font-bold text-orange-400">
-                    {player.streakDays}
-                  </span>
+                <div className="flex items-center gap-1 px-2 py-1.5 rounded-full bg-white border border-orange-200 shadow-sm">
+                  <Flame className="w-3 h-3 text-orange-400" strokeWidth={2} />
+                  <span className="text-stat text-[11px] font-bold text-orange-400">{player.streakDays}</span>
                 </div>
               )}
-              <button className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-gray-100 shadow-sm">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-              </button>
+              <NotificationBell variant="light" />
             </div>
           </motion.div>
 
@@ -151,8 +193,8 @@ export default function Dashboard() {
           <motion.div variants={item} className="grid grid-cols-4 gap-2 mb-4">
             {[
               { icon: <Trophy className="w-5 h-5 text-yellow-400" strokeWidth={1.5} />, label: 'Leaders', path: '/leaderboard' },
-              { icon: <Calendar className="w-5 h-5 text-purple-400" strokeWidth={1.5} />, label: 'Events', path: '/events', badge: 3 },
-              { icon: <Users className="w-5 h-5 text-teal-600" strokeWidth={1.5} />, label: 'Club', path: '/club', badge: 2 },
+              { icon: <Calendar className="w-5 h-5 text-purple-400" strokeWidth={1.5} />, label: 'Events', path: '/events' },
+              { icon: <Users className="w-5 h-5 text-teal-600" strokeWidth={1.5} />, label: 'Club', path: '/club' },
               { icon: <BarChart3 className="w-5 h-5 text-green-400" strokeWidth={1.5} />, label: 'History', path: '/history' },
             ].map((nav) => (
               <button
@@ -161,14 +203,7 @@ export default function Dashboard() {
                 className="relative bg-white rounded-xl py-3 flex flex-col items-center gap-1.5
                            border border-gray-100 shadow-sm active:scale-[0.95] transition"
               >
-                <div className="relative">
-                  {nav.icon}
-                  {'badge' in nav && nav.badge && (
-                    <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-red-500 flex items-center justify-center">
-                      <span className="text-[9px] font-bold text-white leading-none">{nav.badge}</span>
-                    </span>
-                  )}
-                </div>
+                {nav.icon}
                 <span className="text-[9px] font-medium text-gray-500">{nav.label}</span>
               </button>
             ))}
@@ -189,6 +224,24 @@ export default function Dashboard() {
               }}
             />
           </motion.div>
+
+          {/* Passive income paused banner */}
+          {incomePausedDays !== null && (
+            <motion.div variants={item} className="mb-4">
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={2} />
+                <p className="text-xs text-amber-700 leading-snug flex-1">
+                  No run in <span className="font-semibold">{incomePausedDays} days</span> — passive income is paused. Run today to earn coins.
+                </p>
+                <button
+                  onClick={() => { navigate('/run'); haptic('medium'); }}
+                  className="text-[11px] font-bold text-amber-600 whitespace-nowrap active:opacity-70"
+                >
+                  Run Now
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Start Run CTA */}
           <motion.div variants={item} className="mb-5">
@@ -320,9 +373,20 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-2xl p-4 text-center border border-gray-100 shadow-sm">
-                <span className="text-sm text-gray-500">Loading missions...</span>
-              </div>
+              <button
+                onClick={() => navigate('/missions')}
+                className="w-full bg-white rounded-2xl p-5 border border-gray-100 shadow-sm
+                           flex items-center gap-4 active:scale-[0.98] transition-transform text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                  <Target className="w-5 h-5 text-teal-600" strokeWidth={1.8} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-800">Set Daily Mission</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Pick today's challenge to earn XP &amp; coins</p>
+                </div>
+                <span className="text-xs text-teal-600 font-medium">Choose</span>
+              </button>
             )}
           </motion.div>
 
@@ -384,7 +448,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1">
                       <span className="text-xs text-gray-600 block">
-                        Zone {zone.hexId.slice(0, 8)}... defense at {zone.defense}%
+                        Zone {zone.id.slice(0, 8)}... defense at {zone.defense}%
                       </span>
                     </div>
                     <span className="text-[10px] text-yellow-400/60 font-medium">Fortify</span>
@@ -405,27 +469,6 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-          {/* Currencies */}
-          <motion.div variants={item}>
-            <div className="flex items-center justify-center gap-5 py-3">
-              <div className="flex items-center gap-1.5">
-                <Coins className="w-4 h-4 text-yellow-400" strokeWidth={2} />
-                <span className="text-stat text-sm font-bold text-yellow-400">{player.coins.toLocaleString()}</span>
-              </div>
-              <div className="w-px h-4 bg-gray-200" />
-              <div className="flex items-center gap-1.5">
-                <Gem className="w-4 h-4 text-purple-400" strokeWidth={2} />
-                <span className="text-stat text-sm font-bold text-purple-400">{player.gems}</span>
-              </div>
-              <div className="w-px h-4 bg-gray-200" />
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-teal-600" strokeWidth={2} />
-                <span className="text-stat text-sm font-bold text-teal-600">
-                  {player.energy}/{GAME_CONFIG.MAX_ENERGY}
-                </span>
-              </div>
-            </div>
-          </motion.div>
         </motion.div>
       </div>
     </div>

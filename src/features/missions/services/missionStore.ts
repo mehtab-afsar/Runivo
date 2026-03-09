@@ -1,5 +1,5 @@
 import { getDB } from '../../../shared/services/store';
-import { Mission, generateDailyMissions, updateMissionProgress } from './missions';
+import { Mission, MISSION_TEMPLATES, updateMissionProgress } from './missions';
 
 const STORE_NAME = 'missions';
 
@@ -15,15 +15,34 @@ export async function getTodaysMissions(): Promise<Mission[]> {
     m => m.id.startsWith(todayKey) && m.expiresAt > now
   );
 
-  if (todayMissions.length === 0) {
-    const newMissions = generateDailyMissions(today);
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    await Promise.all(newMissions.map(m => tx.store.put(m)));
-    await tx.done;
-    return newMissions;
-  }
-
   return todayMissions;
+}
+
+// Save a user-chosen set of mission templates as today's missions
+export async function setDailyMissions(templateTitles: string[]): Promise<Mission[]> {
+  const today = new Date();
+  const todayKey = `daily-${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+  const expiresAt = endOfDay.getTime();
+
+  const missions: Mission[] = templateTitles.map((title, i) => {
+    const template = MISSION_TEMPLATES.find(t => t.title === title) ?? MISSION_TEMPLATES[0];
+    return {
+      ...template,
+      id: `${todayKey}-${i}`,
+      current: 0,
+      completed: false,
+      claimed: false,
+      expiresAt,
+    };
+  });
+
+  const db = await getDB();
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  await Promise.all(missions.map(m => tx.store.put(m)));
+  await tx.done;
+  return missions;
 }
 
 export async function saveMissions(missions: Mission[]): Promise<void> {

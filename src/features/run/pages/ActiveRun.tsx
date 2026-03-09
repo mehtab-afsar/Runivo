@@ -3,22 +3,41 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Flag, Swords } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { useActiveRun } from '@features/run/hooks/useActiveRun';
+import { FirstRunGuide } from '@features/run/components/FirstRunGuide';
+import { postRunSync, createFeedPost } from '@shared/services/sync';
 import { AnimatedCounter } from '@shared/ui/AnimatedCounter';
 import { haptic } from '@shared/lib/haptics';
 import {
   addTerritoryOverlay,
-  animateClaimHex,
   updateTerritoryData,
 } from '@features/territory/services/territoryLayer';
 import { getAllTerritories } from '@shared/services/store';
 
-const zoneGradients: Record<string, string> = {
-  owned: 'from-teal-500/15 via-transparent to-transparent',
-  enemy: 'from-pink-500/15 via-transparent to-transparent',
-  neutral: 'from-gray-500/5 via-transparent to-transparent',
-};
+
+// Bearing between two GPS points in degrees (0 = north, clockwise)
+function calcBearing(p1: { lat: number; lng: number }, p2: { lat: number; lng: number }): number {
+  const dLng = ((p2.lng - p1.lng) * Math.PI) / 180;
+  const lat1 = (p1.lat * Math.PI) / 180;
+  const lat2 = (p2.lat * Math.PI) / 180;
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  return (Math.atan2(y, x) * 180) / Math.PI;
+}
+
+
+function arrowMarkerHTML(bearing: number) {
+  return `
+    <div data-arrow style="position:absolute;inset:0;display:flex;align-items:center;
+      justify-content:center;transform:rotate(${bearing}deg);transition:transform 0.4s ease;">
+      <svg width="22" height="28" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 1L21 24C21 24 16 20.5 11 20.5C6 20.5 1 24 1 24L11 1Z"
+          fill="#00B4C6" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  `;
+}
 
 export default function ActiveRun() {
   const navigate = useNavigate();
@@ -32,14 +51,17 @@ export default function ActiveRun() {
   const userLngLatRef = useRef<[number, number] | null>(
     startLocation ? [startLocation.lng, startLocation.lat] : null
   );
-  const watchIdRef = useRef<number | null>(null);
+  const preRunWatchIdRef = useRef<number | null>(null);
   const lastEaseRef = useRef<number>(0);
   const lastEasePosRef = useRef<[number, number] | null>(null);
+  const isRunningRef = useRef(false);
+  const userPanningRef = useRef(false);
+  const bearingRef = useRef(0);
 
   const {
     isRunning, isPaused, elapsed, distance, pace,
-    gpsPoints, currentZone, claimProgress,
-    territoriesClaimed, lastClaimEvent,
+    gpsPoints, claimProgress,
+    territoriesClaimed, lastClaimEvent, energyBlocked,
     startRun, pauseRun, resumeRun, finishRun, player,
   } = useActiveRun();
 
@@ -73,56 +95,45 @@ export default function ActiveRun() {
         });
       }
 
-      // Create marker element
+      // Create marker element — always an arrow on this page
       const el = document.createElement('div');
       el.className = 'user-marker';
-      el.style.position = 'relative';
-      el.innerHTML = `
-        <div style="
-          width: 20px; height: 20px;
-          background: #00B4C6;
-          border: 3px solid white;
-          border-radius: 50%;
-          box-shadow: 0 2px 8px rgba(0,180,198,0.4);
-        "></div>
-        <div style="
-          position: absolute; top: -2px; left: -2px;
-          width: 24px; height: 24px;
-          border-radius: 50%;
-          border: 2px solid rgba(0,180,198,0.3);
-          animation: pulse-ring 2s ease-out infinite;
-        "></div>
-      `;
+      el.style.cssText = 'position:relative;width:28px;height:28px;';
+      el.innerHTML = arrowMarkerHTML(0);
 
       // Place marker immediately at known location if available
-      if (userLngLatRef.current) {
-        markerRef.current = new maplibregl.Marker({ element: el })
-          .setLngLat(userLngLatRef.current)
-          .addTo(map);
-      } else {
-        markerRef.current = new maplibregl.Marker({ element: el })
-          .setLngLat(initCenter);
-      }
+      const markerLngLat = userLngLatRef.current ?? initCenter;
+      markerRef.current = new maplibregl.Marker({ element: el, anchor: 'center' })
+        .setLngLat(markerLngLat)
+        .addTo(map);
 
-      // Watch position with no cache — forces a fresh GPS fix so we don't
-      // jump to a stale cached location (e.g. the default Delhi coords).
-      watchIdRef.current = navigator.geolocation.watchPosition(
+      // Track user panning so auto-center doesn't fight them
+      map.on('dragstart', () => { userPanningRef.current = true; });
+      map.on('dragend', () => { userPanningRef.current = false; });
+
+      // Pre-run watcher: keeps map and marker centred until user starts running.
+      // Once isRunningRef flips true, we clear this watcher (useActiveRun has its own).
+      preRunWatchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
+          // Stop updating once the run is active — useActiveRun's watcher takes over
+          if (isRunningRef.current) {
+            if (preRunWatchIdRef.current !== null) {
+              navigator.geolocation.clearWatch(preRunWatchIdRef.current);
+              preRunWatchIdRef.current = null;
+            }
+            return;
+          }
           const lngLat: [number, number] = [pos.coords.longitude, pos.coords.latitude];
           userLngLatRef.current = lngLat;
           if (markerRef.current) {
             markerRef.current.setLngLat(lngLat);
-            if (!markerRef.current.getElement().parentElement) {
-              markerRef.current.addTo(map);
-            }
           }
-          // If run hasn't started yet, keep map centred on fresh position
-          if (!mapRef.current?.isMoving()) {
+          if (!userPanningRef.current) {
             map.easeTo({ center: lngLat, zoom: 16, pitch: 45, duration: 600 });
           }
         },
         () => {},
-        { enableHighAccuracy: true, maximumAge: 0 }
+        { enableHighAccuracy: true, maximumAge: 3000 }
       );
     });
 
@@ -133,12 +144,21 @@ export default function ActiveRun() {
 
     return () => {
       ro.disconnect();
-      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      if (preRunWatchIdRef.current !== null) navigator.geolocation.clearWatch(preRunWatchIdRef.current);
       map.remove();
       mapRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep isRunningRef in sync; clear pre-run watcher when run starts
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+    if (isRunning && preRunWatchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(preRunWatchIdRef.current);
+      preRunWatchIdRef.current = null;
+    }
+  }, [isRunning]);
 
   useEffect(() => {
     if (!mapRef.current || !mapReady || gpsPoints.length === 0) return;
@@ -150,8 +170,17 @@ export default function ActiveRun() {
       markerRef.current.setLngLat([latest.lng, latest.lat]);
     }
 
-    // Throttle easeTo to max every 2s and only if moved > 5m
-    if (isRunning && !isPaused) {
+    // Update arrow bearing from last two GPS points
+    if (isRunning && gpsPoints.length >= 2) {
+      const prev = gpsPoints[gpsPoints.length - 2];
+      const bearing = calcBearing(prev, latest);
+      bearingRef.current = bearing;
+      const arrowEl = markerRef.current?.getElement().querySelector('[data-arrow]') as HTMLElement | null;
+      if (arrowEl) arrowEl.style.transform = `rotate(${bearing}deg)`;
+    }
+
+    // Throttle easeTo to max every 2s, only if moved > 5m, and user isn't panning
+    if (isRunning && !isPaused && !userPanningRef.current) {
       const now = Date.now();
       const lngLat: [number, number] = [latest.lng, latest.lat];
       let shouldEase = now - lastEaseRef.current > 2000;
@@ -212,9 +241,7 @@ export default function ActiveRun() {
 
   useEffect(() => {
     if (!lastClaimEvent || lastClaimEvent.type !== 'claimed') return;
-    if (!mapRef.current) return;
-
-    animateClaimHex(mapRef.current, lastClaimEvent.hexId);
+    if (!mapRef.current || !player) return;
 
     (async () => {
       if (!mapRef.current || !player) return;
@@ -222,15 +249,6 @@ export default function ActiveRun() {
       updateTerritoryData(mapRef.current, territories, player.id);
     })();
   }, [lastClaimEvent, player]);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      console.log('Territory clicked:', detail);
-    };
-    window.addEventListener('territory-click', handler);
-    return () => window.removeEventListener('territory-click', handler);
-  }, []);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -243,30 +261,49 @@ export default function ActiveRun() {
 
   const handleFinish = useCallback(async () => {
     const result = await finishRun();
-    if (result) {
-      const lastPoint = result.gpsPoints?.[result.gpsPoints.length - 1];
-      navigate(`/run-summary/${result.runId}`, {
-        state: {
-          runData: {
-            distance: result.distance,
-            duration: result.elapsed,
-            pace: result.elapsed > 0 ? result.distance / result.elapsed : 0,
-            territoriesClaimed: result.territoriesClaimed,
-            currentLocation: lastPoint
-              ? { lat: lastPoint.lat, lng: lastPoint.lng }
-              : { lat: 0, lng: 0 },
-            isActive: false,
-            isPaused: false,
-            route: (result.gpsPoints || []).map((p: { lat: number; lng: number }) => ({
-              lat: p.lat,
-              lng: p.lng,
-            })),
-            actionType: 'claim',
-            success: true,
-          },
+    if (!result) return;
+
+    const lastPoint = result.gpsPoints?.[result.gpsPoints.length - 1];
+    const distanceKm = result.distance;
+    const runId = result.runId;
+
+    // Fire-and-forget: push run + profile to Supabase, then create feed post
+    postRunSync().then(() => {
+      createFeedPost(runId, distanceKm, result.territoriesClaimed);
+    }).catch(console.error);
+
+    navigate(`/run-summary/${runId}`, {
+      state: {
+        runData: {
+          distance: distanceKm,
+          duration: result.elapsed,
+          pace: result.elapsed > 0 ? distanceKm / result.elapsed : 0,
+          territoriesClaimed: result.territoriesClaimed,
+          currentLocation: lastPoint
+            ? { lat: lastPoint.lat, lng: lastPoint.lng }
+            : { lat: 0, lng: 0 },
+          isActive: false,
+          isPaused: false,
+          route: (result.gpsPoints || []).map((p: { lat: number; lng: number }) => ({
+            lat: p.lat,
+            lng: p.lng,
+          })),
+          actionType: 'claim',
+          success: true,
+          // Real reward data from game engine
+          xpEarned: result.xpEarned ?? 0,
+          coinsEarned: result.coinsEarned ?? 0,
+          diamondsEarned: result.diamondsEarned ?? 0,
+          enemyCaptured: 0,
+          leveledUp: result.leveledUp ?? false,
+          preRunLevel: result.preRunLevel ?? (player?.level ?? 1),
+          newLevel: result.newLevel ?? (player?.level ?? 1),
+          newStreak: result.newStreak ?? 0,
+          completedMissions: result.completedMissions ?? [],
         },
-      });
-    }
+      },
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finishRun, navigate]);
 
   const recenterMap = () => {
@@ -284,19 +321,6 @@ export default function ActiveRun() {
     <div className="fixed inset-0 bg-white" style={{ width: '100vw', height: '100dvh', minHeight: '100vh' }}>
       <div ref={mapContainer} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} />
 
-      <AnimatePresence mode="wait">
-        {currentZone && (
-          <motion.div
-            key={currentZone}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
-            className={`absolute top-0 left-0 right-0 h-40 bg-gradient-to-b ${zoneGradients[currentZone]} pointer-events-none z-10`}
-          />
-        )}
-      </AnimatePresence>
-
       <AnimatePresence>
         {claimProgress > 0 && claimProgress < 100 && (
           <motion.div
@@ -311,11 +335,9 @@ export default function ActiveRun() {
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-medium text-gray-500">
-                    {currentZone === 'enemy' ? (
-                      <span className="flex items-center gap-1.5"><Swords className="w-3.5 h-3.5 text-pink-500" strokeWidth={2} /> Attacking Territory</span>
-                    ) : (
-                      <span className="flex items-center gap-1.5"><Flag className="w-3.5 h-3.5 text-teal-600" strokeWidth={2} /> Claiming Territory</span>
-                    )}
+                    <span className="flex items-center gap-1.5">
+                      <Flag className="w-3.5 h-3.5 text-teal-600" strokeWidth={2} /> Capturing Territory
+                    </span>
                   </span>
                   <span className="text-stat text-xs font-bold text-teal-600">
                     {Math.round(claimProgress)}%
@@ -323,11 +345,7 @@ export default function ActiveRun() {
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <motion.div
-                    className={`h-full w-full rounded-full ${
-                      currentZone === 'enemy'
-                        ? 'bg-gradient-to-r from-pink-500 to-pink-400'
-                        : 'bg-gradient-to-r from-teal-500 to-teal-400'
-                    }`}
+                    className="h-full w-full rounded-full bg-gradient-to-r from-teal-500 to-teal-400"
                     animate={{ scaleX: claimProgress / 100 }}
                     style={{ transformOrigin: 'left' }}
                     transition={{ type: 'spring', stiffness: 50, damping: 15 }}
@@ -337,11 +355,7 @@ export default function ActiveRun() {
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className={`w-8 h-8 rounded-full border-2 ${
-                  currentZone === 'enemy'
-                    ? 'border-pink-200 border-t-pink-500'
-                    : 'border-teal-200 border-t-teal-500'
-                }`}
+                className="w-8 h-8 rounded-full border-2 border-teal-200 border-t-teal-500"
               />
             </div>
           </motion.div>
@@ -364,9 +378,7 @@ export default function ActiveRun() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-gray-900">Territory Claimed!</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {lastClaimEvent.previousOwner ? 'Captured from enemy!' : 'New zone secured'}
-                </p>
+                <p className="text-xs text-gray-400 mt-0.5">New zone secured</p>
               </div>
               <div className="flex flex-col items-end gap-0.5">
                 <span className="text-stat text-sm font-bold text-teal-600">
@@ -417,6 +429,25 @@ export default function ActiveRun() {
             </div>
           </div>
 
+          {/* Energy blocked warning */}
+          <AnimatePresence>
+            {energyBlocked && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                  </svg>
+                  <span className="text-[11px] text-amber-700 font-medium">Low energy — run ~1km to unlock next claim</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-center justify-around px-6 pb-4 border-b border-gray-100">
             <div className="flex flex-col items-center">
               <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Time</span>
@@ -431,8 +462,10 @@ export default function ActiveRun() {
             </div>
             <div className="w-px h-10 bg-gray-200" />
             <div className="flex flex-col items-center">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Zones</span>
-              <span className="text-stat text-2xl font-bold text-teal-600">{territoriesClaimed}</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Calories</span>
+              <span className="text-stat text-2xl font-semibold text-gray-900">
+                {Math.round(distance * 88)}<span className="text-sm text-gray-400 ml-0.5">kcal</span>
+              </span>
             </div>
           </div>
 
@@ -497,6 +530,12 @@ export default function ActiveRun() {
           </div>
         </div>
       </motion.div>
+
+      <FirstRunGuide
+        claimProgress={claimProgress}
+        territoriesClaimed={territoriesClaimed}
+        isRunning={isRunning}
+      />
 
       <AnimatePresence>
         {showFinishConfirm && (

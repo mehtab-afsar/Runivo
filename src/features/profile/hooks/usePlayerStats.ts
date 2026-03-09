@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { getPlayer, getRuns, StoredPlayer, StoredRun } from '@shared/services/store';
+import { getPlayer, savePlayer, getRuns, getAllTerritories, StoredPlayer, StoredRun } from '@shared/services/store';
 import { GAME_CONFIG } from '@shared/services/config';
+import { collectPassiveIncome } from '@shared/services/passiveIncome';
 
 export function usePlayerStats() {
   const [player, setPlayer] = useState<StoredPlayer | null>(null);
   const [recentRuns, setRecentRuns] = useState<StoredRun[]>([]);
   const [loading, setLoading] = useState(true);
+  const [incomeCollected, setIncomeCollected] = useState(0);
 
   useEffect(() => {
     load();
@@ -13,7 +15,19 @@ export function usePlayerStats() {
 
   const load = async () => {
     setLoading(true);
-    const p = await getPlayer();
+    let p = await getPlayer();
+
+    if (p) {
+      const territories = await getAllTerritories();
+      const ownedCount = territories.filter(t => t.ownerId === p!.id).length;
+      const { coinsEarned, updatedPlayer } = collectPassiveIncome(p, ownedCount);
+      if (coinsEarned > 0) {
+        await savePlayer(updatedPlayer);
+        p = updatedPlayer;
+        setIncomeCollected(coinsEarned);
+      }
+    }
+
     setPlayer(p);
     const runs = await getRuns(10);
     setRecentRuns(runs);
@@ -33,5 +47,5 @@ export function usePlayerStats() {
 
   const levelTitle = GAME_CONFIG.LEVEL_TITLES[(player?.level ?? 1) - 1] || 'Scout';
 
-  return { player, recentRuns, loading, xpProgress, levelTitle, reload: load };
+  return { player, recentRuns, loading, xpProgress, levelTitle, incomeCollected, reload: load };
 }

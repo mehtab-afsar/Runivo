@@ -12,6 +12,7 @@ export interface PlayerProfile {
   weeklyGoalKm: number;
   missionDifficulty: 'easy' | 'mixed' | 'hard';
   onboardingCompletedAt: number;
+  phone?: string;
 }
 
 const STORE_NAME = 'profile';

@@ -1,10 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Flag, Swords, Flame, Gem, Activity, X } from 'lucide-react'
+import maplibregl from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { StatCard } from '@shared/ui/StatCard'
-import { formatTime, formatPace, generateMockTerritories } from '@shared/data/mockData'
-import { useGameState } from '@shared/hooks/useGameState'
+
+const formatTime = (seconds: number): string => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+const formatPace = (paceMinutesPerKm: number): string => {
+  const minutes = Math.floor(paceMinutesPerKm);
+  const secs = Math.floor((paceMinutesPerKm - minutes) * 60);
+  return `${minutes}:${secs.toString().padStart(2, '0')}`;
+};
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats'
 import { ShareCardGenerator } from '@shared/ui/ShareCardGenerator'
 import SplitsTable from '@shared/ui/SplitsTable'
@@ -23,15 +34,25 @@ const item = {
 export const RunSummary: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { playerStats } = useGameState()
-  const { player, levelTitle } = usePlayerStats()
+  const { player, levelTitle, xpProgress } = usePlayerStats()
   const [showShare, setShowShare] = useState(false)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<maplibregl.Map | null>(null)
 
   const runData: LiveRunData & {
     route?: Location[]
     finalStats?: Record<string, unknown>
     actionType?: string
     success?: boolean
+    xpEarned?: number
+    coinsEarned?: number
+    diamondsEarned?: number
+    enemyCaptured?: number
+    leveledUp?: boolean
+    preRunLevel?: number
+    newLevel?: number
+    newStreak?: number
+    completedMissions?: { id: string; title: string; diamondReward?: number }[]
   } = location.state?.runData || {
     distance: 2.1,
     duration: 754,
@@ -45,21 +66,98 @@ export const RunSummary: React.FC = () => {
     success: true,
   }
 
-  void generateMockTerritories(50) // legacy - territories count from run data
-  const calories = Math.round(runData.distance * 88)
+  const routeCoords: [number, number][] = (runData.route ?? []).map(
+    (p: Location) => [p.lng, p.lat]
+  )
 
-  const calculateRewards = () => {
-    if (!runData.success) return { xp: 0, coins: 0, gems: 0 }
-    const base = {
-      xp:    runData.actionType === 'attack' ? 75 : runData.actionType === 'claim' ? 50 : 25,
-      coins: runData.actionType === 'attack' ? 40 : runData.actionType === 'claim' ? 25 : 15,
-      gems:  runData.actionType === 'attack' ? 5 : 0,
-    }
-    const distBonus = Math.floor(runData.distance * 5)
-    return { xp: base.xp + distBonus, coins: base.coins + distBonus, gems: base.gems }
+  // Fit map bounds to the route; fall back to run end location
+  const routeBounds: [[number, number], [number, number]] | null = routeCoords.length >= 2
+    ? [
+        [Math.min(...routeCoords.map(c => c[0])), Math.min(...routeCoords.map(c => c[1]))],
+        [Math.max(...routeCoords.map(c => c[0])), Math.max(...routeCoords.map(c => c[1]))],
+      ]
+    : null
+
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return
+
+    const center: [number, number] = routeCoords.length > 0
+      ? routeCoords[Math.floor(routeCoords.length / 2)]
+      : [runData.currentLocation.lng, runData.currentLocation.lat]
+
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      center,
+      zoom: 15,
+      interactive: false,
+      attributionControl: false,
+    })
+
+    // Force correct dimensions after the map is mounted into the DOM
+    setTimeout(() => map.resize(), 0)
+
+    // Re-resize if layout shifts (e.g. safe-area, bottom sheet)
+    const ro = new ResizeObserver(() => map.resize())
+    ro.observe(mapContainerRef.current)
+
+    map.on('load', () => {
+      map.resize()
+
+      if (routeCoords.length >= 2) {
+        map.fitBounds(routeBounds!, { padding: 48, duration: 0, maxZoom: 17 })
+
+        map.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: routeCoords },
+          },
+        })
+        map.addLayer({
+          id: 'route-glow',
+          type: 'line',
+          source: 'route',
+          paint: { 'line-color': 'rgba(0,180,198,0.2)', 'line-width': 14, 'line-blur': 10 },
+        })
+        map.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          paint: { 'line-color': '#00B4C6', 'line-width': 4, 'line-opacity': 0.95 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+
+        // Start marker (green dot)
+        const startEl = document.createElement('div')
+        startEl.style.cssText = 'width:10px;height:10px;background:#10B981;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(16,185,129,0.5)'
+        new maplibregl.Marker({ element: startEl }).setLngLat(routeCoords[0]).addTo(map)
+
+        // End marker (teal dot)
+        const endEl = document.createElement('div')
+        endEl.style.cssText = 'width:12px;height:12px;background:#00B4C6;border:2px solid white;border-radius:50%;box-shadow:0 1px 6px rgba(0,180,198,0.6)'
+        new maplibregl.Marker({ element: endEl }).setLngLat(routeCoords[routeCoords.length - 1]).addTo(map)
+      } else {
+        // Fewer than 2 GPS points — just pin the end location
+        const endEl = document.createElement('div')
+        endEl.style.cssText = 'width:14px;height:14px;background:#00B4C6;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,180,198,0.5)'
+        new maplibregl.Marker({ element: endEl }).setLngLat(center).addTo(map)
+      }
+    })
+
+    mapRef.current = map
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+const calories = Math.round(runData.distance * 88)
+
+  const rewards = {
+    xp: runData.xpEarned ?? 0,
+    coins: runData.coinsEarned ?? 0,
+    diamonds: runData.diamondsEarned ?? 0,
   }
-
-  const rewards = calculateRewards()
 
   const getActionTitle = () => {
     if (!runData.success) return `${runData.actionType || 'Action'} Failed`
@@ -71,24 +169,26 @@ export const RunSummary: React.FC = () => {
     }
   }
 
-  const xpPrevPercent = 30
-  const xpNewPercent  = Math.min(95, xpPrevPercent + Math.floor(rewards.xp / 35))
+  const xpNewPercent  = xpProgress.percent
+  const xpPrevPercent = Math.max(0, xpNewPercent - (rewards.xp / Math.max(xpProgress.needed, 1)) * 100)
 
+  const streakDisplay = runData.newStreak ?? player?.streakDays ?? 0
   const territoryRows = [
-    { icon: <Flag className="w-5 h-5 text-teal-600" strokeWidth={2} />, label: 'Territories Claimed',  value: runData.success ? (runData.territoriesClaimed || 1) : 0 },
-    { icon: <Swords className="w-5 h-5 text-pink-500" strokeWidth={2} />, label: 'Enemy Zones Captured', value: runData.actionType === 'attack' && runData.success ? 1 : 0 },
-    { icon: <Flame className="w-5 h-5 text-orange-500" strokeWidth={2} />, label: 'Daily Streak',          value: `${playerStats.dailyStreak} days` },
+    { icon: <Flag className="w-5 h-5 text-teal-600" strokeWidth={2} />, label: 'Territories Claimed',  value: runData.success ? (runData.territoriesClaimed || 0) : 0 },
+    { icon: <Swords className="w-5 h-5 text-pink-500" strokeWidth={2} />, label: 'Enemy Zones Captured', value: runData.enemyCaptured ?? 0 },
+    { icon: <Flame className="w-5 h-5 text-orange-500" strokeWidth={2} />, label: 'Daily Streak',          value: `${streakDisplay} days` },
     { icon: <Activity className="w-5 h-5 text-emerald-500" strokeWidth={2} />, label: 'Calories Burned',       value: calories },
   ]
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-32">
-      <div className="relative h-[35vh] bg-gray-100 overflow-hidden">
-      {/* Route map - pending implementation */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#FAFAFA]" />
+      <div className="relative h-[35vh] overflow-hidden bg-gray-100">
+        <div ref={mapContainerRef} className="absolute inset-0" />
+        {/* fade into the content below */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#FAFAFA] pointer-events-none" />
         <button
           onClick={() => navigate('/home')}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700"
+          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 z-10"
         >
           <X className="w-5 h-5" strokeWidth={2} />
         </button>
@@ -152,12 +252,26 @@ export const RunSummary: React.FC = () => {
 
         {runData.success && (
           <motion.div variants={item}>
-            <div className="gradient-border p-5">
-              <div className="flex items-center justify-between mb-4">
+            <div className="gradient-border p-5 space-y-4">
+              {/* Level-up banner */}
+              {runData.leveledUp && (
+                <div className="flex items-center gap-3 bg-teal-50 rounded-xl px-4 py-3">
+                  <span className="text-2xl">🎉</span>
+                  <div>
+                    <p className="text-sm font-bold text-teal-700">Level Up!</p>
+                    <p className="text-xs text-teal-600">
+                      Lv {runData.preRunLevel} → Lv {runData.newLevel}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* XP row */}
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">XP Earned</span>
                 <span className="text-stat text-xl font-bold text-teal-600">+{rewards.xp} XP</span>
               </div>
-              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden mb-2">
+              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: `${xpPrevPercent}%` }}
                   animate={{ width: `${xpNewPercent}%` }}
@@ -166,15 +280,39 @@ export const RunSummary: React.FC = () => {
                 />
               </div>
               <div className="flex justify-between text-xs text-gray-400">
-                <span>Lv {playerStats.level}</span>
-                <span>{playerStats.xp} / {playerStats.xp + playerStats.xpToNext} XP</span>
-                <span>Lv {playerStats.level + 1}</span>
+                <span>Lv {player?.level ?? 1}</span>
+                <span>{xpProgress.progress} / {xpProgress.needed} XP</span>
+                <span>Lv {(player?.level ?? 1) + 1}</span>
               </div>
 
-              {rewards.gems > 0 && (
-                <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+              {/* Coins row */}
+              {rewards.coins > 0 && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <span className="w-4 h-4 text-amber-500 font-bold text-base leading-none">🪙</span>
+                  <span>+{rewards.coins} coins earned</span>
+                </div>
+              )}
+
+              {/* Diamonds row */}
+              {rewards.diamonds > 0 && (
+                <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Gem className="w-4 h-4 text-purple-500" strokeWidth={2} />
-                  <span>+{rewards.gems} gems earned</span>
+                  <span>+{rewards.diamonds} diamonds earned</span>
+                </div>
+              )}
+
+              {/* Completed missions */}
+              {(runData.completedMissions?.length ?? 0) > 0 && (
+                <div className="pt-1 border-t border-gray-100">
+                  <p className="text-xs text-gray-400 mb-1.5">Missions Completed</p>
+                  {runData.completedMissions!.map(m => (
+                    <div key={m.id} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">✓ {m.title}</span>
+                      {(m.diamondReward ?? 0) > 0 && (
+                        <span className="text-purple-500 font-medium text-xs">+{m.diamondReward} 💎</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

@@ -1,11 +1,14 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { haptic } from '@shared/lib/haptics';
+import { RunivoLogo } from '@shared/ui/RunivoLogo';
 import { initializePlayer } from '@shared/services/store';
 import { seedTerritoryData } from '@shared/services/seedData';
 import { soundManager } from '@shared/audio/sounds';
 import { saveProfile, computeWeeklyGoal } from '@shared/services/profile';
+import { signUp } from '@shared/services/auth';
+import { pushProfile } from '@shared/services/sync';
 import OnboardingProgress from '../components/ProgressBar';
 import ExperienceStep from '../components/steps/ExperienceStep';
 import GoalStep from '../components/steps/GoalStep';
@@ -19,6 +22,9 @@ interface OnboardingFlowProps {
 
 interface OnboardingData {
   username: string;
+  email: string;
+  password: string;
+  phone: string;
   experienceLevel: 'new' | 'casual' | 'regular' | 'competitive';
   primaryGoal: 'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete';
   weeklyFrequency: number;
@@ -36,9 +42,15 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [seeding, setSeeding] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [signupError, setSignupError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const [data, setData] = useState<OnboardingData>({
     username: '',
+    email: '',
+    password: '',
+    phone: '',
     experienceLevel: 'casual',
     primaryGoal: 'get_fit',
     weeklyFrequency: 3,
@@ -92,11 +104,27 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const completeOnboarding = async () => {
+    setSigning(true);
+    setSignupError('');
+
     const trimmedName = data.username.trim() || 'Runner';
-    const player = await initializePlayer(trimmedName);
     const missionDifficulty = data.experienceLevel === 'new' ? 'easy'
       : data.experienceLevel === 'competitive' ? 'hard' : 'mixed';
 
+    try {
+      // 1. Create Supabase auth account (DB trigger auto-creates profile row)
+      await signUp(data.email.trim(), data.password, trimmedName);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sign up failed';
+      setSignupError(msg.includes('already registered') ? 'This email is already in use.' : msg);
+      setSigning(false);
+      return;
+    }
+
+    // 2. Create local IndexedDB player for offline support
+    const player = await initializePlayer(trimmedName);
+
+    // 3. Save onboarding preferences locally
     await saveProfile({
       playerId: player.id,
       experienceLevel: data.experienceLevel,
@@ -109,7 +137,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       weeklyGoalKm,
       missionDifficulty,
       onboardingCompletedAt: Date.now(),
+      phone: data.phone.trim() || undefined,
     });
+
+    // 4. Push profile preferences to Supabase
+    await pushProfile().catch(() => {/* non-fatal */});
 
     localStorage.setItem('runivo-weekly-goal', String(weeklyGoalKm));
     localStorage.setItem('runivo-distance-unit', data.distanceUnit);
@@ -118,6 +150,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
     soundManager.play('level_up');
     haptic('success');
+    setSigning(false);
     onComplete();
   };
 
@@ -128,7 +161,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const canGoNext = (): boolean => {
-    if (step === 1) return data.username.trim().length >= 3;
+    if (step === 1) {
+      const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim());
+      return data.username.trim().length >= 3 && emailValid && data.password.length >= 8;
+    }
     return true;
   };
 
@@ -178,13 +214,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             >
               <div className="text-center w-full max-w-sm">
                 <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', damping: 12, delay: 0.2 }}
-                  className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-teal-500 to-teal-600
-                             flex items-center justify-center shadow-[0_8px_30px_rgba(0,180,198,0.25)]"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', damping: 14, delay: 0.2 }}
+                  className="flex justify-center mb-8 drop-shadow-[0_8px_24px_rgba(8,145,178,0.22)]"
                 >
-                  <span className="text-4xl font-black text-white">R</span>
+                  <RunivoLogo size={80} wordmark />
                 </motion.div>
 
                 <motion.h1
@@ -232,52 +267,108 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 1: Name */}
+          {/* 1: Create Account */}
           {step === 1 && (
             <motion.div
-              key="name"
+              key="account"
               custom={direction}
               variants={slideVariants}
               initial="enter"
               animate="center"
               exit="exit"
               transition={{ type: 'spring', damping: 25 }}
-              className="flex-1 flex items-center justify-center px-8"
+              className="flex-1 flex items-center justify-center px-8 overflow-y-auto"
             >
-              <div className="w-full max-w-sm">
-                <div className="flex flex-col items-center mb-8">
-                  <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-black mb-4 transition-all ${
-                    data.username.trim().length >= 3
-                      ? 'bg-teal-50 text-teal-600 ring-2 ring-teal-400'
-                      : 'bg-gray-100 text-gray-300'
-                  }`}>
-                    {(data.username.trim()[0] || '?').toUpperCase()}
-                  </div>
-                  <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
-                    What should we call you?
-                  </h2>
-                  <p className="text-[13px] text-gray-400 mt-1">
-                    This is how other runners will see you
-                  </p>
+              <div className="w-full max-w-sm py-4">
+                <div className="mb-6 text-center">
+                  <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">Create your account</h2>
+                  <p className="text-[13px] text-gray-400 mt-1">Join thousands of runners conquering their cities</p>
                 </div>
 
-                <div className="mb-8">
-                  <input
-                    type="text"
-                    value={data.username}
-                    onChange={(e) => update('username', e.target.value.slice(0, 20))}
-                    placeholder="Enter your name"
-                    maxLength={20}
-                    autoFocus
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-gray-200
-                               text-gray-900 text-base font-medium placeholder:text-gray-300
-                               focus:outline-none focus:border-teal-400 focus:bg-white
-                               transition-all"
-                  />
-                  <p className="text-xs text-gray-300 mt-2 text-right">
-                    {data.username.length}/20
-                  </p>
+                <div className="space-y-3 mb-6">
+                  {/* Username */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Username</label>
+                    <div className="mt-1 relative">
+                      <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                        data.username.trim().length >= 3 ? 'bg-teal-50 text-teal-600' : 'bg-gray-100 text-gray-300'
+                      }`}>
+                        {(data.username.trim()[0] || '?').toUpperCase()}
+                      </div>
+                      <input
+                        type="text"
+                        value={data.username}
+                        onChange={(e) => update('username', e.target.value.slice(0, 20))}
+                        placeholder="Your runner name"
+                        maxLength={20}
+                        autoFocus
+                        className="w-full pl-14 pr-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
+                                   text-gray-900 text-sm font-medium placeholder:text-gray-300
+                                   focus:outline-none focus:border-teal-400 focus:bg-white transition-all"
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-300 mt-1 text-right">{data.username.length}/20 · min 3 chars</p>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Email</label>
+                    <input
+                      type="email"
+                      value={data.email}
+                      onChange={(e) => update('email', e.target.value)}
+                      placeholder="you@example.com"
+                      className="mt-1 w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
+                                 text-gray-900 text-sm font-medium placeholder:text-gray-300
+                                 focus:outline-none focus:border-teal-400 focus:bg-white transition-all"
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Password</label>
+                    <div className="mt-1 relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={data.password}
+                        onChange={(e) => update('password', e.target.value)}
+                        placeholder="Min 8 characters"
+                        className="w-full px-4 pr-12 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
+                                   text-gray-900 text-sm font-medium placeholder:text-gray-300
+                                   focus:outline-none focus:border-teal-400 focus:bg-white transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(p => !p)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-gray-300 mt-1 pl-1">min 8 characters</p>
+                  </div>
+
+                  {/* Phone (Optional) */}
+                  <div>
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Phone <span className="normal-case tracking-normal font-normal">(Optional)</span></label>
+                    <input
+                      type="tel"
+                      value={data.phone}
+                      onChange={(e) => update('phone', e.target.value)}
+                      placeholder="+1 (555) 000-0000"
+                      className="mt-1 w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
+                                 text-gray-900 text-sm font-medium placeholder:text-gray-300
+                                 focus:outline-none focus:border-teal-400 focus:bg-white transition-all"
+                    />
+                    <p className="text-[10px] text-gray-300 mt-1 pl-1">Used for account recovery only</p>
+                  </div>
                 </div>
+
+                {signupError && (
+                  <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
+                    <p className="text-xs text-red-500">{signupError}</p>
+                  </div>
+                )}
 
                 <button
                   onClick={next}
@@ -285,17 +376,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
                              text-base font-bold text-white
                              shadow-[0_4px_20px_rgba(0,180,198,0.3)]
-                             disabled:opacity-30 disabled:shadow-none
-                             transition-all"
+                             disabled:opacity-30 disabled:shadow-none transition-all"
                 >
                   Continue
-                </button>
-
-                <button
-                  onClick={() => { update('username', 'Runner'); next(); }}
-                  className="w-full py-3 mt-3 text-sm text-gray-400"
-                >
-                  Skip for now
                 </button>
               </div>
             </motion.div>
@@ -518,14 +601,31 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   </div>
                 </div>
 
+                {signupError && (
+                  <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
+                    <p className="text-xs text-red-500">{signupError}</p>
+                  </div>
+                )}
+
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={completeOnboarding}
+                  disabled={signing}
                   className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
                              text-lg font-bold text-white
-                             shadow-[0_4px_24px_rgba(0,180,198,0.35)]"
+                             shadow-[0_4px_24px_rgba(0,180,198,0.35)]
+                             disabled:opacity-60 flex items-center justify-center gap-3"
                 >
-                  Start Conquering
+                  {signing ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full"
+                      />
+                      Creating account...
+                    </>
+                  ) : 'Start Conquering'}
                 </motion.button>
               </div>
             </motion.div>

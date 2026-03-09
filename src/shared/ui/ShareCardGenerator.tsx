@@ -489,26 +489,51 @@ export function ShareCardGenerator({ isOpen, onClose, runData }: ShareCardProps)
                             </div>
                           </div>
 
-                          <div style={{ textAlign: 'right' as const }}>
-                            <div
-                              style={{
-                                fontSize: '36px',
-                                fontWeight: 800,
-                                color: theme.textPrimary,
-                                letterSpacing: '0.05em',
-                              }}
-                            >
-                              RUNIVO
-                            </div>
-                            <div
-                              style={{
-                                fontSize: '18px',
-                                color: theme.textSecondary,
-                                letterSpacing: '0.2em',
-                                textTransform: 'uppercase' as const,
-                              }}
-                            >
-                              {'Run · Capture · Conquer'}
+                          {/* Runivo hollow-hex logo + wordmark */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+                            {/* Hollow hexagon — right half dark, left half faded */}
+                            <svg width="56" height="56" viewBox="0 0 100 100" fill="none">
+                              <path
+                                d="M 50,6 L 88.1,28 L 88.1,72 L 50,94"
+                                stroke={theme.accent}
+                                strokeWidth="7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M 50,94 L 11.9,72 L 11.9,28 L 50,6"
+                                stroke={theme.accent}
+                                strokeWidth="7"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity="0.28"
+                              />
+                            </svg>
+                            <div>
+                              <div
+                                style={{
+                                  fontSize: '42px',
+                                  fontFamily: "'Cormorant Garamond', Georgia, serif",
+                                  fontStyle: 'italic',
+                                  fontWeight: 600,
+                                  color: theme.textPrimary,
+                                  letterSpacing: '0.01em',
+                                  lineHeight: 1,
+                                }}
+                              >
+                                Run<span style={{ color: theme.accent }}>ivo</span>
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: '18px',
+                                  color: theme.textSecondary,
+                                  letterSpacing: '0.2em',
+                                  textTransform: 'uppercase' as const,
+                                  marginTop: '6px',
+                                }}
+                              >
+                                {'Run · Capture · Conquer'}
+                              </div>
                             </div>
                           </div>
                         </div>

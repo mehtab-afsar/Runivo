@@ -1,80 +1,87 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Flag, Zap, Crown } from 'lucide-react';
-import { usePlayerStats } from '@features/profile/hooks/usePlayerStats';
-import { getRuns } from '@shared/services/store';
-
-type LeaderboardTab = 'distance' | 'territories' | 'xp';
-type TimeFrame = 'week' | 'month' | 'all';
-
-interface LeaderboardEntry {
-  rank: number;
-  name: string;
-  value: number;
-  level: number;
-  isPlayer: boolean;
-}
+import { supabase } from '@shared/services/supabase';
+import type { LeaderboardTab, TimeFrame, LeaderboardEntry } from '../types';
 
 export default function Leaderboard() {
-  const { player } = usePlayerStats();
   const [tab, setTab] = useState<LeaderboardTab>('distance');
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('week');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    loadLeaderboard();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { generateLeaderboard(); }, [tab, timeFrame, player]);
+  }, [tab, timeFrame]);
 
-  const generateLeaderboard = async () => {
-    if (!player) return;
+  const loadLeaderboard = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const allRuns = await getRuns();
-    const now = Date.now();
-    const cutoff = {
-      week: now - 7 * 24 * 60 * 60 * 1000,
-      month: now - 30 * 24 * 60 * 60 * 1000,
-      all: 0,
-    }[timeFrame];
+    if (timeFrame === 'week') {
+      const { data } = await supabase
+        .from('leaderboard_weekly')
+        .select('id, username, level, weekly_xp, weekly_km, weekly_territories, rank')
+        .order('rank', { ascending: true })
+        .limit(50);
 
-    const filteredRuns = allRuns.filter(r => r.startTime >= cutoff);
+      if (data) {
+        const mapped: LeaderboardEntry[] = data.map(row => ({
+          rank: row.rank,
+          name: row.username,
+          level: row.level,
+          value: tab === 'distance' ? Math.round(Number(row.weekly_km) * 10) / 10
+               : tab === 'xp'       ? Number(row.weekly_xp)
+               :                      Number(row.weekly_territories),
+          isPlayer: user?.id === row.id,
+        }));
+        mapped.sort((a, b) => b.value - a.value);
+        mapped.forEach((e, i) => { e.rank = i + 1; });
+        setEntries(mapped);
+      }
+    } else {
+      const cutoff = timeFrame === 'month'
+        ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        : new Date(0).toISOString();
 
-    let playerValue = 0;
-    switch (tab) {
-      case 'distance':
-        playerValue = filteredRuns.reduce((sum, r) => sum + r.distanceMeters / 1000, 0);
-        break;
-      case 'territories':
-        playerValue = filteredRuns.reduce((sum, r) => sum + r.territoriesClaimed.length, 0);
-        break;
-      case 'xp':
-        playerValue = filteredRuns.reduce((sum, r) => sum + r.xpEarned, 0);
-        break;
+      const [{ data: runs }, { data: profiles }] = await Promise.all([
+        supabase.from('runs').select('user_id, distance_m, xp_earned, territories_claimed').gte('started_at', cutoff),
+        supabase.from('profiles').select('id, username, level'),
+      ]);
+
+      if (runs && profiles) {
+        const profileMap = new Map(profiles.map(p => [p.id, p]));
+        const totals = new Map<string, { km: number; xp: number; zones: number }>();
+
+        for (const run of runs) {
+          const prev = totals.get(run.user_id) ?? { km: 0, xp: 0, zones: 0 };
+          totals.set(run.user_id, {
+            km: prev.km + run.distance_m / 1000,
+            xp: prev.xp + run.xp_earned,
+            zones: prev.zones + (run.territories_claimed?.length ?? 0),
+          });
+        }
+
+        const mapped: LeaderboardEntry[] = Array.from(totals.entries()).map(([uid, t]) => {
+          const profile = profileMap.get(uid);
+          return {
+            rank: 0,
+            name: profile?.username ?? 'Runner',
+            level: profile?.level ?? 1,
+            value: tab === 'distance' ? Math.round(t.km * 10) / 10
+                 : tab === 'xp'       ? t.xp
+                 :                      t.zones,
+            isPlayer: user?.id === uid,
+          };
+        });
+
+        mapped.sort((a, b) => b.value - a.value);
+        mapped.forEach((e, i) => { e.rank = i + 1; });
+        setEntries(mapped);
+      }
     }
-
-    const mockNames = [
-      'SpeedDemon_42', 'NightRunner_X', 'MilesAhead', 'TerritoryKing',
-      'UrbanExplorer', 'PaceBreaker', 'TrailBlaze_7', 'RunRebel',
-      'StreetConquer', 'MapMaster_99', 'ZoneHunter', 'SwiftStrike',
-      'EnduranceKing', 'HexHero', 'CityRunner_X', 'GroundControl',
-      'PavementPro', 'GridLord', 'SprintStar', 'ConquestKing',
-    ];
-
-    const mockEntries: LeaderboardEntry[] = mockNames.map((name) => {
-      const baseMultiplier = tab === 'distance' ? 15 : tab === 'territories' ? 12 : 500;
-      const timeMultiplier = timeFrame === 'week' ? 1 : timeFrame === 'month' ? 3.5 : 10;
-      const randomFactor = 0.3 + Math.random() * 1.7;
-      const value = Math.round(baseMultiplier * timeMultiplier * randomFactor * 10) / 10;
-      return { rank: 0, name, value, level: Math.floor(3 + Math.random() * 15), isPlayer: false };
-    });
-
-    mockEntries.push({
-      rank: 0, name: player.username,
-      value: Math.round(playerValue * 10) / 10,
-      level: player.level, isPlayer: true,
-    });
-
-    mockEntries.sort((a, b) => b.value - a.value);
-    mockEntries.forEach((entry, i) => { entry.rank = i + 1; });
-    setEntries(mockEntries);
+    setLoading(false);
   };
 
   const tabs: { id: LeaderboardTab; label: string; icon: ReactNode }[] = [
@@ -101,6 +108,26 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-[#FAFAFA] pb-28">
       <div className="px-5" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
         <h1 className="text-xl font-bold text-gray-900 mb-5">Leaderboard</h1>
+
+        {loading && (
+          <div className="flex justify-center py-20">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full"
+            />
+          </div>
+        )}
+
+        {!loading && entries.length === 0 && (
+          <div className="flex flex-col items-center py-20 text-center">
+            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <Crown className="w-6 h-6 text-gray-300" />
+            </div>
+            <p className="text-sm font-medium text-gray-500">No runners yet</p>
+            <p className="text-xs text-gray-400 mt-1">Complete a run to appear here</p>
+          </div>
+        )}
 
         <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
           {tabs.map(t => (

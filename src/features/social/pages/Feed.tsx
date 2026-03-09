@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { haptic } from '@shared/lib/haptics';
 import {
@@ -26,6 +26,12 @@ import {
   Swords,
   Send,
 } from 'lucide-react';
+import { supabase } from '@shared/services/supabase';
+import { toggleLike } from '@shared/services/sync';
+
+// Module-level flag: once we confirm the followers table is missing (local dev
+// with unmigrated DB), stop retrying on every Feed mount to avoid console spam.
+let followersTableAvailable = true;
 
 type FeedTab = 'explore' | 'following';
 type ReactionType = 'kudos' | 'fire' | 'crown' | 'muscle';
@@ -68,6 +74,7 @@ interface KudosUser {
 
 interface Post {
   id: string;
+  userId: string;
   user: PostUser;
   activity: PostActivity;
   kudos: number;
@@ -116,89 +123,8 @@ const ACTIVITY_ICONS: Record<ActivityType, { icon: string; bg: string }> = {
   long_run: { icon: '\ud83d\udea3', bg: 'bg-blue-500' },
 };
 
-const ROUTES: [number, number][][] = [
-  [[10,80],[15,65],[25,50],[35,55],[45,40],[55,35],[60,20],[70,25],[80,40],[85,55],[75,65],[65,70],[55,75],[45,80],[35,85],[25,80],[15,78],[10,80]],
-  [[15,20],[25,30],[30,45],[40,55],[50,50],[60,40],[65,30],[75,35],[80,50],[85,65],[75,75],[60,80],[45,75],[35,65],[25,55],[20,40],[15,20]],
-  [[10,50],[20,35],[30,25],[45,20],[55,30],[60,45],[65,60],[55,70],[45,75],[35,70],[30,60],[25,50],[30,40],[40,35],[50,45],[45,55],[35,60],[25,55],[15,50],[10,50]],
-  [[20,85],[25,70],[35,55],[45,45],[55,40],[65,35],[70,45],[65,55],[55,60],[50,70],[55,80],[65,75],[75,65],[80,55],[75,45],[65,40],[55,50],[50,60],[45,70],[35,80],[25,82],[20,85]],
-  [[15,50],[25,40],[35,30],[50,25],[60,30],[70,40],[75,55],[70,65],[60,70],[50,65],[45,55],[50,45],[60,50],[65,60],[55,68],[45,62],[40,55],[35,50],[25,55],[15,50]],
-];
 
-const mockPosts: Post[] = [
-  {
-    id: '1',
-    user: { name: 'Sarah Johnson', initial: 'S', color: 'from-rose-400 to-pink-500' },
-    activity: { type: 'run', title: 'Morning Territory Run', description: 'Beautiful morning out. Claimed 3 new zones near the park! Defence is looking strong.', distance: 8.2, duration: 42, pace: '5:07', elevation: 87, calories: 520, territoriesClaimed: 3, route: ROUTES[0], pr: { label: 'Fastest 5K', value: '24:12' } },
-    kudos: 24, kudosUsers: [{ name: 'Mike', initial: 'M', color: 'from-blue-400 to-indigo-500' }, { name: 'Alex', initial: 'A', color: 'from-purple-400 to-violet-500' }, { name: 'Kim', initial: 'K', color: 'from-amber-400 to-orange-500' }],
-    comments: 5, timestamp: '2h ago', location: 'Central Park, New Delhi',
-  },
-  {
-    id: '2',
-    user: { name: 'Mike Chen', initial: 'M', color: 'from-blue-400 to-indigo-500' },
-    activity: { type: 'interval', title: 'Speed Intervals', description: 'Tempo session with 6x800m repeats. Feeling the speed coming back!', distance: 5.0, duration: 28, pace: '5:36', elevation: 32, calories: 340, territoriesClaimed: 2, enemyZonesCaptured: 1, route: ROUTES[1] },
-    kudos: 18, kudosUsers: [{ name: 'Sarah', initial: 'S', color: 'from-rose-400 to-pink-500' }, { name: 'Priya', initial: 'P', color: 'from-teal-400 to-cyan-500' }],
-    comments: 3, timestamp: '4h ago', location: 'Lodi Garden Track',
-  },
-  {
-    id: '3',
-    user: { name: 'RunRebel', initial: 'R', color: 'from-orange-400 to-red-500' },
-    activity: { type: 'long_run', title: 'Territory Conquest', description: 'Sunday long run turned into a massive territory sweep. 7 zones claimed, 2 enemy zones captured. Empire growing!', distance: 12.4, duration: 68, pace: '5:29', elevation: 156, calories: 845, territoriesClaimed: 7, enemyZonesCaptured: 2, route: ROUTES[2], pr: { label: 'Longest Run', value: '12.4 km' } },
-    kudos: 42, kudosUsers: [{ name: 'Sarah', initial: 'S', color: 'from-rose-400 to-pink-500' }, { name: 'Mike', initial: 'M', color: 'from-blue-400 to-indigo-500' }, { name: 'Alex', initial: 'A', color: 'from-purple-400 to-violet-500' }, { name: 'Kim', initial: 'K', color: 'from-amber-400 to-orange-500' }, { name: 'Priya', initial: 'P', color: 'from-teal-400 to-cyan-500' }],
-    comments: 8, timestamp: '6h ago', location: 'Hauz Khas - Safdarjung',
-  },
-  {
-    id: '4',
-    user: { name: 'Priya Sharma', initial: 'P', color: 'from-teal-400 to-cyan-500' },
-    activity: { type: 'trail', title: 'Ridge Trail Run', description: 'Hit the trails before sunrise. That elevation gain was brutal but so worth it.', distance: 6.8, duration: 45, pace: '6:37', elevation: 210, calories: 480, territoriesClaimed: 4, route: ROUTES[3] },
-    kudos: 31, kudosUsers: [{ name: 'RunRebel', initial: 'R', color: 'from-orange-400 to-red-500' }, { name: 'Sarah', initial: 'S', color: 'from-rose-400 to-pink-500' }],
-    comments: 6, timestamp: '8h ago', location: 'Northern Ridge, Delhi',
-  },
-  {
-    id: '5',
-    user: { name: 'Alex Rivera', initial: 'A', color: 'from-purple-400 to-violet-500' },
-    activity: { type: 'run', title: 'Recovery + Zone Defense', description: 'Easy recovery run but had to defend 2 of my zones. Nobody takes my territory!', distance: 4.2, duration: 26, pace: '6:11', elevation: 18, calories: 270, territoriesClaimed: 0, enemyZonesCaptured: 0, route: ROUTES[4] },
-    kudos: 15, kudosUsers: [{ name: 'Mike', initial: 'M', color: 'from-blue-400 to-indigo-500' }],
-    comments: 2, timestamp: '12h ago', location: 'Nehru Park Loop',
-  },
-];
 
-// --- Discover / Following Mock Data ---
-
-const suggestedNearby: SuggestedRunner[] = [
-  { id: 'sn1', name: 'Arjun Kapoor', initial: 'A', color: 'from-indigo-400 to-blue-600', level: 24, totalDistance: 1240, territories: 38, mutualCount: 3, mutualNames: ['Sarah', 'Mike', 'Priya'], location: 'Connaught Place', recentRun: '5.2 km this morning', badge: 'conqueror', joinedDate: 'Aug 2024', avgPace: '5:22', weeklyKm: 28, recentActivities: [{ title: 'Morning Conquest', distance: 5.2, pace: '5:18', time: '2h ago', zones: 2 }, { title: 'Evening Defense', distance: 3.8, pace: '5:45', time: 'Yesterday', zones: 0 }, { title: 'Weekend Long Run', distance: 14.1, pace: '5:30', time: '3d ago', zones: 5 }] },
-  { id: 'sn2', name: 'Neha Gupta', initial: 'N', color: 'from-rose-400 to-pink-500', level: 19, totalDistance: 890, territories: 22, mutualCount: 1, mutualNames: ['RunRebel'], location: 'Dwarka', recentRun: '3.1 km yesterday', joinedDate: 'Dec 2024', avgPace: '6:05', weeklyKm: 15, recentActivities: [{ title: 'Quick Run', distance: 3.1, pace: '6:10', time: 'Yesterday', zones: 1 }, { title: 'Park Loops', distance: 5.5, pace: '5:55', time: '3d ago', zones: 2 }] },
-  { id: 'sn3', name: 'Rohit Malhotra', initial: 'R', color: 'from-amber-500 to-orange-600', level: 27, totalDistance: 2100, territories: 56, mutualCount: 5, mutualNames: ['Sarah', 'Mike', 'Alex', 'Priya', 'Kim'], location: 'South Delhi', isVerified: true, badge: 'top10', joinedDate: 'Mar 2024', avgPace: '4:48', weeklyKm: 42, recentActivities: [{ title: 'Territory Sweep', distance: 10.2, pace: '4:45', time: '1h ago', zones: 6 }, { title: 'Speed Session', distance: 6.0, pace: '4:20', time: 'Yesterday', zones: 1 }, { title: 'Long Conquest', distance: 18.5, pace: '5:05', time: '2d ago', zones: 8 }] },
-  { id: 'sn4', name: 'Kavya Nair', initial: 'K', color: 'from-emerald-400 to-teal-600', level: 16, totalDistance: 620, territories: 14, mutualCount: 2, mutualNames: ['Mike', 'Alex'], location: 'Noida', recentRun: '7.5 km today', badge: 'streak', joinedDate: 'Jan 2025', avgPace: '6:20', weeklyKm: 18, recentActivities: [{ title: 'Morning Run', distance: 7.5, pace: '6:15', time: 'Today', zones: 3 }, { title: 'Recovery Jog', distance: 2.5, pace: '7:00', time: 'Yesterday', zones: 0 }] },
-];
-
-const suggestedPopular: SuggestedRunner[] = [
-  { id: 'sp1', name: 'Virat Jogger', initial: 'V', color: 'from-slate-600 to-gray-800', level: 42, totalDistance: 5800, territories: 142, mutualCount: 0, mutualNames: [], isVerified: true, badge: 'top10', recentRun: '15 km conquest', joinedDate: 'Jan 2024', avgPace: '4:32', weeklyKm: 65, recentActivities: [{ title: 'Morning Conquest', distance: 15.0, pace: '4:28', time: '3h ago', zones: 9 }, { title: 'Speed Intervals', distance: 8.0, pace: '4:10', time: 'Yesterday', zones: 2 }, { title: 'Recovery', distance: 5.0, pace: '5:30', time: '2d ago', zones: 0 }] },
-  { id: 'sp2', name: 'Ananya Runs', initial: 'A', color: 'from-fuchsia-400 to-pink-600', level: 36, totalDistance: 4200, territories: 98, mutualCount: 2, mutualNames: ['Sarah', 'RunRebel'], isVerified: true, badge: 'conqueror', joinedDate: 'Feb 2024', avgPace: '5:10', weeklyKm: 48, recentActivities: [{ title: 'Territory Defense', distance: 8.5, pace: '5:05', time: '5h ago', zones: 4 }, { title: 'Trail Blitz', distance: 12.0, pace: '5:25', time: 'Yesterday', zones: 6 }] },
-  { id: 'sp3', name: 'Marathon Manish', initial: 'M', color: 'from-teal-500 to-cyan-600', level: 38, totalDistance: 4900, territories: 115, mutualCount: 1, mutualNames: ['Priya'], isVerified: true, badge: 'streak', recentRun: '21 km long run', joinedDate: 'Jan 2024', avgPace: '4:55', weeklyKm: 55, recentActivities: [{ title: 'Half Marathon', distance: 21.1, pace: '4:50', time: 'Today', zones: 12 }, { title: 'Easy Run', distance: 6.0, pace: '5:40', time: '2d ago', zones: 1 }] },
-  { id: 'sp4', name: 'Zoya Fitness', initial: 'Z', color: 'from-violet-500 to-purple-600', level: 31, totalDistance: 3400, territories: 76, mutualCount: 0, mutualNames: [], isVerified: true, recentRun: '10 km tempo', joinedDate: 'Apr 2024', avgPace: '5:20', weeklyKm: 38, recentActivities: [{ title: 'Tempo Run', distance: 10.0, pace: '5:15', time: '4h ago', zones: 3 }, { title: 'Zone Hunt', distance: 7.2, pace: '5:30', time: 'Yesterday', zones: 4 }] },
-  { id: 'sp5', name: 'DelhiRunner', initial: 'D', color: 'from-sky-500 to-blue-600', level: 29, totalDistance: 2800, territories: 64, mutualCount: 3, mutualNames: ['Mike', 'Alex', 'Kim'], badge: 'top10', joinedDate: 'May 2024', avgPace: '5:00', weeklyKm: 32, recentActivities: [{ title: 'City Run', distance: 8.0, pace: '4:55', time: '6h ago', zones: 3 }, { title: 'Night Capture', distance: 5.5, pace: '5:10', time: 'Yesterday', zones: 2 }] },
-];
-
-const suggestedFromClubs: SuggestedRunner[] = [
-  { id: 'sc1', name: 'Emma Stone', initial: 'E', color: 'from-rose-400 to-pink-500', level: 22, totalDistance: 980, territories: 14, mutualCount: 4, mutualNames: ['Alex', 'Sarah', 'Mike', 'Lisa'], recentRun: 'Thunder Runners', joinedDate: 'Jun 2024', avgPace: '5:45', weeklyKm: 20, recentActivities: [{ title: 'Club Run', distance: 6.0, pace: '5:40', time: '1h ago', zones: 2 }] },
-  { id: 'sc2', name: 'John Doe', initial: 'J', color: 'from-blue-400 to-indigo-600', level: 20, totalDistance: 760, territories: 11, mutualCount: 4, mutualNames: ['Alex', 'Sarah', 'Mike', 'Lisa'], recentRun: 'Thunder Runners', joinedDate: 'Jul 2024', avgPace: '6:00', weeklyKm: 16, recentActivities: [{ title: 'Morning Jog', distance: 4.0, pace: '6:05', time: 'Yesterday', zones: 1 }] },
-  { id: 'sc3', name: 'Lisa Wang', initial: 'L', color: 'from-emerald-400 to-green-600', level: 19, totalDistance: 640, territories: 9, mutualCount: 4, mutualNames: ['Alex', 'Sarah', 'Mike', 'John'], recentRun: 'Thunder Runners', joinedDate: 'Aug 2024', avgPace: '6:10', weeklyKm: 14, recentActivities: [{ title: 'Park Loop', distance: 3.5, pace: '6:20', time: '2d ago', zones: 1 }] },
-];
-
-const contactEntries: ContactEntry[] = [
-  { id: 'ce1', name: 'Rahul Sharma', initial: 'R', color: 'from-orange-400 to-red-500', phone: '+91 98XXX XXXXX', isOnRunivo: true, level: 15, totalDistance: 420, territories: 8 },
-  { id: 'ce2', name: 'Sneha Patel', initial: 'S', color: 'from-pink-400 to-rose-500', phone: '+91 87XXX XXXXX', isOnRunivo: true, level: 21, totalDistance: 1080, territories: 19 },
-  { id: 'ce3', name: 'Amit Kumar', initial: 'A', color: 'from-blue-400 to-indigo-500', phone: '+91 99XXX XXXXX', isOnRunivo: true, level: 8, totalDistance: 180, territories: 3 },
-  { id: 'ce4', name: 'Deepa Menon', initial: 'D', color: 'from-violet-400 to-purple-500', phone: '+91 70XXX XXXXX', isOnRunivo: false },
-  { id: 'ce5', name: 'Karan Singh', initial: 'K', color: 'from-teal-400 to-emerald-500', phone: '+91 88XXX XXXXX', isOnRunivo: false },
-  { id: 'ce6', name: 'Riya Joshi', initial: 'R', color: 'from-amber-400 to-orange-500', phone: '+91 91XXX XXXXX', isOnRunivo: false },
-];
-
-const searchResults: SuggestedRunner[] = [
-  { id: 'sr1', name: 'Sarah Johnson', initial: 'S', color: 'from-rose-400 to-pink-500', level: 25, totalDistance: 1560, territories: 28, mutualCount: 3, mutualNames: ['Mike', 'Alex', 'Priya'], badge: 'streak', joinedDate: 'May 2024', avgPace: '5:07', weeklyKm: 30, recentActivities: [{ title: 'Morning Run', distance: 8.2, pace: '5:07', time: '2h ago', zones: 3 }] },
-  { id: 'sr2', name: 'Sam Wilson', initial: 'S', color: 'from-indigo-400 to-blue-600', level: 18, totalDistance: 720, territories: 12, mutualCount: 0, mutualNames: [], joinedDate: 'Oct 2024', avgPace: '5:50', weeklyKm: 14, recentActivities: [{ title: 'Easy Jog', distance: 3.5, pace: '6:00', time: 'Yesterday', zones: 1 }] },
-  { id: 'sr3', name: 'Sarika Menon', initial: 'S', color: 'from-amber-400 to-orange-500', level: 22, totalDistance: 1100, territories: 19, mutualCount: 1, mutualNames: ['Priya'], location: 'Mumbai', joinedDate: 'Jul 2024', avgPace: '5:35', weeklyKm: 22, recentActivities: [{ title: 'Beach Run', distance: 6.0, pace: '5:30', time: '5h ago', zones: 2 }] },
-];
 
 const badgeConfig: Record<string, { icon: typeof Flame; color: string; bg: string; label: string }> = {
   top10: { icon: Crown, color: 'text-amber-600', bg: 'bg-amber-50', label: 'Top 10' },
@@ -244,12 +170,123 @@ function KudosAvatars({ users, total }: { users: KudosUser[]; total: number }) {
 
 // --- Main Component ---
 
+const AVATAR_COLORS = [
+  'from-rose-400 to-pink-500', 'from-blue-400 to-indigo-500',
+  'from-orange-400 to-red-500', 'from-teal-400 to-cyan-500',
+  'from-purple-400 to-violet-500', 'from-amber-400 to-orange-400',
+  'from-emerald-400 to-green-500', 'from-sky-400 to-blue-500',
+];
+
+function getColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function buildPost(row: {
+  id: string; user_id: string; content: string | null; distance_km: number | null;
+  territories_claimed: number | null; likes: number; created_at: string;
+  profiles: { username: string; level: number } | null;
+}): Post {
+  const name = row.profiles?.username ?? 'Runner';
+  const distKm = row.distance_km ?? 0;
+  const zones = row.territories_claimed ?? 0;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    user: { name, initial: name.charAt(0).toUpperCase(), color: getColor(name) },
+    activity: {
+      type: 'run',
+      title: row.content ?? `${distKm.toFixed(1)} km run`,
+      description: row.content ?? undefined,
+      distance: distKm,
+      duration: 0,
+      pace: '–',
+      territoriesClaimed: zones,
+      route: [[10, 20], [30, 40], [50, 60], [70, 50], [85, 30]] as [number, number][],
+    },
+    kudos: row.likes,
+    kudosUsers: [],
+    comments: 0,
+    timestamp: timeAgo(row.created_at),
+  };
+}
+
 export default function Feed() {
   const [activeTab, setActiveTab] = useState<FeedTab>('explore');
   const [reactions, setReactions] = useState<Record<string, ReactionType | null>>({});
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPressRef = useRef(false);
+
+  // Live feed from Supabase
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+
+  useEffect(() => {
+    loadFeed();
+  }, []);
+
+  const loadFeed = async () => {
+    setFeedLoading(true);
+    const { data } = await supabase
+      .from('feed_posts')
+      .select('id, user_id, content, distance_km, territories_claimed, likes, created_at, profiles(username, level)')
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (data) setPosts(data.map(row => buildPost(row as any)));
+    setFeedLoading(false);
+  };
+
+  // Runners (Discover tab) from Supabase
+  const [runners, setRunners] = useState<SuggestedRunner[]>([]);
+
+  useEffect(() => { loadRunners(); }, []);
+
+  const loadRunners = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const query = supabase
+      .from('profiles')
+      .select('id, username, level, total_distance_km, total_territories_claimed, streak_days, created_at')
+      .order('level', { ascending: false })
+      .limit(30);
+    if (session?.user) query.neq('id', session.user.id);
+    const { data } = await query;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setRunners((data ?? []).map((row: any) => {
+      const name = row.username ?? 'Runner';
+      const badge: SuggestedRunner['badge'] =
+        row.total_territories_claimed >= 50 ? 'conqueror'
+        : row.streak_days >= 7 ? 'streak'
+        : row.level >= 30 ? 'top10'
+        : undefined;
+      return {
+        id: row.id,
+        name,
+        initial: name.charAt(0).toUpperCase(),
+        color: getColor(name),
+        level: row.level ?? 1,
+        totalDistance: Math.round(row.total_distance_km ?? 0),
+        territories: row.total_territories_claimed ?? 0,
+        mutualCount: 0,
+        mutualNames: [],
+        badge,
+        joinedDate: new Date(row.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        recentActivities: [],
+      } satisfies SuggestedRunner;
+    }));
+  };
 
   // Following tab state
   const [following, setFollowing] = useState<Set<string>>(new Set());
@@ -264,13 +301,45 @@ export default function Feed() {
   const [profileRunner, setProfileRunner] = useState<SuggestedRunner | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const toggleFollow = (id: string) => {
+  // Load who the current user already follows from Supabase
+  useEffect(() => {
+    if (!followersTableAvailable) return;
+    const load = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase
+        .from('followers')
+        .select('following_id')
+        .eq('follower_id', session.user.id);
+      if (error) {
+        // Table doesn't exist yet (migrations not applied) — stop retrying
+        followersTableAvailable = false;
+        return;
+      }
+      if (data) setFollowing(new Set(data.map((r: { following_id: string }) => r.following_id)));
+    };
+    load();
+  }, []);
+
+  const toggleFollow = async (id: string) => {
+    // Optimistic update
     setFollowing(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+    if (!followersTableAvailable) return;
+    // Persist via RPC (fire-and-forget; revert on error)
+    const { error } = await supabase.rpc('toggle_follow', { target_id: id });
+    if (error) {
+      followersTableAvailable = false;
+      // Revert
+      setFollowing(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+      });
+    }
   };
 
   const dismissSuggestion = (id: string) => {
@@ -292,6 +361,12 @@ export default function Feed() {
   const handleKudosTap = useCallback((postId: string) => {
     if (didLongPressRef.current) { didLongPressRef.current = false; return; }
     haptic('light');
+    // Persist to Supabase (fire and forget)
+    toggleLike(postId).then(liked => {
+      setPosts(prev => prev.map(p => p.id === postId
+        ? { ...p, kudos: liked ? p.kudos + 1 : Math.max(0, p.kudos - 1) }
+        : p));
+    }).catch(() => {/* non-fatal */});
     if (reactions[postId]) setReactions(prev => ({ ...prev, [postId]: null }));
     else setReactions(prev => ({ ...prev, [postId]: 'kudos' }));
   }, [reactions]);
@@ -318,16 +393,16 @@ export default function Feed() {
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
 
+  const undismissed = runners.filter(r => !dismissed.has(r.id));
   const filteredSearchResults = searchQuery.trim().length >= 2
-    ? searchResults.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? undismissed.filter(r => r.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
 
-  const visibleNearby = suggestedNearby.filter(r => !dismissed.has(r.id));
-  const visiblePopular = suggestedPopular.filter(r => !dismissed.has(r.id));
-  const visibleFromClubs = suggestedFromClubs.filter(r => !dismissed.has(r.id));
-
-  const contactsOnRunivo = contactEntries.filter(c => c.isOnRunivo);
-  const contactsNotOnRunivo = contactEntries.filter(c => !c.isOnRunivo);
+  const visibleNearby = undismissed.slice(0, 8);
+  const visiblePopular = undismissed.slice(0, 6);
+  const visibleFromClubs: SuggestedRunner[] = [];
+  const contactsOnRunivo: ContactEntry[] = [];
+  const contactsNotOnRunivo: ContactEntry[] = [];
 
   // ===== RUNNER PROFILE SHEET =====
   if (profileRunner) {
@@ -528,8 +603,20 @@ export default function Feed() {
         </div>
 
         {activeTab === 'explore' ? (
+          feedLoading ? (
+            <div className="flex justify-center py-16">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full" />
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="flex flex-col items-center py-20 px-5 text-center">
+              <div className="text-4xl mb-3">🏃</div>
+              <p className="text-sm font-semibold text-gray-500">No runs posted yet</p>
+              <p className="text-xs text-gray-400 mt-1">Complete a run to see it here</p>
+            </div>
+          ) : (
           <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3 px-4">
-            {mockPosts.map((post) => {
+            {posts.map((post) => {
               const currentReaction = reactions[post.id];
               const reactionData = currentReaction ? REACTIONS.find(r => r.type === currentReaction) : null;
               const hasReacted = !!currentReaction;
@@ -672,9 +759,81 @@ export default function Feed() {
               <span className="text-xs text-gray-400 font-medium">You're all caught up</span>
             </div>
           </motion.div>
+          )
         ) : (
           /* ===== FOLLOWING TAB ===== */
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-4">
+
+            {/* Personalized feed — posts from followed runners */}
+            {(() => {
+              const followedPosts = posts.filter(p => following.has(p.userId));
+              if (following.size === 0) return (
+                <div className="mx-4 mb-5 p-5 rounded-2xl bg-white border border-gray-100 shadow-sm text-center">
+                  <div className="text-3xl mb-2">👋</div>
+                  <p className="text-[14px] font-semibold text-gray-800">Follow runners to see their posts</p>
+                  <p className="text-[12px] text-gray-400 mt-1">Their runs will appear here as a personal feed</p>
+                </div>
+              );
+              if (followedPosts.length === 0) return (
+                <div className="mx-4 mb-5 p-5 rounded-2xl bg-white border border-gray-100 shadow-sm text-center">
+                  <p className="text-[13px] text-gray-500">No recent runs from the {following.size} runner{following.size !== 1 ? 's' : ''} you follow yet</p>
+                </div>
+              );
+              return (
+                <div className="space-y-3 px-4 mb-6">
+                  <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold px-1">Recent from people you follow</p>
+                  {followedPosts.slice(0, 10).map(post => {
+                    const hasReacted = !!reactions[post.id];
+                    const currentReaction = reactions[post.id];
+                    const reactionData = currentReaction ? REACTIONS.find(r => r.type === currentReaction) : null;
+                    const activityIcon = ACTIVITY_ICONS[post.activity.type];
+                    return (
+                      <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                          <div className="relative">
+                            <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${post.user.color} flex items-center justify-center text-sm font-bold text-white`}>{post.user.initial}</div>
+                            <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full ${activityIcon.bg} flex items-center justify-center text-[9px] ring-2 ring-white`}>{activityIcon.icon}</div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[13px] font-bold text-gray-900 truncate">{post.user.name}</span>
+                              <span className="text-[11px] text-gray-400 flex-shrink-0">{post.timestamp}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-4 pb-3">
+                          <div className="flex items-end gap-4">
+                            <div><span className="text-stat text-2xl font-bold text-gray-900">{post.activity.distance}</span><span className="text-xs text-gray-400 ml-0.5">km</span></div>
+                            {post.activity.territoriesClaimed > 0 && (
+                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-teal-50 border border-teal-100">
+                                <Flag className="w-3 h-3 text-teal-500" />
+                                <span className="text-[11px] font-semibold text-teal-600">{post.activity.territoriesClaimed} zones</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center px-4 py-3 border-t border-gray-100">
+                          <button onClick={() => handleKudosTap(post.id)}
+                            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full transition-colors ${hasReacted ? 'bg-teal-50' : 'active:bg-gray-50'}`}>
+                            {hasReacted ? (
+                              <span className="text-lg">{reactionData?.emoji}</span>
+                            ) : <Heart className="w-[18px] h-[18px] text-gray-400" />}
+                            <span className={`text-xs font-semibold ${hasReacted ? 'text-teal-600' : 'text-gray-500'}`}>{post.kudos + (hasReacted ? 1 : 0)}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Divider before discover */}
+            <div className="flex items-center gap-3 mx-4 mb-4">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="text-[11px] text-gray-400 font-medium uppercase tracking-widest">Discover</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
 
             {/* Search */}
             <div className="px-4 mb-4">
@@ -915,13 +1074,6 @@ export default function Feed() {
                   </button>
                 </motion.div>
 
-                {following.size > 0 && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-4">
-                    <span className="text-[12px] text-gray-400">
-                      You follow <span className="font-semibold text-teal-600">{following.size}</span> runner{following.size !== 1 ? 's' : ''}
-                    </span>
-                  </motion.div>
-                )}
               </>
             )}
           </motion.div>

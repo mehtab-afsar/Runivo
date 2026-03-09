@@ -21,13 +21,13 @@ export interface Mission {
   rewards: {
     xp: number;
     coins: number;
-    gems?: number;
+    diamonds?: number;
   };
   expiresAt: number;
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
-const MISSION_TEMPLATES: Omit<Mission, 'id' | 'current' | 'completed' | 'claimed' | 'expiresAt'>[] = [
+export const MISSION_TEMPLATES: Omit<Mission, 'id' | 'current' | 'completed' | 'claimed' | 'expiresAt'>[] = [
   // Easy
   {
     type: 'run_distance',
@@ -118,7 +118,7 @@ const MISSION_TEMPLATES: Omit<Mission, 'id' | 'current' | 'completed' | 'claimed
     description: 'Run 5 km in a single session',
     icon: '\u{1F3C6}',
     target: 5,
-    rewards: { xp: 200, coins: 100, gems: 2 },
+    rewards: { xp: 200, coins: 100, diamonds: 2 },
     difficulty: 'hard',
   },
   {
@@ -127,7 +127,7 @@ const MISSION_TEMPLATES: Omit<Mission, 'id' | 'current' | 'completed' | 'claimed
     description: 'Claim 5 territories today',
     icon: '\u{1F451}',
     target: 5,
-    rewards: { xp: 250, coins: 120, gems: 3 },
+    rewards: { xp: 250, coins: 120, diamonds: 3 },
     difficulty: 'hard',
   },
   {
@@ -136,7 +136,7 @@ const MISSION_TEMPLATES: Omit<Mission, 'id' | 'current' | 'completed' | 'claimed
     description: 'Capture 3 enemy territories in one run',
     icon: '\u{1F480}',
     target: 3,
-    rewards: { xp: 300, coins: 150, gems: 5 },
+    rewards: { xp: 300, coins: 150, diamonds: 5 },
     difficulty: 'hard',
   },
 ];

@@ -35,9 +35,12 @@ function TabIcon({ type, active }: { type: string; active: boolean }) {
     case 'feed':
       return (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 11a9 9 0 0 1 9 9" />
-          <path d="M4 4a16 16 0 0 1 16 16" />
-          <circle cx="5" cy="19" r="1" />
+          <path d="M4 3h16a1 1 0 0 1 1 1v14a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+          <line x1="7" y1="8" x2="17" y2="8" />
+          <rect x="7" y="11" width="5" height="5" rx="0.5" />
+          <line x1="14" y1="11" x2="17" y2="11" />
+          <line x1="14" y1="14" x2="17" y2="14" />
+          <line x1="7" y1="19" x2="17" y2="19" />
         </svg>
       )
     case 'profile':

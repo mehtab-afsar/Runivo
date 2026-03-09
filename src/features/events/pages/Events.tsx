@@ -1,124 +1,79 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-// import { useNavigate } from 'react-router-dom';
 import {
-  MapPin, Calendar, Clock, Users, ChevronRight, Bookmark,
+  MapPin, Calendar, Clock, Users, ChevronRight, Bookmark, Plus,
 } from 'lucide-react';
 import { haptic } from '@shared/lib/haptics';
+import { supabase } from '@shared/services/supabase';
+import type { EventTab, RunEvent } from '../types';
+import { categoryLabel } from '../types';
 
-type EventTab = 'upcoming' | 'challenges' | 'past';
-
-interface RunEvent {
-  id: string;
-  title: string;
-  description: string;
-  category: 'race' | 'meetup' | 'challenge';
-  date: string;
-  time: string;
-  location: string;
-  distance?: string;
-  participants: number;
-  spotsLeft?: number;
-  organizer: string;
-  organizerInitial: string;
-  saved?: boolean;
-  joined?: boolean;
-  image?: string; // placeholder pattern
+function formatEventDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-const events: RunEvent[] = [
-  {
-    id: '1',
-    title: 'Delhi Half Marathon 2026',
-    description: 'Annual half marathon through the heart of Delhi. Chip-timed, certified course with aid stations every 2km.',
-    category: 'race',
-    date: 'Sun, Mar 22',
-    time: '6:00 AM',
-    location: 'Jawaharlal Nehru Stadium',
-    distance: '21.1 km',
-    participants: 4200,
-    spotsLeft: 340,
-    organizer: 'Delhi Runners Club',
-    organizerInitial: 'D',
-  },
-  {
-    id: '2',
-    title: 'Saturday Morning Group Run',
-    description: 'Casual 5-8km run through Lodhi Garden. All paces welcome. Coffee after!',
-    category: 'meetup',
-    date: 'Sat, Mar 8',
-    time: '6:30 AM',
-    location: 'Lodhi Garden, Gate 2',
-    distance: '5-8 km',
-    participants: 28,
-    organizer: 'Sarah Johnson',
-    organizerInitial: 'S',
-    joined: true,
-  },
-  {
-    id: '3',
-    title: 'March 100K Challenge',
-    description: 'Run 100km total this month. Log your runs and track progress against the community.',
-    category: 'challenge',
-    date: 'Mar 1 - 31',
-    time: 'All Month',
-    location: 'Anywhere',
-    participants: 1890,
-    organizer: 'Runivo',
-    organizerInitial: 'R',
-    joined: true,
-  },
-  {
-    id: '4',
-    title: 'Sunset Trail Run',
-    description: 'Evening trail run on the Northern Ridge. Moderate difficulty, bring headlamp for the return.',
-    category: 'meetup',
-    date: 'Wed, Mar 12',
-    time: '4:30 PM',
-    location: 'Northern Ridge Trailhead',
-    distance: '10 km',
-    participants: 15,
-    spotsLeft: 5,
-    organizer: 'Trail Tribe Delhi',
-    organizerInitial: 'T',
-  },
-  {
-    id: '5',
-    title: 'Fastest 5K - Weekly Sprint',
-    description: 'Beat your personal best this week. Top 3 finishers earn exclusive badges.',
-    category: 'challenge',
-    date: 'This Week',
-    time: 'Anytime',
-    location: 'Anywhere',
-    participants: 567,
-    organizer: 'Runivo',
-    organizerInitial: 'R',
-  },
-  {
-    id: '6',
-    title: 'Nehru Park Interval Session',
-    description: 'Structured speed workout: 8x400m with 90s recovery. Coach-led session.',
-    category: 'meetup',
-    date: 'Tue, Mar 11',
-    time: '6:00 AM',
-    location: 'Nehru Park, South Gate',
-    distance: '6 km',
-    participants: 22,
-    spotsLeft: 8,
-    organizer: 'Coach Rahul',
-    organizerInitial: 'C',
-  },
-];
-
-const categoryLabel: Record<string, string> = {
-  race: 'Race',
-  meetup: 'Meetup',
-  challenge: 'Challenge',
-};
+function formatEventTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
 
 export default function Events() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<EventTab>('upcoming');
   const [savedEvents, setSavedEvents] = useState<Set<string>>(new Set());
+  const [events, setEvents] = useState<RunEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
+  const [isEmpireBuilder, setIsEmpireBuilder] = useState(false);
+
+  useEffect(() => {
+    loadEvents();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from('profiles').select('subscription_tier').eq('id', user.id).single()
+        .then(({ data }) => { setIsEmpireBuilder(data?.subscription_tier === 'empire-builder'); });
+    });
+  }, []);
+
+  const loadEvents = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data: eventsData } = await supabase
+      .from('events')
+      .select('*')
+      .eq('is_active', true)
+      .order('starts_at', { ascending: true });
+
+    let participatedIds: Set<string> = new Set();
+    if (user && eventsData?.length) {
+      const { data: participants } = await supabase
+        .from('event_participants')
+        .select('event_id')
+        .eq('user_id', user.id)
+        .in('event_id', eventsData.map(e => e.id));
+      participatedIds = new Set(participants?.map(p => p.event_id) ?? []);
+    }
+
+    setJoinedIds(participatedIds);
+    setEvents((eventsData ?? []).map(e => ({
+      id: e.id,
+      title: e.title,
+      description: e.description ?? '',
+      category: e.event_type,
+      date: formatEventDate(e.starts_at),
+      time: formatEventTime(e.starts_at),
+      location: e.location_name ?? 'TBD',
+      distance: e.distance_m ? `${(e.distance_m / 1000).toFixed(1)} km` : undefined,
+      participants: e.participant_count,
+      organizer: 'Runivo',
+      organizerInitial: 'R',
+      joined: participatedIds.has(e.id),
+      startsAt: e.starts_at,
+      endsAt: e.ends_at,
+    })));
+    setLoading(false);
+  };
 
   const toggleSave = (id: string) => {
     haptic('light');
@@ -130,11 +85,37 @@ export default function Events() {
     });
   };
 
-  const filtered = activeTab === 'past'
-    ? []
-    : activeTab === 'challenges'
-    ? events.filter(e => e.category === 'challenge')
-    : events.filter(e => e.category !== 'challenge');
+  const toggleJoin = async (eventId: string) => {
+    haptic('light');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const isJoined = joinedIds.has(eventId);
+    // Optimistic update
+    setJoinedIds(prev => {
+      const n = new Set(prev);
+      if (isJoined) n.delete(eventId); else n.add(eventId);
+      return n;
+    });
+    setEvents(prev => prev.map(e => e.id === eventId
+      ? { ...e, participants: e.participants + (isJoined ? -1 : 1) } : e));
+
+    if (isJoined) {
+      await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id);
+    } else {
+      await supabase.from('event_participants').insert({ event_id: eventId, user_id: user.id });
+    }
+  };
+
+  const now = new Date();
+  const CHALLENGE_TYPES = ['challenge', 'brand-challenge', 'king-of-hill', 'survival'];
+  const filtered = events.filter(e => {
+    const ends = new Date(e.endsAt);
+    const starts = new Date(e.startsAt);
+    if (activeTab === 'past') return ends < now;
+    if (activeTab === 'challenges') return CHALLENGE_TYPES.includes(e.category) && ends >= now;
+    return (starts >= now || ends >= now) && !CHALLENGE_TYPES.includes(e.category);
+  });
 
   const stagger = {
     hidden: { opacity: 0 },
@@ -175,7 +156,17 @@ export default function Events() {
         </div>
 
         {/* Events */}
-        {filtered.length > 0 ? (
+        {loading && (
+          <div className="flex justify-center py-16">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+              className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full"
+            />
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 ? (
           <motion.div
             key={activeTab}
             variants={stagger}
@@ -254,19 +245,16 @@ export default function Events() {
                         </div>
                       </div>
 
-                      {event.joined ? (
-                        <span className="text-[11px] font-semibold text-teal-600">Joined</span>
-                      ) : event.spotsLeft !== undefined ? (
+                      {joinedIds.has(event.id) ? (
                         <button
-                          onClick={(e) => { e.stopPropagation(); haptic('light'); }}
-                          className="text-[12px] font-semibold text-gray-900 flex items-center gap-1"
+                          onClick={(e) => { e.stopPropagation(); toggleJoin(event.id); }}
+                          className="text-[11px] font-semibold text-teal-600"
                         >
-                          {event.spotsLeft} spots left
-                          <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                          Joined ✓
                         </button>
                       ) : (
                         <button
-                          onClick={(e) => { e.stopPropagation(); haptic('light'); }}
+                          onClick={(e) => { e.stopPropagation(); toggleJoin(event.id); }}
                           className="text-[12px] font-semibold text-gray-900 flex items-center gap-1"
                         >
                           Join
@@ -279,19 +267,35 @@ export default function Events() {
               );
             })}
           </motion.div>
-        ) : (
+        ) : !loading && (
           <div className="flex flex-col items-center justify-center py-20 px-5">
             <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
               <Calendar className="w-6 h-6 text-gray-300" strokeWidth={1.5} />
             </div>
-            <h3 className="text-[15px] font-semibold text-gray-600 mb-1">No past events</h3>
+            <h3 className="text-[15px] font-semibold text-gray-600 mb-1">
+              {activeTab === 'past' ? 'No past events' : 'No events yet'}
+            </h3>
             <p className="text-[13px] text-gray-400 text-center max-w-[260px]">
-              Events you've attended will show up here
+              {activeTab === 'past' ? 'Events you\'ve attended will show up here' : 'Check back soon for upcoming events'}
             </p>
           </div>
         )}
 
       </div>
+
+      {/* Create Event FAB */}
+      <button
+        onClick={() => {
+          haptic('light');
+          navigate(isEmpireBuilder ? '/events/create' : '/subscription');
+        }}
+        className="fixed bottom-24 right-5 w-14 h-14 rounded-full
+                   bg-gradient-to-br from-teal-500 to-teal-600
+                   flex items-center justify-center
+                   shadow-[0_4px_16px_rgba(0,180,198,0.35)] z-20"
+      >
+        <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
+      </button>
     </div>
   );
 }

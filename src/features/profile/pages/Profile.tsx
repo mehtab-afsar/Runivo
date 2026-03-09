@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Volume2, VolumeX, Map, BarChart3, Users, Trophy,
-  Coins, Gem, Zap, Activity, X, ChevronRight,
-  User, Bell, Ruler, Lock, HelpCircle, LogOut, Moon, Heart,
+  Coins, Gem, Zap, Activity, ChevronRight, X, Lock,
   Camera, Check, MapPin, Target, Globe, Link2, ArrowLeft,
   Shield,
 } from 'lucide-react';
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats';
 import { DailyMissions } from '@features/missions/components/DailyMissions';
 import { soundManager } from '@shared/audio/sounds';
+import { supabase } from '@shared/services/supabase';
+import { pushProfile } from '@shared/services/sync';
 import { haptic } from '@shared/lib/haptics';
 import { calculatePersonalRecords, formatRecordValue, getRecordLabel, PersonalRecord } from '@shared/services/personalRecords';
 import TrainingCalendar from '@shared/ui/TrainingCalendar';
@@ -34,19 +35,8 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
   const [soundEnabled, setSoundEnabled] = useState(soundManager.isEnabled());
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
-  const [showSettings, setShowSettings] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [units, setUnits] = useState<'km' | 'mi'>('km');
-  const [darkMode, setDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState(true);
-  const [hapticFeedback, setHapticFeedback] = useState(true);
-  const [autoPause, setAutoPause] = useState(true);
-  const [missionDifficulty, setMissionDifficulty] = useState<'easy' | 'mixed' | 'hard'>(() => {
-    return (localStorage.getItem('runivo-mission-difficulty') as 'easy' | 'mixed' | 'hard') || 'mixed';
-  });
-  const [dailyMissionsEnabled, setDailyMissionsEnabled] = useState(() => {
-    return localStorage.getItem('runivo-daily-missions') !== 'false';
-  });
+  const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
 
   // Edit Profile state
   const [avatarColorId, setAvatarColorId] = useState('teal');
@@ -64,6 +54,11 @@ export default function Profile() {
 
   useEffect(() => {
     calculatePersonalRecords().then(setPersonalRecords);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from('profiles').select('subscription_tier').eq('id', user.id).single()
+        .then(({ data }) => { if (data?.subscription_tier) setSubscriptionTier(data.subscription_tier); });
+    });
   }, []);
 
   if (loading || !player) {
@@ -128,7 +123,7 @@ export default function Profile() {
             }
           </button>
           <button
-            onClick={() => { setShowSettings(true); haptic('light'); }}
+            onClick={() => { navigate('/settings'); haptic('light'); }}
             className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center border border-gray-100"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
@@ -196,7 +191,7 @@ export default function Profile() {
           <div className="w-px h-4 bg-gray-200" />
           <div className="flex items-center gap-1.5">
             <Gem className="w-4 h-4 text-purple-500" strokeWidth={2} />
-            <span className="text-stat text-sm font-bold text-purple-500">{player.gems}</span>
+            <span className="text-stat text-sm font-bold text-purple-500">{player.diamonds}</span>
           </div>
           <div className="w-px h-4 bg-gray-200" />
           <div className="flex items-center gap-1.5">
@@ -204,6 +199,22 @@ export default function Profile() {
             <span className="text-stat text-sm font-bold text-teal-600">{player.energy}</span>
           </div>
         </div>
+
+        {/* Upgrade CTA — visible only on free tier */}
+        {subscriptionTier === 'free' && (
+          <button
+            onClick={() => navigate('/subscription')}
+            className="w-full mb-4 py-3 px-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
+                       flex items-center justify-between
+                       shadow-[0_2px_12px_rgba(0,180,198,0.2)]"
+          >
+            <div className="text-left">
+              <p className="text-xs font-bold text-white">Upgrade to Premium</p>
+              <p className="text-[11px] text-white/70">Unlock unlimited energy, events & more</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white shrink-0" strokeWidth={2.5} />
+          </button>
+        )}
 
         {/* Tab bar */}
         <div className="flex gap-1 bg-gray-50 rounded-xl p-1 mb-5">
@@ -472,7 +483,7 @@ export default function Profile() {
                 {[
                   { label: 'Zones Claimed', value: player.totalTerritoriesClaimed, unit: 'zones', from: 'from-emerald-500', to: 'to-teal-600', glow: 'rgba(16,185,129,0.15)' },
                   { label: 'Coins Earned',  value: player.coins.toLocaleString(),  unit: 'coins', from: 'from-amber-500',   to: 'to-orange-500', glow: 'rgba(245,158,11,0.15)' },
-                  { label: 'Gems',          value: player.gems,                    unit: 'gems',  from: 'from-violet-500',  to: 'to-purple-600', glow: 'rgba(139,92,246,0.15)' },
+                  { label: 'Diamonds',      value: player.diamonds,                unit: 'diamonds', from: 'from-violet-500', to: 'to-purple-600', glow: 'rgba(139,92,246,0.15)' },
                   { label: 'Day Streak',    value: player.streakDays,              unit: 'days',  from: 'from-orange-500',  to: 'to-red-500',    glow: 'rgba(249,115,22,0.15)' },
                 ].map((card, i) => (
                   <motion.div
@@ -641,9 +652,16 @@ export default function Profile() {
                 </button>
                 <h2 className="flex-1 text-[16px] font-bold text-gray-900">Edit Profile</h2>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setSavedProfile(true);
                     haptic('medium');
+                    try {
+                      await supabase.from('profiles').update({
+                        username: displayName || player.username,
+                        weekly_goal_km: weeklyGoal,
+                      }).eq('id', player.id);
+                      await pushProfile();
+                    } catch { /* non-fatal */ }
                     setTimeout(() => {
                       setSavedProfile(false);
                       setShowEditProfile(false);
@@ -873,225 +891,6 @@ export default function Profile() {
         )}
       </AnimatePresence>
 
-      {/* Settings Panel */}
-      {showSettings && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/40"
-          onClick={() => setShowSettings(false)}
-        >
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-0 left-0 right-0 bg-[#FAFAFA] rounded-t-3xl max-h-[85vh] overflow-y-auto"
-            style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
-          >
-            {/* Handle bar */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-300" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3">
-              <h2 className="text-lg font-bold text-gray-900">Settings</h2>
-              <button
-                onClick={() => { setShowSettings(false); haptic('light'); }}
-                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
-              >
-                <X className="w-4 h-4 text-gray-500" strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="px-5 space-y-5 pb-4">
-              {/* Account */}
-              <div>
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-2">Account</h3>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <button
-                    onClick={() => { setShowEditProfile(true); haptic('light'); }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 active:bg-gray-50 transition"
-                  >
-                    <User className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900 text-left">Edit Profile</span>
-                    <ChevronRight className="w-4 h-4 text-gray-300" strokeWidth={2} />
-                  </button>
-                  <button className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition">
-                    <Lock className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900 text-left">Privacy</span>
-                    <ChevronRight className="w-4 h-4 text-gray-300" strokeWidth={2} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Preferences */}
-              <div>
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-2">Preferences</h3>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  {/* Units */}
-                  <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
-                    <Ruler className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900">Distance Units</span>
-                    <div className="flex bg-gray-100 rounded-lg p-0.5">
-                      <button
-                        onClick={() => { setUnits('km'); haptic('light'); }}
-                        className={`px-3 py-1 rounded-md text-xs font-semibold transition ${units === 'km' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-400'}`}
-                      >km</button>
-                      <button
-                        onClick={() => { setUnits('mi'); haptic('light'); }}
-                        className={`px-3 py-1 rounded-md text-xs font-semibold transition ${units === 'mi' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-400'}`}
-                      >mi</button>
-                    </div>
-                  </div>
-
-                  {/* Dark Mode */}
-                  <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
-                    <Moon className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900">Dark Mode</span>
-                    <button
-                      onClick={() => { setDarkMode(!darkMode); haptic('light'); }}
-                      className={`w-11 h-6 rounded-full transition-colors ${darkMode ? 'bg-teal-500' : 'bg-gray-200'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${darkMode ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-
-                  {/* Notifications */}
-                  <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
-                    <Bell className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900">Notifications</span>
-                    <button
-                      onClick={() => { setNotifications(!notifications); haptic('light'); }}
-                      className={`w-11 h-6 rounded-full transition-colors ${notifications ? 'bg-teal-500' : 'bg-gray-200'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${notifications ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-
-                  {/* Sound */}
-                  <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
-                    {soundEnabled ? <Volume2 className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} /> : <VolumeX className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />}
-                    <span className="flex-1 text-sm text-gray-900">Sound Effects</span>
-                    <button
-                      onClick={() => {
-                        const newState = !soundEnabled;
-                        soundManager.setEnabled(newState);
-                        setSoundEnabled(newState);
-                        if (newState) soundManager.play('tap');
-                        haptic('light');
-                      }}
-                      className={`w-11 h-6 rounded-full transition-colors ${soundEnabled ? 'bg-teal-500' : 'bg-gray-200'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${soundEnabled ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-
-                  {/* Haptic */}
-                  <div className="flex items-center gap-3 px-4 py-3.5">
-                    <Heart className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900">Haptic Feedback</span>
-                    <button
-                      onClick={() => { setHapticFeedback(!hapticFeedback); haptic('light'); }}
-                      className={`w-11 h-6 rounded-full transition-colors ${hapticFeedback ? 'bg-teal-500' : 'bg-gray-200'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${hapticFeedback ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Run Settings */}
-              <div>
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-2">Run Settings</h3>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="flex items-center gap-3 px-4 py-3.5">
-                    <Activity className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900">Auto-Pause</span>
-                    <button
-                      onClick={() => { setAutoPause(!autoPause); haptic('light'); }}
-                      className={`w-11 h-6 rounded-full transition-colors ${autoPause ? 'bg-teal-500' : 'bg-gray-200'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${autoPause ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Daily Missions */}
-              <div>
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-2">Daily Missions</h3>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  {/* Enable/Disable */}
-                  <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
-                    <Trophy className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900">Daily Missions</span>
-                    <button
-                      onClick={() => {
-                        const next = !dailyMissionsEnabled;
-                        setDailyMissionsEnabled(next);
-                        localStorage.setItem('runivo-daily-missions', String(next));
-                        haptic('light');
-                      }}
-                      className={`w-11 h-6 rounded-full transition-colors ${dailyMissionsEnabled ? 'bg-teal-500' : 'bg-gray-200'}`}
-                    >
-                      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${dailyMissionsEnabled ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-
-                  {/* Difficulty */}
-                  <div className="flex items-center gap-3 px-4 py-3.5">
-                    <Zap className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900">Difficulty</span>
-                    <div className="flex bg-gray-100 rounded-lg p-0.5">
-                      {(['easy', 'mixed', 'hard'] as const).map(d => (
-                        <button
-                          key={d}
-                          onClick={() => {
-                            setMissionDifficulty(d);
-                            localStorage.setItem('runivo-mission-difficulty', d);
-                            haptic('light');
-                          }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold capitalize transition ${
-                            missionDifficulty === d ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-400'
-                          }`}
-                        >
-                          {d}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1.5 px-1">
-                  Missions refresh daily at midnight. Difficulty affects XP rewards.
-                </p>
-              </div>
-
-              {/* Support */}
-              <div>
-                <h3 className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-2">Support</h3>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <button className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition">
-                    <HelpCircle className="w-4.5 h-4.5 text-gray-400" strokeWidth={1.8} />
-                    <span className="flex-1 text-sm text-gray-900 text-left">Help & FAQ</span>
-                    <ChevronRight className="w-4 h-4 text-gray-300" strokeWidth={2} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Log Out */}
-              <button className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-red-50 border border-red-100 active:bg-red-100 transition">
-                <LogOut className="w-4 h-4 text-red-500" strokeWidth={2} />
-                <span className="text-sm font-semibold text-red-500">Log Out</span>
-              </button>
-
-              <p className="text-center text-[10px] text-gray-300">Runivo v1.0.0</p>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
     </div>
   );
 }

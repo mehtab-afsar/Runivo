@@ -83,6 +83,7 @@ export function calculateDailyIncome(territory: Territory, adjacentOwnedCount: n
 
 export function getDecayedDefense(defense: number, lastFortifiedAt: number): number {
   const hoursSince = (Date.now() - lastFortifiedAt) / (1000 * 60 * 60);
-  const decayed = defense - (hoursSince * GAME_CONFIG.DEFENSE_DECAY_PER_HOUR);
+  const decayPerHour = GAME_CONFIG.TERRITORY_DECAY_PER_DAY / 24;
+  const decayed = defense - (hoursSince * decayPerHour);
   return Math.max(0, Math.round(decayed * 10) / 10);
 }

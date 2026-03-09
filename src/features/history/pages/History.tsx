@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Activity, Footprints, Bike, Mountain } from 'lucide-react';
 import { getRuns, StoredRun } from '@shared/services/store';
+import { pullRuns } from '@shared/services/sync';
 
 export default function History() {
   const navigate = useNavigate();
@@ -15,9 +16,18 @@ export default function History() {
 
   const loadRuns = async () => {
     setLoading(true);
-    const allRuns = await getRuns();
-    setRuns(allRuns);
+    // Show local runs immediately for instant render
+    const localRuns = await getRuns();
+    setRuns(localRuns);
     setLoading(false);
+    // Then pull from Supabase and refresh if there's new data (cross-device sync)
+    try {
+      await pullRuns(100);
+      const synced = await getRuns();
+      if (synced.length !== localRuns.length) setRuns(synced);
+    } catch {
+      // Offline — local data is sufficient
+    }
   };
 
   const formatTime = (seconds: number) => {

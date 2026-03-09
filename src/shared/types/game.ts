@@ -41,7 +41,7 @@ export interface PlayerStats {
   xpToNext: number;
   currencies: {
     coins: number;
-    gems: number;
+    diamonds: number;
     brandPoints: {
       [brand: string]: number;
     };
@@ -81,7 +81,7 @@ export interface GameAction {
   rewards: {
     xp: number;
     coins: number;
-    gems?: number;
+    diamonds?: number;
     brandPoints?: { [brand: string]: number };
   };
   startTime: Date;
@@ -105,7 +105,7 @@ export interface Challenge {
   rewards: {
     xp: number;
     coins: number;
-    gems?: number;
+    diamonds?: number;
     brandPoints?: { [brand: string]: number };
     realWorld?: {
       type: 'discount' | 'product' | 'voucher';
@@ -149,7 +149,7 @@ export interface Achievement {
   };
   rewards: {
     xp: number;
-    gems: number;
+    diamonds: number;
     title?: string;
     badge?: string;
   };
