@@ -1,9 +1,7 @@
 import { Page } from '@playwright/test';
 
-// Derived from VITE_SUPABASE_URL=http://127.0.0.1:54321
-// hostname = "127.0.0.1", split('.')[0] = "127"
-// → sb-127-auth-token
-const SUPABASE_STORAGE_KEY = 'sb-127-auth-token';
+// Must match the `storageKey` set in src/shared/services/supabase.ts
+const SUPABASE_STORAGE_KEY = 'runivo-auth';
 
 function b64url(obj: unknown): string {
   return Buffer.from(JSON.stringify(obj))
@@ -78,23 +76,29 @@ const FAKE_PLAYER = {
   totalDistanceKm: 42.5,
   totalRuns: 15,
   totalTerritoriesClaimed: 25,
+  totalEnemyCaptured: 0,
   streakDays: 3,
   lastRunDate: '2024-01-01',
+  lastIncomeCollection: Date.now(),
+  unlockedAchievements: [],
   createdAt: Date.now(),
 };
 
 export async function mockAuth(page: Page) {
   // 1. Use addInitScript to set localStorage before any JS runs
   await page.addInitScript(
-    ({ storageKey, session, profile, supabaseBase, player }) => {
+    ({ storageKey, session, profile, supabaseLocalBase, player }) => {
       // Onboarding bypass
       localStorage.setItem('runivo-onboarding-complete', 'true');
       // Set session using exact storage key
       localStorage.setItem(storageKey, JSON.stringify(session));
 
-      // Seed IndexedDB with player data so Profile page doesn't show loading
+      // Seed IndexedDB with player data so Profile page doesn't show loading.
+      // IMPORTANT: must open at the SAME version the app uses (6) and close
+      // the connection afterwards — otherwise the app's openDB(6) upgrade is
+      // blocked forever by our lingering v4 connection.
       const seedIDB = () => {
-        const openReq = window.indexedDB.open('runivo', 4);
+        const openReq = window.indexedDB.open('runivo', 6);
         openReq.onupgradeneeded = (event: IDBVersionChangeEvent) => {
           const db = (event.target as IDBOpenDBRequest).result;
           const oldVersion = event.oldVersion;
@@ -114,18 +118,29 @@ export async function mockAuth(page: Page) {
             if (db.objectStoreNames.contains('profile')) db.deleteObjectStore('profile');
             db.createObjectStore('profile', { keyPath: 'playerId' });
           }
+          if (oldVersion < 5) {
+            if (db.objectStoreNames.contains('territories')) db.deleteObjectStore('territories');
+            db.createObjectStore('territories', { keyPath: 'id' });
+          }
+          if (oldVersion < 6) {
+            db.createObjectStore('settings', { keyPath: 'id' });
+          }
         };
         openReq.onsuccess = (event: Event) => {
           const db = (event.target as IDBOpenDBRequest).result;
           try {
             const tx = db.transaction('player', 'readwrite');
             tx.objectStore('player').put(player);
-          } catch { /* ignore if already seeded */ }
+            tx.oncomplete = () => db.close(); // ← CRITICAL: release connection so app can open at v6
+          } catch {
+            db.close();
+          }
         };
+        openReq.onerror = () => { /* ignore */ };
       };
       seedIDB();
 
-      // Intercept all fetch to Supabase endpoints
+      // Intercept all fetch to Supabase endpoints (any host — local or cloud)
       const _orig = window.fetch.bind(window);
       window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
         const url =
@@ -135,21 +150,21 @@ export async function mockAuth(page: Page) {
             ? input.href
             : (input as Request).url;
 
-        if (url.includes(supabaseBase + '/auth/v1/token') ||
-            url.includes(supabaseBase + '/auth/v1/user')) {
+        const isSupabase = url.includes('supabase.co') || url.includes(supabaseLocalBase);
+
+        if (isSupabase && (url.includes('/auth/v1/token') || url.includes('/auth/v1/user'))) {
           return new Response(JSON.stringify(session), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           });
         }
-        if (url.includes(supabaseBase + '/rest/v1/profiles')) {
+        if (isSupabase && url.includes('/rest/v1/profiles')) {
           return new Response(JSON.stringify(profile), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           });
         }
-        if (url.includes(supabaseBase + '/rest/v1/') ||
-            url.includes(supabaseBase + '/realtime/v1/')) {
+        if (isSupabase && (url.includes('/rest/v1/') || url.includes('/realtime/v1/'))) {
           return new Response(JSON.stringify([]), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
@@ -162,7 +177,7 @@ export async function mockAuth(page: Page) {
       storageKey: SUPABASE_STORAGE_KEY,
       session: FAKE_SESSION,
       profile: FAKE_PROFILE,
-      supabaseBase: 'http://127.0.0.1:54321',
+      supabaseLocalBase: 'http://127.0.0.1:54321',
       player: FAKE_PLAYER,
     }
   );

@@ -1,228 +1,236 @@
-import { useState } from 'react'
-import { X, Check, Upload, Image as ImageIcon } from 'lucide-react'
-import { cn } from '@shared/lib/utils'
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Upload, Image as ImageIcon } from 'lucide-react';
 
 interface CreateClubModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onCreateClub: (clubData: { name: string; logoUrl: string; description: string }) => void
-  existingClubNames: string[]
+  isOpen: boolean;
+  onClose: () => void;
+  onCreateClub: (clubData: { name: string; logoUrl: string; description: string }) => void;
+  existingClubNames: string[];
 }
 
-export const CreateClubModal = ({ isOpen, onClose, onCreateClub, existingClubNames }: CreateClubModalProps) => {
-  const [clubName, setClubName] = useState('')
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [description, setDescription] = useState('')
-  const [nameError, setNameError] = useState('')
-  const [imageError, setImageError] = useState('')
-
-  if (!isOpen) return null
+export const CreateClubModal = ({
+  isOpen,
+  onClose,
+  onCreateClub,
+  existingClubNames,
+}: CreateClubModalProps) => {
+  const [clubName, setClubName] = useState('');
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [description, setDescription] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [imageError, setImageError] = useState('');
 
   const validateClubName = (name: string) => {
     if (!name.trim()) {
-      setNameError('Club name is required')
-      return false
+      setNameError('Club name is required');
+      return false;
     }
     if (name.length < 3) {
-      setNameError('Club name must be at least 3 characters')
-      return false
+      setNameError('Must be at least 3 characters');
+      return false;
     }
     if (name.length > 30) {
-      setNameError('Club name must be less than 30 characters')
-      return false
+      setNameError('Must be less than 30 characters');
+      return false;
     }
-    // Check for unique name (case-insensitive)
-    const normalizedName = name.trim().toLowerCase()
-    if (existingClubNames.some(existingName => existingName.toLowerCase() === normalizedName)) {
-      setNameError('This club name is already taken')
-      return false
+    if (existingClubNames.some(n => n.toLowerCase() === name.trim().toLowerCase())) {
+      setNameError('This club name is already taken');
+      return false;
     }
-    setNameError('')
-    return true
-  }
+    setNameError('');
+    return true;
+  };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newName = e.target.value
-    setClubName(newName)
-    if (newName.trim()) {
-      validateClubName(newName)
-    } else {
-      setNameError('')
-    }
-  }
+    const val = e.target.value;
+    setClubName(val);
+    if (val.trim()) validateClubName(val);
+    else setNameError('');
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
+    const file = e.target.files?.[0];
+    if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setImageError('Please upload an image file')
-      return
+      setImageError('Please upload an image file');
+      return;
     }
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setImageError('Image size must be less than 5MB')
-      return
+      setImageError('Image must be less than 5MB');
+      return;
     }
+    setImageError('');
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
-    setImageError('')
-    setLogoFile(file)
+  const handleCreate = () => {
+    if (!validateClubName(clubName)) return;
+    onCreateClub({ name: clubName.trim(), logoUrl: logoPreview ?? '', description: description.trim() });
+    // Reset
+    setClubName('');
+    setLogoPreview(null);
+    setLogoFile(null);
+    setDescription('');
+    setNameError('');
+    setImageError('');
+  };
 
-    // Create preview
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setLogoPreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleCreateClub = () => {
-    if (validateClubName(clubName)) {
-      onCreateClub({
-        name: clubName.trim(),
-        logoUrl: logoPreview || '', // In production, upload to server and get URL
-        description: description.trim()
-      })
-      // Reset form
-      setClubName('')
-      setLogoPreview(null)
-      setLogoFile(null)
-      setDescription('')
-      setNameError('')
-      setImageError('')
-    }
-  }
+  const isValid = clubName.trim().length > 0 && !nameError;
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="liquid-blur-card rounded-2xl p-6 max-w-md w-full mx-4 space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-light text-white">Create New Club</h2>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80]"
             onClick={onClose}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-          >
-            <X size={20} className="text-white" />
-          </button>
-        </div>
+          />
 
-        {/* Logo Upload */}
-        <div className="space-y-2">
-          <label className="text-sm font-light text-white/70">Club Logo</label>
-          <div className="flex items-center gap-4">
-            {/* Preview */}
-            <div className={cn(
-              'w-24 h-24 rounded-xl flex items-center justify-center overflow-hidden',
-              logoPreview ? 'bg-white/5' : 'liquid-blur-subtle border-2 border-dashed border-white/20'
-            )}>
-              {logoPreview ? (
-                <img src={logoPreview} alt="Club logo preview" className="w-full h-full object-cover" />
-              ) : (
-                <ImageIcon size={32} className="text-white/40" />
-              )}
+          {/* Bottom sheet */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 z-[90] bg-white rounded-t-3xl max-h-[92vh] flex flex-col
+                       shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-2 shrink-0">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
             </div>
 
-            {/* Upload Button */}
-            <div className="flex-1">
-              <label className="block cursor-pointer">
-                <div className="liquid-blur-subtle hover:bg-white/10 rounded-xl p-4 transition-colors border border-white/10">
-                  <div className="flex items-center gap-3">
-                    <Upload size={20} className="text-primary" />
-                    <div>
-                      <div className="text-sm font-light text-white">
-                        {logoFile ? logoFile.name : 'Upload Logo'}
+            {/* Header */}
+            <div className="px-6 pb-4 flex items-center justify-between shrink-0 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Create Club</h2>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 space-y-5">
+              {/* Club Logo */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-3">
+                  Club Logo
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className={`w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${
+                    logoPreview ? 'bg-gray-100' : 'bg-gray-50 border-2 border-dashed border-gray-200'
+                  }`}>
+                    {logoPreview
+                      ? <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+                      : <ImageIcon className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
+                    }
+                  </div>
+                  <div className="flex-1">
+                    <label className="block cursor-pointer">
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 flex items-center gap-3 active:bg-gray-100 transition">
+                        <Upload className="w-5 h-5 text-teal-500" strokeWidth={2} />
+                        <div>
+                          <div className="text-sm font-medium text-gray-700">
+                            {logoFile ? logoFile.name : 'Upload Logo'}
+                          </div>
+                          <div className="text-xs text-gray-400">Max 5MB · JPG or PNG</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-white/50">Max 5MB, JPG or PNG</div>
-                    </div>
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                    {imageError && <p className="text-xs text-red-500 mt-1.5">{imageError}</p>}
                   </div>
                 </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label>
-              {imageError && (
-                <p className="text-xs text-red-400 mt-2">{imageError}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Club Name */}
-        <div className="space-y-2">
-          <label className="text-sm font-light text-white/70">Club Name *</label>
-          <input
-            type="text"
-            value={clubName}
-            onChange={handleNameChange}
-            placeholder="Enter a unique club name..."
-            maxLength={30}
-            className={cn(
-              'w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder:text-white/40 focus:outline-none transition-colors',
-              nameError
-                ? 'border-red-500/50 focus:border-red-500'
-                : 'border-white/10 focus:border-primary/50'
-            )}
-          />
-          <div className="flex items-center justify-between">
-            {nameError ? (
-              <span className="text-xs text-red-400">{nameError}</span>
-            ) : (
-              <span className="text-xs text-white/40">
-                {clubName.length}/30 characters
-              </span>
-            )}
-            {clubName.trim() && !nameError && (
-              <div className="flex items-center gap-1 text-xs text-green-400">
-                <Check size={14} />
-                <span>Available</span>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Description (Optional) */}
-        <div className="space-y-2">
-          <label className="text-sm font-light text-white/70">Description (Optional)</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Tell others about your club..."
-            maxLength={100}
-            rows={3}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-primary/50 resize-none"
-          />
-          <span className="text-xs text-white/40">{description.length}/100 characters</span>
-        </div>
+              {/* Club Name */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-3">
+                  Club Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={clubName}
+                  onChange={handleNameChange}
+                  placeholder="Enter a unique club name..."
+                  maxLength={30}
+                  className={`w-full border rounded-xl px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400
+                             focus:outline-none transition-colors ${
+                               nameError
+                                 ? 'border-red-400 bg-red-50 focus:border-red-400'
+                                 : 'border-gray-200 bg-white focus:border-teal-400'
+                             }`}
+                />
+                <div className="flex items-center justify-between mt-1.5">
+                  {nameError ? (
+                    <span className="text-xs text-red-500">{nameError}</span>
+                  ) : (
+                    <span className="text-xs text-gray-400">{clubName.length}/30</span>
+                  )}
+                  {clubName.trim() && !nameError && (
+                    <div className="flex items-center gap-1 text-xs text-teal-600 font-medium">
+                      <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      Available
+                    </div>
+                  )}
+                </div>
+              </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 rounded-lg liquid-blur-subtle hover:bg-white/10 transition-colors text-white font-light"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateClub}
-            disabled={!clubName.trim() || !!nameError}
-            className={cn(
-              'flex-1 py-3 rounded-lg font-light transition-all',
-              clubName.trim() && !nameError
-                ? 'bg-primary text-white hover:bg-primary/90'
-                : 'bg-white/10 text-white/40 cursor-not-allowed'
-            )}
-          >
-            Create Club
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
+              {/* Description */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-3">
+                  Description <span className="text-gray-300 font-normal normal-case">(optional)</span>
+                </label>
+                <textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Tell others about your club..."
+                  maxLength={100}
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900
+                             placeholder:text-gray-400 focus:outline-none focus:border-teal-400 resize-none"
+                />
+                <span className="text-xs text-gray-400">{description.length}/100</span>
+              </div>
+            </div>
+
+            {/* Footer CTA */}
+            <div
+              className="px-6 pt-4 pb-6 shrink-0 border-t border-gray-100 space-y-2"
+              style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
+            >
+              <button
+                onClick={handleCreate}
+                disabled={!isValid}
+                className={`w-full py-4 rounded-2xl text-sm font-bold transition-all ${
+                  isValid
+                    ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-[0_4px_16px_rgba(0,180,198,0.25)] active:scale-[0.98]'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Create Club
+              </button>
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-2xl bg-gray-50 border border-gray-200 text-sm font-medium text-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};

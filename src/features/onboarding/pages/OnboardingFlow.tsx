@@ -9,6 +9,7 @@ import { soundManager } from '@shared/audio/sounds';
 import { saveProfile, computeWeeklyGoal } from '@shared/services/profile';
 import { signUp } from '@shared/services/auth';
 import { pushProfile } from '@shared/services/sync';
+import { supabase } from '@shared/services/supabase';
 import OnboardingProgress from '../components/ProgressBar';
 import ExperienceStep from '../components/steps/ExperienceStep';
 import GoalStep from '../components/steps/GoalStep';
@@ -142,6 +143,21 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
     // 4. Push profile preferences to Supabase
     await pushProfile().catch(() => {/* non-fatal */});
+
+    // 5. Handle referral — auto-follow referrer + reward both parties 50 coins
+    const inviteRef = sessionStorage.getItem('runivo-invite-ref');
+    if (inviteRef) {
+      const { data: { user: newUser } } = await supabase.auth.getUser();
+      if (newUser) {
+        try {
+          await supabase.rpc('handle_referral', {
+            p_new_user_id: newUser.id,
+            p_referrer_username: inviteRef,
+          });
+        } catch {/* non-fatal */}
+      }
+      sessionStorage.removeItem('runivo-invite-ref');
+    }
 
     localStorage.setItem('runivo-weekly-goal', String(weeklyGoalKm));
     localStorage.setItem('runivo-distance-unit', data.distanceUnit);

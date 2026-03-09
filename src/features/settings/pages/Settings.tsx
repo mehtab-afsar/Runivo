@@ -19,7 +19,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       onClick={() => { onChange(!value); haptic('light'); }}
       className={`w-11 h-6 rounded-full transition-colors shrink-0 ${value ? 'bg-teal-500' : 'bg-gray-200'}`}
     >
-      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${value ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${value ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
     </button>
   );
 }
@@ -146,7 +146,7 @@ export default function Settings() {
         {/* ── Account ── */}
         <Section title="Account">
           <button
-            onClick={() => { navigate('/profile'); haptic('light'); }}
+            onClick={() => { navigate('/profile', { state: { openEdit: true } }); haptic('light'); }}
             className="w-full active:bg-gray-50 transition"
           >
             <Row icon={<Shield size={16} strokeWidth={1.8} />} label="Edit Profile">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Volume2, VolumeX, Map, BarChart3, Users, Trophy,
@@ -15,6 +15,7 @@ import { pushProfile } from '@shared/services/sync';
 import { haptic } from '@shared/lib/haptics';
 import { calculatePersonalRecords, formatRecordValue, getRecordLabel, PersonalRecord } from '@shared/services/personalRecords';
 import TrainingCalendar from '@shared/ui/TrainingCalendar';
+import { ProfileShareCard } from '@features/social/components/ProfileShareCard';
 
 type ProfileTab = 'overview' | 'missions' | 'achievements' | 'stats';
 
@@ -31,11 +32,14 @@ const AVATAR_COLORS = [
 
 export default function Profile() {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { player, recentRuns, loading, xpProgress, levelTitle } = usePlayerStats();
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
   const [soundEnabled, setSoundEnabled] = useState(soundManager.isEnabled());
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
-  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(
+    !!(routerLocation.state as { openEdit?: boolean } | null)?.openEdit
+  );
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
 
   // Edit Profile state
@@ -48,6 +52,7 @@ export default function Profile() {
   const [stravaHandle, setStravaHandle] = useState('');
   const [instagramHandle, setInstagramHandle] = useState('');
   const [savedProfile, setSavedProfile] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const bioRef = useRef<HTMLTextAreaElement>(null);
 
   const avatarColor = AVATAR_COLORS.find(c => c.id === avatarColorId) || AVATAR_COLORS[0];
@@ -107,6 +112,16 @@ export default function Profile() {
       <div className="px-5" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
         {/* Top actions */}
         <div className="flex justify-end gap-2 mb-4">
+          <button
+            onClick={() => { setShowShareCard(true); haptic('light'); }}
+            className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center border border-gray-100"
+            title="Share Profile"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
           <button
             onClick={() => {
               const newState = !soundEnabled;
@@ -890,6 +905,21 @@ export default function Profile() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ProfileShareCard
+        isOpen={showShareCard}
+        onClose={() => setShowShareCard(false)}
+        profile={{
+          username: player.username,
+          level: player.level,
+          levelTitle,
+          totalDistanceKm: player.totalDistanceKm,
+          totalRuns: player.totalRuns,
+          totalTerritoriesClaimed: player.totalTerritoriesClaimed,
+          streakDays: player.streakDays,
+          avatarColor: avatarColorId,
+        }}
+      />
 
     </div>
   );

@@ -352,6 +352,42 @@ export default function Feed() {
     setInvited(prev => new Set(prev).add(id));
   };
 
+  const sharePost = async (post: Post) => {
+    haptic('light');
+    const text = `${post.user.name} ran ${post.activity.distance.toFixed(2)} km${post.activity.territoriesClaimed > 0 ? ` · ${post.activity.territoriesClaimed} zones claimed` : ''} on Runivo`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Runivo Run', text, url: 'https://runivo.app' });
+      } else {
+        await navigator.clipboard.writeText(`${text} — https://runivo.app`);
+      }
+    } catch {
+      // User cancelled or API unavailable
+    }
+  };
+
+  const openContactPicker = async () => {
+    haptic('medium');
+    // Web Contact Picker API (supported on Android Chrome and iOS Safari 15.4+)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contacts = (navigator as any).contacts;
+    if (contacts?.select) {
+      try {
+        const result = await contacts.select(['name', 'tel'], { multiple: true });
+        if (result?.length) {
+          // Show the sheet — contacts will be resolved server-side in a real impl
+          setContactsSynced(true);
+        }
+      } catch {
+        // User dismissed picker — just open the sheet with empty state
+        setContactsSynced(true);
+      }
+    } else {
+      // Fallback: no Contact Picker API — still open the sheet
+      setContactsSynced(true);
+    }
+  };
+
   const toggleReaction = (postId: string, type: ReactionType) => {
     haptic('light');
     setReactions(prev => ({ ...prev, [postId]: prev[postId] === type ? null : type }));
@@ -744,7 +780,10 @@ export default function Feed() {
                       <MessageCircle className="w-[18px] h-[18px] text-gray-400" />
                       <span className="text-xs font-semibold text-gray-500">{post.comments}</span>
                     </button>
-                    <button className="ml-auto p-2 rounded-full active:bg-gray-50">
+                    <button
+                      onClick={() => sharePost(post)}
+                      className="ml-auto p-2 rounded-full active:bg-gray-50"
+                    >
                       <Share2 className="w-[18px] h-[18px] text-gray-400" />
                     </button>
                   </div>
@@ -1117,7 +1156,7 @@ export default function Feed() {
                     Find friends who are already on Runivo and invite others to join you
                   </p>
                   <button
-                    onClick={() => { setContactsSynced(true); haptic('medium'); }}
+                    onClick={openContactPicker}
                     className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-[14px] active:bg-gray-800 transition shadow-sm"
                   >
                     Allow Access

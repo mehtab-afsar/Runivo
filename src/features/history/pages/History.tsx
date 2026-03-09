@@ -58,20 +58,20 @@ export default function History() {
     });
   };
 
+  // Filter out 0-distance runs (incomplete/aborted sessions)
+  const validRuns = runs.filter(r => r.distanceMeters >= 50);
+
+  const totalDistance = validRuns.reduce((s, r) => s + r.distanceMeters / 1000, 0);
+  const totalTime = validRuns.reduce((s, r) => s + r.durationSec, 0);
+  const totalTerritories = validRuns.reduce((s, r) => s + r.territoriesClaimed.length, 0);
+
   const groupedRuns: { date: string; runs: StoredRun[] }[] = [];
-  runs.forEach(run => {
+  validRuns.forEach(run => {
     const dateStr = new Date(run.startTime).toDateString();
     const existing = groupedRuns.find(g => g.date === dateStr);
-    if (existing) {
-      existing.runs.push(run);
-    } else {
-      groupedRuns.push({ date: dateStr, runs: [run] });
-    }
+    if (existing) existing.runs.push(run);
+    else groupedRuns.push({ date: dateStr, runs: [run] });
   });
-
-  const totalDistance = runs.reduce((s, r) => s + r.distanceMeters / 1000, 0);
-  const totalTime = runs.reduce((s, r) => s + r.durationSec, 0);
-  const totalTerritories = runs.reduce((s, r) => s + r.territoriesClaimed.length, 0);
 
   const activityIcons: Record<string, ReactNode> = {
     run: <Activity className="w-5 h-5 text-teal-600" strokeWidth={2} />,
@@ -85,7 +85,7 @@ export default function History() {
       <div className="px-5 pb-5" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-xl font-bold text-gray-900">Run History</h1>
-          <span className="text-stat text-sm text-gray-400">{runs.length} runs</span>
+          <span className="text-stat text-sm text-gray-400">{validRuns.length} runs</span>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -153,7 +153,33 @@ export default function History() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: gi * 0.05 + ri * 0.03 }}
-                      onClick={() => navigate(`/run-summary/${run.id}`, { state: run })}
+                      onClick={() => {
+                        // Parse "m:ss" pace string → decimal minutes per km
+                        const [paceM, paceS] = run.avgPace.split(':').map(Number);
+                        const paceNum = (paceM || 0) + (paceS || 0) / 60;
+                        navigate(`/run-summary/${run.id}`, {
+                          state: {
+                            runData: {
+                              distance: run.distanceMeters / 1000,
+                              duration: run.durationSec,
+                              pace: paceNum,
+                              territoriesClaimed: run.territoriesClaimed.length,
+                              currentLocation: run.gpsPoints.length > 0
+                                ? { lat: run.gpsPoints[run.gpsPoints.length - 1].lat, lng: run.gpsPoints[run.gpsPoints.length - 1].lng }
+                                : { lat: 0, lng: 0 },
+                              isActive: false,
+                              isPaused: false,
+                              route: run.gpsPoints.map(p => ({ lat: p.lat, lng: p.lng })),
+                              actionType: 'claim',
+                              success: true,
+                              xpEarned: run.xpEarned,
+                              coinsEarned: run.coinsEarned,
+                              diamondsEarned: run.diamondsEarned,
+                              enemyCaptured: run.enemyCaptured,
+                            },
+                          },
+                        });
+                      }}
                       className="bg-white rounded-2xl shadow-sm p-4 border border-gray-100
                                  active:scale-[0.98] transition cursor-pointer"
                     >

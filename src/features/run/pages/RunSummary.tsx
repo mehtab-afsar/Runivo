@@ -54,16 +54,16 @@ export const RunSummary: React.FC = () => {
     newStreak?: number
     completedMissions?: { id: string; title: string; diamondReward?: number }[]
   } = location.state?.runData || {
-    distance: 2.1,
-    duration: 754,
-    pace: 5.97,
-    territoriesClaimed: 3,
-    currentLocation: { lat: 28.6139, lng: 77.2090 },
+    distance: 0,
+    duration: 0,
+    pace: 0,
+    territoriesClaimed: 0,
+    currentLocation: { lat: 0, lng: 0 },
     isActive: false,
     isPaused: false,
     route: [],
     actionType: 'claim',
-    success: true,
+    success: false,
   }
 
   const routeCoords: [number, number][] = (runData.route ?? []).map(

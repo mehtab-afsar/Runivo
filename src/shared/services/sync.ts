@@ -353,15 +353,11 @@ export async function createFeedPost(runId: string, distanceKm: number, territor
   });
 }
 
-export async function fetchFeed(limit = 20) {
-  const { data, error } = await supabase
-    .from('feed_posts')
-    .select(`
-      *,
-      profiles (username, avatar_url, level)
-    `)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+export async function fetchFeed(limit = 20, offset = 0) {
+  const { data, error } = await supabase.rpc('get_feed', {
+    lim: limit,
+    off_set: offset,
+  });
 
   if (error) throw error;
   return data;

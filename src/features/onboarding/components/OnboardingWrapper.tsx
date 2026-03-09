@@ -8,9 +8,25 @@ interface OnboardingWrapperProps {
   children: ReactNode;
 }
 
+// Persist invite ref from URL so it survives page reloads / auth redirects
+function captureInviteRef() {
+  const params = new URLSearchParams(window.location.search);
+  const ref = params.get('ref');
+  if (ref) {
+    sessionStorage.setItem('runivo-invite-ref', ref);
+    // Clean the URL without triggering a reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('ref');
+    window.history.replaceState({}, '', url.toString());
+  }
+}
+
 export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
   const [ready, setReady] = useState(false);
   const [complete, setComplete] = useState(false);
+
+  // Capture ?ref= param on mount
+  useEffect(() => { captureInviteRef(); }, []);
 
   useEffect(() => {
     // E2E test bypass — skip real auth when running under Playwright
