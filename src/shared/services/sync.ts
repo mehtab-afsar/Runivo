@@ -62,13 +62,19 @@ export async function pushProfile(): Promise<void> {
     total_territories_claimed: player.totalTerritoriesClaimed,
     streak_days: player.streakDays,
     last_run_date: player.lastRunDate,
-    // Onboarding prefs
+    // Onboarding prefs + biometrics
     ...(profile && {
+      // Biometrics (migration 013)
+      age:       profile.age       || null,
+      gender:    profile.gender    || null,
+      height_cm: profile.heightCm  || null,
+      weight_kg: profile.weightKg  || null,
+      // Training preferences
       experience_level: profile.experienceLevel,
       weekly_frequency: profile.weeklyFrequency,
       primary_goal: profile.primaryGoal,
       preferred_distance: profile.preferredDistance,
-      playstyle: profile.playstyle,
+      playstyle: profile.playstyle ?? null,
       distance_unit: profile.distanceUnit,
       notifications_enabled: profile.notificationsEnabled,
       weekly_goal_km: profile.weeklyGoalKm,

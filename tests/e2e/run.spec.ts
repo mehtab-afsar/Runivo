@@ -31,7 +31,7 @@ const GPS_PATH = [
  * every 500 ms after each watchPosition() call.
  * getCurrentPosition() immediately returns the first point.
  */
-async function mockGeolocation(page: Page, path: typeof GPS_PATH) {
+async function mockGeolocation(page: Page, _path: typeof GPS_PATH) {
   await page.addInitScript((points) => {
     const makePosition = (p: { lat: number; lng: number }): GeolocationPosition => ({
       coords: {
@@ -110,8 +110,8 @@ test.describe('RunScreen (/run)', () => {
     await page.waitForLoadState('networkidle');
 
     // The map div should be in the DOM even if WebGL canvas is unavailable
-    const mapContainer = page.locator('[class*="map"], .maplibregl-map, [id*="map"]').first();
-    const fallback = page.locator('div').filter({ hasText: '' }).nth(1); // any div
+    const _mapContainer = page.locator('[class*="map"], .maplibregl-map, [id*="map"]').first();
+    const _fallback = page.locator('div').filter({ hasText: '' }).nth(1); // any div
     // Just verify page rendered (canvas may not be available in headless)
     await expect(page.locator('body')).toBeVisible();
   });
@@ -337,8 +337,8 @@ test.describe('RunSummary (/run-summary)', () => {
 
   test('close (X) button navigates to /home', async ({ page }) => {
     await goToSummary(page);
-    const closeBtn = page.locator('button').filter({ has: page.locator('svg.lucide-x, [class*="X"]') }).first();
-    const xBtn = page.getByRole('button').filter({ has: page.locator('svg') }).first();
+    const _closeBtn = page.locator('button').filter({ has: page.locator('svg.lucide-x, [class*="X"]') }).first();
+    const _xBtn = page.getByRole('button').filter({ has: page.locator('svg') }).first();
     // Try X button in top-right of map
     const allBtns = page.locator('button');
     const count = await allBtns.count();

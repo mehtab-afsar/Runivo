@@ -14,7 +14,7 @@ import OnboardingProgress from '../components/ProgressBar';
 import ExperienceStep from '../components/steps/ExperienceStep';
 import GoalStep from '../components/steps/GoalStep';
 import WeeklyPlanStep from '../components/steps/WeeklyPlanStep';
-import PlaystyleStep from '../components/steps/PlaystyleStep';
+import BiometricsStep from '../components/steps/BiometricsStep';
 import PreferencesStep from '../components/steps/PreferencesStep';
 
 interface OnboardingFlowProps {
@@ -25,21 +25,35 @@ interface OnboardingData {
   username: string;
   email: string;
   password: string;
-  phone: string;
+  // Biometrics
+  age: number;
+  gender: 'male' | 'female' | 'other' | '';
+  heightCm: number;
+  weightKg: number;
+  // Training
   experienceLevel: 'new' | 'casual' | 'regular' | 'competitive';
   primaryGoal: 'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete';
   weeklyFrequency: number;
   preferredDistance: 'short' | '5k' | '10k' | 'long';
-  playstyle: 'conqueror' | 'defender' | 'explorer' | 'social';
   distanceUnit: 'km' | 'mi';
   notificationsEnabled: boolean;
 }
 
+// Step map:
+// 0 Welcome | 1 Account | 2 Biometrics | 3 Experience | 4 Goal | 5 Weekly | 6 Location | 7 Preferences | 8 Ready
 const STEP_COUNT = 9;
+
+const GOAL_LABELS: Record<string, string> = {
+  get_fit:      'Get Fit',
+  lose_weight:  'Lose Weight',
+  run_faster:   'Run Faster',
+  explore:      'Explore',
+  compete:      'Compete',
+};
 
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
+  const [direction, setDirection] = useState(1);
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [seeding, setSeeding] = useState(false);
@@ -57,12 +71,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     username: '',
     email: '',
     password: '',
-    phone: '',
+    age: 0,
+    gender: '',
+    heightCm: 0,
+    weightKg: 0,
     experienceLevel: 'casual',
     primaryGoal: 'get_fit',
     weeklyFrequency: 3,
     preferredDistance: '5k',
-    playstyle: 'conqueror',
     distanceUnit: 'km',
     notificationsEnabled: true,
   });
@@ -80,6 +96,17 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const update = <K extends keyof OnboardingData>(key: K, value: OnboardingData[K]) => {
     setData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const canGoNext = (): boolean => {
+    if (step === 1) {
+      const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim());
+      return data.username.trim().length >= 3 && emailValid && data.password.length >= 8;
+    }
+    if (step === 2) {
+      return data.age > 0 && data.gender !== '' && data.heightCm >= 100 && data.weightKg > 0;
+    }
+    return true;
   };
 
   const requestLocation = async () => {
@@ -119,13 +146,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       : data.experienceLevel === 'competitive' ? 'hard' : 'mixed';
 
     try {
-      // 1. Create Supabase auth account (DB trigger auto-creates profile row)
       await signUp(data.email.trim(), data.password, trimmedName);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Sign up failed';
       const isRateLimit = /rate.limit|too.many|security.purposes|over_email/i.test(msg);
       if (isRateLimit) {
-        // Extract wait seconds from Supabase message if present, default to 60s
         const secondsMatch = msg.match(/after (\d+) second/);
         const waitSecs = secondsMatch ? parseInt(secondsMatch[1], 10) : 60;
         setRateLimitCooldown(waitSecs);
@@ -148,29 +173,32 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return;
     }
 
-    // 2. Create local IndexedDB player for offline support
     const player = await initializePlayer(trimmedName);
 
-    // 3. Save onboarding preferences locally
     await saveProfile({
       playerId: player.id,
+      age: data.age,
+      gender: data.gender as 'male' | 'female' | 'other',
+      heightCm: data.heightCm,
+      weightKg: data.weightKg,
       experienceLevel: data.experienceLevel,
       weeklyFrequency: data.weeklyFrequency,
       primaryGoal: data.primaryGoal,
       preferredDistance: data.preferredDistance,
-      playstyle: data.playstyle,
       distanceUnit: data.distanceUnit,
       notificationsEnabled: data.notificationsEnabled,
       weeklyGoalKm,
       missionDifficulty,
       onboardingCompletedAt: Date.now(),
-      phone: data.phone.trim() || undefined,
     });
 
-    // 4. Push profile preferences to Supabase
-    await pushProfile().catch(() => {/* non-fatal */});
+    // Cache weight locally for run-time calorie calculations
+    if (data.weightKg > 0) {
+      localStorage.setItem('runivo-weight-kg', String(data.weightKg));
+    }
 
-    // 5. Handle referral — auto-follow referrer + reward both parties 50 coins
+    await pushProfile().catch(() => {});
+
     const inviteRef = sessionStorage.getItem('runivo-invite-ref');
     if (inviteRef) {
       const { data: { user: newUser } } = await supabase.auth.getUser();
@@ -180,7 +208,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             p_new_user_id: newUser.id,
             p_referrer_username: inviteRef,
           });
-        } catch {/* non-fatal */}
+        } catch { /* non-fatal */ }
       }
       sessionStorage.removeItem('runivo-invite-ref');
     }
@@ -197,24 +225,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   };
 
   const slideVariants = {
-    enter: (d: number) => ({ x: d > 0 ? 100 : -100, opacity: 0 }),
+    enter:  (d: number) => ({ x: d > 0 ? 100 : -100, opacity: 0 }),
     center: { x: 0, opacity: 1 },
-    exit: (d: number) => ({ x: d > 0 ? -100 : 100, opacity: 0 }),
-  };
-
-  const canGoNext = (): boolean => {
-    if (step === 1) {
-      const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim());
-      return data.username.trim().length >= 3 && emailValid && data.password.length >= 8;
-    }
-    return true;
-  };
-
-  const playstyleLabels: Record<string, string> = {
-    conqueror: 'Conqueror',
-    defender: 'Defender',
-    explorer: 'Explorer',
-    social: 'Social Runner',
+    exit:   (d: number) => ({ x: d > 0 ? -100 : 100, opacity: 0 }),
   };
 
   return (
@@ -242,15 +255,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Step content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <AnimatePresence mode="wait" custom={direction}>
-          {/* 0: Welcome */}
+
+          {/* ── 0: Welcome ────────────────────────────────────────── */}
           {step === 0 && (
             <motion.div
               key="welcome"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 flex items-center justify-center px-8"
             >
@@ -309,15 +321,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 1: Create Account */}
+          {/* ── 1: Create Account ─────────────────────────────────── */}
           {step === 1 && (
             <motion.div
               key="account"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 flex items-center justify-center px-8 overflow-y-auto"
             >
@@ -389,21 +399,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     </div>
                     <p className="text-[10px] text-gray-300 mt-1 pl-1">min 8 characters</p>
                   </div>
-
-                  {/* Phone (Optional) */}
-                  <div>
-                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Phone <span className="normal-case tracking-normal font-normal">(Optional)</span></label>
-                    <input
-                      type="tel"
-                      value={data.phone}
-                      onChange={(e) => update('phone', e.target.value)}
-                      placeholder="+1 (555) 000-0000"
-                      className="mt-1 w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
-                                 text-gray-900 text-sm font-medium placeholder:text-gray-300
-                                 focus:outline-none focus:border-teal-400 focus:bg-white transition-all"
-                    />
-                    <p className="text-[10px] text-gray-300 mt-1 pl-1">Used for account recovery only</p>
-                  </div>
                 </div>
 
                 {signupError && (
@@ -430,15 +425,33 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 2: Experience Level */}
+          {/* ── 2: Biometrics ─────────────────────────────────────── */}
           {step === 2 && (
+            <motion.div
+              key="biometrics"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter" animate="center" exit="exit"
+              transition={{ type: 'spring', damping: 25 }}
+              className="flex-1 pt-4"
+            >
+              <BiometricsStep
+                age={data.age}
+                gender={data.gender}
+                heightCm={data.heightCm}
+                weightKg={data.weightKg}
+                onChange={(field, value) => update(field as keyof OnboardingData, value as never)}
+              />
+            </motion.div>
+          )}
+
+          {/* ── 3: Experience Level ───────────────────────────────── */}
+          {step === 3 && (
             <motion.div
               key="experience"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 pt-4"
             >
@@ -449,15 +462,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 3: Goal */}
-          {step === 3 && (
+          {/* ── 4: Goal ───────────────────────────────────────────── */}
+          {step === 4 && (
             <motion.div
               key="goal"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 pt-4"
             >
@@ -468,15 +479,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 4: Weekly Plan */}
-          {step === 4 && (
+          {/* ── 5: Weekly Plan ────────────────────────────────────── */}
+          {step === 5 && (
             <motion.div
               key="weekly"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 pt-4"
             >
@@ -490,34 +499,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 5: Playstyle */}
-          {step === 5 && (
-            <motion.div
-              key="playstyle"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ type: 'spring', damping: 25 }}
-              className="flex-1 pt-4"
-            >
-              <PlaystyleStep
-                value={data.playstyle}
-                onChange={(v) => update('playstyle', v)}
-              />
-            </motion.div>
-          )}
-
-          {/* 6: Location */}
+          {/* ── 6: Location ───────────────────────────────────────── */}
           {step === 6 && (
             <motion.div
               key="location"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 flex items-center justify-center px-8"
             >
@@ -585,15 +573,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 7: Preferences */}
+          {/* ── 7: Preferences ────────────────────────────────────── */}
           {step === 7 && (
             <motion.div
               key="preferences"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 pt-4"
             >
@@ -606,15 +592,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </motion.div>
           )}
 
-          {/* 8: Ready */}
+          {/* ── 8: Ready ──────────────────────────────────────────── */}
           {step === 8 && (
             <motion.div
               key="ready"
               custom={direction}
               variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial="enter" animate="center" exit="exit"
               transition={{ type: 'spring', damping: 25 }}
               className="flex-1 flex items-center justify-center px-8"
             >
@@ -628,18 +612,19 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   {'\u26A1'}
                 </motion.div>
 
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                <h2 className="text-2xl font-bold text-gray-900 mb-1">
                   You're All Set, {data.username.trim() || 'Runner'}!
                 </h2>
+                <p className="text-[13px] text-gray-400 mb-6">Your personal training profile is ready.</p>
 
-                <div className="flex justify-center gap-4 mb-8">
+                <div className="flex justify-center gap-3 mb-8">
                   <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-center">
                     <span className="text-stat text-lg font-bold text-teal-600 block">{weeklyGoalKm}km</span>
                     <span className="text-[11px] text-gray-400">weekly goal</span>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-center">
-                    <span className="text-stat text-lg font-bold text-teal-600 block">{playstyleLabels[data.playstyle]}</span>
-                    <span className="text-[11px] text-gray-400">playstyle</span>
+                    <span className="text-stat text-lg font-bold text-teal-600 block">{GOAL_LABELS[data.primaryGoal]}</span>
+                    <span className="text-[11px] text-gray-400">goal</span>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-center">
                     <span className="text-stat text-lg font-bold text-teal-600 block">Lv.1</span>
@@ -675,22 +660,25 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       />
                       Creating account...
                     </>
-                  ) : 'Start Conquering'}
+                  ) : 'Start Running'}
                 </motion.button>
               </div>
             </motion.div>
           )}
+
         </AnimatePresence>
       </div>
 
-      {/* Bottom CTA for steps 2-5, 7 */}
+      {/* Bottom Continue CTA — steps 2, 3, 4, 5, 7 */}
       {[2, 3, 4, 5, 7].includes(step) && (
         <div className="shrink-0 px-6 pb-6" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
           <button
             onClick={next}
+            disabled={!canGoNext()}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
                        text-base font-bold text-white
-                       shadow-[0_4px_20px_rgba(0,180,198,0.3)]"
+                       shadow-[0_4px_20px_rgba(0,180,198,0.3)]
+                       disabled:opacity-30 disabled:shadow-none transition-all"
           >
             Continue
           </button>

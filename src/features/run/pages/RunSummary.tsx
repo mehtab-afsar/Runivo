@@ -151,7 +151,10 @@ export const RunSummary: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-const calories = Math.round(runData.distance * 88)
+// MET-based calorie formula: MET(8) × weightKg × durationHours
+// Falls back to 70 kg if no biometric data stored
+const storedWeightKg = parseFloat(localStorage.getItem('runivo-weight-kg') || '0') || 70;
+const calories = Math.round(8 * storedWeightKg * (runData.duration / 3600))
 
   const rewards = {
     xp: runData.xpEarned ?? 0,

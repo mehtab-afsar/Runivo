@@ -2,17 +2,23 @@ import { getDB } from './store';
 
 export interface PlayerProfile {
   playerId: string;
+  // Biometrics — used for calorie & pace calculations
+  age: number;
+  gender: 'male' | 'female' | 'other' | '';
+  heightCm: number;
+  weightKg: number;
+  // Training preferences
   experienceLevel: 'new' | 'casual' | 'regular' | 'competitive';
   weeklyFrequency: number;
   primaryGoal: 'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete';
   preferredDistance: 'short' | '5k' | '10k' | 'long';
-  playstyle: 'conqueror' | 'defender' | 'explorer' | 'social';
   distanceUnit: 'km' | 'mi';
   notificationsEnabled: boolean;
   weeklyGoalKm: number;
   missionDifficulty: 'easy' | 'mixed' | 'hard';
   onboardingCompletedAt: number;
   phone?: string;
+  playstyle?: 'conqueror' | 'defender' | 'explorer' | 'social'; // kept for DB compat
 }
 
 const STORE_NAME = 'profile';

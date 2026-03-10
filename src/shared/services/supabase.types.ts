@@ -26,6 +26,12 @@ export interface Database {
           total_territories_claimed: number;
           streak_days: number;
           last_run_date: string | null;
+          // Biometrics — migration 013
+          age: number | null;
+          gender: 'male' | 'female' | 'other' | null;
+          height_cm: number | null;
+          weight_kg: number | null;
+          // Training preferences
           experience_level: 'new' | 'casual' | 'regular' | 'competitive' | null;
           weekly_frequency: number | null;
           primary_goal: 'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete' | null;
@@ -65,6 +71,7 @@ export interface Database {
           territories_fortified: string[];
           xp_earned: number;
           coins_earned: number;
+          calories_burned: number | null; // migration 013 — auto-filled by trigger
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['runs']['Row'], 'id' | 'created_at'> & {
@@ -237,6 +244,26 @@ export interface Database {
           p_gps_proof: Json;
         };
         Returns: Json;
+      };
+      // migration 013
+      calculate_calories: {
+        Args: {
+          p_distance_km:  number;
+          p_duration_sec: number;
+          p_weight_kg?:   number;
+          p_gender?:      'male' | 'female' | 'other';
+          p_age?:         number;
+        };
+        Returns: number;
+      };
+      calculate_bmr: {
+        Args: {
+          p_weight_kg: number;
+          p_height_cm: number;
+          p_age:       number;
+          p_gender?:   'male' | 'female' | 'other';
+        };
+        Returns: number;
       };
     };
   };

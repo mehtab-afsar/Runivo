@@ -88,7 +88,7 @@ export default function SplitsTable({ distance, duration, gpsPoints }: SplitsTab
   const splits = useMemo(() => {
     if (!gpsPoints || gpsPoints.length < 2 || distance <= 0) return [];
     return calculateSplitsFromGPS(gpsPoints, distance);
-  }, [distance, duration, gpsPoints]);
+  }, [distance, gpsPoints]);
 
   if (splits.length === 0) return null;
 

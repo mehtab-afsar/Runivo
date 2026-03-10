@@ -5,9 +5,10 @@ interface ProgressBarProps {
 }
 
 const chapters = [
-  { label: 'You', steps: [0, 1] },       // welcome, name
-  { label: 'Running', steps: [2, 3, 4] }, // experience, goal, weekly
-  { label: 'Game', steps: [5, 6, 7, 8] }, // playstyle, location, prefs, ready
+  { label: 'Account',  steps: [0, 1]       }, // welcome, create account
+  { label: 'Body',     steps: [2]           }, // biometrics
+  { label: 'Training', steps: [3, 4, 5]    }, // experience, goal, weekly
+  { label: 'Setup',    steps: [6, 7, 8]    }, // location, prefs, ready
 ];
 
 export default function OnboardingProgress({ currentStep }: ProgressBarProps) {
