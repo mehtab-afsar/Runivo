@@ -1,5 +1,33 @@
 import { Howl } from 'howler';
 
+// ----------------------------------------------------------------
+// Sound file map — drop MP3/OGG files into /public/sounds/ and
+// list them here. If a file path is provided the real recording
+// is used; otherwise the synthesised fallback tone plays instead.
+//
+// Download links (all royalty-free):
+//   level_up       → https://pixabay.com/sound-effects/success-fanfare-trumpets-6185/
+//   start_run      → https://pixabay.com/sound-effects/race-start-beeps-125125/
+//   finish_run     → https://freesound.org/people/grunz/sounds/109662/            (CC-BY 3.0 — credit: grunz)
+//   claim          → https://freesound.org/people/humanoide9000/sounds/466133/    (CC-BY 4.0 — credit: humanoide9000)
+//   notification   → https://pixabay.com/sound-effects/notification-ping-335498/
+//   tick           → https://freesound.org/people/Jummit/sounds/528561/           (CC0)
+//   enemy_zone     → https://freesound.org/people/SamsterBirdies/sounds/467882/   (CC0)
+//   coin           → https://freesound.org/people/Fupicat/sounds/538146/          (CC0)
+//   mission_complete→ https://freesound.org/people/Kastenfrosch/sounds/162482/    (CC0)
+// ----------------------------------------------------------------
+const SOUND_FILES: Partial<Record<string, string>> = {
+  level_up:         '/sounds/level_up.mp3',
+  start_run:        '/sounds/start_run.mp3',
+  finish_run:       '/sounds/finish_run.mp3',
+  claim:            '/sounds/claim.mp3',
+  notification:     '/sounds/notification.mp3',
+  tick:             '/sounds/tick.mp3',
+  enemy_zone:       '/sounds/enemy_zone.mp3',
+  coin:             '/sounds/coin.mp3',
+  mission_complete: '/sounds/mission_complete.mp3',
+};
+
 class SoundManager {
   private sounds: Map<string, Howl> = new Map();
   private enabled: boolean = true;
@@ -87,6 +115,27 @@ class SoundManager {
       { freq: 1400, duration: 0.05, type: 'sine' },
       { freq: 1800, duration: 0.08, type: 'sine' },
     ]));
+
+    // Notification (no synthesised fallback — silent until file added)
+    this.register('notification', this.generateTone([
+      { freq: 1200, duration: 0.04, type: 'sine' },
+      { freq: 1500, duration: 0.07, type: 'sine' },
+    ]));
+
+    // Override any registered sound that has a real file available
+    for (const [name, filePath] of Object.entries(SOUND_FILES)) {
+      if (filePath) {
+        this.sounds.set(name, new Howl({
+          src: [filePath],
+          format: ['mp3'],
+          volume: this.volume,
+          preload: true,
+          onloaderror: () => {
+            // File not yet added — synthesised tone already registered, do nothing
+          },
+        }));
+      }
+    }
   }
 
   private generateTone(

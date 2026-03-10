@@ -6,6 +6,7 @@ import { BottomNavigation } from '@shared/layout/BottomNavigation';
 import { PageTransition } from '@shared/layout/PageTransition';
 import { RunivoLogo } from '@shared/ui/RunivoLogo';
 import { NavVisibilityContext } from '@shared/hooks/useNavVisibility';
+import { NotificationToast } from '@features/notifications/components/NotificationToast';
 import './index.css';
 
 const Dashboard     = lazy(() => import('@features/dashboard/pages/Dashboard'));
@@ -226,6 +227,7 @@ export default function App() {
               <AnimatedRoutes />
             </Suspense>
           </OnboardingWrapper>
+          <NotificationToast />
         </BrowserRouter>
       )}
     </NavVisibilityContext.Provider>

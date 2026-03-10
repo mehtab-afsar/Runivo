@@ -233,19 +233,54 @@ export default function Feed() {
   const [feedLoading, setFeedLoading] = useState(true);
 
   useEffect(() => {
-    loadFeed();
-  }, []);
+    loadFeed(activeTab);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
-  const loadFeed = async () => {
+  const loadFeed = async (tab: FeedTab) => {
     setFeedLoading(true);
-    const { data } = await supabase
-      .from('feed_posts')
-      .select('id, user_id, content, distance_km, territories_claimed, likes, created_at, profiles(username, level)')
-      .order('created_at', { ascending: false })
-      .limit(30);
+    setPosts([]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (data) setPosts(data.map(row => buildPost(row as any)));
+    if (tab === 'following') {
+      // Personalised feed: own posts + posts from people I follow
+      const { data, error } = await supabase.rpc('get_feed', { lim: 40, off_set: 0 });
+      if (!error && data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setPosts((data as any[]).map(row => ({
+          id: row.id,
+          userId: row.user_id,
+          user: {
+            name: row.username ?? 'Runner',
+            initial: (row.username ?? 'R').charAt(0).toUpperCase(),
+            color: getColor(row.username ?? 'Runner'),
+          },
+          activity: {
+            type: 'run' as ActivityType,
+            title: row.content ?? `${(row.distance_km ?? 0).toFixed(1)} km run`,
+            description: row.content ?? undefined,
+            distance: row.distance_km ?? 0,
+            duration: 0,
+            pace: '–',
+            territoriesClaimed: row.territories_claimed ?? 0,
+            route: [[10, 20], [30, 40], [50, 60], [70, 50], [85, 30]] as [number, number][],
+          },
+          kudos: row.likes,
+          kudosUsers: [],
+          comments: row.comment_count ?? 0,
+          timestamp: timeAgo(row.created_at),
+        })));
+      }
+    } else {
+      // Explore: all recent posts
+      const { data } = await supabase
+        .from('feed_posts')
+        .select('id, user_id, content, distance_km, territories_claimed, likes, created_at, profiles(username, level)')
+        .order('created_at', { ascending: false })
+        .limit(30);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (data) setPosts(data.map(row => buildPost(row as any)));
+    }
+
     setFeedLoading(false);
   };
 

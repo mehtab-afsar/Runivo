@@ -41,6 +41,8 @@ export default function Profile() {
     !!(routerLocation.state as { openEdit?: boolean } | null)?.openEdit
   );
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   // Edit Profile state
   const [avatarColorId, setAvatarColorId] = useState('teal');
@@ -61,8 +63,17 @@ export default function Profile() {
     calculatePersonalRecords().then(setPersonalRecords);
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
-      supabase.from('profiles').select('subscription_tier').eq('id', user.id).single()
-        .then(({ data }) => { if (data?.subscription_tier) setSubscriptionTier(data.subscription_tier); });
+      supabase.from('profiles')
+        .select('subscription_tier, follower_count, following_count')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data?.subscription_tier) setSubscriptionTier(data.subscription_tier);
+          if (data) {
+            setFollowerCount(data.follower_count ?? 0);
+            setFollowingCount(data.following_count ?? 0);
+          }
+        });
     });
   }, []);
 
@@ -183,7 +194,7 @@ export default function Profile() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-4 gap-2 mb-2">
           {[
             { value: player.totalDistanceKm.toFixed(1), label: 'km', color: 'text-gray-900' },
             { value: player.totalRuns, label: 'runs', color: 'text-gray-900' },
@@ -195,6 +206,18 @@ export default function Profile() {
               <span className="text-[9px] text-gray-400 uppercase tracking-wider">{stat.label}</span>
             </div>
           ))}
+        </div>
+
+        {/* Followers / Following row */}
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="bg-white rounded-xl p-2.5 text-center border border-gray-100 shadow-sm">
+            <span className="text-stat text-base font-bold block text-gray-900">{followerCount}</span>
+            <span className="text-[9px] text-gray-400 uppercase tracking-wider">followers</span>
+          </div>
+          <div className="bg-white rounded-xl p-2.5 text-center border border-gray-100 shadow-sm">
+            <span className="text-stat text-base font-bold block text-gray-900">{followingCount}</span>
+            <span className="text-[9px] text-gray-400 uppercase tracking-wider">following</span>
+          </div>
         </div>
 
         {/* Currencies */}

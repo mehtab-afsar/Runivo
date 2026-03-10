@@ -1,4 +1,4 @@
-import { Bell, Heart, MessageCircle, MapPin, Calendar, Users, Flame, Shield } from 'lucide-react'
+import { Bell, Heart, MessageCircle, MapPin, Calendar, Users, Flame, Shield, UserPlus } from 'lucide-react'
 import { cn } from '@shared/lib/utils'
 import type { Notification, NotificationType } from '../types'
 
@@ -12,6 +12,7 @@ const iconConfig: Record<NotificationType, { icon: React.ReactNode; bg: string }
   club_invite:       { icon: <Users size={15} strokeWidth={2} className="text-violet-500" />,   bg: 'bg-violet-50' },
   streak:            { icon: <Flame size={15} strokeWidth={2} className="text-orange-500" />,   bg: 'bg-orange-50' },
   system:            { icon: <Bell size={15} strokeWidth={2} className="text-gray-500" />,      bg: 'bg-gray-100' },
+  follow:            { icon: <UserPlus size={15} strokeWidth={2} className="text-teal-600" />,  bg: 'bg-teal-50' },
 }
 
 function timeAgo(isoDate: string): string {

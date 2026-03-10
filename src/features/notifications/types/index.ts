@@ -8,6 +8,7 @@ export type NotificationType =
   | 'club_invite'
   | 'streak'
   | 'system'
+  | 'follow'
 
 export interface Notification {
   id: string

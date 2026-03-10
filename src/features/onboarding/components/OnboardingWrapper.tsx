@@ -8,7 +8,9 @@ interface OnboardingWrapperProps {
   children: ReactNode;
 }
 
-// Persist invite ref from URL so it survives page reloads / auth redirects
+// Persist invite ref from URL so it survives page reloads / auth redirects.
+// Called at MODULE LEVEL (not in useEffect) so it runs synchronously before
+// React Router processes routes and clears the ?ref= query param via <Navigate>.
 function captureInviteRef() {
   const params = new URLSearchParams(window.location.search);
   const ref = params.get('ref');
@@ -21,12 +23,12 @@ function captureInviteRef() {
   }
 }
 
+// Run immediately when this module is first imported — before any component mounts
+captureInviteRef();
+
 export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
   const [ready, setReady] = useState(false);
   const [complete, setComplete] = useState(false);
-
-  // Capture ?ref= param on mount
-  useEffect(() => { captureInviteRef(); }, []);
 
   useEffect(() => {
     // E2E test bypass — skip real auth when running under Playwright
