@@ -56,11 +56,11 @@ export function NotificationToast() {
       return () => { supabase.removeChannel(channel) }
     })
 
+    const timers = timersRef.current
     return () => {
-      timersRef.current.forEach(clearTimeout)
-      timersRef.current.clear()
+      timers.forEach(clearTimeout)
+      timers.clear()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

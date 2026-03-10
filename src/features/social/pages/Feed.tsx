@@ -234,8 +234,7 @@ export default function Feed() {
 
   useEffect(() => {
     loadFeed(activeTab);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadFeed = async (tab: FeedTab) => {
     setFeedLoading(true);

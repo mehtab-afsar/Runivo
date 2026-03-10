@@ -16,17 +16,17 @@ import { Howl } from 'howler';
 //   coin           → https://freesound.org/people/Fupicat/sounds/538146/          (CC0)
 //   mission_complete→ https://freesound.org/people/Kastenfrosch/sounds/162482/    (CC0)
 // ----------------------------------------------------------------
-const SOUND_FILES: Partial<Record<string, string>> = {
-  level_up:         '/sounds/level_up.mp3',
-  start_run:        '/sounds/start_run.mp3',
-  finish_run:       '/sounds/finish_run.mp3',
-  claim:            '/sounds/claim.mp3',
-  notification:     '/sounds/notification.mp3',
-  tick:             '/sounds/tick.mp3',
-  enemy_zone:       '/sounds/enemy_zone.mp3',
-  coin:             '/sounds/coin.mp3',
-  mission_complete: '/sounds/mission_complete.mp3',
-};
+// MP3 paths for future use — drop files into /public/sounds/ to activate.
+// Not loaded at runtime; kept here as reference only.
+// level_up:         '/sounds/level_up.mp3'
+// start_run:        '/sounds/start_run.mp3'
+// finish_run:       '/sounds/finish_run.mp3'
+// claim:            '/sounds/claim.mp3'
+// notification:     '/sounds/notification.mp3'
+// tick:             '/sounds/tick.mp3'
+// enemy_zone:       '/sounds/enemy_zone.mp3'
+// coin:             '/sounds/coin.mp3'
+// mission_complete: '/sounds/mission_complete.mp3'
 
 class SoundManager {
   private sounds: Map<string, Howl> = new Map();
