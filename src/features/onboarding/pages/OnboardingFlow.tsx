@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
 import { haptic } from '@shared/lib/haptics';
@@ -46,6 +46,12 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [signing, setSigning] = useState(false);
   const [signupError, setSignupError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+  }, []);
 
   const [data, setData] = useState<OnboardingData>({
     username: '',
@@ -117,7 +123,27 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       await signUp(data.email.trim(), data.password, trimmedName);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Sign up failed';
-      setSignupError(msg.includes('already registered') ? 'This email is already in use.' : msg);
+      const isRateLimit = /rate.limit|too.many|security.purposes|over_email/i.test(msg);
+      if (isRateLimit) {
+        // Extract wait seconds from Supabase message if present, default to 60s
+        const secondsMatch = msg.match(/after (\d+) second/);
+        const waitSecs = secondsMatch ? parseInt(secondsMatch[1], 10) : 60;
+        setRateLimitCooldown(waitSecs);
+        setSignupError(`Too many attempts. Please wait ${waitSecs}s before trying again.`);
+        cooldownRef.current = setInterval(() => {
+          setRateLimitCooldown(prev => {
+            if (prev <= 1) {
+              clearInterval(cooldownRef.current!);
+              cooldownRef.current = null;
+              setSignupError('');
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setSignupError(msg.includes('already registered') ? 'This email is already in use.' : msg);
+      }
       setSigning(false);
       return;
     }
@@ -382,7 +408,11 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                 {signupError && (
                   <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
-                    <p className="text-xs text-red-500">{signupError}</p>
+                    <p className="text-xs text-red-500">
+                      {rateLimitCooldown > 0
+                        ? `Too many attempts. Try again in ${rateLimitCooldown}s.`
+                        : signupError}
+                    </p>
                   </div>
                 )}
 
@@ -619,14 +649,18 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
                 {signupError && (
                   <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
-                    <p className="text-xs text-red-500">{signupError}</p>
+                    <p className="text-xs text-red-500">
+                      {rateLimitCooldown > 0
+                        ? `Too many attempts. Try again in ${rateLimitCooldown}s.`
+                        : signupError}
+                    </p>
                   </div>
                 )}
 
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={completeOnboarding}
-                  disabled={signing}
+                  disabled={signing || rateLimitCooldown > 0}
                   className="w-full py-5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
                              text-lg font-bold text-white
                              shadow-[0_4px_24px_rgba(0,180,198,0.35)]
