@@ -122,20 +122,9 @@ class SoundManager {
       { freq: 1500, duration: 0.07, type: 'sine' },
     ]));
 
-    // Override any registered sound that has a real file available
-    for (const [name, filePath] of Object.entries(SOUND_FILES)) {
-      if (filePath) {
-        this.sounds.set(name, new Howl({
-          src: [filePath],
-          format: ['mp3'],
-          volume: this.volume,
-          preload: true,
-          onloaderror: () => {
-            // File not yet added — synthesised tone already registered, do nothing
-          },
-        }));
-      }
-    }
+    // MP3 files (SOUND_FILES) are optional — only load them when they exist on disk.
+    // Without this guard every missing file produces a 404 in the console.
+    // To use a real file: add it to /public/sounds/ then call loadFile() at runtime.
   }
 
   private generateTone(

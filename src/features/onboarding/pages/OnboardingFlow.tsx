@@ -1,13 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, Eye, EyeOff, MapPin, Trophy, Users } from 'lucide-react';
 import { haptic } from '@shared/lib/haptics';
 import { RunivoLogo } from '@shared/ui/RunivoLogo';
 import { initializePlayer } from '@shared/services/store';
 import { seedTerritoryData } from '@shared/services/seedData';
 import { soundManager } from '@shared/audio/sounds';
 import { saveProfile, computeWeeklyGoal } from '@shared/services/profile';
-import { signUp } from '@shared/services/auth';
+import { signUp, signIn } from '@shared/services/auth';
 import { pushProfile } from '@shared/services/sync';
 import { supabase } from '@shared/services/supabase';
 import OnboardingProgress from '../components/ProgressBar';
@@ -51,8 +51,11 @@ const GOAL_LABELS: Record<string, string> = {
   compete:      'Compete',
 };
 
+type FlowView = 'welcome' | 'login' | 'signup';
+
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const [step, setStep] = useState(0);
+  const [view, setView] = useState<FlowView>('welcome');
+  const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationError, setLocationError] = useState('');
@@ -62,6 +65,13 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Login-specific state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   useEffect(() => {
     return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
@@ -92,7 +102,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }, [step]);
 
   const next = useCallback(() => goTo(step + 1), [goTo, step]);
-  const back = useCallback(() => goTo(step - 1), [goTo, step]);
+  const back = useCallback(() => {
+    if (step === 1) { setView('welcome'); return; }
+    goTo(step - 1);
+  }, [goTo, step]);
 
   const update = <K extends keyof OnboardingData>(key: K, value: OnboardingData[K]) => {
     setData(prev => ({ ...prev, [key]: value }));
@@ -224,12 +237,274 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     onComplete();
   };
 
+  const handleLogin = async () => {
+    if (!loginEmail.trim() || !loginPassword) return;
+    setLoginLoading(true);
+    setLoginError('');
+    try {
+      await signIn(loginEmail.trim(), loginPassword);
+      localStorage.setItem('runivo-onboarding-complete', 'true');
+      haptic('success');
+      onComplete();
+    } catch (err: unknown) {
+      setLoginError(err instanceof Error ? err.message : 'Sign in failed. Check your credentials.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   const slideVariants = {
     enter:  (d: number) => ({ x: d > 0 ? 100 : -100, opacity: 0 }),
     center: { x: 0, opacity: 1 },
     exit:   (d: number) => ({ x: d > 0 ? -100 : 100, opacity: 0 }),
   };
 
+  // ── WELCOME (premium landing) ─────────────────────────────────────────
+  if (view === 'welcome') {
+    return (
+      <div className="fixed inset-0 z-[200] flex flex-col overflow-hidden" style={{ background: '#F8FAFA' }}>
+
+        {/* Hero panel — top ~55% with teal gradient */}
+        <div
+          className="relative flex flex-col items-center justify-center overflow-hidden"
+          style={{
+            flex: '0 0 56%',
+            paddingBottom: '28px',
+            background: 'linear-gradient(160deg, #0E7490 0%, #0891B2 45%, #06B6D4 100%)',
+          }}
+        >
+          {/* Subtle concentric ring decoration */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            {[200, 290, 380].map(s => (
+              <div
+                key={s}
+                className="absolute rounded-full border border-white/10"
+                style={{ width: s, height: s }}
+              />
+            ))}
+          </div>
+
+          {/* Logo */}
+          <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', damping: 14, stiffness: 110, delay: 0.1 }}
+            className="relative z-10 mb-5 w-24 h-24 rounded-3xl bg-white flex items-center justify-center"
+            style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)' }}
+          >
+            <RunivoLogo size={60} />
+          </motion.div>
+
+          {/* Wordmark */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.32, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10"
+            style={{
+              fontSize: 40,
+              fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: '#ffffff',
+              lineHeight: 1,
+            }}
+          >
+            Runivo
+          </motion.div>
+
+          {/* Tagline */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="relative z-10 mt-2 text-[11px] tracking-[0.3em] uppercase text-white/60 font-medium"
+          >
+            {'Run \u00B7 Capture \u00B7 Conquer'}
+          </motion.p>
+
+          {/* Bottom wave / divider */}
+          <svg
+            className="absolute bottom-0 left-0 w-full"
+            viewBox="0 0 430 28"
+            preserveAspectRatio="none"
+            style={{ display: 'block' }}
+          >
+            <path d="M0,28 C120,0 310,0 430,28 L430,28 L0,28 Z" fill="#F8FAFA" />
+          </svg>
+        </div>
+
+        {/* Bottom panel — features + CTAs */}
+        <div className="flex-1 flex flex-col justify-between px-6 pt-5">
+          {/* Feature chips — horizontal row */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.5 }}
+            className="flex gap-2.5 mb-5"
+          >
+            {[
+              { icon: <MapPin size={15} strokeWidth={1.75} className="text-teal-600" />, bg: 'bg-teal-50', label: 'Territory' },
+              { icon: <Trophy size={15} strokeWidth={1.75} className="text-amber-500" />, bg: 'bg-amber-50', label: 'Leaderboard' },
+              { icon: <Users size={15} strokeWidth={1.75} className="text-indigo-500" />, bg: 'bg-indigo-50', label: 'Clubs' },
+            ].map((f, i) => (
+              <motion.div
+                key={f.label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 + i * 0.07 }}
+                className="flex-1 flex flex-col items-center gap-2 bg-white rounded-2xl py-3.5 border border-gray-100 shadow-sm"
+              >
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${f.bg}`}>
+                  {f.icon}
+                </div>
+                <span className="text-[11px] font-semibold text-gray-600">{f.label}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.78, duration: 0.48, ease: [0.22, 1, 0.36, 1] }}
+            className="space-y-3"
+            style={{ paddingBottom: 'max(28px, env(safe-area-inset-bottom))' }}
+          >
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setView('signup'); setStep(1); haptic('light'); }}
+              className="w-full py-4 rounded-2xl text-base font-bold text-white
+                         shadow-[0_4px_24px_rgba(8,145,178,0.35)]"
+              style={{ background: 'linear-gradient(135deg, #0891B2, #0E7490)' }}
+            >
+              Create Account
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { setView('login'); haptic('light'); }}
+              className="w-full py-3.5 rounded-2xl border border-gray-200 bg-white
+                         text-base font-semibold text-gray-800"
+            >
+              Log in
+            </motion.button>
+            <p className="text-center text-[10px] text-gray-300 pb-1">
+              By continuing you agree to our Terms &amp; Privacy Policy
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── LOGIN ──────────────────────────────────────────────────────────────
+  if (view === 'login') {
+    return (
+      <div className="fixed inset-0 z-[200] flex flex-col bg-[#FAFAFA]">
+        {/* Header */}
+        <div
+          className="shrink-0 flex items-center px-4 pt-2"
+          style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
+        >
+          <button onClick={() => { setView('welcome'); haptic('light'); }} className="p-1 -ml-1">
+            <ChevronLeft className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 flex flex-col justify-center px-6 overflow-y-auto">
+          {/* Logo + title */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="mb-4 drop-shadow-[0_8px_20px_rgba(8,145,178,0.2)]">
+              <RunivoLogo size={52} />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Welcome back</h1>
+            <p className="text-[13px] text-gray-400 mt-1">Sign in to continue your conquest</p>
+          </div>
+
+          {/* Fields */}
+          <div className="space-y-3 mb-5">
+            <div>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Email</label>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={e => setLoginEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoFocus
+                className="mt-1 w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
+                           text-gray-900 text-sm font-medium placeholder:text-gray-300
+                           focus:outline-none focus:border-teal-400 focus:bg-white transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Password</label>
+              <div className="mt-1 relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                  placeholder="Your password"
+                  onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
+                  className="w-full px-4 pr-12 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
+                             text-gray-900 text-sm font-medium placeholder:text-gray-300
+                             focus:outline-none focus:border-teal-400 focus:bg-white transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(p => !p)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300"
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {loginError && (
+            <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100">
+              <p className="text-xs text-red-500">{loginError}</p>
+            </div>
+          )}
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleLogin}
+            disabled={loginLoading || !loginEmail.trim() || !loginPassword}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
+                       text-base font-bold text-white
+                       shadow-[0_4px_20px_rgba(0,180,198,0.3)]
+                       disabled:opacity-40 disabled:shadow-none transition-all
+                       flex items-center justify-center gap-2"
+          >
+            {loginLoading ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full"
+                />
+                Signing in...
+              </>
+            ) : 'Sign In'}
+          </motion.button>
+
+          <p className="text-center text-[12px] text-gray-400 mt-4">
+            Don&apos;t have an account?{' '}
+            <button
+              onClick={() => { setView('signup'); setStep(1); haptic('light'); }}
+              className="text-teal-600 font-semibold"
+            >
+              Sign up
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── SIGN-UP FLOW ───────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-[#FAFAFA] z-[200] flex flex-col">
       {/* Progress bar */}
@@ -255,71 +530,6 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Step content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <AnimatePresence mode="wait" custom={direction}>
-
-          {/* ── 0: Welcome ────────────────────────────────────────── */}
-          {step === 0 && (
-            <motion.div
-              key="welcome"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter" animate="center" exit="exit"
-              transition={{ type: 'spring', damping: 25 }}
-              className="flex-1 flex items-center justify-center px-8"
-            >
-              <div className="text-center w-full max-w-sm">
-                <motion.div
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', damping: 14, delay: 0.2 }}
-                  className="flex justify-center mb-8 drop-shadow-[0_8px_24px_rgba(8,145,178,0.22)]"
-                >
-                  <RunivoLogo size={80} wordmark />
-                </motion.div>
-
-                <motion.h1
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="text-3xl font-bold text-gray-900 mb-3"
-                >
-                  Welcome to Runivo
-                </motion.h1>
-
-                <motion.p
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-base text-gray-400 mb-3 leading-relaxed"
-                >
-                  Run through your city.<br />
-                  Claim territories.<br />
-                  Build your empire.
-                </motion.p>
-
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                  className="text-[11px] uppercase tracking-[0.25em] text-teal-500 font-bold mb-10"
-                >
-                  {'Run \u00B7 Capture \u00B7 Conquer'}
-                </motion.p>
-
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={next}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
-                             text-base font-bold text-white
-                             shadow-[0_4px_20px_rgba(0,180,198,0.3)]"
-                >
-                  Get Started
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
 
           {/* ── 1: Create Account ─────────────────────────────────── */}
           {step === 1 && (
