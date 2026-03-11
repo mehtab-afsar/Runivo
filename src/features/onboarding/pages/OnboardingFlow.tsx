@@ -162,12 +162,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       await signUp(data.email.trim(), data.password, trimmedName);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Sign up failed';
-      const isRateLimit = /rate.limit|too.many|security.purposes|over_email/i.test(msg);
+      const status = (err as { status?: number }).status;
+      const isRateLimit = status === 429 || /rate.limit|too.many|security.purposes|over_email/i.test(msg);
+      const isAlreadyRegistered = /already.registered|already.in.use|user.already.exists/i.test(msg) || status === 422;
+
       if (isRateLimit) {
-        const secondsMatch = msg.match(/after (\d+) second/);
+        // Parse wait time from error message (Supabase includes "after X seconds")
+        const secondsMatch = msg.match(/(\d+)\s*second/);
         const waitSecs = secondsMatch ? parseInt(secondsMatch[1], 10) : 60;
         setRateLimitCooldown(waitSecs);
-        setSignupError(`Too many attempts. Please wait ${waitSecs}s before trying again.`);
+        setSignupError(`Too many signup attempts. Please wait ${waitSecs}s.`);
         cooldownRef.current = setInterval(() => {
           setRateLimitCooldown(prev => {
             if (prev <= 1) {
@@ -179,11 +183,28 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             return prev - 1;
           });
         }, 1000);
+        setSigning(false);
+        return;
+      } else if (isAlreadyRegistered) {
+        // Account exists (e.g. after a DB reset) — silently sign in instead
+        try {
+          await signIn(data.email.trim(), data.password);
+          // Fall through to profile init below
+        } catch (signInErr: unknown) {
+          const signInMsg = signInErr instanceof Error ? signInErr.message : '';
+          setSignupError(
+            /invalid.login|invalid.password|credentials/i.test(signInMsg)
+              ? 'Email already in use with a different password.'
+              : 'Account exists. Please use the Log In tab.'
+          );
+          setSigning(false);
+          return;
+        }
       } else {
-        setSignupError(msg.includes('already registered') ? 'This email is already in use.' : msg);
+        setSignupError(msg);
+        setSigning(false);
+        return;
       }
-      setSigning(false);
-      return;
     }
 
     const player = await initializePlayer(trimmedName);

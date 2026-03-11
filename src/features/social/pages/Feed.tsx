@@ -283,6 +283,16 @@ export default function Feed() {
     setFeedLoading(false);
   };
 
+  // Current user's username for invite links
+  const [myUsername, setMyUsername] = useState('');
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      supabase.from('profiles').select('username').eq('id', session.user.id).single()
+        .then(({ data }) => { if (data?.username) setMyUsername(data.username); });
+    });
+  }, []);
+
   // Runners (Discover tab) from Supabase
   const [runners, setRunners] = useState<SuggestedRunner[]>([]);
 
@@ -381,9 +391,38 @@ export default function Feed() {
     setDismissed(prev => new Set(prev).add(id));
   };
 
-  const sendInvite = (id: string) => {
+  const buildInviteUrl = () =>
+    `https://runivo.app/join${myUsername ? `?ref=${encodeURIComponent(myUsername)}` : ''}`;
+
+  const sendInvite = async (contactId: string, contactName?: string, contactPhone?: string) => {
     haptic('medium');
-    setInvited(prev => new Set(prev).add(id));
+    const url = buildInviteUrl();
+    const text = `Hey${contactName ? ` ${contactName.split(' ')[0]}` : ''}! I'm running & conquering territories on Runivo. Join me 🏃 ${url}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Join me on Runivo', text });
+      } else if (contactPhone) {
+        window.open(`sms:${contactPhone}?body=${encodeURIComponent(text)}`, '_blank');
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setInvited(prev => new Set(prev).add(contactId));
+    } catch (e) {
+      if ((e as Error)?.name !== 'AbortError') setInvited(prev => new Set(prev).add(contactId));
+    }
+  };
+
+  const inviteFriends = async () => {
+    haptic('medium');
+    const url = buildInviteUrl();
+    const text = `Running & conquering territories on Runivo — join me! 🏃⚔️ ${url}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Join me on Runivo', text, url });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+    } catch {/* user cancelled */}
   };
 
   const sharePost = async (post: Post) => {
@@ -837,61 +876,150 @@ export default function Feed() {
           /* ===== FOLLOWING TAB ===== */
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-4">
 
+            {/* Following avatars row — horizontal scroll */}
+            {following.size > 0 && (() => {
+              const followedRunners = runners.filter(r => following.has(r.id));
+              if (followedRunners.length === 0) return null;
+              return (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between px-4 mb-2">
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Following</span>
+                    <span className="text-[11px] text-teal-500 font-semibold">{following.size} runners</span>
+                  </div>
+                  <div className="flex gap-3 px-4 overflow-x-auto scrollbar-none pb-1">
+                    {followedRunners.map(r => (
+                      <button
+                        key={r.id}
+                        onClick={() => setProfileRunner(r)}
+                        className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                      >
+                        <div className="relative">
+                          <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${r.color} flex items-center justify-center text-base font-bold text-white ring-2 ring-teal-400 ring-offset-2`}>
+                            {r.initial}
+                          </div>
+                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-teal-400 border-2 border-white" />
+                        </div>
+                        <span className="text-[10px] text-gray-500 font-medium max-w-[56px] truncate">{r.name}</span>
+                      </button>
+                    ))}
+                    {/* Discover more */}
+                    <button
+                      onClick={() => { /* scroll to discover */ }}
+                      className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
+                        <UserPlus className="w-5 h-5 text-gray-400" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-medium">Find more</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Personalized feed — posts from followed runners */}
             {(() => {
               const followedPosts = posts.filter(p => following.has(p.userId));
+              if (feedLoading) return (
+                <div className="flex justify-center py-10">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-5 h-5 border-2 border-gray-200 border-t-teal-500 rounded-full" />
+                </div>
+              );
               if (following.size === 0) return (
-                <div className="mx-4 mb-5 p-5 rounded-2xl bg-white border border-gray-100 shadow-sm text-center">
-                  <div className="text-3xl mb-2">👋</div>
-                  <p className="text-[14px] font-semibold text-gray-800">Follow runners to see their posts</p>
-                  <p className="text-[12px] text-gray-400 mt-1">Their runs will appear here as a personal feed</p>
+                <div className="mx-4 mb-5 p-6 rounded-2xl bg-white border border-gray-100 shadow-sm text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
+                    <UserPlus className="w-6 h-6 text-teal-500" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-[15px] font-bold text-gray-800 mb-1">Nobody here yet</p>
+                  <p className="text-[12px] text-gray-400 mb-4">Follow runners below to see their runs in your feed</p>
+                  <button
+                    onClick={() => document.getElementById('discover-search')?.focus()}
+                    className="px-5 py-2 rounded-xl bg-teal-500 text-white text-[13px] font-semibold"
+                  >
+                    Find runners
+                  </button>
                 </div>
               );
               if (followedPosts.length === 0) return (
-                <div className="mx-4 mb-5 p-5 rounded-2xl bg-white border border-gray-100 shadow-sm text-center">
-                  <p className="text-[13px] text-gray-500">No recent runs from the {following.size} runner{following.size !== 1 ? 's' : ''} you follow yet</p>
+                <div className="mx-4 mb-5 px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 text-center">
+                  <p className="text-[13px] text-gray-500">
+                    No runs yet from the {following.size} runner{following.size !== 1 ? 's' : ''} you follow
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Check back after their next run</p>
                 </div>
               );
               return (
                 <div className="space-y-3 px-4 mb-6">
-                  <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold px-1">Recent from people you follow</p>
-                  {followedPosts.slice(0, 10).map(post => {
+                  <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold px-1">Recent activity</p>
+                  {followedPosts.slice(0, 15).map(post => {
                     const hasReacted = !!reactions[post.id];
                     const currentReaction = reactions[post.id];
                     const reactionData = currentReaction ? REACTIONS.find(r => r.type === currentReaction) : null;
                     const activityIcon = ACTIVITY_ICONS[post.activity.type];
                     return (
                       <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        {/* Header */}
                         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                           <div className="relative">
-                            <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${post.user.color} flex items-center justify-center text-sm font-bold text-white`}>{post.user.initial}</div>
+                            <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${post.user.color} flex items-center justify-center text-sm font-bold text-white`}>{post.user.initial}</div>
                             <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full ${activityIcon.bg} flex items-center justify-center text-[9px] ring-2 ring-white`}>{activityIcon.icon}</div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[13px] font-bold text-gray-900 truncate">{post.user.name}</span>
-                              <span className="text-[11px] text-gray-400 flex-shrink-0">{post.timestamp}</span>
-                            </div>
+                            <span className="text-[13px] font-bold text-gray-900 truncate block">{post.user.name}</span>
+                            <span className="text-[11px] text-gray-400">{post.timestamp}</span>
                           </div>
+                          <button className="p-1"><MoreHorizontal className="w-4 h-4 text-gray-300" /></button>
                         </div>
-                        <div className="px-4 pb-3">
-                          <div className="flex items-end gap-4">
-                            <div><span className="text-stat text-2xl font-bold text-gray-900">{post.activity.distance}</span><span className="text-xs text-gray-400 ml-0.5">km</span></div>
-                            {post.activity.territoriesClaimed > 0 && (
-                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-teal-50 border border-teal-100">
-                                <Flag className="w-3 h-3 text-teal-500" />
-                                <span className="text-[11px] font-semibold text-teal-600">{post.activity.territoriesClaimed} zones</span>
+
+                        {/* Stats row */}
+                        <div className="px-4 pb-3 flex items-center gap-5">
+                          <div>
+                            <span className="text-stat text-[22px] font-bold text-gray-900">{post.activity.distance}</span>
+                            <span className="text-[11px] text-gray-400 ml-0.5">km</span>
+                          </div>
+                          {post.activity.pace !== '–' && (
+                            <>
+                              <div className="h-5 w-px bg-gray-100" />
+                              <div>
+                                <span className="text-stat text-[13px] font-semibold text-gray-700">{post.activity.pace}</span>
+                                <span className="text-[10px] text-gray-400 block leading-none">pace</span>
                               </div>
-                            )}
-                          </div>
+                            </>
+                          )}
+                          {post.activity.territoriesClaimed > 0 && (
+                            <>
+                              <div className="h-5 w-px bg-gray-100" />
+                              <div className="inline-flex items-center gap-1">
+                                <Flag className="w-3 h-3 text-teal-500" />
+                                <span className="text-[12px] font-semibold text-teal-600">{post.activity.territoriesClaimed} zones</span>
+                              </div>
+                            </>
+                          )}
                         </div>
-                        <div className="flex items-center px-4 py-3 border-t border-gray-100">
-                          <button onClick={() => handleKudosTap(post.id)}
-                            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full transition-colors ${hasReacted ? 'bg-teal-50' : 'active:bg-gray-50'}`}>
-                            {hasReacted ? (
-                              <span className="text-lg">{reactionData?.emoji}</span>
-                            ) : <Heart className="w-[18px] h-[18px] text-gray-400" />}
-                            <span className={`text-xs font-semibold ${hasReacted ? 'text-teal-600' : 'text-gray-500'}`}>{post.kudos + (hasReacted ? 1 : 0)}</span>
+
+                        {/* Kudos bar */}
+                        <div className="flex items-center px-4 py-2.5 border-t border-gray-50 gap-3">
+                          <button
+                            onClick={() => handleKudosTap(post.id)}
+                            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full transition-colors ${hasReacted ? 'bg-teal-50' : 'active:bg-gray-50'}`}
+                          >
+                            {hasReacted
+                              ? <span className="text-base">{reactionData?.emoji ?? '🔥'}</span>
+                              : <Heart className="w-4 h-4 text-gray-300" />}
+                            <span className={`text-[12px] font-semibold ${hasReacted ? 'text-teal-600' : 'text-gray-400'}`}>
+                              {post.kudos + (hasReacted ? 1 : 0)}
+                            </span>
+                          </button>
+                          <button className="flex items-center gap-1.5 py-1.5 px-3 rounded-full active:bg-gray-50">
+                            <MessageCircle className="w-4 h-4 text-gray-300" />
+                            <span className="text-[12px] text-gray-400">{post.comments}</span>
+                          </button>
+                          <button
+                            onClick={() => sharePost(post)}
+                            className="ml-auto p-1.5 rounded-full active:bg-gray-50"
+                          >
+                            <Share2 className="w-4 h-4 text-gray-300" />
                           </button>
                         </div>
                       </div>
@@ -914,7 +1042,7 @@ export default function Feed() {
                 isSearchFocused ? 'border-teal-300 shadow-sm shadow-teal-50' : 'border-gray-200'
               }`}>
                 <Search className="w-4 h-4 text-gray-400 flex-shrink-0" strokeWidth={2} />
-                <input ref={searchInputRef} type="text" value={searchQuery}
+                <input id="discover-search" ref={searchInputRef} type="text" value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => { if (!searchQuery) setIsSearchFocused(false); }}
@@ -1135,15 +1263,18 @@ export default function Feed() {
 
                 {/* Invite Friends */}
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mx-4 mb-4">
-                  <button className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3.5 active:bg-gray-50 transition">
-                    <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-                      <UserPlus className="w-5 h-5 text-teal-500" strokeWidth={1.8} />
+                  <button
+                    onClick={inviteFriends}
+                    className="w-full bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl shadow-[0_4px_16px_rgba(0,180,198,0.25)] p-4 flex items-center gap-3.5 active:opacity-90 transition"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                      <UserPlus className="w-5 h-5 text-white" strokeWidth={1.8} />
                     </div>
                     <div className="flex-1 text-left">
-                      <span className="text-[14px] font-semibold text-gray-900 block">Invite Friends to Runivo</span>
-                      <span className="text-[12px] text-gray-400">Share a link to get them running</span>
+                      <span className="text-[14px] font-semibold text-white block">Invite Friends to Runivo</span>
+                      <span className="text-[12px] text-teal-100">Share your link &amp; run together</span>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" strokeWidth={2} />
+                    <ChevronRight className="w-5 h-5 text-white/60 flex-shrink-0" strokeWidth={2} />
                   </button>
                 </motion.div>
 
@@ -1239,13 +1370,13 @@ export default function Feed() {
                               <span className="text-[14px] font-medium text-gray-700 block truncate">{contact.name}</span>
                               <span className="text-[11px] text-gray-400">{contact.phone}</span>
                             </div>
-                            <button onClick={() => sendInvite(contact.id)}
+                            <button onClick={() => sendInvite(contact.id, contact.name, contact.phone)}
                               className={`px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all flex-shrink-0 ${
                                 invited.has(contact.id)
                                   ? 'bg-gray-100 text-gray-400'
                                   : 'bg-gray-900 text-white active:bg-gray-800'
                               }`}>
-                              {invited.has(contact.id) ? 'Invited' : 'Invite'}
+                              {invited.has(contact.id) ? '✓ Sent' : 'Invite'}
                             </button>
                           </div>
                         ))}
