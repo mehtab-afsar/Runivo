@@ -92,10 +92,10 @@ export default function Subscription() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pb-12">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-12">
       {/* Header */}
       <div
-        className="sticky top-0 z-10 bg-[#FAFAFA]/90 backdrop-blur border-b border-gray-100 px-5 py-4 flex items-center gap-3"
+        className="sticky top-0 z-10 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur border-b border-gray-100 px-5 py-4 flex items-center gap-3"
         style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
       >
         <button

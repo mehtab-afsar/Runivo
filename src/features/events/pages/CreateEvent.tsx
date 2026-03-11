@@ -71,10 +71,10 @@ export default function CreateEvent() {
   const labelClass = 'text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1';
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pb-32">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-32">
       {/* Header */}
       <div
-        className="sticky top-0 z-10 bg-[#FAFAFA]/90 backdrop-blur border-b border-gray-100 px-5 py-4 flex items-center gap-3"
+        className="sticky top-0 z-10 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur border-b border-gray-100 px-5 py-4 flex items-center gap-3"
         style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
       >
         <button
@@ -181,7 +181,7 @@ export default function CreateEvent() {
       <motion.div
         initial={{ y: 80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="fixed bottom-0 left-0 right-0 p-5 bg-[#FAFAFA]/90 backdrop-blur border-t border-gray-100"
+        className="fixed bottom-0 left-0 right-0 p-5 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur border-t border-gray-100"
         style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}
       >
         <button

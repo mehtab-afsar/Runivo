@@ -127,7 +127,7 @@ export default function Events() {
   };
 
   return (
-    <div className="h-full bg-[#FAFAFA] overflow-y-auto pb-24">
+    <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] overflow-y-auto pb-24">
       <div style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
 
         {/* Header */}

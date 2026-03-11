@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '@shared/lib/haptics'
 import { useNavVisibility } from '@shared/hooks/useNavVisibility'
+import { useTheme } from '@shared/hooks/useTheme'
 
 const tabs = [
   { id: 'home', label: 'Home', path: '/home', icon: 'home' },
@@ -10,8 +11,8 @@ const tabs = [
   { id: 'profile', label: 'Profile', path: '/profile', icon: 'profile' },
 ] as const
 
-function TabIcon({ type, active }: { type: string; active: boolean }) {
-  const color = active ? '#00B4C6' : 'rgba(0,0,0,0.3)'
+function TabIcon({ type, active, dark }: { type: string; active: boolean; dark: boolean }) {
+  const color = active ? '#00B4C6' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'
   const sw = 1.8
 
   switch (type) {
@@ -59,6 +60,7 @@ export const BottomNavigation = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { navVisible } = useNavVisibility()
+  const { dark } = useTheme()
   if (!navVisible) return null
 
   const isActive = (path: string) => {
@@ -72,7 +74,7 @@ export const BottomNavigation = () => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-      <div className="bg-white/95 backdrop-blur-xl border-t border-gray-200/60 shadow-[0_-1px_3px_rgba(0,0,0,0.04)]">
+      <div className="bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border-t border-gray-200/60 dark:border-white/[0.08] shadow-[0_-1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_-1px_3px_rgba(0,0,0,0.4)]">
         <div className="flex items-center justify-around px-2 h-16">
           {tabs.map((tab) => {
             const active = isActive(tab.path)
@@ -108,7 +110,7 @@ export const BottomNavigation = () => {
                 onClick={() => { navigate(tab.path); haptic('light'); }}
                 className="flex flex-col items-center gap-1 py-2 px-3 relative"
               >
-                <TabIcon type={tab.icon} active={active} />
+                <TabIcon type={tab.icon} active={active} dark={dark} />
                 <span className={`text-[9px] font-medium tracking-wide transition-colors ${
                   active ? 'text-teal-600' : 'text-gray-400'
                 }`}>

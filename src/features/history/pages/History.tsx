@@ -81,7 +81,7 @@ export default function History() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pb-24">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-24">
       <div className="px-5 pb-5" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-xl font-bold text-gray-900">Run History</h1>

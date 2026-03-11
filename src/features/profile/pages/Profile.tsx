@@ -82,7 +82,7 @@ export default function Profile() {
 
   if (loading || !player) {
     return (
-      <div className="h-full bg-[#FAFAFA] flex items-center justify-center">
+      <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex items-center justify-center">
         <div className="flex gap-1.5">
           {[0, 1, 2].map(i => (
             <motion.div
@@ -126,7 +126,7 @@ export default function Profile() {
   const RING_CIRC = 2 * Math.PI * RING_R;
 
   return (
-    <div className="h-full bg-[#F5F5F7] overflow-y-auto pb-24">
+    <div className="h-full bg-[#F5F5F7] dark:bg-[#141414] overflow-y-auto pb-24">
 
       {/* ── Top bar ── */}
       <div
@@ -730,7 +730,7 @@ export default function Profile() {
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
-              className="absolute bottom-0 left-0 right-0 bg-[#FAFAFA] rounded-t-3xl max-h-[92vh] overflow-y-auto"
+              className="absolute bottom-0 left-0 right-0 bg-[#FAFAFA] dark:bg-[#0A0A0A] rounded-t-3xl max-h-[92vh] overflow-y-auto"
               style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
             >
               {/* Handle */}

@@ -7,6 +7,7 @@ import { PageTransition } from '@shared/layout/PageTransition';
 import { RunivoLogo } from '@shared/ui/RunivoLogo';
 import { NavVisibilityContext } from '@shared/hooks/useNavVisibility';
 import { NotificationToast } from '@features/notifications/components/NotificationToast';
+import { ThemeProvider } from '@shared/hooks/useTheme';
 import './index.css';
 
 const Dashboard     = lazy(() => import('@features/dashboard/pages/Dashboard'));
@@ -51,7 +52,7 @@ function FullscreenWithNav({ children }: { children: React.ReactNode }) {
 /** Minimal inline fallback shown while a lazy chunk is loading. */
 function PageLoader() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-sm z-50">
       <div className="w-7 h-7 rounded-full border-2 border-teal-200 border-t-teal-500 animate-spin" />
     </div>
   );
@@ -215,21 +216,23 @@ export default function App() {
   };
 
   return (
-    <NavVisibilityContext.Provider value={{ navVisible, setNavVisible }}>
-      <AnimatePresence>
-        {showSplash && <SplashScreen key="splash" onDone={hideSplash} />}
-      </AnimatePresence>
+    <ThemeProvider>
+      <NavVisibilityContext.Provider value={{ navVisible, setNavVisible }}>
+        <AnimatePresence>
+          {showSplash && <SplashScreen key="splash" onDone={hideSplash} />}
+        </AnimatePresence>
 
-      {!showSplash && (
-        <BrowserRouter>
-          <OnboardingWrapper>
-            <Suspense fallback={<PageLoader />}>
-              <AnimatedRoutes />
-            </Suspense>
-          </OnboardingWrapper>
-          <NotificationToast />
-        </BrowserRouter>
-      )}
-    </NavVisibilityContext.Provider>
+        {!showSplash && (
+          <BrowserRouter>
+            <OnboardingWrapper>
+              <Suspense fallback={<PageLoader />}>
+                <AnimatedRoutes />
+              </Suspense>
+            </OnboardingWrapper>
+            <NotificationToast />
+          </BrowserRouter>
+        )}
+      </NavVisibilityContext.Provider>
+    </ThemeProvider>
   );
 }

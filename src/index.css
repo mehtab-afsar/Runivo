@@ -143,6 +143,129 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════
+   DARK MODE
+   Applied when <html class="dark"> is set by ThemeProvider
+════════════════════════════════════════════════════════ */
+.dark {
+  color-scheme: dark;
+
+  /* shadcn/ui token overrides */
+  --background: 0 0% 4%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 95%;
+  --popover: 0 0% 11%;
+  --popover-foreground: 0 0% 95%;
+  --primary: 183 100% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 16%;
+  --secondary-foreground: 0 0% 60%;
+  --muted: 0 0% 16%;
+  --muted-foreground: 0 0% 55%;
+  --accent: 183 100% 38%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 17%;
+  --input: 0 0% 17%;
+  --ring: 183 100% 38%;
+}
+
+.dark body {
+  background-color: #0A0A0A;
+  color: #F2F2F7;
+}
+.dark #root {
+  background-color: #0A0A0A;
+}
+@media (min-width: 480px) {
+  .dark body { background-color: #000; }
+  .dark #root { background-color: #0A0A0A; }
+}
+
+/* ── Standard Tailwind utility overrides for dark mode ── */
+.dark .bg-white           { background-color: #1C1C1E; }
+.dark .bg-gray-50         { background-color: #141414; }
+.dark .bg-gray-100        { background-color: #2A2A2A; }
+.dark .bg-gray-200        { background-color: #3A3A3C; }
+
+.dark .text-gray-900      { color: #F2F2F7; }
+.dark .text-gray-800      { color: #E5E5EA; }
+.dark .text-gray-700      { color: #D1D1D6; }
+.dark .text-gray-600      { color: #AEAEB2; }
+.dark .text-gray-500      { color: #8E8E93; }
+.dark .text-gray-400      { color: #636366; }
+.dark .text-gray-300      { color: #48484A; }
+
+.dark .border-gray-100    { border-color: #2A2A2A; }
+.dark .border-gray-200    { border-color: #3A3A3C; }
+.dark .divide-gray-100 > * + * { border-color: #2A2A2A; }
+
+.dark .active\:bg-gray-50:active { background-color: #1F1F1F; }
+.dark .hover\:bg-gray-50:hover   { background-color: #1F1F1F; }
+.dark .active\:bg-gray-100:active { background-color: #2A2A2A; }
+
+/* Amber/income paused banner */
+.dark .bg-amber-50        { background-color: #2A1F00; }
+.dark .border-amber-200   { border-color: #4A3500; }
+.dark .text-amber-700     { color: #FFC107; }
+
+/* Red elements */
+.dark .bg-red-50          { background-color: #2A0A0A; }
+.dark .border-red-100     { border-color: #3A1515; }
+
+/* ── Glass / blur utilities — dark variants ── */
+.dark .glass {
+  background: rgba(28, 28, 30, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dark .glass-light {
+  background: rgba(28, 28, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.dark .liquid-blur-header {
+  background: rgba(10, 10, 10, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.dark .liquid-blur-footer {
+  background: rgba(10, 10, 10, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.dark .liquid-blur-card {
+  background: rgba(28, 28, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.dark .liquid-blur-subtle {
+  background: rgba(28, 28, 30, 0.7);
+}
+.dark .sliding-drawer {
+  background: rgba(20, 20, 20, 0.98);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5);
+}
+.dark .drawer-handle {
+  background: rgba(255, 255, 255, 0.2);
+}
+.dark .card-breathable {
+  background-color: #1C1C1E;
+  border-color: #2A2A2A;
+}
+.dark .gradient-border {
+  background: #1C1C1E;
+}
+.dark .stat-value { color: #F2F2F7; }
+
+/* ── Fallback overrides ── */
+@supports not (backdrop-filter: blur()) {
+  .dark .liquid-blur-header,
+  .dark .liquid-blur-footer,
+  .dark .liquid-blur-card,
+  .dark .liquid-blur-subtle { background: rgba(20, 20, 20, 0.98); }
+}
+
 /* GPS marker pulse animations (used by RunScreen, ActiveRun, TerritoryMap) */
 @keyframes run-pulse {
   0% { transform: scale(0.5); opacity: 1; }

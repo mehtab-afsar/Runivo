@@ -105,7 +105,7 @@ export default function Leaderboard() {
   const playerEntry = entries.find(e => e.isPlayer);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pb-28">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-28">
       <div className="px-5" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
         <h1 className="text-xl font-bold text-gray-900 mb-5">Leaderboard</h1>
 

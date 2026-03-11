@@ -109,7 +109,7 @@ export default function Dashboard() {
 
   if (loading || !player) {
     return (
-      <div className="h-full bg-[#FAFAFA] flex items-center justify-center">
+      <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex items-center justify-center">
         <motion.div
           animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 1.5, repeat: Infinity }}
@@ -123,7 +123,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-full bg-[#FAFAFA] relative overflow-hidden">
+    <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] relative overflow-hidden">
       {/* Passive income collected toast */}
       <AnimatePresence>
         {showIncomeBadge && (
@@ -145,7 +145,7 @@ export default function Dashboard() {
 
       {/* Background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FAFAFA] via-[#F0F7F8] to-[#FAFAFA]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FAFAFA] via-[#F0F7F8] to-[#FAFAFA] dark:from-[#0A0A0A] dark:via-[#0F1517] dark:to-[#0A0A0A]" />
         <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-teal-500/[0.03] blur-3xl" />
         <div className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-pink-500/[0.02] blur-3xl" />
       </div>

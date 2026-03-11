@@ -10,6 +10,7 @@ import { getSettings, saveSettings, StoredSettings, DEFAULT_SETTINGS } from '@sh
 import { soundManager } from '@shared/audio/sounds';
 import { haptic } from '@shared/lib/haptics';
 import { supabase } from '@shared/services/supabase';
+import { useTheme } from '@shared/hooks/useTheme';
 
 // ── Reusable primitives ──────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       onClick={() => { onChange(!value); haptic('light'); }}
       className={`w-11 h-6 rounded-full transition-colors shrink-0 ${value ? 'bg-teal-500' : 'bg-gray-200'}`}
     >
-      <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform mt-0.5 ${value ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
+      <div className={`w-5 h-5 rounded-full !bg-white shadow-sm transform transition-transform mt-0.5 ${value ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
     </button>
   );
 }
@@ -90,6 +91,7 @@ function SegmentedControl<T extends string | number>({
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { setDark } = useTheme();
   const [settings, setSettings] = useState<StoredSettings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
 
@@ -108,23 +110,24 @@ export default function Settings() {
 
       // Side-effects for specific keys
       if (key === 'soundEnabled') soundManager.setEnabled(value as boolean);
+      if (key === 'darkMode') setDark(value as boolean);
     },
-    [settings]
+    [settings, setDark]
   );
 
   if (!loaded) {
     return (
-      <div className="h-full bg-[#FAFAFA] flex items-center justify-center">
+      <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex items-center justify-center">
         <div className="w-6 h-6 rounded-full border-2 border-teal-200 border-t-teal-500 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] pb-12">
+    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-12">
       {/* Header */}
       <div
-        className="sticky top-0 z-10 bg-[#FAFAFA]/90 backdrop-blur border-b border-gray-100 flex items-center gap-3 px-5 py-4"
+        className="sticky top-0 z-10 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur border-b border-gray-100 flex items-center gap-3 px-5 py-4"
         style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
       >
         <button
@@ -178,7 +181,7 @@ export default function Settings() {
               onChange={v => update('distanceUnit', v)}
             />
           </Row>
-          <Row icon={<Moon size={16} strokeWidth={1.8} />} label="Dark Mode" sublabel="Coming soon" border={false}>
+          <Row icon={<Moon size={16} strokeWidth={1.8} />} label="Dark Mode" border={false}>
             <Toggle value={settings.darkMode} onChange={v => update('darkMode', v)} />
           </Row>
         </Section>

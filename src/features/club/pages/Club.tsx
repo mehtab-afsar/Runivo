@@ -748,7 +748,7 @@ export default function Club() {
     });
 
     return (
-      <div className="h-full bg-[#FAFAFA] overflow-y-auto">
+      <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] overflow-y-auto">
         {/* Header */}
         <div className="bg-white border-b border-gray-100 shadow-sm z-10"
              style={{ paddingTop: 'max(8px, env(safe-area-inset-top))' }}>
@@ -938,7 +938,7 @@ export default function Club() {
   // MAIN VIEW (Tabs)
   // =============================================
   return (
-    <div className="h-full bg-[#FAFAFA] overflow-y-auto pb-24">
+    <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] overflow-y-auto pb-24">
       <div className="px-5" style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold text-gray-900">Clubs</h1>
