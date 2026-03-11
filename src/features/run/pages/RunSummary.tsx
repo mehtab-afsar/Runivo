@@ -20,6 +20,7 @@ import { usePlayerStats } from '@features/profile/hooks/usePlayerStats'
 import { ShareCardGenerator } from '@shared/ui/ShareCardGenerator'
 import SplitsTable from '@shared/ui/SplitsTable'
 import type { LiveRunData, Location } from '@shared/types/index'
+import { getProfile } from '@shared/services/profile'
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -36,8 +37,13 @@ export const RunSummary: React.FC = () => {
   const location = useLocation()
   const { player, levelTitle, xpProgress } = usePlayerStats()
   const [showShare, setShowShare] = useState(false)
+  const [weightKg, setWeightKg] = useState(70)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+
+  useEffect(() => {
+    getProfile().then(p => { if (p?.weightKg) setWeightKg(p.weightKg); });
+  }, [])
 
   const runData: LiveRunData & {
     route?: Location[]
@@ -151,10 +157,8 @@ export const RunSummary: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-// MET-based calorie formula: MET(8) × weightKg × durationHours
-// Falls back to 70 kg if no biometric data stored
-const storedWeightKg = parseFloat(localStorage.getItem('runivo-weight-kg') || '0') || 70;
-const calories = Math.round(8 * storedWeightKg * (runData.duration / 3600))
+// MET(8) × weightKg × durationHours — weightKg loaded from profile biometrics
+const calories = Math.round(8 * weightKg * (runData.duration / 3600))
 
   const rewards = {
     xp: runData.xpEarned ?? 0,

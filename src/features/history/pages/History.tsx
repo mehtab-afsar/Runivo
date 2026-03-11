@@ -20,11 +20,11 @@ export default function History() {
     const localRuns = await getRuns();
     setRuns(localRuns);
     setLoading(false);
-    // Then pull from Supabase and refresh if there's new data (cross-device sync)
+    // Then pull from Supabase and refresh (may update GPS traces even if count is same)
     try {
       await pullRuns(100);
       const synced = await getRuns();
-      if (synced.length !== localRuns.length) setRuns(synced);
+      setRuns(synced);
     } catch {
       // Offline — local data is sufficient
     }

@@ -189,5 +189,5 @@ CREATE TRIGGER runs_fill_calories
   EXECUTE FUNCTION public.fill_run_calories();
 
 COMMENT ON TRIGGER runs_fill_calories ON public.runs IS
-  'Auto-calculates calories_burned using the runner's stored biometrics.
+  'Auto-calculates calories_burned using the runner''s stored biometrics.
    Skips calculation if the client already supplied a value.';

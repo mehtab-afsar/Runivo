@@ -209,58 +209,6 @@ export default function Dashboard() {
             ))}
           </motion.div>
 
-          {/* Weekly Goal */}
-          <motion.div variants={item} className="mb-4">
-            <WeeklyGoalRing
-              currentKm={weeklyKm}
-              goalKm={weeklyGoal}
-              onEditGoal={() => {
-                const input = prompt('Set weekly goal (km):', String(weeklyGoal));
-                if (input) {
-                  const val = Math.max(1, Math.min(500, Number(input) || 20));
-                  setWeeklyGoal(val);
-                  localStorage.setItem('runivo-weekly-goal', String(val));
-                }
-              }}
-            />
-          </motion.div>
-
-          {/* Passive income paused banner */}
-          {incomePausedDays !== null && (
-            <motion.div variants={item} className="mb-4">
-              <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200">
-                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={2} />
-                <p className="text-xs text-amber-700 leading-snug flex-1">
-                  No run in <span className="font-semibold">{incomePausedDays} days</span> — passive income is paused. Run today to earn coins.
-                </p>
-                <button
-                  onClick={() => { navigate('/run'); haptic('medium'); }}
-                  className="text-[11px] font-bold text-amber-600 whitespace-nowrap active:opacity-70"
-                >
-                  Run Now
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Start Run CTA */}
-          <motion.div variants={item} className="mb-5">
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={() => { navigate('/run'); haptic('medium'); }}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
-                         flex items-center justify-center gap-3
-                         shadow-[0_4px_20px_rgba(0,180,198,0.15)]
-                         active:shadow-[0_4px_20px_rgba(0,180,198,0.25)] transition-shadow"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="black" stroke="black" strokeWidth="1" />
-              </svg>
-              <span className="text-base font-bold text-white">Start Run</span>
-            </motion.button>
-            <p className="text-center text-[11px] text-gray-400 mt-2">{motivation}</p>
-          </motion.div>
-
           {/* Empire Overview */}
           <motion.div variants={item} className="mb-5">
             <div className="flex items-center justify-between mb-3">
@@ -324,6 +272,58 @@ export default function Dashboard() {
                 <span className="text-[11px] text-teal-600 font-medium">View Map</span>
               </div>
             </div>
+          </motion.div>
+
+          {/* Weekly Goal */}
+          <motion.div variants={item} className="mb-4">
+            <WeeklyGoalRing
+              currentKm={weeklyKm}
+              goalKm={weeklyGoal}
+              onEditGoal={() => {
+                const input = prompt('Set weekly goal (km):', String(weeklyGoal));
+                if (input) {
+                  const val = Math.max(1, Math.min(500, Number(input) || 20));
+                  setWeeklyGoal(val);
+                  localStorage.setItem('runivo-weekly-goal', String(val));
+                }
+              }}
+            />
+          </motion.div>
+
+          {/* Passive income paused banner */}
+          {incomePausedDays !== null && (
+            <motion.div variants={item} className="mb-4">
+              <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={2} />
+                <p className="text-xs text-amber-700 leading-snug flex-1">
+                  No run in <span className="font-semibold">{incomePausedDays} days</span> — passive income is paused. Run today to earn coins.
+                </p>
+                <button
+                  onClick={() => { navigate('/run'); haptic('medium'); }}
+                  className="text-[11px] font-bold text-amber-600 whitespace-nowrap active:opacity-70"
+                >
+                  Run Now
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Start Run CTA */}
+          <motion.div variants={item} className="mb-5">
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => { navigate('/run'); haptic('medium'); }}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
+                         flex items-center justify-center gap-3
+                         shadow-[0_4px_20px_rgba(0,180,198,0.15)]
+                         active:shadow-[0_4px_20px_rgba(0,180,198,0.25)] transition-shadow"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="black" stroke="black" strokeWidth="1" />
+              </svg>
+              <span className="text-base font-bold text-white">Start Run</span>
+            </motion.button>
+            <p className="text-center text-[11px] text-gray-400 mt-2">{motivation}</p>
           </motion.div>
 
           {/* Daily Missions */}

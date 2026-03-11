@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserPlus, Bell, Heart, MessageCircle, Flame } from 'lucide-react'
 import { supabase } from '@shared/services/supabase'
@@ -30,12 +30,12 @@ export function NotificationToast() {
     if (timer) { clearTimeout(timer); timersRef.current.delete(id) }
   }
 
-  const push = (notif: Notification) => {
+  const push = useCallback((notif: Notification) => {
     const id = notif.id
     setToasts(prev => [{ id, notif }, ...prev].slice(0, 3)) // max 3 stacked
     const timer = setTimeout(() => dismiss(id), DISPLAY_MS)
     timersRef.current.set(id, timer)
-  }
+  }, [])
 
   useEffect(() => {
     let userId: string | null = null
@@ -61,7 +61,7 @@ export function NotificationToast() {
       timers.forEach(clearTimeout)
       timers.clear()
     }
-  }, [])
+  }, [push])
 
   return (
     <div className="fixed top-[max(12px,env(safe-area-inset-top))] right-3 z-[9999] flex flex-col gap-2 pointer-events-none">

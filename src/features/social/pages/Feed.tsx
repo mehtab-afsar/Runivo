@@ -234,7 +234,7 @@ export default function Feed() {
 
   useEffect(() => {
     loadFeed(activeTab);
-  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab]); // loadFeed is defined inside the component and intentionally not in deps
 
   const loadFeed = async (tab: FeedTab) => {
     setFeedLoading(true);

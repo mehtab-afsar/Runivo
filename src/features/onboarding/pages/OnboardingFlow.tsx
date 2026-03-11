@@ -266,10 +266,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
         {/* Hero panel — top ~55% with teal gradient */}
         <div
-          className="relative flex flex-col items-center justify-center overflow-hidden"
+          className="relative flex flex-col items-center overflow-hidden"
           style={{
             flex: '0 0 56%',
-            paddingBottom: '28px',
+            paddingTop: '11%',
             background: 'linear-gradient(160deg, #0E7490 0%, #0891B2 45%, #06B6D4 100%)',
           }}
         >
@@ -289,8 +289,8 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', damping: 14, stiffness: 110, delay: 0.1 }}
-            className="relative z-10 mb-5 w-24 h-24 rounded-3xl bg-white flex items-center justify-center"
-            style={{ boxShadow: '0 12px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)' }}
+            className="relative z-10 mb-4 w-24 h-24 rounded-3xl bg-white flex items-center justify-center"
+            style={{ boxShadow: '0 16px 48px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.10)' }}
           >
             <RunivoLogo size={60} />
           </motion.div>
@@ -302,10 +302,10 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             transition={{ delay: 0.32, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="relative z-10"
             style={{
-              fontSize: 40,
+              fontSize: 42,
               fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
               fontWeight: 800,
-              letterSpacing: '0.08em',
+              letterSpacing: '0.09em',
               textTransform: 'uppercase',
               color: '#ffffff',
               lineHeight: 1,
@@ -319,7 +319,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="relative z-10 mt-2 text-[11px] tracking-[0.3em] uppercase text-white/60 font-medium"
+            className="relative z-10 mt-2.5 text-[11px] tracking-[0.3em] uppercase text-white/55 font-medium"
           >
             {'Run \u00B7 Capture \u00B7 Conquer'}
           </motion.p>

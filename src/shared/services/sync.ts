@@ -18,6 +18,7 @@ import {
   savePlayer,
   getRuns,
   saveRun,
+  getRunById,
   type StoredRun,
   type StoredTerritory,
   type StoredPlayer,
@@ -82,6 +83,8 @@ export async function pushProfile(): Promise<void> {
       onboarding_completed_at: new Date(profile.onboardingCompletedAt).toISOString(),
       phone: profile.phone ?? null,
     }),
+    // Achievements (migration 019) — pushed with every profile sync
+    unlocked_achievements: player.unlockedAchievements ?? [],
   }, { onConflict: 'id' });
 }
 
@@ -115,7 +118,11 @@ export async function pullProfile(): Promise<void> {
     streakDays: data.streak_days,
     lastRunDate: data.last_run_date,
     lastIncomeCollection: existing?.lastIncomeCollection ?? Date.now(),
-    unlockedAchievements: existing?.unlockedAchievements ?? [],
+    // Union-merge: achievements from DB + local — never remove earned badges
+    unlockedAchievements: Array.from(new Set([
+      ...(existing?.unlockedAchievements ?? []),
+      ...((data.unlocked_achievements as string[]) ?? []),
+    ])),
     createdAt: new Date(data.created_at).getTime(),
   } satisfies StoredPlayer);
 }
@@ -187,10 +194,15 @@ export async function pushUnsyncedRuns(): Promise<void> {
       territories_fortified: run.territoriesFortified,
       xp_earned: run.xpEarned,
       coins_earned: run.coinsEarned,
+      diamonds_earned: run.diamondsEarned ?? 0,
+      enemy_captured: run.enemyCaptured ?? 0,
+      pre_run_level: run.preRunLevel ?? 1,
     }, { onConflict: 'id' });
 
     if (!error) {
       await saveRun({ ...run, synced: true });
+    } else {
+      console.warn('[sync] Failed to push run', run.id, error.message);
     }
   }
 }
@@ -210,6 +222,14 @@ export async function pullRuns(limit = 50): Promise<void> {
   if (error || !data) return;
 
   for (const row of data) {
+    // Guard: never overwrite a locally-stored GPS trace with empty remote GPS.
+    // This prevents a race condition where the Supabase row exists (default gps_points=[])
+    // but the background push hasn't completed yet, causing the local trace to be lost.
+    const local = await getRunById(row.id);
+    const remoteGps = (row.gps_points as StoredRun['gpsPoints']) ?? [];
+    const localGps = local?.gpsPoints ?? [];
+    const gpsPoints = remoteGps.length >= 2 ? remoteGps : (localGps.length >= 2 ? localGps : remoteGps);
+
     await saveRun({
       id: row.id,
       activityType: row.activity_type,
@@ -218,7 +238,7 @@ export async function pullRuns(limit = 50): Promise<void> {
       distanceMeters: Number(row.distance_m),
       durationSec: row.duration_sec,
       avgPace: row.avg_pace,
-      gpsPoints: row.gps_points as StoredRun['gpsPoints'],
+      gpsPoints,
       territoriesClaimed: row.territories_claimed,
       territoriesFortified: row.territories_fortified,
       xpEarned: row.xp_earned,
