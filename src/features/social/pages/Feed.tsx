@@ -877,42 +877,85 @@ export default function Feed() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-4">
 
             {/* Following avatars row — horizontal scroll */}
-            {following.size > 0 && (() => {
+            {(() => {
               const followedRunners = runners.filter(r => following.has(r.id));
-              if (followedRunners.length === 0) return null;
+              const hasNewRun = (r: SuggestedRunner) => posts.some(p => p.userId === r.id);
               return (
                 <div className="mb-4">
-                  <div className="flex items-center justify-between px-4 mb-2">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Following</span>
-                    <span className="text-[11px] text-teal-500 font-semibold">{following.size} runners</span>
-                  </div>
-                  <div className="flex gap-3 px-4 overflow-x-auto scrollbar-none pb-1">
-                    {followedRunners.map(r => (
-                      <button
-                        key={r.id}
-                        onClick={() => setProfileRunner(r)}
-                        className="flex flex-col items-center gap-1.5 flex-shrink-0"
-                      >
-                        <div className="relative">
-                          <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${r.color} flex items-center justify-center text-base font-bold text-white ring-2 ring-teal-400 ring-offset-2`}>
-                            {r.initial}
-                          </div>
-                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-teal-400 border-2 border-white" />
-                        </div>
-                        <span className="text-[10px] text-gray-500 font-medium max-w-[56px] truncate">{r.name}</span>
-                      </button>
-                    ))}
-                    {/* Discover more */}
+                  <div className="flex items-center justify-between px-4 mb-3">
+                    <div>
+                      <span className="text-[15px] font-bold text-gray-900">Your Crew</span>
+                      {following.size > 0 && (
+                        <span className="ml-2 text-[12px] text-teal-500 font-semibold">{following.size} following</span>
+                      )}
+                    </div>
                     <button
-                      onClick={() => { /* scroll to discover */ }}
-                      className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                      onClick={() => document.getElementById('discover-search')?.focus()}
+                      className="flex items-center gap-1 text-[12px] text-teal-500 font-semibold active:opacity-70"
                     >
-                      <div className="w-14 h-14 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
-                        <UserPlus className="w-5 h-5 text-gray-400" strokeWidth={1.5} />
-                      </div>
-                      <span className="text-[10px] text-gray-400 font-medium">Find more</span>
+                      <UserPlus className="w-3.5 h-3.5" strokeWidth={2.5} />
+                      Find runners
                     </button>
                   </div>
+
+                  {followedRunners.length > 0 ? (
+                    <div className="flex gap-4 px-4 overflow-x-auto scrollbar-none pb-2">
+                      {followedRunners.map(r => {
+                        const BadgeIcon = r.badge ? badgeConfig[r.badge]?.icon : null;
+                        const badgeColor = r.badge ? badgeConfig[r.badge]?.color : '';
+                        const hasNew = hasNewRun(r);
+                        return (
+                          <button
+                            key={r.id}
+                            onClick={() => { setProfileRunner(r); haptic('light'); }}
+                            className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                          >
+                            <div className="relative">
+                              <div className={`w-[54px] h-[54px] rounded-full bg-gradient-to-br ${r.color} flex items-center justify-center text-[17px] font-bold text-white ${hasNew ? 'ring-2 ring-teal-400 ring-offset-2' : 'ring-1 ring-gray-200 ring-offset-1'}`}>
+                                {r.initial}
+                              </div>
+                              {BadgeIcon && (
+                                <div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm`}>
+                                  <BadgeIcon className={`w-3 h-3 ${badgeColor}`} strokeWidth={2.5} />
+                                </div>
+                              )}
+                              {hasNew && !BadgeIcon && (
+                                <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-teal-400 border-2 border-white" />
+                              )}
+                            </div>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <span className="text-[11px] text-gray-700 font-semibold max-w-[60px] truncate">{r.name}</span>
+                              {r.weeklyKm && r.weeklyKm > 0 ? (
+                                <span className="text-[10px] text-teal-500 font-medium">{r.weeklyKm} km/wk</span>
+                              ) : (
+                                <span className="text-[10px] text-gray-400">Lv.{r.level}</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                      {/* Add more button */}
+                      <button
+                        onClick={() => { document.getElementById('discover-search')?.focus(); haptic('light'); }}
+                        className="flex flex-col items-center gap-1.5 flex-shrink-0"
+                      >
+                        <div className="w-[54px] h-[54px] rounded-full bg-gray-50 border-2 border-dashed border-gray-200 flex items-center justify-center">
+                          <UserPlus className="w-5 h-5 text-gray-300" strokeWidth={1.5} />
+                        </div>
+                        <span className="text-[11px] text-gray-400 font-medium">Add more</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mx-4 p-4 rounded-2xl bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-100 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+                        <UserPlus className="w-5 h-5 text-teal-500" strokeWidth={1.5} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold text-teal-800">Find your running crew</p>
+                        <p className="text-[11px] text-teal-600 mt-0.5">Follow runners to see their routes and progress</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -926,32 +969,32 @@ export default function Feed() {
                     className="w-5 h-5 border-2 border-gray-200 border-t-teal-500 rounded-full" />
                 </div>
               );
-              if (following.size === 0) return (
-                <div className="mx-4 mb-5 p-6 rounded-2xl bg-white border border-gray-100 shadow-sm text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
-                    <UserPlus className="w-6 h-6 text-teal-500" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-[15px] font-bold text-gray-800 mb-1">Nobody here yet</p>
-                  <p className="text-[12px] text-gray-400 mb-4">Follow runners below to see their runs in your feed</p>
-                  <button
-                    onClick={() => document.getElementById('discover-search')?.focus()}
-                    className="px-5 py-2 rounded-xl bg-teal-500 text-white text-[13px] font-semibold"
-                  >
-                    Find runners
-                  </button>
-                </div>
-              );
+              if (following.size === 0) return null;
               if (followedPosts.length === 0) return (
-                <div className="mx-4 mb-5 px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 text-center">
-                  <p className="text-[13px] text-gray-500">
-                    No runs yet from the {following.size} runner{following.size !== 1 ? 's' : ''} you follow
+                <div className="mx-4 mb-5 px-5 py-5 rounded-2xl bg-gray-50 border border-gray-100 text-center">
+                  <div className="text-2xl mb-2">🏃</div>
+                  <p className="text-[13px] font-semibold text-gray-600">
+                    No runs yet from your crew
                   </p>
                   <p className="text-[11px] text-gray-400 mt-0.5">Check back after their next run</p>
                 </div>
               );
+
+              // Weekly summary banner
+              const totalCrewKm = followedPosts.reduce((sum, p) => sum + parseFloat(String(p.activity.distance)), 0);
+              const totalCrewZones = followedPosts.reduce((sum, p) => sum + (p.activity.territoriesClaimed ?? 0), 0);
+
               return (
                 <div className="space-y-3 px-4 mb-6">
-                  <p className="text-[11px] uppercase tracking-widest text-gray-400 font-semibold px-1">Recent activity</p>
+                  {/* Crew activity header */}
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[13px] font-bold text-gray-800">Recent Activity</span>
+                    <div className="flex items-center gap-3 text-[11px] text-gray-400">
+                      <span className="font-semibold text-teal-600">{totalCrewKm.toFixed(1)} km</span>
+                      {totalCrewZones > 0 && <span>{totalCrewZones} zones</span>}
+                    </div>
+                  </div>
+
                   {followedPosts.slice(0, 15).map(post => {
                     const hasReacted = !!reactions[post.id];
                     const currentReaction = reactions[post.id];
@@ -960,20 +1003,40 @@ export default function Feed() {
                     return (
                       <div key={post.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         {/* Header */}
-                        <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                        <div className="flex items-center gap-3 px-4 pt-4 pb-2">
                           <div className="relative">
                             <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${post.user.color} flex items-center justify-center text-sm font-bold text-white`}>{post.user.initial}</div>
                             <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full ${activityIcon.bg} flex items-center justify-center text-[9px] ring-2 ring-white`}>{activityIcon.icon}</div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <span className="text-[13px] font-bold text-gray-900 truncate block">{post.user.name}</span>
-                            <span className="text-[11px] text-gray-400">{post.timestamp}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[13px] font-bold text-gray-900 truncate">{post.user.name}</span>
+                              <span className="text-[11px] text-gray-400 flex-shrink-0">{post.timestamp}</span>
+                            </div>
+                            {post.location && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <MapPin className="w-3 h-3 text-gray-300" />
+                                <span className="text-[11px] text-gray-400 truncate">{post.location}</span>
+                              </div>
+                            )}
                           </div>
                           <button className="p-1"><MoreHorizontal className="w-4 h-4 text-gray-300" /></button>
                         </div>
 
+                        {/* Title */}
+                        {post.activity.title && (
+                          <div className="px-4 pb-2">
+                            <h3 className="text-[14px] font-bold text-gray-900">{post.activity.title}</h3>
+                          </div>
+                        )}
+
+                        {/* Route preview */}
+                        {post.activity.route && post.activity.route.length > 1 && (
+                          <RoutePreview route={post.activity.route} className="h-36 mx-4 rounded-xl mb-2" />
+                        )}
+
                         {/* Stats row */}
-                        <div className="px-4 pb-3 flex items-center gap-5">
+                        <div className="px-4 pb-3 flex items-center gap-4">
                           <div>
                             <span className="text-stat text-[22px] font-bold text-gray-900">{post.activity.distance}</span>
                             <span className="text-[11px] text-gray-400 ml-0.5">km</span>
@@ -987,12 +1050,17 @@ export default function Feed() {
                               </div>
                             </>
                           )}
+                          <div className="h-5 w-px bg-gray-100" />
+                          <div>
+                            <span className="text-stat text-[13px] font-semibold text-gray-700">{formatDuration(post.activity.duration)}</span>
+                            <span className="text-[10px] text-gray-400 block leading-none">time</span>
+                          </div>
                           {post.activity.territoriesClaimed > 0 && (
                             <>
                               <div className="h-5 w-px bg-gray-100" />
                               <div className="inline-flex items-center gap-1">
                                 <Flag className="w-3 h-3 text-teal-500" />
-                                <span className="text-[12px] font-semibold text-teal-600">{post.activity.territoriesClaimed} zones</span>
+                                <span className="text-[12px] font-semibold text-teal-600">{post.activity.territoriesClaimed}</span>
                               </div>
                             </>
                           )}

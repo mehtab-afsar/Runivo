@@ -202,6 +202,27 @@ export default function ActiveRun() {
     const routeCoords = gpsPoints.map(p => [p.lng, p.lat]);
 
     if (!routeSourceAdded.current) {
+      // Start-point marker (teal circle with white ring)
+      map.addSource('start-point', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: { type: 'Point', coordinates: [gpsPoints[0].lng, gpsPoints[0].lat] },
+        },
+      });
+      map.addLayer({
+        id: 'start-dot',
+        type: 'circle',
+        source: 'start-point',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#00B4C6',
+          'circle-stroke-width': 2.5,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+
       map.addSource('route', {
         type: 'geojson',
         data: {
@@ -215,14 +236,15 @@ export default function ActiveRun() {
         id: 'route-glow',
         type: 'line',
         source: 'route',
-        paint: { 'line-color': 'rgba(0, 180, 198, 0.15)', 'line-width': 12, 'line-blur': 8 },
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': 'rgba(0, 180, 198, 0.25)', 'line-width': 14, 'line-blur': 6 },
       });
 
       map.addLayer({
         id: 'route-line',
         type: 'line',
         source: 'route',
-        paint: { 'line-color': '#00B4C6', 'line-width': 4, 'line-opacity': 0.9 },
+        paint: { 'line-color': '#00B4C6', 'line-width': 5, 'line-opacity': 0.95 },
         layout: { 'line-cap': 'round', 'line-join': 'round' },
       });
 

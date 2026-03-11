@@ -174,15 +174,16 @@ export function useActiveRun() {
             latitude,
             longitude
           );
-          if (d >= 1 && d < 100) {
-            deltaKm = d / 1000;
-            pendingDistanceRef.current += deltaKm;
-          } else if (d < 1) {
-            // Sub-metre jitter — update claim but skip adding a GPS point
+          if (d >= 100) {
+            // GPS teleport / bad initial lock — skip this point entirely
             lastPositionRef.current = { lat: latitude, lng: longitude };
-            gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy, 0);
             return;
           }
+          if (d >= 1) {
+            deltaKm = d / 1000;
+            pendingDistanceRef.current += deltaKm;
+          }
+          // d < 1: sub-metre — still add the point for trail density, just don't count distance
         }
         lastPositionRef.current = { lat: latitude, lng: longitude };
         // Pass distanceDelta so energy regenerates in real-time
