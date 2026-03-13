@@ -362,45 +362,6 @@ export default function Profile() {
               />
             </div>
 
-            {/* Recent Activity */}
-            <h3 className="text-[11px] uppercase tracking-[0.2em] text-gray-500 font-medium mb-3">
-              Recent Activity
-            </h3>
-            {recentRuns.length === 0 ? (
-              <div className="bg-white rounded-2xl p-6 text-center border border-gray-100 shadow-sm">
-                <p className="text-sm text-gray-500">No runs yet. Let's go!</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {recentRuns.slice(0, 5).map(run => (
-                  <motion.div
-                    key={run.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    onClick={() => navigate(`/run-summary/${run.id}`, { state: run })}
-                    className="bg-white rounded-xl p-3 flex items-center gap-3
-                               border border-gray-100 shadow-sm active:scale-[0.98] transition cursor-pointer"
-                  >
-                    <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <Activity className="w-4 h-4 text-teal-600" strokeWidth={2} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium text-gray-900 block truncate">
-                        {(run.distanceMeters / 1000).toFixed(2)} km run
-                      </span>
-                      <span className="text-[11px] text-gray-400">
-                        {new Date(run.startTime).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {run.territoriesClaimed.length > 0 && (
-                      <span className="text-stat text-xs font-bold text-teal-600">
-                        +{run.territoriesClaimed.length}
-                      </span>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 

@@ -42,12 +42,15 @@ function arrowMarkerHTML(bearing: number) {
 export default function ActiveRun() {
   const navigate = useNavigate();
   const routerLocation = useLocation();
-  const startLocation = (routerLocation.state as { startLocation?: { lat: number; lng: number } } | null)?.startLocation;
+  const routeState = routerLocation.state as { startLocation?: { lat: number; lng: number }; ghostRoute?: { lat: number; lng: number }[] } | null;
+  const startLocation = routeState?.startLocation;
+  const ghostRoute = routeState?.ghostRoute;
 
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
   const routeSourceAdded = useRef(false);
+  const startDotAdded = useRef(false);
   const userLngLatRef = useRef<[number, number] | null>(
     startLocation ? [startLocation.lng, startLocation.lat] : null
   );
@@ -93,6 +96,35 @@ export default function ActiveRun() {
           playerId: player.id,
           showLabels: true,
         });
+      }
+
+      // Ghost route overlay (dashed gray line from a saved/nearby route)
+      if (ghostRoute && ghostRoute.length >= 2) {
+        const ghostCoords = ghostRoute.map(p => [p.lng, p.lat]);
+        try {
+          map.addSource('ghost-route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'LineString', coordinates: ghostCoords },
+            },
+          });
+          map.addLayer({
+            id: 'ghost-route-line',
+            type: 'line',
+            source: 'ghost-route',
+            paint: {
+              'line-color': '#9CA3AF',
+              'line-width': 3,
+              'line-opacity': 0.5,
+              'line-dasharray': [4, 3],
+            },
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+          });
+        } catch (e) {
+          console.warn('Ghost route layer error:', e);
+        }
       }
 
       // Create marker element — always an arrow on this page
@@ -201,54 +233,68 @@ export default function ActiveRun() {
 
     const routeCoords = gpsPoints.map(p => [p.lng, p.lat]);
 
+    // Add start-point marker as soon as we have the first GPS point
+    if (!startDotAdded.current) {
+      try {
+        map.addSource('start-point', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'Point', coordinates: [gpsPoints[0].lng, gpsPoints[0].lat] },
+          },
+        });
+        map.addLayer({
+          id: 'start-dot',
+          type: 'circle',
+          source: 'start-point',
+          paint: {
+            'circle-radius': 8,
+            'circle-color': '#00B4C6',
+            'circle-stroke-width': 2.5,
+            'circle-stroke-color': '#ffffff',
+          },
+        });
+        startDotAdded.current = true;
+      } catch (e) {
+        console.warn('start-dot layer error:', e);
+      }
+    }
+
+    // Only create the route LineString once we have >= 2 points (valid GeoJSON)
+    if (routeCoords.length < 2) return;
+
     if (!routeSourceAdded.current) {
-      // Start-point marker (teal circle with white ring)
-      map.addSource('start-point', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: { type: 'Point', coordinates: [gpsPoints[0].lng, gpsPoints[0].lat] },
-        },
-      });
-      map.addLayer({
-        id: 'start-dot',
-        type: 'circle',
-        source: 'start-point',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#00B4C6',
-          'circle-stroke-width': 2.5,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
+      try {
+        map.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: routeCoords },
+          },
+        });
 
-      map.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: { type: 'LineString', coordinates: routeCoords },
-        },
-      });
+        map.addLayer({
+          id: 'route-glow',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': 'rgba(0, 180, 198, 0.25)', 'line-width': 14, 'line-blur': 6 },
+        });
 
-      map.addLayer({
-        id: 'route-glow',
-        type: 'line',
-        source: 'route',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': 'rgba(0, 180, 198, 0.25)', 'line-width': 14, 'line-blur': 6 },
-      });
+        map.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          paint: { 'line-color': '#00B4C6', 'line-width': 5, 'line-opacity': 0.95 },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        });
 
-      map.addLayer({
-        id: 'route-line',
-        type: 'line',
-        source: 'route',
-        paint: { 'line-color': '#00B4C6', 'line-width': 5, 'line-opacity': 0.95 },
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-      });
-
-      routeSourceAdded.current = true;
+        routeSourceAdded.current = true;
+      } catch (e) {
+        console.error('Route source/layer error:', e);
+      }
     } else {
       const source = map.getSource('route') as maplibregl.GeoJSONSource;
       if (source) {

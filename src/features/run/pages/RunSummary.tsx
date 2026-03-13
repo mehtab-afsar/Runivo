@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Flag, Swords, Flame, Gem, Activity, X } from 'lucide-react'
+import { Flag, Swords, Flame, Gem, Activity, X, Bookmark } from 'lucide-react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { StatCard } from '@shared/ui/StatCard'
+import { SaveRouteModal } from '@features/run/components/SaveRouteModal'
 
 const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -37,6 +38,7 @@ export const RunSummary: React.FC = () => {
   const location = useLocation()
   const { player, levelTitle, xpProgress } = usePlayerStats()
   const [showShare, setShowShare] = useState(false)
+  const [showSaveRoute, setShowSaveRoute] = useState(false)
   const [weightKg, setWeightKg] = useState(70)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
@@ -329,11 +331,22 @@ const calories = Math.round(8 * weightKg * (runData.duration / 3600))
         <motion.div variants={item} className="flex gap-3">
           <button
             onClick={() => navigate('/home')}
-            className="flex-1 py-4 rounded-2xl bg-gray-50 border border-gray-200
-                       text-sm font-medium text-gray-600 active:scale-[0.98] transition-transform"
+            className="flex-1 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                       text-sm font-medium text-gray-600 dark:text-gray-300 active:scale-[0.98] transition-transform"
           >
-            Save Run
+            Done
           </button>
+          {routeCoords.length >= 2 && (
+            <button
+              onClick={() => setShowSaveRoute(true)}
+              className="flex items-center justify-center gap-2 flex-1 py-4 rounded-2xl
+                         bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
+                         text-sm font-medium text-gray-600 dark:text-gray-300 active:scale-[0.98] transition-transform"
+            >
+              <Bookmark className="w-4 h-4" />
+              Save Route
+            </button>
+          )}
           <button
             onClick={() => setShowShare(true)}
             className="flex-1 py-4 rounded-2xl
@@ -342,10 +355,19 @@ const calories = Math.round(8 * weightKg * (runData.duration / 3600))
                        active:scale-[0.98] transition-transform
                        shadow-[0_4px_16px_rgba(0,180,198,0.25)]"
           >
-            Share Conquest
+            Share
           </button>
         </motion.div>
       </motion.div>
+
+      <SaveRouteModal
+        isOpen={showSaveRoute}
+        onClose={() => setShowSaveRoute(false)}
+        gpsPoints={(runData.route ?? []).map((p: Location) => ({ lat: p.lat, lng: p.lng }))}
+        distanceM={runData.distance * 1000}
+        durationSec={runData.duration}
+        sourceRunId={location.state?.runId ?? null}
+      />
 
       <ShareCardGenerator
         isOpen={showShare}

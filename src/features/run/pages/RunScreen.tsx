@@ -1,20 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate, PanInfo } from 'framer-motion';
 import {
   Activity, Footprints, Bike, Mountain, Gauge, TreePine, Zap, Accessibility,
-  Route, X, Crosshair, Layers, ChevronDown, BookmarkPlus, Search,
+  Route, X, Crosshair, Layers, ChevronDown,
+  Dumbbell, Waves, Snowflake, Flame, Timer, TrendingUp, Shuffle,
 } from 'lucide-react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { getAllTerritories, getPlayer, StoredTerritory } from '@shared/services/store';
+import { getAllTerritories, getPlayer, StoredTerritory, getSavedRoutes, StoredSavedRoute } from '@shared/services/store';
 import { addTerritoryOverlay } from '@features/territory/services/territoryLayer';
 import { getTodaysMissions } from '@features/missions/services/missionStore';
+import { findRoutesNearby } from '@shared/services/sync';
 import { haptic } from '@shared/lib/haptics';
 import type { Mission } from '@features/missions/services/missions';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-type ActivityType = 'run' | 'walk' | 'jog' | 'cycle' | 'hike' | 'trail_run' | 'sprint' | 'wheelchair';
+type ActivityType = 'run' | 'walk' | 'jog' | 'cycle' | 'hike' | 'trail_run' | 'sprint' | 'wheelchair'
+  | 'interval' | 'tempo' | 'fartlek' | 'cross_country' | 'swim' | 'strength' | 'hiit' | 'ski'
+  | 'stair_climb' | 'race';
 type MapStyleId   = 'standard' | 'dark' | 'light' | 'terrain' | 'satellite';
 type GpsState     = 'searching' | 'ready' | 'error';
 type SignalStrength = 'strong' | 'moderate' | 'weak' | 'searching';
@@ -37,15 +41,36 @@ function buildRasterStyle(tiles: string[], sourceMaxZoom = 19): maplibregl.Style
 }
 
 // ── Activities ─────────────────────────────────────────────────────────────
-const ACTIVITIES: { id: ActivityType; label: string; iconEl: typeof Activity }[] = [
-  { id: 'run',         label: 'Run',         iconEl: Activity      },
-  { id: 'walk',        label: 'Walk',        iconEl: Footprints    },
-  { id: 'jog',         label: 'Jog',         iconEl: Gauge         },
-  { id: 'cycle',       label: 'Cycle',       iconEl: Bike          },
-  { id: 'hike',        label: 'Hike',        iconEl: Mountain      },
-  { id: 'trail_run',   label: 'Trail Run',   iconEl: TreePine      },
-  { id: 'sprint',      label: 'Sprint',      iconEl: Zap           },
-  { id: 'wheelchair',  label: 'Wheelchair',  iconEl: Accessibility },
+interface ActivityDef { id: ActivityType; label: string; iconEl: typeof Activity; color: string; bg: string; category: 'running' | 'outdoor' | 'training' | 'other' }
+const ACTIVITIES: ActivityDef[] = [
+  // Running
+  { id: 'run',           label: 'Run',           iconEl: Activity,      color: '#0D9488', bg: '#CCFBF1', category: 'running' },
+  { id: 'jog',           label: 'Jog',           iconEl: Gauge,         color: '#0891B2', bg: '#CFFAFE', category: 'running' },
+  { id: 'sprint',        label: 'Sprint',        iconEl: Zap,           color: '#DC2626', bg: '#FEE2E2', category: 'running' },
+  { id: 'interval',      label: 'Intervals',     iconEl: Timer,         color: '#7C3AED', bg: '#EDE9FE', category: 'running' },
+  { id: 'tempo',         label: 'Tempo',         iconEl: TrendingUp,    color: '#EA580C', bg: '#FFEDD5', category: 'running' },
+  { id: 'fartlek',       label: 'Fartlek',       iconEl: Shuffle,       color: '#2563EB', bg: '#DBEAFE', category: 'running' },
+  { id: 'race',          label: 'Race',          iconEl: Flame,         color: '#E11D48', bg: '#FFE4E6', category: 'running' },
+  // Outdoor
+  { id: 'walk',          label: 'Walk',          iconEl: Footprints,    color: '#059669', bg: '#D1FAE5', category: 'outdoor' },
+  { id: 'hike',          label: 'Hike',          iconEl: Mountain,      color: '#B45309', bg: '#FEF3C7', category: 'outdoor' },
+  { id: 'trail_run',     label: 'Trail Run',     iconEl: TreePine,      color: '#15803D', bg: '#DCFCE7', category: 'outdoor' },
+  { id: 'cross_country', label: 'Cross Country', iconEl: Route,         color: '#4338CA', bg: '#E0E7FF', category: 'outdoor' },
+  { id: 'cycle',         label: 'Cycle',         iconEl: Bike,          color: '#0284C7', bg: '#E0F2FE', category: 'outdoor' },
+  { id: 'stair_climb',   label: 'Stairs',        iconEl: TrendingUp,    color: '#9333EA', bg: '#F3E8FF', category: 'outdoor' },
+  // Training
+  { id: 'hiit',          label: 'HIIT',          iconEl: Flame,         color: '#DC2626', bg: '#FEE2E2', category: 'training' },
+  { id: 'strength',      label: 'Strength',      iconEl: Dumbbell,      color: '#4B5563', bg: '#F3F4F6', category: 'training' },
+  { id: 'swim',          label: 'Swim',          iconEl: Waves,         color: '#0369A1', bg: '#E0F2FE', category: 'training' },
+  // Other
+  { id: 'wheelchair',    label: 'Wheelchair',    iconEl: Accessibility, color: '#6D28D9', bg: '#EDE9FE', category: 'other' },
+  { id: 'ski',           label: 'Ski / Snow',    iconEl: Snowflake,     color: '#0EA5E9', bg: '#E0F2FE', category: 'other' },
+];
+const CATEGORIES: { key: ActivityDef['category']; label: string }[] = [
+  { key: 'running', label: 'Running' },
+  { key: 'outdoor', label: 'Outdoor' },
+  { key: 'training', label: 'Training' },
+  { key: 'other', label: 'Other' },
 ];
 
 // ── GPS signal bars ────────────────────────────────────────────────────────
@@ -68,77 +93,80 @@ function getSignalStrength(acc: number | null, state: GpsState): SignalStrength 
   return 'weak';
 }
 
-// ── Activity Dial (drum scroll picker) ────────────────────────────────────
-const ITEM_H = 60;
-function ActivityDial({ value, onChange, onClose }: { value: ActivityType; onChange: (v: ActivityType) => void; onClose: () => void }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scrollIdx, setScrollIdx] = useState(() => ACTIVITIES.findIndex(a => a.id === value));
-
-  useEffect(() => {
-    const idx = ACTIVITIES.findIndex(a => a.id === value);
-    if (containerRef.current) containerRef.current.scrollTop = idx * ITEM_H;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleScroll = () => {
-    if (!containerRef.current) return;
-    const idx = Math.max(0, Math.min(ACTIVITIES.length - 1, Math.round(containerRef.current.scrollTop / ITEM_H)));
-    setScrollIdx(idx);
-    if (ACTIVITIES[idx].id !== value) {
-      onChange(ACTIVITIES[idx].id);
-      haptic('light');
-    }
-  };
+// ── Activity Picker (categorised grid) ───────────────────────────────────
+function ActivityPicker({ value, onChange, onClose }: { value: ActivityType; onChange: (v: ActivityType) => void; onClose: () => void }) {
+  const selected = ACTIVITIES.find(a => a.id === value)!;
 
   return (
-    <div className="bg-white rounded-t-3xl px-6 pt-4 pb-8">
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-base font-bold text-gray-900">Activity</h3>
+    <div className="bg-white rounded-t-3xl px-5 pt-4 pb-8 max-h-[70vh] overflow-y-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Choose Activity</h3>
+          <p className="text-[11px] text-gray-400 mt-0.5">Select your workout type</p>
+        </div>
         <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
           <X className="w-4 h-4 text-gray-500" strokeWidth={2} />
         </button>
       </div>
-      <p className="text-[11px] text-gray-400 mb-4">Scroll to choose your activity</p>
 
-      <div style={{ position: 'relative', height: ITEM_H * 5, overflow: 'hidden' }}>
-        {/* Center highlight band */}
-        <div style={{ position: 'absolute', top: ITEM_H * 2, height: ITEM_H, left: 0, right: 0, background: 'rgba(0,180,198,0.07)', borderTop: '1.5px solid rgba(0,180,198,0.2)', borderBottom: '1.5px solid rgba(0,180,198,0.2)', zIndex: 1, pointerEvents: 'none', borderRadius: 12 }} />
-
-        {/* Scroll container */}
-        <div
-          ref={containerRef}
-          onScroll={handleScroll}
-          style={{ height: '100%', overflowY: 'scroll', scrollSnapType: 'y mandatory', paddingTop: ITEM_H * 2, paddingBottom: ITEM_H * 2 }}
-          className="no-scrollbar"
-        >
-          {ACTIVITIES.map((a, i) => {
-            const Icon = a.iconEl;
-            const dist = Math.abs(i - scrollIdx);
-            const scale = dist === 0 ? 1.12 : dist === 1 ? 0.86 : 0.70;
-            const opacity = dist === 0 ? 1 : dist === 1 ? 0.45 : 0.18;
-            return (
-              <div
-                key={a.id}
-                onClick={() => {
-                  const container = containerRef.current;
-                  if (container) container.scrollTo({ top: i * ITEM_H, behavior: 'smooth' });
-                  onChange(a.id);
-                  setScrollIdx(i);
-                  haptic('light');
-                }}
-                style={{ scrollSnapAlign: 'center', height: ITEM_H, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, transform: `scale(${scale})`, opacity, transition: 'transform 0.18s ease, opacity 0.18s ease', cursor: 'pointer' }}
-              >
-                <Icon style={{ width: dist === 0 ? 28 : 22, height: dist === 0 ? 28 : 22, color: dist === 0 ? '#0D9488' : '#9CA3AF', strokeWidth: dist === 0 ? 2.2 : 1.5 }} />
-                <span style={{ fontSize: dist === 0 ? 18 : 14, fontWeight: dist === 0 ? 700 : 500, color: dist === 0 ? '#111827' : '#9CA3AF' }}>{a.label}</span>
-              </div>
-            );
-          })}
+      {/* Current selection chip */}
+      <div className="flex items-center gap-3 rounded-2xl p-3 mb-5 border-2 border-teal-200 bg-teal-50/50">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: selected.bg }}>
+          <selected.iconEl className="w-5 h-5" style={{ color: selected.color }} strokeWidth={2.2} />
         </div>
-
-        {/* Fade gradients */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: ITEM_H * 2, background: 'linear-gradient(to bottom, white 50%, transparent)', pointerEvents: 'none', zIndex: 2 }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: ITEM_H * 2, background: 'linear-gradient(to top, white 50%, transparent)', pointerEvents: 'none', zIndex: 2 }} />
+        <div className="flex-1">
+          <span className="text-sm font-bold text-gray-900">{selected.label}</span>
+          <span className="text-[10px] text-gray-400 block capitalize">{selected.category}</span>
+        </div>
+        <div className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center">
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
       </div>
+
+      {/* Categorised grid */}
+      {CATEGORIES.map(cat => {
+        const items = ACTIVITIES.filter(a => a.category === cat.key);
+        if (items.length === 0) return null;
+        return (
+          <div key={cat.key} className="mb-4">
+            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-2 px-0.5">{cat.label}</h4>
+            <div className="grid grid-cols-4 gap-2">
+              {items.map(a => {
+                const Icon = a.iconEl;
+                const isActive = a.id === value;
+                return (
+                  <motion.button
+                    key={a.id}
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => { onChange(a.id); haptic('light'); }}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-1 rounded-2xl border-2 transition-all ${
+                      isActive
+                        ? 'border-teal-400 shadow-sm'
+                        : 'border-transparent hover:bg-gray-50'
+                    }`}
+                    style={isActive ? { backgroundColor: a.bg + '80' } : {}}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: isActive ? a.bg : '#F3F4F6' }}
+                    >
+                      <Icon
+                        className="w-5 h-5"
+                        style={{ color: isActive ? a.color : '#9CA3AF' }}
+                        strokeWidth={isActive ? 2.2 : 1.8}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-semibold leading-tight text-center ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {a.label}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -161,6 +189,12 @@ export default function RunScreen() {
   // Territory intel
   const [intelStats, setIntelStats] = useState({ enemy: 0, neutral: 0, weak: 0 });
   const [missions, setMissions]     = useState<Mission[]>([]);
+
+  // Saved routes
+  const [savedRoutes, setSavedRoutes] = useState<StoredSavedRoute[]>([]);
+  const [nearbyRoutes, setNearbyRoutes] = useState<{ id: string; name: string; emoji: string; distanceM: number; durationSec: number | null; gpsPoints: { lat: number; lng: number }[]; username: string; distM: number }[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<{ name: string; gpsPoints: { lat: number; lng: number }[] } | null>(null);
 
   const mapContainer    = useRef<HTMLDivElement>(null);
   const mapRef          = useRef<maplibregl.Map | null>(null);
@@ -302,12 +336,82 @@ export default function RunScreen() {
     });
   };
 
+  // Load saved routes when picker opens
+  const openRoutePicker = async () => {
+    setShowRoutePicker(true);
+    haptic('light');
+    const routes = await getSavedRoutes();
+    setSavedRoutes(routes);
+  };
+
+  const handleFindNearby = async () => {
+    if (!gps.location) return;
+    setNearbyLoading(true);
+    try {
+      const results = await findRoutesNearby(gps.location.lng, gps.location.lat, 5000);
+      setNearbyRoutes(results);
+    } catch (e) {
+      console.warn('findRoutesNearby error:', e);
+    } finally {
+      setNearbyLoading(false);
+    }
+  };
+
+  const selectRoute = (route: { name: string; gpsPoints: { lat: number; lng: number }[] }) => {
+    setSelectedRoute(route);
+    setShowRoutePicker(false);
+    haptic('medium');
+  };
+
   const handleStart = () => {
     if (gps.status === 'ready' && gps.location) {
-      navigate('/active-run', { state: { activityType, startLocation: gps.location } });
+      navigate('/active-run', {
+        state: {
+          activityType,
+          startLocation: gps.location,
+          ghostRoute: selectedRoute ? selectedRoute.gpsPoints : undefined,
+        },
+      });
       haptic('medium');
     }
   };
+
+  // ── Bottom sheet snap logic ──────────────────────────────────
+  const COLLAPSED_H = 240;   // px – buttons + stats visible
+  const EXPANDED_H_RATIO = 0.6; // 60% of screen when expanded
+  const [windowH, setWindowH] = useState(() => window.innerHeight);
+  useEffect(() => {
+    const onResize = () => setWindowH(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const expandedH = Math.round(windowH * EXPANDED_H_RATIO);
+
+  const sheetH = useMotionValue(COLLAPSED_H);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const mapHeight = useTransform(sheetH, (h: number) => windowH - h);
+
+  // Snap to nearest stop after drag
+  const handleDragEnd = useCallback((_: unknown, info: PanInfo) => {
+    const cur = sheetH.get();
+    const vel = info.velocity.y;
+    // Flick up → expand, flick down → collapse
+    let target: number;
+    if (vel < -300) target = expandedH;
+    else if (vel > 300) target = COLLAPSED_H;
+    else target = cur > (COLLAPSED_H + expandedH) / 2 ? expandedH : COLLAPSED_H;
+
+    animate(sheetH, target, { type: 'spring', damping: 30, stiffness: 300 });
+    setIsExpanded(target === expandedH);
+  }, [sheetH, expandedH]);
+
+  // Resize map when sheet height changes
+  useEffect(() => {
+    const unsub = sheetH.on('change', () => {
+      if (mapRef.current) mapRef.current.resize();
+    });
+    return unsub;
+  }, [sheetH]);
 
   const signalStrength = getSignalStrength(gps.accuracy, gps.status);
   const currentActivity = ACTIVITIES.find(a => a.id === activityType)!;
@@ -316,8 +420,8 @@ export default function RunScreen() {
   return (
     <div className="fixed inset-0 flex flex-col bg-gray-100" style={{ height: '100dvh' }}>
 
-      {/* ── MAP SECTION (75%) ──────────────────────────────────────── */}
-      <div className="relative" style={{ height: '75%', flexShrink: 0 }}>
+      {/* ── MAP SECTION (responsive) ──────────────────────────────── */}
+      <motion.div className="relative flex-shrink-0" style={{ height: mapHeight }}>
         <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
         {/* Back / home button — top left */}
@@ -396,39 +500,55 @@ export default function RunScreen() {
             </motion.div>
           )}
         </AnimatePresence>
+      </motion.div>
 
-        {/* Distance card floating near bottom of map (leaves ~14px map strip below) */}
-        <div className="absolute left-4 right-4 z-10" style={{ bottom: 14 }}>
-          <div className="bg-white/92 backdrop-blur-xl rounded-2xl shadow-lg border border-white/70 px-5 py-3">
-            <div className="text-center mb-1.5">
-              <span className="text-3xl font-bold text-gray-900 tracking-tight font-mono">0.00</span>
-              <span className="text-xs text-gray-400 font-medium ml-1">km</span>
+      {/* ── DRAGGABLE BOTTOM SHEET ─────────────────────────────────── */}
+      <motion.div
+        className="bg-white rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-gray-200 flex flex-col overflow-hidden z-20"
+        style={{ height: sheetH, touchAction: 'none' }}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.1}
+        onDrag={(_: unknown, info: PanInfo) => {
+          const newH = Math.max(COLLAPSED_H, Math.min(expandedH, sheetH.get() - info.delta.y));
+          sheetH.set(newH);
+        }}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Drag handle */}
+        <div
+          className="flex justify-center pt-2.5 pb-1 cursor-grab active:cursor-grabbing"
+          onDoubleClick={() => {
+            const target = isExpanded ? COLLAPSED_H : expandedH;
+            animate(sheetH, target, { type: 'spring', damping: 30, stiffness: 300 });
+            setIsExpanded(!isExpanded);
+          }}
+        >
+          <div className="w-9 h-1 rounded-full bg-gray-300" />
+        </div>
+
+        {/* Stats strip */}
+        <div className="px-5 pt-1 pb-2">
+          <div className="text-center mb-1.5">
+            <span className="text-3xl font-bold text-gray-900 tracking-tight font-mono">0.00</span>
+            <span className="text-xs text-gray-400 font-medium ml-1">km</span>
+          </div>
+          <div className="flex items-center justify-center gap-5">
+            <div className="text-center">
+              <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Time</div>
+              <div className="text-base font-bold text-gray-800 font-mono">0:00</div>
             </div>
-            <div className="flex items-center justify-center gap-5">
-              <div className="text-center">
-                <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Time</div>
-                <div className="text-base font-bold text-gray-800 font-mono">0:00</div>
-              </div>
-              <div className="w-px h-6 bg-gray-200" />
-              <div className="text-center">
-                <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Pace</div>
-                <div className="text-base font-bold text-gray-800 font-mono">0:00<span className="text-[10px] text-gray-400 font-normal">/km</span></div>
-              </div>
-              <div className="w-px h-6 bg-gray-200" />
-              <div className="text-center">
-                <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Zones</div>
-                <div className="text-base font-bold text-gray-800 font-mono">0</div>
-              </div>
+            <div className="w-px h-6 bg-gray-200" />
+            <div className="text-center">
+              <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Pace</div>
+              <div className="text-base font-bold text-gray-800 font-mono">0:00<span className="text-[10px] text-gray-400 font-normal">/km</span></div>
+            </div>
+            <div className="w-px h-6 bg-gray-200" />
+            <div className="text-center">
+              <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider">Calories</div>
+              <div className="text-base font-bold text-gray-800 font-mono">0<span className="text-[10px] text-gray-400 font-normal">kcal</span></div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* ── BOTTOM SCROLLABLE CARD (25%) ───────────────────────────── */}
-      <div className="flex-1 bg-white overflow-y-auto" style={{ minHeight: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-        {/* Drag handle */}
-        <div className="flex justify-center pt-2 pb-1">
-          <div className="w-9 h-1 rounded-full bg-gray-200" />
         </div>
 
         {/* 3 buttons */}
@@ -465,16 +585,22 @@ export default function RunScreen() {
           {/* Route */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => { setShowRoutePicker(true); haptic('light'); }}
-            className="w-14 h-14 rounded-full bg-gray-50 border border-gray-200 flex flex-col items-center justify-center shadow-sm"
+            onClick={openRoutePicker}
+            className={`w-14 h-14 rounded-full flex flex-col items-center justify-center shadow-sm ${
+              selectedRoute
+                ? 'bg-teal-50 border-2 border-teal-300'
+                : 'bg-gray-50 border border-gray-200'
+            }`}
           >
-            <Route className="w-5 h-5 text-gray-500" strokeWidth={2} />
-            <span className="text-[8px] font-bold text-gray-500 mt-0.5">Route</span>
+            <Route className={`w-5 h-5 ${selectedRoute ? 'text-teal-600' : 'text-gray-500'}`} strokeWidth={2} />
+            <span className={`text-[8px] font-bold mt-0.5 ${selectedRoute ? 'text-teal-600' : 'text-gray-500'}`}>
+              {selectedRoute ? 'Route ✓' : 'Route'}
+            </span>
           </motion.button>
         </div>
 
-        {/* Territory Intel — visible on scroll */}
-        <div className="px-4 pb-8 space-y-3">
+        {/* Expanded content — Territory Intel + Missions (scrollable) */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-8 space-y-3">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-1">Territory Intel</h3>
 
           <div className="grid grid-cols-3 gap-2">
@@ -515,7 +641,7 @@ export default function RunScreen() {
             </>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* ── ACTIVITY DIAL MODAL ────────────────────────────────────── */}
       <AnimatePresence>
@@ -528,7 +654,7 @@ export default function RunScreen() {
               className="absolute bottom-0 left-0 right-0 z-50"
               style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
             >
-              <ActivityDial
+              <ActivityPicker
                 value={activityType}
                 onChange={v => setActivityType(v)}
                 onClose={() => setShowActivityDial(false)}
@@ -549,38 +675,98 @@ export default function RunScreen() {
               className="absolute bottom-0 left-0 right-0 z-50"
               style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
             >
-              <div className="bg-white rounded-t-3xl px-6 pt-4 pb-8">
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-base font-bold text-gray-900">Routes</h3>
+              <div className="bg-white rounded-t-3xl px-5 pt-4 pb-8 max-h-[75vh] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-gray-900">Routes</h3>
                   <button onClick={() => setShowRoutePicker(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                     <X className="w-4 h-4 text-gray-500" strokeWidth={2} />
                   </button>
                 </div>
-                <div className="space-y-3">
+
+                {/* Clear selection */}
+                {selectedRoute && (
                   <button
-                    onClick={() => { setShowRoutePicker(false); haptic('light'); }}
-                    className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-98 transition"
+                    onClick={() => { setSelectedRoute(null); haptic('light'); }}
+                    className="w-full mb-3 flex items-center gap-3 p-3 bg-teal-50 rounded-2xl border border-teal-200 active:scale-[0.98] transition"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
-                      <BookmarkPlus className="w-5 h-5 text-teal-600" strokeWidth={2} />
+                    <div className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center">
+                      <X className="w-4 h-4 text-teal-600" strokeWidth={2} />
                     </div>
-                    <div className="text-left">
-                      <div className="text-sm font-bold text-gray-800">Save Route</div>
-                      <div className="text-[11px] text-gray-400">Save your current path</div>
+                    <div className="text-left flex-1">
+                      <div className="text-sm font-semibold text-teal-700">Following: {selectedRoute.name}</div>
+                      <div className="text-[10px] text-teal-500">Tap to clear route</div>
                     </div>
                   </button>
-                  <button
-                    onClick={() => { setShowRoutePicker(false); haptic('light'); }}
-                    className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-98 transition"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                      <Search className="w-5 h-5 text-blue-600" strokeWidth={2} />
+                )}
+
+                {/* My Routes */}
+                <div className="mb-4">
+                  <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-2 px-0.5">My Routes</h4>
+                  {savedRoutes.length === 0 ? (
+                    <p className="text-xs text-gray-400 px-1 py-3">No saved routes yet. Finish a run and save the route!</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {savedRoutes.map(r => (
+                        <button
+                          key={r.id}
+                          onClick={() => selectRoute({ name: `${r.emoji} ${r.name}`, gpsPoints: r.gpsPoints })}
+                          className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-lg">
+                            {r.emoji}
+                          </div>
+                          <div className="text-left flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-gray-800 truncate">{r.name}</div>
+                            <div className="text-[11px] text-gray-400">
+                              {(r.distanceM / 1000).toFixed(2)} km
+                              {r.durationSec ? ` · ${Math.floor(r.durationSec / 60)}min` : ''}
+                            </div>
+                          </div>
+                          <Route className="w-4 h-4 text-gray-300" strokeWidth={2} />
+                        </button>
+                      ))}
                     </div>
-                    <div className="text-left">
-                      <div className="text-sm font-bold text-gray-800">Find Routes Near Me</div>
-                      <div className="text-[11px] text-gray-400">Discover popular routes nearby</div>
+                  )}
+                </div>
+
+                {/* Find Nearby */}
+                <div>
+                  <div className="flex items-center justify-between mb-2 px-0.5">
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em]">Nearby Routes</h4>
+                    <button
+                      onClick={handleFindNearby}
+                      disabled={nearbyLoading || gps.status !== 'ready'}
+                      className="text-[11px] font-semibold text-blue-500 active:text-blue-700 disabled:text-gray-300"
+                    >
+                      {nearbyLoading ? 'Searching...' : 'Find Routes'}
+                    </button>
+                  </div>
+                  {nearbyRoutes.length === 0 ? (
+                    <p className="text-xs text-gray-400 px-1 py-3">
+                      {nearbyLoading ? 'Looking for routes nearby...' : 'Tap "Find Routes" to discover routes near you'}
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {nearbyRoutes.map(r => (
+                        <button
+                          key={r.id}
+                          onClick={() => selectRoute({ name: `${r.emoji} ${r.name}`, gpsPoints: r.gpsPoints })}
+                          className="w-full flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg">
+                            {r.emoji}
+                          </div>
+                          <div className="text-left flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-gray-800 truncate">{r.name}</div>
+                            <div className="text-[11px] text-gray-400">
+                              {(r.distanceM / 1000).toFixed(2)} km · by {r.username} · {(r.distM / 1000).toFixed(1)}km away
+                            </div>
+                          </div>
+                          <Route className="w-4 h-4 text-gray-300" strokeWidth={2} />
+                        </button>
+                      ))}
                     </div>
-                  </button>
+                  )}
                 </div>
               </div>
             </motion.div>

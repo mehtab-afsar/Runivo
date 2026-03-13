@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DB_NAME = 'runivo';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 // ── Settings ────────────────────────────────────────────────────────────────
 
@@ -107,6 +107,19 @@ export interface StoredPlayer {
   createdAt: number;
 }
 
+export interface StoredSavedRoute {
+  id: string;
+  name: string;
+  emoji: string;
+  distanceM: number;
+  durationSec: number | null;
+  gpsPoints: { lat: number; lng: number }[];
+  isPublic: boolean;
+  sourceRunId: string | null;
+  synced: boolean;
+  createdAt: number;
+}
+
 let dbInstance: IDBPDatabase | null = null;
 
 export async function getDB(): Promise<IDBPDatabase> {
@@ -156,6 +169,9 @@ export async function getDB(): Promise<IDBPDatabase> {
       if (oldVersion < 6) {
         // Persist app settings to IDB
         db.createObjectStore('settings', { keyPath: 'id' });
+      }
+      if (oldVersion < 7) {
+        db.createObjectStore('savedRoutes', { keyPath: 'id' });
       }
     },
   });
@@ -277,4 +293,22 @@ export async function getSettings(): Promise<StoredSettings> {
 export async function saveSettings(settings: StoredSettings): Promise<void> {
   const db = await getDB();
   await db.put('settings', settings);
+}
+
+// ── Saved Routes ──────────────────────────────────────────────────────────────
+
+export async function getSavedRoutes(): Promise<StoredSavedRoute[]> {
+  const db = await getDB();
+  const all = await db.getAll('savedRoutes');
+  return (all as StoredSavedRoute[]).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function saveSavedRoute(route: StoredSavedRoute): Promise<void> {
+  const db = await getDB();
+  await db.put('savedRoutes', route);
+}
+
+export async function deleteSavedRoute(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('savedRoutes', id);
 }
