@@ -13,22 +13,43 @@ const tabs = [
 
 function TabIcon({ type, active, dark }: { type: string; active: boolean; dark: boolean }) {
   const color = active ? '#00B4C6' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'
-  const sw = 1.8
+  const fill  = active ? '#00B4C6' : 'none'
+  const sw = 1.7
 
   switch (type) {
     case 'home':
       return (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
+          {/* Clean house with chimney detail */}
+          <path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V10.5z" fill={active ? 'rgba(0,180,198,0.1)' : 'none'} />
+          <polyline points="9 22 9 13 15 13 15 22" />
         </svg>
       )
     case 'map':
+      // 3 flat-top hexagons in triangular cluster — territory map
       return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-          <line x1="8" y1="2" x2="8" y2="18" />
-          <line x1="16" y1="6" x2="16" y2="22" />
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          {/* Top center hex */}
+          <polygon
+            points="16,7 14,3.54 10,3.54 8,7 10,10.46 14,10.46"
+            stroke={color}
+            strokeWidth={sw}
+            fill={active ? 'rgba(0,180,198,0.18)' : 'none'}
+          />
+          {/* Bottom-left hex */}
+          <polygon
+            points="11.5,15.5 9.5,12.04 5.5,12.04 3.5,15.5 5.5,18.96 9.5,18.96"
+            stroke={color}
+            strokeWidth={sw}
+            fill="none"
+          />
+          {/* Bottom-right hex */}
+          <polygon
+            points="20.5,15.5 18.5,12.04 14.5,12.04 12.5,15.5 14.5,18.96 18.5,18.96"
+            stroke={color}
+            strokeWidth={sw}
+            fill="none"
+          />
         </svg>
       )
     case 'run':
@@ -36,19 +57,24 @@ function TabIcon({ type, active, dark }: { type: string; active: boolean; dark: 
     case 'feed':
       return (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 3h16a1 1 0 0 1 1 1v14a2 2 0 0 1-2 2H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-          <line x1="7" y1="8" x2="17" y2="8" />
-          <rect x="7" y="11" width="5" height="5" rx="0.5" />
-          <line x1="14" y1="11" x2="17" y2="11" />
-          <line x1="14" y1="14" x2="17" y2="14" />
-          <line x1="7" y1="19" x2="17" y2="19" />
+          {/* Activity card layout */}
+          <rect x="3" y="3" width="18" height="18" rx="3" fill={active ? 'rgba(0,180,198,0.08)' : 'none'} />
+          {/* Top line (title) */}
+          <line x1="7" y1="8.5" x2="17" y2="8.5" />
+          {/* Small thumbnail box */}
+          <rect x="7" y="11.5" width="4.5" height="4.5" rx="1" fill={active ? 'rgba(0,180,198,0.25)' : 'none'} />
+          {/* Text lines next to thumbnail */}
+          <line x1="13.5" y1="12.5" x2="17" y2="12.5" />
+          <line x1="13.5" y1="14.5" x2="16" y2="14.5" />
+          {/* Bottom divider */}
+          <line x1="7" y1="18.5" x2="17" y2="18.5" strokeOpacity={0.5} />
         </svg>
       )
     case 'profile':
       return (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
+          <circle cx="12" cy="7.5" r="3.5" fill={active ? 'rgba(0,180,198,0.15)' : 'none'} />
+          <path d="M4.5 21c0-4.142 3.358-7 7.5-7s7.5 2.858 7.5 7" />
         </svg>
       )
     default:
@@ -88,11 +114,23 @@ export const BottomNavigation = () => {
                 >
                   <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
                     active
-                      ? 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_4px_20px_rgba(0,180,198,0.35)]'
-                      : 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_2px_12px_rgba(0,180,198,0.2)]'
+                      ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-[0_4px_24px_rgba(0,180,198,0.45)]'
+                      : 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_2px_14px_rgba(0,180,198,0.25)]'
                   }`}>
-                    <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
-                      <path d="M2 0L20 11L2 22V0Z" fill="white" />
+                    {/* Running figure */}
+                    <svg width="22" height="24" viewBox="0 0 22 24" fill="none">
+                      {/* Head */}
+                      <circle cx="12.5" cy="4" r="2.8" fill="white" />
+                      {/* Body — slight forward lean */}
+                      <path d="M12 6.8 L11 14.5" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
+                      {/* Right arm forward */}
+                      <path d="M11.5 9.5 L16.5 7.2" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                      {/* Left arm back */}
+                      <path d="M11.5 9.5 L7 11.8" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                      {/* Left leg forward */}
+                      <path d="M11 14.5 L15 22" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
+                      {/* Right leg back */}
+                      <path d="M11 14.5 L6.5 21.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
                     </svg>
                   </div>
                   <span className={`text-[9px] mt-1 font-medium tracking-wide ${
@@ -117,7 +155,7 @@ export const BottomNavigation = () => {
                   {tab.label}
                 </span>
                 {active && (
-                  <div className="absolute -bottom-0 w-1 h-1 rounded-full bg-teal-500" />
+                  <div className="absolute -bottom-0 w-5 h-0.5 rounded-full bg-teal-500 opacity-80" />
                 )}
               </button>
             )

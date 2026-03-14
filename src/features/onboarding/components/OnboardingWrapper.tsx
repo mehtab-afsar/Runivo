@@ -3,6 +3,7 @@ import { OnboardingFlow } from '../pages/OnboardingFlow';
 import { LoadingScreen } from '@shared/ui/LoadingScreen';
 import { supabase } from '@shared/services/supabase';
 import { initialSync } from '@shared/services/sync';
+import { getSettings } from '@shared/services/store';
 
 interface OnboardingWrapperProps {
   children: ReactNode;
@@ -65,6 +66,23 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
       data.subscription.unsubscribe();
     };
   }, []);
+
+  // Force light mode on all onboarding/auth screens.
+  // Restore the user's dark mode preference once they're inside the app.
+  useEffect(() => {
+    if (!ready) return;
+    if (!complete) {
+      document.documentElement.classList.remove('dark');
+    } else {
+      getSettings().then(s => {
+        if (s.darkMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      });
+    }
+  }, [ready, complete]);
 
   if (!ready) return <LoadingScreen />;
   if (!complete) return <OnboardingFlow onComplete={() => setComplete(true)} />;

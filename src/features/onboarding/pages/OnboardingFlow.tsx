@@ -449,6 +449,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Email</label>
               <input
                 type="email"
+                size={50}
                 value={loginEmail}
                 onChange={e => setLoginEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -579,6 +580,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       </div>
                       <input
                         type="text"
+                        size={50}
                         value={data.username}
                         onChange={(e) => update('username', e.target.value.slice(0, 20))}
                         placeholder="Your runner name"
@@ -597,6 +599,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1">Email</label>
                     <input
                       type="email"
+                      size={50}
                       value={data.email}
                       onChange={(e) => update('email', e.target.value)}
                       placeholder="you@example.com"
@@ -612,6 +615,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <div className="mt-1 relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
+                        size={50}
                         value={data.password}
                         onChange={(e) => update('password', e.target.value)}
                         placeholder="Min 8 characters"

@@ -3,7 +3,7 @@ import { RunivoLogo } from './RunivoLogo';
 
 export function LoadingScreen() {
   return (
-    <div className="fixed inset-0 bg-[#FEFEFE] flex flex-col items-center justify-center z-50">
+    <div className="fixed inset-0 flex flex-col items-center justify-center z-50" style={{ background: '#FEFEFE' }}>
       <motion.div
         animate={{ scale: [0.95, 1.05, 0.95] }}
         transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
