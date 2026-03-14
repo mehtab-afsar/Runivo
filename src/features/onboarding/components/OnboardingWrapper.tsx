@@ -31,6 +31,8 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
   const [complete, setComplete] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     // E2E test bypass — skip real auth when running under Playwright
     if (import.meta.env.VITE_E2E_TEST_MODE === 'true') {
       setComplete(true);
@@ -39,6 +41,7 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
       const onboarded = localStorage.getItem('runivo-onboarding-complete') === 'true';
       const isComplete = !!session && onboarded;
       setComplete(isComplete);
@@ -48,6 +51,7 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
     });
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
       if (!session) {
         setComplete(false);
       } else if (event === 'SIGNED_IN') {
@@ -56,7 +60,10 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
       }
     });
 
-    return () => data.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   if (!ready) return <LoadingScreen />;

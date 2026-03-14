@@ -9,6 +9,7 @@ import {
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getAllTerritories, getPlayer, StoredTerritory, getSavedRoutes, StoredSavedRoute } from '@shared/services/store';
+import { useTheme } from '@shared/hooks/useTheme';
 import { addTerritoryOverlay } from '@features/territory/services/territoryLayer';
 import { getTodaysMissions } from '@features/missions/services/missionStore';
 import { findRoutesNearby } from '@shared/services/sync';
@@ -174,6 +175,7 @@ function ActivityPicker({ value, onChange, onClose }: { value: ActivityType; onC
 // ── Main component ─────────────────────────────────────────────────────────
 export default function RunScreen() {
   const navigate = useNavigate();
+  const { dark } = useTheme();
 
   const [activityType, setActivityType]     = useState<ActivityType>('run');
   const [gps, setGps] = useState<{ status: GpsState; accuracy: number | null; location: { lat: number; lng: number } | null }>({
@@ -182,7 +184,7 @@ export default function RunScreen() {
   const [showGpsLoader, setShowGpsLoader]   = useState(true);
   const [showActivityDial, setShowActivityDial] = useState(false);
   const [showRoutePicker, setShowRoutePicker]   = useState(false);
-  const [mapStyle, setMapStyle]             = useState<MapStyleId>('standard');
+  const [mapStyle, setMapStyle]             = useState<MapStyleId>(() => dark ? 'dark' : 'standard');
   const [showStylePicker, setShowStylePicker]   = useState(false);
   const [isLocating, setIsLocating]         = useState(false);
 
@@ -231,9 +233,10 @@ export default function RunScreen() {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
 
+    const initialStyle = MAP_STYLES.find(s => s.id === (dark ? 'dark' : 'standard'))!;
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      style: initialStyle.styleUrl!,
       center: [77.2090, 28.6139],
       zoom: 15,
       attributionControl: false,
@@ -335,6 +338,12 @@ export default function RunScreen() {
       }
     });
   };
+
+  // Sync map style when dark mode toggles
+  useEffect(() => {
+    changeMapStyle(dark ? 'dark' : 'standard');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dark]);
 
   // Load saved routes when picker opens
   const openRoutePicker = async () => {

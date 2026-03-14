@@ -223,7 +223,7 @@ export default function App() {
         </AnimatePresence>
 
         {!showSplash && (
-          <BrowserRouter>
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <OnboardingWrapper>
               <Suspense fallback={<PageLoader />}>
                 <AnimatedRoutes />

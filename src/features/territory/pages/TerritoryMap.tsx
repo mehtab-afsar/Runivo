@@ -5,6 +5,7 @@ import { Layers, Crosshair } from 'lucide-react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { getAllTerritories, StoredTerritory, getPlayer } from '@shared/services/store';
+import { useTheme } from '@shared/hooks/useTheme';
 import { addTerritoryOverlay } from '@features/territory/services/territoryLayer';
 import { haptic } from '@shared/lib/haptics';
 
@@ -55,6 +56,7 @@ function buildRasterStyle(tiles: string[], sourceMaxZoom = 19): maplibregl.Style
 
 export default function TerritoryMap() {
   const navigate = useNavigate();
+  const { dark } = useTheme();
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
 
@@ -62,7 +64,7 @@ export default function TerritoryMap() {
   const [selectedTerritory, setSelectedTerritory] = useState<TerritoryDetail | null>(null);
   const [stats, setStats] = useState({ owned: 0, enemy: 0, neutral: 0, totalDefense: 0 });
   const [activeFilter, setActiveFilter] = useState<MapFilter>('all');
-  const [mapStyle, setMapStyle] = useState<MapStyle>('standard');
+  const [mapStyle, setMapStyle] = useState<MapStyle>(() => dark ? 'dark' : 'standard');
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
@@ -94,9 +96,10 @@ export default function TerritoryMap() {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
 
+    const initialStyle = MAP_STYLES.find(s => s.id === (dark ? 'dark' : 'standard'))!;
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      style: initialStyle.styleUrl!,
       center: [77.2090, 28.6139],
       zoom: 14,
       attributionControl: false,
@@ -237,6 +240,12 @@ export default function TerritoryMap() {
     });
   };
 
+  // Sync map style when dark mode toggles
+  useEffect(() => {
+    changeMapStyle(dark ? 'dark' : 'standard');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dark]);
+
   const filters: { id: MapFilter; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'mine', label: 'Mine' },
@@ -253,44 +262,73 @@ export default function TerritoryMap() {
     legendary: 'text-amber-500',
   };
 
-  return (
-    <div className="fixed inset-0 bg-[#FAFAFA]" style={{ width: '100vw', height: '100dvh', minHeight: '100vh' }}>
-      <div ref={mapContainer} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} />
+  const card  = dark ? 'bg-black/60 border-white/10' : 'bg-white/90 border-black/[0.06]';
+  const text  = dark ? 'text-white'   : 'text-gray-900';
+  const muted = dark ? 'text-white/40' : 'text-gray-400';
+  const div   = dark ? 'bg-white/10'  : 'bg-gray-200';
+  const pill  = dark
+    ? 'bg-white/10 border-white/10 text-white/60'
+    : 'bg-white/80 border-gray-200 text-gray-500';
+  const pillActive = dark
+    ? 'bg-teal-500/20 border-teal-400/40 text-teal-300'
+    : 'bg-teal-50 border-teal-200 text-teal-600';
+  const btn   = dark
+    ? 'bg-black/50 border-white/10 text-white/70'
+    : 'bg-white border-gray-100 text-gray-600';
+  const sheet = dark ? 'bg-[#111] border-white/10' : 'bg-white border-gray-200';
 
-      {/* Top Stats Bar */}
-      <div className="absolute left-4 right-4 z-20" style={{ top: 'max(12px, env(safe-area-inset-top))' }}>
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-3 flex items-center justify-around shadow-md border border-gray-100">
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
-            <span className="text-stat text-sm font-bold text-gray-900">{stats.owned}</span>
-            <span className="text-[10px] text-gray-400">owned</span>
-          </div>
-          <div className="w-px h-5 bg-gray-200" />
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-pink-500" />
-            <span className="text-stat text-sm font-bold text-gray-900">{stats.enemy}</span>
-            <span className="text-[10px] text-gray-400">enemy</span>
-          </div>
-          <div className="w-px h-5 bg-gray-200" />
-          <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
-            <span className="text-stat text-sm font-bold text-gray-900">{stats.neutral}</span>
-            <span className="text-[10px] text-gray-400">free</span>
+  return (
+    <div className="fixed inset-0" style={{ width: '100vw', height: '100dvh', minHeight: '100vh' }}>
+      <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+
+      {/* ── Header: stats + back ─────────────────────────────────── */}
+      <div className="absolute left-3 right-3 z-20" style={{ top: 'max(10px, env(safe-area-inset-top))' }}>
+        <div className={`backdrop-blur-2xl rounded-2xl border px-4 py-2.5 flex items-center gap-3 shadow-lg ${card}`}>
+          {/* Back */}
+          <button
+            onClick={() => navigate(-1)}
+            className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${dark ? 'bg-white/10 text-white/60' : 'bg-gray-100 text-gray-500'}`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+
+          {/* Title */}
+          <span className={`text-[13px] font-bold tracking-tight flex-1 ${text}`}>Territory Map</span>
+
+          {/* Stats */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-teal-400" />
+              <span className={`text-[11px] font-semibold ${text}`}>{stats.owned}</span>
+              <span className={`text-[10px] ${muted}`}>owned</span>
+            </div>
+            <div className={`w-px h-3.5 ${div}`} />
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full bg-pink-400" />
+              <span className={`text-[11px] font-semibold ${text}`}>{stats.enemy}</span>
+              <span className={`text-[10px] ${muted}`}>enemy</span>
+            </div>
+            <div className={`w-px h-3.5 ${div}`} />
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${dark ? 'bg-white/25' : 'bg-gray-300'}`} />
+              <span className={`text-[11px] font-semibold ${text}`}>{stats.neutral}</span>
+              <span className={`text-[10px] ${muted}`}>free</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Filter Pills */}
-      <div className="absolute left-4 right-4 z-20" style={{ top: 'max(68px, calc(env(safe-area-inset-top) + 56px))' }}>
+      {/* ── Filter pills ─────────────────────────────────────────── */}
+      <div className="absolute left-3 right-3 z-20" style={{ top: 'max(66px, calc(env(safe-area-inset-top) + 56px))' }}>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {filters.map(f => (
             <button
               key={f.id}
               onClick={() => { setActiveFilter(f.id); haptic('light'); }}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all ${
-                activeFilter === f.id
-                  ? 'bg-teal-50 text-teal-600 border border-teal-200'
-                  : 'bg-white/90 backdrop-blur text-gray-500 border border-gray-200'
+              className={`px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap border backdrop-blur-xl transition-all ${
+                activeFilter === f.id ? pillActive : pill
               }`}
             >
               {f.label}
@@ -299,68 +337,47 @@ export default function TerritoryMap() {
         </div>
       </div>
 
-      {/* Right Side Controls */}
-      <div className="absolute right-4 z-20 flex flex-col gap-2" style={{ top: 'max(120px, calc(env(safe-area-inset-top) + 108px))' }}>
-        {/* My Location */}
+      {/* ── Right controls ───────────────────────────────────────── */}
+      <div className="absolute right-3 z-20 flex flex-col gap-2" style={{ top: 'max(118px, calc(env(safe-area-inset-top) + 108px))' }}>
         <button
           onClick={recenterMap}
-          className={`w-10 h-10 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center active:scale-90 transition ${
-            isLocating ? 'animate-pulse' : ''
-          }`}
+          className={`w-10 h-10 rounded-full border backdrop-blur-xl flex items-center justify-center shadow-md active:scale-90 transition ${btn} ${isLocating ? 'animate-pulse' : ''}`}
         >
-          <Crosshair className={`w-[18px] h-[18px] ${isLocating ? 'text-teal-500' : 'text-gray-500'}`} strokeWidth={2} />
+          <Crosshair className={`w-[17px] h-[17px] ${isLocating ? 'text-teal-400' : ''}`} strokeWidth={2} />
         </button>
-
-        {/* Map Style Toggle */}
         <button
           onClick={() => { setShowStylePicker(!showStylePicker); haptic('light'); }}
-          className={`w-10 h-10 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center active:scale-90 transition ${
-            showStylePicker ? 'ring-2 ring-teal-400' : ''
-          }`}
+          className={`w-10 h-10 rounded-full border backdrop-blur-xl flex items-center justify-center shadow-md active:scale-90 transition ${btn} ${showStylePicker ? 'ring-2 ring-teal-400' : ''}`}
         >
-          <Layers className="w-[18px] h-[18px] text-gray-500" strokeWidth={2} />
+          <Layers className="w-[17px] h-[17px]" strokeWidth={2} />
         </button>
       </div>
 
-      {/* Map Style Picker */}
+      {/* ── Map style picker ─────────────────────────────────────── */}
       <AnimatePresence>
         {showStylePicker && (
           <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 z-25" onClick={() => setShowStylePicker(false)} />
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-25"
-              onClick={() => setShowStylePicker(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: -8 }}
+              initial={{ opacity: 0, scale: 0.92, y: -6 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -8 }}
+              exit={{ opacity: 0, scale: 0.92, y: -6 }}
               transition={{ type: 'spring', damping: 22, stiffness: 300 }}
-              className="absolute right-4 z-30 bg-white rounded-2xl shadow-xl border border-gray-100 p-3 w-[200px]"
-              style={{ top: 'max(176px, calc(env(safe-area-inset-top) + 164px))' }}
+              className={`absolute right-3 z-30 rounded-2xl shadow-2xl border backdrop-blur-2xl p-3 w-[196px] ${dark ? 'bg-[#1a1a1a]/90 border-white/10' : 'bg-white/95 border-gray-100'}`}
+              style={{ top: 'max(174px, calc(env(safe-area-inset-top) + 164px))' }}
             >
-              <span className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold block mb-2 px-1">
-                Map Type
+              <span className={`text-[10px] uppercase tracking-widest font-semibold block mb-2.5 px-0.5 ${muted}`}>
+                Map Style
               </span>
               <div className="grid grid-cols-3 gap-2">
-                {MAP_STYLES.map(style => (
-                  <button
-                    key={style.id}
-                    onClick={() => changeMapStyle(style.id)}
-                    className="flex flex-col items-center gap-1"
-                  >
-                    <div className={`w-14 h-14 rounded-xl border-2 transition-all ${
-                      mapStyle === style.id
-                        ? 'border-teal-500 shadow-sm'
-                        : 'border-gray-200'
-                    }`} style={{ backgroundColor: style.preview }} />
-                    <span className={`text-[10px] font-medium ${
-                      mapStyle === style.id ? 'text-teal-600' : 'text-gray-500'
-                    }`}>
-                      {style.label}
-                    </span>
+                {MAP_STYLES.map(s => (
+                  <button key={s.id} onClick={() => changeMapStyle(s.id)} className="flex flex-col items-center gap-1.5">
+                    <div
+                      className={`w-14 h-10 rounded-xl border-2 transition-all ${mapStyle === s.id ? 'border-teal-400 shadow-sm shadow-teal-400/20' : dark ? 'border-white/10' : 'border-gray-200'}`}
+                      style={{ backgroundColor: s.preview }}
+                    />
+                    <span className={`text-[10px] font-medium ${mapStyle === s.id ? 'text-teal-400' : muted}`}>{s.label}</span>
                   </button>
                 ))}
               </div>
@@ -369,41 +386,35 @@ export default function TerritoryMap() {
         )}
       </AnimatePresence>
 
-      {/* Territory Detail Bottom Sheet */}
+      {/* ── Territory detail sheet ───────────────────────────────── */}
       <AnimatePresence>
         {selectedTerritory && (
           <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} exit={{ opacity: 0 }}
+              className={`absolute inset-0 z-30 ${dark ? 'bg-black' : 'bg-black'}`}
+              onClick={() => setSelectedTerritory(null)} />
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-30"
-              onClick={() => setSelectedTerritory(null)}
-            />
-            <motion.div
-              initial={{ y: 300, opacity: 0 }}
+              initial={{ y: 280, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 300, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="absolute bottom-16 left-0 right-0 z-40"
+              exit={{ y: 280, opacity: 0 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="absolute bottom-0 left-0 right-0 z-40"
             >
-              <div className="bg-white rounded-t-3xl border-t border-gray-200 shadow-xl p-6">
-                <div className="flex justify-center mb-4 -mt-2">
-                  <div className="w-8 h-1 rounded-full bg-gray-200" />
+              <div className={`rounded-t-3xl border-t shadow-2xl p-6 pb-safe ${sheet}`}>
+                <div className="flex justify-center mb-5 -mt-1">
+                  <div className={`w-9 h-1 rounded-full ${dark ? 'bg-white/15' : 'bg-gray-200'}`} />
                 </div>
 
                 <div className="flex items-start justify-between mb-5">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-bold uppercase tracking-wider ${tierColors[selectedTerritory.tier] || 'text-gray-400'}`}>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest ${tierColors[selectedTerritory.tier] || muted}`}>
                         {selectedTerritory.tier}
                       </span>
-                      <span className="text-xs text-gray-300">.</span>
-                      <span className="text-xs text-gray-400 font-mono">
-                        {selectedTerritory.hexId.slice(0, 12)}...
-                      </span>
+                      <span className={`text-[10px] ${muted}`}>·</span>
+                      <span className={`text-[10px] font-mono ${muted}`}>{selectedTerritory.hexId.slice(0, 10)}…</span>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900">
+                    <h3 className={`text-[17px] font-bold tracking-tight ${text}`}>
                       {selectedTerritory.status === 'owned'
                         ? 'Your Territory'
                         : selectedTerritory.status === 'enemy'
@@ -411,12 +422,12 @@ export default function TerritoryMap() {
                         : 'Unclaimed Zone'}
                     </h3>
                   </div>
-                  <div className={`px-3 py-1.5 rounded-full text-xs font-bold ${
+                  <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wide ${
                     selectedTerritory.status === 'owned'
-                      ? 'bg-teal-50 text-teal-600'
+                      ? dark ? 'bg-teal-500/20 text-teal-300' : 'bg-teal-50 text-teal-600'
                       : selectedTerritory.status === 'enemy'
-                      ? 'bg-pink-50 text-pink-600'
-                      : 'bg-gray-100 text-gray-500'
+                      ? dark ? 'bg-pink-500/20 text-pink-300' : 'bg-pink-50 text-pink-500'
+                      : dark ? 'bg-white/10 text-white/50' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {selectedTerritory.status.toUpperCase()}
                   </div>
@@ -424,17 +435,15 @@ export default function TerritoryMap() {
 
                 <div className="mb-5">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-400">Defense Strength</span>
-                    <span className="text-stat text-sm font-bold text-gray-900">{selectedTerritory.defense}/100</span>
+                    <span className={`text-[11px] ${muted}`}>Defense</span>
+                    <span className={`text-stat text-[12px] font-bold ${text}`}>{selectedTerritory.defense}/100</span>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className={`h-1.5 rounded-full overflow-hidden ${dark ? 'bg-white/10' : 'bg-gray-100'}`}>
                     <div
                       className={`h-full rounded-full transition-all ${
-                        selectedTerritory.defense > 70
-                          ? 'bg-green-400'
-                          : selectedTerritory.defense > 30
-                          ? 'bg-yellow-400'
-                          : 'bg-red-400'
+                        selectedTerritory.defense > 70 ? 'bg-emerald-400'
+                        : selectedTerritory.defense > 30 ? 'bg-amber-400'
+                        : 'bg-red-400'
                       }`}
                       style={{ width: `${selectedTerritory.defense}%` }}
                     />
@@ -442,32 +451,20 @@ export default function TerritoryMap() {
                 </div>
 
                 {selectedTerritory.status === 'enemy' && (
-                  <button
-                    onClick={() => { setSelectedTerritory(null); navigate('/run'); haptic('medium'); }}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-400
-                               text-sm font-bold text-white active:scale-[0.97] transition
-                               shadow-[0_4px_16px_rgba(220,38,127,0.2)]"
-                  >
+                  <button onClick={() => { setSelectedTerritory(null); navigate('/run'); haptic('medium'); }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 text-sm font-bold text-white active:scale-[0.97] transition shadow-[0_4px_20px_rgba(236,72,153,0.3)]">
                     Attack This Territory
                   </button>
                 )}
                 {selectedTerritory.status === 'owned' && (
-                  <button
-                    onClick={() => { setSelectedTerritory(null); navigate('/run'); haptic('medium'); }}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
-                               text-sm font-bold text-white active:scale-[0.97] transition
-                               shadow-[0_4px_16px_rgba(0,180,198,0.2)]"
-                  >
-                    Fortify - Run to Strengthen
+                  <button onClick={() => { setSelectedTerritory(null); navigate('/run'); haptic('medium'); }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-sm font-bold text-white active:scale-[0.97] transition shadow-[0_4px_20px_rgba(20,184,166,0.3)]">
+                    Fortify — Run to Strengthen
                   </button>
                 )}
                 {selectedTerritory.status === 'neutral' && (
-                  <button
-                    onClick={() => { setSelectedTerritory(null); navigate('/run'); haptic('medium'); }}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
-                               text-sm font-bold text-white active:scale-[0.97] transition
-                               shadow-[0_4px_16px_rgba(0,180,198,0.2)]"
-                  >
+                  <button onClick={() => { setSelectedTerritory(null); navigate('/run'); haptic('medium'); }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-sm font-bold text-white active:scale-[0.97] transition shadow-[0_4px_20px_rgba(20,184,166,0.3)]">
                     Claim This Territory
                   </button>
                 )}

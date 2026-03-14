@@ -5,6 +5,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Flag } from 'lucide-react';
 import { useActiveRun } from '@features/run/hooks/useActiveRun';
+import { useTheme } from '@shared/hooks/useTheme';
 import { FirstRunGuide } from '@features/run/components/FirstRunGuide';
 import { postRunSync, createFeedPost } from '@shared/services/sync';
 import { AnimatedCounter } from '@shared/ui/AnimatedCounter';
@@ -39,9 +40,13 @@ function arrowMarkerHTML(bearing: number) {
   `;
 }
 
+const MAP_STYLE_LIGHT = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const MAP_STYLE_DARK  = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+
 export default function ActiveRun() {
   const navigate = useNavigate();
   const routerLocation = useLocation();
+  const { dark } = useTheme();
   const routeState = routerLocation.state as { startLocation?: { lat: number; lng: number }; ghostRoute?: { lat: number; lng: number }[] } | null;
   const startLocation = routeState?.startLocation;
   const ghostRoute = routeState?.ghostRoute;
@@ -78,7 +83,7 @@ export default function ActiveRun() {
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      style: dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT,
       center: initCenter,
       zoom: 16,
       pitch: 45,
@@ -182,6 +187,13 @@ export default function ActiveRun() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Swap map style when dark mode changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const style = dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT;
+    mapRef.current.setStyle(style);
+  }, [dark]);
 
   // Keep isRunningRef in sync; clear pre-run watcher when run starts
   useEffect(() => {
@@ -385,212 +397,169 @@ export default function ActiveRun() {
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-white" style={{ width: '100vw', height: '100dvh', minHeight: '100vh' }}>
-      <div ref={mapContainer} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' }} />
+  const card  = dark ? 'bg-black/70 border-white/10' : 'bg-white/95 border-gray-200';
+  const text  = dark ? 'text-white'    : 'text-gray-900';
+  const muted = dark ? 'text-white/40' : 'text-gray-400';
+  const divdr = dark ? 'bg-white/10'   : 'bg-gray-200';
+  const handle = dark ? 'bg-white/15'  : 'bg-gray-200';
 
+  return (
+    <div className="fixed inset-0" style={{ width: '100vw', height: '100dvh', minHeight: '100vh' }}>
+      <div ref={mapContainer} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+
+      {/* Claim progress banner */}
       <AnimatePresence>
         {claimProgress > 0 && claimProgress < 100 && (
           <motion.div
-            initial={{ y: -80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -80, opacity: 0 }}
+            initial={{ y: -80, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -80, opacity: 0 }}
             transition={{ type: 'spring', damping: 25 }}
             className="absolute left-4 right-4 z-20"
             style={{ top: 'max(16px, env(safe-area-inset-top))' }}
           >
-            <div className="bg-white rounded-2xl p-3.5 flex items-center gap-3 shadow-lg border border-gray-100">
+            <div className={`backdrop-blur-xl rounded-2xl p-3.5 flex items-center gap-3 shadow-lg border ${card}`}>
               <div className="flex-1">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-medium text-gray-500">
-                    <span className="flex items-center gap-1.5">
-                      <Flag className="w-3.5 h-3.5 text-teal-600" strokeWidth={2} /> Capturing Territory
-                    </span>
+                  <span className={`text-xs font-medium flex items-center gap-1.5 ${muted}`}>
+                    <Flag className="w-3.5 h-3.5 text-teal-500" strokeWidth={2} /> Capturing Territory
                   </span>
-                  <span className="text-stat text-xs font-bold text-teal-600">
-                    {Math.round(claimProgress)}%
-                  </span>
+                  <span className="text-stat text-xs font-bold text-teal-500">{Math.round(claimProgress)}%</span>
                 </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full w-full rounded-full bg-gradient-to-r from-teal-500 to-teal-400"
-                    animate={{ scaleX: claimProgress / 100 }}
-                    style={{ transformOrigin: 'left' }}
-                    transition={{ type: 'spring', stiffness: 50, damping: 15 }}
-                  />
+                <div className={`h-1.5 rounded-full overflow-hidden ${dark ? 'bg-white/10' : 'bg-gray-100'}`}>
+                  <motion.div className="h-full w-full rounded-full bg-gradient-to-r from-teal-500 to-teal-400"
+                    animate={{ scaleX: claimProgress / 100 }} style={{ transformOrigin: 'left' }}
+                    transition={{ type: 'spring', stiffness: 50, damping: 15 }} />
                 </div>
               </div>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="w-8 h-8 rounded-full border-2 border-teal-200 border-t-teal-500"
-              />
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                className="w-8 h-8 rounded-full border-2 border-teal-500/30 border-t-teal-500" />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Claim event toast */}
       <AnimatePresence>
         {lastClaimEvent?.type === 'claimed' && (
           <motion.div
-            initial={{ y: -100, opacity: 0, scale: 0.85 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
+            initial={{ y: -100, opacity: 0, scale: 0.85 }} animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -100, opacity: 0, scale: 0.85 }}
             transition={{ type: 'spring', damping: 20, stiffness: 200 }}
             className="absolute left-4 right-4 z-30"
             style={{ top: 'max(20px, env(safe-area-inset-top))' }}
           >
-            <div className="bg-white rounded-2xl p-4 flex items-center gap-3 shadow-lg border border-teal-200">
-              <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
-                <Flag className="w-6 h-6 text-teal-600" strokeWidth={2} />
+            <div className={`backdrop-blur-xl rounded-2xl p-4 flex items-center gap-3 shadow-lg border ${card}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${dark ? 'bg-teal-500/20' : 'bg-teal-50'}`}>
+                <Flag className="w-6 h-6 text-teal-500" strokeWidth={2} />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-gray-900">Territory Claimed!</p>
-                <p className="text-xs text-gray-400 mt-0.5">New zone secured</p>
+                <p className={`text-sm font-bold ${text}`}>Territory Claimed!</p>
+                <p className={`text-xs mt-0.5 ${muted}`}>New zone secured</p>
               </div>
               <div className="flex flex-col items-end gap-0.5">
-                <span className="text-stat text-sm font-bold text-teal-600">
-                  +{lastClaimEvent.xpEarned} XP
-                </span>
-                <span className="text-stat text-xs font-bold text-amber-500">
-                  +{lastClaimEvent.coinsEarned} coins
-                </span>
+                <span className="text-stat text-sm font-bold text-teal-500">+{lastClaimEvent.xpEarned} XP</span>
+                <span className="text-stat text-xs font-bold text-amber-400">+{lastClaimEvent.coinsEarned} coins</span>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div
-        className="absolute right-4 z-20 flex flex-col gap-2"
-        style={{ top: 'max(16px, env(safe-area-inset-top))' }}
-      >
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={recenterMap}
-          className="w-11 h-11 rounded-full bg-white shadow-md border border-gray-100 flex items-center justify-center"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+      {/* Recenter button */}
+      <div className="absolute right-4 z-20 flex flex-col gap-2" style={{ top: 'max(16px, env(safe-area-inset-top))' }}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={recenterMap}
+          className={`w-11 h-11 rounded-full border backdrop-blur-xl flex items-center justify-center shadow-md ${dark ? 'bg-black/50 border-white/10' : 'bg-white border-gray-100'}`}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={dark ? 'rgba(255,255,255,0.6)' : '#6B7280'} strokeWidth="2">
+            <circle cx="12" cy="12" r="3" /><path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
           </svg>
         </motion.button>
       </div>
 
-      <motion.div
-        initial={{ y: 200 }}
-        animate={{ y: 0 }}
+      {/* Bottom HUD card */}
+      <motion.div initial={{ y: 200 }} animate={{ y: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200, delay: 0.2 }}
-        className="absolute bottom-0 left-0 right-0 z-20"
-      >
-        <div className="bg-white/95 backdrop-blur-xl rounded-t-3xl border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+        className="absolute bottom-0 left-0 right-0 z-20">
+        <div className={`backdrop-blur-2xl rounded-t-3xl border-t shadow-[0_-4px_24px_rgba(0,0,0,0.15)] ${card}`}>
           <div className="flex justify-center pt-2 pb-1">
-            <div className="w-8 h-1 rounded-full bg-gray-200" />
+            <div className={`w-8 h-1 rounded-full ${handle}`} />
           </div>
 
+          {/* Distance */}
           <div className="text-center pt-1 pb-3">
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-stat text-6xl font-bold text-gray-900 tracking-tight leading-none">
+              <span className={`text-stat text-6xl font-bold tracking-tight leading-none ${text}`}>
                 <AnimatedCounter value={distance} decimals={2} />
               </span>
-              <span className="text-stat text-xl text-gray-400 font-medium">km</span>
+              <span className={`text-stat text-xl font-medium ${muted}`}>km</span>
             </div>
           </div>
 
-          {/* Energy blocked warning */}
+          {/* Energy blocked */}
           <AnimatePresence>
             {energyBlocked && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                  </svg>
-                  <span className="text-[11px] text-amber-700 font-medium">Low energy — run ~1km to unlock next claim</span>
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                <div className={`mx-4 mb-2 px-3 py-2 rounded-xl border flex items-center gap-2 ${dark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+                  <span className={`text-[11px] font-medium ${dark ? 'text-amber-400' : 'text-amber-700'}`}>Low energy — run ~1km to unlock next claim</span>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          <div className="flex items-center justify-around px-6 pb-4 border-b border-gray-100">
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Time</span>
-              <span className="text-stat text-2xl font-semibold text-gray-900">{formatTime(elapsed)}</span>
-            </div>
-            <div className="w-px h-10 bg-gray-200" />
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Pace</span>
-              <span className="text-stat text-2xl font-semibold text-gray-900">
-                {pace}<span className="text-sm text-gray-400 ml-0.5">/km</span>
-              </span>
-            </div>
-            <div className="w-px h-10 bg-gray-200" />
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Calories</span>
-              <span className="text-stat text-2xl font-semibold text-gray-900">
-                {Math.round(distance * 88)}<span className="text-sm text-gray-400 ml-0.5">kcal</span>
-              </span>
-            </div>
+          {/* Stats row */}
+          <div className={`flex items-center justify-around px-6 pb-4 border-b ${dark ? 'border-white/10' : 'border-gray-100'}`}>
+            {[
+              { label: 'Time',     value: formatTime(elapsed) },
+              { label: 'Pace',     value: pace,               unit: '/km' },
+              { label: 'Calories', value: Math.round(distance * 88), unit: 'kcal' },
+            ].map((s, i) => (
+              <div key={s.label} className="flex items-center gap-4">
+                {i > 0 && <div className={`w-px h-10 ${divdr}`} />}
+                <div className="flex flex-col items-center">
+                  <span className={`text-[10px] uppercase tracking-[0.2em] mb-1 ${muted}`}>{s.label}</span>
+                  <span className={`text-stat text-2xl font-semibold ${text}`}>
+                    {s.value}{s.unit && <span className={`text-sm ml-0.5 ${muted}`}>{s.unit}</span>}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
 
+          {/* Controls */}
           <div className="flex items-center justify-center gap-6 py-5 px-6 pb-safe">
             {!isRunning ? (
-              <motion.button
-                whileTap={{ scale: 0.88 }}
-                onClick={startRun}
-                className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-teal-600
-                           flex items-center justify-center
-                           shadow-[0_4px_24px_rgba(0,180,198,0.3)]"
-              >
-                <svg width="28" height="32" viewBox="0 0 28 32" fill="white">
-                  <path d="M2 0L28 16L2 32V0Z" />
-                </svg>
+              <motion.button whileTap={{ scale: 0.88 }} onClick={startRun}
+                className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-[0_4px_24px_rgba(0,180,198,0.35)]">
+                <svg width="28" height="32" viewBox="0 0 28 32" fill="white"><path d="M2 0L28 16L2 32V0Z" /></svg>
               </motion.button>
             ) : (
               <>
-                <motion.button
-                  whileTap={{ scale: 0.88 }}
+                <motion.button whileTap={{ scale: 0.88 }}
                   onClick={() => { setShowFinishConfirm(true); haptic('medium'); }}
-                  className="w-14 h-14 rounded-full bg-red-50 border border-red-200
-                             flex items-center justify-center"
-                >
+                  className={`w-14 h-14 rounded-full border flex items-center justify-center ${dark ? 'bg-red-500/15 border-red-500/30' : 'bg-red-50 border-red-200'}`}>
                   <div className="w-5 h-5 rounded-sm bg-red-500" />
                 </motion.button>
 
-                <motion.button
-                  whileTap={{ scale: 0.88 }}
+                <motion.button whileTap={{ scale: 0.88 }}
                   onClick={isPaused ? resumeRun : pauseRun}
                   className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
                     isPaused
-                      ? 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_4px_24px_rgba(0,180,198,0.3)]'
-                      : 'bg-gray-100 border-2 border-gray-200'
-                  }`}
-                >
+                      ? 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_4px_24px_rgba(0,180,198,0.35)]'
+                      : dark ? 'bg-white/10 border-2 border-white/15' : 'bg-gray-100 border-2 border-gray-200'
+                  }`}>
                   {isPaused ? (
-                    <svg width="28" height="32" viewBox="0 0 28 32" fill="white">
-                      <path d="M2 0L28 16L2 32V0Z" />
-                    </svg>
+                    <svg width="28" height="32" viewBox="0 0 28 32" fill="white"><path d="M2 0L28 16L2 32V0Z" /></svg>
                   ) : (
                     <div className="flex gap-2">
-                      <div className="w-3 h-7 bg-gray-600 rounded-sm" />
-                      <div className="w-3 h-7 bg-gray-600 rounded-sm" />
+                      <div className={`w-3 h-7 rounded-sm ${dark ? 'bg-white/60' : 'bg-gray-600'}`} />
+                      <div className={`w-3 h-7 rounded-sm ${dark ? 'bg-white/60' : 'bg-gray-600'}`} />
                     </div>
                   )}
                 </motion.button>
 
-                <motion.button
-                  whileTap={{ scale: 0.88 }}
-                  onClick={recenterMap}
-                  className="w-14 h-14 rounded-full bg-gray-50 border border-gray-200
-                             flex items-center justify-center"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+                <motion.button whileTap={{ scale: 0.88 }} onClick={recenterMap}
+                  className={`w-14 h-14 rounded-full border flex items-center justify-center ${dark ? 'bg-white/10 border-white/15' : 'bg-gray-50 border-gray-200'}`}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={dark ? 'rgba(255,255,255,0.5)' : '#6B7280'} strokeWidth="2">
+                    <circle cx="12" cy="12" r="3" /><path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
                   </svg>
                 </motion.button>
               </>
@@ -599,48 +568,29 @@ export default function ActiveRun() {
         </div>
       </motion.div>
 
-      <FirstRunGuide
-        claimProgress={claimProgress}
-        territoriesClaimed={territoriesClaimed}
-        isRunning={isRunning}
-      />
+      <FirstRunGuide claimProgress={claimProgress} territoriesClaimed={territoriesClaimed} isRunning={isRunning} />
 
+      {/* Finish confirm sheet */}
       <AnimatePresence>
         {showFinishConfirm && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 z-40"
-              onClick={() => setShowFinishConfirm(false)}
-            />
-            <motion.div
-              initial={{ y: 200, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 200, opacity: 0 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowFinishConfirm(false)} />
+            <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 200, opacity: 0 }}
               transition={{ type: 'spring', damping: 25 }}
-              className="fixed bottom-0 left-0 right-0 z-50 p-6 pb-safe"
-            >
-              <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xl">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Finish Run?</h3>
-                <p className="text-sm text-gray-500 mb-6">
+              className="fixed bottom-0 left-0 right-0 z-50 p-5 pb-safe">
+              <div className={`rounded-3xl p-6 border shadow-2xl backdrop-blur-2xl ${dark ? 'bg-[#111]/90 border-white/10' : 'bg-white border-gray-200'}`}>
+                <h3 className={`text-lg font-bold mb-2 ${text}`}>Finish Run?</h3>
+                <p className={`text-sm mb-6 ${muted}`}>
                   {distance.toFixed(2)} km · {formatTime(elapsed)} · {territoriesClaimed} territories claimed
                 </p>
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowFinishConfirm(false)}
-                    className="flex-1 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
-                               text-sm font-semibold text-gray-600 active:scale-[0.97] transition"
-                  >
+                  <button onClick={() => setShowFinishConfirm(false)}
+                    className={`flex-1 py-3.5 rounded-2xl border text-sm font-semibold active:scale-[0.97] transition ${dark ? 'bg-white/10 border-white/10 text-white/70' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
                     Continue
                   </button>
-                  <button
-                    onClick={handleFinish}
-                    className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
-                               text-sm font-bold text-white active:scale-[0.97] transition
-                               shadow-[0_4px_16px_rgba(0,180,198,0.25)]"
-                  >
+                  <button onClick={handleFinish}
+                    className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 text-sm font-bold text-white active:scale-[0.97] transition shadow-[0_4px_16px_rgba(0,180,198,0.3)]">
                     Finish
                   </button>
                 </div>

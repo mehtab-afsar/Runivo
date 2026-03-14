@@ -22,6 +22,7 @@ import { ShareCardGenerator } from '@shared/ui/ShareCardGenerator'
 import SplitsTable from '@shared/ui/SplitsTable'
 import type { LiveRunData, Location } from '@shared/types/index'
 import { getProfile } from '@shared/services/profile'
+import { useTheme } from '@shared/hooks/useTheme'
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -33,10 +34,14 @@ const item = {
   show:   { opacity: 1, y: 0, transition: { ease: [0.4, 0, 0.2, 1] as [number, number, number, number] } },
 }
 
+const MAP_STYLE_LIGHT = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const MAP_STYLE_DARK  = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+
 export const RunSummary: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { player, levelTitle, xpProgress } = usePlayerStats()
+  const { dark } = useTheme()
   const [showShare, setShowShare] = useState(false)
   const [showSaveRoute, setShowSaveRoute] = useState(false)
   const [weightKg, setWeightKg] = useState(70)
@@ -95,7 +100,7 @@ export const RunSummary: React.FC = () => {
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+      style: dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT,
       center,
       zoom: 15,
       interactive: false,
@@ -158,6 +163,11 @@ export const RunSummary: React.FC = () => {
     return () => { ro.disconnect(); map.remove(); mapRef.current = null }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setStyle(dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT);
+  }, [dark])
 
 // MET(8) × weightKg × durationHours — weightKg loaded from profile biometrics
 const calories = Math.round(8 * weightKg * (runData.duration / 3600))

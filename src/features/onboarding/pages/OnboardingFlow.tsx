@@ -287,10 +287,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
         {/* Hero panel — top ~55% with teal gradient */}
         <div
-          className="relative flex flex-col items-center overflow-hidden"
+          className="relative flex flex-col items-center justify-center overflow-hidden"
           style={{
             flex: '0 0 56%',
-            paddingTop: '11%',
             background: 'linear-gradient(160deg, #0E7490 0%, #0891B2 45%, #06B6D4 100%)',
           }}
         >
