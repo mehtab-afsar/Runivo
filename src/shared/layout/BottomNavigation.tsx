@@ -13,7 +13,6 @@ const tabs = [
 
 function TabIcon({ type, active, dark }: { type: string; active: boolean; dark: boolean }) {
   const color = active ? '#00B4C6' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'
-  const fill  = active ? '#00B4C6' : 'none'
   const sw = 1.7
 
   switch (type) {
