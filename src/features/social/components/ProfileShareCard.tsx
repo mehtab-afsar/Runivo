@@ -36,40 +36,40 @@ const themes: Record<CardTheme, {
   dark: {
     bg: '#0A0A0F',
     surface: 'rgba(255,255,255,0.05)',
-    accent: '#00B4C6',
-    accentFaded: 'rgba(0,180,198,0.15)',
+    accent: '#E8435A',
+    accentFaded: 'rgba(232,67,90,0.15)',
     textPrimary: '#FFFFFF',
     textSecondary: 'rgba(255,255,255,0.45)',
-    qrDark: '#00B4C6',
+    qrDark: '#E8435A',
     qrLight: '#0A0A0F',
     border: 'rgba(255,255,255,0.08)',
   },
   deep: {
     bg: '#040E14',
-    surface: 'rgba(0,180,198,0.06)',
-    accent: '#00D4E8',
-    accentFaded: 'rgba(0,212,232,0.12)',
+    surface: 'rgba(232,67,90,0.06)',
+    accent: '#E8435A',
+    accentFaded: 'rgba(232,67,90,0.12)',
     textPrimary: '#FFFFFF',
     textSecondary: 'rgba(255,255,255,0.4)',
-    qrDark: '#00D4E8',
+    qrDark: '#E8435A',
     qrLight: '#040E14',
-    border: 'rgba(0,212,232,0.15)',
+    border: 'rgba(232,67,90,0.15)',
   },
   light: {
     bg: '#FFFFFF',
     surface: 'rgba(0,0,0,0.04)',
-    accent: '#0891B2',
-    accentFaded: 'rgba(8,145,178,0.08)',
+    accent: '#E8435A',
+    accentFaded: 'rgba(232,67,90,0.08)',
     textPrimary: '#0F172A',
     textSecondary: 'rgba(15,23,42,0.4)',
-    qrDark: '#0891B2',
+    qrDark: '#E8435A',
     qrLight: '#FFFFFF',
     border: 'rgba(0,0,0,0.06)',
   },
 };
 
 const AVATAR_HEX_COLORS: Record<string, string> = {
-  teal: '#00B4C6',
+  teal: '#E8435A',
   indigo: '#6366F1',
   rose: '#F43F5E',
   amber: '#F59E0B',
@@ -329,7 +329,7 @@ export function ProfileShareCard({ isOpen, onClose, profile }: ProfileShareCardP
 
   const theme = themes[selectedTheme];
   const inviteUrl = `https://runivo.app/join?ref=${encodeURIComponent(profile.username)}`;
-  const avatarHex = AVATAR_HEX_COLORS[profile.avatarColor || 'teal'] || '#00B4C6';
+  const avatarHex = AVATAR_HEX_COLORS[profile.avatarColor || 'teal'] || '#E8435A';
 
   const stats = [
     { label: 'LEVEL',  value: String(profile.level) },
@@ -527,7 +527,7 @@ export function ProfileShareCard({ isOpen, onClose, profile }: ProfileShareCardP
                       key={t}
                       onClick={() => { setSelectedTheme(t); haptic('light'); }}
                       className={`flex-1 h-12 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
-                        selectedTheme === t ? 'border-teal-400 scale-105' : 'border-gray-200'
+                        selectedTheme === t ? 'border-[#E8435A] scale-105' : 'border-gray-200'
                       }`}
                       style={{ background: themes[t].bg }}
                     >
@@ -545,9 +545,9 @@ export function ProfileShareCard({ isOpen, onClose, profile }: ProfileShareCardP
                 whileTap={{ scale: 0.96 }}
                 onClick={generateImage}
                 disabled={generating}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#E8435A] to-[#D03A4F]
                            text-base font-bold text-white
-                           shadow-[0_4px_20px_rgba(0,180,198,0.3)]
+                           shadow-[0_4px_20px_rgba(232,67,90,0.3)]
                            disabled:opacity-50 disabled:cursor-not-allowed mb-3"
               >
                 {generating ? (

@@ -1,61 +1,66 @@
 import { motion } from 'framer-motion';
-import { Footprints, Sun, Calendar, Trophy, Check } from 'lucide-react';
+import { Footprints, PersonStanding, Zap, Flame } from 'lucide-react';
 import { haptic } from '@shared/lib/haptics';
 
 type ExperienceLevel = 'new' | 'casual' | 'regular' | 'competitive';
+interface Props { value: ExperienceLevel | null; onChange: (v: ExperienceLevel) => void; }
 
-interface Props {
-  value: ExperienceLevel | null;
-  onChange: (v: ExperienceLevel) => void;
-}
-
-const options: { id: ExperienceLevel; label: string; desc: string; icon: typeof Footprints }[] = [
-  { id: 'new', label: 'Just Starting', desc: 'New to running or getting back into it', icon: Footprints },
-  { id: 'casual', label: 'Casual', desc: 'A few times a month for fun', icon: Sun },
-  { id: 'regular', label: 'Regular', desc: '2-4 times a week consistently', icon: Calendar },
-  { id: 'competitive', label: 'Competitive', desc: 'I train seriously and race', icon: Trophy },
+const options: { id: ExperienceLevel; label: string; sub: string; icon: typeof Zap }[] = [
+  { id: 'new',         label: 'Just Starting',  sub: 'Lacing up for the first time', icon: Footprints     },
+  { id: 'casual',      label: 'Casual',          sub: 'Easy strolls, no rush',        icon: PersonStanding },
+  { id: 'regular',     label: 'Regular',         sub: 'Solid pace, good form',        icon: Zap            },
+  { id: 'competitive', label: 'Competitive',     sub: 'Basically a human missile',    icon: Flame          },
 ];
 
 export default function ExperienceStep({ value, onChange }: Props) {
   return (
     <div className="flex flex-col h-full px-6">
       <div className="mb-6">
-        <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">How would you describe your running?</h2>
-        <p className="text-[13px] text-gray-400 mt-1">This helps us set the right challenge level</p>
+        <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">How do you run?</h2>
+        <p className="text-[13px] text-gray-400 mt-1">Sets the right challenge level for you</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="space-y-2.5">
         {options.map((opt, i) => {
           const selected = value === opt.id;
           const Icon = opt.icon;
           return (
             <motion.button
               key={opt.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08, type: 'spring', damping: 22 }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0, scale: selected ? 1.02 : 1 }}
+              transition={{ delay: i * 0.06, type: 'spring', damping: 22 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => { onChange(opt.id); haptic('light'); }}
-              className={`relative p-4 rounded-2xl border text-left transition-all ${
-                selected
-                  ? 'bg-teal-50 border-teal-300'
-                  : 'bg-white border-gray-100'
-              }`}
+              className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl border transition-all"
+              style={selected ? {
+                background: 'linear-gradient(135deg, #E8435A, #D03A4F)',
+                borderColor: 'transparent',
+                boxShadow: '0 6px 20px rgba(232,67,90,0.15)',
+              } : {
+                backgroundColor: '#FFFFFF',
+                borderColor: '#F3F3F3',
+              }}
             >
-              {selected && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute top-3 right-3 w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center"
+              <Icon
+                className="w-5 h-5"
+                strokeWidth={1.8}
+                style={{ color: selected ? '#FFFFFF' : '#9CA3AF' }}
+              />
+              <div className="flex flex-col items-start">
+                <span
+                  className="text-[14px] font-semibold leading-tight"
+                  style={{ color: selected ? '#FFFFFF' : '#374151' }}
                 >
-                  <Check className="w-3 h-3 text-white" strokeWidth={3} />
-                </motion.div>
-              )}
-              <Icon className={`w-6 h-6 mb-3 ${selected ? 'text-teal-600' : 'text-gray-400'}`} strokeWidth={1.5} />
-              <span className={`text-[13px] font-bold block mb-0.5 ${selected ? 'text-teal-700' : 'text-gray-900'}`}>
-                {opt.label}
-              </span>
-              <span className="text-[11px] text-gray-400 leading-relaxed">{opt.desc}</span>
+                  {opt.label}
+                </span>
+                <span
+                  className="text-[11px] leading-tight mt-0.5"
+                  style={{ color: selected ? 'rgba(255,255,255,0.75)' : '#9CA3AF' }}
+                >
+                  {opt.sub}
+                </span>
+              </div>
             </motion.button>
           );
         })}

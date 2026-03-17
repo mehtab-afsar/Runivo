@@ -31,9 +31,12 @@ export default function PreferencesStep({ distanceUnit, notifications, onUnitCha
               <button
                 key={u}
                 onClick={() => { onUnitChange(u); haptic('light'); }}
-                className={`px-4 py-1.5 rounded-md text-[12px] font-semibold transition ${
-                  distanceUnit === u ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-400'
-                }`}
+                className="px-4 py-1.5 rounded-md text-[12px] font-semibold transition"
+                style={distanceUnit === u ? {
+                  backgroundColor: '#FFFFFF',
+                  color: '#E8435A',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                } : { color: '#9CA3AF' }}
               >
                 {u}
               </button>
@@ -47,7 +50,8 @@ export default function PreferencesStep({ distanceUnit, notifications, onUnitCha
           <span className="flex-1 text-[14px] text-gray-900 font-medium">Run reminders</span>
           <button
             onClick={() => { onNotificationsChange(!notifications); haptic('light'); }}
-            className={`w-11 h-6 rounded-full transition-colors ${notifications ? 'bg-teal-500' : 'bg-gray-200'}`}
+            className="w-11 h-6 rounded-full transition-colors"
+            style={{ backgroundColor: notifications ? '#E8435A' : '#E5E7EB' }}
           >
             <div className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform ${notifications ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
           </button>

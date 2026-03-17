@@ -18,17 +18,24 @@ export default {
     },
     extend: {
       colors: {
-        // Runner design system — light theme
+        // Runivo design system — SpeedSprint palette
         runner: {
-          bg:      '#FAFAFA',
-          surface: '#FFFFFF',
-          elevated:'#F5F5F7',
-          teal:    '#00B4C6',
-          magenta: '#DC267F',
-          gold:    '#F59E0B',
-          green:   '#10B981',
-          orange:  '#F97316',
+          bg:       '#FAF9FC',
+          surface:  '#FFFFFF',
+          elevated: '#F3EFF8',
+          crimson:  '#E8435A',
+          lavender: '#C4B0D8',
+          gold:     '#F59E0B',
+          green:    '#10B981',
+          orange:   '#F97316',
         },
+        // Standalone design-doc tokens
+        crimson:  { DEFAULT: '#E8435A', dark: '#D03A4F', light: '#F9E4E7', glow: 'rgba(232,67,90,0.15)' },
+        lavender: { DEFAULT: '#C4B0D8', light: '#E8E0F0', mist: '#F0EBF5' },
+        ink:     '#1A1A1A',
+        muted:   '#6B6B6B',
+        hint:    '#A0A0A0',
+        surface: '#F7F6F4',
         // shadcn/ui colors
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -70,10 +77,10 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        display: ['Plus Jakarta Sans', 'sans-serif'],
-        mono:    ['JetBrains Mono', 'monospace'],
-        body:    ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        sans:    ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ["'Cormorant Garamond'", 'Georgia', 'serif'],
+        mono:    ["'DM Sans'", 'system-ui', 'sans-serif'],
+        body:    ["'DM Sans'", '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans:    ["'DM Sans'", '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       fontSize: {
         'hero': ['56px', { lineHeight: '1.1', fontWeight: '800', letterSpacing: '-0.02em' }],
@@ -108,8 +115,8 @@ export default {
           "50%": { opacity: "0.5" },
         },
         "glow-pulse": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(0, 180, 198, 0.15)" },
-          "50%": { boxShadow: "0 0 40px rgba(0, 180, 198, 0.25)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(232, 67, 90, 0.15)" },
+          "50%": { boxShadow: "0 0 40px rgba(232, 67, 90, 0.28)" },
         },
         "float": {
           "0%, 100%": { transform: "translateY(0px)" },

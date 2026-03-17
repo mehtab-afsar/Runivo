@@ -102,8 +102,8 @@ export function SaveRouteModal({ isOpen, onClose, gpsPoints, distanceM, duration
                 placeholder="Route name (e.g. Morning Loop)"
                 maxLength={50}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm
-                           text-gray-900 placeholder-gray-400 outline-none focus:border-teal-400
-                           focus:ring-2 focus:ring-teal-100 transition mb-4"
+                           text-gray-900 placeholder-gray-400 outline-none focus:border-[#E8435A]
+                           focus:ring-2 focus:ring-[#F9E4E7] transition mb-4"
                 autoFocus
               />
 
@@ -117,7 +117,7 @@ export function SaveRouteModal({ isOpen, onClose, gpsPoints, distanceM, duration
                       onClick={() => { setEmoji(e); haptic('light'); }}
                       className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all ${
                         emoji === e
-                          ? 'bg-teal-50 border-2 border-teal-400 scale-110'
+                          ? 'bg-[#F9E4E7] border-2 border-[#E8435A] scale-110'
                           : 'bg-gray-50 border border-gray-200'
                       }`}
                     >
@@ -133,7 +133,7 @@ export function SaveRouteModal({ isOpen, onClose, gpsPoints, distanceM, duration
                 className="flex items-center gap-3 w-full p-3 rounded-xl border border-gray-200 mb-5"
               >
                 {isPublic ? (
-                  <Globe className="w-4 h-4 text-teal-600" strokeWidth={2} />
+                  <Globe className="w-4 h-4 text-[#E8435A]" strokeWidth={2} />
                 ) : (
                   <Lock className="w-4 h-4 text-gray-400" strokeWidth={2} />
                 )}
@@ -145,7 +145,7 @@ export function SaveRouteModal({ isOpen, onClose, gpsPoints, distanceM, duration
                     {isPublic ? 'Others can discover this route nearby' : 'Only visible to you'}
                   </span>
                 </div>
-                <div className={`w-10 h-6 rounded-full p-0.5 transition-colors ${isPublic ? 'bg-teal-500' : 'bg-gray-300'}`}>
+                <div className={`w-10 h-6 rounded-full p-0.5 transition-colors ${isPublic ? 'bg-[#E8435A]' : 'bg-gray-300'}`}>
                   <motion.div
                     className="w-5 h-5 rounded-full bg-white shadow-sm"
                     animate={{ x: isPublic ? 16 : 0 }}
@@ -161,7 +161,7 @@ export function SaveRouteModal({ isOpen, onClose, gpsPoints, distanceM, duration
                 disabled={!name.trim() || saving}
                 className={`w-full py-3.5 rounded-2xl text-sm font-bold transition-all ${
                   name.trim()
-                    ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-[0_4px_16px_rgba(0,180,198,0.25)]'
+                    ? 'bg-gradient-to-r from-[#E8435A] to-[#D03A4F] text-white shadow-[0_4px_16px_rgba(232,67,90,0.25)]'
                     : 'bg-gray-200 text-gray-400'
                 }`}
               >

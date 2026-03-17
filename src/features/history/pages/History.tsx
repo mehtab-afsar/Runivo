@@ -74,7 +74,7 @@ export default function History() {
   });
 
   const activityIcons: Record<string, ReactNode> = {
-    run: <Activity className="w-5 h-5 text-teal-600" strokeWidth={2} />,
+    run: <Activity className="w-5 h-5 text-[#E8435A]" strokeWidth={2} />,
     walk: <Footprints className="w-5 h-5 text-emerald-500" strokeWidth={2} />,
     cycle: <Bike className="w-5 h-5 text-purple-500" strokeWidth={2} />,
     hike: <Mountain className="w-5 h-5 text-orange-500" strokeWidth={2} />,
@@ -102,7 +102,7 @@ export default function History() {
           </div>
           <div className="bg-white rounded-2xl shadow-sm p-3 text-center border border-gray-100">
             <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400 block mb-1">Zones</span>
-            <span className="text-stat text-lg font-bold text-teal-600">{totalTerritories}</span>
+            <span className="text-stat text-lg font-bold text-[#E8435A]">{totalTerritories}</span>
           </div>
         </div>
       </div>
@@ -129,8 +129,8 @@ export default function History() {
             <p className="text-sm text-gray-400 mb-6">Start your first run to begin claiming territories</p>
             <button
               onClick={() => navigate('/run')}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
-                         text-sm font-bold text-black shadow-[0_4px_16px_rgba(0,180,198,0.15)]"
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#E8435A] to-[#D03A4F]
+                         text-sm font-bold text-black shadow-[0_4px_16px_rgba(232,67,90,0.15)]"
             >
               Start Running
             </button>
@@ -185,7 +185,7 @@ export default function History() {
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
-                          {activityIcons[run.activityType] || <Activity className="w-5 h-5 text-teal-600" strokeWidth={2} />}
+                          {activityIcons[run.activityType] || <Activity className="w-5 h-5 text-[#E8435A]" strokeWidth={2} />}
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -204,7 +204,7 @@ export default function History() {
 
                         {run.territoriesClaimed.length > 0 && (
                           <div className="flex flex-col items-center shrink-0">
-                            <span className="text-stat text-lg font-bold text-teal-600">{run.territoriesClaimed.length}</span>
+                            <span className="text-stat text-lg font-bold text-[#E8435A]">{run.territoriesClaimed.length}</span>
                             <span className="text-[9px] text-gray-400 uppercase tracking-wider">zones</span>
                           </div>
                         )}

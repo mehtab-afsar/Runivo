@@ -1,971 +1,1038 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Volume2, VolumeX, Map, BarChart3, Users, Trophy,
-  Coins, Gem, Zap, Activity, ChevronRight, X, Lock,
-  Camera, Check, MapPin, Target, Globe, Link2, ArrowLeft,
-  Shield,
+  MapPin, Play, TrendingUp, Star, Globe, Navigation, Shield, Lock, Award,
+  Zap, Flame, ArrowUp, AlertTriangle,
+  Calendar, Check, Map as MapIcon, Gem, Settings,
 } from 'lucide-react';
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats';
-import { DailyMissions } from '@features/missions/components/DailyMissions';
-import { soundManager } from '@shared/audio/sounds';
-import { supabase } from '@shared/services/supabase';
-import { pushProfile } from '@shared/services/sync';
+import { calculatePersonalRecords, PersonalRecord } from '@shared/services/personalRecords';
+import { getRuns, StoredRun } from '@shared/services/store';
 import { haptic } from '@shared/lib/haptics';
-import { calculatePersonalRecords, formatRecordValue, getRecordLabel, PersonalRecord } from '@shared/services/personalRecords';
-import TrainingCalendar from '@shared/ui/TrainingCalendar';
-import { ProfileShareCard } from '@features/social/components/ProfileShareCard';
+import { soundManager } from '@shared/audio/sounds';
 
-type ProfileTab = 'overview' | 'missions' | 'achievements' | 'stats';
+type ProfileTab = 'overview' | 'stats' | 'awards';
 
-const AVATAR_COLORS = [
-  { id: 'teal',    from: 'from-teal-400',   to: 'to-teal-600',    label: 'Teal' },
-  { id: 'indigo',  from: 'from-indigo-400', to: 'to-indigo-600',  label: 'Indigo' },
-  { id: 'rose',    from: 'from-rose-400',   to: 'to-rose-600',    label: 'Rose' },
-  { id: 'amber',   from: 'from-amber-400',  to: 'to-amber-600',   label: 'Amber' },
-  { id: 'violet',  from: 'from-violet-400', to: 'to-violet-600',  label: 'Violet' },
-  { id: 'emerald', from: 'from-emerald-400',to: 'to-emerald-600', label: 'Emerald' },
-  { id: 'sky',     from: 'from-sky-400',    to: 'to-sky-600',     label: 'Sky' },
-  { id: 'orange',  from: 'from-orange-400', to: 'to-orange-600',  label: 'Orange' },
-];
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const F  = "'Barlow', 'DM Sans', -apple-system, sans-serif";
+const FD = "'Playfair Display', Georgia, serif";
+const C = {
+  ink:    '#0A0A0A',
+  mid:    '#6B6B6B',
+  muted:  '#ADADAD',
+  border: '#DDD9D4',
+  hair:   '#E8E4DF',
+  surf:   '#F8F6F3',
+  warm:   '#F0EDE8',
+  pr:     '#FDF6E8',
+  prText: '#9E6800',
+  red:    '#D93518',
+  bg:     '#FAFAF8',
+};
+
+// ─── AI color tokens ──────────────────────────────────────────────────────────
+const AI = { accent: '#5A3A8A', tint: '#F2EEF9' } as const;
+
+// ─── Avatar swatch colors ─────────────────────────────────────────────────────
+const SWATCHES = ['#0A0A0A', '#E8435A', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+const fmtMinsec = (secs: number) => {
+  const m = Math.floor(secs / 60);
+  const s = Math.round(secs % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+};
+
+const RING_R    = 34;
+const RING_CIRC = 2 * Math.PI * RING_R;
+
 
 export default function Profile() {
   const navigate = useNavigate();
-  const routerLocation = useLocation();
-  const { player, recentRuns, loading, xpProgress, levelTitle } = usePlayerStats();
-  const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
-  const [soundEnabled, setSoundEnabled] = useState(soundManager.isEnabled());
-  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
-  const [showEditProfile, setShowEditProfile] = useState(
-    !!(routerLocation.state as { openEdit?: boolean } | null)?.openEdit
-  );
-  const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
+  const { player, loading, xpProgress } = usePlayerStats();
+  const [tab, setTab]       = useState<ProfileTab>('overview');
+  const [prs, setPrs]       = useState<PersonalRecord[]>([]);
+  const [allRuns, setAllRuns] = useState<StoredRun[]>([]);
+  const [lockedId, setLockedId] = useState<string | null>(null);
 
-  // Edit Profile state
-  const [avatarColorId, setAvatarColorId] = useState('teal');
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('Running to conquer every street 🏃');
-  const [location, setLocation] = useState('New Delhi, India');
-  const [weeklyGoal, setWeeklyGoal] = useState(30);
-  const [privacy, setPrivacy] = useState<'public' | 'followers' | 'private'>('public');
-  const [stravaHandle, setStravaHandle] = useState('');
-  const [instagramHandle, setInstagramHandle] = useState('');
-  const [savedProfile, setSavedProfile] = useState(false);
-  const [showShareCard, setShowShareCard] = useState(false);
+  // Edit profile state
+  const [editOpen, setEditOpen] = useState(false);
+  const [avatarColor, setAvatarColor] = useState(() => localStorage.getItem('runivo-avatar-color') || SWATCHES[0]);
+  const [displayName, setDisplayName] = useState(() => localStorage.getItem('runivo-display-name') || '');
+  const [bio, setBio] = useState(() => localStorage.getItem('runivo-bio') || 'Running to conquer every street 🏃');
+  const [loc, setLoc] = useState(() => localStorage.getItem('runivo-location') || '');
+  const [strava, setStrava] = useState(() => localStorage.getItem('runivo-strava') || '');
+  const [instagram, setInstagram] = useState(() => localStorage.getItem('runivo-instagram') || '');
+  const [privacy, setPrivacy] = useState<boolean>(() => (localStorage.getItem('runivo-privacy') || 'true') === 'true');
   const bioRef = useRef<HTMLTextAreaElement>(null);
 
-  const avatarColor = AVATAR_COLORS.find(c => c.id === avatarColorId) || AVATAR_COLORS[0];
-
   useEffect(() => {
-    calculatePersonalRecords().then(setPersonalRecords);
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from('profiles')
-        .select('subscription_tier, follower_count, following_count, bio, location, avatar_color')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data?.subscription_tier) setSubscriptionTier(data.subscription_tier);
-          if (data) {
-            setFollowerCount(data.follower_count ?? 0);
-            setFollowingCount(data.following_count ?? 0);
-            if (data.bio) setBio(data.bio);
-            if (data.location) setLocation(data.location);
-            if (data.avatar_color) setAvatarColorId(data.avatar_color);
-          }
-        });
-    });
+    calculatePersonalRecords().then(setPrs);
+    getRuns(500).then(setAllRuns);
   }, []);
 
+  // ── All hooks BEFORE any early return ─────────────────────────────────────
+  const weeklyGoalKm = parseInt(localStorage.getItem('runivo-weekly-goal') || '30', 10);
+
+  const thisWeekKm = useMemo(() => {
+    const now = new Date();
+    const todayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - todayIdx);
+    weekStart.setHours(0, 0, 0, 0);
+    return allRuns
+      .filter(r => r.startTime >= weekStart.getTime())
+      .reduce((s, r) => s + r.distanceMeters / 1000, 0);
+  }, [allRuns]);
+
+  const goalPct = Math.min(1, weeklyGoalKm > 0 ? thisWeekKm / weeklyGoalKm : 0);
+
+  const weekDayBars = useMemo(() => {
+    const now = new Date();
+    const todayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - todayIdx);
+    weekStart.setHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, i) => {
+      const ds = new Date(weekStart); ds.setDate(weekStart.getDate() + i);
+      const de = new Date(ds); de.setHours(23, 59, 59, 999);
+      const hasRun = allRuns.some(r => r.startTime >= ds.getTime() && r.startTime <= de.getTime());
+      return { hasRun, isToday: i === todayIdx, isPast: i < todayIdx };
+    });
+  }, [allRuns]);
+
+  const avgPaceSec = useMemo(() => {
+    const p = prs.find(r => r.type === 'fastest_pace');
+    return p ? p.value : 0;
+  }, [prs]);
+
+  const prRows = useMemo(() => {
+    const find = (t: PersonalRecord['type']) => prs.find(r => r.type === t);
+    const rows: { label: string; value: string; unit: string; isPR?: boolean }[] = [];
+    const k1 = find('fastest_1k');
+    if (k1) rows.push({ label: '1 km',      value: fmtMinsec(k1.value),    unit: 'min',    isPR: true });
+    const k5 = find('fastest_5k');
+    if (k5) rows.push({ label: '5 km',      value: fmtMinsec(k5.value),    unit: 'min'    });
+    const k10 = find('fastest_10k');
+    if (k10) rows.push({ label: '10 km',    value: fmtMinsec(k10.value),   unit: 'min'    });
+    const lng = find('longest_run');
+    if (lng) rows.push({ label: 'Longest',  value: lng.value.toFixed(1),   unit: 'km'     });
+    const pc = find('fastest_pace');
+    if (pc)  rows.push({ label: 'Best pace',value: fmtMinsec(pc.value),    unit: 'min/km' });
+    return rows;
+  }, [prs]);
+
+  const longestKm = useMemo(() => prs.find(r => r.type === 'longest_run')?.value ?? 0, [prs]);
+
+
+  // ── Weekly bar chart (Stats tab) ──────────────────────────────────────────
+  const weeklyBars = useMemo(() => {
+    const now = new Date();
+    const todayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    return Array.from({ length: 8 }, (_, i) => {
+      const wi = 7 - i;
+      const ws = new Date(now); ws.setDate(now.getDate() - todayIdx - wi * 7); ws.setHours(0, 0, 0, 0);
+      const we = new Date(ws); we.setDate(ws.getDate() + 6); we.setHours(23, 59, 59, 999);
+      const km = allRuns.filter(r => r.startTime >= ws.getTime() && r.startTime <= we.getTime())
+        .reduce((s, r) => s + r.distanceMeters / 1000, 0);
+      return { km, isCurrent: wi === 0, label: ws.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) };
+    });
+  }, [allRuns]);
+  const maxBarKm = Math.max(...weeklyBars.map(b => b.km), 1);
+
+  // ── Pace trend (last 7d vs prior 14d) ─────────────────────────────────────
+  const paceTrendData = useMemo(() => {
+    const now = Date.now();
+    const valid = (r: StoredRun) => r.distanceMeters > 500 && r.durationSec > 30;
+    const last7  = allRuns.filter(r => r.startTime >= now - 7  * 86400000 && valid(r));
+    const prev14 = allRuns.filter(r => r.startTime >= now - 21 * 86400000 && r.startTime < now - 7 * 86400000 && valid(r));
+    const avg = (runs: StoredRun[]) =>
+      runs.length === 0 ? 0 : runs.reduce((s, r) => s + r.durationSec / (r.distanceMeters / 1000), 0) / runs.length;
+    const recent = avg(last7);
+    const prior  = avg(prev14);
+    const pct = (prior > 0 && recent > 0) ? Math.round(((prior - recent) / prior) * 100) : 0;
+    return { recent, prior, pctChange: Math.abs(pct), improved: pct > 0 };
+  }, [allRuns]);
+
+  // ── Pace zone distribution ────────────────────────────────────────────────
+  const paceZonesData = useMemo(() => {
+    const valid = allRuns.filter(r => r.distanceMeters > 1000 && r.durationSec > 60);
+    const counts = [0, 0, 0, 0];
+    valid.forEach(r => {
+      const p = r.durationSec / (r.distanceMeters / 1000);
+      if (p >= 390) counts[0]++;
+      else if (p >= 330) counts[1]++;
+      else if (p >= 285) counts[2]++;
+      else counts[3]++;
+    });
+    const total = Math.max(1, counts.reduce((a, b) => a + b, 0));
+    const hasData = valid.length > 0;
+    const def = [20, 45, 25, 10];
+    return [
+      { label: 'Easy',     pct: hasData ? Math.round(counts[0] / total * 100) : def[0], color: '#C8C4BE' },
+      { label: 'Moderate', pct: hasData ? Math.round(counts[1] / total * 100) : def[1], color: '#888780' },
+      { label: 'Tempo',    pct: hasData ? Math.round(counts[2] / total * 100) : def[2], color: '#0A0A0A' },
+      { label: 'Hard',     pct: hasData ? Math.round(counts[3] / total * 100) : def[3], color: '#D93518' },
+    ];
+  }, [allRuns]);
+
+  // ── AI Race predictions (Riegel formula from best 5K equiv) ───────────────
+  const racePredictionsData = useMemo(() => {
+    const fmtT = (s: number) => {
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = Math.round(s % 60);
+      if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      return `${m}:${String(sec).padStart(2, '0')}`;
+    };
+    const pr5k = prs.find(r => r.type === 'fastest_5k');
+    const baseT = pr5k ? pr5k.value : (avgPaceSec > 0 ? avgPaceSec * 5 : 360 * 5);
+    const riegel = (t: number, d2: number) => t * Math.pow(d2 / 5, 1.06);
+    return [
+      { dist: '5K',            time: fmtT(baseT),               unit: 'min:sec',     delta: pr5k ? 'Personal best' : 'Projected', style: pr5k ? 'green' : 'purple' as const },
+      { dist: '10K',           time: fmtT(riegel(baseT, 10)),   unit: 'min:sec',     delta: 'Projected', style: 'purple' as const },
+      { dist: 'Half marathon', time: fmtT(riegel(baseT, 21.1)), unit: 'hr:min:sec',  delta: 'Projected', style: 'purple' as const },
+      { dist: 'Marathon',      time: fmtT(riegel(baseT, 42.2)), unit: 'hr:min:sec',  delta: 'Projected', style: 'purple' as const },
+    ];
+  }, [prs, avgPaceSec]);
+
+  // ── Early return after ALL hooks ──────────────────────────────────────────
   if (loading || !player) {
     return (
-      <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex items-center justify-center">
-        <div className="flex gap-1.5">
+      <div style={{ height: '100%', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 6 }}>
           {[0, 1, 2].map(i => (
-            <motion.div
-              key={i}
-              animate={{ opacity: [0.3, 1, 0.3] }}
+            <motion.div key={i} animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1, repeat: Infinity, delay: i * 0.15 }}
-              className="w-2 h-2 rounded-full bg-teal-500"
-            />
+              style={{ width: 8, height: 8, borderRadius: '50%', background: C.ink }} />
           ))}
         </div>
       </div>
     );
   }
 
-  const tabs: { id: ProfileTab; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'missions', label: 'Missions' },
-    { id: 'stats', label: 'Stats' },
-    { id: 'achievements', label: 'Awards' },
+  // ── Derived data (player guaranteed non-null here) ─────────────────────────
+  const initials = player.username.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '?';
+  const name     = displayName || player.username;
+  const handle   = `@${player.username.toLowerCase().replace(/\s+/g, '_')} · Lv. ${player.level}`;
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleShare = () => {
+    haptic('light');
+    const text = `${name} on Runivo — ${player.totalDistanceKm.toFixed(0)} km · ${player.totalTerritoriesClaimed} zones · Lv. ${player.level}`;
+    if (navigator.share) {
+      navigator.share({ title: 'My Runivo Profile', text }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(text).catch(() => {});
+    }
+  };
+
+  const saveEdit = () => {
+    localStorage.setItem('runivo-avatar-color', avatarColor);
+    localStorage.setItem('runivo-display-name', displayName);
+    localStorage.setItem('runivo-bio', bio);
+    localStorage.setItem('runivo-location', loc);
+    localStorage.setItem('runivo-strava', strava);
+    localStorage.setItem('runivo-instagram', instagram);
+    localStorage.setItem('runivo-privacy', String(privacy));
+    haptic('success');
+    soundManager.play('tap');
+    setEditOpen(false);
+  };
+
+  // ── AI coach derived content ──────────────────────────────────────────────
+  const aiQuote = (() => {
+    if (paceTrendData.improved && paceTrendData.pctChange >= 5)
+      return `Your pace has improved ${paceTrendData.pctChange}% over the last 3 weeks. You're ready to target a new personal best this month.`;
+    if (player.totalTerritoriesClaimed >= 20)
+      return `${player.totalTerritoriesClaimed} zones conquered. Your territory strategy is paying off — now let's sharpen pace to match.`;
+    if (player.streakDays >= 7)
+      return `${player.streakDays}-day streak. Consistency like this builds real endurance. Keep easy effort to protect the streak.`;
+    if (player.totalRuns >= 10)
+      return `${player.totalRuns} runs in the bank. Your aerobic base is forming — add one tempo run weekly to accelerate progress.`;
+    return `Every run builds the foundation. Stay consistent and your pace will follow. You're trending in the right direction.`;
+  })();
+
+  const aiContextTags: string[] = [
+    paceTrendData.improved ? 'Pace trending up' : 'Pace steady',
+    player.streakDays >= 5 ? 'Overtraining risk' : player.streakDays >= 3 ? 'Recovery good' : 'Build streak',
+    player.totalTerritoriesClaimed > 5 ? 'Territory aggressive' : 'Territory explorer',
   ];
 
-  const longestRunKm = personalRecords.find(pr => pr.type === 'longest_run')?.value ?? 0;
-  const profileAchievements = [
-    { id: 'first_run',    cat: 'Running',   emoji: '🏃', title: 'First Steps',    desc: 'Complete your first run',       unlocked: player.totalRuns >= 1,                progress: Math.min(100, player.totalRuns * 100),                   gradient: 'from-sky-400 to-blue-600' },
-    { id: '5k_club',     cat: 'Running',   emoji: '🎯', title: '5K Club',        desc: 'Run 5 km in a single session',  unlocked: longestRunKm >= 5,                   progress: Math.min(100, (longestRunKm / 5) * 100),                 gradient: 'from-teal-400 to-teal-600' },
-    { id: '10k_warrior', cat: 'Running',   emoji: '🏅', title: '10K Warrior',    desc: 'Run 10 km in one session',      unlocked: longestRunKm >= 10,                  progress: Math.min(100, (longestRunKm / 10) * 100),                gradient: 'from-indigo-400 to-indigo-600' },
-    { id: '50k_explorer',cat: 'Running',   emoji: '⚡', title: '50K Explorer',   desc: 'Run 50 km total distance',      unlocked: player.totalDistanceKm >= 50,        progress: Math.min(100, (player.totalDistanceKm / 50) * 100),      gradient: 'from-amber-400 to-orange-500' },
-    { id: 'streak_3',    cat: 'Streak',    emoji: '🔥', title: 'On Fire',        desc: '3-day running streak',          unlocked: player.streakDays >= 3,              progress: Math.min(100, (player.streakDays / 3) * 100),            gradient: 'from-orange-400 to-red-500' },
-    { id: 'streak_7',    cat: 'Streak',    emoji: '🌟', title: 'Week Warrior',   desc: '7-day running streak',          unlocked: player.streakDays >= 7,              progress: Math.min(100, (player.streakDays / 7) * 100),            gradient: 'from-yellow-400 to-orange-500' },
-    { id: 'streak_30',   cat: 'Streak',    emoji: '💫', title: 'Monthly Grind',  desc: '30-day running streak',         unlocked: player.streakDays >= 30,             progress: Math.min(100, (player.streakDays / 30) * 100),           gradient: 'from-violet-400 to-purple-600' },
-    { id: 'first_zone',  cat: 'Territory', emoji: '📍', title: 'Zone Claimer',   desc: 'Claim your first territory',    unlocked: player.totalTerritoriesClaimed >= 1, progress: Math.min(100, player.totalTerritoriesClaimed * 100),      gradient: 'from-emerald-400 to-emerald-600' },
-    { id: 'zones_10',    cat: 'Territory', emoji: '🗺️', title: 'Map Maker',      desc: 'Claim 10 territories',          unlocked: player.totalTerritoriesClaimed >= 10, progress: Math.min(100, (player.totalTerritoriesClaimed / 10) * 100), gradient: 'from-teal-400 to-teal-600' },
-    { id: 'zones_50',    cat: 'Territory', emoji: '🏰', title: 'Conqueror',      desc: 'Claim 50 territories',          unlocked: player.totalTerritoriesClaimed >= 50, progress: Math.min(100, (player.totalTerritoriesClaimed / 50) * 100), gradient: 'from-rose-400 to-rose-600' },
-    { id: 'level_5',     cat: 'Level',     emoji: '⭐', title: 'Rising Star',    desc: 'Reach Level 5',                 unlocked: player.level >= 5,                   progress: Math.min(100, (player.level / 5) * 100),                 gradient: 'from-violet-400 to-violet-600' },
-    { id: 'level_10',    cat: 'Level',     emoji: '👑', title: 'Veteran',        desc: 'Reach Level 10',                unlocked: player.level >= 10,                  progress: Math.min(100, (player.level / 10) * 100),                gradient: 'from-amber-400 to-amber-600' },
+  const aiInsights: Array<{ icon: typeof TrendingUp; title: string; desc: string; chip: { label: string; style: 'green' | 'amber' | 'purple' } }> = [
+    {
+      icon: TrendingUp,
+      title: paceTrendData.improved ? 'Pace improvement detected' : 'Consistent pacing',
+      desc: paceTrendData.improved && paceTrendData.pctChange > 0
+        ? `Avg pace improved ${paceTrendData.pctChange}% over the last 3 weeks — a consistent, sustainable gain.`
+        : `Your pace is holding steady. Adding one weekly tempo run will spark the next level of improvement.`,
+      chip: { label: paceTrendData.improved ? `+${paceTrendData.pctChange}% pace` : 'Steady pace', style: paceTrendData.improved ? 'green' : 'amber' },
+    },
+    {
+      icon: Shield,
+      title: 'Optimal territory window',
+      desc: player.totalTerritoriesClaimed > 0
+        ? `Morning runs capture zones most efficiently. ${Math.max(0, 10 - (player.totalTerritoriesClaimed % 10))} zones to your next territory milestone.`
+        : `Start claiming zones during runs to build territory. Early morning routes capture 3× more unclaimed ground.`,
+      chip: { label: player.totalTerritoriesClaimed > 0 ? `${player.totalTerritoriesClaimed} zones held` : 'Zones ready', style: 'purple' },
+    },
+    {
+      icon: Zap,
+      title: player.streakDays >= 5 ? 'Recovery gap noticed' : 'Build your streak',
+      desc: player.streakDays >= 5
+        ? `You've run ${player.streakDays} days straight. A rest day tomorrow will improve Sunday's performance by ~4%.`
+        : `${Math.max(0, 3 - player.streakDays)} more day${player.streakDays >= 2 ? '' : 's'} to a 3-day streak. Daily consistency builds aerobic base faster than long gaps.`,
+      chip: { label: player.streakDays >= 5 ? 'Rest recommended' : 'Keep going', style: player.streakDays >= 5 ? 'amber' : 'green' },
+    },
   ];
-  const unlockedCount = profileAchievements.filter(a => a.unlocked).length;
 
-  // XP ring geometry
-  const RING_R = 34;
-  const RING_CIRC = 2 * Math.PI * RING_R;
+
+  const SectionLabel = ({ children }: { children: string }) => (
+    <p style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.muted, fontFamily: F, marginBottom: 12 }}>
+      {children}
+    </p>
+  );
+
+  // ── Stats cell data ───────────────────────────────────────────────────────
+  const statCells = [
+    { value: player.totalDistanceKm >= 1000 ? (player.totalDistanceKm / 1000).toFixed(1) + 'k' : player.totalDistanceKm.toFixed(0), label: 'Total km',   sub: 'All time'       },
+    { value: String(player.totalRuns),                                                                                                label: 'Runs',       sub: 'Since you joined' },
+    { value: avgPaceSec > 0 ? fmtMinsec(avgPaceSec) : '–',                                                                          label: 'Avg pace',   sub: 'min/km'         },
+    { value: thisWeekKm.toFixed(1),                                                                                                   label: 'This week',  sub: `of ${weeklyGoalKm} km goal` },
+  ];
+
+  // ── Awards sections data ──────────────────────────────────────────────────
+  const awardSections: Array<{
+    title: string;
+    items: Array<{ key: string; label: string; Icon: typeof Navigation; earned: boolean; progress: number; progressLabel: string }>;
+  }> = [
+    {
+      title: 'Running',
+      items: [
+        { key: 'first_run',   label: 'First Steps',  Icon: Play,       earned: player.totalRuns >= 1,                  progress: Math.min(1, player.totalRuns),             progressLabel: `${player.totalRuns} / 1 run` },
+        { key: '5k_club',     label: '5K Club',       Icon: TrendingUp, earned: longestKm >= 5,                         progress: Math.min(1, longestKm / 5),                progressLabel: `${longestKm.toFixed(1)} / 5 km` },
+        { key: '10k_warrior', label: '10K Warrior',   Icon: Star,       earned: longestKm >= 10,                        progress: Math.min(1, longestKm / 10),               progressLabel: `${longestKm.toFixed(1)} / 10 km` },
+        { key: '50k',         label: '50K Explorer',  Icon: Globe,      earned: player.totalDistanceKm >= 50,           progress: Math.min(1, player.totalDistanceKm / 50), progressLabel: `${player.totalDistanceKm.toFixed(0)} / 50 km` },
+      ],
+    },
+    {
+      title: 'Streaks',
+      items: [
+        { key: 'streak_3',  label: 'On Fire',       Icon: Zap,      earned: player.streakDays >= 3,  progress: Math.min(1, player.streakDays / 3),  progressLabel: `${player.streakDays} / 3 days` },
+        { key: 'streak_7',  label: 'Week Warrior',  Icon: Calendar, earned: player.streakDays >= 7,  progress: Math.min(1, player.streakDays / 7),  progressLabel: `${player.streakDays} / 7 days` },
+        { key: 'streak_30', label: 'Monthly Grind', Icon: Lock,     earned: player.streakDays >= 30, progress: Math.min(1, player.streakDays / 30), progressLabel: `${player.streakDays} / 30 days` },
+      ],
+    },
+    {
+      title: 'Territory',
+      items: [
+        { key: 'first_zone', label: 'Zone Claimer', Icon: Navigation, earned: player.totalTerritoriesClaimed >= 1,  progress: Math.min(1, player.totalTerritoriesClaimed),      progressLabel: `${player.totalTerritoriesClaimed} / 1 zone` },
+        { key: 'zones_10',   label: 'Map Maker',    Icon: MapIcon,    earned: player.totalTerritoriesClaimed >= 10, progress: Math.min(1, player.totalTerritoriesClaimed / 10), progressLabel: `${player.totalTerritoriesClaimed} / 10 zones` },
+        { key: 'zones_50',   label: 'Conqueror',    Icon: Shield,     earned: player.totalTerritoriesClaimed >= 50, progress: Math.min(1, player.totalTerritoriesClaimed / 50), progressLabel: `${player.totalTerritoriesClaimed} / 50 zones` },
+      ],
+    },
+    {
+      title: 'Levels',
+      items: [
+        { key: 'level_5',  label: 'Rising Star', Icon: Star,  earned: player.level >= 5,  progress: Math.min(1, player.level / 5),  progressLabel: `Lv. ${player.level} / 5` },
+        { key: 'level_10', label: 'Veteran',     Icon: Award, earned: player.level >= 10, progress: Math.min(1, player.level / 10), progressLabel: `Lv. ${player.level} / 10` },
+      ],
+    },
+  ];
+  const allAwardItems = awardSections.flatMap(s => s.items);
+  const totalAwardUnlocked = allAwardItems.filter(a => a.earned).length;
+  const totalAwardItems = allAwardItems.length;
+  const awardRingPct = totalAwardItems > 0 ? totalAwardUnlocked / totalAwardItems : 0;
+  const AWARD_RING_R = 20, AWARD_RING_CIRC = 2 * Math.PI * AWARD_RING_R;
 
   return (
-    <div className="h-full bg-[#F5F5F7] dark:bg-[#141414] overflow-y-auto pb-24">
+    <div style={{ height: '100%', background: C.bg, overflowY: 'auto', paddingBottom: 96 }}>
+      <style>{`
+        @keyframes awardShake {
+          0%,100%{transform:translateX(0)}
+          20%{transform:translateX(-3px)}
+          40%{transform:translateX(3px)}
+          60%{transform:translateX(-3px)}
+          80%{transform:translateX(3px)}
+        }
+      `}</style>
 
-      {/* ── Top bar ── */}
-      <div
-        className="flex items-center justify-between px-5 pb-2"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
-      >
-        <span className="text-[17px] font-bold text-gray-900 tracking-tight">Profile</span>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => { setShowShareCard(true); haptic('light'); }}
-            className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-200 transition"
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
-              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
-          </button>
-          <button
-            onClick={() => {
-              const newState = !soundEnabled;
-              soundManager.setEnabled(newState);
-              setSoundEnabled(newState);
-              if (newState) soundManager.play('tap');
-              haptic('light');
-            }}
-            className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-200 transition"
-          >
-            {soundEnabled
-              ? <Volume2 className="w-[17px] h-[17px] text-gray-500" strokeWidth={2} />
-              : <VolumeX className="w-[17px] h-[17px] text-gray-400" strokeWidth={2} />
-            }
-          </button>
-          <button
-            onClick={() => { navigate('/settings'); haptic('light'); }}
-            className="w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-200 transition"
-          >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Hero card ── */}
-      <div className="mx-4 mb-4">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.07)]"
-        >
-          {/* Gradient accent strip */}
-          <div className={`h-1 w-full bg-gradient-to-r ${avatarColor.from} ${avatarColor.to}`} />
-
-          <div className="px-5 pt-5 pb-4">
-            {/* Avatar row */}
-            <div className="flex items-start gap-4 mb-5">
-              {/* Circular avatar with XP ring */}
-              <div className="relative shrink-0 w-[76px] h-[76px]">
-                <svg width="76" height="76" className="absolute inset-0 -rotate-90" viewBox="0 0 76 76">
-                  <circle cx="38" cy="38" r={RING_R} fill="none" stroke="#F3F4F6" strokeWidth="4" />
-                  <motion.circle
-                    cx="38" cy="38" r={RING_R}
-                    fill="none"
-                    stroke="url(#xpGrad)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeDasharray={RING_CIRC}
-                    initial={{ strokeDashoffset: RING_CIRC }}
-                    animate={{ strokeDashoffset: RING_CIRC * (1 - xpProgress.percent / 100) }}
-                    transition={{ duration: 1.2, delay: 0.2, ease: 'easeOut' }}
-                  />
-                  <defs>
-                    <linearGradient id="xpGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#14b8a6" />
-                      <stop offset="100%" stopColor="#0ea5e9" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className={`absolute inset-[6px] rounded-full bg-gradient-to-br ${avatarColor.from} ${avatarColor.to}
-                                 flex items-center justify-center text-[26px] font-bold text-white`}>
-                  {player.username.charAt(0).toUpperCase()}
-                </div>
-              </div>
-
-              {/* Name / meta */}
-              <div className="flex-1 pt-0.5">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h1 className="text-[19px] font-bold text-gray-900 leading-tight tracking-tight">{player.username}</h1>
-                  {subscriptionTier !== 'free' && (
-                    <span className="px-1.5 py-0.5 rounded-md bg-gradient-to-r from-amber-400 to-orange-400 text-[9px] font-bold text-white uppercase tracking-wide">PRO</span>
-                  )}
-                </div>
-                <p className="text-[12px] text-teal-600 font-semibold mb-1.5">Lv.{player.level} · {levelTitle}</p>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-[12px] text-gray-500">
-                    <span className="font-bold text-gray-800">{followerCount}</span> followers
-                  </span>
-                  <span className="text-gray-200 text-xs">|</span>
-                  <span className="text-[12px] text-gray-500">
-                    <span className="font-bold text-gray-800">{followingCount}</span> following
-                  </span>
-                </div>
-
-                {/* Edit + Upgrade row */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => { setShowEditProfile(true); haptic('light'); }}
-                    className="px-3.5 py-1.5 rounded-xl border border-gray-200 text-[12px] font-semibold text-gray-700
-                               active:bg-gray-50 transition"
-                  >
-                    Edit Profile
-                  </button>
-                  {subscriptionTier === 'free' && (
-                    <button
-                      onClick={() => navigate('/subscription')}
-                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-teal-600
-                                 text-[12px] font-semibold text-white active:opacity-80 transition"
-                    >
-                      Go Pro
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* XP progress */}
-            <div className="flex items-center gap-2.5 mb-5">
-              <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${xpProgress.percent}%` }}
-                  transition={{ duration: 1, delay: 0.3 }}
-                  className="h-full bg-gradient-to-r from-teal-500 to-sky-400 rounded-full"
-                />
-              </div>
-              <span className="text-[10px] text-gray-400 font-medium shrink-0">
-                {Math.floor(xpProgress.progress)}<span className="text-gray-300">/{xpProgress.needed}</span> xp
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <div style={{
+        background: '#fff',
+        padding: '20px 20px 0',
+        borderBottom: `0.5px solid ${C.border}`,
+        paddingTop: 'max(20px, env(safe-area-inset-top))',
+      }}>
+        {/* Top row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          {/* Avatar + XP ring */}
+          <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0 }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%', background: avatarColor,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 20, fontFamily: F, fontWeight: 300, color: '#fff', letterSpacing: '0.02em' }}>
+                {initials}
               </span>
             </div>
-
-            {/* Stats strip */}
-            <div className="grid grid-cols-4 gap-0 border-t border-gray-50 pt-4">
-              {[
-                { value: player.totalDistanceKm.toFixed(1), label: 'km',    color: 'text-gray-900' },
-                { value: String(player.totalRuns),           label: 'runs',  color: 'text-gray-900' },
-                { value: String(player.totalTerritoriesClaimed), label: 'zones', color: 'text-teal-600' },
-                { value: String(player.streakDays),          label: 'streak',color: 'text-orange-500' },
-              ].map((s, i) => (
-                <div key={i} className={`text-center ${i > 0 ? 'border-l border-gray-100' : ''}`}>
-                  <span className={`text-stat text-[17px] font-bold block ${s.color}`}>{s.value}</span>
-                  <span className="text-[9px] uppercase tracking-widest text-gray-400 font-medium">{s.label}</span>
-                </div>
-              ))}
-            </div>
+            <svg width={72} height={72} viewBox="0 0 72 72" fill="none"
+              style={{ position: 'absolute', top: -4, left: -4, transform: 'rotate(-90deg)' }}>
+              <circle cx={36} cy={36} r={RING_R} stroke={C.hair} strokeWidth={2} />
+              <motion.circle
+                cx={36} cy={36} r={RING_R}
+                stroke={C.ink}
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeDasharray={RING_CIRC}
+                initial={{ strokeDashoffset: RING_CIRC }}
+                animate={{ strokeDashoffset: RING_CIRC * (1 - xpProgress.percent / 100) }}
+                transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
+              />
+            </svg>
           </div>
 
-          {/* Currency bar */}
-          <div className="flex items-center justify-center gap-6 py-3 border-t border-gray-50 bg-gray-50/60">
-            <div className="flex items-center gap-1.5">
-              <Coins className="w-3.5 h-3.5 text-amber-500" strokeWidth={2} />
-              <span className="text-stat text-[13px] font-bold text-amber-600">{player.coins.toLocaleString()}</span>
-            </div>
-            <div className="w-px h-3.5 bg-gray-200" />
-            <div className="flex items-center gap-1.5">
-              <Gem className="w-3.5 h-3.5 text-purple-500" strokeWidth={2} />
-              <span className="text-stat text-[13px] font-bold text-purple-600">{player.diamonds}</span>
-            </div>
-            <div className="w-px h-3.5 bg-gray-200" />
-            <div className="flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-sky-500" strokeWidth={2} />
-              <span className="text-stat text-[13px] font-bold text-sky-600">{player.energy}</span>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* ── Tab bar (underline style) ── */}
-      <div className="px-4 mb-5">
-        <div className="flex border-b border-gray-200">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); haptic('light'); }}
-              className="relative flex-1 py-2.5 text-[12px] font-semibold transition-colors"
-            >
-              <span className={activeTab === tab.id ? 'text-gray-900' : 'text-gray-400'}>
-                {tab.label}
-              </span>
-              {activeTab === tab.id && (
-                <motion.div
-                  layoutId="tab-indicator"
-                  className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-teal-500"
-                  transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-                />
-              )}
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+            <button onClick={handleShare} style={{
+              padding: '7px 14px', borderRadius: 3, background: C.surf,
+              border: `0.5px solid ${C.border}`, fontFamily: F,
+              fontSize: 11, fontWeight: 500, textTransform: 'uppercase',
+              letterSpacing: '0.04em', color: C.mid, cursor: 'pointer',
+            }}>Share</button>
+            <button onClick={() => { setEditOpen(true); haptic('light'); }} style={{
+              padding: '7px 14px', borderRadius: 3, background: C.ink,
+              border: `0.5px solid ${C.ink}`, fontFamily: F,
+              fontSize: 11, fontWeight: 500, textTransform: 'uppercase',
+              letterSpacing: '0.04em', color: '#fff', cursor: 'pointer',
+            }}>Edit</button>
+            <button onClick={() => { navigate('/settings'); haptic('light'); }} style={{
+              width: 30, height: 30, borderRadius: 3, background: C.surf,
+              border: `0.5px solid ${C.border}`, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}>
+              <Settings size={14} color={C.mid} />
             </button>
+          </div>
+        </div>
+
+        {/* Info block */}
+        <div style={{ marginBottom: 12 }}>
+          <p style={{ fontFamily: FD, fontStyle: 'italic', fontSize: 24, color: C.ink, letterSpacing: '-0.01em', lineHeight: 1.1, marginBottom: 4 }}>
+            {name}
+          </p>
+          <p style={{ fontFamily: F, fontWeight: 300, fontSize: 12, color: C.muted, marginBottom: 6, letterSpacing: '0.01em' }}>
+            {handle}
+          </p>
+          <p style={{ fontFamily: F, fontWeight: 300, fontSize: 12, color: C.mid, lineHeight: 1.6, marginBottom: 10 }}>
+            {bio}
+          </p>
+          {loc && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <MapPin size={10} stroke={C.muted} strokeWidth={1.5} fill="none" />
+              <span style={{ fontFamily: F, fontWeight: 300, fontSize: 11, color: C.muted }}>{loc}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Level progress row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <span style={{
+            padding: '3px 10px', borderRadius: 2, background: C.ink, color: '#fff',
+            fontFamily: F, fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em',
+          }}>Lv. {player.level}</span>
+          <div style={{ flex: 1, height: 3, background: C.hair, borderRadius: 2, overflow: 'hidden' }}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${xpProgress.percent}%` }}
+              transition={{ duration: 1, delay: 0.4 }}
+              style={{ height: '100%', background: C.ink, borderRadius: 2 }}
+            />
+          </div>
+          <span style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted, whiteSpace: 'nowrap' }}>
+            {Math.round(xpProgress.percent)}% → Lv. {player.level + 1}
+          </span>
+        </div>
+
+        {/* Social stats row */}
+        <div style={{ display: 'flex', borderTop: `0.5px solid ${C.hair}` }}>
+          {[
+            { value: '0',                                    label: 'Followers' },
+            { value: '0',                                    label: 'Following' },
+            { value: String(player.totalTerritoriesClaimed), label: 'Zones'     },
+            { value: String(player.streakDays),              label: 'Streak'    },
+          ].map((s, i, arr) => (
+            <div key={s.label} style={{
+              flex: 1, textAlign: 'center', padding: '10px 0',
+              borderRight: i < arr.length - 1 ? `0.5px solid ${C.hair}` : 'none',
+            }}>
+              <p style={{ fontFamily: F, fontWeight: 300, fontSize: 16, letterSpacing: '-0.02em', color: C.ink, lineHeight: 1, marginBottom: 2 }}>{s.value}</p>
+              <p style={{ fontFamily: F, fontWeight: 400, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted }}>{s.label}</p>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* Tab content */}
-      <div className="px-5">
-        {activeTab === 'overview' && (
-          <div>
-            {/* Quick action cards */}
-            <div className="grid grid-cols-2 gap-2.5 mb-5">
-              {[
-                { icon: <Map className="w-5 h-5 text-teal-600" strokeWidth={1.5} />, label: 'My Territories', sub: 'View your empire', path: '/territory-map' },
-                { icon: <BarChart3 className="w-5 h-5 text-emerald-500" strokeWidth={1.5} />, label: 'Run History', sub: `${recentRuns.length} total runs`, path: '/history' },
-                { icon: <Users className="w-5 h-5 text-purple-500" strokeWidth={1.5} />, label: 'My Club', sub: 'Thunder Runners', path: '/club' },
-                { icon: <Trophy className="w-5 h-5 text-amber-500" strokeWidth={1.5} />, label: 'Leaderboard', sub: 'Check your rank', path: '/leaderboard' },
-              ].map(card => (
-                <button
-                  key={card.path}
-                  onClick={() => { navigate(card.path); haptic('light'); }}
-                  className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-left active:scale-[0.97] transition"
-                >
-                  <span className="mb-2 block">{card.icon}</span>
-                  <span className="text-sm font-semibold text-gray-900 block">{card.label}</span>
-                  <span className="text-[11px] text-gray-400">{card.sub}</span>
-                </button>
-              ))}
-            </div>
+      {/* ── Tab bar ──────────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', background: '#fff', borderBottom: `0.5px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
+        {(['overview', 'stats', 'awards'] as ProfileTab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => { setTab(t); haptic('light'); }}
+            style={{
+              flex: 1, textAlign: 'center', padding: '11px 0',
+              fontFamily: F, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em',
+              fontWeight: tab === t ? 500 : 400,
+              color: tab === t ? C.ink : C.muted,
+              background: 'none', border: 'none', cursor: 'pointer',
+              borderBottom: `1.5px solid ${tab === t ? C.ink : 'transparent'}`,
+              outline: 'none',
+            }}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
 
-            {/* Training Calendar */}
-            <div className="mb-5">
-              <TrainingCalendar
-                runs={recentRuns.map(r => ({
-                  startTime: r.startTime,
-                  distanceMeters: r.distanceMeters,
-                }))}
-              />
-            </div>
+      {/* ── Tab content ─────────────────────────────────────────────────── */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
 
-          </div>
-        )}
-
-        {activeTab === 'missions' && (
-          <div className="space-y-5">
-            {/* Today header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-[0.15em]">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                </p>
-                <p className="text-[20px] font-bold text-gray-900 mt-0.5 tracking-tight">Today's Missions</p>
-              </div>
-              {player.streakDays > 0 && (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="flex items-center gap-2 bg-gradient-to-br from-orange-50 to-amber-50
-                             border border-orange-200/70 rounded-2xl px-3.5 py-2.5
-                             shadow-[0_2px_12px_rgba(251,146,60,0.12)]"
-                >
-                  <span className="text-[22px] leading-none">🔥</span>
-                  <div>
-                    <p className="text-[16px] font-bold text-orange-600 leading-none">{player.streakDays}</p>
-                    <p className="text-[9px] text-orange-400 uppercase tracking-wide font-medium">day streak</p>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-
-            {/* XP + level progress strip */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shrink-0">
-                <Zap className="w-5 h-5 text-white" strokeWidth={2.5} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[12px] font-semibold text-gray-700">Level {player.level} · {levelTitle}</span>
-                  <span className="text-stat text-[12px] font-bold text-amber-600">{player.xp.toLocaleString()} XP</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${xpProgress}%` }}
-                    transition={{ duration: 1, delay: 0.2, ease: 'easeOut' }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <DailyMissions />
-          </div>
-        )}
-
-        {activeTab === 'stats' && (
-          <div className="space-y-6">
-
-            {/* ── Dark billboard hero ── */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900 p-6
-                         shadow-[0_24px_64px_rgba(0,0,0,0.22)]"
-            >
-              {/* Decorative rings */}
-              <div className="absolute -right-12 -top-12 w-52 h-52 rounded-full border border-white/[0.05]" />
-              <div className="absolute -right-6 -top-6 w-36 h-36 rounded-full border border-white/[0.05]" />
-              <div className="absolute right-8 bottom-8 w-20 h-20 rounded-full bg-teal-500/10" />
-
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-400 mb-2">Total Distance</p>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-stat text-[56px] font-bold text-white leading-none tracking-tight">
-                  {player.totalDistanceKm.toFixed(1)}
-                </span>
-                <span className="text-[22px] font-bold text-teal-400 mb-1.5">km</span>
-              </div>
-              <p className="text-[13px] text-gray-400 mb-5">{player.totalRuns} runs · {levelTitle}</p>
-
-              <div className="flex gap-0">
-                {[
-                  { label: 'Avg / run', value: player.totalRuns > 0 ? `${(player.totalDistanceKm / player.totalRuns).toFixed(1)} km` : '—' },
-                  { label: 'Level',     value: `Lv. ${player.level}` },
-                  { label: 'Streak',    value: `${player.streakDays}d 🔥` },
-                ].map((item, i) => (
-                  <div key={item.label} className="flex-1">
-                    {i > 0 && <div className="absolute w-px h-8 bg-white/10 -ml-px mt-0.5" />}
-                    <div className={i > 0 ? 'pl-4' : ''}>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium">{item.label}</p>
-                      <p className="text-stat text-[15px] font-bold text-white mt-0.5">{item.value}</p>
-                    </div>
+          {/* ═══ OVERVIEW ═══ */}
+          {tab === 'overview' && (
+            <>
+              {/* Stats 2×2 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.hair, marginBottom: 1 }}>
+                {statCells.map(s => (
+                  <div key={s.label} style={{ background: '#fff', padding: '14px 18px' }}>
+                    <p style={{ fontFamily: F, fontWeight: 300, fontSize: 22, letterSpacing: '-0.03em', color: C.ink, lineHeight: 1, marginBottom: 3 }}>{s.value}</p>
+                    <p style={{ fontFamily: F, fontWeight: 400, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>{s.label}</p>
+                    <p style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted, marginTop: 2 }}>{s.sub}</p>
                   </div>
                 ))}
               </div>
-            </motion.div>
 
-            {/* ── Personal Records ── */}
-            {personalRecords.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-5 h-5 rounded-md bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
-                    <Trophy className="w-3 h-3 text-white" strokeWidth={2.5} />
-                  </div>
-                  <h3 className="text-[13px] font-bold text-gray-800">Personal Records</h3>
+              {/* Weekly goal */}
+              <div style={{ background: '#fff', padding: '16px 18px', marginBottom: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                  <span style={{ fontFamily: F, fontWeight: 500, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.ink }}>This week</span>
+                  <span style={{ fontFamily: F, fontWeight: 300, fontSize: 11, color: C.muted }}>
+                    {thisWeekKm.toFixed(1)} / {weeklyGoalKm} km
+                  </span>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-1 -mx-5 px-5 scrollbar-none">
-                  {personalRecords.map((pr, i) => {
-                    const configs = [
-                      { from: 'from-amber-500',   to: 'to-orange-600',   glow: 'rgba(245,158,11,0.25)' },
-                      { from: 'from-teal-500',    to: 'to-teal-700',     glow: 'rgba(20,184,166,0.25)' },
-                      { from: 'from-violet-500',  to: 'to-purple-700',   glow: 'rgba(139,92,246,0.25)' },
-                      { from: 'from-rose-500',    to: 'to-pink-700',     glow: 'rgba(244,63,94,0.25)' },
-                    ];
-                    const c = configs[i % configs.length];
+                <div style={{ height: 3, background: C.hair, borderRadius: 2, overflow: 'hidden', marginBottom: 10 }}>
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${goalPct * 100}%` }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    style={{ height: '100%', background: goalPct >= 1 ? '#1A6B40' : C.ink, borderRadius: 2 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {['M','T','W','T','F','S','S'].map((d, i) => (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div style={{
+                        width: '100%', height: 3, borderRadius: 2,
+                        background: weekDayBars[i]?.isToday ? C.red : weekDayBars[i]?.hasRun ? C.ink : C.hair,
+                      }} />
+                      <span style={{ fontFamily: F, fontSize: 8, fontWeight: 400, color: weekDayBars[i]?.isToday ? C.red : C.muted }}>{d}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent runs */}
+              {allRuns.length > 0 ? (
+                <div style={{ background: '#fff', padding: '14px 18px', marginBottom: 1 }}>
+                  <SectionLabel>Recent runs</SectionLabel>
+                  {allRuns.slice(0, 3).map((r, i) => {
+                    const distKm = (r.distanceMeters / 1000).toFixed(2);
+                    const date = new Date(r.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     return (
+                      <div key={r.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '9px 0',
+                        borderBottom: i < Math.min(allRuns.length, 3) - 1 ? `0.5px solid ${C.hair}` : 'none',
+                      }}>
+                        <div>
+                          <p style={{ fontFamily: F, fontWeight: 400, fontSize: 12, color: C.ink, marginBottom: 2 }}>{distKm} km</p>
+                          <p style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted }}>{date}</p>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <p style={{ fontFamily: F, fontWeight: 300, fontSize: 12, color: C.mid }}>{r.avgPace}</p>
+                          <p style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted }}>min/km</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ background: '#fff', padding: '32px 18px', marginBottom: 1, textAlign: 'center' }}>
+                  <p style={{ fontFamily: F, fontWeight: 300, fontSize: 13, color: C.muted }}>No runs yet — go capture some territory</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ═══ STATS ═══ */}
+          {tab === 'stats' && (
+            <>
+              {/* ── 1. AI Coach Hero ── */}
+              <div style={{ background: C.ink, padding: 18, marginBottom: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: AI.accent, flexShrink: 0 }} />
+                  <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.4)' }}>AI coach · updated today</span>
+                </div>
+                <p style={{ fontFamily: FD, fontStyle: 'italic', fontSize: 16, color: '#fff', lineHeight: 1.5, marginBottom: 14 }}>
+                  {aiQuote}
+                </p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {aiContextTags.map(tag => (
+                    <span key={tag} style={{ padding: '3px 9px', borderRadius: 2, background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.12)', fontFamily: F, fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.02em' }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── 2. Stats 2×2 ── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.hair, marginBottom: 1 }}>
+                {statCells.map(s => (
+                  <div key={s.label} style={{ background: '#fff', padding: '14px 18px' }}>
+                    <p style={{ fontFamily: F, fontWeight: 300, fontSize: 22, letterSpacing: '-0.03em', color: C.ink, lineHeight: 1, marginBottom: 3 }}>{s.value}</p>
+                    <p style={{ fontFamily: F, fontWeight: 400, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>{s.label}</p>
+                    <p style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted, marginTop: 2 }}>{s.sub}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── 3. Weekly km Bar Chart ── */}
+              <div style={{ background: '#fff', padding: '14px 16px', marginBottom: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.muted }}>Weekly km</span>
+                  <span style={{ fontFamily: F, fontSize: 10, fontWeight: 300, color: C.muted }}>Last 8 weeks</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 40, marginBottom: 8 }}>
+                  {weeklyBars.map((b, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ height: 0 }}
+                      animate={{ height: b.km > 0 ? `${(b.km / maxBarKm) * 100}%` : 2 }}
+                      transition={{ duration: 0.5, delay: i * 0.04 }}
+                      style={{
+                        flex: 1, borderRadius: '2px 2px 0 0',
+                        background: b.isCurrent ? '#D93518' : b.km >= 40 ? '#0A0A0A' : b.km >= 25 ? '#888780' : '#C8C4BE',
+                        minHeight: 0,
+                      }}
+                    />
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 3 }}>
+                  {weeklyBars.map((b, i) => (
+                    <div key={i} style={{ flex: 1, textAlign: 'center' }}>
+                      <span style={{ fontFamily: F, fontSize: 8, fontWeight: b.isCurrent ? 500 : 300, color: b.isCurrent ? '#D93518' : C.muted }}>
+                        {b.isCurrent ? 'Now' : `W${i + 1}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── 4. AI Insights ── */}
+              <div style={{ background: '#fff', padding: '14px 16px', marginBottom: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: AI.accent, flexShrink: 0 }} />
+                    <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.muted }}>AI insights</span>
+                  </div>
+                  <span style={{ padding: '2px 7px', borderRadius: 2, background: AI.tint, color: AI.accent, fontFamily: F, fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>3 new</span>
+                </div>
+                {aiInsights.map((ins, i) => {
+                  const InsIcon = ins.icon;
+                  const chipBg   = ins.chip.style === 'green' ? '#EDF7F2' : ins.chip.style === 'amber' ? '#FDF6E8' : AI.tint;
+                  const chipFg   = ins.chip.style === 'green' ? '#1A6B40' : ins.chip.style === 'amber' ? '#9E6800' : AI.accent;
+                  const ChipIcon = ins.chip.style === 'green' ? ArrowUp : ins.chip.style === 'amber' ? AlertTriangle : Navigation;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: i < aiInsights.length - 1 ? `0.5px solid ${C.hair}` : 'none' }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: AI.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <InsIcon size={13} stroke={AI.accent} strokeWidth={1.5} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontFamily: F, fontSize: 12, fontWeight: 500, color: C.ink, marginBottom: 3, lineHeight: 1.2 }}>{ins.title}</p>
+                        <p style={{ fontFamily: F, fontSize: 11, fontWeight: 300, color: C.mid, lineHeight: 1.5 }}>{ins.desc}</p>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 5, padding: '2px 7px', borderRadius: 2, background: chipBg, color: chipFg, fontFamily: F, fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          <ChipIcon size={8} strokeWidth={2} />
+                          {ins.chip.label}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── 5. Pace Zones ── */}
+              <div style={{ background: '#fff', padding: '14px 16px', marginBottom: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.muted }}>Pace zones</span>
+                  <span style={{ fontFamily: F, fontSize: 10, fontWeight: 300, color: C.muted }}>Last 30 runs</span>
+                </div>
+                {paceZonesData.map((zone, i) => (
+                  <div key={zone.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < paceZonesData.length - 1 ? 6 : 0 }}>
+                    <span style={{ fontFamily: F, fontSize: 10, fontWeight: 400, color: C.mid, width: 52, flexShrink: 0 }}>{zone.label}</span>
+                    <div style={{ flex: 1, height: 6, background: C.hair, borderRadius: 3, overflow: 'hidden' }}>
                       <motion.div
-                        key={pr.type}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.08 }}
-                        className={`shrink-0 w-36 rounded-2xl bg-gradient-to-br ${c.from} ${c.to} p-4`}
-                        style={{ boxShadow: `0 8px 32px ${c.glow}` }}
-                      >
-                        <Trophy className="w-5 h-5 text-white/70 mb-3" strokeWidth={1.5} />
-                        <p className="text-stat text-[22px] font-bold text-white leading-none mb-1">{formatRecordValue(pr)}</p>
-                        <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wide">{getRecordLabel(pr.type)}</p>
-                        <p className="text-[10px] text-white/40 mt-1">
-                          {new Date(pr.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </p>
-                      </motion.div>
+                        initial={{ width: 0 }}
+                        animate={{ width: `${zone.pct}%` }}
+                        transition={{ duration: 0.6, delay: 0.1 + i * 0.1 }}
+                        style={{ height: '100%', borderRadius: 3, background: zone.color }}
+                      />
+                    </div>
+                    <span style={{ fontFamily: F, fontSize: 10, fontWeight: 300, color: C.muted, width: 30, textAlign: 'right' }}>{zone.pct}%</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── 6. AI Race Predictions ── */}
+              <div style={{ marginBottom: 1 }}>
+                <div style={{ padding: '10px 16px 6px', background: C.warm }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: AI.accent, flexShrink: 0 }} />
+                    <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>AI Race Predictions</span>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.hair }}>
+                  {racePredictionsData.map(pred => {
+                    const dBg = pred.style === 'green' ? '#EDF7F2' : AI.tint;
+                    const dFg = pred.style === 'green' ? '#1A6B40' : AI.accent;
+                    const DIcon = pred.style === 'green' ? ArrowUp : Navigation;
+                    return (
+                      <div key={pred.dist} style={{ background: C.warm, padding: '14px 14px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <p style={{ fontFamily: F, fontSize: 10, fontWeight: 400, color: C.mid }}>{pred.dist}</p>
+                        <p style={{ fontFamily: F, fontSize: 18, fontWeight: 300, letterSpacing: '-0.03em', color: C.ink, lineHeight: 1 }}>{pred.time}</p>
+                        <p style={{ fontFamily: F, fontSize: 9, fontWeight: 300, color: C.muted }}>{pred.unit}</p>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 2, padding: '2px 6px', borderRadius: 2, background: dBg, color: dFg, fontFamily: F, fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', alignSelf: 'flex-start' }}>
+                          <DIcon size={8} strokeWidth={2} />
+                          {pred.delta}
+                        </span>
+                      </div>
                     );
                   })}
                 </div>
               </div>
-            )}
 
-            {/* ── Running stats ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center">
-                  <Activity className="w-3 h-3 text-white" strokeWidth={2.5} />
-                </div>
-                <h3 className="text-[13px] font-bold text-gray-800">Running</h3>
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                {[
-                  { label: 'Total Runs',   value: `${player.totalRuns}`,                                                                     accent: 'bg-sky-500' },
-                  { label: 'Total XP',     value: `${player.xp.toLocaleString()} XP`,                                                        accent: 'bg-amber-500' },
-                  { label: 'Avg per Run',  value: player.totalRuns > 0 ? `${(player.totalDistanceKm / player.totalRuns).toFixed(1)} km` : '—', accent: 'bg-teal-500' },
-                  { label: 'Energy',       value: `${player.energy} / 100`,                                                                  accent: 'bg-rose-500' },
-                ].map((row, i, arr) => (
-                  <motion.div
-                    key={row.label}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.06 }}
-                    className={`flex items-center gap-3 px-4 py-3.5 ${i < arr.length - 1 ? 'border-b border-gray-50' : ''}`}
-                  >
-                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${row.accent}`} />
-                    <span className="flex-1 text-[13px] text-gray-500">{row.label}</span>
-                    <span className="text-stat text-[14px] font-bold text-gray-900">{row.value}</span>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Territory & Economy ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
-                  <Map className="w-3 h-3 text-white" strokeWidth={2.5} />
-                </div>
-                <h3 className="text-[13px] font-bold text-gray-800">Territory &amp; Economy</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Zones Claimed', value: player.totalTerritoriesClaimed, unit: 'zones', from: 'from-emerald-500', to: 'to-teal-600', glow: 'rgba(16,185,129,0.15)' },
-                  { label: 'Coins Earned',  value: player.coins.toLocaleString(),  unit: 'coins', from: 'from-amber-500',   to: 'to-orange-500', glow: 'rgba(245,158,11,0.15)' },
-                  { label: 'Diamonds',      value: player.diamonds,                unit: 'diamonds', from: 'from-violet-500', to: 'to-purple-600', glow: 'rgba(139,92,246,0.15)' },
-                  { label: 'Day Streak',    value: player.streakDays,              unit: 'days',  from: 'from-orange-500',  to: 'to-red-500',    glow: 'rgba(249,115,22,0.15)' },
-                ].map((card, i) => (
-                  <motion.div
-                    key={card.label}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.07 }}
-                    className="bg-white rounded-2xl p-4 border border-gray-100"
-                    style={{ boxShadow: `0 4px 24px ${card.glow}` }}
-                  >
-                    <div className={`w-8 h-1.5 rounded-full bg-gradient-to-r ${card.from} ${card.to} mb-3`} />
-                    <p className="text-stat text-[26px] font-bold text-gray-900 leading-none">{card.value}</p>
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium mt-1">{card.unit}</p>
-                    <p className="text-[12px] text-gray-500 mt-0.5">{card.label}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'achievements' && (
-          <div className="space-y-5">
-
-            {/* Header card */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-5
-                         shadow-[0_16px_48px_rgba(245,158,11,0.28)]"
-            >
-              <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full border border-white/10" />
-              <div className="absolute -right-4 -top-4 w-28 h-28 rounded-full border border-white/10" />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-[11px] font-semibold uppercase tracking-[0.18em] mb-1">Achievements</p>
-                  <div className="flex items-end gap-1.5">
-                    <span className="text-stat text-[40px] font-bold text-white leading-none">{unlockedCount}</span>
-                    <span className="text-[18px] font-bold text-orange-200 mb-1">/ {profileAchievements.length}</span>
+              {/* ── 7. Personal Records — horizontal scroll ── */}
+              {prRows.length > 0 && (
+                <div style={{ marginBottom: 1 }}>
+                  <div style={{ padding: '10px 16px 6px', background: C.warm }}>
+                    <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>Personal Records</span>
                   </div>
-                  <p className="text-orange-100 text-[12px] mt-1">unlocked so far</p>
+                  <div
+                    className="scrollbar-none"
+                    style={{ display: 'flex', gap: 8, padding: '12px 16px', overflowX: 'auto', background: '#fff' }}
+                  >
+                    {prRows.map(r => (
+                      <div key={r.label} style={{ flexShrink: 0, background: C.warm, borderRadius: 4, padding: '12px 14px', border: `0.5px solid ${C.border}`, minWidth: 108 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 2, background: C.pr, marginBottom: 8 }}>
+                          <Star size={8} stroke={C.prText} strokeWidth={2} fill="none" />
+                          <span style={{ fontFamily: F, fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.prText }}>PR</span>
+                        </span>
+                        <p style={{ fontFamily: F, fontWeight: 300, fontSize: 20, letterSpacing: '-0.03em', color: C.ink, lineHeight: 1, marginBottom: 3 }}>{r.value}</p>
+                        <p style={{ fontFamily: F, fontSize: 9, fontWeight: 400, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>{r.label}</p>
+                        <p style={{ fontFamily: F, fontSize: 9, fontWeight: 300, color: C.muted, marginTop: 2 }}>{r.unit}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="relative w-16 h-16">
-                  <svg viewBox="0 0 64 64" className="w-full h-full -rotate-90">
-                    <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+              )}
+
+              {/* ── 8. Running Stats Grid (2×2) ── */}
+              <div style={{ marginBottom: 1 }}>
+                <div style={{ padding: '10px 16px 6px', background: C.warm }}>
+                  <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>Running Stats</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.hair }}>
+                  {[
+                    { value: (player?.xp ?? 0).toLocaleString(), label: 'Total XP',    sub: 'All time' },
+                    { value: player.totalRuns > 0 ? (player.totalDistanceKm / player.totalRuns).toFixed(1) : '0', label: 'Avg per run', sub: 'km' },
+                    { value: `${player.energy}/5`,                         label: 'Energy',      sub: 'Current / max' },
+                    { value: String(player.totalRuns),                     label: 'Total runs',  sub: 'All time' },
+                  ].map(s => (
+                    <div key={s.label} style={{ background: '#fff', padding: '14px 18px' }}>
+                      <p style={{ fontFamily: F, fontWeight: 300, fontSize: 20, letterSpacing: '-0.03em', color: C.ink, lineHeight: 1, marginBottom: 3 }}>{s.value}</p>
+                      <p style={{ fontFamily: F, fontWeight: 400, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>{s.label}</p>
+                      <p style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted, marginTop: 2 }}>{s.sub}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── 9. Territory & Economy Grid (2×2) ── */}
+              <div style={{ marginBottom: 1 }}>
+                <div style={{ padding: '10px 16px 6px', background: C.warm }}>
+                  <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>Territory & Economy</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.hair }}>
+                  {[
+                    { Icon: Navigation, iconColor: C.red,    value: String(player.totalTerritoriesClaimed), label: 'Zones owned'  },
+                    { Icon: Zap,        iconColor: '#9E6800', value: String(player?.coins   ?? 0),   label: 'Coins earned' },
+                    { Icon: Gem,        iconColor: '#1445AA', value: String(player?.diamonds ?? 0), label: 'Diamonds'     },
+                    { Icon: Flame,      iconColor: C.red,    value: `${player.streakDays}d`,               label: 'Day streak'   },
+                  ].map(({ Icon, iconColor, value, label }) => (
+                    <div key={label} style={{ background: '#fff', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: C.warm, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={13} stroke={iconColor} strokeWidth={1.5} fill="none" />
+                      </div>
+                      <div>
+                        <p style={{ fontFamily: F, fontWeight: 300, fontSize: 20, letterSpacing: '-0.03em', color: C.ink, lineHeight: 1, marginBottom: 3 }}>{value}</p>
+                        <p style={{ fontFamily: F, fontWeight: 400, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>{label}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ═══ AWARDS ═══ */}
+          {tab === 'awards' && (
+            <>
+              {/* ── Progress header ── */}
+              <div style={{ background: '#fff', padding: '16px', marginBottom: 1, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ position: 'relative', width: 52, height: 52, flexShrink: 0 }}>
+                  <svg width={52} height={52} viewBox="0 0 52 52" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx={26} cy={26} r={AWARD_RING_R} stroke={C.hair} strokeWidth={3} fill="none" />
                     <motion.circle
-                      cx="32" cy="32" r="26" fill="none"
-                      stroke="white" strokeWidth="5"
-                      strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 26}`}
-                      initial={{ strokeDashoffset: 2 * Math.PI * 26 }}
-                      animate={{ strokeDashoffset: 2 * Math.PI * 26 * (1 - unlockedCount / profileAchievements.length) }}
-                      transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
+                      cx={26} cy={26} r={AWARD_RING_R} stroke={C.ink} strokeWidth={3} fill="none"
+                      strokeLinecap="butt"
+                      strokeDasharray={AWARD_RING_CIRC}
+                      initial={{ strokeDashoffset: AWARD_RING_CIRC }}
+                      animate={{ strokeDashoffset: AWARD_RING_CIRC * (1 - awardRingPct) }}
+                      transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
                     />
                   </svg>
-                  <span className="absolute inset-0 flex items-center justify-center text-[18px]">🏆</span>
-                </div>
-              </div>
-              {/* Progress bar */}
-              <div className="mt-4 h-1 bg-white/20 rounded-full overflow-hidden">
-                <motion.div
-                  className="h-full bg-white rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(unlockedCount / profileAchievements.length) * 100}%` }}
-                  transition={{ duration: 0.9, delay: 0.4, ease: 'easeOut' }}
-                />
-              </div>
-            </motion.div>
-
-            {/* Achievement grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {profileAchievements.map((ach, idx) => (
-                <motion.div
-                  key={ach.id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.05 + idx * 0.04 }}
-                  className={`relative overflow-hidden rounded-2xl p-4 border ${
-                    ach.unlocked
-                      ? 'bg-white border-gray-100'
-                      : 'bg-gray-50 border-gray-100'
-                  }`}
-                  style={ach.unlocked ? { boxShadow: '0 4px 20px rgba(0,0,0,0.06)' } : {}}
-                >
-                  {/* Thin color top stripe on unlocked */}
-                  {ach.unlocked && (
-                    <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${ach.gradient}`} />
-                  )}
-
-                  {/* Badge icon */}
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-3 ${
-                    ach.unlocked
-                      ? `bg-gradient-to-br ${ach.gradient} shadow-sm`
-                      : 'bg-gray-200'
-                  }`}>
-                    {ach.unlocked
-                      ? <span className="text-[20px] leading-none">{ach.emoji}</span>
-                      : <Lock className="w-4 h-4 text-gray-400" strokeWidth={2} />
-                    }
-                  </div>
-
-                  <p className={`text-[13px] font-bold leading-tight mb-0.5 ${ach.unlocked ? 'text-gray-900' : 'text-gray-400'}`}>
-                    {ach.title}
-                  </p>
-                  <p className="text-[11px] text-gray-400 leading-snug mb-3">{ach.desc}</p>
-
-                  {ach.unlocked ? (
-                    <div className="flex items-center gap-1">
-                      <Check className="w-3 h-3 text-teal-500" strokeWidth={2.5} />
-                      <span className="text-[10px] font-semibold text-teal-500">Earned</span>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[9px] text-gray-400 uppercase tracking-wide font-medium">{ach.cat}</span>
-                        <span className="text-stat text-[10px] text-gray-400">{Math.round(ach.progress)}%</span>
-                      </div>
-                      <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-                        <motion.div
-                          className={`h-full rounded-full bg-gradient-to-r ${ach.gradient} opacity-60`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${ach.progress}%` }}
-                          transition={{ duration: 0.7, delay: 0.1 + idx * 0.04 }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Edit Profile Sheet */}
-      <AnimatePresence>
-        {showEditProfile && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/40"
-            onClick={() => setShowEditProfile(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              onClick={e => e.stopPropagation()}
-              className="absolute bottom-0 left-0 right-0 bg-[#FAFAFA] dark:bg-[#0A0A0A] rounded-t-3xl max-h-[92vh] overflow-y-auto"
-              style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
-            >
-              {/* Handle */}
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 rounded-full bg-gray-200" />
-              </div>
-
-              {/* Header */}
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
-                <button
-                  onClick={() => { setShowEditProfile(false); haptic('light'); }}
-                  className="p-1.5 rounded-full active:bg-gray-100 transition"
-                >
-                  <ArrowLeft className="w-5 h-5 text-gray-700" strokeWidth={2} />
-                </button>
-                <h2 className="flex-1 text-[16px] font-bold text-gray-900">Edit Profile</h2>
-                <button
-                  onClick={async () => {
-                    setSavedProfile(true);
-                    haptic('medium');
-                    try {
-                      await supabase.from('profiles').update({
-                        username: displayName || player.username,
-                        weekly_goal_km: weeklyGoal,
-                        bio: bio || null,
-                        location: location || null,
-                        avatar_color: avatarColorId,
-                      }).eq('id', player.id);
-                      await pushProfile();
-                    } catch { /* non-fatal */ }
-                    setTimeout(() => {
-                      setSavedProfile(false);
-                      setShowEditProfile(false);
-                    }, 1000);
-                  }}
-                  className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all ${
-                    savedProfile
-                      ? 'bg-teal-50 text-teal-600'
-                      : 'bg-teal-500 text-white active:bg-teal-600'
-                  }`}
-                >
-                  {savedProfile ? <Check className="w-4 h-4" strokeWidth={2.5} /> : 'Save'}
-                </button>
-              </div>
-
-              <div className="px-5 pt-6 pb-4 space-y-6">
-
-                {/* Avatar picker */}
-                <div className="flex flex-col items-center">
-                  <div className="relative mb-3">
-                    <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarColor.from} ${avatarColor.to} flex items-center justify-center text-2xl font-bold text-white shadow-lg`}>
-                      {(displayName || player?.username || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-gray-900 flex items-center justify-center ring-2 ring-white">
-                      <Camera className="w-3.5 h-3.5 text-white" strokeWidth={2} />
-                    </div>
-                  </div>
-                  <p className="text-[12px] text-gray-400 mb-3">Choose avatar colour</p>
-                  <div className="flex gap-2 flex-wrap justify-center">
-                    {AVATAR_COLORS.map(c => (
-                      <button
-                        key={c.id}
-                        onClick={() => { setAvatarColorId(c.id); haptic('light'); }}
-                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${c.from} ${c.to} transition-all ${
-                          avatarColorId === c.id
-                            ? 'ring-2 ring-offset-2 ring-gray-700 scale-110'
-                            : 'active:scale-95'
-                        }`}
-                      />
-                    ))}
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontFamily: F, fontWeight: 300, fontSize: 16, color: C.ink, lineHeight: 1 }}>{totalAwardUnlocked}</span>
+                    <span style={{ fontFamily: F, fontWeight: 300, fontSize: 9, color: C.muted, lineHeight: 1.4 }}>/ {totalAwardItems}</span>
                   </div>
                 </div>
-
-                {/* Display name */}
-                <div>
-                  <label className="text-[11px] uppercase tracking-[0.15em] text-gray-400 font-semibold mb-2 block">Display Name</label>
-                  <input
-                    type="text"
-                    value={displayName || player?.username || ''}
-                    onChange={e => setDisplayName(e.target.value)}
-                    maxLength={30}
-                    placeholder="Your name"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-400 transition"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1 text-right">{(displayName || player?.username || '').length}/30</p>
-                </div>
-
-                {/* Bio */}
-                <div>
-                  <label className="text-[11px] uppercase tracking-[0.15em] text-gray-400 font-semibold mb-2 block">Bio</label>
-                  <textarea
-                    ref={bioRef}
-                    value={bio}
-                    onChange={e => setBio(e.target.value)}
-                    maxLength={150}
-                    rows={3}
-                    placeholder="Tell the community about yourself..."
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-400 transition resize-none"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1 text-right">{bio.length}/150</p>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <label className="text-[11px] uppercase tracking-[0.15em] text-gray-400 font-semibold mb-2 block">Location</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" strokeWidth={2} />
-                    <input
-                      type="text"
-                      value={location}
-                      onChange={e => setLocation(e.target.value)}
-                      placeholder="City, Country"
-                      className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-400 transition"
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: F, fontWeight: 500, fontSize: 13, color: C.ink, marginBottom: 6 }}>{totalAwardUnlocked} of {totalAwardItems} unlocked</p>
+                  <div style={{ height: 2, background: C.hair, borderRadius: 1, overflow: 'hidden', marginBottom: 5 }}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${awardRingPct * 100}%` }}
+                      transition={{ duration: 0.8, delay: 0.3 }}
+                      style={{ height: '100%', background: C.ink, borderRadius: 1 }}
                     />
                   </div>
+                  <p style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted }}>{totalAwardItems - totalAwardUnlocked} achievements remaining</p>
                 </div>
+              </div>
 
-                {/* Weekly goal */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-[11px] uppercase tracking-[0.15em] text-gray-400 font-semibold flex items-center gap-1.5">
-                      <Target className="w-3.5 h-3.5" strokeWidth={2} />
-                      Weekly Goal
-                    </label>
-                    <span className="text-[14px] font-bold text-teal-600">{weeklyGoal} km</span>
+              {/* ── Award sections ── */}
+              {awardSections.map(section => (
+                <div key={section.title} style={{ marginBottom: 1 }}>
+                  <div style={{ padding: '10px 16px 6px', background: C.warm }}>
+                    <span style={{ fontFamily: F, fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em', color: C.muted }}>{section.title}</span>
                   </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.hair }}>
+                    {section.items.map(award => {
+                      const shaking = lockedId === award.key;
+                      const AwardIcon = award.Icon;
+                      return (
+                        <div key={award.key} style={{ position: 'relative' }}>
+                          <motion.button
+                            whileTap={award.earned ? { scale: 1.06 } : {}}
+                            onClick={() => {
+                              haptic('light');
+                              if (!award.earned) {
+                                setLockedId(award.key);
+                                setTimeout(() => setLockedId(null), 1500);
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              background: award.earned ? '#fff' : C.surf,
+                              border: 'none', cursor: 'pointer',
+                              padding: '14px 14px 12px',
+                              display: 'flex', flexDirection: 'column', gap: 8,
+                              textAlign: 'left',
+                              animation: shaking ? 'awardShake 0.3s ease' : 'none',
+                            }}
+                          >
+                            <div style={{
+                              width: 36, height: 36, borderRadius: 8,
+                              background: award.earned ? C.ink : C.warm,
+                              border: award.earned ? 'none' : `0.5px solid ${C.hair}`,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              <AwardIcon size={16} strokeWidth={1.5} stroke={award.earned ? '#fff' : C.muted} fill="none" />
+                            </div>
+                            <span style={{ fontFamily: F, fontSize: 11, fontWeight: award.earned ? 500 : 400, color: award.earned ? C.ink : C.muted, lineHeight: 1.2 }}>
+                              {award.label}
+                            </span>
+                            {award.earned ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Check size={10} strokeWidth={2.5} stroke="#1A6B40" />
+                                <span style={{ fontFamily: F, fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#1A6B40' }}>Earned</span>
+                              </div>
+                            ) : (
+                              <div>
+                                <div style={{ height: 2, background: C.hair, borderRadius: 1, overflow: 'hidden' }}>
+                                  <div style={{ width: `${award.progress * 100}%`, height: '100%', background: C.muted, borderRadius: 1 }} />
+                                </div>
+                                <span style={{ fontFamily: F, fontSize: 9, fontWeight: 300, color: C.muted, marginTop: 3, display: 'block' }}>
+                                  {award.progressLabel}
+                                </span>
+                              </div>
+                            )}
+                          </motion.button>
+                          {shaking && (
+                            <div style={{
+                              position: 'absolute', bottom: 'calc(100% + 4px)', left: '50%',
+                              transform: 'translateX(-50%)', zIndex: 20,
+                              background: '#fff', border: `0.5px solid ${C.border}`,
+                              borderRadius: 4, padding: '4px 8px',
+                              fontSize: 10, color: C.mid, fontFamily: F,
+                              whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                            }}>
+                              {award.progressLabel}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+        </motion.div>
+      </AnimatePresence>
+
+      {/* ── Edit Profile Modal ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {editOpen && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+            style={{
+              position: 'fixed', inset: 0, background: '#fff', zIndex: 200,
+              display: 'flex', flexDirection: 'column',
+              paddingTop: 'max(0px, env(safe-area-inset-top))',
+            }}
+          >
+            {/* Modal header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: `0.5px solid ${C.hair}` }}>
+              <button onClick={() => setEditOpen(false)} style={{ background: 'none', border: 'none', fontFamily: F, fontSize: 14, fontWeight: 300, color: C.muted, cursor: 'pointer' }}>Cancel</button>
+              <span style={{ fontFamily: F, fontSize: 14, fontWeight: 500, color: C.ink }}>Edit profile</span>
+              <button onClick={saveEdit} style={{ background: 'none', border: 'none', fontFamily: F, fontSize: 14, fontWeight: 500, color: C.red, cursor: 'pointer' }}>Save</button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 20px' }}>
+              {/* Avatar color */}
+              <div style={{ marginBottom: 24 }}>
+                <p style={{ fontFamily: F, fontSize: 10, textTransform: 'uppercase', color: C.muted, letterSpacing: '0.08em', marginBottom: 12 }}>Avatar colour</p>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {SWATCHES.map(swatch => (
+                    <button key={swatch} onClick={() => { setAvatarColor(swatch); haptic('light'); }} style={{
+                      width: 36, height: 36, borderRadius: '50%', background: swatch, border: `2px solid ${avatarColor === swatch ? C.ink : 'transparent'}`, cursor: 'pointer',
+                      boxShadow: avatarColor === swatch ? `0 0 0 2px #fff, 0 0 0 4px ${C.ink}` : 'none',
+                    }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Fields */}
+              {[
+                { label: 'Display name', value: displayName, set: setDisplayName, maxLen: 40, tag: 'input' as const },
+              ].map(f => (
+                <div key={f.label} style={{ borderBottom: `0.5px solid ${C.hair}`, paddingBottom: 12, marginBottom: 16 }}>
+                  <p style={{ fontFamily: F, fontSize: 10, textTransform: 'uppercase', color: C.muted, letterSpacing: '0.08em', marginBottom: 6 }}>{f.label}</p>
                   <input
-                    type="range"
-                    min={5}
-                    max={120}
-                    step={5}
-                    value={weeklyGoal}
-                    onChange={e => { setWeeklyGoal(Number(e.target.value)); haptic('light'); }}
-                    className="w-full accent-teal-500"
+                    value={f.value} onChange={e => f.set(e.target.value)} maxLength={f.maxLen}
+                    style={{ width: '100%', fontFamily: F, fontSize: 14, fontWeight: 300, color: C.ink, border: 'none', outline: 'none', background: 'transparent', padding: 0 }}
                   />
-                  <div className="flex justify-between text-[10px] text-gray-300 mt-1">
-                    <span>5 km</span>
-                    <span>120 km</span>
-                  </div>
                 </div>
+              ))}
 
-                {/* Privacy */}
+              {/* Bio */}
+              <div style={{ borderBottom: `0.5px solid ${C.hair}`, paddingBottom: 12, marginBottom: 16 }}>
+                <p style={{ fontFamily: F, fontSize: 10, textTransform: 'uppercase', color: C.muted, letterSpacing: '0.08em', marginBottom: 6 }}>Bio</p>
+                <div style={{ position: 'relative' }}>
+                  <textarea
+                    ref={bioRef} value={bio} onChange={e => setBio(e.target.value.slice(0, 80))}
+                    rows={3} maxLength={80}
+                    style={{ width: '100%', fontFamily: F, fontSize: 14, fontWeight: 300, color: C.ink, border: 'none', outline: 'none', background: 'transparent', resize: 'none', padding: 0 }}
+                  />
+                  <span style={{ fontFamily: F, fontSize: 11, color: C.muted, position: 'absolute', right: 0, bottom: 0 }}>{bio.length}/80</span>
+                </div>
+              </div>
+
+              {/* Location */}
+              <div style={{ borderBottom: `0.5px solid ${C.hair}`, paddingBottom: 12, marginBottom: 16 }}>
+                <p style={{ fontFamily: F, fontSize: 10, textTransform: 'uppercase', color: C.muted, letterSpacing: '0.08em', marginBottom: 6 }}>Location</p>
+                <input value={loc} onChange={e => setLoc(e.target.value)}
+                  style={{ width: '100%', fontFamily: F, fontSize: 14, fontWeight: 300, color: C.ink, border: 'none', outline: 'none', background: 'transparent', padding: 0 }}
+                />
+              </div>
+
+              {/* Strava */}
+              <div style={{ borderBottom: `0.5px solid ${C.hair}`, paddingBottom: 12, marginBottom: 16 }}>
+                <p style={{ fontFamily: F, fontSize: 10, textTransform: 'uppercase', color: C.muted, letterSpacing: '0.08em', marginBottom: 6 }}>Strava</p>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontFamily: F, fontSize: 14, fontWeight: 300, color: C.muted }}>@</span>
+                  <input value={strava} onChange={e => setStrava(e.target.value)}
+                    style={{ flex: 1, fontFamily: F, fontSize: 14, fontWeight: 300, color: C.ink, border: 'none', outline: 'none', background: 'transparent', padding: 0 }}
+                  />
+                </div>
+              </div>
+
+              {/* Instagram */}
+              <div style={{ borderBottom: `0.5px solid ${C.hair}`, paddingBottom: 12, marginBottom: 16 }}>
+                <p style={{ fontFamily: F, fontSize: 10, textTransform: 'uppercase', color: C.muted, letterSpacing: '0.08em', marginBottom: 6 }}>Instagram</p>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontFamily: F, fontSize: 14, fontWeight: 300, color: C.muted }}>@</span>
+                  <input value={instagram} onChange={e => setInstagram(e.target.value)}
+                    style={{ flex: 1, fontFamily: F, fontSize: 14, fontWeight: 300, color: C.ink, border: 'none', outline: 'none', background: 'transparent', padding: 0 }}
+                  />
+                </div>
+              </div>
+
+              {/* Privacy toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12 }}>
                 <div>
-                  <label className="text-[11px] uppercase tracking-[0.15em] text-gray-400 font-semibold mb-2 block flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5" strokeWidth={2} />
-                    Profile Visibility
-                  </label>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {([
-                      { id: 'public',    icon: Globe,   label: 'Public',          sub: 'Anyone can see your runs' },
-                      { id: 'followers', icon: Users,   label: 'Followers only',  sub: 'Only people you follow' },
-                      { id: 'private',   icon: Lock,    label: 'Private',         sub: 'Only you can see' },
-                    ] as const).map((opt, i, arr) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => { setPrivacy(opt.id); haptic('light'); }}
-                        className={`w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition active:bg-gray-50 ${
-                          i < arr.length - 1 ? 'border-b border-gray-100' : ''
-                        }`}
-                      >
-                        <opt.icon className="w-4.5 h-4.5 text-gray-400 flex-shrink-0" strokeWidth={1.8} />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[13px] font-medium text-gray-900 block">{opt.label}</span>
-                          <span className="text-[11px] text-gray-400">{opt.sub}</span>
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition ${
-                          privacy === opt.id ? 'bg-teal-500 border-teal-500' : 'border-gray-300'
-                        }`}>
-                          {privacy === opt.id && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  <p style={{ fontFamily: F, fontSize: 10, textTransform: 'uppercase', color: C.muted, letterSpacing: '0.08em', marginBottom: 4 }}>Privacy</p>
+                  <p style={{ fontFamily: F, fontSize: 14, fontWeight: 300, color: C.ink }}>Public profile</p>
                 </div>
-
-                {/* Linked apps */}
-                <div>
-                  <label className="text-[11px] uppercase tracking-[0.15em] text-gray-400 font-semibold mb-2 block flex items-center gap-1.5">
-                    <Link2 className="w-3.5 h-3.5" strokeWidth={2} />
-                    Linked Apps
-                  </label>
-                  <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Strava */}
-                    <div className="flex items-center gap-3.5 px-4 py-3.5 border-b border-gray-100">
-                      <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-[11px] font-black">S</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[13px] font-medium text-gray-900 block">Strava</span>
-                        <input
-                          type="text"
-                          value={stravaHandle}
-                          onChange={e => setStravaHandle(e.target.value)}
-                          placeholder="strava.com/athletes/..."
-                          className="text-[11px] text-gray-400 bg-transparent outline-none w-full placeholder:text-gray-300 mt-0.5"
-                        />
-                      </div>
-                      {stravaHandle ? (
-                        <button onClick={() => setStravaHandle('')} className="p-1 rounded-full active:bg-gray-100">
-                          <X className="w-3.5 h-3.5 text-gray-300" strokeWidth={2} />
-                        </button>
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-300" strokeWidth={2} />
-                      )}
-                    </div>
-                    {/* Instagram */}
-                    <div className="flex items-center gap-3.5 px-4 py-3.5">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center flex-shrink-0">
-                        <span className="text-white text-[11px] font-black">ig</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[13px] font-medium text-gray-900 block">Instagram</span>
-                        <input
-                          type="text"
-                          value={instagramHandle}
-                          onChange={e => setInstagramHandle(e.target.value)}
-                          placeholder="@username"
-                          className="text-[11px] text-gray-400 bg-transparent outline-none w-full placeholder:text-gray-300 mt-0.5"
-                        />
-                      </div>
-                      {instagramHandle ? (
-                        <button onClick={() => setInstagramHandle('')} className="p-1 rounded-full active:bg-gray-100">
-                          <X className="w-3.5 h-3.5 text-gray-300" strokeWidth={2} />
-                        </button>
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-300" strokeWidth={2} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Save button */}
                 <button
-                  onClick={() => {
-                    setSavedProfile(true);
-                    haptic('medium');
-                    setTimeout(() => {
-                      setSavedProfile(false);
-                      setShowEditProfile(false);
-                    }, 1000);
+                  onClick={() => { setPrivacy(p => !p); haptic('light'); }}
+                  style={{
+                    width: 44, height: 26, borderRadius: 13, position: 'relative', cursor: 'pointer',
+                    background: privacy ? C.ink : C.hair, border: 'none', transition: 'background 0.2s',
                   }}
-                  className={`w-full py-3.5 rounded-2xl font-semibold text-[15px] flex items-center justify-center gap-2 transition-all ${
-                    savedProfile
-                      ? 'bg-teal-50 text-teal-600 border border-teal-200'
-                      : 'bg-gray-900 text-white active:bg-gray-800 shadow-sm'
-                  }`}
                 >
-                  {savedProfile ? (
-                    <><Check className="w-4.5 h-4.5" strokeWidth={2.5} /> Saved!</>
-                  ) : (
-                    'Save Changes'
-                  )}
+                  <motion.div
+                    animate={{ x: privacy ? 20 : 2 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                    style={{ position: 'absolute', top: 2, left: 0, width: 22, height: 22, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}
+                  />
                 </button>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      <ProfileShareCard
-        isOpen={showShareCard}
-        onClose={() => setShowShareCard(false)}
-        profile={{
-          username: player.username,
-          level: player.level,
-          levelTitle,
-          totalDistanceKm: player.totalDistanceKm,
-          totalRuns: player.totalRuns,
-          totalTerritoriesClaimed: player.totalTerritoriesClaimed,
-          streakDays: player.streakDays,
-          avatarColor: avatarColorId,
-        }}
-      />
-
     </div>
   );
 }

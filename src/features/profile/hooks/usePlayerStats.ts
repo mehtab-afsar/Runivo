@@ -15,23 +15,26 @@ export function usePlayerStats() {
 
   const load = async () => {
     setLoading(true);
-    let p = await getPlayer();
+    try {
+      let p = await getPlayer();
 
-    if (p) {
-      const territories = await getAllTerritories();
-      const ownedCount = territories.filter(t => t.ownerId === p!.id).length;
-      const { coinsEarned, updatedPlayer } = collectPassiveIncome(p, ownedCount);
-      if (coinsEarned > 0) {
-        await savePlayer(updatedPlayer);
-        p = updatedPlayer;
-        setIncomeCollected(coinsEarned);
+      if (p) {
+        const territories = await getAllTerritories();
+        const ownedCount = territories.filter(t => t.ownerId === p!.id).length;
+        const { coinsEarned, updatedPlayer } = collectPassiveIncome(p, ownedCount);
+        if (coinsEarned > 0) {
+          await savePlayer(updatedPlayer);
+          p = updatedPlayer;
+          setIncomeCollected(coinsEarned);
+        }
       }
-    }
 
-    setPlayer(p);
-    const runs = await getRuns(10);
-    setRecentRuns(runs);
-    setLoading(false);
+      setPlayer(p);
+      const runs = await getRuns(10);
+      setRecentRuns(runs);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const xpProgress = player

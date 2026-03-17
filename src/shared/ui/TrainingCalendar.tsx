@@ -12,9 +12,9 @@ const DAY_HEADERS = ["S", "M", "T", "W", "T", "F", "S"];
 
 const LEGEND = [
   { label: "Rest", color: "bg-gray-50" },
-  { label: "Light", color: "bg-teal-100" },
-  { label: "Medium", color: "bg-teal-300" },
-  { label: "Hard", color: "bg-teal-500" },
+  { label: "Light", color: "bg-[#F9E4E7]" },
+  { label: "Medium", color: "bg-[#E8435A]/40" },
+  { label: "Hard", color: "bg-[#E8435A]" },
 ];
 
 function getDaysInMonth(year: number, month: number): number {
@@ -171,17 +171,17 @@ export default function TrainingCalendar({ runs }: TrainingCalendarProps) {
             let bgClass = "bg-gray-50";
             let textClass = "text-gray-600";
             if (intensity === "light") {
-              bgClass = "bg-teal-100";
-              textClass = "text-teal-800";
+              bgClass = "bg-[#F9E4E7]";
+              textClass = "text-[#D03A4F]";
             } else if (intensity === "medium") {
-              bgClass = "bg-teal-300";
-              textClass = "text-teal-900";
+              bgClass = "bg-[#E8435A]/40";
+              textClass = "text-[#D03A4F]";
             } else if (intensity === "hard") {
-              bgClass = "bg-teal-500";
+              bgClass = "bg-[#E8435A]";
               textClass = "text-white";
             }
 
-            const ringClass = isToday ? "ring-2 ring-teal-400 ring-offset-1" : "";
+            const ringClass = isToday ? "ring-2 ring-[#E8435A] ring-offset-1" : "";
 
             return (
               <div

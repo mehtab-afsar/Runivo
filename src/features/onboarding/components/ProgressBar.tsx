@@ -31,14 +31,15 @@ export default function OnboardingProgress({ currentStep }: ProgressBarProps) {
           <div key={ci} className="flex-1">
             <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-teal-500 rounded-full"
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg, #E8435A, #D03A4F)' }}
                 initial={false}
                 animate={{ width: `${fillPercent}%` }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               />
             </div>
             <span className={`text-[9px] mt-1 block text-center font-medium ${
-              currentStep >= chapterStart ? 'text-teal-600' : 'text-gray-300'
+              currentStep >= chapterStart ? 'text-[#E8435A]' : 'text-gray-300'
             }`}>
               {chapter.label}
             </span>

@@ -1,41 +1,89 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Flag, Swords, Flame, Gem, Activity, X, Bookmark } from 'lucide-react'
+import { Flag, Swords, Gem, X, Bookmark, Share2 } from 'lucide-react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { StatCard } from '@shared/ui/StatCard'
 import { SaveRouteModal } from '@features/run/components/SaveRouteModal'
-
-const formatTime = (seconds: number): string => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
-const formatPace = (paceMinutesPerKm: number): string => {
-  const minutes = Math.floor(paceMinutesPerKm);
-  const secs = Math.floor((paceMinutesPerKm - minutes) * 60);
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats'
 import { ShareCardGenerator } from '@shared/ui/ShareCardGenerator'
-import SplitsTable from '@shared/ui/SplitsTable'
 import type { LiveRunData, Location } from '@shared/types/index'
 import { getProfile } from '@shared/services/profile'
 import { useTheme } from '@shared/hooks/useTheme'
 
-const stagger = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.09 } },
+// ─── Design tokens ───────────────────────────────────────────────────────────
+const T = {
+  pageBg:  '#EDEAE5',
+  stone:   '#F0EDE8',
+  mid:     '#E8E4DF',
+  border:  '#DDD9D4',
+  surface: '#FFFFFF',
+  black:   '#0A0A0A',
+  t2:      '#6B6560',
+  t3:      '#A39E98',
+  red:     '#E8435A',
 }
 
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show:   { opacity: 1, y: 0, transition: { ease: [0.4, 0, 0.2, 1] as [number, number, number, number] } },
+// ─── Formatters ──────────────────────────────────────────────────────────────
+const formatTime = (seconds: number): string => {
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+}
+const formatPace = (paceMinutesPerKm: number): string => {
+  const m = Math.floor(paceMinutesPerKm)
+  const s = Math.floor((paceMinutesPerKm - m) * 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-const MAP_STYLE_LIGHT = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-const MAP_STYLE_DARK  = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+// ─── Splits computation ───────────────────────────────────────────────────────
+function haversineDist(a: [number, number], b: [number, number]): number {
+  const R = 6371
+  const dLat = ((b[1] - a[1]) * Math.PI) / 180
+  const dLng = ((b[0] - a[0]) * Math.PI) / 180
+  const lat1 = (a[1] * Math.PI) / 180
+  const lat2 = (b[1] * Math.PI) / 180
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
+}
+
+interface Split { km: number; pace: number }
+
+function computeSplits(coords: [number, number][], totalDuration: number): Split[] {
+  if (coords.length < 2) return []
+  // assign proportional timestamps
+  let cumDist = 0
+  const pts: { coord: [number, number]; dist: number }[] = [{ coord: coords[0], dist: 0 }]
+  for (let i = 1; i < coords.length; i++) {
+    cumDist += haversineDist(coords[i - 1], coords[i])
+    pts.push({ coord: coords[i], dist: cumDist })
+  }
+  const totalDist = cumDist
+  if (totalDist < 0.1) return []
+
+  const splits: Split[] = []
+  let prevDist = 0
+  let prevTime = 0
+  let km = 1
+  for (let i = 1; i < pts.length; i++) {
+    const d = pts[i].dist
+    while (d >= km && km <= Math.floor(totalDist) + 1) {
+      const frac = (km - prevDist) / (d - prevDist)
+      const t = prevTime + frac * ((pts[i].dist / totalDist) * totalDuration - prevTime)
+      const segTime = t - prevTime
+      const pace = segTime / 60 // min/km for exactly 1 km
+      splits.push({ km, pace })
+      prevDist = km
+      prevTime = t
+      km++
+    }
+    prevTime = (pts[i].dist / totalDist) * totalDuration
+  }
+  return splits.slice(0, Math.min(splits.length, 20))
+}
+
+const MAP_STYLE_LIGHT = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+const MAP_STYLE_DARK  = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 
 export const RunSummary: React.FC = () => {
   const navigate = useNavigate()
@@ -49,7 +97,7 @@ export const RunSummary: React.FC = () => {
   const mapRef = useRef<maplibregl.Map | null>(null)
 
   useEffect(() => {
-    getProfile().then(p => { if (p?.weightKg) setWeightKg(p.weightKg); });
+    getProfile().then(p => { if (p?.weightKg) setWeightKg(p.weightKg) })
   }, [])
 
   const runData: LiveRunData & {
@@ -83,7 +131,6 @@ export const RunSummary: React.FC = () => {
     (p: Location) => [p.lng, p.lat]
   )
 
-  // Fit map bounds to the route; fall back to run end location
   const routeBounds: [[number, number], [number, number]] | null = routeCoords.length >= 2
     ? [
         [Math.min(...routeCoords.map(c => c[0])), Math.min(...routeCoords.map(c => c[1]))],
@@ -107,19 +154,14 @@ export const RunSummary: React.FC = () => {
       attributionControl: false,
     })
 
-    // Force correct dimensions after the map is mounted into the DOM
     setTimeout(() => map.resize(), 0)
-
-    // Re-resize if layout shifts (e.g. safe-area, bottom sheet)
     const ro = new ResizeObserver(() => map.resize())
     ro.observe(mapContainerRef.current)
 
     map.on('load', () => {
       map.resize()
-
       if (routeCoords.length >= 2) {
         map.fitBounds(routeBounds!, { padding: 48, duration: 0, maxZoom: 17 })
-
         map.addSource('route', {
           type: 'geojson',
           data: {
@@ -132,29 +174,24 @@ export const RunSummary: React.FC = () => {
           id: 'route-glow',
           type: 'line',
           source: 'route',
-          paint: { 'line-color': 'rgba(0,180,198,0.2)', 'line-width': 14, 'line-blur': 10 },
+          paint: { 'line-color': 'rgba(232,67,90,0.2)', 'line-width': 14, 'line-blur': 10 },
         })
         map.addLayer({
           id: 'route-line',
           type: 'line',
           source: 'route',
-          paint: { 'line-color': '#00B4C6', 'line-width': 4, 'line-opacity': 0.95 },
+          paint: { 'line-color': '#E8435A', 'line-width': 4, 'line-opacity': 0.95 },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
-
-        // Start marker (green dot)
         const startEl = document.createElement('div')
         startEl.style.cssText = 'width:10px;height:10px;background:#10B981;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(16,185,129,0.5)'
         new maplibregl.Marker({ element: startEl }).setLngLat(routeCoords[0]).addTo(map)
-
-        // End marker (teal dot)
         const endEl = document.createElement('div')
-        endEl.style.cssText = 'width:12px;height:12px;background:#00B4C6;border:2px solid white;border-radius:50%;box-shadow:0 1px 6px rgba(0,180,198,0.6)'
+        endEl.style.cssText = 'width:12px;height:12px;background:#E8435A;border:2px solid white;border-radius:50%;box-shadow:0 1px 6px rgba(232,67,90,0.6)'
         new maplibregl.Marker({ element: endEl }).setLngLat(routeCoords[routeCoords.length - 1]).addTo(map)
       } else {
-        // Fewer than 2 GPS points — just pin the end location
         const endEl = document.createElement('div')
-        endEl.style.cssText = 'width:14px;height:14px;background:#00B4C6;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,180,198,0.5)'
+        endEl.style.cssText = 'width:14px;height:14px;background:#E8435A;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(232,67,90,0.5)'
         new maplibregl.Marker({ element: endEl }).setLngLat(center).addTo(map)
       }
     })
@@ -165,20 +202,19 @@ export const RunSummary: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.setStyle(dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT);
+    if (!mapRef.current) return
+    mapRef.current.setStyle(dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT)
   }, [dark])
 
-// MET(8) × weightKg × durationHours — weightKg loaded from profile biometrics
-const calories = Math.round(8 * weightKg * (runData.duration / 3600))
+  const calories = Math.round(8 * weightKg * (runData.duration / 3600))
 
   const rewards = {
-    xp: runData.xpEarned ?? 0,
-    coins: runData.coinsEarned ?? 0,
+    xp:       runData.xpEarned  ?? 0,
+    coins:    runData.coinsEarned   ?? 0,
     diamonds: runData.diamondsEarned ?? 0,
   }
 
-  const getActionTitle = () => {
+  const getHeading = () => {
     if (!runData.success) return `${runData.actionType || 'Action'} Failed`
     switch (runData.actionType) {
       case 'attack':  return 'Territory Conquered'
@@ -192,184 +228,384 @@ const calories = Math.round(8 * weightKg * (runData.duration / 3600))
   const xpPrevPercent = Math.max(0, xpNewPercent - (rewards.xp / Math.max(xpProgress.needed, 1)) * 100)
 
   const streakDisplay = runData.newStreak ?? player?.streakDays ?? 0
-  const territoryRows = [
-    { icon: <Flag className="w-5 h-5 text-teal-600" strokeWidth={2} />, label: 'Territories Claimed',  value: runData.success ? (runData.territoriesClaimed || 0) : 0 },
-    { icon: <Swords className="w-5 h-5 text-pink-500" strokeWidth={2} />, label: 'Enemy Zones Captured', value: runData.enemyCaptured ?? 0 },
-    { icon: <Flame className="w-5 h-5 text-orange-500" strokeWidth={2} />, label: 'Daily Streak',          value: `${streakDisplay} days` },
-    { icon: <Activity className="w-5 h-5 text-emerald-500" strokeWidth={2} />, label: 'Calories Burned',       value: calories },
-  ]
+
+  // Splits
+  const splits = useMemo(() => computeSplits(routeCoords, runData.duration), [routeCoords, runData.duration])
+  const avgSplitPace = splits.length > 0 ? splits.reduce((s, x) => s + x.pace, 0) / splits.length : runData.pace
+  const maxSplitPace = splits.length > 0 ? Math.max(...splits.map(s => s.pace)) : runData.pace + 1
+  const minSplitPace = splits.length > 0 ? Math.min(...splits.map(s => s.pace)) : Math.max(0, runData.pace - 1)
+
+  const splitBarColor = (pace: number) => {
+    if (pace <= avgSplitPace - 0.2) return '#10B981'
+    if (pace >= avgSplitPace + 0.2) return T.red
+    return '#F59E0B'
+  }
+
+  const dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+
+  // ─── Fade-up animation factory ─────────────────────────────────────────────
+  const fadeUp = (delay: number) => ({
+    initial: { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.38, delay, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] },
+  })
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-32">
-      <div className="relative h-[35vh] overflow-hidden bg-gray-100">
-        <div ref={mapContainerRef} className="absolute inset-0" />
-        {/* fade into the content below */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#FAFAFA] dark:to-[#0A0A0A] pointer-events-none" />
+    <div style={{ minHeight: '100vh', background: T.pageBg, paddingBottom: 40 }}>
+
+      {/* ── Map ────────────────────────────────────────────────────────────── */}
+      <div style={{ position: 'relative', height: 200, overflow: 'hidden', background: T.mid }}>
+        <div ref={mapContainerRef} style={{ position: 'absolute', inset: 0 }} />
+        {/* bottom fade */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: `linear-gradient(to bottom, transparent 55%, ${T.pageBg})`,
+          pointerEvents: 'none',
+        }} />
         <button
           onClick={() => navigate('/home')}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 z-10"
+          style={{
+            position: 'absolute', top: 16, right: 16, zIndex: 10,
+            width: 30, height: 30, borderRadius: '50%',
+            background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(6px)',
+            border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 1px 6px rgba(0,0,0,0.12)',
+          }}
         >
-          <X className="w-5 h-5" strokeWidth={2} />
+          <X size={14} strokeWidth={2.5} color={T.black} />
         </button>
       </div>
 
-      <motion.div
-        variants={stagger}
-        initial="hidden"
-        animate="show"
-        className="px-5 -mt-6 relative z-10 space-y-4"
-      >
-        <motion.div variants={item}>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1 font-display">
-            {getActionTitle()}
+      {/* ── Scrollable content ─────────────────────────────────────────────── */}
+      <div style={{ padding: '0 16px', marginTop: -8, position: 'relative', zIndex: 10 }}>
+
+        {/* ── Title area ───────────────────────────────────────────────────── */}
+        <motion.div {...fadeUp(0.10)} style={{ marginBottom: 20 }}>
+          <div style={{
+            display: 'inline-block',
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: T.t3,
+            marginBottom: 4,
+          }}>
+            {runData.actionType === 'attack' ? 'Attack Run' :
+             runData.actionType === 'defend' ? 'Defence Run' :
+             runData.actionType === 'fortify' ? 'Fortify Run' : 'Training Run'}
+          </div>
+          <h1 style={{
+            fontFamily: "'Playfair Display', serif",
+            fontStyle: 'italic', fontWeight: 400,
+            fontSize: 28, lineHeight: 1.15,
+            color: runData.success ? T.black : T.red,
+            margin: '0 0 6px',
+          }}>
+            {getHeading()}
           </h1>
-          <p className="text-sm text-gray-400">
-            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-          </p>
+          <div style={{ fontSize: 12, color: T.t3, fontFamily: "'Barlow', sans-serif", fontWeight: 300 }}>
+            {dateLabel}
+          </div>
         </motion.div>
 
-        <motion.div variants={item} className="grid grid-cols-3 gap-2.5">
-          <StatCard label="Distance" value={runData.distance.toFixed(2)} unit="km" glowColor="cyan" />
-          <StatCard label="Duration" value={formatTime(runData.duration)} />
-          <StatCard label="Avg Pace" value={formatPace(runData.pace)} unit="/km" />
-        </motion.div>
-
-        <motion.div variants={item}>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-2.5 px-1">
-            Territory Results
-          </p>
-          <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-            {territoryRows.map((row, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3.5 ${
-                  i < territoryRows.length - 1 ? 'border-b border-gray-100' : ''
-                }`}
-              >
-                <span className="w-7 flex justify-center">{row.icon}</span>
-                <span className="flex-1 text-sm text-gray-500">{row.label}</span>
-                <span className="text-stat text-base font-bold text-gray-900">{row.value}</span>
+        {/* ── Primary stats — 3-col 1px gap grid ───────────────────────────── */}
+        <motion.div {...fadeUp(0.18)} style={{ marginBottom: 16 }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+            gap: 1, background: T.mid, borderRadius: 4, overflow: 'hidden',
+          }}>
+            {[
+              { label: 'Distance', value: runData.distance.toFixed(2), unit: 'km' },
+              { label: 'Time',     value: formatTime(runData.duration), unit: '' },
+              { label: 'Avg Pace', value: formatPace(runData.pace),     unit: '/km' },
+            ].map(({ label, value, unit }) => (
+              <div key={label} style={{
+                background: T.surface, padding: '14px 12px 12px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+              }}>
+                <div style={{
+                  fontFamily: "'Barlow', sans-serif", fontWeight: 300,
+                  fontSize: 24, letterSpacing: '-0.02em', color: T.black,
+                  lineHeight: 1,
+                }}>
+                  {value}
+                  {unit && <span style={{ fontSize: 11, fontWeight: 400, color: T.t3, marginLeft: 2 }}>{unit}</span>}
+                </div>
+                <div style={{ fontSize: 10, color: T.t3, marginTop: 4, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  {label}
+                </div>
               </div>
             ))}
           </div>
         </motion.div>
 
-        {/* Splits */}
-        <motion.div variants={item}>
-          <SplitsTable
-            distance={runData.distance}
-            duration={runData.duration}
-            gpsPoints={runData.route?.map((p: Location) => ({
-              lat: p.lat,
-              lng: p.lng,
-              timestamp: Date.now(),
-              speed: 0,
-              accuracy: 10,
-            }))}
-          />
+        {/* ── Territory results — 2×2 grid ─────────────────────────────────── */}
+        <motion.div {...fadeUp(0.26)} style={{ marginBottom: 16 }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr',
+            gap: 1, background: T.mid, borderRadius: 4, overflow: 'hidden',
+          }}>
+            {[
+              {
+                icon: <Flag size={15} strokeWidth={2} color={T.red} />,
+                iconBg: 'rgba(232,67,90,0.08)',
+                label: 'Territories Claimed',
+                value: runData.success ? (runData.territoriesClaimed || 0) : 0,
+                valueColor: T.red,
+              },
+              {
+                icon: <Swords size={15} strokeWidth={2} color="#8B5CF6" />,
+                iconBg: 'rgba(139,92,246,0.08)',
+                label: 'Enemy Captured',
+                value: runData.enemyCaptured ?? 0,
+                valueColor: '#8B5CF6',
+              },
+              {
+                icon: <span style={{ fontSize: 14, lineHeight: 1 }}>🔥</span>,
+                iconBg: 'rgba(249,115,22,0.08)',
+                label: 'Day Streak',
+                value: `${streakDisplay}d`,
+                valueColor: '#F97316',
+              },
+              {
+                icon: <span style={{ fontSize: 14, lineHeight: 1 }}>🔥</span>,
+                iconBg: 'rgba(16,185,129,0.08)',
+                label: 'Calories',
+                value: `${calories}`,
+                valueColor: '#10B981',
+              },
+            ].map(({ icon, iconBg, label, value, valueColor }) => (
+              <div key={label} style={{
+                background: T.surface, padding: '14px 14px 12px',
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 6,
+                  background: iconBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {icon}
+                </div>
+                <div>
+                  <div style={{
+                    fontFamily: "'Barlow', sans-serif", fontWeight: 300,
+                    fontSize: 22, letterSpacing: '-0.02em', color: valueColor, lineHeight: 1,
+                  }}>
+                    {value}
+                  </div>
+                  <div style={{ fontSize: 10, color: T.t3, marginTop: 3, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                    {label}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </motion.div>
 
+        {/* ── Splits table ─────────────────────────────────────────────────── */}
+        {splits.length > 0 && (
+          <motion.div {...fadeUp(0.34)} style={{ marginBottom: 16 }}>
+            <div style={{ background: T.surface, borderRadius: 4, overflow: 'hidden' }}>
+              {/* header */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '32px 1fr 56px',
+                gap: 8, padding: '10px 14px 8px',
+                borderBottom: `1px solid ${T.mid}`,
+              }}>
+                {['KM', 'PACE BAR', 'PACE'].map(h => (
+                  <div key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.1em', color: T.t3, textTransform: 'uppercase' }}>{h}</div>
+                ))}
+              </div>
+              {/* rows */}
+              {splits.map((s, i) => {
+                const barColor = splitBarColor(s.pace)
+                const paceRange = maxSplitPace - minSplitPace || 1
+                // slower pace = longer bar width (inverted)
+                const barWidth = 20 + ((s.pace - minSplitPace) / paceRange) * 80
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'grid', gridTemplateColumns: '32px 1fr 56px',
+                      gap: 8, padding: '9px 14px',
+                      borderBottom: i < splits.length - 1 ? `1px solid ${T.mid}` : 'none',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 500, color: T.t2 }}>{s.km}</div>
+                    <div style={{ height: 6, borderRadius: 3, background: T.mid, overflow: 'hidden' }}>
+                      <div style={{
+                        width: `${barWidth}%`, height: '100%',
+                        background: barColor, borderRadius: 3,
+                        transition: 'width 0.6s ease',
+                      }} />
+                    </div>
+                    <div style={{
+                      fontFamily: "'Barlow', sans-serif", fontWeight: 300,
+                      fontSize: 13, color: barColor, textAlign: 'right',
+                    }}>
+                      {formatPace(s.pace)}<span style={{ fontSize: 10, color: T.t3 }}>/km</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Rewards card (only on success) ───────────────────────────────── */}
         {runData.success && (
-          <motion.div variants={item}>
-            <div className="gradient-border p-5 space-y-4">
+          <motion.div {...fadeUp(0.42)} style={{ marginBottom: 16 }}>
+            <div style={{ background: T.black, borderRadius: 4, padding: '20px 16px', color: T.surface }}>
+
               {/* Level-up banner */}
               {runData.leveledUp && (
-                <div className="flex items-center gap-3 bg-teal-50 rounded-xl px-4 py-3">
-                  <span className="text-2xl">🎉</span>
+                <div style={{
+                  background: 'rgba(232,67,90,0.15)',
+                  border: '1px solid rgba(232,67,90,0.3)',
+                  borderRadius: 3,
+                  padding: '10px 14px',
+                  marginBottom: 16,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}>
+                  <span style={{ fontSize: 20 }}>🎉</span>
                   <div>
-                    <p className="text-sm font-bold text-teal-700">Level Up!</p>
-                    <p className="text-xs text-teal-600">
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.red }}>Level Up!</div>
+                    <div style={{ fontSize: 11, color: 'rgba(232,67,90,0.7)', marginTop: 1 }}>
                       Lv {runData.preRunLevel} → Lv {runData.newLevel}
-                    </p>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* XP row */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">XP Earned</span>
-                <span className="text-stat text-xl font-bold text-teal-600">+{rewards.xp} XP</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>
+                  XP Earned
+                </div>
+                <div style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 22, color: T.red, letterSpacing: '-0.01em' }}>
+                  +{rewards.xp} <span style={{ fontSize: 12, color: 'rgba(232,67,90,0.7)' }}>XP</span>
+                </div>
               </div>
-              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+
+              {/* XP progress bar */}
+              <div style={{ position: 'relative', height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
                 <motion.div
                   initial={{ width: `${xpPrevPercent}%` }}
                   animate={{ width: `${xpNewPercent}%` }}
-                  transition={{ duration: 1.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] }}
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-teal-500 to-teal-400 rounded-full"
+                  transition={{ duration: 1.4, delay: 0.5, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] }}
+                  style={{ position: 'absolute', left: 0, top: 0, height: '100%', background: T.red, borderRadius: 2 }}
                 />
               </div>
-              <div className="flex justify-between text-xs text-gray-400">
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 16 }}>
                 <span>Lv {player?.level ?? 1}</span>
                 <span>{xpProgress.progress} / {xpProgress.needed} XP</span>
                 <span>Lv {(player?.level ?? 1) + 1}</span>
               </div>
 
-              {/* Coins row */}
-              {rewards.coins > 0 && (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span className="w-4 h-4 text-amber-500 font-bold text-base leading-none">🪙</span>
-                  <span>+{rewards.coins} coins earned</span>
-                </div>
-              )}
-
-              {/* Diamonds row */}
-              {rewards.diamonds > 0 && (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <Gem className="w-4 h-4 text-purple-500" strokeWidth={2} />
-                  <span>+{rewards.diamonds} diamonds earned</span>
-                </div>
-              )}
+              {/* Reward rows — 1px gap */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden', marginBottom: 16 }}>
+                {rewards.coins > 0 && (
+                  <div style={{ background: '#111', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 15 }}>🪙</span>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Coins earned</span>
+                    </div>
+                    <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 16, color: '#F59E0B' }}>
+                      +{rewards.coins}
+                    </span>
+                  </div>
+                )}
+                {rewards.diamonds > 0 && (
+                  <div style={{ background: '#111', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Gem size={14} strokeWidth={2} color="#8B5CF6" />
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Diamonds earned</span>
+                    </div>
+                    <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 16, color: '#8B5CF6' }}>
+                      +{rewards.diamonds}
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {/* Completed missions */}
               {(runData.completedMissions?.length ?? 0) > 0 && (
-                <div className="pt-1 border-t border-gray-100">
-                  <p className="text-xs text-gray-400 mb-1.5">Missions Completed</p>
-                  {runData.completedMissions!.map(m => (
-                    <div key={m.id} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">✓ {m.title}</span>
-                      {(m.diamondReward ?? 0) > 0 && (
-                        <span className="text-purple-500 font-medium text-xs">+{m.diamondReward} 💎</span>
-                      )}
-                    </div>
-                  ))}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 10 }}>
+                    Missions Completed
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+                    {runData.completedMissions!.map(m => (
+                      <div key={m.id} style={{ background: '#111', padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{
+                            width: 16, height: 16, borderRadius: '50%',
+                            background: 'rgba(16,185,129,0.15)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <span style={{ fontSize: 9, color: '#10B981' }}>✓</span>
+                          </div>
+                          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{m.title}</span>
+                        </div>
+                        {(m.diamondReward ?? 0) > 0 && (
+                          <span style={{ fontSize: 11, color: '#8B5CF6', fontWeight: 500 }}>
+                            +{m.diamondReward} 💎
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </motion.div>
         )}
 
-        <motion.div variants={item} className="flex gap-3">
+        {/* ── Action buttons ───────────────────────────────────────────────── */}
+        <motion.div {...fadeUp(0.50)} style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
           <button
             onClick={() => navigate('/home')}
-            className="flex-1 py-4 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                       text-sm font-medium text-gray-600 dark:text-gray-300 active:scale-[0.98] transition-transform"
+            style={{
+              flex: 1, padding: '14px 0', borderRadius: 3,
+              background: T.black, color: T.surface,
+              border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, letterSpacing: '0.03em',
+            }}
           >
             Done
           </button>
           {routeCoords.length >= 2 && (
             <button
               onClick={() => setShowSaveRoute(true)}
-              className="flex items-center justify-center gap-2 flex-1 py-4 rounded-2xl
-                         bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                         text-sm font-medium text-gray-600 dark:text-gray-300 active:scale-[0.98] transition-transform"
+              style={{
+                flex: 1, padding: '14px 0', borderRadius: 3,
+                background: T.stone, color: T.black,
+                border: `1px solid ${T.border}`, cursor: 'pointer',
+                fontSize: 13, fontWeight: 500,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}
             >
-              <Bookmark className="w-4 h-4" />
+              <Bookmark size={14} strokeWidth={2} />
               Save Route
             </button>
           )}
           <button
             onClick={() => setShowShare(true)}
-            className="flex-1 py-4 rounded-2xl
-                       bg-gradient-to-r from-teal-500 to-teal-600
-                       text-sm font-semibold text-white
-                       active:scale-[0.98] transition-transform
-                       shadow-[0_4px_16px_rgba(0,180,198,0.25)]"
+            style={{
+              flex: 1, padding: '14px 0', borderRadius: 3,
+              background: T.stone, color: T.black,
+              border: `1px solid ${T.border}`, cursor: 'pointer',
+              fontSize: 13, fontWeight: 500,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
           >
+            <Share2 size={14} strokeWidth={2} />
             Share
           </button>
         </motion.div>
-      </motion.div>
 
+      </div>
+
+      {/* ── Modals ───────────────────────────────────────────────────────────── */}
       <SaveRouteModal
         isOpen={showSaveRoute}
         onClose={() => setShowSaveRoute(false)}
@@ -402,4 +638,4 @@ const calories = Math.round(8 * weightKg * (runData.duration / 3600))
   )
 }
 
-export default RunSummary;
+export default RunSummary

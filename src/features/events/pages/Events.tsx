@@ -161,7 +161,7 @@ export default function Events() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full"
+              className="w-6 h-6 border-2 border-gray-200 border-t-[#E8435A] rounded-full"
             />
           </div>
         )}
@@ -248,7 +248,7 @@ export default function Events() {
                       {joinedIds.has(event.id) ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); toggleJoin(event.id); }}
-                          className="text-[11px] font-semibold text-teal-600"
+                          className="text-[11px] font-semibold text-[#E8435A]"
                         >
                           Joined ✓
                         </button>
@@ -290,9 +290,9 @@ export default function Events() {
           navigate(isEmpireBuilder ? '/events/create' : '/subscription');
         }}
         className="fixed bottom-24 right-5 w-14 h-14 rounded-full
-                   bg-gradient-to-br from-teal-500 to-teal-600
+                   bg-gradient-to-br from-[#E8435A] to-[#D03A4F]
                    flex items-center justify-center
-                   shadow-[0_4px_16px_rgba(0,180,198,0.35)] z-20"
+                   shadow-[0_4px_16px_rgba(232,67,90,0.35)] z-20"
       >
         <Plus className="w-6 h-6 text-white" strokeWidth={2.5} />
       </button>

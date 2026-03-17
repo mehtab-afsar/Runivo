@@ -7,7 +7,7 @@ import type { Notification } from '../types'
 const DISPLAY_MS = 4000
 
 function ToastIcon({ type }: { type: Notification['type'] }) {
-  if (type === 'follow')           return <UserPlus size={14} strokeWidth={2} className="text-teal-600" />
+  if (type === 'follow')           return <UserPlus size={14} strokeWidth={2} className="text-[#E8435A]" />
   if (type === 'kudos')            return <Heart size={14} strokeWidth={2} className="text-rose-500" />
   if (type === 'comment')          return <MessageCircle size={14} strokeWidth={2} className="text-blue-500" />
   if (type === 'streak')           return <Flame size={14} strokeWidth={2} className="text-orange-500" />

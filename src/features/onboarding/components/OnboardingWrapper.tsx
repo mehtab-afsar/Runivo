@@ -1,7 +1,7 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { OnboardingFlow } from '../pages/OnboardingFlow';
 import { LoadingScreen } from '@shared/ui/LoadingScreen';
-import { supabase } from '@shared/services/supabase';
+import { supabase, supabaseConfigured } from '@shared/services/supabase';
 import { initialSync } from '@shared/services/sync';
 import { getSettings } from '@shared/services/store';
 
@@ -37,6 +37,14 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
     // E2E test bypass — skip real auth when running under Playwright
     if (import.meta.env.VITE_E2E_TEST_MODE === 'true') {
       setComplete(true);
+      setReady(true);
+      return;
+    }
+
+    if (!supabaseConfigured) {
+      // No Supabase credentials — run fully offline using local IndexedDB.
+      const onboarded = localStorage.getItem('runivo-onboarding-complete') === 'true';
+      setComplete(onboarded);
       setReady(true);
       return;
     }

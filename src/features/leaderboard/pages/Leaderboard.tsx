@@ -114,7 +114,7 @@ export default function Leaderboard() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full"
+              className="w-6 h-6 border-2 border-gray-200 border-t-[#E8435A] rounded-full"
             />
           </div>
         )}
@@ -151,7 +151,7 @@ export default function Leaderboard() {
               onClick={() => setTimeFrame(tf.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                 timeFrame === tf.id
-                  ? 'bg-teal-50 text-teal-600 border border-teal-200'
+                  ? 'bg-[#F9E4E7] text-[#E8435A] border border-[#F9E4E7]'
                   : 'bg-gray-50 text-gray-400 border border-gray-100'
               }`}
             >
@@ -205,16 +205,16 @@ export default function Leaderboard() {
         )}
 
         {playerEntry && playerEntry.rank > 3 && (
-          <div className="mb-4 bg-white rounded-2xl p-4 border border-teal-200 shadow-[0_2px_12px_rgba(0,180,198,0.08)]">
+          <div className="mb-4 bg-white rounded-2xl p-4 border border-[#F9E4E7] shadow-[0_2px_12px_rgba(232,67,90,0.08)]">
             <div className="flex items-center gap-3">
-              <span className="text-stat text-lg font-bold text-teal-600 w-8 text-center">{playerEntry.rank}</span>
-              <div className="w-10 h-10 rounded-full bg-teal-50 border border-teal-200
-                              flex items-center justify-center text-sm font-bold text-teal-600">
+              <span className="text-stat text-lg font-bold text-[#E8435A] w-8 text-center">{playerEntry.rank}</span>
+              <div className="w-10 h-10 rounded-full bg-[#F9E4E7] border border-[#F9E4E7]
+                              flex items-center justify-center text-sm font-bold text-[#E8435A]">
                 {playerEntry.name.charAt(0)}
               </div>
               <div className="flex-1">
                 <span className="text-sm font-semibold text-gray-900">{playerEntry.name}</span>
-                <span className="text-xs text-teal-500 ml-2">You</span>
+                <span className="text-xs text-[#E8435A] ml-2">You</span>
               </div>
               <span className="text-stat text-sm font-bold text-gray-900">{formatValue(playerEntry.value)}</span>
             </div>
@@ -229,25 +229,25 @@ export default function Leaderboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.02 }}
               className={`flex items-center gap-3 py-3 px-3 rounded-xl transition ${
-                entry.isPlayer ? 'bg-teal-50 border border-teal-100' : 'hover:bg-gray-50'
+                entry.isPlayer ? 'bg-[#F9E4E7] border border-[#F9E4E7]' : 'hover:bg-gray-50'
               }`}
             >
-              <span className={`text-stat text-sm font-bold w-8 text-center ${entry.isPlayer ? 'text-teal-600' : 'text-gray-300'}`}>
+              <span className={`text-stat text-sm font-bold w-8 text-center ${entry.isPlayer ? 'text-[#E8435A]' : 'text-gray-300'}`}>
                 {entry.rank}
               </span>
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
-                entry.isPlayer ? 'bg-teal-100 text-teal-600' : 'bg-gray-100 text-gray-500'
+                entry.isPlayer ? 'bg-[#F9E4E7] text-[#E8435A]' : 'bg-gray-100 text-gray-500'
               }`}>
                 {entry.name.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
                 <span className={`text-sm font-medium truncate block ${entry.isPlayer ? 'text-gray-900' : 'text-gray-600'}`}>
                   {entry.name}
-                  {entry.isPlayer && <span className="text-xs text-teal-500 ml-1.5">You</span>}
+                  {entry.isPlayer && <span className="text-xs text-[#E8435A] ml-1.5">You</span>}
                 </span>
                 <span className="text-[11px] text-gray-300">Lv.{entry.level}</span>
               </div>
-              <span className={`text-stat text-sm font-semibold ${entry.isPlayer ? 'text-teal-600' : 'text-gray-500'}`}>
+              <span className={`text-stat text-sm font-semibold ${entry.isPlayer ? 'text-[#E8435A]' : 'text-gray-500'}`}>
                 {formatValue(entry.value)}
               </span>
             </motion.div>

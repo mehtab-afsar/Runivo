@@ -1,71 +1,105 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, CheckCircle, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  ChevronLeft, Check, Plus, Navigation, Shield,
+  Map as MapIcon, TrendingUp, Flame, Zap,
+} from 'lucide-react';
 import {
   MISSION_TEMPLATES,
   generateBlueprint,
   GOAL_TO_CATEGORY,
   type GoalCategory,
-  type Mission,
+  type MissionType,
 } from '../services/missions';
 import { setDailyMissions, getTodaysMissions } from '../services/missionStore';
 import { haptic } from '@shared/lib/haptics';
 import { getProfile } from '@shared/services/profile';
 import type { PlayerProfile } from '@shared/services/profile';
 
-type CategoryTab = 'recommended' | GoalCategory;
+// ── Design tokens ──────────────────────────────────────────────────────────────
+const T = {
+  pageBg:  '#EDEAE5',
+  stone:   '#F0EDE8',
+  mid:     '#E8E4DF',
+  border:  '#DDD9D4',
+  surface: '#F8F6F3',
+  black:   '#0A0A0A',
+  t2:      '#6B6B6B',
+  t3:      '#ADADAD',
+} as const;
 
-const CATEGORY_TABS: {
-  id: CategoryTab;
-  label: string;
-  emoji: string;
-  activeColor: string;
-  textColor: string;
-  bg: string;
-  border: string;
-}[] = [
-  { id: 'recommended', label: 'For You', emoji: '⭐', activeColor: 'bg-teal-500', textColor: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200' },
-  { id: 'weight_loss', label: 'Weight Loss', emoji: '🔥', activeColor: 'bg-orange-500', textColor: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-  { id: 'endurance', label: 'Endurance', emoji: '💪', activeColor: 'bg-blue-500', textColor: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-  { id: 'speed', label: 'Speed', emoji: '⚡', activeColor: 'bg-yellow-500', textColor: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-200' },
-  { id: 'territory', label: 'Territory', emoji: '🏴', activeColor: 'bg-purple-500', textColor: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
-  { id: 'explorer', label: 'Explorer', emoji: '🧭', activeColor: 'bg-emerald-500', textColor: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  { id: 'all', label: 'All', emoji: '', activeColor: 'bg-gray-700', textColor: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200' },
+// Mission type → Lucide icon
+const TYPE_ICON: Record<string, typeof TrendingUp> = {
+  run_distance:       TrendingUp,
+  claim_territories:  Navigation,
+  fortify_territories: Shield,
+  explore_new_hexes:  MapIcon,
+  run_in_enemy_zone:  Zap,
+  capture_enemy:      Shield,
+  speed_run:          TrendingUp,
+  run_streak:         Flame,
+};
+
+// Difficulty styles on white card
+const DIFF_CARD = {
+  easy:   { bg: '#EDF7F2', fg: '#1A6B40' },
+  medium: { bg: '#FDF6E8', fg: '#9E6800' },
+  hard:   { bg: '#FEF0EE', fg: '#D93518' },
+} as const;
+
+// Difficulty styles on black (blueprint card)
+const DIFF_BP = {
+  easy:   { bg: 'rgba(26,107,64,0.3)',  fg: '#6DE8A8' },
+  medium: { bg: 'rgba(158,104,0,0.3)',  fg: '#FAC75A' },
+  hard:   { bg: 'rgba(217,53,24,0.35)', fg: '#FF8B72' },
+} as const;
+
+// Category tab definitions
+type TabId = 'recommended' | GoalCategory;
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'recommended', label: 'For You' },
+  { id: 'weight_loss', label: 'Weight Loss' },
+  { id: 'endurance',   label: 'Endurance' },
+  { id: 'speed',       label: 'Speed' },
+  { id: 'territory',   label: 'Territory' },
+  { id: 'explorer',    label: 'Explorer' },
+  { id: 'all',         label: 'All' },
 ];
 
+// Category display labels (for badge)
+const CAT_LABELS: Record<string, string> = {
+  weight_loss: 'Weight Loss',
+  endurance:   'Endurance',
+  speed:       'Speed',
+  territory:   'Territory',
+  explorer:    'Explorer',
+  all:         'All',
+};
+
+// Goal labels (for blueprint kicker)
 const GOAL_LABELS: Record<PlayerProfile['primaryGoal'], string> = {
-  get_fit: 'Get Fit',
+  get_fit:    'Get Fit',
   lose_weight: 'Lose Weight',
   run_faster: 'Run Faster',
-  explore: 'Explore',
-  compete: 'Compete',
+  explore:    'Explore',
+  compete:    'Compete',
 };
 
-const DIFFICULTY_COLORS = {
-  easy:   'bg-green-50 border-green-200 text-green-600',
-  medium: 'bg-amber-50 border-amber-200 text-amber-600',
-  hard:   'bg-red-50 border-red-200 text-red-600',
-};
-
+// ── Component ──────────────────────────────────────────────────────────────────
 export default function Missions() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [hasMissions, setHasMissions] = useState(false);
   const [profile, setProfile] = useState<PlayerProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<CategoryTab>('recommended');
-  const [blueprintMissions, setBlueprintMissions] = useState<Mission[]>([]);
-  const [blueprintApplied, setBlueprintApplied] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('recommended');
+  const [blueprintMissions, setBlueprintMissions] = useState<ReturnType<typeof generateBlueprint>>([]);
+  const [applyPressed, setApplyPressed] = useState(false);
 
   useEffect(() => {
     getTodaysMissions().then(m => {
-      if (m.length > 0) {
-        setHasMissions(true);
-        setSelected(new Set(m.map(x => x.title)));
-      }
+      if (m.length > 0) setSelected(new Set(m.map(x => x.title)));
     });
-
     getProfile().then(p => {
       if (p) {
         setProfile(p);
@@ -89,327 +123,448 @@ export default function Missions() {
 
   const applyBlueprint = () => {
     haptic('medium');
-    setSelected(new Set(blueprintMissions.map(m => m.title)));
-    setBlueprintApplied(true);
-    setTimeout(() => setBlueprintApplied(false), 2000);
+    const titles = blueprintMissions.map(m => m.title);
+    setSelected(new Set(titles));
+    setApplyPressed(true);
+    setTimeout(() => setApplyPressed(false), 100);
+    setTimeout(async () => {
+      await setDailyMissions(titles);
+      navigate(-1);
+    }, 400);
   };
 
   const handleSave = async () => {
-    if (selected.size === 0) return;
+    if (selected.size === 0 || saving) return;
     setSaving(true);
     haptic('medium');
     await setDailyMissions(Array.from(selected));
     navigate(-1);
   };
 
+  // Filtered + sorted (selected first) templates
   const filteredTemplates = useMemo(() => {
-    if (activeTab === 'all') return MISSION_TEMPLATES;
-    if (activeTab === 'recommended') {
+    let list: typeof MISSION_TEMPLATES;
+    if (activeTab === 'all') {
+      list = MISSION_TEMPLATES;
+    } else if (activeTab === 'recommended') {
       const goalCat = profile?.primaryGoal ? GOAL_TO_CATEGORY[profile.primaryGoal] : null;
-      return [...MISSION_TEMPLATES].sort((a, b) => {
+      list = [...MISSION_TEMPLATES].sort((a, b) => {
         if (!goalCat) return 0;
-        const aMatch = a.goalCategory === goalCat ? -1 : 0;
-        const bMatch = b.goalCategory === goalCat ? -1 : 0;
-        return aMatch - bMatch;
+        return (b.goalCategory === goalCat ? 1 : 0) - (a.goalCategory === goalCat ? 1 : 0);
       });
+    } else {
+      list = MISSION_TEMPLATES.filter(t => t.goalCategory === activeTab);
     }
-    return MISSION_TEMPLATES.filter(t => t.goalCategory === activeTab);
-  }, [activeTab, profile]);
+    const sel   = list.filter(t => selected.has(t.title));
+    const unsel = list.filter(t => !selected.has(t.title));
+    return [...sel, ...unsel];
+  }, [activeTab, profile, selected]);
 
+  // Date label "Mon · Mar 17"
   const today = new Date();
-  const dateLabel = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  const activeCatMeta = CATEGORY_TABS.find(t => t.id === activeTab) ?? CATEGORY_TABS[0];
+  const weekday  = today.toLocaleDateString('en-US', { weekday: 'short' });
+  const monthDay = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dateLabel = `${weekday} · ${monthDay}`;
 
+  // Selected missions for save bar slots
+  const selectedMissions = Array.from(selected)
+    .map(title => MISSION_TEMPLATES.find(t => t.title === title))
+    .filter(Boolean) as (typeof MISSION_TEMPLATES)[0][];
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-36">
-      {/* Header */}
-      <div
-        className="sticky top-0 z-10 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur border-b border-gray-100 px-5 py-4 flex items-center gap-3"
-        style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
-      >
-        <button
-          onClick={() => navigate(-1)}
-          className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm"
-        >
-          <ArrowLeft className="w-4 h-4 text-gray-500" strokeWidth={2} />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-base font-bold text-gray-900">Daily Blueprint</h1>
-          <p className="text-xs text-gray-400">Pick up to 3 challenges for today</p>
+    <div style={{ minHeight: '100vh', background: T.pageBg, paddingBottom: 96 }}>
+
+      {/* ── Page Header ── */}
+      <div style={{
+        background: 'white',
+        padding: '0 20px',
+        borderBottom: `0.5px solid ${T.border}`,
+        paddingTop: 'max(14px, env(safe-area-inset-top))',
+      }}>
+        {/* Top row */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 14,
+        }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              width: 30, height: 30, borderRadius: '50%',
+              background: T.surface, border: `0.5px solid ${T.border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', outline: 'none',
+            }}
+          >
+            <ChevronLeft size={13} color={T.black} strokeWidth={2} />
+          </button>
+
+          <span style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: 22,
+            fontWeight: 400,
+            color: T.black,
+          }}>
+            Missions
+          </span>
+
+          <span style={{
+            fontFamily: "'Barlow', sans-serif",
+            fontSize: 11, fontWeight: 300, color: T.t3,
+          }}>
+            {dateLabel}
+          </span>
         </div>
-        <span className="text-sm font-bold text-teal-600">{selected.size}/3</span>
+
+        {/* Category tabs */}
+        <div
+          style={{ display: 'flex', gap: 6, paddingBottom: 14, overflowX: 'auto' }}
+          className="scrollbar-none"
+        >
+          {TABS.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveTab(tab.id); haptic('light'); }}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 2,
+                  fontSize: 11, fontWeight: 500,
+                  textTransform: 'uppercase', letterSpacing: '0.04em',
+                  background: isActive ? T.black : T.surface,
+                  border: `0.5px solid ${isActive ? T.black : T.border}`,
+                  color: isActive ? 'white' : T.t3,
+                  cursor: 'pointer', outline: 'none',
+                  flexShrink: 0,
+                  transition: 'background 120ms, color 120ms, border-color 120ms',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="px-5 pt-5">
-        {/* Blueprint Hero Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="rounded-3xl overflow-hidden mb-6"
-        >
-          <div
-            className="p-5 relative overflow-hidden"
-            style={{ background: 'linear-gradient(135deg, #0E7490 0%, #0891B2 100%)' }}
-          >
-            {/* Decorative rings */}
-            <div className="pointer-events-none absolute -right-8 -top-8">
-              {[80, 130, 180].map(size => (
-                <div
-                  key={size}
-                  className="absolute rounded-full border border-white/10"
-                  style={{
-                    width: size,
-                    height: size,
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Header row */}
-            <div className="relative z-10 flex items-center justify-between mb-1">
-              <span className="text-white/70 text-[10px] uppercase tracking-[0.2em] font-semibold">
-                Your Daily Blueprint
-              </span>
-              <span className="text-white/50 text-[10px]">{dateLabel}</span>
-            </div>
-
-            {/* Goal label */}
-            <p className="relative z-10 text-white text-[15px] font-bold mb-4">
-              Curated for your{' '}
-              <span className="text-cyan-200">
-                {profile ? GOAL_LABELS[profile.primaryGoal] : 'Running'}
-              </span>{' '}
-              goal
-            </p>
-
-            {/* Mission pills */}
-            <div className="relative z-10 space-y-2 mb-4">
-              {blueprintMissions.length > 0
-                ? blueprintMissions.map((m, i) => (
-                    <motion.div
-                      key={m.title}
-                      initial={{ opacity: 0, x: -16 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.15 + i * 0.08 }}
-                      className="flex items-center gap-3 bg-white/15 backdrop-blur-sm rounded-2xl px-3 py-2.5"
-                    >
-                      <span className="text-lg">{m.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-xs font-semibold truncate">{m.title}</p>
-                        <p className="text-white/60 text-[10px] truncate">{m.description}</p>
-                      </div>
-                      <span className="text-cyan-200 text-[11px] font-bold shrink-0">
-                        +{m.rewards.xp} XP
-                      </span>
-                    </motion.div>
-                  ))
-                : [0, 1, 2].map(i => (
-                    <div
-                      key={i}
-                      className="h-12 rounded-2xl bg-white/10 animate-pulse"
-                    />
-                  ))
-              }
-            </div>
-
-            {/* Apply Blueprint button */}
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={applyBlueprint}
-              className="relative z-10 w-full py-3 rounded-2xl bg-white text-teal-700 text-sm font-bold
-                         shadow-[0_4px_16px_rgba(0,0,0,0.12)] flex items-center justify-center gap-2
-                         active:scale-[0.98] transition-transform"
-            >
-              {blueprintApplied ? (
-                <>
-                  <CheckCircle className="w-4 h-4" strokeWidth={2.5} />
-                  Blueprint Applied!
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" strokeWidth={2.5} />
-                  Apply Blueprint
-                </>
-              )}
-            </motion.button>
-          </div>
-        </motion.div>
-
-        {/* Category Tabs */}
-        <div className="mb-5">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-3">
-            Browse by Category
-          </p>
-          <div
-            className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {CATEGORY_TABS.map(tab => {
-              const isActive = activeTab === tab.id;
-              return (
-                <motion.button
-                  key={tab.id}
-                  whileTap={{ scale: 0.94 }}
-                  onClick={() => { setActiveTab(tab.id); haptic('light'); }}
-                  className={`
-                    flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-semibold
-                    whitespace-nowrap shrink-0 border transition-all duration-200
-                    ${isActive
-                      ? `${tab.activeColor} text-white border-transparent shadow-sm`
-                      : 'bg-white text-gray-500 border-gray-100 shadow-sm'
-                    }
-                  `}
-                >
-                  {tab.emoji && <span className="text-sm">{tab.emoji}</span>}
-                  {tab.label}
-                </motion.button>
-              );
-            })}
-          </div>
+      {/* ── Daily Blueprint Card ── */}
+      <div style={{ background: 'white', padding: '18px 20px', marginBottom: 1 }}>
+        {/* Eyebrow */}
+        <div style={{
+          fontSize: 9, fontWeight: 400,
+          textTransform: 'uppercase', letterSpacing: '0.12em',
+          color: T.t3, marginBottom: 8,
+        }}>
+          Daily blueprint
         </div>
 
-        {/* Mission Grid */}
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-3">
-            {activeTab === 'recommended'
-              ? 'All Missions'
-              : activeCatMeta.label}{' '}
-            <span className="normal-case tracking-normal">
-              ({filteredTemplates.length})
-            </span>
-          </p>
+        {/* Black inner card */}
+        <div style={{ background: T.black, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+          {/* Kicker */}
+          <div style={{
+            fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.12em',
+            color: 'rgba(255,255,255,0.45)', marginBottom: 6,
+          }}>
+            Curated for your {profile ? GOAL_LABELS[profile.primaryGoal] : 'Running'} goal
+          </div>
 
-          <AnimatePresence mode="popLayout">
-            {filteredTemplates.map((template, idx) => {
-              const isSelected = selected.has(template.title);
-              const isDisabled = !isSelected && selected.size >= 3;
-              const catMeta = CATEGORY_TABS.find(t => t.id === template.goalCategory)
-                ?? CATEGORY_TABS[CATEGORY_TABS.length - 1];
+          {/* Title */}
+          <div style={{
+            fontFamily: "'Playfair Display', Georgia, serif",
+            fontStyle: 'italic',
+            fontSize: 17, fontWeight: 400,
+            color: 'white', lineHeight: 1.2,
+            marginBottom: 12,
+          }}>
+            Today's optimal mission set
+          </div>
 
-              return (
-                <motion.button
-                  key={template.title}
-                  layout
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  transition={{ delay: idx * 0.03, duration: 0.2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => !isDisabled && toggle(template.title)}
-                  className={`
-                    w-full text-left bg-white rounded-2xl p-4 border shadow-sm mb-2.5
-                    transition-all duration-200
-                    ${isSelected
-                      ? 'border-teal-400 shadow-[0_2px_12px_rgba(0,180,198,0.12)]'
-                      : isDisabled
-                      ? 'border-gray-100 opacity-40'
-                      : 'border-gray-100'
-                    }
-                  `}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Icon */}
-                    <div className={`
-                      w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0
-                      ${isSelected ? 'bg-teal-50' : catMeta.bg}
-                    `}>
-                      {template.icon}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {template.title}
-                        </span>
-                        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${DIFFICULTY_COLORS[template.difficulty]}`}>
-                          {template.difficulty}
-                        </span>
-                        {template.goalCategory && template.goalCategory !== 'all' && (
-                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${catMeta.bg} ${catMeta.textColor}`}>
-                            {catMeta.emoji} {catMeta.label}
-                          </span>
-                        )}
+          {/* 3 mission preview rows */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+            {blueprintMissions.length > 0
+              ? blueprintMissions.slice(0, 3).map((m, i) => {
+                  const Icon = TYPE_ICON[m.type as MissionType] ?? TrendingUp;
+                  const dStyle = DIFF_BP[m.difficulty];
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                        background: 'rgba(255,255,255,0.10)',
+                        border: '0.5px solid rgba(255,255,255,0.15)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Icon size={14} color="rgba(255,255,255,0.8)" strokeWidth={1.8} />
                       </div>
-
-                      <p className="text-xs text-gray-400 mb-2">{template.description}</p>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-[11px] font-semibold text-teal-600">
-                          +{template.rewards.xp} XP
-                        </span>
-                        <span className="text-[11px] font-semibold text-amber-500">
-                          +{template.rewards.coins} coins
-                        </span>
-                        {template.rewards.diamonds && (
-                          <span className="text-[11px] font-semibold text-purple-500">
-                            +{template.rewards.diamonds} 💎
-                          </span>
-                        )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 400, color: 'white', lineHeight: 1.2 }}>{m.title}</div>
+                        <div style={{ fontSize: 10, fontWeight: 300, color: 'rgba(255,255,255,0.5)' }}>+{m.rewards.xp} XP</div>
+                      </div>
+                      <div style={{
+                        padding: '2px 6px', borderRadius: 2,
+                        fontSize: 9, fontWeight: 500, textTransform: 'uppercase',
+                        background: dStyle.bg, color: dStyle.fg,
+                        flexShrink: 0,
+                      }}>
+                        {m.difficulty}
                       </div>
                     </div>
+                  );
+                })
+              : [0, 1, 2].map(i => (
+                  <div key={i} style={{
+                    height: 40, borderRadius: 6,
+                    background: 'rgba(255,255,255,0.08)',
+                  }} />
+                ))}
+          </div>
 
-                    {isSelected && (
-                      <CheckCircle className="w-5 h-5 text-teal-500 shrink-0 mt-0.5" strokeWidth={2} />
+          {/* Apply button */}
+          <motion.button
+            animate={{ scale: applyPressed ? 0.97 : 1 }}
+            transition={{ duration: 0.1 }}
+            onClick={applyBlueprint}
+            style={{
+              width: '100%', padding: 11,
+              borderRadius: 6,
+              background: 'white', border: 'none',
+              fontSize: 12, fontWeight: 500,
+              color: T.black,
+              textTransform: 'uppercase', letterSpacing: '0.04em',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              cursor: 'pointer', outline: 'none',
+            }}
+          >
+            <Check size={13} color={T.black} strokeWidth={2} />
+            Apply Blueprint
+          </motion.button>
+        </div>
+      </div>
+
+      {/* ── Section Divider ── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '12px 20px 8px',
+        background: T.stone,
+      }}>
+        <span style={{
+          fontSize: 9, fontWeight: 400,
+          textTransform: 'uppercase', letterSpacing: '0.12em',
+          color: T.t3,
+        }}>
+          All missions
+        </span>
+        <span style={{
+          fontFamily: "'Barlow', sans-serif",
+          fontSize: 10, fontWeight: 300, color: T.t3,
+        }}>
+          {selected.size} / 3 selected
+        </span>
+      </div>
+
+      {/* ── Mission List ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: T.mid }}>
+        {filteredTemplates.map(template => {
+          const isSelected  = selected.has(template.title);
+          const isDisabled  = !isSelected && selected.size >= 3;
+          const Icon        = TYPE_ICON[template.type as MissionType] ?? TrendingUp;
+          const diffStyle   = DIFF_CARD[template.difficulty];
+          const catLabel    = template.goalCategory ? CAT_LABELS[template.goalCategory] : null;
+          const gemCount    = template.rewards.diamonds ?? 0;
+
+          return (
+            <div
+              key={template.title}
+              onClick={() => !isDisabled && toggle(template.title)}
+              style={{
+                background: isSelected ? T.surface : 'white',
+                padding: '14px 18px',
+                cursor: isDisabled ? 'default' : 'pointer',
+                opacity: isDisabled ? 0.4 : 1,
+                transition: 'opacity 200ms, background 150ms',
+              }}
+            >
+              {/* Top row */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+                {/* Icon box */}
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                  background: isSelected ? T.black : T.stone,
+                  border: `0.5px solid ${isSelected ? T.black : T.mid}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 150ms, border-color 150ms',
+                }}>
+                  <Icon
+                    size={16}
+                    color={isSelected ? 'white' : T.t2}
+                    strokeWidth={isSelected ? 2 : 1.8}
+                  />
+                </div>
+
+                {/* Meta */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: "'Barlow', sans-serif",
+                    fontSize: 13, fontWeight: 500, color: T.black,
+                    marginBottom: 4, lineHeight: 1.2,
+                  }}>
+                    {template.title}
+                  </div>
+                  {/* Badges */}
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    <span style={{
+                      padding: '2px 7px', borderRadius: 2,
+                      fontSize: 9, fontWeight: 500, textTransform: 'uppercase',
+                      background: diffStyle.bg, color: diffStyle.fg,
+                    }}>
+                      {template.difficulty}
+                    </span>
+                    {catLabel && catLabel !== 'All' && (
+                      <span style={{
+                        padding: '2px 7px', borderRadius: 2,
+                        fontSize: 9, fontWeight: 400,
+                        background: T.stone, color: T.t3,
+                      }}>
+                        {catLabel}
+                      </span>
                     )}
                   </div>
-                </motion.button>
-              );
-            })}
-          </AnimatePresence>
+                </div>
 
-          {filteredTemplates.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-14"
-            >
-              <p className="text-4xl mb-3">🔍</p>
-              <p className="text-sm text-gray-400">No missions in this category yet</p>
-            </motion.div>
-          )}
-        </div>
+                {/* Check circle (selected) */}
+                {isSelected && (
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: T.black, flexShrink: 0, marginTop: 2,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Check size={11} color="white" strokeWidth={2.5} />
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div style={{
+                fontFamily: "'Barlow', sans-serif",
+                fontSize: 11, fontWeight: 300, color: T.t2,
+                lineHeight: 1.5, marginBottom: 10,
+              }}>
+                {template.description}
+              </div>
+
+              {/* Rewards row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* XP */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                  <span style={{ fontSize: 12, fontWeight: 400, color: T.black }}>+{template.rewards.xp}</span>
+                  <span style={{ fontSize: 10, fontWeight: 300, color: T.t3 }}>XP</span>
+                </div>
+                <div style={{ width: 1, height: 12, background: T.mid, flexShrink: 0 }} />
+                {/* Coins */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                  <span style={{ fontSize: 12, fontWeight: 400, color: T.black }}>+{template.rewards.coins}</span>
+                  <span style={{ fontSize: 10, fontWeight: 300, color: T.t3 }}>coins</span>
+                </div>
+                {/* Gems */}
+                {gemCount > 0 && (
+                  <>
+                    <div style={{ width: 1, height: 12, background: T.mid, flexShrink: 0 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        {Array.from({ length: Math.min(5, gemCount) }).map((_, i) => (
+                          <div
+                            key={i}
+                            style={{ width: 6, height: 6, borderRadius: '50%', background: '#1445AA', flexShrink: 0 }}
+                          />
+                        ))}
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 300, color: T.t3, marginLeft: 2 }}>
+                        {gemCount} gem{gemCount !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredTemplates.length === 0 && (
+          <div style={{ background: 'white', padding: '48px 20px', textAlign: 'center' }}>
+            <p style={{ fontSize: 13, fontWeight: 300, color: T.t3 }}>No missions in this category</p>
+          </div>
+        )}
       </div>
 
-      {/* Save button */}
+      {/* Stone spacer */}
+      <div style={{ height: 12, background: T.stone }} />
+
+      {/* ── Sticky Save Bar ── */}
       {selected.size > 0 && (
-        <motion.div
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-0 left-0 right-0 p-5 bg-[#FAFAFA]/90 dark:bg-[#0A0A0A]/90 backdrop-blur border-t border-gray-100"
-          style={{ paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}
-        >
-          {/* Mini selection preview */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex gap-2">
-              {Array.from(selected).map(title => {
-                const t = MISSION_TEMPLATES.find(m => m.title === title);
-                return t ? (
-                  <span key={title} className="text-xl" title={title}>{t.icon}</span>
-                ) : null;
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
+          background: 'white',
+          borderTop: `0.5px solid ${T.border}`,
+          padding: '12px 20px',
+          paddingBottom: 'max(22px, calc(env(safe-area-inset-bottom) + 12px))',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* 3 slot icons */}
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              {[0, 1, 2].map(i => {
+                const mission = selectedMissions[i];
+                const Icon = mission
+                  ? (TYPE_ICON[mission.type as MissionType] ?? TrendingUp)
+                  : Plus;
+                const filled = !!mission;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      border: '2px solid white',
+                      background: filled ? T.black : T.stone,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      marginLeft: i === 0 ? 0 : -6,
+                      position: 'relative',
+                      zIndex: 3 - i,
+                    }}
+                  >
+                    <Icon
+                      size={14}
+                      color={filled ? 'white' : T.t3}
+                      strokeWidth={filled ? 2 : 1.8}
+                    />
+                  </div>
+                );
               })}
             </div>
-            <span className="text-[11px] text-gray-400">{selected.size} of 3 chosen</span>
-          </div>
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600
-                       text-sm font-bold text-white shadow-[0_4px_16px_rgba(0,180,198,0.25)]
-                       disabled:opacity-60 active:scale-[0.98] transition-transform"
-          >
-            {saving
-              ? 'Saving…'
-              : hasMissions
-              ? `Update ${selected.size} Mission${selected.size !== 1 ? 's' : ''}`
-              : `Set ${selected.size} Mission${selected.size !== 1 ? 's' : ''} for Today`
-            }
-          </button>
-        </motion.div>
+            {/* Save button */}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                flex: 1, padding: 13,
+                borderRadius: 3,
+                background: T.black, border: 'none',
+                color: 'white',
+                fontSize: 12, fontWeight: 500,
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+                cursor: saving ? 'default' : 'pointer',
+                outline: 'none',
+                opacity: saving ? 0.6 : 1,
+                transition: 'opacity 150ms',
+              }}
+            >
+              {saving
+                ? 'Saving…'
+                : selected.size === 3
+                ? 'Set 3 missions for today'
+                : `Set ${selected.size} mission${selected.size !== 1 ? 's' : ''}`}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

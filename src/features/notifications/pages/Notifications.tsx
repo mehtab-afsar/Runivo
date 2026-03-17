@@ -19,7 +19,7 @@ export default function Notifications() {
     <div className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto px-4 pt-8 pb-24">
         <div className="flex items-center gap-3 mb-6">
-          <Bell size={22} className="text-teal-400" />
+          <Bell size={22} className="text-[#E8435A]" />
           <h1 className="text-xl font-semibold text-foreground">Notifications</h1>
         </div>
 

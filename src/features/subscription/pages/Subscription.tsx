@@ -21,8 +21,8 @@ const TIERS: Tier[] = [
     id: 'runner-plus',
     name: 'Runner Plus',
     price: '$4.99/mo',
-    color: 'text-teal-600',
-    gradient: 'from-teal-500 to-teal-600',
+    color: 'text-[#E8435A]',
+    gradient: 'from-[#E8435A] to-[#D03A4F]',
     features: [
       'Unlimited energy',
       'No ads',
@@ -135,7 +135,7 @@ export default function Subscription() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + i * 0.08 }}
               className={`bg-white rounded-2xl border-2 overflow-hidden shadow-sm ${
-                isCurrent ? 'border-teal-400' : tier.popular ? 'border-violet-300' : 'border-gray-100'
+                isCurrent ? 'border-[#E8435A]' : tier.popular ? 'border-violet-300' : 'border-gray-100'
               }`}
             >
               {/* Card header */}
@@ -161,8 +161,8 @@ export default function Subscription() {
                 <ul className="space-y-2 mb-4">
                   {tier.features.map(feat => (
                     <li key={feat} className="flex items-center gap-2.5">
-                      <div className="w-4 h-4 rounded-full bg-teal-50 flex items-center justify-center shrink-0">
-                        <Check className="w-2.5 h-2.5 text-teal-500" strokeWidth={3} />
+                      <div className="w-4 h-4 rounded-full bg-[#F9E4E7] flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5 text-[#E8435A]" strokeWidth={3} />
                       </div>
                       <span className="text-[13px] text-gray-700">{feat}</span>
                     </li>

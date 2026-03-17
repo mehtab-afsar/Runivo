@@ -13,7 +13,7 @@ interface Step {
 
 const STEPS: Step[] = [
   {
-    icon: <MapPin className="w-5 h-5 text-teal-600" strokeWidth={2} />,
+    icon: <MapPin className="w-5 h-5 text-[#E8435A]" strokeWidth={2} />,
     title: 'Claim territory as you run',
     body: 'Every 200 m you run automatically claims a zone on the map. More territory = more passive coins.',
     trigger: 'immediate',
@@ -25,7 +25,7 @@ const STEPS: Step[] = [
     trigger: 'first_progress',
   },
   {
-    icon: <Flag className="w-5 h-5 text-teal-600" strokeWidth={2} />,
+    icon: <Flag className="w-5 h-5 text-[#E8435A]" strokeWidth={2} />,
     title: 'First zone secured!',
     body: "Check your run summary when you finish — you'll see XP, coins, and any milestones you hit.",
     trigger: 'first_claim',
@@ -89,7 +89,7 @@ export function FirstRunGuide({ claimProgress, territoriesClaimed, isRunning }: 
         >
           <div className="bg-white rounded-2xl p-4 shadow-xl border border-gray-100">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#F9E4E7] flex items-center justify-center shrink-0">
                 {step.icon}
               </div>
               <div className="flex-1 min-w-0">
@@ -108,7 +108,7 @@ export function FirstRunGuide({ claimProgress, territoriesClaimed, isRunning }: 
                 <div
                   key={i}
                   className={`h-1 rounded-full transition-all ${
-                    i === stepIndex ? 'w-4 bg-teal-500' : 'w-1 bg-gray-200'
+                    i === stepIndex ? 'w-4 bg-[#E8435A]' : 'w-1 bg-gray-200'
                   }`}
                 />
               ))}

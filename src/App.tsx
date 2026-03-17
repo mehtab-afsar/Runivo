@@ -28,6 +28,7 @@ const Missions      = lazy(() => import('@features/missions/pages/Missions'));
 const CreateEvent   = lazy(() => import('@features/events/pages/CreateEvent'));
 const Subscription  = lazy(() => import('@features/subscription/pages/Subscription'));
 const SettingsPage  = lazy(() => import('@features/settings/pages/Settings'));
+const DesignSystem  = lazy(() => import('@shared/design-system/DesignSystemPage'));
 
 function LayoutWithNav({ children }: { children: React.ReactNode }) {
   return (
@@ -35,25 +36,19 @@ function LayoutWithNav({ children }: { children: React.ReactNode }) {
       <div className="flex-1 overflow-hidden">
         {children}
       </div>
-      <BottomNavigation />
     </div>
   );
 }
 
 function FullscreenWithNav({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      {children}
-      <BottomNavigation />
-    </>
-  );
+  return <>{children}</>;
 }
 
 /** Minimal inline fallback shown while a lazy chunk is loading. */
 function PageLoader() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-sm z-50">
-      <div className="w-7 h-7 rounded-full border-2 border-teal-200 border-t-teal-500 animate-spin" />
+      <div className="w-7 h-7 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(232,67,90,0.2)', borderTopColor: '#E8435A' }} />
     </div>
   );
 }
@@ -74,9 +69,9 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', damping: 14, stiffness: 120, delay: 0.1 }}
-        className="drop-shadow-[0_8px_30px_rgba(8,145,178,0.25)]"
+        className="drop-shadow-[0_8px_30px_rgba(232,67,90,0.25)]"
       >
-        <RunivoLogo size={72} />
+        <RunivoLogo size={72} animate />
       </motion.div>
 
       <motion.div
@@ -84,16 +79,16 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="mt-4"
-        style={{ fontSize: 36, fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: 'italic', fontWeight: 600, letterSpacing: '0.01em', color: '#0F172A' }}
+        style={{ fontSize: 36, fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: 'normal', fontWeight: 600, letterSpacing: '0.01em', color: '#0F172A' }}
       >
-        Run<span style={{ color: '#0891B2' }}>ivo</span>
+        run<span style={{ color: '#E8435A' }}>ivo</span>
       </motion.div>
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.85, duration: 0.5 }}
-        className="mt-2 text-[11px] tracking-[0.25em] uppercase text-teal-500 font-semibold"
+        className="mt-2 text-[11px] tracking-[0.25em] uppercase font-semibold" style={{ color: '#E8435A' }}
       >
         Run · Capture · Conquer
       </motion.p>
@@ -194,6 +189,11 @@ function AnimatedRoutes() {
           </PageTransition>
         } />
 
+        {/* Design system */}
+        <Route path="/design-system" element={
+          <PageTransition><DesignSystem /></PageTransition>
+        } />
+
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
@@ -228,6 +228,7 @@ export default function App() {
               <Suspense fallback={<PageLoader />}>
                 <AnimatedRoutes />
               </Suspense>
+              <BottomNavigation />
             </OnboardingWrapper>
             <NotificationToast />
           </BrowserRouter>

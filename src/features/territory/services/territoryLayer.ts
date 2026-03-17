@@ -30,7 +30,7 @@ export function addTerritoryOverlay(
     paint: {
       'fill-color': [
         'case',
-        ['==', ['get', 'status'], 'owned'], 'rgba(0, 180, 198, 0.18)',
+        ['==', ['get', 'status'], 'owned'], 'rgba(232, 67, 90, 0.18)',
         'rgba(220, 38, 127, 0.10)',
       ],
       'fill-opacity': 1,
@@ -44,7 +44,7 @@ export function addTerritoryOverlay(
     paint: {
       'line-color': [
         'case',
-        ['==', ['get', 'status'], 'owned'], '#00B4C6',
+        ['==', ['get', 'status'], 'owned'], '#E8435A',
         '#DC267F',
       ],
       'line-width': 1.5,
@@ -91,7 +91,7 @@ export function animateClaimPolygon(map: maplibregl.Map, coords: [number, number
     id: layerId,
     type: 'fill',
     source: animId,
-    paint: { 'fill-color': 'rgba(0, 180, 198, 0.5)', 'fill-opacity': 0.9 },
+    paint: { 'fill-color': 'rgba(232, 67, 90, 0.5)', 'fill-opacity': 0.9 },
   });
 
   let opacity = 0.9;

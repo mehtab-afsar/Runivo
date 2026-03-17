@@ -171,12 +171,12 @@ const RANKED_CLUBS_BY_SCOPE: Record<RankingScope, RankedClub[]> = {
 
 const statusColors: Record<string, string> = {
   online: 'bg-green-400',
-  running: 'bg-teal-400',
+  running: 'bg-[#E8435A]',
   offline: 'bg-gray-300',
 };
 
 const actionColors: Record<string, { bg: string; text: string; label: string }> = {
-  captured: { bg: 'bg-teal-50', text: 'text-teal-600', label: 'Captured' },
+  captured: { bg: 'bg-[#F9E4E7]', text: 'text-[#E8435A]', label: 'Captured' },
   lost: { bg: 'bg-red-50', text: 'text-red-500', label: 'Lost' },
   defended: { bg: 'bg-blue-50', text: 'text-blue-500', label: 'Defended' },
   joined: { bg: 'bg-purple-50', text: 'text-purple-500', label: 'Joined' },
@@ -190,7 +190,7 @@ const roleBadgeColor: Record<string, string> = {
 };
 
 const avatarColors = [
-  'from-teal-400 to-teal-600',
+  'from-[#E8435A] to-[#D03A4F]',
   'from-purple-400 to-purple-600',
   'from-blue-400 to-blue-600',
   'from-pink-400 to-pink-600',
@@ -205,7 +205,7 @@ const getAvatarColor = (name: string) => {
 };
 
 const nameColors = [
-  'text-teal-600', 'text-purple-600', 'text-blue-600',
+  'text-[#E8435A]', 'text-purple-600', 'text-blue-600',
   'text-pink-600', 'text-amber-600', 'text-emerald-600',
 ];
 const getNameColor = (name: string) => {
@@ -545,8 +545,8 @@ export default function Club() {
     const status = joinRequests[club.id];
     if (status === 'joined') return { label: 'Joined', icon: Check, disabled: true, style: 'bg-gray-100 text-gray-400' };
     if (status === 'pending') return { label: 'Requested', icon: Clock, disabled: true, style: 'bg-gray-100 text-gray-400' };
-    if (club.joinPolicy === 'open') return { label: 'Join Club', icon: UserPlus, disabled: false, style: 'bg-teal-500 text-white active:bg-teal-600' };
-    if (club.joinPolicy === 'request') return { label: 'Request to Join', icon: MessageCircle, disabled: false, style: 'bg-teal-500 text-white active:bg-teal-600' };
+    if (club.joinPolicy === 'open') return { label: 'Join Club', icon: UserPlus, disabled: false, style: 'bg-[#E8435A] text-white active:bg-[#D03A4F]' };
+    if (club.joinPolicy === 'request') return { label: 'Request to Join', icon: MessageCircle, disabled: false, style: 'bg-[#E8435A] text-white active:bg-[#D03A4F]' };
     return { label: 'Invite Only', icon: Lock, disabled: true, style: 'bg-gray-100 text-gray-400' };
   };
 
@@ -571,7 +571,7 @@ export default function Club() {
               onClick={handleOpenProfile}
               className="flex-1 flex items-center gap-2.5 active:opacity-70 transition min-w-0"
             >
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E8435A] to-[#D03A4F] flex items-center justify-center flex-shrink-0">
                 <Zap className="w-4.5 h-4.5 text-white" strokeWidth={2} />
               </div>
               <div className="min-w-0">
@@ -658,7 +658,7 @@ export default function Club() {
 
                   {msg.type === 'activity' ? (
                     <div className="flex justify-center my-2.5">
-                      <span className="text-[11px] text-teal-700 bg-teal-50 px-3.5 py-1 rounded-full border border-teal-100">
+                      <span className="text-[11px] text-[#D03A4F] bg-[#F9E4E7] px-3.5 py-1 rounded-full border border-[#F9E4E7]">
                         {msg.message}
                       </span>
                     </div>
@@ -666,7 +666,7 @@ export default function Club() {
                     <div className={`flex ${isOwnMessage(msg) ? 'justify-end' : 'justify-start'} mb-0.5`}>
                       <div className={`max-w-[80%] rounded-2xl px-3 pt-1.5 pb-1.5 shadow-sm ${
                         isOwnMessage(msg)
-                          ? 'bg-teal-500 text-white rounded-br-md'
+                          ? 'bg-[#E8435A] text-white rounded-br-md'
                           : 'bg-white border border-gray-100 text-gray-900 rounded-bl-md'
                       }`}>
                         {!isOwnMessage(msg) && (
@@ -724,7 +724,7 @@ export default function Club() {
               disabled={!messageInput.trim()}
               className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
                 messageInput.trim()
-                  ? 'bg-teal-500 active:scale-90 shadow-teal-200'
+                  ? 'bg-[#E8435A] active:scale-90 shadow-[rgba(232,67,90,0.15)]'
                   : 'bg-gray-100'
               }`}
             >
@@ -762,8 +762,8 @@ export default function Club() {
 
         {/* Club avatar + name centered */}
         <div className="bg-white px-5 pt-7 pb-5 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center mx-auto mb-3
-                          shadow-[0_4px_20px_rgba(0,180,198,0.2)]">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#E8435A] to-[#D03A4F] flex items-center justify-center mx-auto mb-3
+                          shadow-[0_4px_20px_rgba(232,67,90,0.2)]">
             <Zap className="w-10 h-10 text-white" strokeWidth={1.5} />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-0.5">{selectedClub.name}</h2>
@@ -774,10 +774,10 @@ export default function Club() {
         <div className="bg-white mt-2 px-4 py-3.5 border-y border-gray-100">
           <div className="grid grid-cols-4 gap-1">
             {[
-              { value: selectedClub.totalTerritories, label: 'Zones', color: 'text-teal-600' },
+              { value: selectedClub.totalTerritories, label: 'Zones', color: 'text-[#E8435A]' },
               { value: selectedClub.weeklyRuns, label: 'Runs/wk', color: 'text-gray-900' },
               { value: `${selectedClub.clubStreak}d`, label: 'Streak', color: 'text-orange-500' },
-              { value: `#${selectedClub.rank}`, label: 'Rank', color: 'text-teal-600' },
+              { value: `#${selectedClub.rank}`, label: 'Rank', color: 'text-[#E8435A]' },
             ].map((stat, i) => (
               <div key={i} className="text-center py-1">
                 <span className={`text-stat text-[16px] font-bold block ${stat.color}`}>{stat.value}</span>
@@ -837,18 +837,18 @@ export default function Club() {
 
           {/* Invite via link */}
           <button className="w-full flex items-center gap-4 px-5 py-3 active:bg-gray-50 transition">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
-              <Link2 className="w-5 h-5 text-teal-500" strokeWidth={2} />
+            <div className="w-10 h-10 rounded-xl bg-[#F9E4E7] flex items-center justify-center">
+              <Link2 className="w-5 h-5 text-[#E8435A]" strokeWidth={2} />
             </div>
-            <span className="text-[15px] text-teal-600 font-medium">Invite via link</span>
+            <span className="text-[15px] text-[#E8435A] font-medium">Invite via link</span>
           </button>
 
           {/* Add members */}
           <button className="w-full flex items-center gap-4 px-5 py-3 active:bg-gray-50 transition">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center">
-              <UserPlus className="w-5 h-5 text-teal-500" strokeWidth={2} />
+            <div className="w-10 h-10 rounded-xl bg-[#F9E4E7] flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-[#E8435A]" strokeWidth={2} />
             </div>
-            <span className="text-[15px] text-teal-600 font-medium">Add members</span>
+            <span className="text-[15px] text-[#E8435A] font-medium">Add members</span>
           </button>
 
           {/* Member list */}
@@ -977,18 +977,18 @@ export default function Club() {
             {clubsLoading ? (
               <div className="flex justify-center py-16">
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full" />
+                  className="w-6 h-6 border-2 border-gray-200 border-t-[#E8435A] rounded-full" />
               </div>
             ) : myClubsData.length === 0 ? (
               <div className="bg-white rounded-2xl p-8 text-center border border-gray-100 shadow-sm">
-                <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-7 h-7 text-teal-500" strokeWidth={1.5} />
+                <div className="w-14 h-14 rounded-2xl bg-[#F9E4E7] flex items-center justify-center mx-auto mb-3">
+                  <Users className="w-7 h-7 text-[#E8435A]" strokeWidth={1.5} />
                 </div>
                 <p className="text-base font-bold text-gray-900 mb-1">No Clubs Yet</p>
                 <p className="text-xs text-gray-400 mb-4">Join or create a club to start conquering together</p>
                 <button
                   onClick={() => { setShowCreateModal(true); haptic('light'); }}
-                  className="px-6 py-2.5 rounded-xl bg-teal-500 text-white text-sm font-semibold active:scale-95 transition"
+                  className="px-6 py-2.5 rounded-xl bg-[#E8435A] text-white text-sm font-semibold active:scale-95 transition"
                 >
                   Create a Club
                 </button>
@@ -1006,8 +1006,8 @@ export default function Club() {
                     className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-left active:bg-gray-50 transition"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center flex-shrink-0
-                                      shadow-[0_2px_12px_rgba(0,180,198,0.15)]">
+                      <div className="w-[52px] h-[52px] rounded-2xl bg-gradient-to-br from-[#E8435A] to-[#D03A4F] flex items-center justify-center flex-shrink-0
+                                      shadow-[0_2px_12px_rgba(232,67,90,0.15)]">
                         <Zap className="w-6 h-6 text-white" strokeWidth={2} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1027,14 +1027,14 @@ export default function Club() {
                     </div>
 
                     {latestActivity && (
-                      <div className="mt-2.5 flex items-center gap-2 bg-teal-50/50 rounded-lg px-3 py-1.5 border border-teal-100/50">
-                        <div className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse flex-shrink-0" />
-                        <span className="text-[11px] text-teal-700 truncate">
+                      <div className="mt-2.5 flex items-center gap-2 bg-[#F9E4E7]/50 rounded-lg px-3 py-1.5 border border-[#F9E4E7]/50">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#E8435A] animate-pulse flex-shrink-0" />
+                        <span className="text-[11px] text-[#D03A4F] truncate">
                           <span className="font-medium">{latestActivity.userName}</span>
                           {' '}{actionColors[latestActivity.action].label.toLowerCase()}{' '}
                           {latestActivity.detail}
                         </span>
-                        <span className="text-[10px] text-teal-400 flex-shrink-0">{latestActivity.time}</span>
+                        <span className="text-[10px] text-[#E8435A] flex-shrink-0">{latestActivity.time}</span>
                       </div>
                     )}
                   </motion.button>
@@ -1050,7 +1050,7 @@ export default function Club() {
             {rankingsLoading && (
               <div className="flex justify-center py-16">
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-6 h-6 border-2 border-gray-200 border-t-teal-500 rounded-full" />
+                  className="w-6 h-6 border-2 border-gray-200 border-t-[#E8435A] rounded-full" />
               </div>
             )}
             {!rankingsLoading && <>
@@ -1064,7 +1064,7 @@ export default function Club() {
                     onClick={() => { setRankingScope(scope); setRankingSearch(''); haptic('light'); }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
                       rankingScope === scope
-                        ? 'bg-teal-50 text-teal-600 border-teal-200'
+                        ? 'bg-[#F9E4E7] text-[#E8435A] border-[#F9E4E7]'
                         : 'bg-gray-50 text-gray-400 border-gray-100'
                     }`}
                   >
@@ -1083,7 +1083,7 @@ export default function Club() {
                 value={rankingSearch}
                 onChange={e => setRankingSearch(e.target.value)}
                 placeholder="Search clubs..."
-                className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-9 pr-9 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-300 shadow-sm"
+                className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-9 pr-9 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#E8435A]/30 shadow-sm"
               />
               {rankingSearch && (
                 <button onClick={() => setRankingSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1111,15 +1111,15 @@ export default function Club() {
                         }`}
                       >
                         <span className="text-[13px] font-bold text-gray-400 w-5 text-center">{club.rank}</span>
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-50 to-purple-50 flex items-center justify-center">
-                          <Zap className="w-4 h-4 text-teal-600" strokeWidth={2} />
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#F9E4E7] to-purple-50 flex items-center justify-center">
+                          <Zap className="w-4 h-4 text-[#E8435A]" strokeWidth={2} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <span className="text-[14px] font-medium text-gray-900 truncate">{club.name}</span>
                             {status && (
                               <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
-                                status === 'joined' ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-600'
+                                status === 'joined' ? 'bg-[#F9E4E7] text-[#E8435A]' : 'bg-amber-50 text-amber-600'
                               }`}>
                                 {status === 'joined' ? 'Joined' : 'Pending'}
                               </span>
@@ -1139,7 +1139,7 @@ export default function Club() {
               <>
 
             {/* Podium - top 3 */}
-            <div className="bg-gradient-to-b from-teal-600 to-teal-700 rounded-2xl p-5 pb-3 mb-4 shadow-md">
+            <div className="bg-gradient-to-b from-[#D03A4F] to-[#B5303F] rounded-2xl p-5 pb-3 mb-4 shadow-md">
               <div className="flex items-center gap-2 mb-4">
                 <Flame className="w-4 h-4 text-amber-300" strokeWidth={2} />
                 <span className="text-[12px] text-white/80 font-semibold uppercase tracking-wider">
@@ -1161,7 +1161,7 @@ export default function Club() {
                       className="flex flex-col items-center flex-1 active:opacity-80 transition"
                     >
                       <div className={`${avatarSizes[idx]} rounded-full bg-white/15 flex items-center justify-center mb-1.5 ${
-                        idx === 1 ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-teal-600' : ''
+                        idx === 1 ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-[#D03A4F]' : ''
                       }`}>
                         <Zap className={`${iconSizes[idx]} text-white`} strokeWidth={2} />
                       </div>
@@ -1170,7 +1170,7 @@ export default function Club() {
                       </span>
                       {status && (
                         <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full mb-0.5 ${
-                          status === 'joined' ? 'bg-teal-400/30 text-teal-100' : 'bg-amber-400/30 text-amber-100'
+                          status === 'joined' ? 'bg-[#E8435A]/30 text-white/80' : 'bg-amber-400/30 text-amber-100'
                         }`}>
                           {status === 'joined' ? 'Joined' : 'Pending'}
                         </span>
@@ -1211,15 +1211,15 @@ export default function Club() {
                     }`}
                   >
                     <span className="text-[13px] font-bold text-gray-400 w-5 text-center">{club.rank}</span>
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-50 to-purple-50 flex items-center justify-center">
-                      <Zap className="w-4 h-4 text-teal-600" strokeWidth={2} />
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#F9E4E7] to-purple-50 flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-[#E8435A]" strokeWidth={2} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[14px] font-medium text-gray-900 truncate">{club.name}</span>
                         {status && (
                           <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
-                            status === 'joined' ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-600'
+                            status === 'joined' ? 'bg-[#F9E4E7] text-[#E8435A]' : 'bg-amber-50 text-amber-600'
                           }`}>
                             {status === 'joined' ? 'Joined' : 'Pending'}
                           </span>
@@ -1286,7 +1286,7 @@ export default function Club() {
                     <h3 className="text-lg font-bold text-gray-900 mb-0.5">{previewClub.name}</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-gray-400">{previewClub.region}, {previewClub.country}</span>
-                      <span className="text-[12px] font-bold text-teal-600">#{previewClub.rank}</span>
+                      <span className="text-[12px] font-bold text-[#E8435A]">#{previewClub.rank}</span>
                     </div>
                   </div>
 
@@ -1298,7 +1298,7 @@ export default function Club() {
                   {/* Stats grid */}
                   <div className="grid grid-cols-4 gap-2 mb-4">
                     {[
-                      { value: previewClub.territories, label: 'Zones', color: 'text-teal-600' },
+                      { value: previewClub.territories, label: 'Zones', color: 'text-[#E8435A]' },
                       { value: previewClub.members, label: 'Members', color: 'text-gray-900' },
                       { value: `${previewClub.streak}d`, label: 'Streak', color: 'text-orange-500' },
                       { value: `+${previewClub.weeklyGain}`, label: 'This Week', color: 'text-green-500' },
@@ -1370,7 +1370,7 @@ export default function Club() {
                     rows={3}
                     autoFocus
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-900
-                               placeholder:text-gray-400 focus:outline-none focus:border-teal-300 resize-none mb-1"
+                               placeholder:text-gray-400 focus:outline-none focus:border-[#E8435A]/30 resize-none mb-1"
                   />
                   <span className="text-[11px] text-gray-300 block text-right mb-5">{requestMessage.length}/150</span>
 
@@ -1383,7 +1383,7 @@ export default function Club() {
                     </button>
                     <button
                       onClick={handleSendRequest}
-                      className="flex-1 py-3.5 rounded-xl bg-teal-500 text-white font-semibold text-[15px] flex items-center justify-center gap-2 active:bg-teal-600 transition"
+                      className="flex-1 py-3.5 rounded-xl bg-[#E8435A] text-white font-semibold text-[15px] flex items-center justify-center gap-2 active:bg-[#D03A4F] transition"
                     >
                       <Send className="w-4 h-4" strokeWidth={2} />
                       Send Request
@@ -1399,9 +1399,9 @@ export default function Club() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', damping: 12, stiffness: 200 }}
-                    className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mb-4"
+                    className="w-16 h-16 rounded-full bg-[#F9E4E7] flex items-center justify-center mb-4"
                   >
-                    <Check className="w-8 h-8 text-teal-500" strokeWidth={2.5} />
+                    <Check className="w-8 h-8 text-[#E8435A]" strokeWidth={2.5} />
                   </motion.div>
                   <motion.p
                     initial={{ opacity: 0, y: 8 }}

@@ -1,166 +1,189 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { haptic } from '@shared/lib/haptics'
-import { useNavVisibility } from '@shared/hooks/useNavVisibility'
-import { useTheme } from '@shared/hooks/useTheme'
 
-const tabs = [
-  { id: 'home', label: 'Home', path: '/home', icon: 'home' },
-  { id: 'map', label: 'Map', path: '/territory-map', icon: 'map' },
-  { id: 'run', label: 'Record', path: '/run', icon: 'run' },
-  { id: 'feed', label: 'Feed', path: '/feed', icon: 'feed' },
-  { id: 'profile', label: 'Profile', path: '/profile', icon: 'profile' },
+const F = "'Barlow', system-ui, sans-serif"
+
+const HIDE_ON: string[] = [
+  '/run',
+  '/active-run',
+  '/run-summary',
+  '/missions',
+  '/events/create',
+  '/subscription',
+  '/settings',
+]
+
+const TABS = [
+  { id: 'home',    label: 'Home',    path: '/home'         },
+  { id: 'map',     label: 'Map',     path: '/territory-map' },
+  { id: 'run',     label: 'Record',  path: '/run'          },
+  { id: 'feed',    label: 'Feed',    path: '/feed'         },
+  { id: 'profile', label: 'Profile', path: '/profile'      },
 ] as const
 
-function TabIcon({ type, active, dark }: { type: string; active: boolean; dark: boolean }) {
-  const color = active ? '#00B4C6' : dark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.3)'
-  const sw = 1.7
+const INACTIVE   = '#C4C0BA'
+const ACTIVE_RED = '#D93518'
+const ACTIVE_INK = '#0A0A0A'
 
-  switch (type) {
-    case 'home':
-      return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          {/* Clean house with chimney detail */}
-          <path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V10.5z" fill={active ? 'rgba(0,180,198,0.1)' : 'none'} />
-          <polyline points="9 22 9 13 15 13 15 22" />
-        </svg>
-      )
-    case 'map':
-      // 3 flat-top hexagons in triangular cluster — territory map
-      return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeLinecap="round" strokeLinejoin="round">
-          {/* Top center hex */}
-          <polygon
-            points="16,7 14,3.54 10,3.54 8,7 10,10.46 14,10.46"
-            stroke={color}
-            strokeWidth={sw}
-            fill={active ? 'rgba(0,180,198,0.18)' : 'none'}
-          />
-          {/* Bottom-left hex */}
-          <polygon
-            points="11.5,15.5 9.5,12.04 5.5,12.04 3.5,15.5 5.5,18.96 9.5,18.96"
-            stroke={color}
-            strokeWidth={sw}
-            fill="none"
-          />
-          {/* Bottom-right hex */}
-          <polygon
-            points="20.5,15.5 18.5,12.04 14.5,12.04 12.5,15.5 14.5,18.96 18.5,18.96"
-            stroke={color}
-            strokeWidth={sw}
-            fill="none"
-          />
-        </svg>
-      )
-    case 'run':
-      return null // Special button
-    case 'feed':
-      return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          {/* Activity card layout */}
-          <rect x="3" y="3" width="18" height="18" rx="3" fill={active ? 'rgba(0,180,198,0.08)' : 'none'} />
-          {/* Top line (title) */}
-          <line x1="7" y1="8.5" x2="17" y2="8.5" />
-          {/* Small thumbnail box */}
-          <rect x="7" y="11.5" width="4.5" height="4.5" rx="1" fill={active ? 'rgba(0,180,198,0.25)' : 'none'} />
-          {/* Text lines next to thumbnail */}
-          <line x1="13.5" y1="12.5" x2="17" y2="12.5" />
-          <line x1="13.5" y1="14.5" x2="16" y2="14.5" />
-          {/* Bottom divider */}
-          <line x1="7" y1="18.5" x2="17" y2="18.5" strokeOpacity={0.5} />
-        </svg>
-      )
-    case 'profile':
-      return (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="7.5" r="3.5" fill={active ? 'rgba(0,180,198,0.15)' : 'none'} />
-          <path d="M4.5 21c0-4.142 3.358-7 7.5-7s7.5 2.858 7.5 7" />
-        </svg>
-      )
-    default:
-      return null
-  }
+// ── Icons ─────────────────────────────────────────────────────────────────────
+
+function IconHome({ color, sw }: { color: string; sw: number }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color}>
+      <path d="M3 10.5L12 3L21 10.5V21H15V15H9V21H3V10.5Z"
+        strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
 }
+
+function IconMap({ color, sw }: { color: string; sw: number }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color}>
+      <path d="M22 2L11 13" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M22 2L15 22L11 13L2 9L22 2Z" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+function IconRecord() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <polygon points="7 5 20 12 7 19 7 5" fill="white" />
+    </svg>
+  )
+}
+
+function IconFeed({ color, sw }: { color: string; sw: number }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color}>
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+        strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="13" r="4" strokeWidth={sw}/>
+    </svg>
+  )
+}
+
+function IconProfile({ color, sw }: { color: string; sw: number }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color}>
+      <circle cx="12" cy="7" r="4" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4 21C4 17.13 7.58 14 12 14C16.42 14 20 17.13 20 21"
+        strokeWidth={sw} strokeLinecap="round"/>
+    </svg>
+  )
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export const BottomNavigation = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  const { navVisible } = useNavVisibility()
-  const { dark } = useTheme()
-  if (!navVisible) return null
+
+  const shouldHide = HIDE_ON.some(r => location.pathname.startsWith(r))
 
   const isActive = (path: string) => {
-    if (path === '/home') return location.pathname === '/' || location.pathname === '/home'
+    if (path === '/home')          return location.pathname === '/' || location.pathname === '/home'
     if (path === '/territory-map') return location.pathname === '/territory-map'
-    if (path === '/run') return location.pathname === '/run' || location.pathname === '/active-run'
-    if (path === '/feed') return location.pathname === '/feed'
-    if (path === '/profile') return location.pathname === '/profile'
+    if (path === '/run')           return location.pathname === '/run' || location.pathname === '/active-run'
+    if (path === '/feed')          return location.pathname === '/feed'
+    if (path === '/profile')       return location.pathname === '/profile'
     return location.pathname === path
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-      <div className="bg-white/95 dark:bg-[#1C1C1E]/95 backdrop-blur-xl border-t border-gray-200/60 dark:border-white/[0.08] shadow-[0_-1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_-1px_3px_rgba(0,0,0,0.4)]">
-        <div className="flex items-center justify-around px-2 h-16">
-          {tabs.map((tab) => {
-            const active = isActive(tab.path)
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9999,
+      background: 'rgba(245,243,239,0.72)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderTop: '0.5px solid rgba(255,255,255,0.5)',
+      boxShadow: '0 -4px 24px rgba(0,0,0,0.06)',
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'space-around',
+      paddingTop: 5,
+      paddingBottom: 'max(8px, env(safe-area-inset-bottom))',
+      transform: shouldHide ? 'translateY(100%)' : 'translateY(0)',
+      transition: shouldHide
+        ? 'transform 280ms cubic-bezier(0.4, 0, 1, 1)'
+        : 'transform 300ms cubic-bezier(0, 0, 0.2, 1)',
+    }}>
+      {TABS.map(tab => {
+        const active    = isActive(tab.path)
+        const isProfile = tab.id === 'profile'
+        const color     = active ? (isProfile ? ACTIVE_INK : ACTIVE_RED) : INACTIVE
+        const sw        = active ? 1.8 : 1.5
+        const fw        = active ? 700 : 400
 
-            if (tab.id === 'run') {
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => { navigate(tab.path); haptic('light'); }}
-                  className="relative -mt-5 flex flex-col items-center"
-                >
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
-                    active
-                      ? 'bg-gradient-to-br from-teal-400 to-teal-600 shadow-[0_4px_24px_rgba(0,180,198,0.45)]'
-                      : 'bg-gradient-to-br from-teal-500 to-teal-600 shadow-[0_2px_14px_rgba(0,180,198,0.25)]'
-                  }`}>
-                    {/* Running figure */}
-                    <svg width="22" height="24" viewBox="0 0 22 24" fill="none">
-                      {/* Head */}
-                      <circle cx="12.5" cy="4" r="2.8" fill="white" />
-                      {/* Body — slight forward lean */}
-                      <path d="M12 6.8 L11 14.5" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-                      {/* Right arm forward */}
-                      <path d="M11.5 9.5 L16.5 7.2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                      {/* Left arm back */}
-                      <path d="M11.5 9.5 L7 11.8" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                      {/* Left leg forward */}
-                      <path d="M11 14.5 L15 22" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
-                      {/* Right leg back */}
-                      <path d="M11 14.5 L6.5 21.5" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <span className={`text-[9px] mt-1 font-medium tracking-wide ${
-                    active ? 'text-teal-600' : 'text-gray-400'
-                  }`}>
-                    {tab.label}
-                  </span>
-                </button>
-              )
-            }
+        // ── Record — always red circle ──────────────────────────────────────
+        if (tab.id === 'run') {
+          return (
+            <button
+              key="run"
+              onClick={() => { navigate(tab.path); haptic('medium') }}
+              aria-label="Start a run"
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', gap: 5,
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                minHeight: 44,
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: '#D93518',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                marginTop: -10,
+                boxShadow: active ? '0 2px 10px rgba(217,53,24,0.35)' : 'none',
+                transition: 'box-shadow 150ms',
+              }}>
+                <IconRecord />
+              </div>
+              <span style={{
+                fontFamily: F, fontSize: 10, fontWeight: 500,
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+                color: '#D93518',
+              }}>
+                {tab.label}
+              </span>
+            </button>
+          )
+        }
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => { navigate(tab.path); haptic('light'); }}
-                className="flex flex-col items-center gap-1 py-2 px-3 relative"
-              >
-                <TabIcon type={tab.icon} active={active} dark={dark} />
-                <span className={`text-[9px] font-medium tracking-wide transition-colors ${
-                  active ? 'text-teal-600' : 'text-gray-400'
-                }`}>
-                  {tab.label}
-                </span>
-                {active && (
-                  <div className="absolute -bottom-0 w-5 h-0.5 rounded-full bg-teal-500 opacity-80" />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+        return (
+          <button
+            key={tab.id}
+            onClick={() => { navigate(tab.path); haptic('light') }}
+            aria-label={tab.label}
+            aria-current={active ? 'page' : undefined}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', gap: 5,
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              minHeight: 44,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            {tab.id === 'home'    && <IconHome    color={color} sw={sw} />}
+            {tab.id === 'map'     && <IconMap     color={color} sw={sw} />}
+            {tab.id === 'feed'    && <IconFeed    color={color} sw={sw} />}
+            {tab.id === 'profile' && <IconProfile color={color} sw={sw} />}
+
+            <span style={{
+              fontFamily: F,
+              fontSize: 10,
+              fontWeight: fw,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color,
+              transition: 'color 150ms, font-weight 150ms',
+            }}>
+              {tab.label}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }
