@@ -1,6 +1,9 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { OnboardingFlow } from '../pages/OnboardingFlow';
-import { LoadingScreen } from '@shared/ui/LoadingScreen';
+import { LandingPage }    from '@features/landing/pages/LandingPage';
+import { LoginPage }      from '@features/landing/pages/LoginPage';
+import { SignUpPage }     from '@features/landing/pages/SignUpPage';
+import { OnboardingFlow } from '@features/onboarding/pages/OnboardingFlow';
+import { LoadingScreen }  from '@shared/ui/LoadingScreen';
 import { supabase, supabaseConfigured } from '@shared/services/supabase';
 import { initialSync } from '@shared/services/sync';
 import { getSettings } from '@shared/services/store';
@@ -9,32 +12,30 @@ interface OnboardingWrapperProps {
   children: ReactNode;
 }
 
+type AuthView = 'landing' | 'login' | 'signup' | 'onboarding';
+
 // Persist invite ref from URL so it survives page reloads / auth redirects.
-// Called at MODULE LEVEL (not in useEffect) so it runs synchronously before
-// React Router processes routes and clears the ?ref= query param via <Navigate>.
 function captureInviteRef() {
   const params = new URLSearchParams(window.location.search);
   const ref = params.get('ref');
   if (ref) {
     sessionStorage.setItem('runivo-invite-ref', ref);
-    // Clean the URL without triggering a reload
     const url = new URL(window.location.href);
     url.searchParams.delete('ref');
     window.history.replaceState({}, '', url.toString());
   }
 }
 
-// Run immediately when this module is first imported — before any component mounts
 captureInviteRef();
 
 export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
-  const [ready, setReady] = useState(false);
+  const [ready,    setReady]    = useState(false);
   const [complete, setComplete] = useState(false);
+  const [view,     setView]     = useState<AuthView>('landing');
 
   useEffect(() => {
     let cancelled = false;
 
-    // E2E test bypass — skip real auth when running under Playwright
     if (import.meta.env.VITE_E2E_TEST_MODE === 'true') {
       setComplete(true);
       setReady(true);
@@ -42,7 +43,6 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
     }
 
     if (!supabaseConfigured) {
-      // No Supabase credentials — run fully offline using local IndexedDB.
       const onboarded = localStorage.getItem('runivo-onboarding-complete') === 'true';
       setComplete(onboarded);
       setReady(true);
@@ -51,11 +51,10 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return;
-      const onboarded = localStorage.getItem('runivo-onboarding-complete') === 'true';
+      const onboarded  = localStorage.getItem('runivo-onboarding-complete') === 'true';
       const isComplete = !!session && onboarded;
       setComplete(isComplete);
       setReady(true);
-      // Pull profile + runs + territories from Supabase on every authenticated boot
       if (isComplete) initialSync().catch(() => {});
     });
 
@@ -64,7 +63,6 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
       if (!session) {
         setComplete(false);
       } else if (event === 'SIGNED_IN') {
-        // Re-sync when user signs in (e.g. after token refresh or new login)
         initialSync().catch(() => {});
       }
     });
@@ -75,24 +73,26 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
     };
   }, []);
 
-  // Force light mode on all onboarding/auth screens.
-  // Restore the user's dark mode preference once they're inside the app.
   useEffect(() => {
     if (!ready) return;
     if (!complete) {
       document.documentElement.classList.remove('dark');
     } else {
       getSettings().then(s => {
-        if (s.darkMode) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
+        if (s.darkMode) document.documentElement.classList.add('dark');
+        else            document.documentElement.classList.remove('dark');
       });
     }
   }, [ready, complete]);
 
-  if (!ready) return <LoadingScreen />;
-  if (!complete) return <OnboardingFlow onComplete={() => setComplete(true)} />;
+  const done = () => setComplete(true);
+
+  if (!ready)    return <LoadingScreen />;
+  if (!complete) {
+    if (view === 'onboarding') return <OnboardingFlow onComplete={done} skipAuth initialView="onboarding" initialStep={2} />;
+    if (view === 'login')      return <LoginPage  onComplete={done} onBack={() => setView('landing')} onSignUp={() => setView('signup')} />;
+    if (view === 'signup')     return <SignUpPage  onComplete={() => setView('onboarding')} onBack={() => setView('landing')} onSignIn={() => setView('login')} />;
+    return <LandingPage onSignIn={() => setView('login')} onCreateAccount={() => setView('signup')} />;
+  }
   return <>{children}</>;
 }
