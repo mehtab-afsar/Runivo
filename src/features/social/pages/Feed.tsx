@@ -112,7 +112,7 @@ interface PostActivity {
   calories?: number;
   territoriesClaimed: number;
   enemyZonesCaptured?: number;
-  route: [number, number][];
+  route: [number, number][] | null;
   pr?: { label: string; value: string };
 }
 
@@ -209,7 +209,7 @@ function buildPost(row: {
       duration: 0,
       pace: '–',
       territoriesClaimed: zones,
-      route: [[10, 20], [30, 40], [50, 60], [70, 50], [85, 30]] as [number, number][],
+      route: null,
     },
     kudos: row.likes,
     kudosUsers: [],
@@ -222,11 +222,12 @@ function buildPost(row: {
 function RouteMapHero({
   route, postId, distance, location,
 }: {
-  route: [number, number][];
+  route: [number, number][] | null;
   postId: string;
   distance: number;
   location?: string;
 }) {
+  if (!route || route.length < 2) return null;
   // Scale route from 0-100 space into 310×110 viewBox
   const scaled = route.map(([x, y]) => [x * 3.1, y * 1.1] as [number, number]);
   const trailPts = scaled.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
@@ -331,7 +332,7 @@ export default function Feed() {
             duration: 0,
             pace: '–',
             territoriesClaimed: row.territories_claimed ?? 0,
-            route: [[10, 20], [30, 40], [50, 60], [70, 50], [85, 30]] as [number, number][],
+            route: null,
           },
           kudos: row.likes,
           kudosUsers: [],

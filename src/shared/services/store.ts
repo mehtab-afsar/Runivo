@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DB_NAME = 'runivo';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 
 // ── Settings ────────────────────────────────────────────────────────────────
 
@@ -120,6 +120,38 @@ export interface StoredSavedRoute {
   createdAt: number;
 }
 
+// ── Nutrition ─────────────────────────────────────────────────────────────────
+
+export interface NutritionProfile {
+  id: 'profile';
+  goal: 'lose' | 'maintain' | 'gain';
+  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+  weightKg: number;
+  heightCm: number;
+  age: number;
+  sex: 'male' | 'female';
+  dailyGoalKcal: number;
+  proteinGoalG: number;
+  carbsGoalG: number;
+  fatGoalG: number;
+}
+
+export interface NutritionEntry {
+  id?: number;
+  date: string;            // 'YYYY-MM-DD'
+  meal: 'breakfast' | 'lunch' | 'dinner' | 'snacks';
+  name: string;
+  kcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  servingSize: string;
+  source: 'search' | 'run' | 'manual';
+  runId?: string;
+  xpAwarded: boolean;
+  loggedAt: number;
+}
+
 let dbInstance: IDBPDatabase | null = null;
 
 export async function getDB(): Promise<IDBPDatabase> {
@@ -172,6 +204,10 @@ export async function getDB(): Promise<IDBPDatabase> {
       }
       if (oldVersion < 7) {
         db.createObjectStore('savedRoutes', { keyPath: 'id' });
+      }
+      if (oldVersion < 8) {
+        db.createObjectStore('nutritionProfile', { keyPath: 'id' });
+        db.createObjectStore('nutritionLog', { autoIncrement: true, keyPath: 'id' });
       }
     },
   });
@@ -311,4 +347,38 @@ export async function saveSavedRoute(route: StoredSavedRoute): Promise<void> {
 export async function deleteSavedRoute(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('savedRoutes', id);
+}
+
+// ── Nutrition helpers ─────────────────────────────────────────────────────────
+
+export async function getNutritionProfile(): Promise<NutritionProfile | undefined> {
+  const db = await getDB();
+  return db.get('nutritionProfile', 'profile');
+}
+
+export async function saveNutritionProfile(p: NutritionProfile): Promise<void> {
+  const db = await getDB();
+  await db.put('nutritionProfile', p);
+}
+
+export async function getNutritionEntries(date: string): Promise<NutritionEntry[]> {
+  const db = await getDB();
+  const all = await db.getAll('nutritionLog') as NutritionEntry[];
+  return all.filter(e => e.date === date);
+}
+
+export async function addNutritionEntry(e: NutritionEntry): Promise<number> {
+  const db = await getDB();
+  return db.add('nutritionLog', e) as Promise<number>;
+}
+
+export async function deleteNutritionEntry(id: number): Promise<void> {
+  const db = await getDB();
+  await db.delete('nutritionLog', id);
+}
+
+export async function getNutritionEntriesRange(from: string, to: string): Promise<NutritionEntry[]> {
+  const db = await getDB();
+  const all = await db.getAll('nutritionLog') as NutritionEntry[];
+  return all.filter(e => e.date >= from && e.date <= to);
 }

@@ -1,119 +1,90 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Gem, Zap, Clock, Play, Check, MapPin, Target } from 'lucide-react';
+import { Coins, Gem, Zap, Check, Play, Award, Calendar, Users, Target, MapPin, Flame } from 'lucide-react';
 import { NotificationBell } from '@features/notifications/components/NotificationBell';
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats';
 import { getTodaysMissions } from '@features/missions/services/missionStore';
-import { getAllTerritories, StoredTerritory, getRuns } from '@shared/services/store';
+import { getAllTerritories, StoredTerritory, getRuns, StoredRun, getNutritionProfile, getNutritionEntries } from '@shared/services/store';
 import { GAME_CONFIG } from '@shared/services/config';
 import { Mission } from '@features/missions/services/missions';
 import { haptic } from '@shared/lib/haptics';
 
-// ─── Tokens ───────────────────────────────────────────────────────────────────
 const T = {
-  bg:          '#F7F6F4',
-  surface:     '#FFFFFF',
-  surfaceAlt:  '#FAFAF8',
-  border:      '#E0DFDD',
-  black:       '#0A0A0A',
-  text2:       '#7A7A7A',
-  text3:       '#ADADAD',
-  mid:         '#EBEBEB',
-  red:         '#E8391C',
-  redLight:    '#FFF1EE',
-  green:       '#1A7A4A',
-  greenLight:  '#EEF8F3',
-  amber:       '#B87A00',
-  amberLight:  '#FFF9EE',
-  amberBorder: '#E8C97A',
-  gold:        '#B8960A',
-  silver:      '#8A8A8A',
-  bronze:      '#A0622A',
+  bg:      '#F8F6F3',
+  white:   '#FFFFFF',
+  stone:   '#F0EDE8',
+  border:  '#DDD9D4',
+  black:   '#0A0A0A',
+  t2:      '#6B6B6B',
+  t3:      '#ADADAD',
+  mid:     '#E8E4DF',
+  red:     '#D93518',
+  green:   '#1A6B40',
+  greenLo: '#EDF7F2',
+  amber:   '#9E6800',
+  amberLo: '#FDF6E8',
+  amberBo: '#E8C97A',
 };
-const F = "'Barlow', 'DM Sans', sans-serif";
+const F  = "'Barlow', sans-serif";
+const FD = "'Playfair Display', serif";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const SectionLabel = ({ children }: { children: string }) => (
-  <div style={{ padding: '0 22px', marginBottom: 10 }}>
-    <span style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.text3, fontFamily: F }}>
-      {children}
-    </span>
-  </div>
-);
+// ─── Section header ───────────────────────────────────────────────────────────
+function SectionTitle({ label, action, onAction }: { label: string; action?: string; onAction?: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.t3, fontFamily: F }}>{label}</span>
+      {action && (
+        <button onClick={onAction} style={{ fontSize: 11, fontWeight: 400, color: T.t3, background: 'none', border: 'none', cursor: 'pointer', fontFamily: F }}>
+          {action}
+        </button>
+      )}
+    </div>
+  );
+}
 
-// ─── Avatar + XP Ring ────────────────────────────────────────────────────────
+// ─── Avatar + XP Ring ─────────────────────────────────────────────────────────
 function AvatarXP({ initials, xpPct }: { initials: string; xpPct: number }) {
-  const SZ = 44, SW = 2, R = (SZ - SW) / 2, C = 2 * Math.PI * R;
+  const SZ = 40, SW = 2, R = (SZ - SW) / 2, C = 2 * Math.PI * R;
   return (
     <div style={{ position: 'relative', width: SZ, height: SZ }}>
       <svg width={SZ} height={SZ} style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
-        <circle cx={SZ/2} cy={SZ/2} r={R} fill="none" stroke={T.border} strokeWidth={SW} />
+        <circle cx={SZ / 2} cy={SZ / 2} r={R} fill="none" stroke={T.mid} strokeWidth={SW} />
         <motion.circle
-          cx={SZ/2} cy={SZ/2} r={R} fill="none"
+          cx={SZ / 2} cy={SZ / 2} r={R} fill="none"
           stroke={T.red} strokeWidth={SW} strokeLinecap="round"
           strokeDasharray={C}
           initial={{ strokeDashoffset: C }}
           animate={{ strokeDashoffset: C * (1 - xpPct / 100) }}
-          transition={{ duration: 1.1, ease: 'easeOut', delay: 0.2 }}
-        />
-      </svg>
-      <div style={{
-        position: 'absolute', inset: SW + 1, borderRadius: '50%',
-        background: T.black,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 13, fontWeight: 500, color: '#FFFFFF', fontFamily: F,
-      }}>
-        {initials}
-      </div>
-    </div>
-  );
-}
-
-// ─── Weekly Goal Ring ─────────────────────────────────────────────────────────
-function WeeklyRing({ current, goal }: { current: number; goal: number }) {
-  const SZ = 72, SW = 5, R = (SZ - SW) / 2, C = 2 * Math.PI * R;
-  const pct = Math.min(current / Math.max(goal, 1), 1);
-  return (
-    <div style={{ position: 'relative', width: SZ, height: SZ, flexShrink: 0 }}>
-      <svg width={SZ} height={SZ} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={SZ/2} cy={SZ/2} r={R} fill="none" stroke={T.mid} strokeWidth={SW} />
-        <motion.circle
-          cx={SZ/2} cy={SZ/2} r={R} fill="none"
-          stroke={T.red} strokeWidth={SW} strokeLinecap="round"
-          strokeDasharray={C}
-          initial={{ strokeDashoffset: C }}
-          animate={{ strokeDashoffset: C * (1 - pct) }}
           transition={{ duration: 1.1, ease: 'easeOut', delay: 0.3 }}
         />
       </svg>
       <div style={{
-        position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', gap: 1,
-      }}>
-        <span style={{ fontSize: 16, fontWeight: 300, color: T.black, fontFamily: F, letterSpacing: '-0.02em', lineHeight: 1 }}>
-          {current.toFixed(1)}
-        </span>
-        <span style={{ fontSize: 9, fontWeight: 400, color: T.text3, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: F }}>
-          km
-        </span>
-      </div>
+        position: 'absolute', inset: SW + 2, borderRadius: '50%',
+        background: T.black, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 12, fontWeight: 500, color: '#fff', fontFamily: F,
+      }}>{initials}</div>
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
   const { player, loading, incomeCollected } = usePlayerStats();
   const [showIncomeBadge, setShowIncomeBadge] = useState(false);
-  const [missions,     setMissions]     = useState<Mission[]>([]);
-  const [territories,  setTerritories]  = useState<StoredTerritory[]>([]);
-  const [ownedCount,   setOwnedCount]   = useState(0);
-  const [greeting,     setGreeting]     = useState('Good morning');
-  const [weeklyKm,     setWeeklyKm]     = useState(0);
-  const [runDays,      setRunDays]      = useState<boolean[]>(Array(7).fill(false));
-  const [weeklyGoal]                    = useState(() => Number(localStorage.getItem('runivo-weekly-goal') || 20));
+  const [missions,    setMissions]    = useState<Mission[]>([]);
+  const [territories, setTerritories] = useState<StoredTerritory[]>([]);
+  const [ownedCount,  setOwnedCount]  = useState(0);
+  const [greeting,    setGreeting]    = useState('Good morning');
+  const [weeklyKm,    setWeeklyKm]    = useState(0);
+  const [runDays,     setRunDays]     = useState<boolean[]>(Array(7).fill(false));
+  const [weeklyGoal]                  = useState(() => Number(localStorage.getItem('runivo-weekly-goal') || 20));
+  const [recentRuns,  setRecentRuns]  = useState<StoredRun[]>([]);
+  const [heroSlide,   setHeroSlide]   = useState(0); // 0 = weekly goal, 1 = calories
+  const [caloriesConsumed, setCaloriesConsumed] = useState(0);
+  const [calorieGoal,      setCalorieGoal]      = useState(2000);
 
   useEffect(() => {
     if (incomeCollected > 0) {
@@ -125,11 +96,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const h = new Date().getHours();
-    if (h < 5)       setGreeting('Good night');
-    else if (h < 12) setGreeting('Good morning');
-    else if (h < 17) setGreeting('Good afternoon');
-    else if (h < 21) setGreeting('Good evening');
-    else             setGreeting('Good night');
+    setGreeting(h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night');
   }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,9 +110,9 @@ export default function Dashboard() {
     setTerritories(allT);
     if (player) setOwnedCount(allT.filter(t => t.ownerId === player.id).length);
 
-    const now     = Date.now();
-    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-    const allRuns = await getRuns();
+    const now      = Date.now();
+    const weekAgo  = now - 7 * 24 * 60 * 60 * 1000;
+    const allRuns  = await getRuns();
     const weekRuns = allRuns.filter(r => r.startTime >= weekAgo);
     setWeeklyKm(Math.round(weekRuns.reduce((s, r) => s + r.distanceMeters / 1000, 0) * 10) / 10);
 
@@ -156,23 +123,31 @@ export default function Dashboard() {
       if (now - r.startTime < (todayMon + 1) * 86_400_000) days[idx] = true;
     });
     setRunDays(days);
+
+    // Calorie data — read from IDB
+    try {
+      const nutProf     = await getNutritionProfile();
+      const todayDate   = new Date().toISOString().slice(0, 10);
+      const nutEntries  = await getNutritionEntries(todayDate);
+      const consumed    = nutEntries.filter(e => e.source !== 'run').reduce((s, e) => s + e.kcal, 0);
+      setCaloriesConsumed(Math.max(0, consumed));
+      setCalorieGoal(nutProf?.dailyGoalKcal ?? 2000);
+    } catch { /* ignore */ }
+
+    const recent = [...allRuns]
+      .filter(r => r.distanceMeters >= 50)
+      .sort((a, b) => b.startTime - a.startTime)
+      .slice(0, 3);
+    setRecentRuns(recent);
   };
 
-  const incomePausedDays = useMemo(() => {
-    if (!player?.lastRunDate) return null;
-    const diff = Math.floor((Date.now() - new Date(player.lastRunDate).getTime()) / 86_400_000);
-    return diff >= 2 ? diff : null;
-  }, [player]);
-
-  const { missionsCompleted, missionsTotal, avgDefense, weakZones, dailyIncome } = useMemo(() => {
-    const owned   = territories.filter(t => player && t.ownerId === player.id);
-    const avg     = ownedCount > 0 ? Math.round(owned.reduce((s, t) => s + t.defense, 0) / ownedCount) : 0;
+  const { avgDefense, weakZones, dailyIncome } = useMemo(() => {
+    const owned = territories.filter(t => player && t.ownerId === player.id);
+    const avg   = ownedCount > 0 ? Math.round(owned.reduce((s, t) => s + t.defense, 0) / ownedCount) : 0;
     return {
-      missionsCompleted: missions.filter(m => m.completed).length,
-      missionsTotal:     missions.length,
-      avgDefense:        avg,
-      weakZones:         owned.filter(t => t.defense < 30),
-      dailyIncome:       ownedCount * GAME_CONFIG.BASE_INCOME_PER_HEX_DAY,
+      avgDefense:  avg,
+      weakZones:   owned.filter(t => t.defense < 30),
+      dailyIncome: ownedCount * GAME_CONFIG.BASE_INCOME_PER_HEX_DAY,
     };
   }, [missions, territories, player, ownedCount]);
 
@@ -184,7 +159,7 @@ export default function Dashboard() {
         <motion.div
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 1.4, repeat: Infinity }}
-          style={{ fontSize: 22, fontWeight: 300, fontStyle: 'italic', color: T.black, fontFamily: F, letterSpacing: '-0.02em' }}
+          style={{ fontSize: 22, fontWeight: 300, fontStyle: 'italic', color: T.black, fontFamily: FD }}
         >
           runivo
         </motion.div>
@@ -195,30 +170,17 @@ export default function Dashboard() {
   const initials = player.username?.slice(0, 2).toUpperCase() ?? 'RU';
   const todayIdx = (new Date().getDay() + 6) % 7;
   const pct      = Math.min(weeklyKm / Math.max(weeklyGoal, 1), 1);
-  const leftKm   = Math.max(0, weeklyGoal - weeklyKm).toFixed(1);
-
-  const LEADERBOARD = [
-    { rank: 1,  initials: 'SK', name: 'Sarah K.',  km: '67.4 km', isUser: false },
-    { rank: 2,  initials: 'JM', name: 'James M.',  km: '54.1 km', isUser: false },
-    { rank: 3,  initials: 'PS', name: 'Priya S.',  km: '51.8 km', isUser: false },
-    { rank: 14, initials: initials, name: 'You',   km: `${weeklyKm} km`, isUser: true },
-  ];
-
-  const RANK_COLORS: Record<number, string> = { 1: T.gold, 2: T.silver, 3: T.bronze };
 
   const MISSION_ICONS: Record<string, typeof Check> = {
     run_distance: Target, capture_zones: MapPin, run_in_enemy_zone: MapPin,
-    complete_run: Check, beat_pace: Zap,
+    complete_run: Check,  beat_pace: Zap,
   };
+
+  const P = '0 22px';   // horizontal padding
+  const GAP = 28;        // gap between sections
 
   return (
     <div style={{ height: '100%', background: T.bg, overflowY: 'auto', fontFamily: F }}>
-      <style>{`
-        @keyframes startPulse {
-          0%,100% { box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
-          50%      { box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
-        }
-      `}</style>
 
       {/* Income toast */}
       <AnimatePresence>
@@ -228,7 +190,7 @@ export default function Dashboard() {
             transition={{ type: 'spring', damping: 22 }}
             style={{ position: 'fixed', left: 16, right: 16, top: 'max(12px,env(safe-area-inset-top))', zIndex: 50, display: 'flex', justifyContent: 'center' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 20, background: T.surface, border: `0.5px solid ${T.border}`, boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 20, background: T.white, border: `0.5px solid ${T.border}`, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
               <Coins size={13} color={T.amber} strokeWidth={1.5} />
               <span style={{ fontSize: 12, fontWeight: 500, color: T.black, fontFamily: F }}>+{incomeCollected} coins collected</span>
             </div>
@@ -236,312 +198,322 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <div style={{ paddingBottom: 100 }}>
+      <div style={{ paddingBottom: 100, paddingTop: 'max(0px, env(safe-area-inset-top))' }}>
 
-        {/* ── 2. Header ── */}
-        <div style={{ padding: '16px 22px 12px', paddingTop: 'max(16px,env(safe-area-inset-top))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.text3, fontFamily: F, marginBottom: 3 }}>
-              {greeting}
+        {/* ── Header ── */}
+        <div style={{ padding: `20px 22px 0` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.t3, fontFamily: F, marginBottom: 4 }}>
+                {greeting}
+              </div>
+              <div style={{ fontSize: 26, fontStyle: 'italic', color: T.black, fontFamily: FD, lineHeight: 1.1 }}>
+                {player.username}
+              </div>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 300, fontStyle: 'italic', letterSpacing: '-0.02em', color: T.black, fontFamily: F, lineHeight: 1 }}>
-              {player.username}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <NotificationBell variant="light" />
+              <AvatarXP initials={initials} xpPct={xpPct} />
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <NotificationBell variant="light" />
-            <AvatarXP initials={initials} xpPct={xpPct} />
+
+          {/* Currency pills */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: GAP } as React.CSSProperties}>
+            {([
+              { Icon: Coins, value: player.coins.toLocaleString(), label: 'coins',  color: '#9E6800' },
+              { Icon: Gem,   value: String(player.diamonds),        label: 'gems',   color: '#1445AA' },
+              { Icon: Zap,   value: `${player.energy}/5`,           label: 'energy', color: T.red     },
+              { Icon: Check, value: String(player.streakDays || 0), label: 'streak', color: T.red     },
+            ] as const).map(({ Icon, value, label, color }) => (
+              <motion.button
+                key={label} whileTap={{ scale: 0.95 }} onClick={() => haptic('light')}
+                style={{
+                  flexShrink: 0, height: 34, padding: '0 13px',
+                  background: T.white, border: `0.5px solid ${T.border}`,
+                  borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+                }}
+              >
+                <Icon size={13} color={color} strokeWidth={1.5} />
+                <span style={{ fontSize: 12, fontWeight: 500, color: T.black, fontFamily: F }}>{value}</span>
+                <span style={{ fontSize: 11, fontWeight: 400, color: T.t3, fontFamily: F }}>{label}</span>
+              </motion.button>
+            ))}
           </div>
         </div>
 
-        {/* ── 3. Currency Bar ── */}
-        <div style={{ padding: '0 22px 16px', display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {[
-            { Icon: Coins,  value: player.coins.toLocaleString(), label: 'coins',  iconColor: T.amber },
-            { Icon: Gem,    value: String(player.diamonds),        label: 'gems',   iconColor: '#4A6EE8' },
-            { Icon: Zap,    value: `${player.energy}/5`,           label: 'energy', iconColor: T.red },
-            { Icon: Clock,  value: String(player.streakDays || 0), label: 'streak', iconColor: T.red },
-          ].map(({ Icon, value, label, iconColor }) => (
-            <motion.button
-              key={label}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => haptic('light')}
-              style={{
-                flexShrink: 0, height: 32, padding: '0 11px',
-                background: T.surface, border: `0.5px solid ${T.border}`,
-                borderRadius: 20, display: 'flex', alignItems: 'center', gap: 5,
-                cursor: 'pointer',
-              }}
-            >
-              <Icon size={13} color={iconColor} strokeWidth={1.5} />
-              <span style={{ fontSize: 12, fontWeight: 500, color: T.black, fontFamily: F }}>{value}</span>
-              <span style={{ fontSize: 11, fontWeight: 400, color: T.text3, fontFamily: F }}>{label}</span>
-            </motion.button>
-          ))}
+        {/* ── Bento ── */}
+        <div style={{ padding: '0 16px', marginBottom: GAP }}>
+
+          {/* Row: Leaderboard (left) + Events·Clubs·Feed (right) */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+
+            {/* Hero carousel: weekly goal ↔ calorie tracker */}
+            <div style={{ flex: 1.15, height: 224, borderRadius: 16, background: T.black, overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+              {/* Slides — fixed height area */}
+              <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+              <AnimatePresence initial={false} mode="wait">
+                {heroSlide === 0 ? (
+                  <motion.div key="goal"
+                    initial={{ x: '-100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '-100%', opacity: 0 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    style={{ position: 'absolute', inset: 0, padding: 18, display: 'flex', flexDirection: 'column' }}
+                  >
+                    <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: '#fff', fontFamily: F, marginBottom: 16 }}>Weekly goal</div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+                      <div style={{ position: 'relative', width: 100, height: 100 }}>
+                        <svg width="100" height="100" style={{ transform: 'rotate(-90deg)' }}>
+                          <circle cx="50" cy="50" r="42" stroke="rgba(255,255,255,0.12)" strokeWidth="5" fill="none" />
+                          <motion.circle cx="50" cy="50" r="42" stroke={T.red} strokeWidth="5" strokeLinecap="round" fill="none"
+                            strokeDasharray="263.9" initial={{ strokeDashoffset: 263.9 }}
+                            animate={{ strokeDashoffset: 263.9 * (1 - pct) }}
+                            transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }} />
+                        </svg>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 20, fontWeight: 300, color: '#fff', fontFamily: F, letterSpacing: '-0.03em', lineHeight: 1 }}>{weeklyKm.toFixed(1)}</span>
+                          <span style={{ fontSize: 8, fontWeight: 400, color: 'rgba(255,255,255,0.4)', fontFamily: F, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginTop: 2 }}>km</span>
+                        </div>
+                      </div>
+                      <div style={{ width: '100%' }}>
+                        <div style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.65)', fontFamily: F, textAlign: 'center', marginBottom: 10 }}>
+                          {Math.round(pct * 100)}% of {weeklyGoal} km
+                        </div>
+                        <div style={{ display: 'flex', gap: 3 }}>
+                          {Array(7).fill(0).map((_, i) => (
+                            <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i === todayIdx ? T.red : runDays[i] ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.12)' }} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.button key="cal"
+                    initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }}
+                    transition={{ duration: 0.22, ease: 'easeOut' }}
+                    onClick={() => { navigate('/calories'); haptic('light'); }}
+                    style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+                      {/* Flame icon */}
+                      <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(249,115,22,0.15)', border: '0.5px solid rgba(249,115,22,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Flame size={26} color="#F97316" strokeWidth={1.5} />
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 16, fontWeight: 500, color: '#fff', fontFamily: F, lineHeight: 1.2, marginBottom: 6 }}>Track your cal</div>
+                        <div style={{ fontSize: 10, fontWeight: 300, color: 'rgba(255,255,255,0.45)', fontFamily: F }}>
+                          {caloriesConsumed > 0 ? `${caloriesConsumed} / ${calorieGoal} kcal today` : `Goal: ${calorieGoal} kcal`}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 9, fontWeight: 400, color: 'rgba(255,255,255,0.28)', fontFamily: F, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>Tap to open →</div>
+                    </div>
+                  </motion.button>
+                )}
+              </AnimatePresence>
+              </div>
+
+              {/* Dot indicators + swipe hint */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 5, paddingBottom: 12 }}>
+                {[0, 1].map(i => (
+                  <button key={i} onClick={() => { setHeroSlide(i); haptic('light'); }}
+                    style={{ width: i === heroSlide ? 16 : 5, height: 5, borderRadius: 3, background: i === heroSlide ? T.red : 'rgba(255,255,255,0.25)', border: 'none', cursor: 'pointer', padding: 0, transition: 'width 0.2s' }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Right column: Events · Clubs · Leaderboard */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {([
+                { Icon: Calendar, name: 'Events',      route: '/events'      },
+                { Icon: Users,    name: 'Clubs',       route: '/club'        },
+                { Icon: Award,    name: 'Leaderboard', route: '/leaderboard' },
+              ] as const).map(({ Icon, name, route }) => (
+                <motion.button
+                  key={name}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => { navigate(route); haptic('light'); }}
+                  style={{
+                    flex: 1, padding: 15, borderRadius: 14,
+                    background: T.stone, border: `0.5px solid ${T.border}`,
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: T.white, border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={14} color={T.red} strokeWidth={1.5} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: T.black, fontFamily: F, letterSpacing: '-0.01em' }}>{name}</span>
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
+          {/* Start Run — inside bento */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => { navigate('/run'); haptic('medium'); }}
+            style={{
+              width: '100%', background: T.black, border: 'none', borderRadius: 16,
+              padding: '14px 16px', cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: T.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Play size={16} color="#fff" fill="#fff" strokeWidth={1.5} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.38)', fontFamily: F }}>Tap to begin</div>
+                  <div style={{ fontSize: 17, fontWeight: 500, color: '#fff', fontFamily: F, lineHeight: 1.2 }}>Start run</div>
+                </div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.08)', border: '0.5px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '5px 11px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Zap size={11} color="rgba(255,255,255,0.5)" strokeWidth={1.5} />
+                <span style={{ fontSize: 10, fontWeight: 400, color: 'rgba(255,255,255,0.5)', fontFamily: F }}>1 energy</span>
+              </div>
+            </div>
+          </motion.button>
+
         </div>
 
-        {/* ── 4. Weekly Goal Ring Card ── */}
-        <div style={{ margin: '0 16px 16px', background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: 20, padding: 18, display: 'flex', gap: 16, alignItems: 'center' }}>
-          <WeeklyRing current={weeklyKm} goal={weeklyGoal} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 500, color: T.black, fontFamily: F, marginBottom: 3 }}>Weekly goal</div>
-            <div style={{ fontSize: 12, fontWeight: 300, color: T.text2, fontFamily: F, marginBottom: 10 }}>
-              {Math.round(pct * 100)}% · {leftKm} km left
-            </div>
-            {/* Day bars */}
-            <div style={{ display: 'flex', gap: 5 }}>
-              {['M','T','W','T','F','S','S'].map((_, i) => {
-                const done  = runDays[i];
-                const today = i === todayIdx;
-                const future = i > todayIdx;
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ scaleY: 0 }}
-                    animate={{ scaleY: 1 }}
-                    transition={{ delay: 0.3 + i * 0.06, duration: 0.4 }}
-                    style={{
-                      width: 22, height: 4, borderRadius: 2,
-                      background: today ? T.red : done ? T.black : future ? T.mid : T.mid,
-                      transformOrigin: 'bottom',
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', gap: 5, marginTop: 4 }}>
-              {['M','T','W','T','F','S','S'].map((d, i) => (
-                <div key={i} style={{ width: 22, textAlign: 'center', fontSize: 8, fontWeight: 400, color: i === todayIdx ? T.red : T.text3, fontFamily: F }}>
-                  {d}
+        {/* ── Empire ── */}
+        <div style={{ padding: P, marginBottom: weakZones.length > 0 ? 0 : GAP }}>
+          <SectionTitle label="Empire" action="View map →" onAction={() => { navigate('/territory-map'); haptic('light'); }} />
+          <div style={{ background: T.white, border: `0.5px solid ${T.border}`, borderRadius: 20, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: T.mid }}>
+              {[
+                { value: String(ownedCount),       label: 'Zones owned',  color: T.black },
+                { value: `${avgDefense}%`,          label: 'Avg defense',  color: T.black },
+                { value: `+${dailyIncome}`,         label: 'Daily income', color: T.black },
+                { value: String(weakZones.length),  label: 'Weak zones',   color: weakZones.length > 0 ? T.red : T.black },
+              ].map((stat, i) => (
+                <div key={i} style={{ background: T.white, padding: '16px 20px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 300, letterSpacing: '-0.03em', color: stat.color, fontFamily: F, lineHeight: 1, marginBottom: 4 }}>{stat.value}</div>
+                  <div style={{ fontSize: 9, fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.t3, fontFamily: F }}>{stat.label}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* ── Passive income warning ── */}
-        {incomePausedDays !== null && (
-          <div style={{
-            margin: '0 16px 16px',
-            background: T.amberLight, borderLeft: `3px solid ${T.amber}`,
-            borderRadius: 12, padding: '11px 14px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-          }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: '#7A5200', fontFamily: F }}>
-                Your empire is weakening — run today
-              </div>
-              <div style={{ fontSize: 11, fontWeight: 300, color: T.amber, fontFamily: F, marginTop: 2 }}>
-                Last run: {incomePausedDays} day{incomePausedDays !== 1 ? 's' : ''} ago
-              </div>
-            </div>
-            <button
-              onClick={() => { navigate('/run'); haptic('medium'); }}
-              style={{ fontSize: 11, fontWeight: 500, color: T.amber, background: 'none', border: 'none', cursor: 'pointer', fontFamily: F, whiteSpace: 'nowrap' }}
-            >
-              Run now →
-            </button>
-          </div>
-        )}
-
-        {/* ── 5. Start Run Button ── */}
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={() => { navigate('/run'); haptic('medium'); }}
-          style={{
-            margin: '0 16px 16px', width: 'calc(100% - 32px)',
-            background: T.black, borderRadius: 14, padding: '18px 22px', border: 'none',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            cursor: 'pointer', animation: 'startPulse 2s ease-in-out infinite',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: T.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Play size={16} color="#FFFFFF" strokeWidth={1.5} fill="#FFFFFF" />
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', fontFamily: F }}>
-                Tap to begin
-              </div>
-              <div style={{ fontSize: 17, fontWeight: 500, color: '#FFFFFF', letterSpacing: '0.01em', fontFamily: F, lineHeight: 1.2 }}>
-                Start run
-              </div>
-            </div>
-          </div>
-          <div style={{ background: 'rgba(255,255,255,0.1)', border: '0.5px solid rgba(255,255,255,0.2)', borderRadius: 12, padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Zap size={12} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
-            <span style={{ fontSize: 11, fontWeight: 400, color: 'rgba(255,255,255,0.7)', fontFamily: F }}>1 energy</span>
-          </div>
-        </motion.button>
-
-        {/* ── 6. Empire Overview ── */}
-        <SectionLabel>Your empire</SectionLabel>
-        <div style={{ margin: '0 16px 16px', background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: 20, overflow: 'hidden' }}>
-          {/* Header */}
-          <div style={{ padding: '14px 18px 10px', borderBottom: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: T.black, fontFamily: F }}>Overview</span>
-            <button
-              onClick={() => { navigate('/territory-map'); haptic('light'); }}
-              style={{ fontSize: 11, fontWeight: 400, color: T.text3, background: 'none', border: 'none', cursor: 'pointer', fontFamily: F }}
-            >
-              View map →
-            </button>
-          </div>
-          {/* 2×2 grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
-            {[
-              { value: String(ownedCount),  label: 'Zones owned',  color: T.black },
-              { value: `${avgDefense}%`,    label: 'Avg defense',  color: T.black },
-              { value: `+${dailyIncome}`,   label: 'Daily income', color: T.black },
-              { value: String(weakZones.length), label: 'Weak zones', color: weakZones.length > 0 ? T.red : T.black },
-            ].map((stat, i) => (
-              <div key={i} style={{
-                padding: '12px 18px',
-                borderRight:  i % 2 === 0 ? `0.5px solid ${T.border}` : 'none',
-                borderBottom: i < 2       ? `0.5px solid ${T.border}` : 'none',
-              }}>
-                <div style={{ fontSize: 20, fontWeight: 300, letterSpacing: '-0.02em', color: stat.color, fontFamily: F, lineHeight: 1, marginBottom: 4 }}>
-                  {stat.value}
-                </div>
-                <div style={{ fontSize: 10, fontWeight: 400, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.text3, fontFamily: F }}>
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── 8. Weak zones alert ── */}
+        {/* Weak zones alert */}
         {weakZones.length > 0 && (
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={() => { navigate('/territory-map'); haptic('medium'); }}
-            style={{
-              margin: '0 16px 16px', width: 'calc(100% - 32px)',
-              background: T.amberLight, border: `0.5px solid ${T.amberBorder}`,
-              borderRadius: 12, padding: '11px 14px',
-              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-            }}
-          >
-            <div style={{ width: 3, height: 32, background: T.amber, borderRadius: 2, flexShrink: 0 }} />
-            <div style={{ flex: 1, textAlign: 'left' }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: '#7A5200', fontFamily: F }}>
-                {weakZones.length} zones need defending
+          <div style={{ padding: P, marginBottom: GAP, marginTop: 10 }}>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { navigate('/territory-map'); haptic('medium'); }}
+              style={{
+                width: '100%', background: T.amberLo, border: `0.5px solid ${T.amberBo}`,
+                borderRadius: 14, padding: '12px 18px',
+                display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <div style={{ width: 3, height: 28, background: T.amber, borderRadius: 2, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: '#7A5200', fontFamily: F }}>{weakZones.length} zones need defending</div>
+                <div style={{ fontSize: 10, fontWeight: 300, color: T.amber, fontFamily: F, marginTop: 2 }}>Tap to reinforce →</div>
               </div>
-              <div style={{ fontSize: 11, fontWeight: 300, color: T.amber, fontFamily: F, marginTop: 2 }}>
-                Tap to reinforce →
-              </div>
-            </div>
-          </motion.button>
+            </motion.button>
+          </div>
         )}
 
-        {/* ── 9. Daily Missions ── */}
-        <SectionLabel>Missions</SectionLabel>
-        <div style={{ margin: '0 16px 16px', background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: 20, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px 12px', borderBottom: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: T.black, fontFamily: F }}>Today</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {missionsTotal > 0 && (
-                <div style={{ padding: '3px 9px', borderRadius: 20, background: T.greenLight, fontSize: 10, fontWeight: 500, color: T.green, fontFamily: F }}>
-                  {missionsCompleted} / {missionsTotal} done
-                </div>
-              )}
-              <button
-                onClick={() => { navigate('/missions'); haptic('light'); }}
-                style={{ fontSize: 11, fontWeight: 400, color: T.red, background: 'none', border: 'none', cursor: 'pointer', fontFamily: F }}
-              >
-                Change →
-              </button>
+        {/* ── Missions ── */}
+        <div style={{ padding: P, marginBottom: GAP }}>
+          <SectionTitle label="Missions" action="Change →" onAction={() => { navigate('/missions'); haptic('light'); }} />
+          <div style={{ background: T.black, borderRadius: 20, overflow: 'hidden', padding: '18px 20px' }}>
+            {/* Inner label */}
+            <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', fontFamily: F, marginBottom: 14 }}>
+              Today's challenge
             </div>
-          </div>
 
-          {missions.length > 0 ? missions.map((m, i) => {
-            const Icon = MISSION_ICONS[m.type] ?? Target;
-            const bar  = Math.min(m.current / Math.max(m.target, 1), 1);
-            return (
-              <div key={m.id} style={{ padding: '12px 18px', borderBottom: i < missions.length - 1 ? `0.5px solid ${T.border}` : 'none', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                  background: m.completed ? T.greenLight : '#F7F6F4',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {m.completed
-                    ? <Check size={14} color={T.green} strokeWidth={1.5} />
-                    : <Icon size={14} color={T.black} strokeWidth={1.5} />
-                  }
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 400, color: m.completed ? T.text3 : T.black, fontFamily: F, textDecoration: m.completed ? 'line-through' : 'none', marginBottom: 5 }}>
-                    {m.title}
+            {missions.length > 0 ? missions.map((m, i) => {
+              const Icon = MISSION_ICONS[m.type] ?? Target;
+              const bar  = Math.min(m.current / Math.max(m.target, 1), 1);
+              return (
+                <div key={m.id} style={{ paddingBottom: i < missions.length - 1 ? 14 : 0, marginBottom: i < missions.length - 1 ? 14 : 0, borderBottom: i < missions.length - 1 ? '0.5px solid rgba(255,255,255,0.08)' : 'none', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                    background: m.completed ? 'rgba(26,107,64,0.3)' : 'rgba(255,255,255,0.08)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {m.completed
+                      ? <Check size={13} color="#4ADE80" strokeWidth={1.5} />
+                      : <Icon  size={13} color="rgba(255,255,255,0.4)" strokeWidth={1.5} />}
                   </div>
-                  <div style={{ height: 2, background: T.mid, borderRadius: 1, overflow: 'hidden' }}>
-                    <motion.div
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: bar }}
-                      transition={{ duration: 0.8, delay: 0.2 + i * 0.1 }}
-                      style={{ height: '100%', transformOrigin: 'left', background: m.completed ? T.green : T.black, borderRadius: 1 }}
-                    />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: m.completed ? 'rgba(255,255,255,0.35)' : '#fff', fontFamily: F, textDecoration: m.completed ? 'line-through' : 'none', marginBottom: 8 }}>
+                      {m.title}
+                    </div>
+                    <div style={{ height: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
+                      <motion.div
+                        initial={{ scaleX: 0 }} animate={{ scaleX: bar }}
+                        transition={{ duration: 0.8, delay: 0.2 + i * 0.1 }}
+                        style={{ height: '100%', transformOrigin: 'left', background: m.completed ? '#4ADE80' : T.red, borderRadius: 1 }}
+                      />
+                    </div>
                   </div>
+                  <span style={{ fontSize: 11, fontWeight: 400, color: m.completed ? '#4ADE80' : 'rgba(255,255,255,0.45)', fontFamily: F, flexShrink: 0, marginTop: 2 }}>+{m.rewards.xp} XP</span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 500, color: T.text2, fontFamily: F, flexShrink: 0, marginTop: 2 }}>+{m.rewards.xp} XP</span>
+              );
+            }) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 20, fontStyle: 'italic', fontWeight: 400, color: '#fff', fontFamily: FD, lineHeight: 1.25 }}>
+                  No missions set yet.
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => { navigate('/missions'); haptic('light'); }}
+                  style={{
+                    width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+                    background: 'rgba(255,255,255,0.1)', border: '0.5px solid rgba(255,255,255,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                  }}
+                >
+                  <span style={{ fontSize: 26, fontWeight: 200, color: '#fff', lineHeight: 1, marginTop: -1 }}>+</span>
+                </motion.button>
               </div>
-            );
-          }) : (
-            <button
-              onClick={() => { navigate('/missions'); haptic('light'); }}
-              style={{ width: '100%', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
-            >
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F7F6F4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Target size={14} color={T.text3} strokeWidth={1.5} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: T.black, fontFamily: F }}>No missions set</div>
-                <div style={{ fontSize: 12, fontWeight: 300, color: T.text2, fontFamily: F, marginTop: 2 }}>Pick today's challenge</div>
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 400, color: T.red, fontFamily: F, flexShrink: 0 }}>Choose missions →</span>
-            </button>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* ── 10. Leaderboard ── */}
-        <SectionLabel>Leaderboard</SectionLabel>
-        <div style={{ margin: '0 16px 24px', background: T.surface, border: `0.5px solid ${T.border}`, borderRadius: 20, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px 12px', borderBottom: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: T.black, fontFamily: F }}>Top runners</span>
-            <button
-              onClick={() => { navigate('/leaderboard'); haptic('light'); }}
-              style={{ fontSize: 11, fontWeight: 400, color: T.red, background: 'none', border: 'none', cursor: 'pointer', fontFamily: F }}
-            >
-              See all →
-            </button>
-          </div>
-          {LEADERBOARD.map((row, i) => (
-            <div key={i} style={{
-              padding: '11px 18px',
-              background: row.isUser ? T.surfaceAlt : T.surface,
-              borderBottom: i < LEADERBOARD.length - 1 ? `0.5px solid ${T.border}` : 'none',
-              display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <span style={{ width: 18, fontSize: 13, fontWeight: 500, color: RANK_COLORS[row.rank] ?? T.black, fontFamily: F, textAlign: 'center', flexShrink: 0 }}>
-                {row.rank}
-              </span>
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                background: row.isUser ? T.black : '#F7F6F4',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 500,
-                color: row.isUser ? '#FFFFFF' : T.text2, fontFamily: F,
-              }}>
-                {row.initials}
+        {/* ── Recent Runs ── */}
+        <div style={{ padding: P, marginBottom: GAP }}>
+          <SectionTitle label="Recent runs" action="See all →" onAction={() => { navigate('/history'); haptic('light'); }} />
+          <div style={{ background: T.white, border: `0.5px solid ${T.border}`, borderRadius: 20, overflow: 'hidden' }}>
+            {recentRuns.length > 0 ? recentRuns.map((r, i) => {
+              const km        = (r.distanceMeters / 1000).toFixed(2);
+              const totalSec  = Math.round(r.durationSec);
+              const h         = Math.floor(totalSec / 3600);
+              const min       = Math.floor((totalSec % 3600) / 60);
+              const durLabel  = h > 0 ? `${h}h ${min}m` : `${min}m`;
+              const diff      = Math.floor((Date.now() - r.startTime) / 86_400_000);
+              const dateLabel = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : new Date(r.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              const type      = r.activityType ?? 'run';
+              return (
+                <div key={r.id} style={{ padding: '14px 20px', borderBottom: i < recentRuns.length - 1 ? `0.5px solid ${T.mid}` : 'none', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 10, fontWeight: 500, color: T.t2, fontFamily: F, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{type}</div>
+                    <div style={{ fontSize: 11, fontWeight: 300, color: T.t3, fontFamily: F, marginTop: 2 }}>{dateLabel}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 16, fontWeight: 300, color: T.black, fontFamily: F, letterSpacing: '-0.02em', lineHeight: 1 }}>{km}</div>
+                      <div style={{ fontSize: 8, fontWeight: 400, color: T.t3, fontFamily: F, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>km</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 16, fontWeight: 300, color: T.black, fontFamily: F, letterSpacing: '-0.02em', lineHeight: 1 }}>{durLabel}</div>
+                      <div style={{ fontSize: 8, fontWeight: 400, color: T.t3, fontFamily: F, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>time</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }) : (
+              <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 13, fontWeight: 300, color: T.t3, fontFamily: F }}>No runs yet</span>
+                <button onClick={() => { navigate('/run'); haptic('light'); }} style={{ fontSize: 11, fontWeight: 400, color: T.red, background: 'none', border: 'none', cursor: 'pointer', fontFamily: F }}>
+                  Start running →
+                </button>
               </div>
-              <span style={{ flex: 1, fontSize: 13, fontWeight: row.isUser ? 500 : 400, color: T.black, fontFamily: F }}>
-                {row.name}
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 300, color: T.text2, letterSpacing: '-0.01em', fontFamily: F }}>
-                {row.km}
-              </span>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
 
       </div>

@@ -11,6 +11,7 @@ const HIDE_ON: string[] = [
   '/events/create',
   '/subscription',
   '/settings',
+  '/calories',
 ]
 
 const TABS = [

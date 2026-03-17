@@ -28,7 +28,9 @@ const Missions      = lazy(() => import('@features/missions/pages/Missions'));
 const CreateEvent   = lazy(() => import('@features/events/pages/CreateEvent'));
 const Subscription  = lazy(() => import('@features/subscription/pages/Subscription'));
 const SettingsPage  = lazy(() => import('@features/settings/pages/Settings'));
-const DesignSystem  = lazy(() => import('@shared/design-system/DesignSystemPage'));
+const DesignSystem      = lazy(() => import('@shared/design-system/DesignSystemPage'));
+const CalorieTracker    = lazy(() => import('@features/nutrition/pages/CalorieTracker'));
+const NutritionSetup    = lazy(() => import('@features/nutrition/pages/NutritionSetup'));
 
 function LayoutWithNav({ children }: { children: React.ReactNode }) {
   return (
@@ -167,6 +169,14 @@ function AnimatedRoutes() {
           <PageTransition>
             <LayoutWithNav><History /></LayoutWithNav>
           </PageTransition>
+        } />
+        <Route path="/calories" element={
+          <PageTransition>
+            <LayoutWithNav><CalorieTracker /></LayoutWithNav>
+          </PageTransition>
+        } />
+        <Route path="/calories/setup" element={
+          <PageTransition><NutritionSetup /></PageTransition>
         } />
         <Route path="/club" element={
           <PageTransition>

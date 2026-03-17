@@ -19,52 +19,14 @@ export const LobbyChat = () => {
   const [messageInput, setMessageInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Mock data
   const lobbyData = {
     name: 'Global Runners',
-    onlineCount: 1247
+    onlineCount: 0,
   }
 
   const currentUserId = 'current-user'
 
-  const [messages, setMessages] = useState<MessageData[]>([
-    {
-      id: '1',
-      userId: 'user-1',
-      userName: 'Alex Chen',
-      userLevel: 28,
-      avatar: '👤',
-      message: 'Just captured Central Park! 🎉',
-      timestamp: '10:30 AM'
-    },
-    {
-      id: '2',
-      userId: 'user-2',
-      userName: 'Sarah Park',
-      userLevel: 25,
-      avatar: '👤',
-      message: 'Congrats! I just completed the 5K challenge!',
-      timestamp: '10:32 AM'
-    },
-    {
-      id: '3',
-      userId: 'current-user',
-      userName: 'You',
-      userLevel: 22,
-      avatar: '👤',
-      message: 'Nice work everyone!',
-      timestamp: '10:35 AM'
-    },
-    {
-      id: '4',
-      userId: 'user-3',
-      userName: 'Mike Ross',
-      userLevel: 23,
-      avatar: '👤',
-      message: 'Anyone up for a morning run tomorrow at 7 AM in Central Park?',
-      timestamp: '10:40 AM'
-    }
-  ])
+  const [messages, setMessages] = useState<MessageData[]>([])
 
   useEffect(() => {
     scrollToBottom()

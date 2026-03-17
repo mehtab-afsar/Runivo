@@ -1,8 +1,26 @@
-import { useState, useEffect, ReactNode } from 'react';
-import { motion } from 'framer-motion';
-import { Activity, Flag, Zap, Crown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingUp, Navigation, Zap, Award } from 'lucide-react';
 import { supabase } from '@shared/services/supabase';
 import type { LeaderboardTab, TimeFrame, LeaderboardEntry } from '../types';
+
+const T = {
+  bg: '#F8F6F3',
+  white: '#FFFFFF',
+  stone: '#F0EDE8',
+  border: '#DDD9D4',
+  mid: '#E8E4DF',
+  black: '#0A0A0A',
+  t2: '#6B6B6B',
+  t3: '#ADADAD',
+  red: '#D93518',
+  redLo: '#FEF0EE',
+  redBo: 'rgba(217,53,24,0.2)',
+  amber: '#9E6800',
+};
+const F = "'Barlow', sans-serif";
+const FD = "'Playfair Display', serif";
+
+const AVATAR_PALETTE = ['#C4B0D8', '#8FD4B0', '#F4A460'];
 
 export default function Leaderboard() {
   const [tab, setTab] = useState<LeaderboardTab>('distance');
@@ -12,12 +30,14 @@ export default function Leaderboard() {
 
   useEffect(() => {
     loadLeaderboard();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, timeFrame]);
 
   const loadLeaderboard = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (timeFrame === 'week') {
       const { data } = await supabase
@@ -31,22 +51,31 @@ export default function Leaderboard() {
           rank: row.rank,
           name: row.username,
           level: row.level,
-          value: tab === 'distance' ? Math.round(Number(row.weekly_km) * 10) / 10
-               : tab === 'xp'       ? Number(row.weekly_xp)
-               :                      Number(row.weekly_territories),
+          value:
+            tab === 'distance'
+              ? Math.round(Number(row.weekly_km) * 10) / 10
+              : tab === 'xp'
+              ? Number(row.weekly_xp)
+              : Number(row.weekly_territories),
           isPlayer: user?.id === row.id,
         }));
         mapped.sort((a, b) => b.value - a.value);
-        mapped.forEach((e, i) => { e.rank = i + 1; });
+        mapped.forEach((e, i) => {
+          e.rank = i + 1;
+        });
         setEntries(mapped);
       }
     } else {
-      const cutoff = timeFrame === 'month'
-        ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-        : new Date(0).toISOString();
+      const cutoff =
+        timeFrame === 'month'
+          ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+          : new Date(0).toISOString();
 
       const [{ data: runs }, { data: profiles }] = await Promise.all([
-        supabase.from('runs').select('user_id, distance_m, xp_earned, territories_claimed').gte('started_at', cutoff),
+        supabase
+          .from('runs')
+          .select('user_id, distance_m, xp_earned, territories_claimed')
+          .gte('started_at', cutoff),
         supabase.from('profiles').select('id, username, level'),
       ]);
 
@@ -69,32 +98,25 @@ export default function Leaderboard() {
             rank: 0,
             name: profile?.username ?? 'Runner',
             level: profile?.level ?? 1,
-            value: tab === 'distance' ? Math.round(t.km * 10) / 10
-                 : tab === 'xp'       ? t.xp
-                 :                      t.zones,
+            value:
+              tab === 'distance'
+                ? Math.round(t.km * 10) / 10
+                : tab === 'xp'
+                ? t.xp
+                : t.zones,
             isPlayer: user?.id === uid,
           };
         });
 
         mapped.sort((a, b) => b.value - a.value);
-        mapped.forEach((e, i) => { e.rank = i + 1; });
+        mapped.forEach((e, i) => {
+          e.rank = i + 1;
+        });
         setEntries(mapped);
       }
     }
     setLoading(false);
   };
-
-  const tabs: { id: LeaderboardTab; label: string; icon: ReactNode }[] = [
-    { id: 'distance', label: 'Distance', icon: <Activity className="w-3.5 h-3.5" strokeWidth={2} /> },
-    { id: 'territories', label: 'Zones', icon: <Flag className="w-3.5 h-3.5" strokeWidth={2} /> },
-    { id: 'xp', label: 'XP', icon: <Zap className="w-3.5 h-3.5" strokeWidth={2} /> },
-  ];
-
-  const timeFrames: { id: TimeFrame; label: string }[] = [
-    { id: 'week', label: 'This Week' },
-    { id: 'month', label: 'This Month' },
-    { id: 'all', label: 'All Time' },
-  ];
 
   const formatValue = (value: number): string => {
     if (tab === 'distance') return `${value.toFixed(1)} km`;
@@ -104,156 +126,656 @@ export default function Leaderboard() {
 
   const playerEntry = entries.find(e => e.isPlayer);
 
+  const metricTabs: { id: LeaderboardTab; label: string; icon: React.ReactNode }[] = [
+    {
+      id: 'distance',
+      label: 'Distance',
+      icon: (
+        <TrendingUp
+          size={11}
+          strokeWidth={1.5}
+          style={{ color: tab === 'distance' ? T.red : T.t3 }}
+        />
+      ),
+    },
+    {
+      id: 'territories',
+      label: 'Zones',
+      icon: (
+        <Navigation
+          size={11}
+          strokeWidth={1.5}
+          style={{ color: tab === 'territories' ? T.red : T.t3 }}
+        />
+      ),
+    },
+    {
+      id: 'xp',
+      label: 'XP',
+      icon: (
+        <Zap
+          size={11}
+          strokeWidth={1.5}
+          style={{ color: tab === 'xp' ? T.red : T.t3 }}
+        />
+      ),
+    },
+  ];
+
+  const timeFrames: { id: TimeFrame; label: string }[] = [
+    { id: 'week', label: 'This Week' },
+    { id: 'month', label: 'This Month' },
+    { id: 'all', label: 'All Time' },
+  ];
+
+  // Podium order: 2nd (index 1), 1st (index 0), 3rd (index 2)
+  const podiumOrder = entries.length >= 3 ? [entries[1], entries[0], entries[2]] : [];
+  // visual positions: 0=2nd place, 1=1st place, 2=3rd place
+  const podiumRanks = [2, 1, 3];
+  const podiumAvatarSizes = [34, 40, 30];
+  const podiumFontSizes = [12, 14, 10];
+  const podiumBlockWidths = [60, 70, 52];
+  const podiumBlockHeights = [40, 58, 28];
+
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-28">
-      <div className="px-5" style={{ paddingTop: 'max(20px, env(safe-area-inset-top))' }}>
-        <h1 className="text-xl font-bold text-gray-900 mb-5">Leaderboard</h1>
+    <div
+      style={{
+        height: '100%',
+        background: T.bg,
+        overflowY: 'auto',
+        fontFamily: F,
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          background: T.white,
+          paddingTop: 'max(14px, env(safe-area-inset-top))',
+          padding: '0 18px 12px',
+          borderBottom: `0.5px solid ${T.border}`,
+        }}
+      >
+        <div
+          style={{
+            paddingTop: 'max(14px, env(safe-area-inset-top))',
+          }}
+        >
+          <h1
+            style={{
+              fontSize: 20,
+              fontStyle: 'italic',
+              fontFamily: FD,
+              color: T.black,
+              margin: 0,
+              fontWeight: 400,
+            }}
+          >
+            Leaderboard
+          </h1>
+        </div>
+      </div>
 
-        {loading && (
-          <div className="flex justify-center py-20">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-              className="w-6 h-6 border-2 border-gray-200 border-t-[#E8435A] rounded-full"
-            />
-          </div>
-        )}
-
-        {!loading && entries.length === 0 && (
-          <div className="flex flex-col items-center py-20 text-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <Crown className="w-6 h-6 text-gray-300" />
-            </div>
-            <p className="text-sm font-medium text-gray-500">No runners yet</p>
-            <p className="text-xs text-gray-400 mt-1">Complete a run to appear here</p>
-          </div>
-        )}
-
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-4">
-          {tabs.map(t => (
+      {/* Metric Tabs */}
+      <div
+        style={{
+          background: T.white,
+          padding: '10px 18px',
+          borderBottom: `0.5px solid ${T.border}`,
+          display: 'flex',
+          gap: 6,
+        }}
+      >
+        {metricTabs.map(t => {
+          const isActive = tab === t.id;
+          return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${
-                tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
-              }`}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                padding: '7px 6px',
+                borderRadius: 20,
+                border: `0.5px solid ${isActive ? 'rgba(217,53,24,0.3)' : T.border}`,
+                background: isActive ? T.redLo : T.bg,
+                fontSize: 10,
+                fontFamily: F,
+                fontWeight: isActive ? 500 : 400,
+                color: isActive ? T.red : T.t3,
+                cursor: 'pointer',
+              }}
             >
-              <span>{t.icon}</span>
+              {t.icon}
               {t.label}
             </button>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        <div className="flex gap-2 mb-6">
-          {timeFrames.map(tf => (
+      {/* Time Frame Filter */}
+      <div
+        style={{
+          background: T.white,
+          padding: '10px 18px',
+          borderBottom: `0.5px solid ${T.border}`,
+          display: 'flex',
+          gap: 4,
+        }}
+      >
+        {timeFrames.map(tf => {
+          const isActive = timeFrame === tf.id;
+          return (
             <button
               key={tf.id}
               onClick={() => setTimeFrame(tf.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                timeFrame === tf.id
-                  ? 'bg-[#F9E4E7] text-[#E8435A] border border-[#F9E4E7]'
-                  : 'bg-gray-50 text-gray-400 border border-gray-100'
-              }`}
+              style={{
+                flex: 1,
+                padding: '6px',
+                textAlign: 'center',
+                borderRadius: 4,
+                fontSize: 9,
+                fontFamily: F,
+                fontWeight: isActive ? 500 : 400,
+                color: isActive ? T.red : T.t3,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                cursor: 'pointer',
+                border: 'none',
+                background: isActive ? T.redLo : 'transparent',
+              }}
             >
               {tf.label}
             </button>
-          ))}
+          );
+        })}
+      </div>
+
+      {loading && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '60px 18px',
+          }}
+        >
+          <div
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              border: `2px solid ${T.border}`,
+              borderTopColor: T.red,
+              animation: 'spin 1s linear infinite',
+            }}
+          />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
+      )}
 
-        {entries.length >= 3 && (
-          <div className="flex items-end justify-center gap-3 mb-8 px-2">
-            <div className="flex-1 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-gray-100 border-2 border-gray-200
-                              flex items-center justify-center text-lg font-bold text-gray-500 mb-2">
-                {entries[1].name.charAt(0)}
-              </div>
-              <span className="text-xs font-semibold text-gray-600 truncate max-w-full mb-0.5">{entries[1].name}</span>
-              <span className="text-stat text-xs text-gray-400 mb-2">{formatValue(entries[1].value)}</span>
-              <div className="w-full h-16 rounded-t-xl bg-gray-100 flex items-center justify-center">
-                <span className="text-2xl font-bold text-gray-300">2</span>
-              </div>
-            </div>
+      {!loading && entries.length === 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '60px 18px',
+            gap: 8,
+          }}
+        >
+          <Award size={32} strokeWidth={1.5} style={{ color: T.t3 }} />
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: T.black,
+              fontFamily: F,
+            }}
+          >
+            No runners yet
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 300,
+              color: T.t3,
+              fontFamily: F,
+            }}
+          >
+            Complete a run to appear here
+          </span>
+        </div>
+      )}
 
-            <div className="flex-1 flex flex-col items-center">
-              <div className="relative mb-2">
-                <div className="w-14 h-14 rounded-full bg-amber-50 border-2 border-amber-300
-                                flex items-center justify-center text-xl font-bold text-amber-600
-                                shadow-[0_4px_16px_rgba(245,158,11,0.15)]">
-                  {entries[0].name.charAt(0)}
+      {!loading && entries.length >= 3 && (
+        <>
+          {/* Podium */}
+          <div
+            style={{
+              background: T.white,
+              padding: '16px 18px',
+              borderBottom: `0.5px solid ${T.border}`,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            {podiumOrder.map((entry, posIdx) => {
+              const rank = podiumRanks[posIdx];
+              const avatarSize = podiumAvatarSizes[posIdx];
+              const avatarFontSize = podiumFontSizes[posIdx];
+              const blockW = podiumBlockWidths[posIdx];
+              const blockH = podiumBlockHeights[posIdx];
+              const isFirst = rank === 1;
+              const blockBg = isFirst ? T.black : rank === 2 ? T.mid : T.stone;
+              const rankColor = isFirst ? '#FFFFFF' : rank === 2 ? T.t2 : T.t3;
+              const scoreColor = isFirst ? T.red : T.black;
+
+              return (
+                <div
+                  key={entry.name + rank}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  {isFirst && (
+                    <Award size={16} strokeWidth={1.5} style={{ color: T.amber }} />
+                  )}
+                  {!isFirst && <div style={{ height: 16 }} />}
+                  {/* Avatar */}
+                  <div
+                    style={{
+                      width: avatarSize,
+                      height: avatarSize,
+                      borderRadius: '50%',
+                      background: AVATAR_PALETTE[posIdx],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: avatarFontSize,
+                      fontWeight: 500,
+                      color: '#FFFFFF',
+                      fontFamily: F,
+                    }}
+                  >
+                    {entry.name.charAt(0).toUpperCase()}
+                  </div>
+                  {/* Name */}
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 400,
+                      color: T.black,
+                      fontFamily: F,
+                      textAlign: 'center',
+                      maxWidth: 56,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {entry.name}
+                  </span>
+                  {/* Score */}
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 500,
+                      color: scoreColor,
+                      fontFamily: F,
+                    }}
+                  >
+                    {formatValue(entry.value)}
+                  </span>
+                  {/* Podium block */}
+                  <div
+                    style={{
+                      width: blockW,
+                      height: blockH,
+                      background: blockBg,
+                      borderRadius: '6px 6px 0 0',
+                      border: rank === 3 ? `0.5px solid ${T.border}` : undefined,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: rankColor,
+                        fontFamily: F,
+                      }}
+                    >
+                      {rank}
+                    </span>
+                  </div>
                 </div>
-                <Crown className="absolute -top-2 -right-1 w-5 h-5 text-amber-500" strokeWidth={2} />
-              </div>
-              <span className="text-xs font-bold text-gray-900 truncate max-w-full mb-0.5">{entries[0].name}</span>
-              <span className="text-stat text-xs text-amber-600 mb-2">{formatValue(entries[0].value)}</span>
-              <div className="w-full h-24 rounded-t-xl bg-amber-50 flex items-center justify-center border-t border-amber-200">
-                <span className="text-3xl font-bold text-amber-400">1</span>
-              </div>
-            </div>
-
-            <div className="flex-1 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-orange-50 border-2 border-orange-200
-                              flex items-center justify-center text-lg font-bold text-orange-400 mb-2">
-                {entries[2].name.charAt(0)}
-              </div>
-              <span className="text-xs font-semibold text-gray-500 truncate max-w-full mb-0.5">{entries[2].name}</span>
-              <span className="text-stat text-xs text-gray-400 mb-2">{formatValue(entries[2].value)}</span>
-              <div className="w-full h-12 rounded-t-xl bg-orange-50 flex items-center justify-center">
-                <span className="text-2xl font-bold text-orange-300">3</span>
-              </div>
-            </div>
+              );
+            })}
           </div>
-        )}
 
-        {playerEntry && playerEntry.rank > 3 && (
-          <div className="mb-4 bg-white rounded-2xl p-4 border border-[#F9E4E7] shadow-[0_2px_12px_rgba(232,67,90,0.08)]">
-            <div className="flex items-center gap-3">
-              <span className="text-stat text-lg font-bold text-[#E8435A] w-8 text-center">{playerEntry.rank}</span>
-              <div className="w-10 h-10 rounded-full bg-[#F9E4E7] border border-[#F9E4E7]
-                              flex items-center justify-center text-sm font-bold text-[#E8435A]">
-                {playerEntry.name.charAt(0)}
-              </div>
-              <div className="flex-1">
-                <span className="text-sm font-semibold text-gray-900">{playerEntry.name}</span>
-                <span className="text-xs text-[#E8435A] ml-2">You</span>
-              </div>
-              <span className="text-stat text-sm font-bold text-gray-900">{formatValue(playerEntry.value)}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-1">
-          {entries.slice(3).map((entry, i) => (
-            <motion.div
-              key={entry.name}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.02 }}
-              className={`flex items-center gap-3 py-3 px-3 rounded-xl transition ${
-                entry.isPlayer ? 'bg-[#F9E4E7] border border-[#F9E4E7]' : 'hover:bg-gray-50'
-              }`}
+          {/* Your Rank Card (if rank > 3) */}
+          {playerEntry && playerEntry.rank > 3 && (
+            <div
+              style={{
+                margin: '1px 18px 0',
+                background: T.redLo,
+                border: `0.5px solid rgba(217,53,24,0.25)`,
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
             >
-              <span className={`text-stat text-sm font-bold w-8 text-center ${entry.isPlayer ? 'text-[#E8435A]' : 'text-gray-300'}`}>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 300,
+                  color: T.red,
+                  width: 24,
+                  textAlign: 'center',
+                  letterSpacing: '-0.02em',
+                  fontFamily: F,
+                }}
+              >
+                {playerEntry.rank}
+              </span>
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  background: T.black,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 10,
+                  fontWeight: 400,
+                  color: '#FFFFFF',
+                  fontFamily: F,
+                }}
+              >
+                {playerEntry.name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: T.black,
+                    fontFamily: F,
+                  }}
+                >
+                  {playerEntry.name}
+                </span>
+                <span
+                  style={{
+                    padding: '1px 6px',
+                    borderRadius: 2,
+                    background: T.redLo,
+                    color: T.red,
+                    fontSize: 8,
+                    fontWeight: 500,
+                    textTransform: 'uppercase',
+                    border: `0.5px solid ${T.redBo}`,
+                    marginLeft: 6,
+                    fontFamily: F,
+                  }}
+                >
+                  You
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 300,
+                  color: T.black,
+                  letterSpacing: '-0.02em',
+                  fontFamily: F,
+                }}
+              >
+                {formatValue(playerEntry.value)}
+              </span>
+            </div>
+          )}
+
+          {/* Rankings List (4th+) */}
+          <div
+            style={{
+              background: T.white,
+              marginTop: 1,
+            }}
+          >
+            {entries.slice(3).map(entry => (
+              <div
+                key={entry.name + entry.rank}
+                style={{
+                  padding: '10px 18px',
+                  borderBottom: `0.5px solid ${T.mid}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  background: entry.isPlayer ? T.redLo : T.white,
+                }}
+              >
+                {/* Rank */}
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 300,
+                    color: T.t3,
+                    width: 20,
+                    textAlign: 'center',
+                    fontFamily: F,
+                  }}
+                >
+                  {entry.rank}
+                </span>
+                {/* Avatar */}
+                <div
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: '50%',
+                    background: T.stone,
+                    border: `0.5px solid ${T.border}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 9,
+                    fontWeight: 400,
+                    color: T.t2,
+                    fontFamily: F,
+                  }}
+                >
+                  {entry.name.charAt(0).toUpperCase()}
+                </div>
+                {/* Name + You badge */}
+                <span
+                  style={{
+                    flex: 1,
+                    fontSize: 12,
+                    fontWeight: 400,
+                    color: T.black,
+                    fontFamily: F,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  {entry.name}
+                  {entry.isPlayer && (
+                    <span
+                      style={{
+                        padding: '1px 6px',
+                        borderRadius: 2,
+                        background: T.redLo,
+                        color: T.red,
+                        fontSize: 8,
+                        fontWeight: 500,
+                        textTransform: 'uppercase',
+                        border: `0.5px solid ${T.redBo}`,
+                        fontFamily: F,
+                      }}
+                    >
+                      You
+                    </span>
+                  )}
+                </span>
+                {/* Level badge */}
+                <span
+                  style={{
+                    padding: '2px 6px',
+                    borderRadius: 2,
+                    background: T.stone,
+                    fontSize: 8,
+                    fontWeight: 500,
+                    color: T.t2,
+                    textTransform: 'uppercase',
+                    fontFamily: F,
+                  }}
+                >
+                  Lv. {entry.level}
+                </span>
+                {/* Score */}
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 300,
+                    color: T.black,
+                    letterSpacing: '-0.02em',
+                    fontFamily: F,
+                  }}
+                >
+                  {formatValue(entry.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Rankings list when fewer than 3 entries but > 0 */}
+      {!loading && entries.length > 0 && entries.length < 3 && (
+        <div
+          style={{
+            background: T.white,
+            marginTop: 1,
+          }}
+        >
+          {entries.map(entry => (
+            <div
+              key={entry.name + entry.rank}
+              style={{
+                padding: '10px 18px',
+                borderBottom: `0.5px solid ${T.mid}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                background: entry.isPlayer ? T.redLo : T.white,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 300,
+                  color: T.t3,
+                  width: 20,
+                  textAlign: 'center',
+                  fontFamily: F,
+                }}
+              >
                 {entry.rank}
               </span>
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
-                entry.isPlayer ? 'bg-[#F9E4E7] text-[#E8435A]' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {entry.name.charAt(0)}
+              <div
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  background: T.stone,
+                  border: `0.5px solid ${T.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 9,
+                  fontWeight: 400,
+                  color: T.t2,
+                  fontFamily: F,
+                }}
+              >
+                {entry.name.charAt(0).toUpperCase()}
               </div>
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm font-medium truncate block ${entry.isPlayer ? 'text-gray-900' : 'text-gray-600'}`}>
-                  {entry.name}
-                  {entry.isPlayer && <span className="text-xs text-[#E8435A] ml-1.5">You</span>}
-                </span>
-                <span className="text-[11px] text-gray-300">Lv.{entry.level}</span>
-              </div>
-              <span className={`text-stat text-sm font-semibold ${entry.isPlayer ? 'text-[#E8435A]' : 'text-gray-500'}`}>
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: 12,
+                  fontWeight: 400,
+                  color: T.black,
+                  fontFamily: F,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                {entry.name}
+                {entry.isPlayer && (
+                  <span
+                    style={{
+                      padding: '1px 6px',
+                      borderRadius: 2,
+                      background: T.redLo,
+                      color: T.red,
+                      fontSize: 8,
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      border: `0.5px solid ${T.redBo}`,
+                      fontFamily: F,
+                    }}
+                  >
+                    You
+                  </span>
+                )}
+              </span>
+              <span
+                style={{
+                  padding: '2px 6px',
+                  borderRadius: 2,
+                  background: T.stone,
+                  fontSize: 8,
+                  fontWeight: 500,
+                  color: T.t2,
+                  textTransform: 'uppercase',
+                  fontFamily: F,
+                }}
+              >
+                Lv. {entry.level}
+              </span>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 300,
+                  color: T.black,
+                  letterSpacing: '-0.02em',
+                  fontFamily: F,
+                }}
+              >
                 {formatValue(entry.value)}
               </span>
-            </motion.div>
+            </div>
           ))}
         </div>
-      </div>
+      )}
     </div>
   );
 }

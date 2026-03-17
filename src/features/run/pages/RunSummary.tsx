@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Flag, Swords, Gem, X, Bookmark, Share2 } from 'lucide-react'
+import { Flag, Swords, Gem, X, Bookmark, Share2, Flame, UtensilsCrossed } from 'lucide-react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { SaveRouteModal } from '@features/run/components/SaveRouteModal'
@@ -9,6 +9,8 @@ import { usePlayerStats } from '@features/profile/hooks/usePlayerStats'
 import { ShareCardGenerator } from '@shared/ui/ShareCardGenerator'
 import type { LiveRunData, Location } from '@shared/types/index'
 import { getProfile } from '@shared/services/profile'
+import { getNutritionProfile, addNutritionEntry } from '@shared/services/store'
+import { calcRunCalories } from '@features/nutrition/services/nutritionService'
 import { useTheme } from '@shared/hooks/useTheme'
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
@@ -206,7 +208,33 @@ export const RunSummary: React.FC = () => {
     mapRef.current.setStyle(dark ? MAP_STYLE_DARK : MAP_STYLE_LIGHT)
   }, [dark])
 
-  const calories = Math.round(8 * weightKg * (runData.duration / 3600))
+  const calories = calcRunCalories((runData.distance * 1000), weightKg)
+
+  // Auto-log run burn to nutrition if profile exists
+  useEffect(() => {
+    const runId = location.state?.runId as string | undefined
+    if (!runId || !runData.success || runData.distance <= 0) return
+    const today = new Date().toISOString().slice(0, 10)
+    getNutritionProfile().then(prof => {
+      if (!prof) return
+      const burnKcal = calcRunCalories(runData.distance * 1000, prof.weightKg)
+      addNutritionEntry({
+        date: today,
+        meal: 'snacks',
+        name: 'Run burn',
+        kcal: -burnKcal,
+        proteinG: 0,
+        carbsG: 0,
+        fatG: 0,
+        servingSize: `${runData.distance.toFixed(2)} km`,
+        source: 'run',
+        runId,
+        xpAwarded: false,
+        loggedAt: Date.now(),
+      }).catch(() => {/* silent */})
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const rewards = {
     xp:       runData.xpEarned  ?? 0,
@@ -559,6 +587,41 @@ export const RunSummary: React.FC = () => {
             </div>
           </motion.div>
         )}
+
+        {/* ── Fuel recovery card ───────────────────────────────────────────── */}
+        <motion.div {...fadeUp(0.46)} style={{ marginBottom: 16 }}>
+          <div style={{
+            background: 'rgba(249,115,22,0.06)', border: '0.5px solid rgba(249,115,22,0.2)',
+            borderRadius: 10, padding: '14px 16px',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(249,115,22,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Flame size={16} color="#F97316" strokeWidth={1.5} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: T.black, fontFamily: "'Barlow', sans-serif" }}>
+                Fuel your recovery
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 300, color: T.t3, fontFamily: "'Barlow', sans-serif", marginTop: 1 }}>
+                You burned {calories} kcal — log a meal now
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/calories')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '6px 12px', borderRadius: 20,
+                background: T.black, border: 'none', cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              <UtensilsCrossed size={11} color="#fff" strokeWidth={1.5} />
+              <span style={{ fontSize: 10, fontWeight: 600, color: '#fff', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: "'Barlow', sans-serif" }}>
+                Log meal
+              </span>
+            </button>
+          </div>
+        </motion.div>
 
         {/* ── Action buttons ───────────────────────────────────────────────── */}
         <motion.div {...fadeUp(0.50)} style={{ display: 'flex', gap: 8, marginBottom: 24 }}>

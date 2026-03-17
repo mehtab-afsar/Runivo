@@ -8,11 +8,12 @@ import {
 } from 'lucide-react';
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats';
 import { calculatePersonalRecords, PersonalRecord } from '@shared/services/personalRecords';
-import { getRuns, StoredRun } from '@shared/services/store';
+import { getRuns, StoredRun, getNutritionProfile, getNutritionEntriesRange, NutritionProfile, NutritionEntry } from '@shared/services/store';
 import { haptic } from '@shared/lib/haptics';
 import { soundManager } from '@shared/audio/sounds';
+import { getWeekDates, todayKey } from '@features/nutrition/services/nutritionService';
 
-type ProfileTab = 'overview' | 'stats' | 'awards';
+type ProfileTab = 'overview' | 'stats' | 'awards' | 'nutrition';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const F  = "'Barlow', 'DM Sans', -apple-system, sans-serif";
@@ -55,12 +56,17 @@ export default function Profile() {
   const [prs, setPrs]       = useState<PersonalRecord[]>([]);
   const [allRuns, setAllRuns] = useState<StoredRun[]>([]);
   const [lockedId, setLockedId] = useState<string | null>(null);
+  const [nutProfile, setNutProfile] = useState<NutritionProfile | null>(null);
+  const [nutWeekEntries, setNutWeekEntries] = useState<Record<string, NutritionEntry[]>>({});
+  const [nutStreak, setNutStreak] = useState(0);
+  const [nutTotalEntries, setNutTotalEntries] = useState(0);
+  const [nutAvgKcal, setNutAvgKcal] = useState(0);
 
   // Edit profile state
   const [editOpen, setEditOpen] = useState(false);
   const [avatarColor, setAvatarColor] = useState(() => localStorage.getItem('runivo-avatar-color') || SWATCHES[0]);
   const [displayName, setDisplayName] = useState(() => localStorage.getItem('runivo-display-name') || '');
-  const [bio, setBio] = useState(() => localStorage.getItem('runivo-bio') || 'Running to conquer every street 🏃');
+  const [bio, setBio] = useState(() => localStorage.getItem('runivo-bio') || '');
   const [loc, setLoc] = useState(() => localStorage.getItem('runivo-location') || '');
   const [strava, setStrava] = useState(() => localStorage.getItem('runivo-strava') || '');
   const [instagram, setInstagram] = useState(() => localStorage.getItem('runivo-instagram') || '');
@@ -70,6 +76,46 @@ export default function Profile() {
   useEffect(() => {
     calculatePersonalRecords().then(setPrs);
     getRuns(500).then(setAllRuns);
+
+    // Load nutrition data
+    getNutritionProfile().then(prof => {
+      if (!prof) return;
+      setNutProfile(prof);
+      const weekDates = getWeekDates();
+      const from = weekDates[0], to = weekDates[weekDates.length - 1];
+      // Load 90-day range for streak & avg calculation
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const longFrom = ninetyDaysAgo.toISOString().slice(0, 10);
+      getNutritionEntriesRange(longFrom, to).then(allEntries => {
+        const foodEntries = allEntries.filter(e => e.source !== 'run');
+
+        // Build week map
+        const byDate: Record<string, NutritionEntry[]> = {};
+        weekDates.forEach(d => { byDate[d] = []; });
+        allEntries.filter(e => e.date >= from).forEach(e => { if (byDate[e.date]) byDate[e.date].push(e); });
+        setNutWeekEntries(byDate);
+
+        // Streak (consecutive days with food entries)
+        const today = todayKey();
+        let streak = 0, d = new Date();
+        for (let i = 0; i < 90; i++) {
+          const key = d.toISOString().slice(0, 10);
+          if (key > today) { d.setDate(d.getDate() - 1); continue; }
+          const has = foodEntries.some(e => e.date === key);
+          if (has) { streak++; d.setDate(d.getDate() - 1); } else break;
+        }
+        setNutStreak(streak);
+
+        // Total & avg
+        const daysWithEntries = new Set(foodEntries.map(e => e.date));
+        setNutTotalEntries(foodEntries.length);
+        if (daysWithEntries.size > 0) {
+          const totalKcal = foodEntries.reduce((s, e) => s + e.kcal, 0);
+          setNutAvgKcal(Math.round(totalKcal / daysWithEntries.size));
+        }
+      });
+    });
   }, []);
 
   // ── All hooks BEFORE any early return ─────────────────────────────────────
@@ -476,7 +522,7 @@ export default function Profile() {
 
       {/* ── Tab bar ──────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', background: '#fff', borderBottom: `0.5px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
-        {(['overview', 'stats', 'awards'] as ProfileTab[]).map(t => (
+        {(['overview', 'stats', 'awards', 'nutrition'] as ProfileTab[]).map(t => (
           <button
             key={t}
             onClick={() => { setTab(t); haptic('light'); }}
@@ -912,6 +958,115 @@ export default function Profile() {
                   </div>
                 </div>
               ))}
+            </>
+          )}
+
+          {/* ═══ NUTRITION ═══ */}
+          {tab === 'nutrition' && (
+            <>
+              {!nutProfile ? (
+                <div style={{ padding: '40px 18px', textAlign: 'center' }}>
+                  <Flame size={32} color={C.red} strokeWidth={1.5} style={{ margin: '0 auto 12px' }} />
+                  <div style={{ fontSize: 16, fontStyle: 'italic', fontFamily: "'Playfair Display', serif", color: C.ink, marginBottom: 8 }}>
+                    Track your nutrition
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 300, color: C.muted, marginBottom: 20 }}>
+                    Set up your calorie goals to see your nutrition stats here.
+                  </div>
+                  <button
+                    onClick={() => navigate('/calories/setup')}
+                    style={{ padding: '12px 24px', borderRadius: 10, background: C.ink, border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: F }}
+                  >
+                    Set up nutrition
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Goal card */}
+                  <div style={{ background: C.bg, margin: '12px 12px 0', borderRadius: 14, border: `0.5px solid ${C.border}`, padding: '14px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, fontFamily: F }}>Daily goal</div>
+                      <button onClick={() => navigate('/calories/setup')} style={{ fontSize: 10, color: C.red, background: 'none', border: 'none', cursor: 'pointer', fontFamily: F }}>Edit →</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      {[
+                        { label: 'Calories', value: `${nutProfile.dailyGoalKcal}`, unit: 'kcal' },
+                        { label: 'Protein',  value: `${nutProfile.proteinGoalG}`,  unit: 'g' },
+                        { label: 'Carbs',    value: `${nutProfile.carbsGoalG}`,    unit: 'g' },
+                        { label: 'Fat',      value: `${nutProfile.fatGoalG}`,      unit: 'g' },
+                      ].map(s => (
+                        <div key={s.label} style={{ flex: 1, textAlign: 'center' }}>
+                          <div style={{ fontSize: 15, fontWeight: 300, color: C.ink, fontFamily: F, letterSpacing: '-0.02em' }}>
+                            {s.value}<span style={{ fontSize: 9, color: C.muted, marginLeft: 1 }}>{s.unit}</span>
+                          </div>
+                          <div style={{ fontSize: 9, color: C.muted, fontFamily: F, textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 2 }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Week bars */}
+                  <div style={{ background: C.bg, margin: '10px 12px 0', borderRadius: 14, border: `0.5px solid ${C.border}`, padding: '14px 14px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, fontFamily: F, marginBottom: 12 }}>
+                      This week
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, justifyContent: 'space-between' }}>
+                      {getWeekDates().map((date, i) => {
+                        const dayEntries = nutWeekEntries[date] ?? [];
+                        const dayKcal    = dayEntries.filter(e => e.source !== 'run').reduce((s, e) => s + e.kcal, 0);
+                        const isToday    = date === todayKey();
+                        const maxBarH    = 52;
+                        const barPct     = Math.min(dayKcal / Math.max(nutProfile.dailyGoalKcal, 1), 1);
+                        const DLABELS    = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+                        return (
+                          <div key={date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                            <div style={{ width: '100%', height: maxBarH, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: `${Math.max(barPct * maxBarH, dayKcal > 0 ? 4 : 0)}px` }}
+                                transition={{ duration: 0.6, delay: i * 0.05, ease: 'easeOut' }}
+                                style={{ width: '55%', borderRadius: 3, background: isToday ? C.red : dayKcal > 0 ? C.muted : C.hair }}
+                              />
+                            </div>
+                            <div style={{ fontSize: 9, fontWeight: isToday ? 600 : 400, color: isToday ? C.red : C.muted, fontFamily: F }}>{DLABELS[i]}</div>
+                            <div style={{ fontSize: 8, color: C.muted, fontFamily: F }}>{dayKcal > 0 ? dayKcal : '—'}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Streak + all-time */}
+                  <div style={{ margin: '10px 12px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div style={{ background: C.bg, borderRadius: 14, border: `0.5px solid ${C.border}`, padding: '14px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                        <Flame size={14} color={C.red} strokeWidth={1.5} />
+                        <span style={{ fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, fontFamily: F }}>Streak</span>
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 300, color: C.ink, fontFamily: F, letterSpacing: '-0.02em' }}>{nutStreak}</div>
+                      <div style={{ fontSize: 9, color: C.muted, fontFamily: F, marginTop: 2 }}>days in a row</div>
+                    </div>
+                    <div style={{ background: C.bg, borderRadius: 14, border: `0.5px solid ${C.border}`, padding: '14px 14px' }}>
+                      <div style={{ fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, fontFamily: F, marginBottom: 6 }}>Avg / day</div>
+                      <div style={{ fontSize: 22, fontWeight: 300, color: C.ink, fontFamily: F, letterSpacing: '-0.02em' }}>{nutAvgKcal || '—'}</div>
+                      <div style={{ fontSize: 9, color: C.muted, fontFamily: F, marginTop: 2 }}>kcal logged</div>
+                    </div>
+                  </div>
+
+                  <div style={{ margin: '10px 12px 16px', background: C.bg, borderRadius: 14, border: `0.5px solid ${C.border}`, padding: '14px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em', color: C.muted, fontFamily: F, marginBottom: 4 }}>Total entries</div>
+                      <div style={{ fontSize: 22, fontWeight: 300, color: C.ink, fontFamily: F, letterSpacing: '-0.02em' }}>{nutTotalEntries}</div>
+                    </div>
+                    <button
+                      onClick={() => navigate('/calories')}
+                      style={{ padding: '10px 16px', borderRadius: 8, background: C.ink, border: 'none', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: F }}
+                    >
+                      Open tracker
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           )}
 
