@@ -1,0 +1,41 @@
+diff --git a/node_modules/expo-modules-core/ios/Legacy/EXEventEmitter.h b/node_modules/expo-modules-core/ios/Legacy/EXEventEmitter.h
+new file mode 100644
+index 0000000..e9090a3
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Legacy/EXEventEmitter.h
+@@ -0,0 +1,15 @@
++// Copyright © 2018 650 Industries. All rights reserved.
++// Compatibility stub — EXEventEmitter was removed from ExpoModulesCore 2.x+
++// This file exists so that legacy modules (expo-av 16.x) that import
++// <ExpoModulesCore/EXEventEmitter.h> continue to compile against SDK 55.
++
++#import <Foundation/Foundation.h>
++
++// EXEventEmitter protocol — implemented by legacy expo modules that emit events.
++@protocol EXEventEmitter <NSObject>
++
++- (NSArray<NSString *> *)supportedEvents;
++- (void)startObserving;
++- (void)stopObserving;
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/Legacy/EXLegacyExpoViewProtocol.h b/node_modules/expo-modules-core/ios/Legacy/EXLegacyExpoViewProtocol.h
+new file mode 100644
+index 0000000..6d3b3a3
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Legacy/EXLegacyExpoViewProtocol.h
+@@ -0,0 +1,14 @@
++// Copyright © 2018 650 Industries. All rights reserved.
++// Compatibility stub — EXLegacyExpoViewProtocol was removed from ExpoModulesCore 2.x+
++// This file exists so that legacy modules (expo-av 16.x) that import
++// <ExpoModulesCore/EXLegacyExpoViewProtocol.h> continue to compile against SDK 55.
++
++#import <Foundation/Foundation.h>
++
++// EXLegacyExpoViewProtocol — marker protocol for legacy Expo views.
++@protocol EXLegacyExpoViewProtocol <NSObject>
++
++@optional
++- (void)setOnLayout:(void (^)(NSDictionary *))block;
++
++@end

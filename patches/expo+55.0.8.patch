@@ -1,0 +1,15 @@
+diff --git a/node_modules/expo/AppEntry.js b/node_modules/expo/AppEntry.js
+index 9248732..761e553 100644
+--- a/node_modules/expo/AppEntry.js
++++ b/node_modules/expo/AppEntry.js
+@@ -1,5 +1,5 @@
+-import registerRootComponent from 'expo/src/launch/registerRootComponent';
+-
+-import App from '../../App';
+-
+-registerRootComponent(App);
++// Patched for Runivo monorepo.
++// The standard ../../App path resolves to the monorepo root, not apps/mobile.
++// Instead, load apps/mobile/index.ts which installs polyfills first
++// then calls registerRootComponent(App).
++require('../../apps/mobile/index');

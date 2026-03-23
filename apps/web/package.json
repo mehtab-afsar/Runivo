@@ -1,0 +1,40 @@
+{
+  "name": "@runivo/web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "framer-motion": "^12.23.22",
+    "h3-js": "^4.4.0",
+    "lucide-react": "^0.544.0",
+    "maplibre-gl": "^5.8.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^6.20.1",
+    "tailwind-merge": "^2.0.0",
+    "clsx": "^2.1.1",
+    "howler": "^2.2.4",
+    "html-to-image": "^1.11.11",
+    "qrcode": "^1.5.4",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/howler": "^2.2.12",
+    "@types/qrcode": "^1.5.5",
+    "@vitejs/plugin-react": "^4.1.1",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.8.3",
+    "vite": "^4.5.0"
+  }
+}

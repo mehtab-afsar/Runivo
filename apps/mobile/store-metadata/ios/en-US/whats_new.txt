@@ -1,0 +1,9 @@
+Initial release of Runivo for iOS.
+
+• Claim and defend territory by running through it
+• Real-time territory map with live updates
+• Daily and weekly missions with XP rewards
+• Club battles and lobby system
+• Nutrition and gear tracking
+• AI coach powered by Claude
+• Apple Health integration

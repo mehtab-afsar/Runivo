@@ -1,0 +1,80 @@
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@navigation/AppNavigator';
+import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
+import { useProfile } from '../hooks/useProfile';
+import { ProfileHeader } from '../components/ProfileHeader';
+import { GearTab } from '../components/GearTab';
+import { RunsTab } from '../components/RunsTab';
+import { StatsTab } from '../components/StatsTab';
+import { EditProfileSheet } from '../components/EditProfileSheet';
+import type { ProfileTab } from '../types';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+const C = { bg: '#F8F6F3', black: '#0A0A0A', t3: '#ADADAD', border: '#DDD9D4', red: '#D93518' };
+
+export default function ProfileScreen() {
+  const navigation = useNavigation<Nav>();
+  const { player, loading, xpProgress } = usePlayerStats();
+  const {
+    runs, shoes, weeklyGoalKm, personalRecords, thisWeekKm,
+    tab, setTab, avatarColor, displayName, bio,
+    isEditing, editName, setEditName, editColor, setEditColor, editBio, setEditBio,
+    startEdit, saveEdit, cancelEdit,
+  } = useProfile();
+
+  const displayedName = displayName || player?.username || 'Runner';
+  const totalKm = runs.reduce((s, r) => s + r.distanceMeters / 1000, 0);
+
+  if (loading) return <SafeAreaView style={[ss.root, ss.center]}><ActivityIndicator color={C.red} /></SafeAreaView>;
+
+  return (
+    <SafeAreaView style={ss.root}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <ProfileHeader
+          displayName={displayedName} bio={bio} avatarColor={avatarColor}
+          level={player?.level ?? 1} xpPercent={xpProgress?.percent ?? 0}
+          totalKm={totalKm} totalRuns={runs.length} thisWeekKm={thisWeekKm}
+          totalTerritories={player?.totalTerritoriesClaimed ?? 0} weeklyGoalKm={weeklyGoalKm}
+          onEditPress={startEdit} onNotificationsPress={() => navigation.navigate('Notifications')}
+          onSettingsPress={() => navigation.navigate('Settings')}
+        />
+
+        <View style={ss.tabs}>
+          {(['overview', 'stats', 'gear'] as ProfileTab[]).map(t => (
+            <Pressable key={t} style={[ss.tab, tab === t && ss.tabActive]} onPress={() => setTab(t)}>
+              <Text style={[ss.tabLabel, tab === t && ss.tabLabelActive]}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={ss.content}>
+          {tab === 'overview' && <RunsTab runs={runs} />}
+          {tab === 'stats' && (
+            <StatsTab personalRecords={personalRecords} totalRuns={runs.length} totalKm={totalKm}
+              totalTerritories={player?.totalTerritoriesClaimed ?? 0} streakDays={player?.streakDays ?? 0} />
+          )}
+          {tab === 'gear' && <GearTab shoes={shoes} onAddShoe={() => navigation.navigate('GearAdd')} />}
+        </View>
+      </ScrollView>
+
+      {isEditing && (
+        <EditProfileSheet
+          editName={editName} setEditName={setEditName} editBio={editBio} setEditBio={setEditBio}
+          editColor={editColor} setEditColor={setEditColor} onSave={saveEdit} onCancel={cancelEdit}
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+
+const ss = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg }, center: { alignItems: 'center', justifyContent: 'center' }, content: { padding: 20 },
+  tabs: { flexDirection: 'row', paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: C.border },
+  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
+  tabActive: { borderBottomColor: C.black }, tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 }, tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
+});

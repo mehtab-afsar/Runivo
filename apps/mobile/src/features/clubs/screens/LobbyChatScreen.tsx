@@ -1,0 +1,77 @@
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
+import type { RootStackParamList } from '@navigation/AppNavigator';
+import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
+import { ChatBubble } from '@features/clubs/components/ChatBubble';
+import { ChatInput } from '@features/clubs/components/ChatInput';
+import { supabase } from '@shared/services/supabase';
+import { useState } from 'react';
+
+type Nav   = NativeStackNavigationProp<RootStackParamList>;
+type Route = RouteProp<RootStackParamList, 'LobbyChat'>;
+const C = { bg: '#F8F6F3', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD' };
+
+const LOBBY_ROOMS = [
+  { id: 'global', name: 'Global Runners', description: 'Connect with runners worldwide', emoji: '🌍', color: '#1E4D8C' },
+  { id: 'training', name: 'Training Talk', description: 'Plans, tips, and workout advice', emoji: '🏃', color: '#1A6B40' },
+  { id: 'races', name: 'Race Reports', description: 'Share your race results and stories', emoji: '🏆', color: '#9E6800' },
+  { id: 'speed', name: 'Speed & Intervals', description: 'Track work, tempo runs, PRs', emoji: '⚡', color: '#D93518' },
+  { id: 'night', name: 'Night Runners', description: 'For those who run after dark', emoji: '🌙', color: '#6B2D8C' },
+];
+
+export default function LobbyChatScreen() {
+  const navigation = useNavigation<Nav>();
+  const { lobbyId } = useRoute<Route>().params;
+  const room = LOBBY_ROOMS.find(r => r.id === lobbyId) ?? LOBBY_ROOMS[0];
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const listRef = useRef<FlatList>(null);
+  const { messages, loading, inputText, setInputText, sending, sendMessage } = useLobbyChat(lobbyId);
+
+  useEffect(() => { supabase.auth.getUser().then(({ data: { user } }) => setCurrentUserId(user?.id ?? null)); }, []);
+  useEffect(() => { if (messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100); }, [messages.length]);
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={s.header}>
+        <Pressable onPress={() => navigation.goBack()} style={s.back}><Text style={s.backText}>←</Text></Pressable>
+        <View style={[s.roomIcon, { backgroundColor: room.color + '18' }]}>
+          <Text style={{ fontSize: 18 }}>{room.emoji}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.roomName}>{room.name}</Text>
+          <Text style={s.roomDesc}>{room.description}</Text>
+        </View>
+      </View>
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+        {loading ? (
+          <View style={s.loader}><ActivityIndicator color={C.t3} /></View>
+        ) : messages.length === 0 ? (
+          <View style={s.empty}><Text style={{ fontSize: 40 }}>{room.emoji}</Text><Text style={s.emptyTitle}>No messages yet</Text><Text style={s.emptyText}>Be the first to start the conversation!</Text></View>
+        ) : (
+          <FlatList
+            ref={listRef} data={messages} keyExtractor={m => m.id}
+            renderItem={({ item }) => <ChatBubble message={item} isOwn={item.userId === currentUserId} />}
+            contentContainerStyle={{ paddingVertical: 12 }} showsVerticalScrollIndicator={false}
+          />
+        )}
+        <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const s = StyleSheet.create({
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
+  back: { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+  roomIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  roomName: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
+  roomDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
+  emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
+  emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+});
