@@ -1,12 +1,41 @@
+diff --git a/node_modules/expo-av/ios/EXAV/EXAV.m b/node_modules/expo-av/ios/EXAV/EXAV.m
+index 7153d28..2f3d846 100644
+--- a/node_modules/expo-av/ios/EXAV/EXAV.m
++++ b/node_modules/expo-av/ios/EXAV/EXAV.m
+@@ -21,6 +21,14 @@
+ #import "EXAV-Swift.h"
+ #endif
+ 
++// Compat typedefs for old UMReactNativeEventEmitter/unimodules naming (SDK 55 + static frameworks)
++#ifndef UMPromiseResolveBlock
++typedef void (^UMPromiseResolveBlock)(id result);
++#endif
++#ifndef UMPromiseRejectBlock
++typedef void (^UMPromiseRejectBlock)(NSString *code, NSString *message, NSError *error);
++#endif
++
+ NSString *const EXAudioRecordingOptionsIsMeteringEnabledKey = @"isMeteringEnabled";
+ NSString *const EXAudioRecordingOptionsKeepAudioActiveHintKey = @"keepAudioActiveHint";
+ NSString *const EXAudioRecordingOptionsKey = @"ios";
 diff --git a/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m b/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
-index 6f6998d..3d803c6 100644
+index 6f6998d..0b3eca7 100644
 --- a/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
 +++ b/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
-@@ -1,6 +1,7 @@
- // Copyright 2017-present 650 Industries. All rights reserved.
- 
+@@ -3,6 +3,17 @@
  #import <EXAV/EXAVPlayerData.h>
-+#import <ExpoModulesCore/EXLog.h>
  #import <MobileCoreServices/MobileCoreServices.h>
  
++// EXLog macros — defined inline since EXLog.h does not ship as a standalone header
++#ifndef EXLogWarn
++#define EXLogWarn(fmt, ...) NSLog((@"[ExpoAV WARN] " fmt), ##__VA_ARGS__)
++#endif
++#ifndef EXLogError
++#define EXLogError(fmt, ...) NSLog((@"[ExpoAV ERROR] " fmt), ##__VA_ARGS__)
++#endif
++#ifndef EXLogInfo
++#define EXLogInfo(fmt, ...) NSLog((@"[ExpoAV INFO] " fmt), ##__VA_ARGS__)
++#endif
++
  // This struct is passed between the MTAudioProcessingTap callbacks.
+ typedef struct AVAudioTapProcessorContext {
+   Boolean supportedTapProcessingFormat;

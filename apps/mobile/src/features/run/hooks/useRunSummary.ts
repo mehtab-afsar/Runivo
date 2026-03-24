@@ -10,6 +10,7 @@ import {
 } from '../services/runSummaryService';
 import type { RunStats, Split } from '../services/runSummaryService';
 import type { StoredShoe } from '@shared/services/store';
+import { getRuns } from '@shared/services/store';
 
 export interface PassedRunData {
   distance: number;
@@ -37,6 +38,7 @@ interface UseRunSummaryResult {
   stats: RunStats;
   runShoe: StoredShoe | null;
   allShoes: StoredShoe[];
+  shoeTotalKm: number;
   showShoeDrawer: boolean;
   setShowShoeDrawer: (v: boolean) => void;
   selectShoe: (shoe: StoredShoe) => Promise<void>;
@@ -55,6 +57,7 @@ export function useRunSummary(
 
   const [runShoe, setRunShoe]   = useState<StoredShoe | null>(null);
   const [allShoes, setAllShoes] = useState<StoredShoe[]>([]);
+  const [shoeTotalKm, setShoeTotalKm] = useState(0);
   const [showShoeDrawer, setShowShoeDrawer] = useState(false);
 
   useEffect(() => {
@@ -63,9 +66,16 @@ export function useRunSummary(
         ? Haptics.NotificationFeedbackType.Success
         : Haptics.NotificationFeedbackType.Warning,
     );
-    fetchShoesForSummary().then(({ defaultShoe, allShoes: all }) => {
+    fetchShoesForSummary().then(async ({ defaultShoe, allShoes: all }) => {
       setRunShoe(defaultShoe);
       setAllShoes(all);
+      if (defaultShoe) {
+        const allRuns = await getRuns(500);
+        const km = allRuns
+          .filter(r => (r as any).shoeId === defaultShoe.id)
+          .reduce((s, r) => s + r.distanceMeters / 1000, 0);
+        setShoeTotalKm(km);
+      }
     });
     syncRunToHealth(runData);
   }, []);
@@ -92,5 +102,5 @@ export function useRunSummary(
     if (runId) await assignShoeToRun(runId, shoe.id);
   }, [runId]);
 
-  return { runData, splits, stats, runShoe, allShoes, showShoeDrawer, setShowShoeDrawer, selectShoe };
+  return { runData, splits, stats, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe };
 }

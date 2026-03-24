@@ -1,5 +1,11 @@
 import { supabase } from '@shared/services/supabase';
 
+export interface MessageReaction {
+  emoji: string;
+  count: number;
+  hasMe: boolean;
+}
+
 export interface LobbyMessage {
   id: string;
   userId: string;
@@ -7,6 +13,7 @@ export interface LobbyMessage {
   userLevel: number;
   message: string;
   timestamp: string;
+  reactions?: MessageReaction[];
 }
 
 export async function fetchMessages(roomId: string): Promise<LobbyMessage[]> {
@@ -27,6 +34,30 @@ export async function fetchMessages(roomId: string): Promise<LobbyMessage[]> {
     message: row.content,
     timestamp: row.created_at,
   }));
+}
+
+export async function reactToMessage(
+  messageId: string,
+  emoji: string,
+  userId: string,
+): Promise<void> {
+  // Try upsert — silently fails if table doesn't exist yet
+  try {
+    const { data: existing } = await supabase
+      .from('lobby_message_reactions')
+      .select('id')
+      .eq('message_id', messageId)
+      .eq('user_id', userId)
+      .eq('emoji', emoji)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase.from('lobby_message_reactions').delete()
+        .eq('message_id', messageId).eq('user_id', userId).eq('emoji', emoji);
+    } else {
+      await supabase.from('lobby_message_reactions').insert({ message_id: messageId, user_id: userId, emoji });
+    }
+  } catch { /* table may not exist — ignore */ }
 }
 
 export async function sendMessage(

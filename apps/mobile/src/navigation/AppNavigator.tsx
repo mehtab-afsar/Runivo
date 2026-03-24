@@ -82,7 +82,7 @@ export type RootStackParamList = {
   Lobby:     undefined;
   LobbyChat: { lobbyId: string };
   Leaderboard: undefined;
-  CalorieTracker: undefined;
+  CalorieTracker: { burnKcal?: number } | undefined;
   NutritionSetup: undefined;
   History:   undefined;
   Settings:          undefined;

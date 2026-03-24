@@ -26,6 +26,23 @@ if (typeof (global as any).crypto?.randomUUID !== 'function') {
 // 2. URL polyfill
 require('react-native-url-polyfill/auto');
 
+// 2b. window.location polyfill — Supabase JS v2 accesses window.location in some
+//     auth code paths (e.g. PKCE flow error recovery). React Native polyfills
+//     `window` as `global` but leaves `window.location` undefined, causing a
+//     TypeError. Provide a no-op stub so those paths don't crash.
+if (typeof (global as any).window !== 'undefined' && !(global as any).window.location) {
+  (global as any).window.location = {
+    href:     '',
+    origin:   '',
+    pathname: '',
+    search:   '',
+    hash:     '',
+    reload:   () => {},
+    assign:   () => {},
+    replace:  () => {},
+  };
+}
+
 // 3. TextDecoder / TextEncoder polyfill
 // Always override — Hermes has a native TextDecoder but it doesn't support
 // utf-16le which h3-js requires at module load time.

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
-  ActivityIndicator, RefreshControl, Platform,
+  ActivityIndicator, RefreshControl, Platform, Modal,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,16 +12,96 @@ import { EmptyFeed } from '@features/social/components/EmptyFeed';
 import { StoryReel } from '@features/social/components/StoryReel';
 import { fetchStories, type StoryGroup } from '@features/social/services/storyService';
 import { supabase } from '@shared/services/supabase';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { FeedPost } from '@features/social/types';
+import { fmtDistShort } from '@mobile/shared/lib/formatters';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type FeedTab = 'explore' | 'following';
 
-const C = { bg: '#F7F6F4', black: '#0A0A0A', t3: '#ADADAD', red: '#D93518', border: '#DDD9D4' };
+const C = { bg: '#F7F6F4', black: '#0A0A0A', t3: '#ADADAD', red: '#D93518', border: '#DDD9D4', white: '#FFFFFF', stone: '#F0EDE8' };
+
+const REACTIONS = [
+  { key: 'kudos',  emoji: '❤️',  label: 'Kudos' },
+  { key: 'fire',   emoji: '🔥',  label: 'Fire' },
+  { key: 'crown',  emoji: '👑',  label: 'Crown' },
+  { key: 'muscle', emoji: '💪',  label: 'Strong' },
+];
+
+function PostDetailSheet({ post, onClose, onKudos }: { post: FeedPost; onClose: () => void; onKudos: () => void }) {
+  const insets = useSafeAreaInsets();
+  const fmt = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; };
+  return (
+    <Modal transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={sd.backdrop} onPress={onClose} />
+      <View style={[sd.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <View style={sd.handle} />
+        <View style={sd.userRow}>
+          <View style={[sd.avatar, { backgroundColor: post.avatarColor }]}>
+            <Text style={sd.avatarText}>{post.username.slice(0, 1).toUpperCase()}</Text>
+          </View>
+          <View>
+            <Text style={sd.username}>{post.username}</Text>
+            <Text style={sd.time}>{new Date(post.createdAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</Text>
+          </View>
+        </View>
+        <View style={sd.statsRow}>
+          <View style={sd.statItem}><Text style={sd.statVal}>{fmtDistShort(post.distanceM)}</Text><Text style={sd.statLbl}>Distance</Text></View>
+          <View style={sd.divider} />
+          <View style={sd.statItem}><Text style={sd.statVal}>{fmt(post.durationSec)}</Text><Text style={sd.statLbl}>Time</Text></View>
+          <View style={sd.divider} />
+          <View style={sd.statItem}><Text style={sd.statVal}>{post.avgPace}</Text><Text style={sd.statLbl}>Pace</Text></View>
+        </View>
+        {(post.territoriesClaimed > 0 || post.xpEarned > 0) && (
+          <View style={sd.badgeRow}>
+            {post.territoriesClaimed > 0 && <View style={sd.badge}><Text style={sd.badgeText}>⚡ {post.territoriesClaimed} zones</Text></View>}
+            {post.xpEarned > 0 && <View style={[sd.badge, sd.badgeGreen]}><Text style={[sd.badgeText, { color: '#1A6B40' }]}>✨ {post.xpEarned} XP</Text></View>}
+          </View>
+        )}
+        <Text style={sd.reactLabel}>REACT</Text>
+        <View style={sd.reactRow}>
+          {REACTIONS.map(r => (
+            <Pressable key={r.key} style={[sd.reactBtn, r.key === 'kudos' && post.hasKudos && sd.reactBtnActive]} onPress={() => { if (r.key === 'kudos') { onKudos(); onClose(); } }}>
+              <Text style={{ fontSize: 22 }}>{r.emoji}</Text>
+              <Text style={sd.reactBtnLabel}>{r.key === 'kudos' ? post.kudosCount : ''}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const sd = StyleSheet.create({
+  backdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+  sheet:        { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
+  handle:       { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  userRow:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  avatar:       { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  avatarText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.white },
+  username:     { fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
+  time:         { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+  statsRow:     { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 12, padding: 14, marginBottom: 12 },
+  statItem:     { flex: 1, alignItems: 'center' },
+  statVal:      { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
+  statLbl:      { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+  divider:      { width: 0.5, height: 32, backgroundColor: C.border },
+  badgeRow:     { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  badge:        { backgroundColor: '#FEF0EE', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  badgeGreen:   { backgroundColor: '#EDF7F2' },
+  badgeText:    { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.red },
+  reactLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 10 },
+  reactRow:     { flexDirection: 'row', gap: 10, marginBottom: 8 },
+  reactBtn:     { flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: C.stone, borderRadius: 12, borderWidth: 0.5, borderColor: C.border },
+  reactBtnActive:{ backgroundColor: '#FCE8EB', borderColor: C.red },
+  reactBtnLabel:{ fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+});
 
 export default function FeedScreen() {
   const navigation = useNavigation<Nav>();
-  const [tab, setTab]       = useState<FeedTab>('explore');
-  const [stories, setStories] = useState<StoryGroup[]>([]);
+  const [tab, setTab]             = useState<FeedTab>('explore');
+  const [stories, setStories]     = useState<StoryGroup[]>([]);
+  const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const { posts, loading, refreshing, toggleKudos, refresh } = useFeed();
 
   useEffect(() => {
@@ -54,11 +134,19 @@ export default function FeedScreen() {
         <View style={s.loader}><ActivityIndicator color={C.red} /></View>
       ) : (
         <FlatList data={posts} keyExtractor={(p) => p.id}
-          renderItem={({ item }) => <FeedPostCard post={item} onKudos={() => toggleKudos(item.id)} onPress={() => {}} />}
+          renderItem={({ item }) => <FeedPostCard post={item} onKudos={() => toggleKudos(item.id)} onPress={() => setSelectedPost(item)} />}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           contentContainerStyle={s.list} showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
           ListEmptyComponent={<EmptyFeed tab={tab} />} />
+      )}
+
+      {selectedPost && (
+        <PostDetailSheet
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          onKudos={() => { toggleKudos(selectedPost.id); setSelectedPost(null); }}
+        />
       )}
     </SafeAreaView>
   );

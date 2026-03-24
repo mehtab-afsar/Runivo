@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIn
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Sparkles } from 'lucide-react-native';
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import { useProfile } from '../hooks/useProfile';
+import { useWeeklyBrief } from '@features/coach/hooks/useWeeklyBrief';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { GearTab } from '../components/GearTab';
 import { RunsTab } from '../components/RunsTab';
@@ -27,6 +29,7 @@ export default function ProfileScreen() {
     startEdit, saveEdit, cancelEdit,
   } = useProfile();
 
+  const { brief } = useWeeklyBrief();
   const displayedName = displayName || player?.username || 'Runner';
   const totalKm = runs.reduce((s, r) => s + r.distanceMeters / 1000, 0);
 
@@ -55,7 +58,21 @@ export default function ProfileScreen() {
         </ScrollView>
 
         <View style={ss.content}>
-          {tab === 'overview' && <RunsTab runs={runs} />}
+          {tab === 'overview' && (
+            <>
+              {brief && (
+                <View style={ss.briefCard}>
+                  <View style={ss.briefHeader}>
+                    <Sparkles size={13} color="#8B5CF6" strokeWidth={1.5} />
+                    <Text style={ss.briefTitle}>THIS WEEK</Text>
+                  </View>
+                  <Text style={ss.briefHeadline}>{brief.headline}</Text>
+                  <Text style={ss.briefTip}>{brief.tip}</Text>
+                </View>
+              )}
+              <RunsTab runs={runs} />
+            </>
+          )}
           {tab === 'stats' && (
             <StatsTab personalRecords={personalRecords} totalRuns={runs.length} totalKm={totalKm}
               totalTerritories={player?.totalTerritoriesClaimed ?? 0} streakDays={player?.streakDays ?? 0} />
@@ -78,6 +95,11 @@ export default function ProfileScreen() {
 
 const ss = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg }, center: { alignItems: 'center', justifyContent: 'center' }, content: { padding: 20 },
+  briefCard:    { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, marginBottom: 14 },
+  briefHeader:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  briefTitle:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1, color: '#ADADAD' },
+  briefHeadline:{ fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 4 },
+  briefTip:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: '#6B6B6B', lineHeight: 18 },
   tabsScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: '#fff' },
   tabsContent: { paddingHorizontal: 12 },
   tab: { paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },

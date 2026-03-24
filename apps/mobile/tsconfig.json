@@ -18,6 +18,8 @@
   ],
   "exclude": [
     "node_modules",
-    "../../apps/web"
+    "../../apps/web",
+    "../../packages/shared/src/**/*.test.ts",
+    "../../packages/shared/src/**/*.test.tsx"
   ]
 }

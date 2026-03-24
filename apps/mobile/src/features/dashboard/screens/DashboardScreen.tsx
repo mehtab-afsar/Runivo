@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
+
+const { width: SCREEN_W } = Dimensions.get('window');
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useDashboard } from '../hooks/useDashboard';
@@ -15,7 +17,82 @@ import { DashboardPills } from '../components/DashboardPills';
 import { BentoCard } from '../components/BentoCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#F8F6F3', red: '#D93518', t3: '#ADADAD' };
+const C = { bg: '#F8F6F3', red: '#D93518', t3: '#ADADAD', black: '#0A0A0A', white: '#FFFFFF', border: '#DDD9D4' };
+
+function HeroCarousel({
+  weeklyKm, weeklyGoal, caloriesConsumed, calorieGoal,
+  onGoCalories,
+}: {
+  weeklyKm: number; weeklyGoal: number;
+  caloriesConsumed: number; calorieGoal: number;
+  onGoCalories: () => void;
+}) {
+  const [page, setPage] = useState(0);
+  const sw = SCREEN_W - 44; // padded card width
+  const weeklyPct = Math.min(weeklyKm / Math.max(weeklyGoal, 1), 1);
+  const calPct    = Math.min(caloriesConsumed / Math.max(calorieGoal, 1), 1);
+  const calColor  = calPct > 1.05 ? '#C25A00' : calPct >= 0.9 ? '#D93518' : '#1A6B40';
+
+  return (
+    <View style={{ marginHorizontal: 22, marginBottom: 18 }}>
+      <ScrollView
+        horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+        style={{ borderRadius: 16, overflow: 'hidden' }}
+        onScroll={e => setPage(Math.round(e.nativeEvent.contentOffset.x / sw))}
+        scrollEventThrottle={16}
+        snapToInterval={sw}
+        decelerationRate="fast"
+      >
+        {/* Card 1: Weekly Goal */}
+        <View style={[hc.card, { width: sw }]}>
+          <Text style={hc.cardLabel}>WEEKLY GOAL</Text>
+          <View style={hc.row}>
+            <Text style={hc.bigVal}>{weeklyKm.toFixed(1)}</Text>
+            <Text style={hc.unit}> / {weeklyGoal} km</Text>
+          </View>
+          <View style={hc.track}>
+            <View style={[hc.fill, { width: `${weeklyPct * 100}%` as `${number}%`, backgroundColor: C.red }]} />
+          </View>
+          <Text style={hc.sub}>{weeklyPct >= 1 ? '✓ Goal reached!' : `${(weeklyGoal - weeklyKm).toFixed(1)} km remaining`}</Text>
+        </View>
+
+        {/* Card 2: Calorie Tracker */}
+        <Pressable style={[hc.card, { width: sw }]} onPress={onGoCalories}>
+          <Text style={hc.cardLabel}>TODAY'S CALORIES</Text>
+          <View style={hc.row}>
+            <Text style={[hc.bigVal, { color: calColor }]}>{caloriesConsumed.toLocaleString()}</Text>
+            <Text style={hc.unit}> / {calorieGoal} kcal</Text>
+          </View>
+          <View style={hc.track}>
+            <View style={[hc.fill, { width: `${Math.min(calPct, 1) * 100}%` as `${number}%`, backgroundColor: calColor }]} />
+          </View>
+          <Text style={hc.sub}>Tap to log food →</Text>
+        </Pressable>
+      </ScrollView>
+
+      {/* Dots */}
+      <View style={hc.dots}>
+        {[0, 1].map(i => (
+          <View key={i} style={[hc.dot, page === i && hc.dotActive]} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const hc = StyleSheet.create({
+  card:     { backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 16 },
+  cardLabel:{ fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1, color: C.t3, marginBottom: 8 },
+  row:      { flexDirection: 'row', alignItems: 'baseline', marginBottom: 10 },
+  bigVal:   { fontFamily: 'Barlow_600SemiBold', fontSize: 28, color: C.black },
+  unit:     { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3 },
+  track:    { height: 4, backgroundColor: '#E8E4DF', borderRadius: 2, overflow: 'hidden', marginBottom: 8 },
+  fill:     { height: '100%', borderRadius: 2 },
+  sub:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+  dots:     { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 8 },
+  dot:      { width: 5, height: 5, borderRadius: 2.5, backgroundColor: C.border },
+  dotActive:{ backgroundColor: C.black },
+});
 
 export default function DashboardScreen() {
   const insets     = useSafeAreaInsets();
@@ -45,6 +122,12 @@ export default function DashboardScreen() {
         </View>
 
         <DashboardPills xp={dash.player.xp} energy={dash.player.energy} streakDays={dash.player.streakDays || 0} />
+
+        <HeroCarousel
+          weeklyKm={dash.weeklyKm} weeklyGoal={dash.weeklyGoal}
+          caloriesConsumed={dash.caloriesConsumed} calorieGoal={dash.calorieGoal}
+          onGoCalories={() => go('CalorieTracker')}
+        />
 
         <BentoCard weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal} runDays={dash.runDays} onNavigate={go} onStartRun={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Run' as any); }} />
 

@@ -1,18 +1,28 @@
 import { supabase } from '@shared/services/supabase';
-import type { LeaderboardEntry, LeaderboardTab, LeaderboardTimeFrame } from '../types';
+import type { LeaderboardEntry, LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
 
 export async function fetchLeaderboard(
   tab: LeaderboardTab,
   timeFrame: LeaderboardTimeFrame,
+  scope: LeaderboardScope = 'global',
 ): Promise<LeaderboardEntry[]> {
   const { data: { user } } = await supabase.auth.getUser();
 
+  // For scoped queries, get player's country first
+  let playerCountry: string | null = null;
+  if (scope !== 'global' && user) {
+    const { data: profile } = await supabase.from('profiles').select('country, city').eq('id', user.id).single();
+    playerCountry = profile?.country ?? null;
+  }
+
   if (timeFrame === 'week') {
-    const { data } = await supabase
+    let query = supabase
       .from('leaderboard_weekly')
-      .select('id, username, level, weekly_xp, weekly_km, weekly_territories, rank')
+      .select('id, username, level, weekly_xp, weekly_km, weekly_territories, rank, country')
       .order('rank', { ascending: true })
       .limit(50);
+    if (scope === 'national' && playerCountry) query = query.eq('country', playerCountry);
+    const { data } = await query;
 
     if (!data) return [];
 
@@ -36,10 +46,14 @@ export async function fetchLeaderboard(
       ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
       : new Date(0).toISOString();
 
-  const [{ data: runs }, { data: profiles }] = await Promise.all([
-    supabase.from('runs').select('user_id, distance_m, xp_earned, territories_claimed').gte('started_at', cutoff),
-    supabase.from('profiles').select('id, username, level'),
-  ]);
+  let profilesQuery = supabase.from('profiles').select('id, username, level, country');
+  if (scope === 'national' && playerCountry) profilesQuery = profilesQuery.eq('country', playerCountry);
+
+  const profilesResp = await profilesQuery;
+  const scopedProfileIds = new Set((profilesResp.data ?? []).map((p: any) => p.id));
+
+  let runsQuery = supabase.from('runs').select('user_id, distance_m, xp_earned, territories_claimed').gte('started_at', cutoff);
+  const [{ data: runs }, { data: profiles }] = [{ data: (await runsQuery).data?.filter(r => scopedProfileIds.has(r.user_id)) ?? [] }, profilesResp];
 
   if (!runs || !profiles) return [];
 

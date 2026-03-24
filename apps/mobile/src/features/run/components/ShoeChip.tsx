@@ -8,10 +8,11 @@ const FONT_MED = 'Barlow_500Medium';
 
 interface ShoeChipProps {
   shoe: StoredShoe | null;
+  totalKm?: number;
   onPress: () => void;
 }
 
-export default function ShoeChip({ shoe, onPress }: ShoeChipProps) {
+export default function ShoeChip({ shoe, totalKm, onPress }: ShoeChipProps) {
   return (
     <Pressable style={ss.chip} onPress={onPress}>
       <Text style={ss.emoji}>👟</Text>
@@ -20,6 +21,9 @@ export default function ShoeChip({ shoe, onPress }: ShoeChipProps) {
           <Text style={ss.name} numberOfLines={1}>
             {shoe.nickname ?? `${shoe.brand} ${shoe.model}`}
           </Text>
+          {totalKm !== undefined && (
+            <Text style={ss.km}>{totalKm.toFixed(0)} km</Text>
+          )}
           <Text style={ss.change}>›</Text>
         </>
       ) : (
@@ -38,6 +42,7 @@ const ss = StyleSheet.create({
   },
   emoji:  { fontSize: 15 },
   name:   { flex: 1, fontFamily: FONT, fontSize: 12, color: C.black },
+  km:     { fontFamily: FONT, fontSize: 11, color: C.muted },
   change: { fontFamily: FONT_MED, fontSize: 16, color: C.muted },
   add:    { fontFamily: FONT, fontSize: 12, color: C.red },
 });

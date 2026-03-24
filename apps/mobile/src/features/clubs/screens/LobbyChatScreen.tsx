@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -7,12 +7,13 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
 import { ChatInput } from '@features/clubs/components/ChatInput';
+import { reactToMessage } from '@features/clubs/services/lobbyChatService';
 import { supabase } from '@shared/services/supabase';
-import { useState } from 'react';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'LobbyChat'>;
-const C = { bg: '#F8F6F3', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD' };
+const C = { bg: '#F8F6F3', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', white: '#FFFFFF' };
+const REACTION_EMOJIS = ['❤️', '🔥', '💪', '👏', '🤣', '😮'];
 
 const LOBBY_ROOMS = [
   { id: 'global', name: 'Global Runners', description: 'Connect with runners worldwide', emoji: '🌍', color: '#1E4D8C' },
@@ -27,6 +28,7 @@ export default function LobbyChatScreen() {
   const { lobbyId } = useRoute<Route>().params;
   const room = LOBBY_ROOMS.find(r => r.id === lobbyId) ?? LOBBY_ROOMS[0];
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [reactingMsgId, setReactingMsgId] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
   const { messages, loading, inputText, setInputText, sending, sendMessage } = useLobbyChat(lobbyId);
 
@@ -54,24 +56,59 @@ export default function LobbyChatScreen() {
         ) : (
           <FlatList
             ref={listRef} data={messages} keyExtractor={m => m.id}
-            renderItem={({ item }) => <ChatBubble message={item} isOwn={item.userId === currentUserId} />}
+            renderItem={({ item }) => (
+              <ChatBubble
+                message={item}
+                isOwn={item.userId === currentUserId}
+                onLongPress={() => setReactingMsgId(item.id)}
+              />
+            )}
             contentContainerStyle={{ paddingVertical: 12 }} showsVerticalScrollIndicator={false}
           />
         )}
         <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} />
       </KeyboardAvoidingView>
+      <Modal visible={!!reactingMsgId} transparent animationType="fade" onRequestClose={() => setReactingMsgId(null)}>
+        <Pressable style={s.overlay} onPress={() => setReactingMsgId(null)}>
+          <View style={s.picker}>
+            <Text style={s.pickerLabel}>React</Text>
+            <View style={s.emojiRow}>
+              {REACTION_EMOJIS.map(emoji => (
+                <Pressable
+                  key={emoji}
+                  style={s.emojiBtn}
+                  onPress={async () => {
+                    if (reactingMsgId && currentUserId) {
+                      await reactToMessage(reactingMsgId, emoji, currentUserId);
+                    }
+                    setReactingMsgId(null);
+                  }}
+                >
+                  <Text style={s.emoji}>{emoji}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
-  back: { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
-  roomIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  roomName: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
-  roomDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
-  emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-  emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+  header:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
+  back:         { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+  roomIcon:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  roomName:     { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
+  roomDesc:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+  loader:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty:        { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
+  emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
+  emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+  picker:       { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
+  pickerLabel:  { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.t2, letterSpacing: 0.4 },
+  emojiRow:     { flexDirection: 'row', gap: 8 },
+  emojiBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center' },
+  emoji:        { fontSize: 22 },
 });

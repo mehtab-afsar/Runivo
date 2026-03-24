@@ -4,7 +4,7 @@
  * Renders: RunStatGrid, SplitsList, RewardsCard, PostRunInsightsCard,
  *          ShoeChip, ShoeDrawer, FuelCard, PostRunActions.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -23,6 +23,10 @@ import ShoeChip             from '../components/ShoeChip';
 import ShoeDrawer           from '../components/ShoeDrawer';
 import PostRunActions       from '../components/PostRunActions';
 import LevelUpOverlay      from '../components/LevelUpOverlay';
+import SaveRouteSheet      from '../components/SaveRouteSheet';
+import RunRouteMap         from '../components/RunRouteMap';
+import { buildStoryDataUrl } from '../services/storyCardGenerator';
+import { uploadStory } from '@shared/services/storiesService';
 
 const C = { bg: '#EDEAE5', black: '#0A0A0A', white: '#FFFFFF', t3: '#A39E98', red: '#E8435A', orange: '#F97316' };
 const FI = 'PlayfairDisplay_400Regular_Italic';
@@ -40,10 +44,11 @@ export default function RunSummaryScreen() {
   const { player, xpProgress } = usePlayerStats();
   const { runId, runData: passedData } = route.params;
 
-  const { runData, splits, runShoe, allShoes, showShoeDrawer, setShowShoeDrawer, selectShoe } =
+  const { runData, splits, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe } =
     useRunSummary(runId, passedData);
 
-  const [showLevelUp, setShowLevelUp] = useState(true);
+  const [showLevelUp, setShowLevelUp]       = useState(true);
+  const [showSaveRoute, setShowSaveRoute]   = useState(false);
 
   const calories   = Math.round(runData.distance * 60 * 0.95);
   const heading    = !runData.success ? `${runData.actionType || 'Action'} Failed`
@@ -64,6 +69,26 @@ export default function RunSummaryScreen() {
     { label: 'Claimed',  value: String(runData.success ? (runData.territoriesClaimed || 0) : 0) },
   ];
 
+  // Auto story upload — fire and forget after 1500ms, matching web behaviour
+  useEffect(() => {
+    if (!runData.success || runData.distance < 0.5) return;
+    const t = setTimeout(() => {
+      try {
+        const dataUrl = buildStoryDataUrl({
+          distance: runData.distance.toFixed(2),
+          duration: fmt(runData.duration),
+          pace:     pace(runData.pace),
+          xp:       runData.xpEarned ?? 0,
+          heading,
+          actionType: runData.actionType,
+        });
+        uploadStory(dataUrl, runId).catch(() => {});
+      } catch { /* swallow */ }
+    }, 1500);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
       <Pressable onPress={() => navigation.navigate('Main')} style={[ss.close, { top: insets.top + 12 }]} hitSlop={12}>
@@ -77,6 +102,7 @@ export default function RunSummaryScreen() {
           <Text style={ss.date}>{dateLbl}</Text>
         </View>
 
+        <RunRouteMap route={runData.route ?? []} />
         <View style={ss.card}><RunStatGrid stats={gridStats} /></View>
         {splits.length > 0 && <View style={ss.card}><SplitsList splits={splits} /></View>}
         {runData.success && (
@@ -88,8 +114,8 @@ export default function RunSummaryScreen() {
             completedMissions={runData.completedMissions}
           />
         )}
-        <PostRunInsightsCard distance={runData.distance} pace={runData.pace} duration={runData.duration} />
-        <ShoeChip shoe={runShoe} onPress={() => allShoes.length > 0 && setShowShoeDrawer(true)} />
+        <PostRunInsightsCard runId={runId} distance={runData.distance} pace={runData.pace} duration={runData.duration} />
+        <ShoeChip shoe={runShoe} totalKm={runShoe ? shoeTotalKm : undefined} onPress={() => allShoes.length > 0 && setShowShoeDrawer(true)} />
         {runData.distance >= 1 && (
           <View style={ss.fuel}>
             <View style={ss.fuelIcon}><Flame size={16} color={C.orange} strokeWidth={1.5} /></View>
@@ -97,7 +123,7 @@ export default function RunSummaryScreen() {
               <Text style={ss.fuelTitle}>You burned ~{calories} kcal</Text>
               <Text style={ss.fuelSub}>Priority next 2hrs: 35-40g protein + 60-80g carbs</Text>
             </View>
-            <Pressable style={ss.fuelBtn} onPress={() => navigation.navigate('CalorieTracker')}>
+            <Pressable style={ss.fuelBtn} onPress={() => navigation.navigate('CalorieTracker', { burnKcal: calories })}>
               <Text style={ss.fuelBtnText}>+ LOG</Text>
             </Pressable>
           </View>
@@ -110,7 +136,8 @@ export default function RunSummaryScreen() {
             const text = `🏃 Run Complete!\n📍 ${runData.distance.toFixed(2)} km  ⏱ ${fmt(runData.duration)}  🏃 ${pace(runData.pace)}/km\n🏆 ${runData.territoriesClaimed ?? 0} zones · ${runData.xpEarned ?? 0} XP\nTracked on Runivo`;
             await Sharing.shareAsync('data:text/plain;base64,' + btoa(text), { mimeType: 'text/plain', dialogTitle: 'Share your run' });
           }}
-          onSave={() => {}}
+          onSave={() => setShowSaveRoute(true)}
+          canSave={(runData.route?.length ?? 0) >= 2}
         />
       </ScrollView>
 
@@ -123,6 +150,15 @@ export default function RunSummaryScreen() {
         fromLevel={runData.preRunLevel ?? 1}
         toLevel={runData.newLevel ?? 2}
         onDone={() => setShowLevelUp(false)}
+      />
+
+      <SaveRouteSheet
+        visible={showSaveRoute}
+        gpsPoints={runData.route ?? []}
+        distanceM={runData.distance * 1000}
+        durationSec={runData.duration}
+        sourceRunId={runId}
+        onClose={() => setShowSaveRoute(false)}
       />
     </View>
   );

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NutritionEntry, NutritionProfile } from '@shared/services/store';
+import { getNutritionEntriesRange, getRunsSince } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import {
   fetchTodayEntries,
@@ -10,9 +11,27 @@ import {
   todayKey,
 } from '@features/nutrition/services/nutritionService';
 
+function getWeekDates(): string[] {
+  const dates: string[] = [];
+  const today = new Date();
+  // Start from Monday of current week
+  const day = today.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + diff);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
 export function useCalorieTracker() {
   const [profile, setProfile]         = useState<NutritionProfile | null>(null);
   const [entries, setEntries]         = useState<NutritionEntry[]>([]);
+  const [weekEntries, setWeekEntries] = useState<Record<string, NutritionEntry[]>>({});
+  const [runBurnKcal, setRunBurnKcal] = useState(0);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -26,11 +45,30 @@ export function useCalorieTracker() {
     if (!prof) {
       setLoading(false);
       setRefreshing(false);
-      return null; // signal no profile to screen
+      return null;
     }
     setProfile(prof);
     const e = await fetchTodayEntries(today);
     setEntries(e);
+
+    // Weekly entries for chart
+    const weekDates = getWeekDates();
+    try {
+      const range = await getNutritionEntriesRange(weekDates[0], weekDates[weekDates.length - 1]);
+      const byDate: Record<string, NutritionEntry[]> = {};
+      weekDates.forEach(d => { byDate[d] = []; });
+      range.forEach(entry => { if (byDate[entry.date]) byDate[entry.date].push(entry); });
+      setWeekEntries(byDate);
+    } catch { /* offline */ }
+
+    // Run calorie burn today
+    try {
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayRuns = await getRunsSince(todayStart.getTime());
+      const burn = todayRuns.reduce((s, r) => s + Math.round(r.distanceMeters / 1000 * 60 * 0.95), 0);
+      setRunBurnKcal(burn);
+    } catch { /* offline */ }
+
     setLoading(false);
     setRefreshing(false);
     return prof;
@@ -88,9 +126,26 @@ export function useCalorieTracker() {
     setShowAddModal(true);
   }, []);
 
+  const { weekKcals, weekAvg, weekDates } = useMemo(() => {
+    const dates = getWeekDates();
+    const kcals = dates.map(d =>
+      (weekEntries[d] ?? []).filter(e => e.source !== 'run').reduce((s, e) => s + e.kcal, 0)
+    );
+    const logged = kcals.filter(k => k > 0);
+    return {
+      weekDates: dates,
+      weekKcals: kcals,
+      weekAvg: logged.length > 0 ? Math.round(logged.reduce((a, b) => a + b, 0) / logged.length) : 0,
+    };
+  }, [weekEntries]);
+
   return {
     profile,
     entries,
+    weekKcals,
+    weekAvg,
+    weekDates,
+    runBurnKcal,
     loading,
     refreshing,
     showAddModal,

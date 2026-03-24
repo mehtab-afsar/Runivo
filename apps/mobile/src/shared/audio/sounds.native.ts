@@ -70,7 +70,8 @@ class SoundManager {
     this.loaded = true;
   }
 
-  private async getSound(name: SoundName): Promise<Audio.Sound | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async getSound(name: SoundName): Promise<any | null> {
     if (this.sounds[name]) return this.sounds[name]!;
     const src = SOUND_FILES[name];
     if (!src) return null;

@@ -1,14 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import type { LeaderboardTab, LeaderboardTimeFrame } from '../types';
+import type { LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD' };
+const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', stone: '#F0EDE8' };
 
 interface Props {
   tab: LeaderboardTab;
   timeFrame: LeaderboardTimeFrame;
+  scope: LeaderboardScope;
   onTabChange: (t: LeaderboardTab) => void;
   onTimeFrameChange: (tf: LeaderboardTimeFrame) => void;
+  onScopeChange: (s: LeaderboardScope) => void;
 }
 
 const TABS: { value: LeaderboardTab; label: string }[] = [
@@ -23,7 +25,13 @@ const TIMEFRAMES: { value: LeaderboardTimeFrame; label: string }[] = [
   { value: 'all', label: 'All time' },
 ];
 
-export function LeaderboardFilters({ tab, timeFrame, onTabChange, onTimeFrameChange }: Props) {
+const SCOPES: { value: LeaderboardScope; label: string }[] = [
+  { value: 'global', label: '🌍 Global' },
+  { value: 'national', label: '🏳 National' },
+  { value: 'local', label: '📍 Local' },
+];
+
+export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeFrameChange, onScopeChange }: Props) {
   return (
     <>
       <View style={s.tabRow}>
@@ -40,19 +48,31 @@ export function LeaderboardFilters({ tab, timeFrame, onTabChange, onTimeFrameCha
           </Pressable>
         ))}
       </View>
+      <View style={s.scopeRow}>
+        {SCOPES.map(sc => (
+          <Pressable key={sc.value} style={[s.scopeBtn, scope === sc.value && s.scopeBtnActive]} onPress={() => onScopeChange(sc.value)}>
+            <Text style={[s.scopeLabel, scope === sc.value && s.scopeLabelActive]}>{sc.label}</Text>
+          </Pressable>
+        ))}
+      </View>
     </>
   );
 }
 
 const s = StyleSheet.create({
-  tabRow: { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 8 },
-  tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
-  tabBtnActive: { backgroundColor: C.black, borderColor: C.black },
-  tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t2 },
+  tabRow:         { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 8 },
+  tabBtn:         { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
+  tabBtnActive:   { backgroundColor: C.black, borderColor: C.black },
+  tabLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t2 },
   tabLabelActive: { color: '#fff', fontFamily: 'Barlow_500Medium' },
-  tfRow: { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 10 },
-  tfBtn: { flex: 1, paddingVertical: 6, borderRadius: 6, alignItems: 'center' },
-  tfBtnActive: { backgroundColor: '#E8E4DF' },
-  tfLabel: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
-  tfLabelActive: { color: C.black, fontFamily: 'Barlow_400Regular' },
+  tfRow:          { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 8 },
+  tfBtn:          { flex: 1, paddingVertical: 6, borderRadius: 6, alignItems: 'center' },
+  tfBtnActive:    { backgroundColor: '#E8E4DF' },
+  tfLabel:        { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
+  tfLabelActive:  { color: C.black, fontFamily: 'Barlow_400Regular' },
+  scopeRow:       { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 10 },
+  scopeBtn:       { flex: 1, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
+  scopeBtnActive: { backgroundColor: C.black, borderColor: C.black },
+  scopeLabel:     { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t2 },
+  scopeLabelActive:{ color: C.white, fontFamily: 'Barlow_500Medium' },
 });

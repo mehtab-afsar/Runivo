@@ -15,6 +15,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 export default function GearScreen() {
   const navigation = useNavigation<Nav>();
   const { shoes, shoeKm, loading, refreshing, refresh, setDefault, retire, deleteShoe } = useShoeTracker();
+  const activeShoes  = shoes.filter(s => !s.isRetired);
+  const retiredShoes = shoes.filter(s => s.isRetired);
   const [toast, setToast] = useState('');
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
@@ -63,17 +65,26 @@ export default function GearScreen() {
         </View>
       ) : (
         <FlatList
-          data={shoes}
-          keyExtractor={s => s.id}
-          renderItem={({ item }) => (
-            <ShoeCard
-              shoe={item}
-              kmRun={shoeKm[item.id] ?? 0}
-              onSetDefault={() => setDefault(item.id)}
-              onRetire={() => handleRetire(item)}
-              onDelete={() => confirmDelete(item)}
-            />
-          )}
+          data={[
+            ...activeShoes,
+            ...(retiredShoes.length > 0 ? [{ id: '__retired_header__', isHeader: true } as any] : []),
+            ...retiredShoes,
+          ]}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => {
+            if (item.isHeader) {
+              return <Text style={s.sectionLabel}>RETIRED</Text>;
+            }
+            return (
+              <ShoeCard
+                shoe={item}
+                kmRun={shoeKm[item.id] ?? 0}
+                onSetDefault={() => setDefault(item.id)}
+                onRetire={() => handleRetire(item)}
+                onDelete={() => confirmDelete(item)}
+              />
+            );
+          }}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#D93518" />}
@@ -114,6 +125,7 @@ const s = StyleSheet.create({
   emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: '#6B6B6B', textAlign: 'center', marginBottom: 16 },
   emptyBtn: { backgroundColor: '#0A0A0A', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
   emptyBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionLabel: { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
   toast: {
     position: 'absolute', bottom: 36, left: 20, right: 20,
     backgroundColor: '#0A0A0A', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16,

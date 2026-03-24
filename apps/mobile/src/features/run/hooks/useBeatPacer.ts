@@ -6,8 +6,11 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
-import { Audio } from 'expo-av';
 import { getSettings, saveSettings } from '@shared/services/store';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Audio: any = null;
+try { Audio = require('expo-av').Audio; } catch { /* native module not available */ }
 
 // ── BPM table (pace string → BPM) ─────────────────────────────────────────────
 const BPM_TABLE: [string, number][] = [
@@ -53,7 +56,8 @@ export function useBeatPacer() {
     bpm: 172,
   });
 
-  const soundRef      = useRef<Audio.Sound | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const soundRef      = useRef<any | null>(null);
   const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextBeatRef   = useRef<number>(0);
   const enabledRef    = useRef(false);
@@ -71,9 +75,11 @@ export function useBeatPacer() {
 
   // Load sound
   useEffect(() => {
-    let sound: Audio.Sound | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let sound: any | null = null;
     (async () => {
       try {
+        if (!Audio) return;
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { sound: s } = await Audio.Sound.createAsync(require('../../../shared/audio/files/click.wav'));
         sound = s;
