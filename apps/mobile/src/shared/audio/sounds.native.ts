@@ -19,18 +19,17 @@ const VOLUME_KEY  = 'runivo-sound-volume';
 type SoundSource = ReturnType<typeof require>;
 
 const SOUND_FILES: Partial<Record<SoundName, SoundSource>> = {
-  // Uncomment / add real .mp3 files as they become available:
-  // claim:            require('./files/claim.mp3'),
-  // start_run:        require('./files/start_run.mp3'),
-  // finish_run:       require('./files/finish_run.mp3'),
-  // level_up:         require('./files/level_up.mp3'),
-  // mission_complete: require('./files/mission_complete.mp3'),
-  // tap:              require('./files/tap.mp3'),
-  // tick:             require('./files/tick.mp3'),
-  // notification:     require('./files/notification.mp3'),
-  // own_zone:         require('./files/own_zone.mp3'),
-  // enemy_zone:       require('./files/enemy_zone.mp3'),
-  // error:            require('./files/error.mp3'),
+  claim:            require('./files/claim.wav'),
+  start_run:        require('./files/start_run.wav'),
+  finish_run:       require('./files/finish_run.wav'),
+  level_up:         require('./files/level_up.wav'),
+  mission_complete: require('./files/mission_complete.wav'),
+  tap:              require('./files/tap.wav'),
+  tick:             require('./files/tick.wav'),
+  notification:     require('./files/notification.wav'),
+  own_zone:         require('./files/own_zone.wav'),
+  enemy_zone:       require('./files/enemy_zone.wav'),
+  error:            require('./files/error.wav'),
 };
 
 class SoundManager {

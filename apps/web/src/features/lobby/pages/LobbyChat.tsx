@@ -22,8 +22,8 @@ function formatTime(iso: string): string {
 
 // ── Message bubble ────────────────────────────────────────────────────────────
 function Bubble({ msg, isMe }: { msg: LobbyMessage; isMe: boolean }) {
-  const bg = avatarColor(msg.userName);
-  const initials = msg.userName.slice(0, 2).toUpperCase();
+  const bg = avatarColor(msg.userName ?? '');
+  const initials = (msg.userName ?? '').slice(0, 2).toUpperCase();
 
   return (
     <motion.div
@@ -74,7 +74,7 @@ function Bubble({ msg, isMe }: { msg: LobbyMessage; isMe: boolean }) {
 
         {/* Timestamp */}
         <span style={{ fontSize: 10, color: T.t3, fontFamily: F, marginTop: 3, paddingLeft: 2, paddingRight: 2 }}>
-          {formatTime(msg.timestamp)}
+          {msg.timestamp ? formatTime(msg.timestamp) : ''}
         </span>
       </div>
 

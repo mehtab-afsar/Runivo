@@ -1,1 +1,1 @@
-export type ProfileTab = 'overview' | 'stats' | 'gear';
+export type ProfileTab = 'overview' | 'stats' | 'awards' | 'nutrition' | 'gear';

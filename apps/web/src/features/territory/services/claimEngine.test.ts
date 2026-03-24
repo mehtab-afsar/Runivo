@@ -74,7 +74,6 @@ describe('ClaimEngine (time-in-hex mechanic)', () => {
     engine.update(LAT, NEARBY_LNG, 2.0, 10);
     const stats = engine.getSessionStats();
     expect(stats.xp).toBe(GAME_CONFIG.XP_CLAIM_NEUTRAL);
-    expect(stats.coins).toBe(GAME_CONFIG.COINS_CLAIM_NEUTRAL);
     expect(stats.claimed).toBe(1);
   });
 
@@ -89,7 +88,6 @@ describe('ClaimEngine (time-in-hex mechanic)', () => {
     expect(state.hexDwellMs).toBe(0);
     expect(state.currentHex).toBeNull();
     expect(stats.xp).toBe(0);
-    expect(stats.coins).toBe(0);
     expect(stats.claimed).toBe(0);
   });
 });

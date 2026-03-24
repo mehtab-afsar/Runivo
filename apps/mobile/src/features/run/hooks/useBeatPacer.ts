@@ -75,7 +75,7 @@ export function useBeatPacer() {
     (async () => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { sound: s } = await Audio.Sound.createAsync(require('../../../shared/audio/files/click.mp3'));
+        const { sound: s } = await Audio.Sound.createAsync(require('../../../shared/audio/files/click.wav'));
         sound = s;
         soundRef.current = s;
       } catch {

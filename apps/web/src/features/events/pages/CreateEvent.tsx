@@ -14,7 +14,7 @@ const EVENT_TYPES = [
   { value: 'survival',      label: 'Survival Run' },
 ];
 
-export default function CreateEvent(): JSX.Element {
+export default function CreateEvent() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');

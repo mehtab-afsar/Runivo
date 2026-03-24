@@ -72,7 +72,7 @@ function openStripe(billing: 'monthly' | 'annual') {
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export default function Subscription(): JSX.Element {
+export default function Subscription() {
   const navigate = useNavigate();
   const [billing, setBilling]     = useState<'monthly' | 'annual'>('monthly');
   const [currentTier, setCurrentTier] = useState<string>('free');
@@ -194,7 +194,9 @@ export default function Subscription(): JSX.Element {
           paddingTop: 'calc(28px + max(14px, env(safe-area-inset-top)) + 34px)',
         }}
       >
-        <HexWatermark size={160} top={-20} right={-20} opacity={0.06} />
+        <div style={{ position: 'absolute', top: -20, right: -20, pointerEvents: 'none' }}>
+          <HexWatermark size={160} opacity={0.06} />
+        </div>
         <div style={{ position: 'relative', zIndex: 2 }}>
           <p style={{
             fontSize: 9, fontWeight: 500, color: 'rgba(255,255,255,0.40)',

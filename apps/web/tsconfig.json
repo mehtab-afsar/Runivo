@@ -33,5 +33,9 @@
     }
   },
   "include": ["src", "../../packages/shared/src"],
+  "exclude": [
+    "node_modules",
+    "../../apps/mobile"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

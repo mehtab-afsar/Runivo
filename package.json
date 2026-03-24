@@ -1,44 +1,23 @@
 {
   "name": "runivo",
   "private": true,
+  "version": "1.0.0",
   "workspaces": [
     "apps/mobile",
     "apps/web",
     "packages/shared"
   ],
   "scripts": {
-    "start":   "npm run start --workspace=apps/mobile",
-    "ios":     "npm run ios --workspace=apps/mobile",
-    "android": "npm run android --workspace=apps/mobile",
-    "clean":   "cd apps/mobile && rm -rf .expo node_modules/.cache && npx expo start --clear",
-    "postinstall": "patch-package"
-  },
-  "dependencies": {
-    "buffer": "^6.0.3",
-    "expo": "~55.0.8",
-    "metro": "^0.83.3",
-    "metro-babel-transformer": "^0.81.5",
-    "metro-cache": "^0.81.5",
-    "metro-config": "^0.81.5",
-    "metro-core": "^0.81.5",
-    "metro-file-map": "^0.81.5",
-    "metro-resolver": "^0.81.5",
-    "metro-runtime": "^0.81.5",
-    "metro-source-map": "^0.81.5",
-    "metro-transform-plugins": "^0.81.5",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-native": "^0.83.2",
-    "react-native-get-random-values": "^2.0.0",
-    "react-native-reanimated": "^4.2.1",
-    "react-native-url-polyfill": "^3.0.0",
-    "react-native-worklets": "^0.7.4",
-    "react-native-worklets-core": "^1.6.3",
-    "text-encoding": "^0.7.0"
+    "mobile":       "npm run start --workspace=apps/mobile",
+    "ios":          "npm run ios --workspace=apps/mobile",
+    "android":      "npm run android --workspace=apps/mobile",
+    "web":          "npm run dev --workspace=apps/web",
+    "clean:mobile": "npm run clean --workspace=apps/mobile",
+    "clean:web":    "npm run clean --workspace=apps/web",
+    "clean":        "npm run clean:mobile && npm run clean:web",
+    "postinstall":  "patch-package"
   },
   "devDependencies": {
-    "@types/text-encoding": "^0.0.40",
     "patch-package": "^8.0.1"
-  },
-  "version": "1.0.0"
+  }
 }

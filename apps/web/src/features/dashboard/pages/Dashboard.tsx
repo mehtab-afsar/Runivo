@@ -6,7 +6,6 @@ import { NotificationBell } from '@features/notifications/components/Notificatio
 import { usePlayerStats } from '@features/profile/hooks/usePlayerStats';
 import { getTodaysMissions } from '@features/missions/services/missionStore';
 import { getAllTerritories, StoredTerritory, getRuns, StoredRun, getNutritionProfile, getNutritionEntries, getSettings, localDateString } from '@shared/services/store';
-import { GAME_CONFIG } from '@shared/services/config';
 import { Mission } from '@features/missions/services/missions';
 import { haptic } from '@shared/lib/haptics';
 import { onSyncStatusChange, postRunSync, type SyncStatus } from '@shared/services/sync';

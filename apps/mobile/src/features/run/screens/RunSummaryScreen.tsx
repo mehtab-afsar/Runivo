@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X, Flame } from 'lucide-react-native';
+import * as Sharing from 'expo-sharing';
 
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -103,7 +104,12 @@ export default function RunSummaryScreen() {
         )}
         <PostRunActions
           onDone={() => navigation.navigate('Main')}
-          onShare={() => Alert.alert('Share', 'Share functionality coming soon')}
+          onShare={async () => {
+            const available = await Sharing.isAvailableAsync();
+            if (!available) { Alert.alert('Sharing not available on this device'); return; }
+            const text = `🏃 Run Complete!\n📍 ${runData.distance.toFixed(2)} km  ⏱ ${fmt(runData.duration)}  🏃 ${pace(runData.pace)}/km\n🏆 ${runData.territoriesClaimed ?? 0} zones · ${runData.xpEarned ?? 0} XP\nTracked on Runivo`;
+            await Sharing.shareAsync('data:text/plain;base64,' + btoa(text), { mimeType: 'text/plain', dialogTitle: 'Share your run' });
+          }}
           onSave={() => {}}
         />
       </ScrollView>

@@ -59,7 +59,6 @@ import {
   type StoredRun,
   type StoredTerritory,
   type StoredPlayer,
-  type NutritionEntry,
 } from './store';
 import { getProfile } from './profile';
 

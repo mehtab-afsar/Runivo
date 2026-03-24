@@ -1,8 +1,8 @@
 export interface DailyContext {
   ranToday: boolean;
   ranYesterday: boolean;
-  upcomingEvent: boolean;
-  lateNight: boolean;
+  upcomingEvent?: boolean;
+  lateNight?: boolean;
   caloriesBurnedToday: number;
   consumed: number;
   goal: number;
@@ -13,6 +13,9 @@ export interface DailyContext {
   carbsGoal: number;
   fatConsumed: number;
   fatGoal: number;
+  proteinDeficitDays?: number;
+  daysUntilEvent?: number | null;
+  runDaysThisWeek?: number;
 }
 
 export function getHeaderMessage(_ctx: DailyContext): string {

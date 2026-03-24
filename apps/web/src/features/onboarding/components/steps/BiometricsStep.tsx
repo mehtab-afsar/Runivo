@@ -44,7 +44,7 @@ function DrumPicker({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isUserScrolling = useRef(false);
-  const snapTimer = useRef<ReturnType<typeof setTimeout>>();
+  const snapTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastIdx = useRef(selectedIdx);
 
   // Scroll to position on mount and on external selectedIdx change

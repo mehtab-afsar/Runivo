@@ -17,7 +17,7 @@ describe('StatCard', () => {
     const { container } = render(<StatCard label="Distance" value="5.00" />);
     // The unit span only renders when unit prop is provided
     const spans = container.querySelectorAll('span');
-    const texts = Array.from(spans).map(s => s.textContent);
+    const texts = Array.from(spans).map(s => (s as HTMLElement).textContent);
     expect(texts).not.toContain('km');
   });
 

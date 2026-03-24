@@ -138,6 +138,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission: 'Runivo uses the camera to photograph your shoes.',
       },
     ],
+    '@kingstinct/react-native-healthkit',
+    '@maplibre/maplibre-react-native',
   ],
   web: {
     favicon: './assets/favicon.png',

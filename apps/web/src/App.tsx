@@ -36,6 +36,7 @@ const CoachScreen       = lazy(() => import('@features/intelligence/pages/CoachS
 const StoryViewer       = lazy(() => import('@features/social/pages/StoryViewer'));
 const ShoeList          = lazy(() => import('@features/gear/pages/ShoeList'));
 const AddShoe           = lazy(() => import('@features/gear/pages/AddShoe'));
+const FootScan          = lazy(() => import('@features/gear/pages/FootScan'));
 const ConnectedDevices  = lazy(() => import('@features/settings/pages/ConnectedDevices'));
 
 function LayoutWithNav({ children }: { children: React.ReactNode }) {
@@ -277,6 +278,11 @@ function AnimatedRoutes() {
         <Route path="/gear/add" element={
           <FeatureErrorBoundary feature="Add Shoe">
             <PageTransition><AddShoe onSaved={() => history.back()} onClose={() => history.back()} /></PageTransition>
+          </FeatureErrorBoundary>
+        } />
+        <Route path="/gear/scan" element={
+          <FeatureErrorBoundary feature="Foot Scan">
+            <PageTransition><FootScan onDone={() => history.back()} onClose={() => history.back()} /></PageTransition>
           </FeatureErrorBoundary>
         } />
 

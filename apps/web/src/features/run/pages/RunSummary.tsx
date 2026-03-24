@@ -106,8 +106,8 @@ export const RunSummary: React.FC = () => {
   const [showShoeDrawer, setShowShoeDrawer] = useState(false)
   const [shoeTotalKm, setShoeTotalKm]       = useState(0)
   const [weightKg, setWeightKg] = useState(70)
-  const [enrichedRun, setEnrichedRun] = useState<import('@shared/services/store').StoredRun | null>(null)
-  const runId = location.state?.runId as string | null | undefined
+  const [_enrichedRun, setEnrichedRun] = useState<import('@shared/services/store').StoredRun | null>(null)
+  const runId = (location.state?.runId as string | null | undefined) ?? ''
   const { insights: aiInsights, loading: aiLoading } = usePostRunInsights(runId)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)

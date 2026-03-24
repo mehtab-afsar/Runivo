@@ -15,5 +15,9 @@
     "**/*.tsx",
     "../../packages/shared/src/**/*.ts",
     "../../packages/shared/src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "../../apps/web"
   ]
 }

@@ -35,7 +35,6 @@ export class ClaimEngine {
   private hexEnteredAt: number | null = null;
   private lastProgressEmitMs = 0;
   private sessionXP = 0;
-  private sessionCoins = 0;
   private listeners: ((event: ClaimEvent) => void)[] = [];
 
   constructor(_playerId: string) {}
@@ -101,11 +100,9 @@ export class ClaimEngine {
         this.state.claimProgress = 0;
 
         const xp = GAME_CONFIG.XP_CLAIM_NEUTRAL;
-        const coins = GAME_CONFIG.COINS_CLAIM_NEUTRAL;
         this.sessionXP += xp;
-        this.sessionCoins += coins;
 
-        this.emit({ type: 'claimed', xpEarned: xp, coinsEarned: coins, timestamp: now });
+        this.emit({ type: 'claimed', xpEarned: xp, timestamp: now });
       }
     }
 
@@ -120,7 +117,6 @@ export class ClaimEngine {
     return {
       claimed: this.state.territoriesClaimed,
       xp: this.sessionXP,
-      coins: this.sessionCoins,
     };
   }
 
@@ -136,6 +132,5 @@ export class ClaimEngine {
     this.hexEnteredAt = null;
     this.lastProgressEmitMs = 0;
     this.sessionXP = 0;
-    this.sessionCoins = 0;
   }
 }

@@ -48,7 +48,23 @@
       "Bash(echo \"  @shared/* -> ./src/shared/*\")",
       "Bash(echo \"  @shared/services/* -> ../../packages/shared/src/services/*\")",
       "Bash(find /Users/mohammedmehtabafsar/Desktop -name Screenshot*2026-03-23*4.08*)",
-      "Bash(head -5 find ~/Downloads -name Screenshot*2026-03-23*4.08*)"
+      "Bash(head -5 find ~/Downloads -name Screenshot*2026-03-23*4.08*)",
+      "Bash(grep -rn \"from ''''idb''''\" apps/mobile/src)",
+      "Bash(grep -rn \"from ''''framer-motion''''\" apps/mobile/src)",
+      "Bash(grep -rn \"from ''''howler''''\" apps/mobile/src)",
+      "Bash(grep -rn \"from ''''expo-\" apps/web/src)",
+      "Bash(grep -rn \"from ''''react-native''''\" apps/web/src)",
+      "Bash(grep -rn from.*haptics apps/mobile/src/)",
+      "Bash(rm -f app.json \"Screenshot 2026-03-23 at 4.08.35 PM.png\")",
+      "Bash(rm -rf ios/)",
+      "Bash(sed -n '100,120p' /Users/mohammedmehtabafsar/Desktop/Runivo/apps/web/src/features/run/pages/RunSummary.tsx)",
+      "Bash(sed -n '670,700p' /Users/mohammedmehtabafsar/Desktop/Runivo/apps/web/src/features/run/pages/RunSummary.tsx)",
+      "Bash(sed -n '70,85p' /Users/mohammedmehtabafsar/Desktop/Runivo/apps/web/src/features/lobby/pages/LobbyChat.tsx)",
+      "Bash(sed -n '73,82p' /Users/mohammedmehtabafsar/Desktop/Runivo/apps/web/src/features/lobby/pages/LobbyChat.tsx)",
+      "Bash(node generate-sounds.js)",
+      "Bash(ls /Users/mohammedmehtabafsar/Desktop/Runivo/apps/mobile/*.js)",
+      "Bash(ls /Users/mohammedmehtabafsar/Desktop/Runivo/apps/mobile/*.ts)",
+      "Bash(find /Users/mohammedmehtabafsar/Desktop/Runivo -maxdepth 1 -name \"*.png\" -delete)"
     ]
   }
 }

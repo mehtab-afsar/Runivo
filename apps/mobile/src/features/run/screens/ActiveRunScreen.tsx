@@ -20,6 +20,7 @@ import RunControls        from '../components/RunControls';
 import ClaimProgressRing  from '../components/ClaimProgressRing';
 import FinishConfirmSheet from '../components/FinishConfirmSheet';
 import BeatPacerChip      from '../components/BeatPacerChip';
+import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
 
 const C = { bg:'#F7F6F4', black:'#0A0A0A', red:'#E8391C', muted:'#6B6B6B', white:'#FFFFFF', mid:'#E0DFDD', green:'#10B981', amber:'#F59E0B' };
@@ -67,7 +68,13 @@ export default function ActiveRunScreen() {
         <View style={{ width: 36 }} />
       </View>
       <View style={ss.map}>
-        {run.isRunning && <View style={ss.gpsTag}><View style={ss.gpsDot} /><Text style={ss.gpsTxt}>GPS Active</Text></View>}
+        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} />
+        {run.isRunning && (
+          <View style={ss.gpsTag}>
+            <View style={ss.gpsDot} />
+            <Text style={ss.gpsTxt}>GPS Active · {run.gpsPoints.length} pts</Text>
+          </View>
+        )}
       </View>
       {run.isRunning && run.claimProgress > 0 && (
         <View style={ss.claimBar}>
@@ -106,8 +113,8 @@ const ss = StyleSheet.create({
   back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   backTxt:     { fontFamily: 'Barlow_700Bold', fontSize: 16, color: C.muted },
   title:       { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black, letterSpacing: 0.3 },
-  map:         { flex: 1, backgroundColor: '#1A1A2E' },
-  gpsTag:      { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  map:         { flex: 1, overflow: 'hidden' },
+  gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   gpsDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
   gpsTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.white },
   claimBar:    { height: 4, backgroundColor: C.mid, flexDirection: 'row', alignItems: 'center' },
