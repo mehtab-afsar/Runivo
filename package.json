@@ -12,6 +12,7 @@
     "ios":          "npm run ios --workspace=apps/mobile",
     "android":      "npm run android --workspace=apps/mobile",
     "web":          "npm run dev --workspace=apps/web",
+    "build":        "cd apps/web && npx vite build",
     "clean:mobile": "npm run clean --workspace=apps/mobile",
     "clean:web":    "npm run clean --workspace=apps/web",
     "clean":        "npm run clean:mobile && npm run clean:web",
