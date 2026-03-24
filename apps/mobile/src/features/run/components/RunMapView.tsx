@@ -38,7 +38,7 @@ export default function RunMapView({
   return (
     <Animated.View style={[ss.container, { bottom: sheetAnim }]}>
       {MapLibreGL ? (
-        <MapLibreGL.MapView style={ss.map} styleURL={mapStyle} logoEnabled={false} attributionEnabled={false}>
+        <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled={false}>
           {lat !== null && lng !== null && (
             <MapLibreGL.Camera zoomLevel={15} centerCoordinate={[lng, lat]} animationMode="flyTo" animationDuration={800} />
           )}

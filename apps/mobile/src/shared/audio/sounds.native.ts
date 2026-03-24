@@ -1,10 +1,19 @@
 /**
  * sounds.native.ts — real expo-av implementation.
  * Lazily loads MP3 assets, unloads on background, persists enabled/volume.
+ * Audio is imported dynamically so a missing ExponentAV native module is
+ * silently swallowed rather than crashing the app on startup.
  */
-import { Audio } from 'expo-av';
 import { AppState, type AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let AudioModule: any = null;
+try {
+  // Dynamic require so missing native module doesn't crash import
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  AudioModule = require('expo-av').Audio;
+} catch { /* expo-av not available — sounds disabled */ }
 
 export type SoundName =
   | 'claim' | 'enemy_zone' | 'own_zone' | 'tick'
@@ -33,7 +42,8 @@ const SOUND_FILES: Partial<Record<SoundName, SoundSource>> = {
 };
 
 class SoundManager {
-  private sounds: Partial<Record<SoundName, Audio.Sound>> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private sounds: Partial<Record<SoundName, any>> = {};
   private enabled = true;
   private volume  = 1.0;
   private loaded  = false;
@@ -65,8 +75,9 @@ class SoundManager {
     const src = SOUND_FILES[name];
     if (!src) return null;
     try {
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync(src, { volume: this.volume });
+      if (!AudioModule) return null;
+      await AudioModule.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await AudioModule.Sound.createAsync(src, { volume: this.volume });
       this.sounds[name] = sound;
       return sound;
     } catch {

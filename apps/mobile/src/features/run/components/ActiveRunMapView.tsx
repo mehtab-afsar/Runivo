@@ -57,7 +57,7 @@ export default function ActiveRunMapView({ gpsPoints, isRunning }: Props) {
   return (
     <MapLibreGL.MapView
       style={ss.map}
-      styleURL={DARK_STYLE}
+      mapStyle={DARK_STYLE}
       logoEnabled={false}
       attributionEnabled={false}
       compassEnabled={false}

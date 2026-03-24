@@ -9,6 +9,8 @@ import { ProfileHeader } from '../components/ProfileHeader';
 import { GearTab } from '../components/GearTab';
 import { RunsTab } from '../components/RunsTab';
 import { StatsTab } from '../components/StatsTab';
+import { AwardsTab } from '../components/AwardsTab';
+import { NutritionTab } from '../components/NutritionTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import type { ProfileTab } from '../types';
 
@@ -42,15 +44,15 @@ export default function ProfileScreen() {
           onSettingsPress={() => navigation.navigate('Settings')}
         />
 
-        <View style={ss.tabs}>
-          {(['overview', 'stats', 'gear'] as ProfileTab[]).map(t => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ss.tabsScroll} contentContainerStyle={ss.tabsContent}>
+          {(['overview', 'stats', 'awards', 'nutrition', 'gear'] as ProfileTab[]).map(t => (
             <Pressable key={t} style={[ss.tab, tab === t && ss.tabActive]} onPress={() => setTab(t)}>
               <Text style={[ss.tabLabel, tab === t && ss.tabLabelActive]}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
 
         <View style={ss.content}>
           {tab === 'overview' && <RunsTab runs={runs} />}
@@ -58,6 +60,8 @@ export default function ProfileScreen() {
             <StatsTab personalRecords={personalRecords} totalRuns={runs.length} totalKm={totalKm}
               totalTerritories={player?.totalTerritoriesClaimed ?? 0} streakDays={player?.streakDays ?? 0} />
           )}
+          {tab === 'awards' && <AwardsTab />}
+          {tab === 'nutrition' && <NutritionTab />}
           {tab === 'gear' && <GearTab shoes={shoes} onAddShoe={() => navigation.navigate('GearAdd')} />}
         </View>
       </ScrollView>
@@ -74,7 +78,8 @@ export default function ProfileScreen() {
 
 const ss = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg }, center: { alignItems: 'center', justifyContent: 'center' }, content: { padding: 20 },
-  tabs: { flexDirection: 'row', paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: C.border },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
+  tabsScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: '#fff' },
+  tabsContent: { paddingHorizontal: 12 },
+  tab: { paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
   tabActive: { borderBottomColor: C.black }, tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 }, tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
 });
