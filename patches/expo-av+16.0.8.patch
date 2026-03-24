@@ -1,0 +1,12 @@
+diff --git a/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m b/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
+index 6f6998d..3d803c6 100644
+--- a/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
++++ b/node_modules/expo-av/ios/EXAV/EXAVPlayerData.m
+@@ -1,6 +1,7 @@
+ // Copyright 2017-present 650 Industries. All rights reserved.
+ 
+ #import <EXAV/EXAVPlayerData.h>
++#import <ExpoModulesCore/EXLog.h>
+ #import <MobileCoreServices/MobileCoreServices.h>
+ 
+ // This struct is passed between the MTAudioProcessingTap callbacks.
