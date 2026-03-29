@@ -1,3 +1,5 @@
+export type ActivityType = 'run' | 'trail' | 'interval' | 'long_run';
+
 export interface FeedPost {
   id: string;
   userId: string;
@@ -11,5 +13,15 @@ export interface FeedPost {
   createdAt: string;
   kudosCount: number;
   hasKudos: boolean;
+  commentCount?: number;
+  activityType?: ActivityType;
   storyImageUrl?: string;
+}
+
+export interface SuggestedRunner {
+  id: string;
+  username: string;
+  level: number;
+  totalDistanceKm: number;
+  territoriesClaimed: number;
 }

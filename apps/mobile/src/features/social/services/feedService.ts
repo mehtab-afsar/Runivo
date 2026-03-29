@@ -1,5 +1,5 @@
 import { supabase } from '@shared/services/supabase';
-import type { FeedPost } from '@features/social/types';
+import type { FeedPost, SuggestedRunner } from '@features/social/types';
 
 export async function fetchFeed(userId: string): Promise<FeedPost[]> {
   const { data, error } = await supabase.rpc('get_feed', {
@@ -29,4 +29,36 @@ export async function fetchFollowingIds(userId: string): Promise<string[]> {
     .select('following_id')
     .eq('follower_id', userId);
   return (data ?? []).map((r: { following_id: string }) => r.following_id);
+}
+
+export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRunner[]> {
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, level, total_distance_km, total_territories_claimed')
+      .neq('id', userId)
+      .order('total_distance_km', { ascending: false })
+      .limit(12);
+    return (data ?? []).map((r: {
+      id: string;
+      username: string | null;
+      level: number | null;
+      total_distance_km: number | null;
+      total_territories_claimed: number | null;
+    }): SuggestedRunner => ({
+      id: r.id,
+      username: r.username ?? 'Runner',
+      level: r.level ?? 1,
+      totalDistanceKm: Math.round(r.total_distance_km ?? 0),
+      territoriesClaimed: r.total_territories_claimed ?? 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function toggleFollow(targetId: string): Promise<void> {
+  try {
+    await supabase.rpc('toggle_follow', { target_id: targetId });
+  } catch { /* ignore */ }
 }

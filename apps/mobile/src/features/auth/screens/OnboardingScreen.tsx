@@ -2,7 +2,7 @@
  * OnboardingScreen — 6-step profile setup wizard.
  * Slide transitions: advance = slide left, go back = slide right.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View, StyleSheet, SafeAreaView, Platform, Pressable, Text,
   ActivityIndicator, Animated, Dimensions,
@@ -29,7 +29,6 @@ const { width: SCREEN_W } = Dimensions.get('window');
 export default function OnboardingScreen() {
   const navigation = useNavigation<Nav>();
   const ob = useOnboarding(() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }));
-  const [picker, setPicker] = useState<null | 'age' | 'height' | 'weight'>(null);
 
   // Slide animation
   const slideX = useRef(new Animated.Value(0)).current;
@@ -40,7 +39,6 @@ export default function OnboardingScreen() {
     const goingForward = ob.step > prevStep.current;
     prevStep.current = ob.step;
 
-    // Start offscreen in direction of travel
     slideX.setValue(goingForward ? SCREEN_W : -SCREEN_W);
     Animated.timing(slideX, {
       toValue: 0,
@@ -57,8 +55,6 @@ export default function OnboardingScreen() {
         return (
           <AvatarStep
             data={ob.data}
-            picker={picker}
-            setPicker={setPicker}
             onChange={(k, v) => ob.update(k, v)}
           />
         );
@@ -77,7 +73,7 @@ export default function OnboardingScreen() {
           />
         );
       case 5:
-        return <NotificationsStep onAdvance={ob.setStep} />;
+        return <NotificationsStep />;
       case 6:
         return (
           <ReadyStep
@@ -92,7 +88,6 @@ export default function OnboardingScreen() {
   };
 
   const isLast = ob.step === 6;
-  const hideCta = ob.step === 5;
   const ctaLabel = isLast ? (ob.loading ? 'Setting up…' : 'Start running →') : 'Continue';
 
   return (
@@ -101,19 +96,17 @@ export default function OnboardingScreen() {
       <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideX }] }]}>
         {renderStep()}
       </Animated.View>
-      {!hideCta && (
-        <View style={ss.footer}>
-          <Pressable
-            style={[ss.cta, isLast ? ss.ctaBlack : ob.canContinue() ? ss.ctaRed : ss.ctaDisabled]}
-            onPress={isLast ? ob.submit : ob.goNext}
-            disabled={!ob.canContinue() || ob.loading}
-          >
-            {ob.loading
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={ss.ctaLabel}>{ctaLabel}</Text>}
-          </Pressable>
-        </View>
-      )}
+      <View style={ss.footer}>
+        <Pressable
+          style={[ss.cta, isLast ? ss.ctaBlack : ob.canContinue() ? ss.ctaRed : ss.ctaDisabled]}
+          onPress={isLast ? ob.submit : ob.goNext}
+          disabled={!ob.canContinue() || ob.loading}
+        >
+          {ob.loading
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Text style={ss.ctaLabel}>{ctaLabel}</Text>}
+        </Pressable>
+      </View>
     </SafeAreaView>
   );
 }

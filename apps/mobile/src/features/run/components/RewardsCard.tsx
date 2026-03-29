@@ -21,8 +21,6 @@ function XPBar({ fromPct, toPct }: { fromPct: number; toPct: number }) {
 
 interface RewardsCardProps {
   xp: number;
-  coins: number;
-  bonusCoins: number;
   level: number;
   xpProgress: number;
   xpNeeded: number;
@@ -35,7 +33,7 @@ interface RewardsCardProps {
 }
 
 export default function RewardsCard({
-  xp, coins, bonusCoins, level, xpProgress, xpNeeded,
+  xp, level, xpProgress, xpNeeded,
   xpPercent, xpPrevPercent, leveledUp, preRunLevel, newLevel, completedMissions,
 }: RewardsCardProps) {
   return (
@@ -61,23 +59,6 @@ export default function RewardsCard({
         <Text style={ss.xpRowLabel}>{xpProgress} / {xpNeeded} XP</Text>
         <Text style={ss.xpRowLabel}>Lv {level + 1}</Text>
       </View>
-
-      {(coins > 0 || bonusCoins > 0) && (
-        <View style={ss.rewardRows}>
-          {coins > 0 && (
-            <View style={ss.rewardRow}>
-              <View style={ss.rewardLeft}><Text>🪙</Text><Text style={ss.rewardLabel}>Coins earned</Text></View>
-              <Text style={ss.rewardValue}>+{coins}</Text>
-            </View>
-          )}
-          {bonusCoins > 0 && (
-            <View style={[ss.rewardRow, { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' }]}>
-              <View style={ss.rewardLeft}><Text>🪙</Text><Text style={ss.rewardLabel}>Bonus coins</Text></View>
-              <Text style={ss.rewardValue}>+{bonusCoins}</Text>
-            </View>
-          )}
-        </View>
-      )}
 
       {(completedMissions?.length ?? 0) > 0 && (
         <View style={{ marginTop: 16 }}>

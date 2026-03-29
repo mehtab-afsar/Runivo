@@ -1,9 +1,10 @@
 /**
  * Step 6 — "You're ready to run" confirmation screen.
  */
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { C, shared } from './onboardingStyles';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import { Check } from 'lucide-react-native';
+import { C } from './onboardingStyles';
 import { GOAL_LABELS, EXP_LABELS } from '../types';
 import type { OnboardingData } from '../types';
 
@@ -21,20 +22,63 @@ export default function ReadyStep({ weeklyKmDisplay, primaryGoal, experienceLeve
     { label: 'Level',        val: EXP_LABELS[experienceLevel] ?? experienceLevel },
   ];
 
+  const checkScale   = useRef(new Animated.Value(0.6)).current;
+  const checkOpacity = useRef(new Animated.Value(0)).current;
+
+  const cardAnims = useRef(summaryCards.map(() => ({
+    opacity: new Animated.Value(0),
+    translateY: new Animated.Value(10),
+  }))).current;
+
+  useEffect(() => {
+    // Animate check circle
+    Animated.parallel([
+      Animated.spring(checkScale, { toValue: 1, damping: 18, useNativeDriver: true }),
+      Animated.timing(checkOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+
+    // Stagger summary cards after a short delay
+    setTimeout(() => {
+      Animated.stagger(
+        80,
+        cardAnims.map(({ opacity, translateY }) =>
+          Animated.parallel([
+            Animated.timing(opacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+            Animated.spring(translateY, { toValue: 0, damping: 22, useNativeDriver: true }),
+          ])
+        )
+      ).start();
+    }, 200);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <View style={s.wrap}>
-      <View style={s.checkCircle}>
-        <Text style={{ fontSize: 22, color: C.black }}>✓</Text>
-      </View>
+      <Animated.View
+        style={[
+          s.checkCircle,
+          { opacity: checkOpacity, transform: [{ scale: checkScale }] },
+        ]}
+      >
+        <Check size={22} color={C.black} strokeWidth={2} />
+      </Animated.View>
       <Text style={s.eyebrow}>You're in</Text>
       <Text style={s.title}>You're ready to run.</Text>
       <Text style={s.sub}>Your profile is set up. Time to claim some territory.</Text>
       <View style={{ width: '100%', gap: 8, marginBottom: 24 }}>
-        {summaryCards.map(c => (
-          <View key={c.label} style={s.summaryRowCard}>
+        {summaryCards.map((c, i) => (
+          <Animated.View
+            key={c.label}
+            style={[
+              s.summaryRowCard,
+              {
+                opacity: cardAnims[i].opacity,
+                transform: [{ translateY: cardAnims[i].translateY }],
+              },
+            ]}
+          >
             <Text style={s.summaryRowLabel}>{c.label}</Text>
             <Text style={s.summaryRowVal}>{c.val}</Text>
-          </View>
+          </Animated.View>
         ))}
       </View>
       {error ? <Text style={s.errText}>{error}</Text> : null}

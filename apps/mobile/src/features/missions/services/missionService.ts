@@ -1,4 +1,7 @@
-import { ensureTodaysMissions, claimMissionReward as claimRewardStore } from '@shared/services/missionStore';
+import {
+  ensureTodaysMissions,
+  claimMissionReward as claimRewardStore,
+} from '@shared/services/missionStore';
 import type { Mission } from '@shared/services/missions';
 
 export async function fetchMissions(): Promise<Mission[]> {

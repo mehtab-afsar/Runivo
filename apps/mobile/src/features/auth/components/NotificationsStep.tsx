@@ -1,17 +1,22 @@
 /**
- * Step 5 — Notifications permission (no paywall).
+ * Step 5 — Notifications permission (no paywall, no inline CTA — uses shared footer).
  */
-import React, { useState } from 'react';
-import { View, Text, Switch, Pressable, StyleSheet } from 'react-native';
-import type { OnboardingStep } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, Switch, StyleSheet, Animated } from 'react-native';
 import { C, shared } from './onboardingStyles';
 
-interface Props {
-  onAdvance: (step: OnboardingStep) => void;
-}
-
-export default function NotificationsStep({ onAdvance }: Props) {
+export default function NotificationsStep() {
   const [enabled, setEnabled] = useState(true);
+
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const cardTranslateY = useRef(new Animated.Value(12)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(cardOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.spring(cardTranslateY, { toValue: 0, damping: 24, useNativeDriver: true }),
+    ]).start();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <View style={shared.stepContent}>
@@ -19,7 +24,12 @@ export default function NotificationsStep({ onAdvance }: Props) {
       <Text style={shared.heroTitle}>Stay in the loop.</Text>
       <Text style={shared.subtitle}>Get notified when your zones are under attack or missions reset.</Text>
 
-      <View style={s.card}>
+      <Animated.View
+        style={[
+          s.card,
+          { opacity: cardOpacity, transform: [{ translateY: cardTranslateY }] },
+        ]}
+      >
         <View style={s.cardRow}>
           <View style={{ flex: 1 }}>
             <Text style={s.cardTitle}>Enable notifications</Text>
@@ -32,13 +42,9 @@ export default function NotificationsStep({ onAdvance }: Props) {
             thumbColor="#fff"
           />
         </View>
-      </View>
+      </Animated.View>
 
       <Text style={s.note}>You can change this at any time in Settings.</Text>
-
-      <Pressable style={s.btn} onPress={() => onAdvance(6)}>
-        <Text style={s.btnLabel}>Continue →</Text>
-      </Pressable>
     </View>
   );
 }
@@ -52,9 +58,4 @@ const s = StyleSheet.create({
   cardTitle: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 2 },
   cardSub: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, lineHeight: 16 },
   note: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', marginTop: 16 },
-  btn: {
-    marginTop: 28, backgroundColor: C.black, borderRadius: 4,
-    paddingVertical: 13, alignItems: 'center',
-  },
-  btnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
 });

@@ -1,23 +1,32 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/services/supabase';
-import { fetchFeed, toggleKudos as toggleKudosService, fetchFollowingIds } from '@features/social/services/feedService';
-import type { FeedPost } from '@features/social/types';
+import {
+  fetchFeed,
+  toggleKudos as toggleKudosService,
+  fetchFollowingIds,
+  fetchSuggestedRunners,
+  toggleFollow as toggleFollowService,
+} from '@features/social/services/feedService';
+import type { FeedPost, SuggestedRunner } from '@features/social/types';
 
 export function useFeed() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
+  const [suggestedRunners, setSuggestedRunners] = useState<SuggestedRunner[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
   const load = useCallback(async (uid: string) => {
     try {
-      const [feedData, followIds] = await Promise.all([
+      const [feedData, followIds, suggested] = await Promise.all([
         fetchFeed(uid),
         fetchFollowingIds(uid),
+        fetchSuggestedRunners(uid),
       ]);
       setPosts(feedData);
       setFollowingIds(followIds);
+      setSuggestedRunners(suggested.filter(r => !followIds.includes(r.id)));
     } catch { /* offline */ }
     setLoading(false);
     setRefreshing(false);
@@ -36,7 +45,6 @@ export function useFeed() {
     const post = posts.find((p) => p.id === postId);
     if (!post || !userId) return;
 
-    // Optimistic update
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -48,7 +56,6 @@ export function useFeed() {
     try {
       await toggleKudosService(postId, userId, post.hasKudos);
     } catch {
-      // Revert
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -59,11 +66,18 @@ export function useFeed() {
     }
   }, [posts, userId]);
 
+  const toggleFollow = useCallback(async (targetId: string) => {
+    setFollowingIds(prev =>
+      prev.includes(targetId) ? prev.filter(id => id !== targetId) : [...prev, targetId],
+    );
+    await toggleFollowService(targetId);
+  }, []);
+
   const refresh = useCallback(() => {
     if (!userId) return;
     setRefreshing(true);
     load(userId);
   }, [userId, load]);
 
-  return { posts, loading, refreshing, followingIds, toggleKudos, refresh };
+  return { posts, loading, refreshing, followingIds, suggestedRunners, toggleKudos, toggleFollow, refresh };
 }

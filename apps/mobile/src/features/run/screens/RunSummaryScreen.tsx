@@ -107,7 +107,7 @@ export default function RunSummaryScreen() {
         {splits.length > 0 && <View style={ss.card}><SplitsList splits={splits} /></View>}
         {runData.success && (
           <RewardsCard
-            xp={runData.xpEarned ?? 0} coins={runData.coinsEarned ?? 0} bonusCoins={runData.bonusCoins ?? 0}
+            xp={runData.xpEarned ?? 0}
             level={player?.level ?? 1} xpProgress={xpProgress.progress} xpNeeded={xpProgress.needed}
             xpPercent={xpPct} xpPrevPercent={xpPrevPct}
             leveledUp={runData.leveledUp} preRunLevel={runData.preRunLevel} newLevel={runData.newLevel}

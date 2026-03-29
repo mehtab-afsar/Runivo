@@ -118,10 +118,15 @@ export default function DashboardScreen() {
             <Text style={ss.greeting}>{greeting.toUpperCase()}</Text>
             <Text style={ss.username}>{dash.player.username}</Text>
           </View>
-          <XPRing initials={initials} xpPct={dash.xpProgress.percent} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Pressable onPress={() => go('Notifications')} style={ss.bellBtn}>
+              <Text style={{ fontSize: 16 }}>🔔</Text>
+            </Pressable>
+            <XPRing initials={initials} xpPct={dash.xpProgress.percent} />
+          </View>
         </View>
 
-        <DashboardPills xp={dash.player.xp} energy={dash.player.energy} streakDays={dash.player.streakDays || 0} />
+        <DashboardPills xp={dash.player.xp} level={dash.player.level} energy={dash.player.energy} streakDays={dash.player.streakDays || 0} />
 
         <HeroCarousel
           weeklyKm={dash.weeklyKm} weeklyGoal={dash.weeklyGoal}
@@ -159,6 +164,7 @@ export default function DashboardScreen() {
 
 const ss = StyleSheet.create({
   fill:         { flex: 1 },
+  bellBtn:      { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', justifyContent: 'center' },
   loadText:     { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, fontStyle: 'italic' },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 20, marginBottom: 18 },
   greeting:     { fontFamily: 'Barlow_400Regular', fontSize: 10, letterSpacing: 1, color: '#ADADAD', marginBottom: 4 },

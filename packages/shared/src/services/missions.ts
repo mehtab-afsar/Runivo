@@ -104,6 +104,63 @@ export function generateDailyMissions(
   }));
 }
 
+export function generateBlueprint(
+  primaryGoal: 'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete',
+  missionDifficulty: 'easy' | 'mixed' | 'hard' = 'mixed',
+  date: Date = new Date(),
+): Mission[] {
+  const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  const seedStr = dayKey + primaryGoal + '-bp';
+  const seed = Array.from(seedStr).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const rand = seededRandom(seed);
+  const endOfDay = new Date(date);
+  endOfDay.setHours(23, 59, 59, 999);
+  const expiresAt = endOfDay.getTime();
+  const goalCat = GOAL_TO_CATEGORY[primaryGoal];
+  const pickBiased = (pool: typeof MISSION_TEMPLATES): typeof MISSION_TEMPLATES[0] => {
+    const preferred = pool.filter(m => m.goalCategory === goalCat);
+    const usePreferred = preferred.length > 0 && rand() < 0.7;
+    const source = usePreferred ? preferred : pool;
+    return source[Math.floor(rand() * source.length)];
+  };
+  const easy   = MISSION_TEMPLATES.filter(m => m.difficulty === 'easy');
+  const medium = MISSION_TEMPLATES.filter(m => m.difficulty === 'medium');
+  const hard   = MISSION_TEMPLATES.filter(m => m.difficulty === 'hard');
+  let slots: typeof MISSION_TEMPLATES;
+  if (missionDifficulty === 'easy') {
+    slots = [pickBiased(easy), pickBiased(easy), pickBiased(medium)];
+  } else if (missionDifficulty === 'hard') {
+    slots = [pickBiased(medium), pickBiased(hard), pickBiased(hard)];
+  } else {
+    slots = [pickBiased(easy), pickBiased(medium), pickBiased(hard)];
+  }
+  const seen = new Set<string>();
+  const deduped: typeof MISSION_TEMPLATES = [];
+  for (const m of slots) {
+    if (!seen.has(m.title)) { seen.add(m.title); deduped.push(m); }
+  }
+  const allByDiff = missionDifficulty === 'easy'
+    ? [...easy, ...medium]
+    : missionDifficulty === 'hard'
+    ? [...medium, ...hard]
+    : [...easy, ...medium, ...hard];
+  let fillIdx = 0;
+  while (deduped.length < 3) {
+    const candidate = allByDiff[fillIdx % allByDiff.length];
+    fillIdx++;
+    if (!seen.has(candidate.title)) { seen.add(candidate.title); deduped.push(candidate); }
+    if (fillIdx > allByDiff.length * 2) break;
+  }
+  return deduped.slice(0, 3).map((template, i) => ({
+    ...template,
+    id: `blueprint-${dayKey}-${i}`,
+    current:   0,
+    completed: false,
+    claimed:   false,
+    expiresAt,
+  }));
+}
+
 export function updateMissionProgress(
   missions: Mission[],
   runResult: {

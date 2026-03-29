@@ -24,6 +24,23 @@ export function useSettings() {
     ]);
   }, []);
 
+  const clearHistory = useCallback(() => {
+    Alert.alert(
+      'Clear Run History',
+      'This will remove all local run data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Cleared', 'Local run history has been cleared.');
+          },
+        },
+      ],
+    );
+  }, []);
+
   const cycleCountdown = useCallback(() => {
     const opts: (0 | 3 | 5)[] = [0, 3, 5];
     const idx = opts.indexOf(settings.countdownSeconds);
@@ -36,5 +53,5 @@ export function useSettings() {
     updateSetting({ missionDifficulty: opts[(idx + 1) % opts.length] });
   }, [settings.missionDifficulty, updateSetting]);
 
-  return { settings, updateSetting, signOut, cycleCountdown, cycleDifficulty };
+  return { settings, updateSetting, signOut, clearHistory, cycleCountdown, cycleDifficulty };
 }

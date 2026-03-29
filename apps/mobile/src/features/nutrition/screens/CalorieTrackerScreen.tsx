@@ -17,6 +17,8 @@ const C = { bg: '#EDEAE5', white: '#fff', black: '#0A0A0A', red: '#D93518', t3: 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'CalorieTracker'>;
 
+const CHART_H = 80;
+
 /** Weekly 7-bar calorie chart */
 function WeeklyChart({ weekKcals, weekAvg, goal, weekDates }: {
   weekKcals: number[]; weekAvg: number; goal: number; weekDates: string[];
@@ -42,9 +44,9 @@ function WeeklyChart({ weekKcals, weekAvg, goal, weekDates }: {
               <View key={i} style={wc.barCol}>
                 <View style={wc.barTrack}>
                   {/* Goal line */}
-                  <View style={[wc.goalLine, { bottom: `${(goal / maxKcal) * 100}%` as `${number}%` }]} />
+                  <View style={[wc.goalLine, { bottom: (goal / maxKcal) * CHART_H }]} />
                   {kcal > 0 && (
-                    <View style={[wc.bar, { height: `${pct * 100}%` as `${number}%`, backgroundColor: barColor }]} />
+                    <View style={[wc.bar, { height: pct * CHART_H, backgroundColor: barColor }]} />
                   )}
                 </View>
                 <Text style={[wc.dayLabel, isToday && wc.dayLabelActive]}>{DAY_LABELS[i]}</Text>
@@ -249,7 +251,7 @@ const wc = StyleSheet.create({
   chartWrap:  { height: 90 },
   bars:       { flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
   barCol:     { flex: 1, alignItems: 'center', gap: 4 },
-  barTrack:   { flex: 1, width: '100%', position: 'relative', justifyContent: 'flex-end' },
+  barTrack:   { height: CHART_H, width: '100%', position: 'relative', justifyContent: 'flex-end' },
   bar:        { width: '100%', borderRadius: 2, minHeight: 2 },
   goalLine:   { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(173,173,173,0.4)' },
   dayLabel:   { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, textTransform: 'uppercase' },

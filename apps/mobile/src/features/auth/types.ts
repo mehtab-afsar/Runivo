@@ -54,7 +54,7 @@ export const EXP_LABELS: Record<string, string> = {
   new: 'Beginner', casual: 'Casual', regular: 'Regular', competitive: 'Competitive',
 };
 
-export const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+export const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const AGES    = Array.from({ length: 90 },  (_, i) => 10 + i);
 export const HEIGHTS = Array.from({ length: 121 }, (_, i) => 100 + i);
 export const WEIGHTS = Array.from({ length: 171 }, (_, i) => 30 + i);

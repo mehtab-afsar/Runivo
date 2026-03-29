@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Platform, StyleSheet, Linking } from 'react-native';
-import { Home, Map, Play, Sparkles, User } from 'lucide-react-native';
+import { Home, Play, Rss, Sparkles, User } from 'lucide-react-native';
 import { NavigationContainer, useNavigationContainerRef, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -99,11 +99,11 @@ export type RootStackParamList = {
 };
 
 export type TabParamList = {
-  Dashboard:    undefined;
-  TerritoryMap: undefined;
-  Run:          undefined;
-  Coach:        undefined;
-  Profile:      undefined;
+  Dashboard: undefined;
+  Feed:      undefined;
+  Run:       undefined;
+  Coach:     undefined;
+  Profile:   undefined;
 };
 
 // ─── Tab icons ───────────────────────────────────────────────────────────────
@@ -111,9 +111,9 @@ const ACTIVE_COLOR   = '#D93518';
 const INACTIVE_COLOR = '#ADADAD';
 const ICON_SIZE      = 22;
 
-type TabIconName = 'Home' | 'Map' | 'Play' | 'Sparkles' | 'User';
+type TabIconName = 'Home' | 'Play' | 'Rss' | 'Sparkles' | 'User';
 const ICON_MAP: Record<TabIconName, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
-  Home, Map, Play, Sparkles, User,
+  Home, Play, Rss, Sparkles, User,
 };
 
 function TabIcon({ focused, icon }: { focused: boolean; icon: TabIconName }) {
@@ -155,11 +155,11 @@ function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="TerritoryMap"
-        component={TerritoryMapScreen}
+        name="Feed"
+        component={FeedScreen}
         options={{
-          tabBarLabel: 'Map',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="Map" />,
+          tabBarLabel: 'Feed',
+          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="Rss" />,
         }}
       />
       <Tab.Screen

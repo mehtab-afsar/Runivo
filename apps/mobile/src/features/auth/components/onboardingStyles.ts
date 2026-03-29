@@ -4,6 +4,8 @@ export const C = {
   bg: '#F8F6F3', white: '#FFFFFF', stone: '#F0EDE8',
   mid: '#E8E4DF', border: '#DDD9D4', black: '#0A0A0A',
   t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', redLo: '#FEF0EE',
+  gradStart: '#D93518', gradEnd: '#B82E10',
+  redFaint: 'rgba(217,53,24,0.08)',
 };
 
 export const shared = StyleSheet.create({
@@ -36,5 +38,10 @@ export const shared = StyleSheet.create({
   fieldLabel: {
     fontFamily: 'Barlow_400Regular', fontSize: 8, color: C.t3,
     textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8,
+  },
+  gradientCard: {
+    flexDirection: 'row' as const, alignItems: 'center' as const, gap: 14,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: 12, borderWidth: 1, borderColor: 'transparent', marginBottom: 10,
   },
 });
