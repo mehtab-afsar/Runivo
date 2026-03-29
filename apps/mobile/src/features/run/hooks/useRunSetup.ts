@@ -102,8 +102,8 @@ export function useRunSetup() {
   const startRun = useCallback(() => {
     if (gps.status !== 'ready') return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate('ActiveRun');
-  }, [gps.status, navigation]);
+    navigation.navigate('ActiveRun', selectedRoute?.gpsPoints ? { ghostRoutePoints: selectedRoute.gpsPoints } : undefined);
+  }, [gps.status, navigation, selectedRoute]);
 
   return {
     activityType, setActivityType,

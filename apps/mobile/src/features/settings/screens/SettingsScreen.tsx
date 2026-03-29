@@ -23,8 +23,8 @@ export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
     settings, updateSetting, signOut,
-    cycleCountdown, cycleDifficulty,
-    clearHistory,
+    cycleCountdown, cycleDifficulty, cycleBeatPacerPace,
+    clearHistory, deleteAccount,
   } = useSettings();
   const sw = { trackColor: { true: C.black, false: C.border }, thumbColor: C.white };
 
@@ -59,6 +59,10 @@ export default function SettingsScreen() {
               })}
             />
           </SettingRow>
+          <Pressable style={s.linkRow} onPress={() => Alert.alert('Change Password', 'A password reset link will be sent to your email.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Send', onPress: () => {} }])}>
+            <Text style={s.linkLabel}>Change Password</Text>
+            <Text style={s.linkArrow}>→</Text>
+          </Pressable>
         </SettingSection>
 
         {/* ── Appearance ── */}
@@ -77,14 +81,30 @@ export default function SettingsScreen() {
               {...sw}
             />
           </SettingRow>
+          <SettingRow label="Map Style">
+            <PillCycle
+              value={settings.mapStyle ?? 'Standard'}
+              onPress={() => {
+                const opts = ['Standard', 'Dark', 'Light', 'Terrain', 'Satellite'];
+                const idx = opts.indexOf(settings.mapStyle ?? 'Standard');
+                updateSetting({ mapStyle: opts[(idx + 1) % opts.length] as any });
+              }}
+            />
+          </SettingRow>
         </SettingSection>
 
         {/* ── Notifications ── */}
         <SettingSection title="Notifications">
-          <SettingRow label="Push notifications" sub="Territory captures, kudos, challenges">
+          <SettingRow label="Push notifications" sub="Master toggle for all notifications">
             <Switch value={settings.notificationsEnabled} onValueChange={v => updateSetting({ notificationsEnabled: v })} {...sw} />
           </SettingRow>
-          <SettingRow label="Announce Achievements">
+          <SettingRow label="Run reminders" sub="Nudges when you haven't run in a while">
+            <Switch value={settings.runReminders} onValueChange={v => updateSetting({ runReminders: v })} {...sw} />
+          </SettingRow>
+          <SettingRow label="Territory alerts" sub="Zone captures and attacks">
+            <Switch value={settings.territoryAlerts} onValueChange={v => updateSetting({ territoryAlerts: v })} {...sw} />
+          </SettingRow>
+          <SettingRow label="Announce achievements">
             <Switch value={settings.announceAchievements} onValueChange={v => updateSetting({ announceAchievements: v })} {...sw} />
           </SettingRow>
           <SettingRow label="Weekly summary">
@@ -100,6 +120,30 @@ export default function SettingsScreen() {
           <SettingRow label="Haptic feedback">
             <Switch value={settings.hapticEnabled} onValueChange={v => updateSetting({ hapticEnabled: v })} {...sw} />
           </SettingRow>
+        </SettingSection>
+
+        {/* ── Beat Pacer ── */}
+        <SettingSection title="Beat Pacer">
+          <SettingRow label="Enable Beat Pacer" sub="Audible rhythm to maintain pace">
+            <Switch value={settings.beatPacerEnabled} onValueChange={v => updateSetting({ beatPacerEnabled: v })} {...sw} />
+          </SettingRow>
+          {settings.beatPacerEnabled && (
+            <>
+              <SettingRow label="Target Pace" sub="min/km">
+                <PillCycle value={settings.beatPacerPace} onPress={cycleBeatPacerPace} />
+              </SettingRow>
+              <SettingRow label="Sound">
+                <SegmentedControl
+                  options={['Click', 'Woodblock', 'Hi-hat']}
+                  value={settings.beatPacerSound === 'click' ? 'Click' : settings.beatPacerSound === 'woodblock' ? 'Woodblock' : 'Hi-hat'}
+                  onChange={v => updateSetting({ beatPacerSound: v === 'Click' ? 'click' : v === 'Woodblock' ? 'woodblock' : 'hihat' })}
+                />
+              </SettingRow>
+              <SettingRow label="Accent beat" sub="Emphasise first beat of each bar">
+                <Switch value={settings.beatPacerAccent} onValueChange={v => updateSetting({ beatPacerAccent: v })} {...sw} />
+              </SettingRow>
+            </>
+          )}
         </SettingSection>
 
         {/* ── Run ── */}
@@ -153,12 +197,20 @@ export default function SettingsScreen() {
             </View>
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
+          <Pressable style={s.linkRow} onPress={deleteAccount}>
+            <Text style={[s.linkLabel, { color: C.red }]}>Delete Account</Text>
+            <Text style={s.linkArrow}>→</Text>
+          </Pressable>
         </SettingSection>
 
         {/* ── Support ── */}
         <SettingSection title="Support">
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/help')}>
             <Text style={s.linkLabel}>Help & FAQ</Text>
+            <Text style={s.linkArrow}>→</Text>
+          </Pressable>
+          <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/bug-report')}>
+            <Text style={s.linkLabel}>Report a Bug</Text>
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
           <View style={s.linkRow}>

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
+import { Flame } from 'lucide-react-native';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ import { MissionRow } from '../components/MissionRow';
 import { RecentRunRow } from '../components/RecentRunRow';
 import { DashboardPills } from '../components/DashboardPills';
 import { BentoCard } from '../components/BentoCard';
+import { DailyBonusCard } from '../components/DailyBonusCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const C = { bg: '#F8F6F3', red: '#D93518', t3: '#ADADAD', black: '#0A0A0A', white: '#FFFFFF', border: '#DDD9D4' };
@@ -59,12 +61,19 @@ function HeroCarousel({
         {/* Card 2: Calorie Tracker */}
         <Pressable style={[hc.card, { width: sw }]} onPress={onGoCalories}>
           <Text style={hc.cardLabel}>TODAY'S CALORIES</Text>
-          <View style={hc.row}>
-            <Text style={[hc.bigVal, { color: calColor }]}>{caloriesConsumed.toLocaleString()}</Text>
-            <Text style={hc.unit}> / {calorieGoal} kcal</Text>
-          </View>
-          <View style={hc.track}>
-            <View style={[hc.fill, { width: `${Math.min(calPct, 1) * 100}%` as `${number}%`, backgroundColor: calColor }]} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <View style={hc.flameCircle}>
+              <Flame size={22} color="#F97316" strokeWidth={1.5} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={hc.row}>
+                <Text style={[hc.bigVal, { color: calColor }]}>{caloriesConsumed.toLocaleString()}</Text>
+                <Text style={hc.unit}> / {calorieGoal} kcal</Text>
+              </View>
+              <View style={hc.track}>
+                <View style={[hc.fill, { width: `${Math.min(calPct, 1) * 100}%` as `${number}%`, backgroundColor: calColor }]} />
+              </View>
+            </View>
           </View>
           <Text style={hc.sub}>Tap to log food →</Text>
         </Pressable>
@@ -89,6 +98,7 @@ const hc = StyleSheet.create({
   track:    { height: 4, backgroundColor: '#E8E4DF', borderRadius: 2, overflow: 'hidden', marginBottom: 8 },
   fill:     { height: '100%', borderRadius: 2 },
   sub:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+  flameCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(249,115,22,0.12)', borderWidth: 1, borderColor: 'rgba(249,115,22,0.25)', alignItems: 'center', justifyContent: 'center' },
   dots:     { flexDirection: 'row', justifyContent: 'center', gap: 5, marginTop: 8 },
   dot:      { width: 5, height: 5, borderRadius: 2.5, backgroundColor: C.border },
   dotActive:{ backgroundColor: C.black },
@@ -111,6 +121,12 @@ export default function DashboardScreen() {
 
   return (
     <View style={[ss.fill, { backgroundColor: C.bg }]}>
+      {!dash.bonusCollected && (dash.loginBonusCoins ?? 0) > 0 && (
+        <DailyBonusCard
+          coins={dash.loginBonusCoins!}
+          onCollect={dash.collectBonus}
+        />
+      )}
 
       <ScrollView style={ss.fill} contentContainerStyle={{ paddingBottom: 100, paddingTop: insets.top }} showsVerticalScrollIndicator={false}>
         <View style={ss.header}>
@@ -139,6 +155,15 @@ export default function DashboardScreen() {
         <View style={ss.section}>
           <View style={ss.sectionHead}><Text style={ss.sectionTitle}>EMPIRE</Text><Pressable onPress={() => go('TerritoryMap')}><Text style={ss.sectionAction}>View map →</Text></Pressable></View>
           <TerritoryStats ownedCount={dash.ownedCount} weakZones={dash.weakZones.length} avgDefense={dash.avgDefense} dailyIncome={dash.dailyIncome} />
+          {dash.weakZones.length > 0 && (
+            <Pressable style={ss.weakAlert} onPress={() => go('TerritoryMap')}>
+              <View style={ss.weakAccent} />
+              <View style={{ flex: 1 }}>
+                <Text style={ss.weakTitle}>{dash.weakZones.length} zone{dash.weakZones.length > 1 ? 's' : ''} need defending</Text>
+                <Text style={ss.weakCta}>Tap to reinforce →</Text>
+              </View>
+            </Pressable>
+          )}
         </View>
 
         <View style={ss.section}>
@@ -179,4 +204,8 @@ const ss = StyleSheet.create({
   empty:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
   emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3 },
   emptyCta:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.red },
+  weakAlert:    { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10, backgroundColor: '#FDF6E8', borderWidth: 0.5, borderColor: '#E8C97A', borderRadius: 14, padding: 14, overflow: 'hidden' },
+  weakAccent:   { width: 3, height: 28, backgroundColor: C.red, borderRadius: 2 },
+  weakTitle:    { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: '#7A5100' },
+  weakCta:      { fontFamily: 'Barlow_400Regular', fontSize: 10, color: '#9E6800', marginTop: 2 },
 });

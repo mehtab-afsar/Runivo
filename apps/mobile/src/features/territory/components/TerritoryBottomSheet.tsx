@@ -47,9 +47,17 @@ export function TerritoryBottomSheet({ territory: t, onClose, onFortify }: Props
         </View>
       )}
 
-      {!t.isOwn && (
+      {t.isOwn ? (
         <Pressable style={ss.fortifyBtn} onPress={() => onFortify(t.h3Index ?? t.id)}>
-          <Text style={ss.fortifyLabel}>⚔ Run to Claim</Text>
+          <Text style={ss.fortifyLabel}>🛡️  Fortify — run to strengthen</Text>
+        </Pressable>
+      ) : t.ownerName ? (
+        <Pressable style={[ss.fortifyBtn, { backgroundColor: '#DC2626' }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
+          <Text style={ss.fortifyLabel}>⚔️  Attack territory</Text>
+        </Pressable>
+      ) : (
+        <Pressable style={[ss.fortifyBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#0A0A0A' }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
+          <Text style={[ss.fortifyLabel, { color: '#0A0A0A' }]}>🚩  Claim this territory</Text>
         </Pressable>
       )}
     </View>

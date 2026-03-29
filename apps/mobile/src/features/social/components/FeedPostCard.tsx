@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TrendingUp, MapPin, Zap, Navigation, MessageSquare, ThumbsUp, Star } from 'lucide-react-native';
+import Svg, { Polyline, Circle, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import type { FeedPost, ActivityType } from '@features/social/types';
@@ -32,13 +33,66 @@ const ACT_CONFIG: Record<ActivityType, { label: string; Icon: typeof TrendingUp 
   long_run: { label: 'Long Run', Icon: Navigation },
 };
 
+const MAP_W = 375;
+const MAP_H = 110;
+const PAD = 16;
+
+function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
+  if (points.length < 2) return null;
+
+  const lats = points.map(p => p.lat);
+  const lngs = points.map(p => p.lng);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const rangeW = maxLng - minLng || 0.0001;
+  const rangeH = maxLat - minLat || 0.0001;
+  const scale = Math.min((MAP_W - PAD * 2) / rangeW, (MAP_H - PAD * 2) / rangeH);
+
+  const pts = points.map(p => ({
+    x: PAD + (p.lng - minLng) * scale,
+    y: MAP_H - PAD - (p.lat - minLat) * scale,
+  }));
+
+  const polyline = pts.map(p => `${p.x},${p.y}`).join(' ');
+  const start = pts[0];
+  const end = pts[pts.length - 1];
+
+  return (
+    <View style={rm.wrap}>
+      <Svg width="100%" height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid meet">
+        <Defs>
+          <LinearGradient id="fadeBottom" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0.6" stopColor="#F0EDE8" stopOpacity="0" />
+            <Stop offset="1" stopColor="#F0EDE8" stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        {/* Route glow */}
+        <Polyline points={polyline} fill="none" stroke="#E8435A" strokeWidth="6" strokeOpacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Route line */}
+        <Polyline points={polyline} fill="none" stroke="#E8435A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Start dot */}
+        <Circle cx={start.x} cy={start.y} r="5" fill="#10B981" stroke="#fff" strokeWidth="1.5" />
+        {/* End dot */}
+        <Circle cx={end.x} cy={end.y} r="5" fill="#E8435A" stroke="#fff" strokeWidth="1.5" />
+        {/* Bottom fade overlay */}
+        <Rect x="0" y="0" width={MAP_W} height={MAP_H} fill="url(#fadeBottom)" />
+      </Svg>
+    </View>
+  );
+}
+
+const rm = StyleSheet.create({
+  wrap: { backgroundColor: '#F0EDE8', overflow: 'hidden', borderTopWidth: 0.5, borderTopColor: '#E8E4DF' },
+});
+
 interface Props {
   post: FeedPost;
   onKudos: () => void;
   onPress: () => void;
+  onUserPress?: () => void;
 }
 
-export function FeedPostCard({ post, onKudos, onPress }: Props) {
+export function FeedPostCard({ post, onKudos, onPress, onUserPress }: Props) {
   const color = avatarColor(post.username);
   const initial = post.username.slice(0, 1).toUpperCase();
   const [fireActive, setFireActive] = useState(false);
@@ -52,19 +106,23 @@ export function FeedPostCard({ post, onKudos, onPress }: Props) {
   const badges: { bg: string; fg: string; text: string }[] = [];
   if (post.territoriesClaimed > 0) badges.push({ bg: '#FEF0EE', fg: C.red, text: `⚡ ${post.territoriesClaimed} Zone${post.territoriesClaimed !== 1 ? 's' : ''}` });
   if (post.xpEarned > 0) badges.push({ bg: '#EDF7F2', fg: '#1A6B40', text: `✨ ${post.xpEarned} XP` });
+  if (post.isPR) badges.push({ bg: '#FDF6E8', fg: '#9E6800', text: '⭐ PR' });
+  if ((post.streakDays ?? 0) > 0) badges.push({ bg: '#FEF0E6', fg: '#C25A00', text: `🔥 ${post.streakDays} day streak` });
 
   return (
     <Pressable style={s.card} onPress={onPress}>
 
       {/* A — Header */}
       <View style={s.header}>
-        <View style={[s.avatar, { backgroundColor: color }]}>
-          <Text style={s.avatarText}>{initial}</Text>
-        </View>
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={s.username}>{post.username}</Text>
-          <Text style={s.time}>{timeAgo(post.createdAt)}</Text>
-        </View>
+        <Pressable onPress={onUserPress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+          <View style={[s.avatar, { backgroundColor: color }]}>
+            <Text style={s.avatarText}>{initial}</Text>
+          </View>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={s.username}>{post.username}</Text>
+            <Text style={s.time}>{timeAgo(post.createdAt)}</Text>
+          </View>
+        </Pressable>
         {/* Activity chip */}
         <View style={s.actChip}>
           <ActIcon size={10} color={C.t2} strokeWidth={2} />
@@ -89,6 +147,11 @@ export function FeedPostCard({ post, onKudos, onPress }: Props) {
           <Text style={s.statLbl}>PACE</Text>
         </View>
       </View>
+
+      {/* B.5 — Route map hero */}
+      {(post.routePoints?.length ?? 0) >= 2 && (
+        <RouteMapHero points={post.routePoints!} />
+      )}
 
       {/* C — Badges strip */}
       {badges.length > 0 && (

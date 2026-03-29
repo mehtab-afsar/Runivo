@@ -53,5 +53,22 @@ export function useSettings() {
     updateSetting({ missionDifficulty: opts[(idx + 1) % opts.length] });
   }, [settings.missionDifficulty, updateSetting]);
 
-  return { settings, updateSetting, signOut, clearHistory, cycleCountdown, cycleDifficulty };
+  const cycleBeatPacerPace = useCallback(() => {
+    const opts = ['3:30', '4:00', '4:30', '5:00', '5:30', '6:00', '6:30', '7:00'];
+    const idx = opts.indexOf(settings.beatPacerPace);
+    updateSetting({ beatPacerPace: opts[(idx + 1) % opts.length] });
+  }, [settings.beatPacerPace, updateSetting]);
+
+  const deleteAccount = useCallback(() => {
+    Alert.alert(
+      'Delete Account',
+      'This permanently deletes your account and all data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => signOutService() },
+      ],
+    );
+  }, []);
+
+  return { settings, updateSetting, signOut, clearHistory, cycleCountdown, cycleDifficulty, cycleBeatPacerPace, deleteAccount };
 }

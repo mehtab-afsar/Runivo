@@ -54,6 +54,8 @@ export interface StoredSettings {
   notificationsEnabled: boolean;
   announceAchievements: boolean;
   weeklySummary: boolean;
+  runReminders: boolean;
+  territoryAlerts: boolean;
   // Sound & Haptics
   soundEnabled: boolean;
   hapticEnabled: boolean;
@@ -73,6 +75,8 @@ export interface StoredSettings {
   beatPacerPace: string;
   beatPacerSound: 'click' | 'woodblock' | 'hihat';
   beatPacerAccent: boolean;
+  // Map
+  mapStyle?: 'Standard' | 'Dark' | 'Light' | 'Terrain' | 'Satellite';
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -82,6 +86,8 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   notificationsEnabled: true,
   announceAchievements: true,
   weeklySummary: true,
+  runReminders: true,
+  territoryAlerts: true,
   soundEnabled: true,
   hapticEnabled: true,
   autoPause: true,

@@ -183,6 +183,7 @@ export default function FeedScreen() {
               post={item}
               onKudos={() => toggleKudos(item.id)}
               onPress={() => setSelectedPost(item)}
+              onUserPress={() => navigation.navigate('UserProfile', { userId: item.userId, username: item.username })}
             />
           )}
           ListEmptyComponent={<EmptyFeed tab={tab} />}

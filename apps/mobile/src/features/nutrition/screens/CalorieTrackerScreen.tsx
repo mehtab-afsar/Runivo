@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Zap } from 'lucide-react-native';
+import { Zap, Sparkles } from 'lucide-react-native';
 import { useCalorieTracker } from '@features/nutrition/hooks/useCalorieTracker';
 import { useNutritionContext } from '@features/nutrition/hooks/useNutritionContext';
 import { useNutritionInsights } from '@features/nutrition/hooks/useNutritionInsights';
@@ -168,7 +168,7 @@ export default function CalorieTrackerScreen() {
             <View style={s.macroCard}>
               <Text style={s.cardTitle}>TODAY'S MACROS</Text>
               {[
-                { label: 'Protein', consumed: proteinConsumed, goal: profile.proteinGoalG, pct: proteinPct, color: C.red, unit: 'g' },
+                { label: 'Protein', consumed: proteinConsumed, goal: profile.proteinGoalG, pct: proteinPct, color: '#1445AA', unit: 'g' },
                 { label: 'Carbs',   consumed: carbsConsumed,   goal: profile.carbsGoalG,   pct: carbsPct,   color: C.amber, unit: 'g' },
                 { label: 'Fat',     consumed: fatConsumed,     goal: profile.fatGoalG,     pct: fatPct,     color: C.green, unit: 'g' },
               ].map(m => (
@@ -212,7 +212,10 @@ export default function CalorieTrackerScreen() {
             {/* AI Nutrition Insights */}
             {(aiLoading || aiInsights) && (
               <View style={s.aiCard}>
-                <Text style={s.cardTitle}>AI INSIGHTS</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Sparkles size={12} color="#5A3A8A" strokeWidth={1.5} />
+                  <Text style={[s.cardTitle, { color: '#5A3A8A', marginBottom: 0 }]}>RUNIVO INTELLIGENCE</Text>
+                </View>
                 {aiLoading && !aiInsights ? (
                   <ActivityIndicator color={C.red} style={{ marginVertical: 8 }} />
                 ) : aiInsights?.cards.map((card, i) => (
@@ -296,7 +299,7 @@ const s = StyleSheet.create({
   statDivider:  { width: 0.5, height: 32, backgroundColor: C.border },
   statValue:    { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black },
   statLabel:    { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
-  aiCard:       { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, gap: 10 },
+  aiCard:       { backgroundColor: '#F2EEF9', borderRadius: 14, borderWidth: 0.5, borderColor: 'rgba(90,58,138,0.15)', padding: 14, gap: 10 },
   aiRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   aiIcon:       { fontSize: 20, lineHeight: 24 },
   aiTitle:      { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black, marginBottom: 2 },

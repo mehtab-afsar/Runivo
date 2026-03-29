@@ -20,6 +20,7 @@ import TerritoryMapScreen    from '@features/territory/screens/TerritoryMapScree
 import FeedScreen            from '@features/social/screens/FeedScreen';
 import StoryViewerScreen     from '@features/social/screens/StoryViewerScreen';
 import ProfileScreen         from '@features/profile/screens/ProfileScreen';
+import UserProfileScreen     from '@features/profile/screens/UserProfileScreen';
 import MissionsScreen        from '@features/missions/screens/MissionsScreen';
 import HistoryScreen         from '@features/history/screens/HistoryScreen';
 import NotificationsScreen   from '@features/notifications/screens/NotificationsScreen';
@@ -53,7 +54,7 @@ export type RootStackParamList = {
   // Authenticated
   Main:      undefined;
   // Modal / overlay stacks
-  ActiveRun: undefined;
+  ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[] } | undefined;
   RunSummary: {
     runId: string;
     runData?: {
@@ -96,6 +97,7 @@ export type RootStackParamList = {
     groups: { userId: string; userName: string; stories: { id: string; imageUrl: string }[] }[];
     initialGroupIndex: number;
   };
+  UserProfile: { userId: string; username: string };
 };
 
 export type TabParamList = {
@@ -308,6 +310,7 @@ export function AppNavigator({
             <Stack.Screen name="Notifications"   component={NotificationsScreen} />
             <Stack.Screen name="Subscription"    component={SubscriptionScreen} />
             <Stack.Screen name="StoryViewer"     component={StoryViewerScreen} />
+            <Stack.Screen name="UserProfile"     component={UserProfileScreen} />
           </>
         )}
       </Stack.Navigator>

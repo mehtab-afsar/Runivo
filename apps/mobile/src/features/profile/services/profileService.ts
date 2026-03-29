@@ -19,27 +19,51 @@ export async function fetchProfileData() {
   let displayName: string | null = null;
   let bio: string | null = null;
 
+  let location: string | null = null;
+  let instagram: string | null = null;
+  let strava: string | null = null;
+  let avatarUrl: string | null = null;
+
   if (session) {
     const { data } = await supabase
       .from('profiles')
-      .select('bio, avatar_color, display_name')
+      .select('bio, avatar_color, display_name, location, instagram, strava, avatar_url')
       .eq('id', session.user.id)
       .single();
     if (data) {
       avatarColor = data.avatar_color ?? null;
       displayName = data.display_name ?? null;
       bio = data.bio ?? null;
+      location = data.location ?? null;
+      instagram = data.instagram ?? null;
+      strava = data.strava ?? null;
+      avatarUrl = data.avatar_url ?? null;
     }
   }
 
-  return { runs, shoes, weeklyGoalKm: settings.weeklyGoalKm, personalRecords, avatarColor, displayName, bio };
+  return { runs, shoes, weeklyGoalKm: settings.weeklyGoalKm, personalRecords, avatarColor, displayName, bio, location, instagram, strava, avatarUrl };
 }
 
 export async function updateProfile(
   userId: string,
-  patch: { display_name?: string; bio?: string; avatar_color?: string },
+  patch: { display_name?: string; bio?: string; avatar_color?: string; location?: string; instagram?: string; strava?: string; avatar_url?: string },
 ): Promise<void> {
   await supabase.from('profiles').update(patch).eq('id', userId);
+}
+
+export async function uploadAvatar(userId: string, uri: string): Promise<string | null> {
+  try {
+    const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `${userId}/avatar.${ext}`;
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const { error } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: `image/${ext}` });
+    if (error) return null;
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
 }
 
 export async function updateUsername(userId: string, name: string): Promise<void> {

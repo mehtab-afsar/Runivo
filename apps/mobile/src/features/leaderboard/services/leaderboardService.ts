@@ -28,6 +28,7 @@ export async function fetchLeaderboard(
 
     const mapped: LeaderboardEntry[] = data.map(row => ({
       rank: row.rank,
+      userId: row.id,
       name: row.username,
       level: row.level,
       value:
@@ -73,6 +74,7 @@ export async function fetchLeaderboard(
     const p = profileMap.get(uid);
     return {
       rank: 0,
+      userId: uid,
       name: p?.username ?? 'Runner',
       level: p?.level ?? 1,
       value: tab === 'distance' ? Math.round(t.km * 10) / 10

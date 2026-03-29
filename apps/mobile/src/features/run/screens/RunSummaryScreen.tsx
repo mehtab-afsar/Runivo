@@ -11,6 +11,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X, Flame } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -133,8 +134,23 @@ export default function RunSummaryScreen() {
           onShare={async () => {
             const available = await Sharing.isAvailableAsync();
             if (!available) { Alert.alert('Sharing not available on this device'); return; }
-            const text = `🏃 Run Complete!\n📍 ${runData.distance.toFixed(2)} km  ⏱ ${fmt(runData.duration)}  🏃 ${pace(runData.pace)}/km\n🏆 ${runData.territoriesClaimed ?? 0} zones · ${runData.xpEarned ?? 0} XP\nTracked on Runivo`;
-            await Sharing.shareAsync('data:text/plain;base64,' + btoa(text), { mimeType: 'text/plain', dialogTitle: 'Share your run' });
+            try {
+              const dataUrl = buildStoryDataUrl({
+                distance: runData.distance.toFixed(2),
+                duration: fmt(runData.duration),
+                pace:     pace(runData.pace),
+                xp:       runData.xpEarned ?? 0,
+                heading,
+                actionType: runData.actionType,
+              });
+              // Strip data URL prefix and write SVG to a temp file
+              const base64 = dataUrl.replace(/^data:image\/svg\+xml;base64,/, '');
+              const fileUri = FileSystem.cacheDirectory + `run_${runId}.svg`;
+              await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+              await Sharing.shareAsync(fileUri, { mimeType: 'image/svg+xml', dialogTitle: 'Share your run' });
+            } catch {
+              Alert.alert('Could not share', 'Please try again.');
+            }
           }}
           onSave={() => setShowSaveRoute(true)}
           canSave={(runData.route?.length ?? 0) >= 2}

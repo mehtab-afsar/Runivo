@@ -24,8 +24,10 @@ export default function ProfileScreen() {
   const { player, loading, xpProgress } = usePlayerStats();
   const {
     runs, shoes, weeklyGoalKm, personalRecords, thisWeekKm,
-    tab, setTab, avatarColor, displayName, bio,
+    tab, setTab, avatarColor, avatarUri, displayName, bio, location, instagram, strava,
     isEditing, editName, setEditName, editColor, setEditColor, editBio, setEditBio,
+    editLocation, setEditLocation, editInstagram, setEditInstagram, editStrava, setEditStrava,
+    editAvatarUri, pickAvatar,
     startEdit, saveEdit, cancelEdit,
   } = useProfile();
 
@@ -39,7 +41,8 @@ export default function ProfileScreen() {
     <SafeAreaView style={ss.root}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <ProfileHeader
-          displayName={displayedName} bio={bio} avatarColor={avatarColor}
+          displayName={displayedName} bio={bio} avatarColor={avatarColor} avatarUri={avatarUri}
+          location={location} instagram={instagram} strava={strava}
           level={player?.level ?? 1} xpPercent={xpProgress?.percent ?? 0}
           totalKm={totalKm} totalRuns={runs.length} thisWeekKm={thisWeekKm}
           totalTerritories={player?.totalTerritoriesClaimed ?? 0} weeklyGoalKm={weeklyGoalKm}
@@ -85,8 +88,14 @@ export default function ProfileScreen() {
 
       {isEditing && (
         <EditProfileSheet
-          editName={editName} setEditName={setEditName} editBio={editBio} setEditBio={setEditBio}
-          editColor={editColor} setEditColor={setEditColor} onSave={saveEdit} onCancel={cancelEdit}
+          editName={editName} setEditName={setEditName}
+          editBio={editBio} setEditBio={setEditBio}
+          editColor={editColor} setEditColor={setEditColor}
+          editLocation={editLocation} setEditLocation={setEditLocation}
+          editInstagram={editInstagram} setEditInstagram={setEditInstagram}
+          editStrava={editStrava} setEditStrava={setEditStrava}
+          editAvatarUri={editAvatarUri} onPickAvatar={pickAvatar}
+          onSave={saveEdit} onCancel={cancelEdit}
         />
       )}
     </SafeAreaView>

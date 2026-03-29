@@ -4,10 +4,10 @@
  * Navigation: buildRunSummaryParams helper.
  * UI: RunHUD, RunControls, ClaimToast, ClaimProgressRing, FinishConfirmSheet.
  */
-import React, { useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, Alert, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Play, Zap } from 'lucide-react-native';
 import { useActiveRun }         from '../hooks/useActiveRun';
@@ -25,11 +25,26 @@ import { useBeatPacer }   from '../hooks/useBeatPacer';
 
 const C = { bg:'#F7F6F4', black:'#0A0A0A', red:'#E8391C', muted:'#6B6B6B', white:'#FFFFFF', mid:'#E0DFDD', green:'#10B981', amber:'#F59E0B' };
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
 
 export default function ActiveRunScreen() {
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const ghostRoutePoints = route.params?.ghostRoutePoints;
   const run = useActiveRun();
+  const flashAnim = useRef(new Animated.Value(0)).current;
+
+  // Flash red border when territory is claimed
+  useEffect(() => {
+    if (!run.lastClaimEvent || run.lastClaimEvent.type !== 'claimed') return;
+    Animated.sequence([
+      Animated.timing(flashAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      Animated.timing(flashAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(flashAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      Animated.timing(flashAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }, [run.lastClaimEvent]);
   const [showConfirm, setShowConfirm] = useState(false);
   const pacer = useBeatPacer();
 
@@ -68,7 +83,7 @@ export default function ActiveRunScreen() {
         <View style={{ width: 36 }} />
       </View>
       <View style={ss.map}>
-        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} />
+        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} />
         {run.isRunning && (
           <View style={ss.gpsTag}>
             <View style={ss.gpsDot} />
@@ -76,6 +91,12 @@ export default function ActiveRunScreen() {
           </View>
         )}
       </View>
+      {/* Claim flash overlay */}
+      <Animated.View
+        pointerEvents="none"
+        style={[ss.claimFlash, { opacity: flashAnim }]}
+      />
+
       {run.isRunning && run.claimProgress > 0 && (
         <View style={ss.claimBar}>
           <View style={[ss.claimFill, { width: `${run.claimProgress}%` as `${number}%` }]} />
@@ -127,4 +148,5 @@ const ss = StyleSheet.create({
   pacerWrap:   { position: 'absolute', top: 56, right: 16 },
   controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
   startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
+  claimFlash:  { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: '#E8391C', borderRadius: 2, zIndex: 40, pointerEvents: 'none' } as any,
 });

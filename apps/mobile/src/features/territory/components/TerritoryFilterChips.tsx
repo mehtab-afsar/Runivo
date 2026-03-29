@@ -10,10 +10,11 @@ interface Props {
 }
 
 const FILTERS: { id: TerritoryFilter; label: string }[] = [
-  { id: 'all',   label: 'All'   },
-  { id: 'mine',  label: 'Mine'  },
-  { id: 'enemy', label: 'Enemy' },
-  { id: 'weak',  label: 'Weak'  },
+  { id: 'all',     label: 'All'   },
+  { id: 'mine',    label: 'Mine'  },
+  { id: 'enemy',   label: 'Enemy' },
+  { id: 'weak',    label: 'Weak'  },
+  { id: 'neutral', label: 'Free'  },
 ];
 
 export function TerritoryFilterChips({ activeFilter, counts, onSelect }: Props) {

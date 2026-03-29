@@ -2,9 +2,10 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { fmtRelativeTime } from '@mobile/shared/lib/formatters';
 import type { AppNotification } from '../types';
-import { NOTIF_EMOJI } from '../types';
+import { NOTIF_CONFIG } from '../types';
 
 const C = { white: '#FFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518' };
+const DEFAULT_CONFIG = { emoji: '🔔', bg: '#F0EDE8', fg: '#6B6B6B' };
 
 interface Props {
   notif: AppNotification;
@@ -12,9 +13,12 @@ interface Props {
 }
 
 export function NotifItem({ notif, onPress }: Props) {
+  const cfg = NOTIF_CONFIG[notif.type] ?? DEFAULT_CONFIG;
   return (
     <Pressable style={[s.card, !notif.read && s.cardUnread]} onPress={onPress}>
-      <Text style={s.emoji}>{NOTIF_EMOJI[notif.type] ?? '🔔'}</Text>
+      <View style={[s.iconWrap, { backgroundColor: cfg.bg }]}>
+        <Text style={s.emoji}>{cfg.emoji}</Text>
+      </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={s.title}>{notif.title}</Text>
         <Text style={s.body} numberOfLines={2}>{notif.body}</Text>
@@ -28,7 +32,8 @@ export function NotifItem({ notif, onPress }: Props) {
 const s = StyleSheet.create({
   card: { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center' },
   cardUnread: { borderLeftWidth: 2, borderLeftColor: C.red },
-  emoji: { fontSize: 22, flexShrink: 0 },
+  iconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  emoji: { fontSize: 20 },
   title: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 2 },
   body: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, lineHeight: 17, marginBottom: 4 },
   time: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },

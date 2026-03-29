@@ -16,6 +16,9 @@ export interface FeedPost {
   commentCount?: number;
   activityType?: ActivityType;
   storyImageUrl?: string;
+  isPR?: boolean;
+  streakDays?: number;
+  routePoints?: { lat: number; lng: number }[];
 }
 
 export interface SuggestedRunner {
