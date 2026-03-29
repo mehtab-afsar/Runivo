@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@shared/services/supabase';
-import { fetchClubs, joinClub, leaveClub } from '@features/clubs/services/clubService';
+import { fetchClubs, joinClub, leaveClub, createClub } from '@features/clubs/services/clubService';
 import type { Club } from '@features/clubs/types';
 
 export function useClubs() {
@@ -59,6 +59,21 @@ export function useClubs() {
     ]);
   }, [userId]);
 
+  const handleCreateClub = useCallback(async (
+    name: string,
+    description: string,
+    badgeEmoji: string,
+    joinPolicy: 'open' | 'request' | 'invite',
+  ) => {
+    if (!userId) return false;
+    const newClub = await createClub(userId, name, description, badgeEmoji, joinPolicy);
+    if (newClub) {
+      setClubs(prev => [newClub, ...prev]);
+      return true;
+    }
+    return false;
+  }, [userId]);
+
   const refresh = useCallback(() => {
     setRefreshing(true);
     load();
@@ -81,6 +96,7 @@ export function useClubs() {
     setSearchQuery,
     joinClub: handleJoinClub,
     leaveClub: handleLeaveClub,
+    createClub: handleCreateClub,
     refresh,
   };
 }

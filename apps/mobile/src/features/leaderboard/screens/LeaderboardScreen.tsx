@@ -98,7 +98,13 @@ export default function LeaderboardScreen() {
         <FlatList
           data={entries.slice(3)}
           keyExtractor={e => String(e.rank)}
-          renderItem={({ item }) => <EntryRow entry={item} unit={unit} />}
+          renderItem={({ item }) => (
+            <EntryRow
+              entry={item}
+              unit={unit}
+              onPress={!item.isPlayer ? () => navigation.navigate('UserProfile', { userId: item.userId, username: item.name }) : undefined}
+            />
+          )}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={<Podium entries={entries} unit={unit} currentUserId={currentUserId} />}

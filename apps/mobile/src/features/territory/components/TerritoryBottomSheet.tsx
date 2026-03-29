@@ -22,10 +22,15 @@ export function TerritoryBottomSheet({ territory: t, onClose, onFortify }: Props
       <View style={ss.handle} />
 
       <View style={ss.header}>
-        <View style={[ss.badge, { backgroundColor: statusBg(t.isOwn, t.ownerName) }]}>
-          <Text style={[ss.badgeText, { color: statusColor(t.isOwn, t.ownerName) }]}>
-            {statusLabel(t.isOwn, t.ownerName)}
-          </Text>
+        <View style={{ flex: 1, gap: 4 }}>
+          <View style={[ss.badge, { backgroundColor: statusBg(t.isOwn, t.ownerName), alignSelf: 'flex-start' }]}>
+            <Text style={[ss.badgeText, { color: statusColor(t.isOwn, t.ownerName) }]}>
+              {statusLabel(t.isOwn, t.ownerName)}
+            </Text>
+          </View>
+          {(t.h3Index ?? t.id) ? (
+            <Text style={ss.hexId}>{t.h3Index ?? t.id}</Text>
+          ) : null}
         </View>
         <Pressable onPress={onClose}>
           <Text style={{ color: '#7A7A7A', fontSize: 18 }}>✕</Text>
@@ -67,7 +72,8 @@ export function TerritoryBottomSheet({ territory: t, onClose, onFortify }: Props
 const ss = StyleSheet.create({
   sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 10 },
   handle:      { width: 36, height: 3, borderRadius: 9, backgroundColor: '#E0DFDD', alignSelf: 'center', marginBottom: 16 },
-  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
+  hexId:       { fontFamily: 'Courier', fontSize: 10, color: '#ADADAD', letterSpacing: 0.5 },
   badge:       { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   badgeText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 11, letterSpacing: 1 },
   defenseRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import type { StoredRun, StoredShoe } from '@shared/services/store';
+import { getSettings, saveSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import { fetchProfileData, updateProfile, uploadAvatar } from '../services/profileService';
 import type { ProfileTab } from '../types';
@@ -49,6 +50,17 @@ export function useProfile() {
     if (data.instagram) setInstagram(data.instagram);
     if (data.strava) setStrava(data.strava);
     if (data.avatarUrl) setAvatarUri(data.avatarUrl);
+
+    // Sync Supabase profile preferences back to local settings store
+    // so other screens (dashboard weekly goal, distance unit, etc.) pick them up
+    const toWrite: Partial<Parameters<typeof saveSettings>[0]> = {};
+    if (data.weeklyGoalKm != null) toWrite.weeklyGoalKm = data.weeklyGoalKm;
+    if (data.distanceUnit === 'km' || data.distanceUnit === 'mi') toWrite.distanceUnit = data.distanceUnit;
+    if (data.notificationsEnabled != null) toWrite.notificationsEnabled = data.notificationsEnabled;
+    if (Object.keys(toWrite).length > 0) {
+      const current = await getSettings();
+      await saveSettings({ ...current, ...toWrite });
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);

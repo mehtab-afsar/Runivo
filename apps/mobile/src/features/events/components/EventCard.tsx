@@ -9,12 +9,13 @@ interface Props {
   event: RunEvent;
   joined: boolean;
   onJoin: () => void;
+  onPress?: () => void;
 }
 
-export function EventCard({ event, joined, onJoin }: Props) {
+export function EventCard({ event, joined, onJoin, onPress }: Props) {
   const emoji = CATEGORY_EMOJI[event.category] ?? '📍';
   return (
-    <View style={s.card}>
+    <Pressable style={s.card} onPress={onPress}>
       <View style={s.cardTop}>
         <View style={s.iconBox}>
           <Text style={{ fontSize: 20 }}>{emoji}</Text>
@@ -39,7 +40,7 @@ export function EventCard({ event, joined, onJoin }: Props) {
           </Text>
         </Pressable>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

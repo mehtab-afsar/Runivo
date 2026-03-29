@@ -3,9 +3,10 @@
  * Fetches: GPS, intel, routes via useRunSetup.
  * Renders: RunMapView, RunSetupSheet, ActivityModal, RouteModal.
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getSettings } from '@shared/services/store';
 
 import { useRunSetup } from '../hooks/useRunSetup';
 import { useBeatPacer } from '../hooks/useBeatPacer';
@@ -29,9 +30,22 @@ function gpsLabel(status: string, acc: number | null): string {
 
 export default function RunScreen() {
   const insets = useSafeAreaInsets();
-  const [mapStyle, setMapStyle] = React.useState(
-    'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  );
+  const MAP_STYLE_URLS: Record<string, string> = {
+    Standard:  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+    Dark:      'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    Light:     'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    Terrain:   'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    Satellite: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  };
+  const [mapStyle, setMapStyle] = React.useState(MAP_STYLE_URLS.Standard);
+
+  useEffect(() => {
+    getSettings().then(s => {
+      if (s.mapStyle && MAP_STYLE_URLS[s.mapStyle]) {
+        setMapStyle(MAP_STYLE_URLS[s.mapStyle]);
+      }
+    });
+  }, []);
   const {
     activityType, setActivityType, gps, intel,
     savedRoutes, nearbyRoutes, nearbyLoading,

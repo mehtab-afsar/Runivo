@@ -1,7 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions } from 'react-native';
+import { fetchUnreadCount } from '@features/notifications/services/notificationsService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { Flame } from 'lucide-react-native';
@@ -108,6 +109,13 @@ export default function DashboardScreen() {
   const insets     = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const dash       = useDashboard();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUnreadCount().then(setUnreadCount).catch(() => {});
+    }, []),
+  );
 
   const go = (screen: string) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate(screen as any); };
 
@@ -135,8 +143,13 @@ export default function DashboardScreen() {
             <Text style={ss.username}>{dash.player.username}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Pressable onPress={() => go('Notifications')} style={ss.bellBtn}>
+            <Pressable onPress={() => { go('Notifications'); setUnreadCount(0); }} style={ss.bellBtn}>
               <Text style={{ fontSize: 16 }}>🔔</Text>
+              {unreadCount > 0 && (
+                <View style={ss.bellBadge}>
+                  <Text style={ss.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
             </Pressable>
             <XPRing initials={initials} xpPct={dash.xpProgress.percent} />
           </View>
@@ -190,6 +203,8 @@ export default function DashboardScreen() {
 const ss = StyleSheet.create({
   fill:         { flex: 1 },
   bellBtn:      { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', justifyContent: 'center' },
+  bellBadge:    { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#D93518', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#F8F6F3' },
+  bellBadgeText:{ fontFamily: 'Barlow_700Bold', fontSize: 9, color: '#FFFFFF', lineHeight: 12 },
   loadText:     { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, fontStyle: 'italic' },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 20, marginBottom: 18 },
   greeting:     { fontFamily: 'Barlow_400Regular', fontSize: 10, letterSpacing: 1, color: '#ADADAD', marginBottom: 4 },

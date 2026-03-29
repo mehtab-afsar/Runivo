@@ -43,3 +43,45 @@ export async function leaveClub(clubId: string, userId: string): Promise<void> {
     .eq('club_id', clubId)
     .eq('user_id', userId);
 }
+
+export async function createClub(
+  userId: string,
+  name: string,
+  description: string,
+  badgeEmoji: string,
+  joinPolicy: 'open' | 'request' | 'invite',
+): Promise<Club | null> {
+  const { data, error } = await supabase
+    .from('clubs')
+    .insert({
+      name: name.trim(),
+      description: description.trim() || null,
+      badge_emoji: badgeEmoji,
+      join_policy: joinPolicy,
+      member_count: 1,
+      total_km: 0,
+      created_by: userId,
+    })
+    .select('id, name, description, badge_emoji, member_count, total_km, join_policy')
+    .single();
+
+  if (error || !data) return null;
+
+  // Auto-join creator as admin
+  await supabase.from('club_members').insert({
+    club_id: data.id,
+    user_id: userId,
+    role: 'admin',
+  });
+
+  return {
+    id: data.id,
+    name: data.name,
+    description: data.description,
+    badge_emoji: data.badge_emoji ?? '🏃',
+    member_count: data.member_count ?? 1,
+    total_km: Number(data.total_km ?? 0),
+    join_policy: data.join_policy ?? 'open',
+    joined: true,
+  };
+}

@@ -9,14 +9,26 @@ export async function fetchRunById(runId: string): Promise<StoredRun | null> {
 
 export async function saveRunToSupabase(run: StoredRun): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
-  await supabase.from('runs').upsert({
+  if (!user) return;
+  const { error } = await supabase.from('runs').upsert({
     id: run.id,
-    user_id: user?.id,
+    user_id: user.id,
     distance_m: run.distanceMeters,
     duration_sec: run.durationSec,
     started_at: new Date(run.startTime).toISOString(),
+    finished_at: new Date(run.endTime).toISOString(),
+    avg_pace: run.avgPace,
+    activity_type: run.activityType,
     gps_points: run.gpsPoints,
+    territories_claimed: run.territoriesClaimed,
+    territories_fortified: run.territoriesFortified,
+    xp_earned: run.xpEarned,
+    coins_earned: run.coinsEarned,
+    shoe_id: run.shoeId ?? null,
+    enemy_captured: run.enemyCaptured,
+    pre_run_level: run.preRunLevel,
   });
+  if (error) console.error('[runSummaryService] saveRunToSupabase failed:', error.message);
 }
 
 interface GpsPoint { lat: number; lng: number }

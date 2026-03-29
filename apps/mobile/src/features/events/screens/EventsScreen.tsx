@@ -1,10 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, ScrollView, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Calendar, Clock, MapPin, Users, Share2, Bookmark } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
+import type { RunEvent } from '../types';
+import { CATEGORY_EMOJI } from '../types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type EventTab = 'upcoming' | 'challenges' | 'past';
@@ -19,10 +23,111 @@ const TABS: { id: EventTab; label: string }[] = [
 
 const CHALLENGE_CATEGORIES = new Set(['challenge', 'brand-challenge', 'king-of-hill', 'survival']);
 
+function EventDetailSheet({ event, joined, onClose, onJoin }: {
+  event: RunEvent;
+  joined: boolean;
+  onClose: () => void;
+  onJoin: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [bookmarked, setBookmarked] = useState(false);
+  const emoji = CATEGORY_EMOJI[event.category] ?? '📍';
+  const categoryLabel = event.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  return (
+    <Modal transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={ed.backdrop} onPress={onClose} />
+      <View style={[ed.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <View style={ed.handle} />
+
+        {/* Header */}
+        <View style={ed.sheetHeader}>
+          <View style={ed.chips}>
+            <View style={ed.chip}><Text style={ed.chipText}>{emoji} {categoryLabel}</Text></View>
+            {event.distance && <View style={[ed.chip, ed.chipDist]}><Text style={[ed.chipText, { color: C.black }]}>🏃 {event.distance}</Text></View>}
+          </View>
+          <Pressable style={ed.closeBtn} onPress={onClose}>
+            <Text style={ed.closeBtnText}>✕</Text>
+          </Pressable>
+        </View>
+
+        <Text style={ed.eventTitle}>{event.title}</Text>
+        <Text style={ed.eventDesc}>{event.description}</Text>
+
+        {/* Detail rows */}
+        <View style={ed.detailCard}>
+          {[
+            { Icon: Calendar, label: 'DATE',     value: event.date },
+            { Icon: Clock,    label: 'TIME',     value: event.time },
+            { Icon: MapPin,   label: 'LOCATION', value: event.location },
+            { Icon: Users,    label: 'JOINED',   value: `${event.participants} runners` },
+          ].map(({ Icon, label, value }) => (
+            <View key={label} style={ed.detailRow}>
+              <View style={ed.detailIconBox}>
+                <Icon size={14} color={C.t2} strokeWidth={1.5} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={ed.detailLabel}>{label}</Text>
+                <Text style={ed.detailValue}>{value}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        {/* Footer */}
+        <View style={ed.footer}>
+          <Pressable style={ed.iconBtn} onPress={() => {}}>
+            <Share2 size={18} color={C.black} strokeWidth={1.5} />
+          </Pressable>
+          <Pressable
+            style={[ed.iconBtn, bookmarked && ed.iconBtnActive]}
+            onPress={() => setBookmarked(b => !b)}
+          >
+            <Bookmark size={18} color={bookmarked ? C.white : C.black} strokeWidth={1.5} fill={bookmarked ? C.red : 'transparent'} />
+          </Pressable>
+          <Pressable style={[ed.joinBtn, joined && ed.joinBtnJoined]} onPress={() => { onJoin(); onClose(); }}>
+            <Text style={[ed.joinLabel, joined && ed.joinLabelJoined]}>
+              {joined ? '✓ Joined' : 'Join Event'}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const ed = StyleSheet.create({
+  backdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
+  sheet:        { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 12, maxHeight: '88%' },
+  handle:       { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  sheetHeader:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
+  chips:        { flexDirection: 'row', gap: 6, flexWrap: 'wrap', flex: 1 },
+  chip:         { backgroundColor: '#FEF0EE', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  chipDist:     { backgroundColor: C.stone },
+  chipText:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.red },
+  closeBtn:     { width: 28, height: 28, borderRadius: 14, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8 },
+  closeBtnText: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
+  eventTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black, marginBottom: 8, lineHeight: 28 },
+  eventDesc:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, lineHeight: 21, marginBottom: 16 },
+  detailCard:   { backgroundColor: C.stone, borderRadius: 14, padding: 4, marginBottom: 20 },
+  detailRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10 },
+  detailIconBox:{ width: 30, height: 30, borderRadius: 8, backgroundColor: C.white, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  detailLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 0.8, color: C.t3, textTransform: 'uppercase' },
+  detailValue:  { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.black, marginTop: 1 },
+  footer:       { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  iconBtn:      { width: 48, height: 48, borderRadius: 12, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  iconBtnActive:{ backgroundColor: C.red, borderColor: C.red },
+  joinBtn:      { flex: 1, height: 48, borderRadius: 12, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center' },
+  joinBtnJoined:{ backgroundColor: '#EDF7F2', borderWidth: 0.5, borderColor: '#A3D9B1' },
+  joinLabel:    { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white, letterSpacing: 0.3 },
+  joinLabelJoined: { color: '#1A6B40' },
+});
+
 export default function EventsScreen() {
   const navigation = useNavigation<Nav>();
   const { events, joinedIds, canCreate, loading, refreshing, handleJoin, refresh } = useEvents();
   const [activeTab, setActiveTab] = useState<EventTab>('upcoming');
+  const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
 
   const now = new Date();
 
@@ -85,6 +190,7 @@ export default function EventsScreen() {
               event={item}
               joined={joinedIds.has(item.id)}
               onJoin={() => handleJoin(item.id)}
+              onPress={() => setSelectedEvent(item)}
             />
           )}
           contentContainerStyle={s.list}
@@ -98,6 +204,15 @@ export default function EventsScreen() {
               <Text style={s.emptyText}>Check back soon for new events.</Text>
             </View>
           }
+        />
+      )}
+
+      {selectedEvent && (
+        <EventDetailSheet
+          event={selectedEvent}
+          joined={joinedIds.has(selectedEvent.id)}
+          onClose={() => setSelectedEvent(null)}
+          onJoin={() => { handleJoin(selectedEvent.id); setSelectedEvent(null); }}
         />
       )}
     </SafeAreaView>

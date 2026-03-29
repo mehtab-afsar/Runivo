@@ -12,12 +12,13 @@ interface Props {
   club: Club;
   onJoin: () => void;
   onLeave: () => void;
+  onPress?: () => void;
 }
 
-export function ClubCard({ club, onJoin, onLeave }: Props) {
+export function ClubCard({ club, onJoin, onLeave, onPress }: Props) {
   const bg = avatarColor(club.name);
   return (
-    <View style={s.card}>
+    <Pressable style={s.card} onPress={onPress}>
       <View style={[s.badge, { backgroundColor: bg + '22' }]}>
         <Text style={{ fontSize: 22 }}>{club.badge_emoji}</Text>
       </View>
@@ -36,7 +37,7 @@ export function ClubCard({ club, onJoin, onLeave }: Props) {
           {club.joined ? 'Leave' : club.join_policy === 'open' ? 'Join' : 'Request'}
         </Text>
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 

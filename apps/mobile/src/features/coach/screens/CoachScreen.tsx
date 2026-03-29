@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, TextInput, KeyboardAvoidingView } from 'react-native';
+import { Send } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -52,7 +53,7 @@ export default function CoachScreen() {
             returnKeyType="send" onSubmitEditing={() => coach.sendMessage()} editable={!coach.sending} />
           <Pressable style={[ss.sendBtn, (coach.inputText.trim() && !coach.sending) && ss.sendBtnActive]}
             onPress={() => coach.sendMessage()} disabled={!coach.inputText.trim() || coach.sending}>
-            <Text style={[ss.sendIcon, coach.inputText.trim() && ss.sendIconActive]}>↑</Text>
+            <Send size={16} color={coach.inputText.trim() && !coach.sending ? '#fff' : '#ADADAD'} strokeWidth={2} />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -72,5 +73,5 @@ const ss = StyleSheet.create({
   inputBar:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 0.5, borderTopColor: '#DDD9D4', backgroundColor: '#F8F6F3' },
   input:         { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 24, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 16, paddingVertical: 8, fontFamily: 'Barlow_400Regular', fontSize: 14, color: '#0A0A0A' },
   sendBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E8E4DF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  sendBtnActive: { backgroundColor: '#D93518' }, sendIcon: { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: '#ADADAD' }, sendIconActive: { color: '#fff' },
+  sendBtnActive: { backgroundColor: '#D93518' },
 });

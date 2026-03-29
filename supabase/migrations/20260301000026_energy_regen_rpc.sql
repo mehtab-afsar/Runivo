@@ -8,8 +8,7 @@
 -- The server uses its own clock, preventing manipulation by
 -- users who advance their device clock to gain free energy.
 --
--- Rate: 10 energy per hour = 1 per 360 seconds.
--- Cap:  100 (MAX_ENERGY).
+-- Rate: 1 energy per hour (game scale 0-10), cap: 10 (MAX_ENERGY).
 -- ============================================================
 
 create or replace function public.sync_energy(p_user_id uuid)
@@ -33,17 +32,17 @@ begin
     return 0;
   end if;
 
-  -- 10 energy per hour = 1 per 360 seconds
-  gained := floor(extract(epoch from (now() - last_regen)) / 360)::int;
+  -- 1 energy per hour = 1 per 3600 seconds (game scale: 0-10)
+  gained := floor(extract(epoch from (now() - last_regen)) / 3600)::int;
 
   if gained <= 0 then
     return cur_energy;
   end if;
 
-  new_energy := least(cur_energy + gained, 100);
+  new_energy := least(cur_energy + gained, 10);
 
   update public.profiles
-  set    energy           = new_energy,
+  set    energy            = new_energy,
          last_energy_regen = now()
   where  id = p_user_id;
 
@@ -53,4 +52,4 @@ $$;
 
 comment on function public.sync_energy is
   'Applies time-based energy regen using server clock. Call on app foreground and run start.
-   Returns the updated energy value. Rate: 10/hr, cap: 100.';
+   Returns the updated energy value. Rate: 1/hr, cap: 10 (game scale 0-10).';

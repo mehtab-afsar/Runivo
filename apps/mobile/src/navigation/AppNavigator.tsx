@@ -30,6 +30,7 @@ import CoachScreen           from '@features/coach/screens/CoachScreen';
 import EventsScreen          from '@features/events/screens/EventsScreen';
 import CreateEventScreen     from '@features/events/screens/CreateEventScreen';
 import ClubScreen            from '@features/clubs/screens/ClubScreen';
+import ClubDetailScreen      from '@features/clubs/screens/ClubDetailScreen';
 import LobbyScreen           from '@features/clubs/screens/LobbyScreen';
 import LobbyChatScreen       from '@features/clubs/screens/LobbyChatScreen';
 import LeaderboardScreen     from '@features/leaderboard/screens/LeaderboardScreen';
@@ -80,6 +81,7 @@ export type RootStackParamList = {
   Events:    undefined;
   CreateEvent: undefined;
   Club:      undefined;
+  ClubDetail: { clubId: string; clubName: string; badgeEmoji: string; memberCount: number; totalKm: number };
   Lobby:     undefined;
   LobbyChat: { lobbyId: string };
   Leaderboard: undefined;
@@ -296,6 +298,7 @@ export function AppNavigator({
             <Stack.Screen name="Events"          component={EventsScreen} />
             <Stack.Screen name="CreateEvent"     component={CreateEventScreen} />
             <Stack.Screen name="Club"            component={ClubScreen} />
+            <Stack.Screen name="ClubDetail"      component={ClubDetailScreen} />
             <Stack.Screen name="Lobby"           component={LobbyScreen} />
             <Stack.Screen name="LobbyChat"       component={LobbyChatScreen} />
             <Stack.Screen name="Leaderboard"     component={LeaderboardScreen} />

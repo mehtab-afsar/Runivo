@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -73,9 +73,7 @@ export default function UserProfileScreen() {
     setFollowLoading(false);
   };
 
-  const handleMessage = () => {
-    Alert.alert('Messages', 'Direct messaging coming soon.');
-  };
+  const handleMessage = () => {};
 
   const displayName = user?.display_name || username;
   const color = user?.avatar_color || avatarColor(username);
@@ -119,9 +117,9 @@ export default function UserProfileScreen() {
                   {isFollowing ? 'Following' : 'Follow'}
                 </Text>
               </Pressable>
-              <Pressable style={s.messageBtn} onPress={handleMessage}>
-                <MessageSquare size={14} color={C.black} strokeWidth={1.5} />
-                <Text style={s.messageBtnLabel}>Message</Text>
+              <Pressable style={[s.messageBtn, s.messageBtnDisabled]} disabled>
+                <MessageSquare size={14} color={C.t3} strokeWidth={1.5} />
+                <Text style={[s.messageBtnLabel, s.messageBtnLabelDisabled]}>Message</Text>
               </Pressable>
             </View>
           </View>
@@ -163,7 +161,9 @@ const s = StyleSheet.create({
   followBtnLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.white },
   followingBtnLabel:{ color: C.black },
   messageBtn:   { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.stone, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 18, paddingVertical: 10 },
+  messageBtnDisabled: { opacity: 0.45 },
   messageBtnLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+  messageBtnLabelDisabled: { color: C.t3 },
   statsGrid:    { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
   statCell:     { flex: 1, alignItems: 'center', paddingVertical: 16, borderRightWidth: 0.5, borderRightColor: C.border },
   statValue:    { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, letterSpacing: -0.5 },

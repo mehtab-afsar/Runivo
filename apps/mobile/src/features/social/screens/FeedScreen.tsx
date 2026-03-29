@@ -157,7 +157,7 @@ export default function FeedScreen() {
                     const initial = runner.username.slice(0, 1).toUpperCase();
                     const isFollowing = followingIds.includes(runner.id);
                     return (
-                      <View key={runner.id} style={s.runnerCard}>
+                      <Pressable key={runner.id} style={s.runnerCard} onPress={() => navigation.navigate('UserProfile', { userId: runner.id, username: runner.username })}>
                         <View style={s.runnerAvatarWrap}>
                           <View style={[s.runnerAvatar, { backgroundColor: color }, isFollowing && s.runnerAvatarFollowing]}>
                             <Text style={s.runnerAvatarText}>{initial}</Text>
@@ -171,7 +171,7 @@ export default function FeedScreen() {
                         </View>
                         <Text style={s.runnerName} numberOfLines={1}>{runner.username.split(' ')[0]}</Text>
                         <Text style={s.runnerKm}>{runner.totalDistanceKm} km</Text>
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </ScrollView>

@@ -23,11 +23,18 @@ export async function fetchProfileData() {
   let instagram: string | null = null;
   let strava: string | null = null;
   let avatarUrl: string | null = null;
+  let weeklyGoalKmFromDb: number | null = null;
+  let primaryGoal: string | null = null;
+  let experienceLevel: string | null = null;
+  let weeklyFrequency: number | null = null;
+  let distanceUnit: string | null = null;
+  let notificationsEnabled: boolean | null = null;
+  let missionDifficulty: string | null = null;
 
   if (session) {
     const { data } = await supabase
       .from('profiles')
-      .select('bio, avatar_color, display_name, location, instagram, strava, avatar_url')
+      .select('bio, avatar_color, display_name, location, instagram, strava, avatar_url, weekly_goal_km, primary_goal, experience_level, weekly_frequency, distance_unit, notifications_enabled, mission_difficulty')
       .eq('id', session.user.id)
       .single();
     if (data) {
@@ -38,15 +45,33 @@ export async function fetchProfileData() {
       instagram = data.instagram ?? null;
       strava = data.strava ?? null;
       avatarUrl = data.avatar_url ?? null;
+      weeklyGoalKmFromDb = data.weekly_goal_km ?? null;
+      primaryGoal = data.primary_goal ?? null;
+      experienceLevel = data.experience_level ?? null;
+      weeklyFrequency = data.weekly_frequency ?? null;
+      distanceUnit = data.distance_unit ?? null;
+      notificationsEnabled = data.notifications_enabled ?? null;
+      missionDifficulty = data.mission_difficulty ?? null;
     }
   }
 
-  return { runs, shoes, weeklyGoalKm: settings.weeklyGoalKm, personalRecords, avatarColor, displayName, bio, location, instagram, strava, avatarUrl };
+  return {
+    runs, shoes,
+    weeklyGoalKm: weeklyGoalKmFromDb ?? settings.weeklyGoalKm,
+    personalRecords, avatarColor, displayName, bio, location, instagram, strava, avatarUrl,
+    primaryGoal, experienceLevel, weeklyFrequency, distanceUnit, notificationsEnabled, missionDifficulty,
+  };
 }
 
 export async function updateProfile(
   userId: string,
-  patch: { display_name?: string; bio?: string; avatar_color?: string; location?: string; instagram?: string; strava?: string; avatar_url?: string },
+  patch: {
+    display_name?: string; bio?: string; avatar_color?: string;
+    location?: string; instagram?: string; strava?: string; avatar_url?: string;
+    weekly_goal_km?: number; primary_goal?: string; experience_level?: string;
+    weekly_frequency?: number; distance_unit?: string;
+    notifications_enabled?: boolean; mission_difficulty?: string;
+  },
 ): Promise<void> {
   await supabase.from('profiles').update(patch).eq('id', userId);
 }

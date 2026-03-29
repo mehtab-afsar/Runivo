@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { RankBadge } from './RankBadge';
 import type { LeaderboardEntry } from '../types';
 
@@ -8,11 +8,12 @@ const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t3: '#ADADAD'
 interface Props {
   entry: LeaderboardEntry;
   unit: string;
+  onPress?: () => void;
 }
 
-export function EntryRow({ entry, unit }: Props) {
+export function EntryRow({ entry, unit, onPress }: Props) {
   return (
-    <View style={[s.row, entry.isPlayer && s.rowMe]}>
+    <Pressable style={[s.row, entry.isPlayer && s.rowMe]} onPress={onPress}>
       <RankBadge rank={entry.rank} />
       <View style={s.avatar}>
         <Text style={s.avatarText}>{entry.name.slice(0, 2).toUpperCase()}</Text>
@@ -24,7 +25,7 @@ export function EntryRow({ entry, unit }: Props) {
       <Text style={[s.value, entry.isPlayer && s.valueMe]}>
         {unit === 'km' ? entry.value.toFixed(1) : entry.value.toLocaleString()} {unit}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
