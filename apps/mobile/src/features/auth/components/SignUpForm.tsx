@@ -8,13 +8,16 @@ import type { SignUpState } from '../hooks/useSignUp';
 
 const C = { bg: '#F8F6F3', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', border: '#DDD9D4', mid: '#E8E4DF' };
 
-interface Props extends SignUpState {
+interface Props extends Omit<SignUpState, 'emailExists' | 'rateLimitSeconds'> {
   onGoBack: () => void;
   onGoLogin: () => void;
+  emailExists?: boolean;
+  rateLimitSeconds?: number;
 }
 
 export default function SignUpForm({
   username, email, pwd, showPwd, loading, error, valid, pwStrength, pwColor,
+  emailExists = false, rateLimitSeconds = 0,
   setUsername, setEmail, setPwd, setShowPwd, handleSignUp,
   onGoBack, onGoLogin,
 }: Props) {
@@ -95,17 +98,26 @@ export default function SignUpForm({
             </View>
           )}
           {error ? <Text style={s.errText}>{error}</Text> : null}
+          {emailExists ? (
+            <View style={s.emailExistsBanner}>
+              <Text style={s.emailExistsText}>That email is already registered. </Text>
+              <Pressable onPress={onGoLogin}><Text style={s.emailExistsLink}>Sign in instead?</Text></Pressable>
+            </View>
+          ) : null}
+          {rateLimitSeconds > 0 ? (
+            <Text style={s.rateLimitText}>Too many attempts. Try again in {rateLimitSeconds}s</Text>
+          ) : null}
         </View>
       </ScrollView>
 
       <View style={s.cta}>
         <Pressable
-          style={[s.btn, valid ? s.btnRed : s.btnDisabled]}
-          onPress={handleSignUp} disabled={!valid || loading}
+          style={[s.btn, valid && rateLimitSeconds === 0 ? s.btnRed : s.btnDisabled]}
+          onPress={handleSignUp} disabled={!valid || loading || rateLimitSeconds > 0}
         >
           {loading
             ? <ActivityIndicator color="#fff" size="small" />
-            : <Text style={s.btnLabel}>Create account →</Text>}
+            : <Text style={s.btnLabel}>{rateLimitSeconds > 0 ? `Wait ${rateLimitSeconds}s` : 'Create account →'}</Text>}
         </Pressable>
         <Pressable onPress={onGoLogin} style={s.switchRow}>
           <Text style={s.switchText}>Already a runner? <Text style={s.switchLink}>Sign in</Text></Text>
@@ -137,6 +149,10 @@ const s = StyleSheet.create({
   strengthRow: { flexDirection: 'row', gap: 4, marginTop: 8 },
   strengthBar: { flex: 1, height: 2, borderRadius: 1 },
   errText: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.red, marginTop: 8 },
+  emailExistsBanner: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 },
+  emailExistsText: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t2 },
+  emailExistsLink: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.black, textDecorationLine: 'underline' },
+  rateLimitText: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: '#D4870A', marginTop: 8 },
   cta: { paddingHorizontal: 20, paddingBottom: Platform.OS === 'ios' ? 28 : 20, paddingTop: 12 },
   btn: { paddingVertical: 13, borderRadius: 4, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   btnRed: { backgroundColor: C.red },

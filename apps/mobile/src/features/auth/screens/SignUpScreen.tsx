@@ -20,6 +20,8 @@ export default function SignUpScreen() {
       >
         <SignUpForm
           {...signUp}
+          emailExists={signUp.emailExists}
+          rateLimitSeconds={signUp.rateLimitSeconds}
           onGoBack={() => navigation.goBack()}
           onGoLogin={() => navigation.navigate('Login')}
         />

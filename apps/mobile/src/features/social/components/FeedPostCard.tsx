@@ -106,8 +106,9 @@ export function FeedPostCard({ post, onKudos, onPress, onUserPress }: Props) {
   const badges: { bg: string; fg: string; text: string }[] = [];
   if (post.territoriesClaimed > 0) badges.push({ bg: '#FEF0EE', fg: C.red, text: `⚡ ${post.territoriesClaimed} Zone${post.territoriesClaimed !== 1 ? 's' : ''}` });
   if (post.xpEarned > 0) badges.push({ bg: '#EDF7F2', fg: '#1A6B40', text: `✨ ${post.xpEarned} XP` });
-  if (post.isPR) badges.push({ bg: '#FDF6E8', fg: '#9E6800', text: '⭐ PR' });
+  if (post.isPR) badges.push({ bg: '#FDF6E8', fg: '#9E6800', text: '🏆 PR' });
   if ((post.streakDays ?? 0) > 0) badges.push({ bg: '#FEF0E6', fg: '#C25A00', text: `🔥 ${post.streakDays} day streak` });
+  if (post.leveledUp) badges.push({ bg: '#F0EBF8', fg: '#6B2FBF', text: '🎉 Leveled up!' });
 
   return (
     <Pressable style={s.card} onPress={onPress}>

@@ -74,6 +74,19 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
           ))}
         </View>
 
+        {/* Organizer row */}
+        {event.organizer && (
+          <View style={ed.organizerRow}>
+            <View style={[ed.orgAvatar, { backgroundColor: '#D93518' }]}>
+              <Text style={ed.orgAvatarText}>{event.organizer.slice(0, 1).toUpperCase()}</Text>
+            </View>
+            <View>
+              <Text style={ed.orgLabel}>ORGANIZER</Text>
+              <Text style={ed.orgName}>{event.organizer}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Footer */}
         <View style={ed.footer}>
           <Pressable style={ed.iconBtn} onPress={() => {}}>
@@ -114,6 +127,11 @@ const ed = StyleSheet.create({
   detailIconBox:{ width: 30, height: 30, borderRadius: 8, backgroundColor: C.white, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   detailLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 0.8, color: C.t3, textTransform: 'uppercase' },
   detailValue:  { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.black, marginTop: 1 },
+  organizerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+  orgAvatar:    { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  orgAvatarText:{ fontFamily: 'Barlow_700Bold', fontSize: 12, color: '#FFFFFF' },
+  orgLabel:     { fontFamily: 'Barlow_500Medium', fontSize: 9, color: '#ADADAD', letterSpacing: 0.8, textTransform: 'uppercase' },
+  orgName:      { fontFamily: 'Barlow_500Medium', fontSize: 13, color: '#0A0A0A', marginTop: 1 },
   footer:       { flexDirection: 'row', gap: 8, alignItems: 'center' },
   iconBtn:      { width: 48, height: 48, borderRadius: 12, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   iconBtnActive:{ backgroundColor: C.red, borderColor: C.red },

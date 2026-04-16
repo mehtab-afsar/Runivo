@@ -81,7 +81,7 @@ export type RootStackParamList = {
   Events:    undefined;
   CreateEvent: undefined;
   Club:      undefined;
-  ClubDetail: { clubId: string; clubName: string; badgeEmoji: string; memberCount: number; totalKm: number };
+  ClubDetail: { clubId: string; clubName: string; badgeEmoji: string; memberCount: number; totalKm: number; description?: string };
   Lobby:     undefined;
   LobbyChat: { lobbyId: string };
   Leaderboard: undefined;

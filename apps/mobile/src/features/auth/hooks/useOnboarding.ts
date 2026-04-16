@@ -60,12 +60,15 @@ export function useOnboarding(onComplete: () => void): OnboardingState {
   }, [step, data.gender]);
 
   const goNext = useCallback(() => {
-    if (step < 6) setStep((step + 1) as OnboardingStep);
+    if (step < 7) setStep((step + 1) as OnboardingStep);
   }, [step]);
 
   const goBack = useCallback(() => {
     if (step > 1) setStep((step - 1) as OnboardingStep);
   }, [step]);
+
+  // canContinue overrides: step 2 requires gender selection
+  // step 5 (PlanSelection) is always continuable — the step manages its own CTA
 
   const submit = useCallback(async () => {
     setLoading(true); setError('');

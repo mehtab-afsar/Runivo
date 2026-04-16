@@ -26,3 +26,29 @@ export interface ChatMessage {
   created_at: string;
   avatar_color: string;
 }
+
+export type ActivityAction = 'captured' | 'lost' | 'defended' | 'joined' | 'leveled_up';
+
+export interface ActivityItem {
+  id: string;
+  userId: string;
+  username: string;
+  action: ActivityAction;
+  detail: string;
+  time: string;
+}
+
+export interface ClubMember {
+  id: string;
+  username: string;
+  level: number;
+  total_km: number;
+  role: 'admin' | 'member';
+}
+
+export interface JoinRequest {
+  id: string;
+  userId: string;
+  username: string;
+  requestedAt: string;
+}

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
-  ActivityIndicator, RefreshControl, Platform, Modal, ScrollView,
+  ActivityIndicator, RefreshControl, Platform, Modal, ScrollView, TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -106,7 +106,14 @@ export default function FeedScreen() {
   const [tab, setTab]             = useState<FeedTab>('explore');
   const [stories, setStories]     = useState<StoryGroup[]>([]);
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
+  const [searchQuery, setSearchQuery]   = useState('');
   const { posts, loading, refreshing, suggestedRunners, followingIds, toggleKudos, toggleFollow, refresh } = useFeed();
+
+  const filteredPosts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q.length < 2) return posts;
+    return posts.filter(p => p.username.toLowerCase().includes(q));
+  }, [posts, searchQuery]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -132,13 +139,27 @@ export default function FeedScreen() {
         </Pressable>
       </View>
 
+      <View style={s.searchRow}>
+        <TextInput
+          style={s.searchInput}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Search runners…"
+          placeholderTextColor={C.t3}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+      </View>
+
       <StoryReel groups={stories} onPress={(g, i) => navigation.navigate('StoryViewer' as any, { groups: stories, initialGroupIndex: i })} />
 
       {loading ? (
         <View style={s.loader}><ActivityIndicator color={C.red} /></View>
       ) : (
         <FlatList
-          data={posts}
+          data={filteredPosts}
           keyExtractor={(p) => p.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.list}
@@ -210,6 +231,8 @@ const s = StyleSheet.create({
   tabBtnActive:   { borderBottomColor: C.black },
   tabLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
   tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
+  searchRow:      { paddingHorizontal: 20, paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
+  searchInput:    { height: 34, backgroundColor: C.white, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 12, fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
   list:           { paddingBottom: 100 },
   loader:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // Suggested runners

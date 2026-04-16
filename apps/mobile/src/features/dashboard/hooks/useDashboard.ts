@@ -17,6 +17,7 @@ export function useDashboard() {
   const [calorieGoal, setCalorieGoal]           = useState(2000);
   const [refreshing, setRefreshing]   = useState(false);
   const [bonusCollected, setBonusCollected] = useState(false);
+  const [syncError, setSyncError]     = useState(false);
 
   const loadData = useCallback(async (userId: string) => {
     const data = await fetchDashboardData(userId);
@@ -31,13 +32,21 @@ export function useDashboard() {
   }, []);
 
   useEffect(() => {
-    if (player?.id) loadData(player.id);
+    if (!player?.id) return;
+    loadData(player.id).then(() => setSyncError(false)).catch(() => setSyncError(true));
   }, [player?.id, loadData]);
 
   const refresh = useCallback(async () => {
     if (!player?.id) return;
     setRefreshing(true);
-    try { await loadData(player.id); } finally { setRefreshing(false); }
+    try {
+      await loadData(player.id);
+      setSyncError(false);
+    } catch {
+      setSyncError(true);
+    } finally {
+      setRefreshing(false);
+    }
   }, [player?.id, loadData]);
 
   const collectBonus = useCallback(() => {
@@ -78,6 +87,7 @@ export function useDashboard() {
     weakZones,
     avgDefense,
     dailyIncome,
+    syncError,
     collectBonus,
     refresh,
   };

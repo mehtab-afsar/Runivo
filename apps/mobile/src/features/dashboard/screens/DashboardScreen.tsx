@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { fetchUnreadCount } from '@features/notifications/services/notificationsService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -155,6 +155,15 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {dash.syncError && (
+          <Pressable style={ss.syncChip} onPress={() => dash.refresh()}>
+            {dash.refreshing
+              ? <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+              : <Text style={ss.syncDot}>●</Text>}
+            <Text style={ss.syncText}>{dash.refreshing ? 'Syncing…' : 'Sync failed · Retry'}</Text>
+          </Pressable>
+        )}
+
         <DashboardPills xp={dash.player.xp} level={dash.player.level} energy={dash.player.energy} streakDays={dash.player.streakDays || 0} />
 
         <HeroCarousel
@@ -219,6 +228,9 @@ const ss = StyleSheet.create({
   empty:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
   emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3 },
   emptyCta:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.red },
+  syncChip:     { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', backgroundColor: '#D93518', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, gap: 4 },
+  syncDot:      { fontSize: 8, color: '#FFFFFF', lineHeight: 12 },
+  syncText:     { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#FFFFFF', letterSpacing: 0.2 },
   weakAlert:    { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10, backgroundColor: '#FDF6E8', borderWidth: 0.5, borderColor: '#E8C97A', borderRadius: 14, padding: 14, overflow: 'hidden' },
   weakAccent:   { width: 3, height: 28, backgroundColor: C.red, borderRadius: 2 },
   weakTitle:    { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: '#7A5100' },

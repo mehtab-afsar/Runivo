@@ -8,6 +8,7 @@ export interface RunEvent {
   location: string;
   distance?: string;
   participants: number;
+  organizer?: string;
 }
 
 export const CATEGORY_EMOJI: Record<string, string> = {

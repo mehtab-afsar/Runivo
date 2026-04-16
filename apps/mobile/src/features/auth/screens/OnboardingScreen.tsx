@@ -17,6 +17,7 @@ import UsernameStep from '../components/UsernameStep';
 import AvatarStep from '../components/AvatarStep';
 import GoalStep from '../components/GoalStep';
 import TargetStep from '../components/TargetStep';
+import PlanSelectionStep from '../components/PlanSelectionStep';
 import NotificationsStep from '../components/NotificationsStep';
 import ReadyStep from '../components/ReadyStep';
 
@@ -73,8 +74,15 @@ export default function OnboardingScreen() {
           />
         );
       case 5:
-        return <NotificationsStep />;
+        return (
+          <PlanSelectionStep
+            plan={ob.data.plan}
+            onSelectPlan={p => { ob.update('plan', p); ob.goNext(); }}
+          />
+        );
       case 6:
+        return <NotificationsStep />;
+      case 7:
         return (
           <ReadyStep
             weeklyKmDisplay={ob.weeklyKmDisplay}
@@ -87,15 +95,18 @@ export default function OnboardingScreen() {
     }
   };
 
-  const isLast = ob.step === 6;
+  const isLast = ob.step === 7;
+  const isPlanStep = ob.step === 5;
   const ctaLabel = isLast ? (ob.loading ? 'Setting up…' : 'Start running →') : 'Continue';
 
   return (
     <SafeAreaView style={ss.root}>
-      {ob.step < 6 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
+      {ob.step < 7 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
       <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideX }] }]}>
         {renderStep()}
       </Animated.View>
+      {/* Plan step manages its own CTAs via onSelectPlan — hide the footer CTA */}
+      {!isPlanStep && (
       <View style={ss.footer}>
         <Pressable
           style={[ss.cta, isLast ? ss.ctaBlack : ob.canContinue() ? ss.ctaRed : ss.ctaDisabled]}
@@ -107,6 +118,7 @@ export default function OnboardingScreen() {
             : <Text style={ss.ctaLabel}>{ctaLabel}</Text>}
         </Pressable>
       </View>
+      )}
     </SafeAreaView>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Platform, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -69,14 +69,33 @@ export default function CalorieTrackerScreen() {
   const route = useRoute<Route>();
   const burnKcalParam = (route.params as { burnKcal?: number } | undefined)?.burnKcal;
   const {
-    profile, entries, weekKcals, weekAvg, weekDates, runBurnKcal,
+    profile, entries, weekEntries, weekKcals, weekAvg, weekDates, runBurnKcal,
     loading, refreshing,
     showAddModal, setShowAddModal, defaultMeal, expandedMeal, setExpandedMeal,
     consumed, pct, proteinConsumed, carbsConsumed, fatConsumed,
     addEntry, deleteEntry, refresh, openAdd,
   } = useCalorieTracker();
 
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(todayStr);
   const [activeTab, setActiveTab] = useState<'today' | 'insights'>('today');
+
+  // Entries for the selected date (today uses live `entries`; past days use weekEntries)
+  const selectedEntries = useMemo(() => {
+    if (selectedDate === todayStr) return entries;
+    return (weekEntries as Record<string, import('@shared/services/store').NutritionEntry[]>)[selectedDate] ?? [];
+  }, [selectedDate, todayStr, entries, weekEntries]);
+
+  const selectedConsumed = useMemo(() =>
+    selectedEntries.filter(e => e.source !== 'run').reduce((s, e) => s + e.kcal, 0),
+    [selectedEntries]);
+  const selectedPct = useMemo(() =>
+    Math.min(selectedConsumed / Math.max(profile?.dailyGoalKcal ?? 2000, 1), 1),
+    [selectedConsumed, profile]);
+  const selectedProtein = useMemo(() => selectedEntries.reduce((s, e) => s + e.proteinG, 0), [selectedEntries]);
+  const selectedCarbs   = useMemo(() => selectedEntries.reduce((s, e) => s + e.carbsG, 0),   [selectedEntries]);
+  const selectedFat     = useMemo(() => selectedEntries.reduce((s, e) => s + e.fatG, 0),     [selectedEntries]);
+  const isToday = selectedDate === todayStr;
   const { insights: aiInsights, loading: aiLoading } = useNutritionInsights();
 
   // Pre-open add modal when navigated from RunSummary with a burn kcal value
@@ -126,6 +145,30 @@ export default function CalorieTrackerScreen() {
         ))}
       </View>
 
+      {/* 7-day date strip */}
+      {activeTab === 'today' && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.dateStripScroll}
+          contentContainerStyle={s.dateStrip}
+        >
+          {weekDates.map((d, i) => {
+            const isSelected = d === selectedDate;
+            const isDay = d === todayStr;
+            const dayLabel = DAY_LABELS[i];
+            const dayNum = parseInt(d.split('-')[2], 10);
+            return (
+              <Pressable key={d} style={[s.dateBtn, isSelected && s.dateBtnActive]} onPress={() => setSelectedDate(d)}>
+                <Text style={[s.dateDayLabel, isSelected && s.dateDayLabelActive]}>{dayLabel}</Text>
+                <Text style={[s.dateDayNum, isSelected && s.dateDayNumActive]}>{dayNum}</Text>
+                {isDay && <View style={[s.dateDot, isSelected && s.dateDotActive]} />}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+
       {ctx.headerMessage && activeTab === 'today' && (
         <View style={s.contextBanner}>
           <Text style={s.contextText}>{ctx.headerMessage}</Text>
@@ -146,12 +189,13 @@ export default function CalorieTrackerScreen() {
               </View>
             )}
             <TrackerBody
-              profile={profile} entries={entries}
-              consumed={consumed} pct={pct}
-              proteinConsumed={proteinConsumed} carbsConsumed={carbsConsumed} fatConsumed={fatConsumed}
+              profile={profile} entries={selectedEntries}
+              consumed={selectedConsumed} pct={selectedPct}
+              proteinConsumed={selectedProtein} carbsConsumed={selectedCarbs} fatConsumed={selectedFat}
               expandedMeal={expandedMeal} setExpandedMeal={setExpandedMeal}
-              deleteEntry={deleteEntry} openAdd={openAdd}
-              onLogFood={() => setShowAddModal(true)}
+              deleteEntry={isToday ? deleteEntry : () => {}}
+              openAdd={isToday ? openAdd : () => {}}
+              onLogFood={() => { if (isToday) setShowAddModal(true); }}
             />
           </>
         )}
@@ -279,6 +323,16 @@ const s = StyleSheet.create({
   tabBtnActive: { borderBottomColor: C.red },
   tabLabel:     { fontFamily: 'Barlow_400Regular', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
   tabLabelActive:{ fontFamily: 'Barlow_600SemiBold', color: C.red },
+  dateStripScroll: { flexGrow: 0, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+  dateStrip:    { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', gap: 4 },
+  dateBtn:      { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, gap: 2 },
+  dateBtnActive:{ backgroundColor: C.black },
+  dateDayLabel: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
+  dateDayLabelActive: { color: C.white },
+  dateDayNum:   { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
+  dateDayNumActive: { color: C.white },
+  dateDot:      { width: 4, height: 4, borderRadius: 2, backgroundColor: C.red },
+  dateDotActive:{ backgroundColor: C.white },
   content:      { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100, gap: 10 },
   contextBanner:{ marginHorizontal: 16, marginTop: 4, padding: 12, backgroundColor: C.greenBg, borderRadius: 10, borderWidth: 0.5, borderColor: '#B7E1CC' },
   contextText:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.green, lineHeight: 18 },

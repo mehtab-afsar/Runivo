@@ -142,6 +142,7 @@ export function useCalorieTracker() {
   return {
     profile,
     entries,
+    weekEntries,
     weekKcals,
     weekAvg,
     weekDates,

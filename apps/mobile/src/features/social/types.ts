@@ -18,6 +18,7 @@ export interface FeedPost {
   storyImageUrl?: string;
   isPR?: boolean;
   streakDays?: number;
+  leveledUp?: boolean;
   routePoints?: { lat: number; lng: number }[];
 }
 

@@ -1,4 +1,4 @@
-export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6;
+export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 /** Simplified onboarding profile written to Supabase on completion. */
 export interface OnboardingProfile {
@@ -58,4 +58,4 @@ export const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export const AGES    = Array.from({ length: 90 },  (_, i) => 10 + i);
 export const HEIGHTS = Array.from({ length: 121 }, (_, i) => 100 + i);
 export const WEIGHTS = Array.from({ length: 171 }, (_, i) => 30 + i);
-export const TOTAL_STEPS = 6;
+export const TOTAL_STEPS = 7;
