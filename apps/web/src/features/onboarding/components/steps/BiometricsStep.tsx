@@ -14,7 +14,7 @@ interface Props {
   ) => void;
 }
 
-const CRIMSON = '#E8435A';
+const CRIMSON = '#D93518';
 
 // ─── Value arrays (always indexed by raw cm/kg/years) ─────────────────────────
 
@@ -77,7 +77,7 @@ function DrumPicker({
       <div style={{
         position: 'absolute', left: 4, right: 4,
         top: ITEM_H * 2, height: ITEM_H,
-        background: 'rgba(232,67,90,0.08)',
+        background: 'rgba(217,53,24,0.08)',
         borderRadius: 10, pointerEvents: 'none', zIndex: 1,
       }} />
       {/* Top fade */}
@@ -177,7 +177,7 @@ function UnitToggle({ value, options, onChange }: {
 
 function MascotMan({ active }: { active: boolean }) {
   const c = active ? CRIMSON : '#CBCBCB';
-  const f = active ? 'rgba(232,67,90,0.1)' : '#F0EFED';
+  const f = active ? 'rgba(217,53,24,0.1)' : '#F0EFED';
   return (
     <svg width="52" height="58" viewBox="0 0 52 58" fill="none" style={{ overflow: 'visible' }}>
       <g style={active ? { animation: 'gBounce 1s ease-in-out', transformOrigin: '26px 46px' } : {}}>
@@ -216,7 +216,7 @@ function MascotMan({ active }: { active: boolean }) {
 
 function MascotWoman({ active }: { active: boolean }) {
   const c = active ? CRIMSON : '#CBCBCB';
-  const f = active ? 'rgba(232,67,90,0.1)' : '#F0EFED';
+  const f = active ? 'rgba(217,53,24,0.1)' : '#F0EFED';
   return (
     <svg width="52" height="58" viewBox="0 0 52 58" fill="none" style={{ overflow: 'visible' }}>
       <g style={active ? { animation: 'gBounce 1s ease-in-out', transformOrigin: '26px 46px' } : {}}>
@@ -305,7 +305,7 @@ export default function BiometricsStep({ age, gender, heightCm, weightKg, onChan
                 padding: '12px 6px 10px', borderRadius: 16, border: '1.5px solid',
                 cursor: 'pointer', background: sel ? '#FFF6F7' : '#F7F6F4',
                 borderColor: sel ? CRIMSON : '#E8E5E0',
-                boxShadow: sel ? `0 0 0 2px rgba(232,67,90,0.12)` : 'none',
+                boxShadow: sel ? `0 0 0 2px rgba(217,53,24,0.12)` : 'none',
                 transition: 'all 0.18s',
               }}
             >

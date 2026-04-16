@@ -112,7 +112,7 @@ type SheetStep = 'preview' | 'message' | 'confirmed';
 // --- Helpers ---
 
 const avatarBgColors = [
-  '#E8435A', '#7C3AED', '#2563EB', '#DB2777', '#D97706', '#059669',
+  '#D93518', '#7C3AED', '#2563EB', '#DB2777', '#D97706', '#059669',
 ];
 
 const getAvatarBg = (name: string): string => {

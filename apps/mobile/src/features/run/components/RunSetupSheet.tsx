@@ -6,7 +6,7 @@ import type { ActivityType } from '../types';
 
 const C = {
   bg: '#F7F6F4', white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A',
-  red: '#E8391C', muted: '#6B6B6B', t3: '#ADADAD', stone: '#F0EDE8',
+  red: '#D93518', muted: '#6B6B6B', t3: '#ADADAD', stone: '#F0EDE8',
 };
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';

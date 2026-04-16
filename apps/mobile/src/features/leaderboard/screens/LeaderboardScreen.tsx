@@ -148,7 +148,7 @@ const s = StyleSheet.create({
   playerFooter: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 12, padding: 12, backgroundColor: '#FEF8F7', borderRadius: 12, borderWidth: 1, borderColor: C.red },
   playerRank:   { width: 28, alignItems: 'center' },
   playerRankText: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.red },
-  playerAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#E8435A', alignItems: 'center', justifyContent: 'center' },
+  playerAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#D93518', alignItems: 'center', justifyContent: 'center' },
   playerAvatarText: { fontFamily: 'Barlow_700Bold', fontSize: 11, color: C.white },
   playerName:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.red },
   playerLvl:    { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },

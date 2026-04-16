@@ -9,7 +9,7 @@ interface Props {
 
 export function TerritoryStatsBar({ ownedCount, enemyCount, freeCount }: Props) {
   const stats = [
-    { dot: '#E8391C', value: ownedCount, label: 'owned' },
+    { dot: '#D93518', value: ownedCount, label: 'owned' },
     { dot: '#DC2626', value: enemyCount, label: 'enemy' },
     { dot: '#ADADAD', value: freeCount,  label: 'free'  },
   ];

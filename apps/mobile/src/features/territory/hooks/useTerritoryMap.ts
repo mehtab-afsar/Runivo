@@ -56,7 +56,7 @@ export function useTerritoryMap() {
       features: filtered.map(t => {
         const isOwned  = t.ownerId === playerId;
         const isEnemy  = !!(t.ownerId && t.ownerId !== playerId);
-        const fillColor = isOwned ? '#E8391C' : isEnemy ? '#DC2626' : '#9CA3AF';
+        const fillColor = isOwned ? '#D93518' : isEnemy ? '#DC2626' : '#9CA3AF';
         return {
           type: 'Feature' as const,
           id: t.id,

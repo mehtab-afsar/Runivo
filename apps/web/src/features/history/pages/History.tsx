@@ -1,7 +1,7 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Footprints, Bike, Mountain, ChevronRight } from 'lucide-react';
+import { Activity, Footprints, Bike, Mountain, Timer, Zap, Flag, ChevronRight } from 'lucide-react';
 import { getRuns, StoredRun } from '@shared/services/store';
 import { pullRuns } from '@shared/services/sync';
 import { T, F } from '@shared/design-system/tokens';
@@ -15,28 +15,38 @@ const border   = 'rgba(0,0,0,0.07)'
 const mid      = 'rgba(0,0,0,0.12)'
 const red      = T.red
 const redLo    = 'rgba(217,53,24,0.10)'
-const green    = '#22A05B'
-const greenLo  = 'rgba(34,160,91,0.10)'
+const green    = '#1A6B40'
+const greenLo  = 'rgba(26,107,64,0.10)'
 const orange   = '#E8863A'
 const orangeLo = 'rgba(232,134,58,0.12)'
 const purple   = '#7C3AED'
 const purpleLo = 'rgba(124,58,237,0.10)'
+const amber    = '#9E6800'
+const amberLo  = 'rgba(158,104,0,0.10)'
 
-type ActivityFilter = 'all' | 'run' | 'walk' | 'cycle' | 'hike';
+type ActivityFilter = 'all' | 'run' | 'walk' | 'cycle' | 'hike' | 'trail_run' | 'interval' | 'tempo' | 'race';
 
 const FILTERS: { key: ActivityFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'run', label: 'Run' },
-  { key: 'walk', label: 'Walk' },
-  { key: 'cycle', label: 'Cycle' },
-  { key: 'hike', label: 'Hike' },
+  { key: 'all',       label: 'All' },
+  { key: 'run',       label: 'Run' },
+  { key: 'walk',      label: 'Walk' },
+  { key: 'hike',      label: 'Hike' },
+  { key: 'trail_run', label: 'Trail' },
+  { key: 'cycle',     label: 'Cycle' },
+  { key: 'interval',  label: 'Interval' },
+  { key: 'tempo',     label: 'Tempo' },
+  { key: 'race',      label: 'Race' },
 ];
 
 const ACTIVITY_CONFIG: Record<string, { color: string; lo: string; icon: ReactNode }> = {
-  run:   { color: red,    lo: redLo,    icon: <Activity size={18} strokeWidth={2} /> },
-  walk:  { color: green,  lo: greenLo,  icon: <Footprints size={18} strokeWidth={2} /> },
-  cycle: { color: purple, lo: purpleLo, icon: <Bike size={18} strokeWidth={2} /> },
-  hike:  { color: orange, lo: orangeLo, icon: <Mountain size={18} strokeWidth={2} /> },
+  run:       { color: red,    lo: redLo,    icon: <Activity size={18} strokeWidth={2} /> },
+  walk:      { color: green,  lo: greenLo,  icon: <Footprints size={18} strokeWidth={2} /> },
+  cycle:     { color: purple, lo: purpleLo, icon: <Bike size={18} strokeWidth={2} /> },
+  hike:      { color: orange, lo: orangeLo, icon: <Mountain size={18} strokeWidth={2} /> },
+  trail_run: { color: orange, lo: orangeLo, icon: <Mountain size={18} strokeWidth={2} /> },
+  interval:  { color: amber,  lo: amberLo,  icon: <Zap size={18} strokeWidth={2} /> },
+  tempo:     { color: amber,  lo: amberLo,  icon: <Timer size={18} strokeWidth={2} /> },
+  race:      { color: red,    lo: redLo,    icon: <Flag size={18} strokeWidth={2} /> },
 };
 
 function getActivityConfig(type: string) {

@@ -57,7 +57,7 @@ function FullscreenWithNav({ children }: { children: React.ReactNode }) {
 function PageLoader() {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-sm z-50">
-      <div className="w-7 h-7 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(232,67,90,0.2)', borderTopColor: '#E8435A' }} />
+      <div className="w-7 h-7 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(217,53,24,0.2)', borderTopColor: '#D93518' }} />
     </div>
   );
 }
@@ -78,7 +78,7 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', damping: 14, stiffness: 120, delay: 0.1 }}
-        className="drop-shadow-[0_8px_30px_rgba(232,67,90,0.25)]"
+        className="drop-shadow-[0_8px_30px_rgba(217,53,24,0.25)]"
       >
         <RunivoLogo size={72} animate />
       </motion.div>
@@ -90,14 +90,14 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
         className="mt-4"
         style={{ fontSize: 36, fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: 'normal', fontWeight: 600, letterSpacing: '0.01em', color: '#0F172A' }}
       >
-        run<span style={{ color: '#E8435A' }}>ivo</span>
+        run<span style={{ color: '#D93518' }}>ivo</span>
       </motion.div>
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.85, duration: 0.5 }}
-        className="mt-2 text-[11px] tracking-[0.25em] uppercase font-semibold" style={{ color: '#E8435A' }}
+        className="mt-2 text-[11px] tracking-[0.25em] uppercase font-semibold" style={{ color: '#D93518' }}
       >
         Run · Capture · Conquer
       </motion.p>

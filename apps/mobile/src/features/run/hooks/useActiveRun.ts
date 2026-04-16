@@ -87,6 +87,7 @@ export function useActiveRun() {
   });
 
   const locationSubRef    = useRef<Location.LocationSubscription | null>(null);
+  const appStateSubRef    = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
   const timerRef          = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef      = useRef<number>(0);
   const pauseStartRef     = useRef<number>(0);
@@ -99,6 +100,9 @@ export function useActiveRun() {
   const totalDistanceRef  = useRef<number>(0);
   const isFinishingRef    = useRef<boolean>(false);
   const appStateRef       = useRef<AppStateStatus>(AppState.currentState);
+  // Refs that mirror state for use inside callbacks/finishRun — avoids stale closures
+  const elapsedRef        = useRef<number>(0);
+  const paceRef           = useRef<string>('0:00');
 
   // ── Claim events ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -136,6 +140,7 @@ export function useActiveRun() {
   useEffect(() => {
     return () => {
       locationSubRef.current?.remove();
+      appStateSubRef.current?.remove();
       if (timerRef.current) clearInterval(timerRef.current);
       deactivateKeepAwake();
       stopBackgroundTracking().catch(() => {});
@@ -158,8 +163,10 @@ export function useActiveRun() {
     await gameEngine.startClaimEngine();
     await activateKeepAwakeAsync();
 
-    // App state handler: re-acquire keep-awake on foreground resume + drain bg buffer
-    const sub = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
+    // App state handler: re-acquire keep-awake on foreground resume + drain bg buffer.
+    // Stored in ref so it can be removed on finish/unmount without leaking.
+    appStateSubRef.current?.remove();
+    appStateSubRef.current = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
         await activateKeepAwakeAsync();
         // Drain GPS points collected while screen was off
@@ -220,6 +227,7 @@ export function useActiveRun() {
         const totalElapsed = Math.floor(
           (Date.now() - startTimeRef.current - totalPausedMsRef.current) / 1000,
         );
+        elapsedRef.current = totalElapsed;
         return { ...prev, elapsed: totalElapsed };
       });
     }, 1000);
@@ -269,8 +277,9 @@ export function useActiveRun() {
           if (prev.isPaused) return prev;
           const newDistance = prev.distance + pendingDistanceRef.current;
           pendingDistanceRef.current = 0;
-          const elapsedSec = prev.elapsed > 0 ? prev.elapsed : 1;
+          const elapsedSec = elapsedRef.current > 0 ? elapsedRef.current : 1;
           const pace = formatPace(newDistance / elapsedSec);
+          paceRef.current = pace;
           return {
             ...prev,
             distance:     Math.round(newDistance * 1000) / 1000,
@@ -304,12 +313,16 @@ export function useActiveRun() {
   }, []);
 
   // ── Finish ──────────────────────────────────────────────────────────────────
+  // Reads all final values from refs (not state) to avoid stale-closure bugs.
+  // Does NOT depend on `state` — avoids re-creating the callback on every state update.
   const finishRun = useCallback(async () => {
     if (isFinishingRef.current) return null;
     isFinishingRef.current = true;
 
     locationSubRef.current?.remove();
     locationSubRef.current = null;
+    appStateSubRef.current?.remove();
+    appStateSubRef.current = null;
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     deactivateKeepAwake();
 
@@ -333,14 +346,16 @@ export function useActiveRun() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
+    // Use refs — not state — so finalElapsed/finalPace are always current
     const finalDistance = totalDistanceRef.current;
-    const finalElapsed  = state.elapsed;
-    const finalPace     = state.pace;
+    const finalElapsed  = elapsedRef.current;
+    const finalPace     = paceRef.current;
+    const finalRunId    = runIdRef.current;
 
     setState(prev => ({ ...prev, isRunning: false, isPaused: false, distance: finalDistance }));
 
     const result = await gameEngine.endRunSession({
-      id:             runIdRef.current,
+      id:             finalRunId,
       activityType:   'run',
       startTime:      startTimeRef.current,
       endTime:        Date.now(),
@@ -351,15 +366,14 @@ export function useActiveRun() {
     });
 
     return {
-      runId:    runIdRef.current,
-      ...state,
-      distance: finalDistance,
-      elapsed:  finalElapsed,
-      pace:     finalPace,
+      runId:     finalRunId,
+      distance:  finalDistance,
+      elapsed:   finalElapsed,
+      pace:      finalPace,
       gpsPoints: gpsPointsRef.current,
       ...result,
     };
-  }, [gameEngine, state]);
+  }, [gameEngine]);
 
   return {
     ...state,
@@ -367,8 +381,9 @@ export function useActiveRun() {
     pauseRun,
     resumeRun,
     finishRun,
-    player:       gameEngine.player,
-    sessionStats: gameEngine.sessionStats,
-    sessionEnergy: gameEngine.sessionEnergy,
+    player:               gameEngine.player,
+    sessionStats:         gameEngine.sessionStats,
+    sessionEnergy:        gameEngine.sessionEnergy,
+    playerTerritoryCount: gameEngine.playerTerritoryCount,
   };
 }

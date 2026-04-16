@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image, ScrollVi
 import { MapPin, Instagram, Camera } from 'lucide-react-native';
 
 const C = { white: '#FFFFFF', black: '#0A0A0A', t3: '#ADADAD', border: '#DDD9D4', red: '#D93518', stone: '#F0EDE8' };
-const SWATCHES = ['#0A0A0A', '#E8435A', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
+const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
 interface Props {
   editName: string;

@@ -87,7 +87,7 @@ export function DailyMissions() {
           <p className="text-xs text-gray-400 mt-0.5">Resets in {getTimeRemaining()}</p>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-stat text-sm font-bold text-[#E8435A]">
+          <span className="text-stat text-sm font-bold text-[#D93518]">
             {missions.filter(m => m.completed).length}
           </span>
           <span className="text-xs text-gray-300">/</span>
@@ -108,13 +108,13 @@ export function DailyMissions() {
                 mission.claimed
                   ? 'border-gray-100 opacity-50'
                   : mission.completed
-                  ? 'border-[#F9E4E7] shadow-[0_2px_12px_rgba(232,67,90,0.08)]'
+                  ? 'border-[#FEF0EE] shadow-[0_2px_12px_rgba(217,53,24,0.08)]'
                   : 'border-gray-100'
               }`}
             >
               <div className="flex items-start gap-3">
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${
-                  mission.completed ? 'bg-[#F9E4E7]' : 'bg-gray-50'
+                  mission.completed ? 'bg-[#FEF0EE]' : 'bg-gray-50'
                 }`}>
                   {mission.claimed ? '\u2705' : mission.icon}
                 </div>
@@ -131,7 +131,7 @@ export function DailyMissions() {
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                       <motion.div
-                        className={`h-full rounded-full ${mission.completed ? 'bg-[#E8435A]' : 'bg-gray-300'}`}
+                        className={`h-full rounded-full ${mission.completed ? 'bg-[#D93518]' : 'bg-gray-300'}`}
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min(100, (mission.current / mission.target) * 100)}%` }}
                         transition={{ duration: 0.8, delay: index * 0.1 }}
@@ -151,9 +151,9 @@ export function DailyMissions() {
                       whileTap={{ scale: 0.85 }}
                       onClick={() => handleClaim(mission)}
                       disabled={claimingId === mission.id}
-                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#E8435A] to-[#D03A4F]
+                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#D93518] to-[#B82D14]
                                  text-xs font-bold text-white
-                                 shadow-[0_2px_12px_rgba(232,67,90,0.2)]
+                                 shadow-[0_2px_12px_rgba(217,53,24,0.2)]
                                  disabled:opacity-50"
                     >
                       Claim
@@ -162,7 +162,7 @@ export function DailyMissions() {
                     <span className="text-xs text-gray-300">Claimed</span>
                   ) : (
                     <div className="flex flex-col items-end gap-0.5">
-                      <span className="text-stat text-[11px] text-[#E8435A]">+{mission.rewards.xp} XP</span>
+                      <span className="text-stat text-[11px] text-[#D93518]">+{mission.rewards.xp} XP</span>
                       <span className="text-stat text-[11px] text-amber-500">+{mission.rewards.coins} coins</span>
                     </div>
                   )}
@@ -177,8 +177,8 @@ export function DailyMissions() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-[#F9E4E7] to-[#F0EBF5]
-                     border border-[#F9E4E7] text-center"
+          className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-[#FEF0EE] to-[#F0EBF5]
+                     border border-[#FEF0EE] text-center"
         >
           <p className="text-sm font-semibold text-gray-900">All missions complete!</p>
           <p className="text-xs text-gray-400 mt-1">Come back tomorrow for new challenges</p>

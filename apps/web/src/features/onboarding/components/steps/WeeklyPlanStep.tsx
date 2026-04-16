@@ -64,9 +64,9 @@ export default function WeeklyPlanStep({ frequency, distance, onFrequencyChange,
                 onClick={() => toggleDay(i)}
                 className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-2xl border transition-all"
                 style={on ? {
-                  background: 'linear-gradient(135deg,#E8435A,#D03A4F)',
+                  background: 'linear-gradient(135deg,#D93518,#B82D14)',
                   borderColor: 'transparent',
-                  boxShadow: '0 3px 10px rgba(232,67,90,0.22)',
+                  boxShadow: '0 3px 10px rgba(217,53,24,0.22)',
                 } : {
                   backgroundColor: '#F9FAFB',
                   borderColor: '#F3F4F6',
@@ -101,9 +101,9 @@ export default function WeeklyPlanStep({ frequency, distance, onFrequencyChange,
                 onClick={() => { onDistanceChange(d.id); haptic('light'); }}
                 className="flex flex-col items-center py-3 rounded-xl border transition-all"
                 style={sel ? {
-                  background: 'linear-gradient(135deg,#E8435A,#D03A4F)',
+                  background: 'linear-gradient(135deg,#D93518,#B82D14)',
                   borderColor: 'transparent',
-                  boxShadow: '0 4px 14px rgba(232,67,90,0.2)',
+                  boxShadow: '0 4px 14px rgba(217,53,24,0.2)',
                 } : {
                   backgroundColor: '#F9FAFB',
                   borderColor: '#F3F4F6',
@@ -128,10 +128,10 @@ export default function WeeklyPlanStep({ frequency, distance, onFrequencyChange,
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', damping: 24 }}
         className="rounded-2xl px-5 py-4 flex items-center gap-4"
-        style={{ background: 'linear-gradient(135deg,rgba(232,67,90,0.07),rgba(208,58,79,0.04))', border: '1px solid rgba(232,67,90,0.12)' }}
+        style={{ background: 'linear-gradient(135deg,rgba(217,53,24,0.07),rgba(208,58,79,0.04))', border: '1px solid rgba(217,53,24,0.12)' }}
       >
         <div className="flex flex-col flex-1">
-          <span className="text-[11px] text-[#E8435A] font-semibold uppercase tracking-wider mb-0.5">Weekly goal</span>
+          <span className="text-[11px] text-[#D93518] font-semibold uppercase tracking-wider mb-0.5">Weekly goal</span>
           <span className="text-2xl font-extrabold text-gray-900 leading-none">
             ~{weeklyGoalKm} <span className="text-base font-semibold text-gray-400">km</span>
           </span>
@@ -139,7 +139,7 @@ export default function WeeklyPlanStep({ frequency, distance, onFrequencyChange,
             {selectedDays.size} run{selectedDays.size !== 1 ? 's' : ''} × ~{distObj.km} km each
           </span>
         </div>
-        <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl" style={{ background: 'rgba(232,67,90,0.1)' }}>
+        <div className="flex flex-col items-center justify-center w-12 h-12 rounded-2xl" style={{ background: 'rgba(217,53,24,0.1)' }}>
           <span className="text-xl">🏃</span>
         </div>
       </motion.div>

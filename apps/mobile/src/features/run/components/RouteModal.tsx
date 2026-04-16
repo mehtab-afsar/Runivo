@@ -4,7 +4,7 @@ import type { StoredSavedRoute } from '@shared/services/store';
 import RouteCard from './RouteCard';
 import type { RouteItem } from './RouteCard';
 
-const C = { bg: '#F7F6F4', white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', t3: '#ADADAD', red: '#E8391C', stone: '#F0EDE8' };
+const C = { bg: '#F7F6F4', white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', t3: '#ADADAD', red: '#D93518', stone: '#F0EDE8' };
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';

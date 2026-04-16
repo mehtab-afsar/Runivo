@@ -32,14 +32,14 @@ export default function OnboardingProgress({ currentStep }: ProgressBarProps) {
             <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: 'linear-gradient(90deg, #E8435A, #D03A4F)' }}
+                style={{ background: 'linear-gradient(90deg, #D93518, #B82D14)' }}
                 initial={false}
                 animate={{ width: `${fillPercent}%` }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               />
             </div>
             <span className={`text-[9px] mt-1 block text-center font-medium ${
-              currentStep >= chapterStart ? 'text-[#E8435A]' : 'text-gray-300'
+              currentStep >= chapterStart ? 'text-[#D93518]' : 'text-gray-300'
             }`}>
               {chapter.label}
             </span>

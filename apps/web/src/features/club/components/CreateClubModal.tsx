@@ -139,7 +139,7 @@ export const CreateClubModal = ({
                   <div className="flex-1">
                     <label className="block cursor-pointer">
                       <div className="bg-gray-50 border border-gray-200 rounded-xl p-3.5 flex items-center gap-3 active:bg-gray-100 transition">
-                        <Upload className="w-5 h-5 text-[#E8435A]" strokeWidth={2} />
+                        <Upload className="w-5 h-5 text-[#D93518]" strokeWidth={2} />
                         <div>
                           <div className="text-sm font-medium text-gray-700">
                             {logoFile ? logoFile.name : 'Upload Logo'}
@@ -169,7 +169,7 @@ export const CreateClubModal = ({
                              focus:outline-none transition-colors ${
                                nameError
                                  ? 'border-red-400 bg-red-50 focus:border-red-400'
-                                 : 'border-gray-200 bg-white focus:border-[#E8435A]'
+                                 : 'border-gray-200 bg-white focus:border-[#D93518]'
                              }`}
                 />
                 <div className="flex items-center justify-between mt-1.5">
@@ -179,7 +179,7 @@ export const CreateClubModal = ({
                     <span className="text-xs text-gray-400">{clubName.length}/30</span>
                   )}
                   {clubName.trim() && !nameError && (
-                    <div className="flex items-center gap-1 text-xs text-[#E8435A] font-medium">
+                    <div className="flex items-center gap-1 text-xs text-[#D93518] font-medium">
                       <Check className="w-3.5 h-3.5" strokeWidth={2.5} />
                       Available
                     </div>
@@ -199,7 +199,7 @@ export const CreateClubModal = ({
                   maxLength={100}
                   rows={3}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900
-                             placeholder:text-gray-400 focus:outline-none focus:border-[#E8435A] resize-none"
+                             placeholder:text-gray-400 focus:outline-none focus:border-[#D93518] resize-none"
                 />
                 <span className="text-xs text-gray-400">{description.length}/100</span>
               </div>
@@ -215,7 +215,7 @@ export const CreateClubModal = ({
                 disabled={!isValid}
                 className={`w-full py-4 rounded-2xl text-sm font-bold transition-all ${
                   isValid
-                    ? 'bg-gradient-to-r from-[#E8435A] to-[#D03A4F] text-white shadow-[0_4px_16px_rgba(232,67,90,0.25)] active:scale-[0.98]'
+                    ? 'bg-gradient-to-r from-[#D93518] to-[#B82D14] text-white shadow-[0_4px_16px_rgba(217,53,24,0.25)] active:scale-[0.98]'
                     : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
               >

@@ -20,7 +20,7 @@ const T = {
   surface: '#FFFFFF',
   border:  '#E0DFDD',
   black:   '#0A0A0A',
-  red:     '#E8391C',
+  red:     '#D93518',
   muted:   '#6B6B6B',
   font:    "'Barlow', -apple-system, sans-serif",
 };
@@ -52,8 +52,8 @@ function buildRasterStyle(tiles: string[], sourceMaxZoom = 19): maplibregl.Style
 // ── Activities ──────────────────────────────────────────────────────────────
 interface ActivityDef { id: ActivityType; label: string; iconEl: typeof Activity; color: string; bg: string; category: 'running' | 'outdoor' | 'training' | 'other' }
 const ACTIVITIES: ActivityDef[] = [
-  { id: 'run',           label: 'Run',        iconEl: Activity,      color: '#E8391C', bg: '#FDE8E4', category: 'running' },
-  { id: 'jog',           label: 'Jog',        iconEl: Gauge,         color: '#E8391C', bg: '#FDE8E4', category: 'running' },
+  { id: 'run',           label: 'Run',        iconEl: Activity,      color: '#D93518', bg: '#FDE8E4', category: 'running' },
+  { id: 'jog',           label: 'Jog',        iconEl: Gauge,         color: '#D93518', bg: '#FDE8E4', category: 'running' },
   { id: 'sprint',        label: 'Sprint',     iconEl: Zap,           color: '#DC2626', bg: '#FEE2E2', category: 'running' },
   { id: 'walk',          label: 'Walk',       iconEl: Footprints,    color: '#059669', bg: '#D1FAE5', category: 'outdoor' },
   { id: 'hike',          label: 'Hike',       iconEl: Mountain,      color: '#B45309', bg: '#FEF3C7', category: 'outdoor' },
@@ -272,7 +272,7 @@ export default function RunScreen() {
         addTerritoryOverlay(map, territories, { playerId: p.id, showLabels: false });
       }
       const markerEl = document.createElement('div');
-      markerEl.innerHTML = `<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><div style="position:absolute;inset:0;border-radius:50%;background:rgba(232,57,28,0.15);animation:run-ping 2s ease-out infinite;"></div><div style="width:14px;height:14px;border-radius:50%;background:#E8391C;border:2.5px solid white;box-shadow:0 2px 8px rgba(232,57,28,0.4);position:relative;z-index:1;"></div></div>`;
+      markerEl.innerHTML = `<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;"><div style="position:absolute;inset:0;border-radius:50%;background:rgba(217,53,24,0.15);animation:run-ping 2s ease-out infinite;"></div><div style="width:14px;height:14px;border-radius:50%;background:#D93518;border:2.5px solid white;box-shadow:0 2px 8px rgba(217,53,24,0.4);position:relative;z-index:1;"></div></div>`;
       userMarkerRef.current = new maplibregl.Marker({ element: markerEl, anchor: 'center' }).setLngLat([77.2090, 28.6139]);
       watchIdRef.current = navigator.geolocation.watchPosition(
         pos => {
@@ -377,8 +377,8 @@ export default function RunScreen() {
           100% { transform: scale(2.4); opacity: 0; }
         }
         @keyframes start-pulse {
-          0%,100% { box-shadow: 0 0 0 0 rgba(232,57,28,0.30); }
-          50%      { box-shadow: 0 0 0 10px rgba(232,57,28,0); }
+          0%,100% { box-shadow: 0 0 0 0 rgba(217,53,24,0.30); }
+          50%      { box-shadow: 0 0 0 10px rgba(217,53,24,0); }
         }
         @keyframes gps-pulse {
           0%,100% { opacity: 1; }
@@ -555,7 +555,7 @@ export default function RunScreen() {
               transition={{ duration: 0.16 }}
               className="flex gap-2 px-4 mb-3 flex-shrink-0"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 9, background: '#FDE8E4', border: `0.5px solid rgba(232,57,28,0.15)` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 9, background: '#FDE8E4', border: `0.5px solid rgba(217,53,24,0.15)` }}>
                 <span style={{ fontWeight: 400, fontSize: 11, color: T.red }}>{intelStats.enemy} Enemy</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 9, background: T.surface, border: `0.5px solid ${T.border}` }}>
@@ -620,7 +620,7 @@ export default function RunScreen() {
                 {selectedRoute && (
                   <motion.button whileTap={{ scale: 0.98 }} onClick={() => { setSelectedRoute(null); haptic('light'); }}
                     className="w-full mb-4 flex items-center gap-3"
-                    style={{ background: '#FDE8E4', border: `0.5px solid rgba(232,57,28,0.12)`, borderRadius: 14, padding: '10px 14px' }}>
+                    style={{ background: '#FDE8E4', border: `0.5px solid rgba(217,53,24,0.12)`, borderRadius: 14, padding: '10px 14px' }}>
                     <div style={{ width: 32, height: 32, borderRadius: 9, background: T.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <X style={{ width: 14, height: 14, color: '#fff' }} strokeWidth={1.5} />
                     </div>

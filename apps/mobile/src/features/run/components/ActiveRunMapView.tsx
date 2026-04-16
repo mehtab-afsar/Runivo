@@ -113,11 +113,11 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
         <MapLibreGL.ShapeSource id="gps-trail" shape={trailGeoJSON}>
           <MapLibreGL.LineLayer
             id="trail-glow"
-            style={{ lineColor: '#E8391C', lineWidth: 6, lineOpacity: 0.25, lineCap: 'round', lineJoin: 'round' }}
+            style={{ lineColor: '#D93518', lineWidth: 6, lineOpacity: 0.25, lineCap: 'round', lineJoin: 'round' }}
           />
           <MapLibreGL.LineLayer
             id="trail-line"
-            style={{ lineColor: '#E8391C', lineWidth: 3, lineOpacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
+            style={{ lineColor: '#D93518', lineWidth: 3, lineOpacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
           />
         </MapLibreGL.ShapeSource>
       )}
@@ -131,7 +131,7 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
           />
           <MapLibreGL.CircleLayer
             id="start-circle-inner"
-            style={{ circleRadius: 5, circleColor: '#10B981', circleOpacity: 1 }}
+            style={{ circleRadius: 5, circleColor: '#1A6B40', circleOpacity: 1 }}
           />
         </MapLibreGL.ShapeSource>
       )}

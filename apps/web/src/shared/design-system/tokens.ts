@@ -1,6 +1,6 @@
 /**
  * Runivo Design Tokens — SpeedSprint-inspired palette
- * Primary: Crimson #E8435A  ·  Secondary: Lavender #C4B0D8
+ * Primary: Crimson #D93518  ·  Secondary: Lavender #C4B0D8
  * "Soft Athletic" — clean, airy, sporty
  */
 
@@ -8,11 +8,11 @@
 
 export const color = {
   // Brand — Primary (Crimson)
-  primary:      '#E8435A',
-  primaryLight: '#FF7088',
-  primaryDark:  '#D03A4F',
-  primaryDim:   'rgba(232,67,90,0.12)',
-  primaryGlow:  'rgba(232,67,90,0.22)',
+  primary:      '#D93518',
+  primaryLight: '#F2613D',
+  primaryDark:  '#B82D14',
+  primaryDim:   'rgba(217,53,24,0.12)',
+  primaryGlow:  'rgba(217,53,24,0.22)',
 
   // Brand — Secondary (Lavender)
   secondary:     '#C4B0D8',
@@ -20,12 +20,12 @@ export const color = {
   secondaryDim:  'rgba(196,176,216,0.18)',
 
   // Semantic
-  enemy:       '#EF4444',
-  enemyDim:    'rgba(239,68,68,0.12)',
-  gold:        '#F59E0B',
-  goldDim:     'rgba(245,158,11,0.12)',
-  success:     '#10B981',
-  successDim:  'rgba(16,185,129,0.12)',
+  enemy:       '#DC2626',
+  enemyDim:    'rgba(220,38,38,0.12)',
+  gold:        '#D4A200',
+  goldDim:     'rgba(212,162,0,0.12)',
+  success:     '#1A6B40',
+  successDim:  'rgba(26,107,64,0.12)',
   warning:     '#F97316',
 
   // Dark surfaces
@@ -131,8 +131,8 @@ export const type = {
 // ─── Shadows ─────────────────────────────────────────────────────────────────
 
 export const shadow = {
-  primary:   '0 4px 24px rgba(232,67,90,0.22)',
-  primarySm: '0 2px 12px rgba(232,67,90,0.16)',
+  primary:   '0 4px 24px rgba(217,53,24,0.22)',
+  primarySm: '0 2px 12px rgba(217,53,24,0.16)',
   lavender:  '0 4px 20px rgba(196,176,216,0.20)',
   card:      '0 4px 24px rgba(0,0,0,0.10)',
   cardSm:    '0 2px 10px rgba(0,0,0,0.07)',
@@ -157,30 +157,30 @@ export const motion = {
 // ─── Territory Colors ─────────────────────────────────────────────────────────
 
 export const territory = {
-  owned:     '#E8435A',
-  ownedFill: 'rgba(232,67,90,0.28)',
-  enemy:     '#EF4444',
-  enemyFill: 'rgba(239,68,68,0.25)',
-  neutral:   '#9C93A8',
-  contested: '#F59E0B',
+  owned:     '#D93518',
+  ownedFill: 'rgba(217,53,24,0.20)',
+  enemy:     '#DC2626',
+  enemyFill: 'rgba(220,38,38,0.20)',
+  neutral:   '#9CA3AF',
+  contested: '#9E6800',
 } as const;
 
 // ─── Tier Colors ──────────────────────────────────────────────────────────────
 
 export const tier = {
   common:    { label: 'Common',    color: '#9C93A8', bg: 'rgba(156,147,168,0.12)', mult: '1.0×' },
-  uncommon:  { label: 'Uncommon',  color: '#10B981', bg: 'rgba(16,185,129,0.12)',  mult: '1.5×' },
+  uncommon:  { label: 'Uncommon',  color: '#1A6B40', bg: 'rgba(26,107,64,0.12)',  mult: '1.5×' },
   rare:      { label: 'Rare',      color: '#C4B0D8', bg: 'rgba(196,176,216,0.15)', mult: '2.0×' },
-  epic:      { label: 'Epic',      color: '#E8435A', bg: 'rgba(232,67,90,0.12)',   mult: '3.0×' },
-  legendary: { label: 'Legendary', color: '#F59E0B', bg: 'rgba(245,158,11,0.12)', mult: '5.0×' },
+  epic:      { label: 'Epic',      color: '#D93518', bg: 'rgba(217,53,24,0.12)',   mult: '3.0×' },
+  legendary: { label: 'Legendary', color: '#D4A200', bg: 'rgba(212,162,0,0.12)',   mult: '5.0×' },
 } as const;
 
 // ─── Leaderboard Rank Colors ──────────────────────────────────────────────────
 
 export const rank = {
-  gold:   { bg: 'rgba(245,158,11,0.12)',  border: '#F59E0B', text: '#F59E0B' },
-  silver: { bg: 'rgba(196,176,216,0.15)', border: '#C4B0D8', text: '#C4B0D8' },
-  bronze: { bg: 'rgba(232,67,90,0.10)',   border: '#E8435A', text: '#E8435A' },
+  gold:   { bg: 'rgba(212,162,0,0.12)',   border: '#D4A200', text: '#D4A200' },
+  silver: { bg: 'rgba(158,158,158,0.12)', border: '#9E9E9E', text: '#9E9E9E' },
+  bronze: { bg: 'rgba(160,82,45,0.12)',   border: '#A0522D', text: '#A0522D' },
 } as const;
 
 // ─── Component-level compatibility exports ────────────────────────────────────

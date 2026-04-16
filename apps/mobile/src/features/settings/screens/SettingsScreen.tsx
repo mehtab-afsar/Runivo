@@ -16,7 +16,7 @@ const C = {
   bg: '#F8F6F3', white: '#FFF', border: '#DDD9D4',
   black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD',
   red: '#D93518', redBg: '#FEF0EE',
-  proStart: '#E8435A', proEnd: '#D03A4F',
+  proStart: '#D93518', proEnd: '#D03A4F',
 };
 
 export default function SettingsScreen() {

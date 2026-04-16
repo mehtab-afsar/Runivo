@@ -17,7 +17,7 @@ const T = {
   text2:       '#7A7A7A',
   text3:       '#ADADAD',
   mid:         '#EBEBEB',
-  red:         '#E8391C',
+  red:         '#D93518',
   redLight:    '#FFF1EE',
   green:       '#1A7A4A',
   greenLight:  '#EEF8F3',
@@ -108,7 +108,7 @@ export default function TerritoryMap() {
       mapRef.current = map;
       setTimeout(() => map.resize(), 0);
       const el = document.createElement('div');
-      el.innerHTML = `<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center"><div style="position:absolute;inset:0;border-radius:50%;background:rgba(232,57,28,0.15);animation:pulse-ring 2s ease-out infinite"></div><div style="width:14px;height:14px;border-radius:50%;background:#E8391C;border:3px solid white;box-shadow:0 2px 8px rgba(232,57,28,0.4);position:relative;z-index:1"></div></div>`;
+      el.innerHTML = `<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center"><div style="position:absolute;inset:0;border-radius:50%;background:rgba(217,53,24,0.15);animation:pulse-ring 2s ease-out infinite"></div><div style="width:14px;height:14px;border-radius:50%;background:#D93518;border:3px solid white;box-shadow:0 2px 8px rgba(217,53,24,0.4);position:relative;z-index:1"></div></div>`;
       const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([77.2090, 28.6139]);
       userMarkerRef.current = marker;
       watchIdRef.current = navigator.geolocation.watchPosition(pos => {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, Text, StyleSheet } from 'react-native';
 import type { StoredShoe } from '@shared/services/store';
 
-const C = { white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', red: '#E8391C' };
+const C = { white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', red: '#D93518' };
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 

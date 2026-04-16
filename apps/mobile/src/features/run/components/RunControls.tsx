@@ -5,7 +5,7 @@ import { Pause, Play, Square } from 'lucide-react-native';
 const C = {
   black: '#0A0A0A',
   white: '#FFFFFF',
-  red:   '#E8391C',
+  red:   '#D93518',
 };
 
 const FONT = 'Barlow_400Regular';

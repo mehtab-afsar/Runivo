@@ -20,7 +20,7 @@ const glowMap: Record<GlowColor, string> = {
   cyan:    'shadow-[0_2px_16px_rgba(0,180,198,0.1)] border-teal-200',
   magenta: 'shadow-[0_2px_16px_rgba(220,38,127,0.1)] border-pink-200',
   gold:    'shadow-[0_2px_16px_rgba(245,158,11,0.1)] border-amber-200',
-  green:   'shadow-[0_2px_16px_rgba(16,185,129,0.1)] border-emerald-200',
+  green:   'shadow-[0_2px_16px_rgba(26,107,64,0.1)] border-emerald-200',
   orange:  'shadow-[0_2px_16px_rgba(249,115,22,0.1)] border-orange-200',
 };
 

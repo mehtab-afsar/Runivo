@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 const C = {
   black: '#0A0A0A',
   white: '#FFFFFF',
-  red:   '#E8391C',
+  red:   '#D93518',
 };
 
 const FONT_LIGHT = 'Barlow_300Light';

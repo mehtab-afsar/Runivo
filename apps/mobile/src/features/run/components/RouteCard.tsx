@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 
-const C = { stone: '#F0EDE8', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', white: '#FFFFFF', red: '#E8391C' };
+const C = { stone: '#F0EDE8', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', white: '#FFFFFF', red: '#D93518' };
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';

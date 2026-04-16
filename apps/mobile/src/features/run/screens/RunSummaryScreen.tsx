@@ -29,7 +29,7 @@ import RunRouteMap         from '../components/RunRouteMap';
 import { buildStoryDataUrl } from '../services/storyCardGenerator';
 import { uploadStory } from '@shared/services/storiesService';
 
-const C = { bg: '#EDEAE5', black: '#0A0A0A', white: '#FFFFFF', t3: '#A39E98', red: '#E8435A', orange: '#F97316' };
+const C = { bg: '#EDEAE5', black: '#0A0A0A', white: '#FFFFFF', t3: '#A39E98', red: '#D93518', orange: '#F97316' };
 const FI = 'PlayfairDisplay_400Regular_Italic';
 const FS = 'Barlow_600SemiBold'; const FL = 'Barlow_300Light'; const FM = 'Barlow_500Medium';
 type Nav   = NativeStackNavigationProp<RootStackParamList>;

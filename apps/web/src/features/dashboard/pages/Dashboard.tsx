@@ -307,20 +307,43 @@ export default function Dashboard() {
                     initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }}
                     transition={{ duration: 0.22, ease: 'easeOut' }}
                     onClick={() => { navigate('/calories'); haptic('light'); }}
-                    style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    style={{ position: 'absolute', inset: 0, padding: 18, display: 'flex', flexDirection: 'column', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-                      {/* Flame icon */}
-                      <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(249,115,22,0.15)', border: '0.5px solid rgba(249,115,22,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Flame size={26} color="#F97316" strokeWidth={1.5} />
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 16, fontWeight: 500, color: '#fff', fontFamily: F, lineHeight: 1.2, marginBottom: 6 }}>Track your cal</div>
-                        <div style={{ fontSize: 10, fontWeight: 300, color: 'rgba(255,255,255,0.45)', fontFamily: F }}>
-                          {caloriesConsumed > 0 ? `${caloriesConsumed} / ${calorieGoal} kcal today` : `Goal: ${calorieGoal} kcal`}
+                    <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' as const, color: '#fff', fontFamily: F, marginBottom: 16 }}>
+                      Today's calories
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, width: '100%' }}>
+                      {/* Flame + value */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+                        <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(249,115,22,0.15)', border: '0.5px solid rgba(249,115,22,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Flame size={22} color="#F97316" strokeWidth={1.5} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          {(() => {
+                            const calPct = Math.min(caloriesConsumed / Math.max(calorieGoal, 1), 1.05);
+                            const calColor = calPct > 1.05 ? '#C25A00' : calPct >= 0.9 ? '#D93518' : '#1A6B40';
+                            return (
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                                  <span style={{ fontSize: 22, fontWeight: 300, color: calColor, fontFamily: F, letterSpacing: '-0.03em', lineHeight: 1 }}>{caloriesConsumed.toLocaleString()}</span>
+                                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: F }}>/ {calorieGoal} kcal</span>
+                                </div>
+                                <div style={{ height: 4, background: 'rgba(255,255,255,0.12)', borderRadius: 2, overflow: 'hidden' }}>
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.min(calPct / 1.05, 1) * 100}%` }}
+                                    transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
+                                    style={{ height: '100%', background: calColor, borderRadius: 2 }}
+                                  />
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
-                      <div style={{ fontSize: 9, fontWeight: 400, color: 'rgba(255,255,255,0.28)', fontFamily: F, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>Tap to open →</div>
+                      <div style={{ fontSize: 9, fontWeight: 400, color: 'rgba(255,255,255,0.28)', fontFamily: F, textTransform: 'uppercase' as const, letterSpacing: '0.1em' }}>
+                        {caloriesConsumed === 0 ? 'Tap to log food →' : caloriesConsumed >= calorieGoal ? '✓ Goal reached' : `${(calorieGoal - caloriesConsumed).toLocaleString()} kcal remaining`}
+                      </div>
                     </div>
                   </motion.button>
                 )}

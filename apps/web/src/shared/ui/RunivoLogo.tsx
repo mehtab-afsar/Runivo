@@ -1,4 +1,4 @@
-const CRIMSON = '#E8435A';
+const CRIMSON = '#D93518';
 
 interface RunivoLogoProps {
   size?: number;

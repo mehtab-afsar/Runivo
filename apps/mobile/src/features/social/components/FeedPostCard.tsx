@@ -67,13 +67,13 @@ function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
           </LinearGradient>
         </Defs>
         {/* Route glow */}
-        <Polyline points={polyline} fill="none" stroke="#E8435A" strokeWidth="6" strokeOpacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
+        <Polyline points={polyline} fill="none" stroke="#D93518" strokeWidth="6" strokeOpacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
         {/* Route line */}
-        <Polyline points={polyline} fill="none" stroke="#E8435A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <Polyline points={polyline} fill="none" stroke="#D93518" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         {/* Start dot */}
-        <Circle cx={start.x} cy={start.y} r="5" fill="#10B981" stroke="#fff" strokeWidth="1.5" />
+        <Circle cx={start.x} cy={start.y} r="5" fill="#1A6B40" stroke="#fff" strokeWidth="1.5" />
         {/* End dot */}
-        <Circle cx={end.x} cy={end.y} r="5" fill="#E8435A" stroke="#fff" strokeWidth="1.5" />
+        <Circle cx={end.x} cy={end.y} r="5" fill="#D93518" stroke="#fff" strokeWidth="1.5" />
         {/* Bottom fade overlay */}
         <Rect x="0" y="0" width={MAP_W} height={MAP_H} fill="url(#fadeBottom)" />
       </Svg>

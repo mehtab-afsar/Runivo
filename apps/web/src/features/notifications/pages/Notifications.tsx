@@ -28,12 +28,20 @@ export default function Notifications() {
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(217,53,24,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Bell size={18} color={T.red} strokeWidth={2} />
           </div>
-          <div>
+          <div style={{ flex: 1 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: black, margin: 0 }}>Notifications</h1>
             {unreadCount > 0 && (
               <p style={{ fontSize: 12, color: T.red, margin: '1px 0 0', fontWeight: 600 }}>{unreadCount} unread</p>
             )}
           </div>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: F, fontSize: 11, color: T.red, padding: '4px 0' }}
+            >
+              Mark all read
+            </button>
+          )}
         </div>
       </div>
 
@@ -58,7 +66,7 @@ export default function Notifications() {
             <div style={{ width: 60, height: 60, borderRadius: '50%', background: T.stone, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Bell size={26} color={t3} strokeWidth={1.5} />
             </div>
-            <p style={{ fontSize: 17, fontWeight: 700, color: black, margin: '0 0 6px' }}>All caught up</p>
+            <p style={{ fontSize: 17, fontWeight: 700, color: black, margin: '0 0 6px' }}>You're all caught up</p>
             <p style={{ fontSize: 13, color: t3, margin: 0, lineHeight: 1.5 }}>
               Territory claims, kudos and club<br />activity will appear here.
             </p>

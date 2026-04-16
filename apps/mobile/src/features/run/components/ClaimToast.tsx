@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Animated, Text, StyleSheet } from 'react-native';
 import { Flag } from 'lucide-react-native';
 
-const C = { white: '#FFFFFF', red: '#E8391C' };
+const C = { white: '#FFFFFF', red: '#D93518' };
 const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_BOLD = 'Barlow_700Bold';
 

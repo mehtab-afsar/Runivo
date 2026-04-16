@@ -64,7 +64,7 @@ export default function CreateEvent() {
   // font-size must stay at 16px to prevent iOS Safari auto-zoom on focus
   const inputClass = `w-full px-4 py-3.5 rounded-2xl bg-gray-50 border border-gray-200
                       text-gray-900 font-medium placeholder:text-gray-300
-                      focus:outline-none focus:border-[#E8435A] focus:bg-white transition-all`;
+                      focus:outline-none focus:border-[#D93518] focus:bg-white transition-all`;
   const labelClass = 'text-[11px] font-semibold text-gray-400 uppercase tracking-wider pl-1';
 
   return (
@@ -184,8 +184,8 @@ export default function CreateEvent() {
         <button
           onClick={handleSubmit}
           disabled={!canSubmit || saving}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#E8435A] to-[#D03A4F]
-                     text-sm font-bold text-white shadow-[0_4px_16px_rgba(232,67,90,0.25)]
+          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#D93518] to-[#B82D14]
+                     text-sm font-bold text-white shadow-[0_4px_16px_rgba(217,53,24,0.25)]
                      disabled:opacity-40 active:scale-[0.98] transition-transform"
         >
           {saving ? 'Creating Event…' : 'Create Event'}

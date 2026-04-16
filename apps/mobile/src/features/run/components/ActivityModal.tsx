@@ -8,8 +8,8 @@ const FONT_MED = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 
 const ACTIVITIES: { id: ActivityType; label: string; emoji: string; color: string; bg: string }[] = [
-  { id: 'run',           label: 'Run',        emoji: '🏃', color: '#E8391C', bg: '#FDE8E4' },
-  { id: 'jog',           label: 'Jog',        emoji: '🏃', color: '#E8391C', bg: '#FDE8E4' },
+  { id: 'run',           label: 'Run',        emoji: '🏃', color: '#D93518', bg: '#FDE8E4' },
+  { id: 'jog',           label: 'Jog',        emoji: '🏃', color: '#D93518', bg: '#FDE8E4' },
   { id: 'sprint',        label: 'Sprint',     emoji: '⚡', color: '#DC2626', bg: '#FEE2E2' },
   { id: 'walk',          label: 'Walk',       emoji: '🚶', color: '#059669', bg: '#D1FAE5' },
   { id: 'hike',          label: 'Hike',       emoji: '⛰️', color: '#B45309', bg: '#FEF3C7' },

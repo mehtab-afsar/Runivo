@@ -10,14 +10,14 @@ const t3     = 'rgba(0,0,0,0.35)'
 const redLo  = 'rgba(217,53,24,0.08)'
 
 const ICON_CFG: Record<NotificationType, { icon: React.ReactNode; color: string; bg: string }> = {
-  kudos:             { icon: <Heart size={15} strokeWidth={2} />,          color: '#E8435A', bg: 'rgba(232,67,90,0.10)' },
+  kudos:             { icon: <Heart size={15} strokeWidth={2} />,          color: '#D93518', bg: 'rgba(217,53,24,0.10)' },
   comment:           { icon: <MessageCircle size={15} strokeWidth={2} />,  color: '#3B82F6', bg: 'rgba(59,130,246,0.10)' },
   territory_claimed: { icon: <MapPin size={15} strokeWidth={2} />,         color: T.red,     bg: redLo },
-  territory_lost:    { icon: <Shield size={15} strokeWidth={2} />,         color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
+  territory_lost:    { icon: <Shield size={15} strokeWidth={2} />,         color: '#9E6800', bg: 'rgba(158,104,0,0.10)' },
   event_reminder:    { icon: <Calendar size={15} strokeWidth={2} />,       color: '#7C3AED', bg: 'rgba(124,58,237,0.10)' },
-  club_join:         { icon: <Users size={15} strokeWidth={2} />,          color: '#22A05B', bg: 'rgba(34,160,91,0.10)' },
+  club_join:         { icon: <Users size={15} strokeWidth={2} />,          color: '#1A6B40', bg: 'rgba(26,107,64,0.10)' },
   club_invite:       { icon: <Users size={15} strokeWidth={2} />,          color: '#7C3AED', bg: 'rgba(124,58,237,0.10)' },
-  streak:            { icon: <Flame size={15} strokeWidth={2} />,          color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' },
+  streak:            { icon: <Flame size={15} strokeWidth={2} />,          color: '#9E6800', bg: 'rgba(158,104,0,0.10)' },
   system:            { icon: <Bell size={15} strokeWidth={2} />,           color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
   follow:            { icon: <UserPlus size={15} strokeWidth={2} />,       color: T.red,     bg: redLo },
 }

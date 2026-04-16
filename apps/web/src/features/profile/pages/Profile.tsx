@@ -15,7 +15,7 @@ import { haptic } from '@shared/lib/haptics';
 import { soundManager } from '@shared/audio/sounds';
 import { getWeekDates, todayKey } from '@features/nutrition/services/nutritionService';
 
-type ProfileTab = 'overview' | 'stats' | 'awards' | 'nutrition';
+type ProfileTab = 'overview' | 'stats' | 'awards' | 'nutrition' | 'gear';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const F  = "'Barlow', 'DM Sans', -apple-system, sans-serif";
@@ -38,7 +38,7 @@ const C = {
 const AI = { accent: '#5A3A8A', tint: '#F2EEF9' } as const;
 
 // ─── Avatar swatch colors ─────────────────────────────────────────────────────
-const SWATCHES = ['#0A0A0A', '#E8435A', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
+const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 const fmtMinsec = (secs: number) => {
@@ -533,7 +533,7 @@ export default function Profile() {
 
       {/* ── Tab bar ──────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', background: '#fff', borderBottom: `0.5px solid ${C.border}`, position: 'sticky', top: 0, zIndex: 10 }}>
-        {(['overview', 'stats', 'awards', 'nutrition'] as ProfileTab[]).map(t => (
+        {(['overview', 'stats', 'awards', 'nutrition', 'gear'] as ProfileTab[]).map(t => (
           <button
             key={t}
             onClick={() => { setTab(t); haptic('light'); }}
@@ -565,6 +565,22 @@ export default function Profile() {
           {/* ═══ OVERVIEW ═══ */}
           {tab === 'overview' && (
             <>
+              {/* AI brief card — mirrors mobile overview tab */}
+              {aiBrief && (
+                <div style={{ background: '#fff', padding: '14px 18px', marginBottom: 1, borderBottom: `0.5px solid ${C.hair}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: AI.accent }} />
+                    <span style={{ fontFamily: F, fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.12em', color: C.muted }}>This week</span>
+                  </div>
+                  <p style={{ fontFamily: FD, fontStyle: 'italic', fontSize: 15, color: C.ink, lineHeight: 1.5, marginBottom: aiBrief.tip ? 8 : 0 }}>
+                    {aiBrief.headline}
+                  </p>
+                  {aiBrief.tip && (
+                    <p style={{ fontFamily: F, fontWeight: 300, fontSize: 12, color: C.mid, lineHeight: 1.6 }}>{aiBrief.tip}</p>
+                  )}
+                </div>
+              )}
+
               {/* Stats 2×2 */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: C.hair, marginBottom: 1 }}>
                 {statCells.map(s => (
@@ -1141,6 +1157,100 @@ export default function Profile() {
                     </button>
                   </div>
                 </>
+              )}
+            </>
+          )}
+
+          {/* ═══ GEAR ═══ */}
+          {tab === 'gear' && (
+            <>
+              {shoes.length === 0 ? (
+                <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+                  <span style={{ fontSize: 40, display: 'block', marginBottom: 12 }}>👟</span>
+                  <div style={{ fontSize: 16, fontStyle: 'italic', fontFamily: "'Playfair Display', serif", color: C.ink, marginBottom: 8 }}>
+                    No shoes tracked yet
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 300, color: C.muted, marginBottom: 20 }}>
+                    Add your running shoes to track mileage and get retirement alerts.
+                  </div>
+                  <button
+                    onClick={() => navigate('/gear')}
+                    style={{ padding: '12px 24px', borderRadius: 10, background: C.ink, border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: F }}
+                  >
+                    Manage gear
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: '12px 12px 24px' }}>
+                  {shoes.map(shoe => {
+                    const usedKm = allRuns
+                      .filter(r => r.shoeId === shoe.id)
+                      .reduce((sum, r) => sum + r.distanceMeters / 1000, 0);
+                    const maxKm = shoe.maxKm ?? 800;
+                    const pct = Math.min(usedKm / maxKm, 1);
+                    const barColor = pct >= 0.85 ? '#D93518' : pct >= 0.6 ? '#9E6800' : '#1A6B40';
+                    const statusLabel = shoe.isRetired ? 'Retired' : pct >= 0.85 ? 'Replace soon' : pct >= 0.6 ? 'Moderate wear' : 'Good';
+                    const statusColor = shoe.isRetired ? C.muted : pct >= 0.85 ? '#D93518' : pct >= 0.6 ? '#9E6800' : '#1A6B40';
+                    const statusBg    = shoe.isRetired ? C.hair   : pct >= 0.85 ? '#FEF0EE'  : pct >= 0.6 ? '#FDF6E8'  : '#EDF7F2';
+                    return (
+                      <div
+                        key={shoe.id}
+                        onClick={() => navigate('/gear')}
+                        style={{
+                          background: '#fff',
+                          borderRadius: 14,
+                          border: `0.5px solid ${C.border}`,
+                          padding: '14px 14px',
+                          marginBottom: 8,
+                          cursor: 'pointer',
+                          opacity: shoe.isRetired ? 0.55 : 1,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: C.hair, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <span style={{ fontSize: 18 }}>👟</span>
+                            </div>
+                            <div>
+                              <div style={{ fontFamily: F, fontSize: 13, fontWeight: 500, color: C.ink }}>{shoe.brand} {shoe.model}</div>
+                              <div style={{ fontFamily: F, fontSize: 11, fontWeight: 300, color: C.muted, marginTop: 1 }}>
+                                {Math.round(usedKm)} km / {maxKm} km
+                              </div>
+                            </div>
+                          </div>
+                          <span style={{
+                            fontFamily: F, fontSize: 10, fontWeight: 500, letterSpacing: '0.04em',
+                            color: statusColor, background: statusBg,
+                            borderRadius: 6, padding: '3px 8px',
+                          }}>
+                            {statusLabel}
+                          </span>
+                        </div>
+
+                        {/* Mileage bar */}
+                        <div style={{ height: 5, background: C.hair, borderRadius: 3, overflow: 'hidden' }}>
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${pct * 100}%` }}
+                            transition={{ duration: 0.6, ease: 'easeOut' }}
+                            style={{ height: '100%', background: barColor, borderRadius: 3 }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+                          <span style={{ fontFamily: F, fontSize: 9, color: C.muted }}>{Math.round(pct * 100)}% used</span>
+                          <span style={{ fontFamily: F, fontSize: 9, color: C.muted }}>{Math.round(maxKm - usedKm)} km left</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => navigate('/gear')}
+                    style={{ width: '100%', marginTop: 4, padding: '12px', borderRadius: 10, background: C.hair, border: 'none', color: C.ink, fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', cursor: 'pointer', fontFamily: F }}
+                  >
+                    Manage all gear →
+                  </button>
+                </div>
               )}
             </>
           )}

@@ -89,7 +89,7 @@ const ACT_CHIP: Record<ActivityType, { label: string; Icon: typeof TrendingUp }>
 const badgeConfig: Record<string, { icon: typeof Flame; color: string; bg: string; label: string }> = {
   top10:     { icon: Crown,  color: 'text-amber-600',  bg: 'bg-amber-50',   label: 'Top 10'    },
   streak:    { icon: Flame,  color: 'text-orange-600', bg: 'bg-orange-50',  label: 'On Fire'   },
-  conqueror: { icon: Shield, color: 'text-[#E8435A]',  bg: 'bg-[#F9E4E7]', label: 'Conqueror' },
+  conqueror: { icon: Shield, color: 'text-[#D93518]',  bg: 'bg-[#FEF0EE]', label: 'Conqueror' },
 };
 
 // ── Interfaces ─────────────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ interface ContactEntry {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   'from-rose-400 to-pink-500', 'from-blue-400 to-indigo-500',
-  'from-orange-400 to-red-500', 'from-[#E8435A] to-[#D03A4F]',
+  'from-orange-400 to-red-500', 'from-[#D93518] to-[#B82D14]',
   'from-purple-400 to-violet-500', 'from-amber-400 to-orange-400',
   'from-emerald-400 to-green-500', 'from-sky-400 to-blue-500',
 ];
@@ -610,7 +610,7 @@ export default function Feed() {
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="text-[16px] font-bold text-gray-900">{profileRunner.name}</span>
               {profileRunner.isVerified && (
-                <div className="w-4.5 h-4.5 rounded-full bg-[#E8435A] flex items-center justify-center">
+                <div className="w-4.5 h-4.5 rounded-full bg-[#D93518] flex items-center justify-center">
                   <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
                 </div>
               )}
@@ -639,7 +639,7 @@ export default function Feed() {
               className={`flex-1 py-2.5 rounded-xl text-[13px] font-semibold flex items-center justify-center gap-1.5 transition-all ${
                 isFollowingProfile
                   ? 'bg-gray-100 text-gray-600'
-                  : 'bg-[#E8435A] text-white active:bg-[#D03A4F] shadow-sm shadow-[rgba(232,67,90,0.15)]'
+                  : 'bg-[#D93518] text-white active:bg-[#B82D14] shadow-sm shadow-[rgba(217,53,24,0.15)]'
               }`}
             >
               {isFollowingProfile ? (
@@ -705,8 +705,8 @@ export default function Feed() {
                     <>
                       <div className="h-4 w-px bg-gray-200" />
                       <div className="flex items-center gap-1">
-                        <Flag className="w-3 h-3 text-[#E8435A]" strokeWidth={2} />
-                        <span className="text-[12px] font-semibold text-[#E8435A]">{act.zones}</span>
+                        <Flag className="w-3 h-3 text-[#D93518]" strokeWidth={2} />
+                        <span className="text-[12px] font-semibold text-[#D93518]">{act.zones}</span>
                       </div>
                     </>
                   )}
@@ -1163,7 +1163,7 @@ export default function Feed() {
                             {hasStory && (
                               <div style={{
                                 position: 'absolute', inset: -3, borderRadius: '50%',
-                                background: 'conic-gradient(#E8435A 0%, #FF6B35 50%, #E8435A 100%)',
+                                background: 'conic-gradient(#D93518 0%, #FF6B35 50%, #D93518 100%)',
                                 zIndex: 0,
                               }} />
                             )}
@@ -1553,7 +1553,7 @@ export default function Feed() {
               {visibleFromClubs.length > 0 && (
                 <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mb-5">
                   <div className="flex items-center gap-1.5 px-5 mb-2.5">
-                    <Users className="w-3.5 h-3.5 text-[#E8435A]" strokeWidth={2} />
+                    <Users className="w-3.5 h-3.5 text-[#D93518]" strokeWidth={2} />
                     <span className="text-[13px] font-bold text-gray-900">From Your Clubs</span>
                   </div>
                   <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
@@ -1570,7 +1570,7 @@ export default function Feed() {
                         </div>
                         <div onClick={(e) => { e.stopPropagation(); toggleFollow(runner.id); haptic('light'); }}
                           className={`px-4 py-1.5 rounded-lg text-[12px] font-semibold transition-all flex-shrink-0 ${
-                            following.has(runner.id) ? 'bg-gray-100 text-gray-500' : 'bg-[#E8435A] text-white active:bg-[#D03A4F]'
+                            following.has(runner.id) ? 'bg-gray-100 text-gray-500' : 'bg-[#D93518] text-white active:bg-[#B82D14]'
                           }`}>{following.has(runner.id) ? 'Following' : 'Follow'}</div>
                       </button>
                     ))}

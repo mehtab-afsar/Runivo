@@ -103,7 +103,7 @@ export default function TerritoryMapScreen() {
           onFortify={async h3 => { await map.fortify(h3); navigation.navigate('ActiveRun' as any); map.clearSelection(); }} />
       )}
 
-      {map.loading && <View style={ss.loader}><ActivityIndicator color="#E8391C" size="large" /></View>}
+      {map.loading && <View style={ss.loader}><ActivityIndicator color="#D93518" size="large" /></View>}
     </View>
   );
 }

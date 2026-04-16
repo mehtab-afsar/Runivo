@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 
-const C = { black: '#0A0A0A', white: '#FFFFFF', red: '#E8435A', amber: '#F59E0B', green: '#10B981' };
+const C = { black: '#0A0A0A', white: '#FFFFFF', red: '#D93518', amber: '#9E6800', green: '#1A6B40' };
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -81,14 +81,14 @@ export default function RewardsCard({
 
 const ss = StyleSheet.create({
   card:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: C.black, borderRadius: 4, padding: 20 },
-  levelUpBanner:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(232,67,90,0.15)', borderWidth: 1, borderColor: 'rgba(232,67,90,0.3)', borderRadius: 3, padding: 10, marginBottom: 16 },
+  levelUpBanner:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(217,53,24,0.15)', borderWidth: 1, borderColor: 'rgba(217,53,24,0.3)', borderRadius: 3, padding: 10, marginBottom: 16 },
   levelUpEmoji:   { fontSize: 20 },
   levelUpTitle:   { fontFamily: FONT_SEMI, fontSize: 13, color: C.red },
-  levelUpSub:     { fontFamily: FONT, fontSize: 11, color: 'rgba(232,67,90,0.7)', marginTop: 1 },
+  levelUpSub:     { fontFamily: FONT, fontSize: 11, color: 'rgba(217,53,24,0.7)', marginTop: 1 },
   xpRow:          { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
   xpLabel:        { fontFamily: FONT_SEMI, fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)' },
   xpValue:        { fontFamily: FONT_LIGHT, fontSize: 22, color: C.red, letterSpacing: -0.5 },
-  xpUnit:         { fontFamily: FONT, fontSize: 12, color: 'rgba(232,67,90,0.7)' },
+  xpUnit:         { fontFamily: FONT, fontSize: 12, color: 'rgba(217,53,24,0.7)' },
   xpTrack:        { height: 4, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
   xpFill:         { height: '100%', backgroundColor: C.red, borderRadius: 2 },
   xpRowLabels:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
@@ -99,6 +99,6 @@ const ss = StyleSheet.create({
   rewardLabel:    { fontFamily: FONT, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
   rewardValue:    { fontFamily: FONT_LIGHT, fontSize: 16, color: C.amber },
   missionsHeader: { fontFamily: FONT_SEMI, fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.3)', marginBottom: 10 },
-  missionCheck:   { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(16,185,129,0.15)', alignItems: 'center', justifyContent: 'center' },
+  missionCheck:   { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(26,107,64,0.15)', alignItems: 'center', justifyContent: 'center' },
   missionMark:    { fontSize: 9, color: C.green },
 });

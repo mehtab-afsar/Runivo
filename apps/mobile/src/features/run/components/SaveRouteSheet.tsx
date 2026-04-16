@@ -12,7 +12,7 @@ import { pushSavedRoutes } from '@shared/services/sync';
 const EMOJI_OPTIONS = ['🏃', '🏁', '🌲', '🏔️', '⭐', '🔥', '🌊', '💪', '🌅', '🏙️', '🛤️', '🎯'];
 const C = {
   bg: '#EDEAE5', white: '#FFFFFF', black: '#0A0A0A',
-  red: '#E8435A', border: '#DDD9D4', t2: '#6B6B6B', t3: '#ADADAD',
+  red: '#D93518', border: '#DDD9D4', t2: '#6B6B6B', t3: '#ADADAD',
   stone: '#F0EDE8',
 };
 

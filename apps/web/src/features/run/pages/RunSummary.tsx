@@ -26,7 +26,7 @@ const T = {
   surface: '#FFFFFF',
   t2:      '#6B6560',
   t3:      '#A39E98',
-  red:     '#E8435A',
+  red:     '#D93518',
 }
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
@@ -217,24 +217,24 @@ export const RunSummary: React.FC = () => {
           id: 'route-glow',
           type: 'line',
           source: 'route',
-          paint: { 'line-color': 'rgba(232,67,90,0.2)', 'line-width': 14, 'line-blur': 10 },
+          paint: { 'line-color': 'rgba(217,53,24,0.2)', 'line-width': 14, 'line-blur': 10 },
         })
         map.addLayer({
           id: 'route-line',
           type: 'line',
           source: 'route',
-          paint: { 'line-color': '#E8435A', 'line-width': 4, 'line-opacity': 0.95 },
+          paint: { 'line-color': '#D93518', 'line-width': 4, 'line-opacity': 0.95 },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
         })
         const startEl = document.createElement('div')
-        startEl.style.cssText = 'width:10px;height:10px;background:#10B981;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(16,185,129,0.5)'
+        startEl.style.cssText = 'width:10px;height:10px;background:#1A6B40;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(26,107,64,0.5)'
         new maplibregl.Marker({ element: startEl }).setLngLat(routeCoords[0]).addTo(map)
         const endEl = document.createElement('div')
-        endEl.style.cssText = 'width:12px;height:12px;background:#E8435A;border:2px solid white;border-radius:50%;box-shadow:0 1px 6px rgba(232,67,90,0.6)'
+        endEl.style.cssText = 'width:12px;height:12px;background:#D93518;border:2px solid white;border-radius:50%;box-shadow:0 1px 6px rgba(217,53,24,0.6)'
         new maplibregl.Marker({ element: endEl }).setLngLat(routeCoords[routeCoords.length - 1]).addTo(map)
       } else {
         const endEl = document.createElement('div')
-        endEl.style.cssText = 'width:14px;height:14px;background:#E8435A;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(232,67,90,0.5)'
+        endEl.style.cssText = 'width:14px;height:14px;background:#D93518;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(217,53,24,0.5)'
         new maplibregl.Marker({ element: endEl }).setLngLat(center).addTo(map)
       }
     })
@@ -256,8 +256,8 @@ export const RunSummary: React.FC = () => {
               type: 'geojson',
               data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: routeCoords } },
             })
-            map.addLayer({ id: 'route-glow', type: 'line', source: 'route', paint: { 'line-color': 'rgba(232,67,90,0.2)', 'line-width': 14, 'line-blur': 10 } })
-            map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#E8435A', 'line-width': 4, 'line-opacity': 0.95 }, layout: { 'line-cap': 'round', 'line-join': 'round' } })
+            map.addLayer({ id: 'route-glow', type: 'line', source: 'route', paint: { 'line-color': 'rgba(217,53,24,0.2)', 'line-width': 14, 'line-blur': 10 } })
+            map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': '#D93518', 'line-width': 4, 'line-opacity': 0.95 }, layout: { 'line-cap': 'round', 'line-join': 'round' } })
           }
         } catch { /* already added */ }
       }
@@ -296,9 +296,9 @@ export const RunSummary: React.FC = () => {
   const minSplitPace = splits.length > 0 ? Math.min(...splits.map(s => s.pace)) : Math.max(0, runData.pace - 1)
 
   const splitBarColor = (pace: number) => {
-    if (pace <= avgSplitPace - 0.2) return '#10B981'
+    if (pace <= avgSplitPace - 0.2) return '#1A6B40'
     if (pace >= avgSplitPace + 0.2) return T.red
-    return '#F59E0B'
+    return '#D4A200'
   }
 
   const dateLabel = new Date(runData.startTime ?? Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -406,7 +406,7 @@ export const RunSummary: React.FC = () => {
             {[
               {
                 icon: <Flag size={15} strokeWidth={2} color={T.red} />,
-                iconBg: 'rgba(232,67,90,0.08)',
+                iconBg: 'rgba(217,53,24,0.08)',
                 label: 'Territories Claimed',
                 value: runData.success ? (runData.territoriesClaimed || 0) : 0,
                 valueColor: T.red,
@@ -427,10 +427,10 @@ export const RunSummary: React.FC = () => {
               },
               {
                 icon: <span style={{ fontSize: 14, lineHeight: 1 }}>🔥</span>,
-                iconBg: 'rgba(16,185,129,0.08)',
+                iconBg: 'rgba(26,107,64,0.08)',
                 label: 'Calories',
                 value: `${calories}`,
-                valueColor: '#10B981',
+                valueColor: '#1A6B40',
               },
             ].map(({ icon, iconBg, label, value, valueColor }) => (
               <div key={label} style={{
@@ -519,8 +519,8 @@ export const RunSummary: React.FC = () => {
               {/* Level-up banner */}
               {runData.leveledUp && (
                 <div style={{
-                  background: 'rgba(232,67,90,0.15)',
-                  border: '1px solid rgba(232,67,90,0.3)',
+                  background: 'rgba(217,53,24,0.15)',
+                  border: '1px solid rgba(217,53,24,0.3)',
                   borderRadius: 3,
                   padding: '10px 14px',
                   marginBottom: 16,
@@ -529,7 +529,7 @@ export const RunSummary: React.FC = () => {
                   <span style={{ fontSize: 20 }}>🎉</span>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: T.red }}>Level Up!</div>
-                    <div style={{ fontSize: 11, color: 'rgba(232,67,90,0.7)', marginTop: 1 }}>
+                    <div style={{ fontSize: 11, color: 'rgba(217,53,24,0.7)', marginTop: 1 }}>
                       Lv {runData.preRunLevel} → Lv {runData.newLevel}
                     </div>
                   </div>
@@ -542,7 +542,7 @@ export const RunSummary: React.FC = () => {
                   XP Earned
                 </div>
                 <div style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 22, color: T.red, letterSpacing: '-0.01em' }}>
-                  +{rewards.xp} <span style={{ fontSize: 12, color: 'rgba(232,67,90,0.7)' }}>XP</span>
+                  +{rewards.xp} <span style={{ fontSize: 12, color: 'rgba(217,53,24,0.7)' }}>XP</span>
                 </div>
               </div>
 
@@ -569,7 +569,7 @@ export const RunSummary: React.FC = () => {
                       <span style={{ fontSize: 15 }}>🪙</span>
                       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Coins earned</span>
                     </div>
-                    <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 16, color: '#F59E0B' }}>
+                    <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 16, color: '#D4A200' }}>
                       +{rewards.coins}
                     </span>
                   </div>
@@ -580,7 +580,7 @@ export const RunSummary: React.FC = () => {
                       <span style={{ fontSize: 15 }}>🪙</span>
                       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Bonus coins</span>
                     </div>
-                    <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 16, color: '#F59E0B' }}>
+                    <span style={{ fontFamily: "'Barlow', sans-serif", fontWeight: 300, fontSize: 16, color: '#D4A200' }}>
                       +{rewards.bonusCoins}
                     </span>
                   </div>
@@ -599,10 +599,10 @@ export const RunSummary: React.FC = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{
                             width: 16, height: 16, borderRadius: '50%',
-                            background: 'rgba(16,185,129,0.15)',
+                            background: 'rgba(26,107,64,0.15)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                           }}>
-                            <span style={{ fontSize: 9, color: '#10B981' }}>✓</span>
+                            <span style={{ fontSize: 9, color: '#1A6B40' }}>✓</span>
                           </div>
                           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{m.title}</span>
                         </div>

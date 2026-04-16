@@ -9,7 +9,7 @@ let MapLibreGL: any = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* not available */ }
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-const C = { border: '#DDD9D4', t3: '#A39E98', red: '#E8435A', green: '#1A6B40' };
+const C = { border: '#DDD9D4', t3: '#A39E98', red: '#D93518', green: '#1A6B40' };
 
 interface Props {
   route: { lat: number; lng: number }[];
@@ -64,7 +64,7 @@ export default function RunRouteMap({ route }: Props) {
         <MapLibreGL.ShapeSource id="route" shape={geojson}>
           <MapLibreGL.LineLayer
             id="route-glow"
-            style={{ lineColor: 'rgba(232,67,90,0.25)', lineWidth: 14, lineBlur: 10 }}
+            style={{ lineColor: 'rgba(217,53,24,0.25)', lineWidth: 14, lineBlur: 10 }}
           />
           <MapLibreGL.LineLayer
             id="route-line"

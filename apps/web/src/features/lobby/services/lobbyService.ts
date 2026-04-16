@@ -23,10 +23,11 @@ export interface LobbyMessage {
 }
 
 export const LOBBY_ROOMS: LobbyRoom[] = [
-  { id: 'general', name: 'General', description: 'General running chat', color: '#D93518', emoji: '🏃' },
-  { id: 'territory', name: 'Territory', description: 'Territory strategy & tips', color: '#1A6B40', emoji: '🗺️' },
-  { id: 'training', name: 'Training', description: 'Training plans & advice', color: '#9E6800', emoji: '💪' },
-  { id: 'events', name: 'Events', description: 'Upcoming races & events', color: '#0055C8', emoji: '🏅' },
+  { id: 'global',   name: 'Global Runners',     description: 'Connect with runners worldwide',     color: '#1E4D8C', emoji: '🌍' },
+  { id: 'training', name: 'Training Talk',       description: 'Plans, tips, and workout advice',    color: '#1A6B40', emoji: '🏃' },
+  { id: 'races',    name: 'Race Reports',        description: 'Share your race results and stories', color: '#9E6800', emoji: '🏆' },
+  { id: 'speed',    name: 'Speed & Intervals',   description: 'Track work, tempo runs, PRs',        color: '#D93518', emoji: '⚡' },
+  { id: 'night',    name: 'Night Runners',       description: 'For those who run after dark',       color: '#6B2D8C', emoji: '🌙' },
 ];
 
 export async function getLobbyRoomCounts(): Promise<Record<string, number>> {
@@ -45,6 +46,13 @@ export async function fetchLobbyMessages(_roomId: string): Promise<LobbyMessage[
 
 export async function sendLobbyMessage(_roomId: string, _content: string): Promise<void> {
   // stub
+}
+
+export async function reactToMessage(messageId: string, emoji: string, userId: string): Promise<void> {
+  await supabase.from('lobby_reactions').upsert(
+    { message_id: messageId, user_id: userId, emoji },
+    { onConflict: 'message_id,user_id' }
+  );
 }
 
 export function subscribeToLobbyRoom(_roomId: string, _callback: (msg: LobbyMessage) => void): () => void {

@@ -9,9 +9,9 @@ interface Props {
   onFortify: (h3Index: string) => void;
 }
 
-function defenseColor(d: number) { return d > 70 ? '#1A7A4A' : d > 30 ? '#B87A00' : '#E8391C'; }
+function defenseColor(d: number) { return d > 70 ? '#1A7A4A' : d > 30 ? '#B87A00' : '#D93518'; }
 function statusLabel(isOwn: boolean, ownerName: string | null) { return isOwn ? 'YOURS' : ownerName ? 'ENEMY' : 'NEUTRAL'; }
-function statusColor(isOwn: boolean, ownerName: string | null) { return isOwn ? '#E8391C' : ownerName ? '#DC2626' : '#ADADAD'; }
+function statusColor(isOwn: boolean, ownerName: string | null) { return isOwn ? '#D93518' : ownerName ? '#DC2626' : '#ADADAD'; }
 function statusBg(isOwn: boolean, ownerName: string | null)    { return isOwn ? '#FFF1EE' : ownerName ? '#FEF2F2' : '#EBEBEB'; }
 
 export function TerritoryBottomSheet({ territory: t, onClose, onFortify }: Props) {

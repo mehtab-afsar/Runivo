@@ -20,9 +20,9 @@ interface StoryCardData {
 export function buildStoryDataUrl(data: StoryCardData): string {
   const { distance, duration, pace, xp, heading, actionType } = data;
 
-  const accentColor = actionType === 'attack' ? '#E8391C'
+  const accentColor = actionType === 'attack' ? '#D93518'
     : actionType === 'defend' ? '#1A6B40'
-    : actionType === 'fortify' ? '#F59E0B'
+    : actionType === 'fortify' ? '#D4A200'
     : '#0A0A0A';
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" width="400" height="700">

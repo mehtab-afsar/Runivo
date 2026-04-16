@@ -6,7 +6,7 @@ import { supabase } from '@shared/services/supabase';
 import { fetchProfileData, updateProfile, uploadAvatar } from '../services/profileService';
 import type { ProfileTab } from '../types';
 
-const SWATCHES = ['#0A0A0A', '#E8435A', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
+const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
 export interface PersonalRecord {
   label: string;

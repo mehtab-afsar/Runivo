@@ -34,9 +34,9 @@ export default function ExperienceStep({ value, onChange }: Props) {
               onClick={() => { onChange(opt.id); haptic('light'); }}
               className="w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl border transition-all"
               style={selected ? {
-                background: 'linear-gradient(135deg, #E8435A, #D03A4F)',
+                background: 'linear-gradient(135deg, #D93518, #B82D14)',
                 borderColor: 'transparent',
-                boxShadow: '0 6px 20px rgba(232,67,90,0.15)',
+                boxShadow: '0 6px 20px rgba(217,53,24,0.15)',
               } : {
                 backgroundColor: '#FFFFFF',
                 borderColor: '#F3F3F3',

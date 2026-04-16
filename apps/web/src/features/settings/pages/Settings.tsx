@@ -18,7 +18,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   return (
     <button
       onClick={() => { onChange(!value); haptic('light'); }}
-      className={`w-11 h-6 rounded-full transition-colors shrink-0 ${value ? 'bg-[#E8435A]' : 'bg-gray-200'}`}
+      className={`w-11 h-6 rounded-full transition-colors shrink-0 ${value ? 'bg-[#D93518]' : 'bg-gray-200'}`}
     >
       <div className={`w-5 h-5 rounded-full !bg-white shadow-sm transform transition-transform mt-0.5 ${value ? 'translate-x-[22px]' : 'translate-x-[2px]'}`} />
     </button>
@@ -77,7 +77,7 @@ function SegmentedControl<T extends string | number>({
           key={opt.value}
           onClick={() => { onChange(opt.value); haptic('light'); }}
           className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition ${
-            value === opt.value ? 'bg-white text-[#E8435A] shadow-sm' : 'text-gray-400'
+            value === opt.value ? 'bg-white text-[#D93518] shadow-sm' : 'text-gray-400'
           }`}
         >
           {opt.label}
@@ -118,7 +118,7 @@ export default function Settings() {
   if (!loaded) {
     return (
       <div className="h-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex items-center justify-center">
-        <div className="w-6 h-6 rounded-full border-2 border-[#F9E4E7] border-t-[#E8435A] animate-spin" />
+        <div className="w-6 h-6 rounded-full border-2 border-[#FEF0EE] border-t-[#D93518] animate-spin" />
       </div>
     );
   }
@@ -319,8 +319,8 @@ export default function Settings() {
           <button
             onClick={() => { navigate('/subscription'); haptic('medium'); }}
             className="w-full flex items-center justify-between px-4 py-4 rounded-2xl
-                       bg-gradient-to-r from-[#E8435A] to-[#D03A4F]
-                       shadow-[0_4px_20px_rgba(232,67,90,0.2)]
+                       bg-gradient-to-r from-[#D93518] to-[#B82D14]
+                       shadow-[0_4px_20px_rgba(217,53,24,0.2)]
                        active:opacity-90 transition"
           >
             <div className="flex items-center gap-3">

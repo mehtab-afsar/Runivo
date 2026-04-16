@@ -6,6 +6,10 @@ import { T, F, FD } from '@shared/design-system/tokens';
 
 const redBo = 'rgba(217,53,24,0.2)';
 
+// Medal constants — match mobile LeaderboardScreen exactly
+const MEDAL_EMOJIS  = ['🥈', '🥇', '🥉'];
+const MEDAL_COLORS  = ['#9E9E9E', '#D4A200', '#A0522D']; // silver, gold, bronze
+
 const AVATAR_PALETTE = ['#C4B0D8', '#8FD4B0', '#F4A460'];
 
 export default function Leaderboard() {
@@ -352,44 +356,44 @@ export default function Leaderboard() {
             }}
           >
             {podiumOrder.map((entry, posIdx) => {
-              const rank = podiumRanks[posIdx];
-              const avatarSize = podiumAvatarSizes[posIdx];
+              const rank      = podiumRanks[posIdx];
+              const avatarSize    = podiumAvatarSizes[posIdx];
               const avatarFontSize = podiumFontSizes[posIdx];
-              const blockW = podiumBlockWidths[posIdx];
-              const blockH = podiumBlockHeights[posIdx];
-              const isFirst = rank === 1;
-              const blockBg = isFirst ? T.black : rank === 2 ? T.mid : T.stone;
-              const rankColor = isFirst ? '#FFFFFF' : rank === 2 ? T.t2 : T.t3;
-              const scoreColor = isFirst ? T.red : T.black;
+              const blockW    = podiumBlockWidths[posIdx];
+              const blockH    = podiumBlockHeights[posIdx];
+              const isFirst   = rank === 1;
+              const blockBg   = isFirst ? T.black : T.border;
+              const rankColor = isFirst ? '#FFFFFF' : T.t2;
+              const medalColor = MEDAL_COLORS[posIdx];
 
               return (
                 <div
                   key={entry.name + rank}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 5,
-                  }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
                 >
-                  {isFirst && (
-                    <Award size={16} strokeWidth={1.5} style={{ color: T.amber }} />
-                  )}
-                  {!isFirst && <div style={{ height: 16 }} />}
-                  {/* Avatar */}
+                  {/* Award crown for 1st */}
+                  {isFirst
+                    ? <Award size={16} strokeWidth={1.5} style={{ color: '#D4A200', marginBottom: 2 }} />
+                    : <div style={{ height: 18 }} />}
+                  {/* Medal emoji */}
+                  <span style={{ fontSize: avatarFontSize + 2, lineHeight: 1, marginBottom: 2 }}>
+                    {MEDAL_EMOJIS[posIdx]}
+                  </span>
+                  {/* Avatar — bordered with medal color */}
                   <div
                     style={{
-                      width: avatarSize,
-                      height: avatarSize,
+                      width:        avatarSize,
+                      height:       avatarSize,
                       borderRadius: '50%',
-                      background: AVATAR_PALETTE[posIdx],
-                      display: 'flex',
-                      alignItems: 'center',
+                      background:   AVATAR_PALETTE[posIdx],
+                      border:       `2px solid ${medalColor}`,
+                      display:      'flex',
+                      alignItems:   'center',
                       justifyContent: 'center',
-                      fontSize: avatarFontSize,
-                      fontWeight: 500,
-                      color: '#FFFFFF',
-                      fontFamily: F,
+                      fontSize:     avatarFontSize,
+                      fontWeight:   500,
+                      color:        '#FFFFFF',
+                      fontFamily:   F,
                     }}
                   >
                     {entry.name.charAt(0).toUpperCase()}
@@ -397,52 +401,38 @@ export default function Leaderboard() {
                   {/* Name */}
                   <span
                     style={{
-                      fontSize: 9,
-                      fontWeight: 400,
-                      color: T.black,
-                      fontFamily: F,
-                      textAlign: 'center',
-                      maxWidth: 56,
-                      overflow: 'hidden',
+                      fontSize:     9,
+                      fontWeight:   400,
+                      color:        T.black,
+                      fontFamily:   F,
+                      textAlign:    'center',
+                      maxWidth:     56,
+                      overflow:     'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
+                      whiteSpace:   'nowrap',
                     }}
                   >
                     {entry.name}
                   </span>
                   {/* Score */}
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 500,
-                      color: scoreColor,
-                      fontFamily: F,
-                    }}
-                  >
+                  <span style={{ fontSize: 10, fontWeight: 500, color: T.black, fontFamily: F }}>
                     {formatValue(entry.value)}
                   </span>
                   {/* Podium block */}
                   <div
                     style={{
-                      width: blockW,
-                      height: blockH,
-                      background: blockBg,
+                      width:        blockW,
+                      height:       blockH,
+                      background:   blockBg,
                       borderRadius: '6px 6px 0 0',
-                      border: rank === 3 ? `0.5px solid ${T.border}` : undefined,
-                      display: 'flex',
-                      alignItems: 'center',
+                      border:       isFirst ? undefined : `0.5px solid ${T.border}`,
+                      display:      'flex',
+                      alignItems:   'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 500,
-                        color: rankColor,
-                        fontFamily: F,
-                      }}
-                    >
-                      {rank}
+                    <span style={{ fontSize: 11, fontWeight: 500, color: rankColor, fontFamily: F }}>
+                      #{rank}
                     </span>
                   </div>
                 </div>

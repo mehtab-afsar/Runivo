@@ -19,6 +19,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
+import { ToastProvider } from './src/shared/components/ToastProvider';
 
 // Keep splash visible until fonts and auth state are ready
 SplashScreen.preventAutoHideAsync();
@@ -70,7 +71,9 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <Root />
+        <ToastProvider>
+          <Root />
+        </ToastProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -40,7 +40,7 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
             key={unreadCount}
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 flex items-center justify-center rounded-full bg-[#E8435A] text-[9px] font-bold text-white leading-none"
+            className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 flex items-center justify-center rounded-full bg-[#D93518] text-[9px] font-bold text-white leading-none"
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </motion.span>
@@ -61,7 +61,7 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-gray-900">Notifications</span>
                 {unreadCount > 0 && (
-                  <span className="text-stat text-[10px] font-bold text-white bg-[#E8435A] rounded-full px-1.5 py-0.5 leading-none">
+                  <span className="text-stat text-[10px] font-bold text-white bg-[#D93518] rounded-full px-1.5 py-0.5 leading-none">
                     {unreadCount}
                   </span>
                 )}
@@ -69,7 +69,7 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
               {unreadCount > 0 && (
                 <button
                   onClick={() => markAllRead()}
-                  className="text-[11px] text-[#E8435A] font-medium active:opacity-70"
+                  className="text-[11px] text-[#D93518] font-medium active:opacity-70"
                 >
                   Mark all read
                 </button>
@@ -80,7 +80,7 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
             <div className="max-h-72 overflow-y-auto overscroll-contain divide-y divide-gray-50">
               {loading ? (
                 <div className="py-10 text-center">
-                  <div className="w-6 h-6 rounded-full border-2 border-[#F9E4E7] border-t-[#E8435A] animate-spin mx-auto" />
+                  <div className="w-6 h-6 rounded-full border-2 border-[#FEF0EE] border-t-[#D93518] animate-spin mx-auto" />
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="py-10 text-center">
@@ -97,7 +97,7 @@ export function NotificationBell({ variant = 'dark' }: { variant?: 'dark' | 'lig
             {/* Footer */}
             <button
               onClick={() => { setOpen(false); navigate('/notifications') }}
-              className="w-full py-3 text-xs font-semibold text-[#E8435A] border-t border-gray-100 active:bg-gray-50 transition-colors"
+              className="w-full py-3 text-xs font-semibold text-[#D93518] border-t border-gray-100 active:bg-gray-50 transition-colors"
             >
               See all notifications
             </button>

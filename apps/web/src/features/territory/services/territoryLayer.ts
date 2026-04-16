@@ -44,7 +44,7 @@ export function addTerritoryOverlay(
     paint: {
       'line-color': [
         'case',
-        ['==', ['get', 'status'], 'owned'], '#E8435A',
+        ['==', ['get', 'status'], 'owned'], '#D93518',
         '#DC267F',
       ],
       'line-width': 1.5,

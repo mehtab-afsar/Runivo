@@ -82,7 +82,7 @@ export default function ProfileScreen() {
           )}
           {tab === 'awards' && <AwardsTab />}
           {tab === 'nutrition' && <NutritionTab />}
-          {tab === 'gear' && <GearTab shoes={shoes} onAddShoe={() => navigation.navigate('GearAdd')} />}
+          {tab === 'gear' && <GearTab shoes={shoes} runs={runs} onAddShoe={() => navigation.navigate('GearAdd')} />}
         </View>
       </ScrollView>
 

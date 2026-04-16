@@ -1,19 +1,21 @@
 /**
- * ActiveRunScreen — live run view. ≤80 lines.
+ * ActiveRunScreen — live run view.
  * Data: useActiveRun (GPS, distance, pace, claim progress).
  * Navigation: buildRunSummaryParams helper.
  * UI: RunHUD, RunControls, ClaimToast, ClaimProgressRing, FinishConfirmSheet.
+ * Gate: useFeatureGate enforces territory cap for free-tier users.
  */
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Play, Zap } from 'lucide-react-native';
+import { Play, Zap, Crown } from 'lucide-react-native';
 import { useActiveRun }         from '../hooks/useActiveRun';
 import { postRunSync }          from '@shared/services/sync';
 import { buildRunSummaryParams } from '../services/runNavigationHelper';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { useFeatureGate }     from '@features/subscription/hooks/useFeatureGate';
 import ClaimToast         from '../components/ClaimToast';
 import RunHUD             from '../components/RunHUD';
 import RunControls        from '../components/RunControls';
@@ -23,7 +25,7 @@ import BeatPacerChip      from '../components/BeatPacerChip';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
 
-const C = { bg:'#F7F6F4', black:'#0A0A0A', red:'#E8391C', muted:'#6B6B6B', white:'#FFFFFF', mid:'#E0DFDD', green:'#10B981', amber:'#F59E0B' };
+const C = { bg:'#F7F6F4', black:'#0A0A0A', red:'#D93518', muted:'#6B6B6B', white:'#FFFFFF', mid:'#E0DFDD', green:'#1A6B40', amber:'#F59E0B' };
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
 
@@ -32,8 +34,31 @@ export default function ActiveRunScreen() {
   const nav = useNavigation<Nav>();
   const route = useRoute<Route>();
   const ghostRoutePoints = route.params?.ghostRoutePoints;
-  const run = useActiveRun();
+  const run  = useActiveRun();
+  const gate = useFeatureGate();
   const flashAnim = useRef(new Animated.Value(0)).current;
+
+  // When claim progress reaches 100% and user is at territory limit, navigate to
+  // the subscription screen instead of silently failing on the server.
+  const atTerritoryLimit =
+    !gate.loading &&
+    !gate.isPremium &&
+    !gate.canClaimTerritory(run.playerTerritoryCount ?? 0);
+
+  useEffect(() => {
+    if (atTerritoryLimit && run.claimProgress >= 100 && run.isRunning) {
+      Alert.alert(
+        'Territory Limit Reached',
+        `Free plan is capped at ${gate.territoryLimit} zones. Upgrade to claim unlimited territory.`,
+        [
+          { text: 'Keep Running', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => nav.navigate('Subscription') },
+        ],
+      );
+    }
+  // Only re-trigger when progress first hits 100 while at limit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atTerritoryLimit, run.claimProgress >= 100]);
 
   // Flash red border when territory is claimed
   useEffect(() => {
@@ -99,8 +124,10 @@ export default function ActiveRunScreen() {
 
       {run.isRunning && run.claimProgress > 0 && (
         <View style={ss.claimBar}>
-          <View style={[ss.claimFill, { width: `${run.claimProgress}%` as `${number}%` }]} />
-          <Text style={ss.claimLbl}>{Math.round(run.claimProgress)}% CLAIMING</Text>
+          <View style={[ss.claimFill, { width: `${run.claimProgress}%` as `${number}%`, backgroundColor: atTerritoryLimit ? C.amber : C.red }]} />
+          {atTerritoryLimit
+            ? <View style={ss.claimLblRow}><Crown size={8} color={C.amber} strokeWidth={2} /><Text style={[ss.claimLbl, { color: C.amber }]}> UPGRADE TO CLAIM</Text></View>
+            : <Text style={ss.claimLbl}>{Math.round(run.claimProgress)}% CLAIMING</Text>}
         </View>
       )}
       <ClaimToast event={run.lastClaimEvent} onDismiss={() => {}} />
@@ -141,6 +168,7 @@ const ss = StyleSheet.create({
   claimBar:    { height: 4, backgroundColor: C.mid, flexDirection: 'row', alignItems: 'center' },
   claimFill:   { height: '100%', backgroundColor: C.red },
   claimLbl:    { position: 'absolute', right: 8, fontFamily: 'Barlow_600SemiBold', fontSize: 8, letterSpacing: 0.6, color: C.red },
+  claimLblRow: { position: 'absolute', right: 8, flexDirection: 'row', alignItems: 'center' },
   errBanner:   { backgroundColor: '#FEF0EE', padding: 10, alignItems: 'center' },
   errTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.red },
   energyBanner:{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDF6E8', padding: 8, paddingHorizontal: 16 },
@@ -148,5 +176,5 @@ const ss = StyleSheet.create({
   pacerWrap:   { position: 'absolute', top: 56, right: 16 },
   controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
   startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
-  claimFlash:  { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: '#E8391C', borderRadius: 2, zIndex: 40, pointerEvents: 'none' } as any,
+  claimFlash:  { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: '#D93518', borderRadius: 2, zIndex: 40, pointerEvents: 'none' } as any,
 });

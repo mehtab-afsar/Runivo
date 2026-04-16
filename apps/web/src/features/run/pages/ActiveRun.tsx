@@ -18,7 +18,7 @@ const T = {
   surface: '#FFFFFF',
   border:  '#E0DFDD',
   black:   '#0A0A0A',
-  red:     '#E8391C',
+  red:     '#D93518',
   muted:   '#6B6B6B',
   font:    "'Barlow', -apple-system, sans-serif",
 };
@@ -225,7 +225,7 @@ export default function ActiveRun() {
     if (!routeSourceAdded.current) {
       try {
         map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } });
-        map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': `rgba(232,57,28,0.2)`, 'line-width': 14, 'line-blur': 6 } });
+        map.addLayer({ id: 'route-glow', type: 'line', source: 'route', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': `rgba(217,53,24,0.2)`, 'line-width': 14, 'line-blur': 6 } });
         map.addLayer({ id: 'route-line', type: 'line', source: 'route', paint: { 'line-color': T.red, 'line-width': 5, 'line-opacity': 0.95 }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
         routeSourceAdded.current = true;
       } catch (e) { console.warn(e); }
@@ -314,7 +314,7 @@ export default function ActiveRun() {
                     animate={{ scaleX: claimProgress / 100 }} transition={{ type: 'spring', stiffness: 50, damping: 15 }} />
                 </div>
               </div>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: `2px solid rgba(232,57,28,0.2)`, borderTopColor: T.red, animation: 'claim-spin 1.4s linear infinite', flexShrink: 0 }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: `2px solid rgba(217,53,24,0.2)`, borderTopColor: T.red, animation: 'claim-spin 1.4s linear infinite', flexShrink: 0 }} />
             </div>
           </motion.div>
         )}
@@ -341,7 +341,7 @@ export default function ActiveRun() {
               </div>
               <div style={{ marginLeft: 4, textAlign: 'right' }}>
                 <p style={{ fontWeight: 500, fontSize: 13, color: T.red }}>+{lastClaimEvent.xpEarned} XP</p>
-                <p style={{ fontWeight: 300, fontSize: 11, color: '#F59E0B', marginTop: 1 }}>+{lastClaimEvent.coinsEarned}</p>
+                <p style={{ fontWeight: 300, fontSize: 11, color: '#D4A200', marginTop: 1 }}>+{lastClaimEvent.coinsEarned}</p>
               </div>
             </div>
           </motion.div>
@@ -383,7 +383,7 @@ export default function ActiveRun() {
             {energyBlocked && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden mx-4 mb-2">
                 <div style={{ background: '#FFFBEB', border: `0.5px solid rgba(245,158,11,0.25)`, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D4A200" strokeWidth="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" /></svg>
                   <span style={{ fontFamily: T.font, fontWeight: 400, fontSize: 11, color: '#B45309' }}>Low energy — run ~1km to unlock next claim</span>
                 </div>
               </motion.div>

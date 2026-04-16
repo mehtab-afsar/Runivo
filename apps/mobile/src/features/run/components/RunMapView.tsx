@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 let MapLibreGL: any = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* native not available */ }
 
-const C = { bg: '#F7F6F4', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', red: '#E8391C' };
+const C = { bg: '#F7F6F4', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', red: '#D93518' };
 const FONT = 'Barlow_400Regular';
 const FONT_LIGHT = 'Barlow_300Light';
 

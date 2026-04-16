@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 
-const C = { red: '#E8391C' };
+const C = { red: '#D93518' };
 const FONT_BOLD = 'Barlow_700Bold';
 const FONT_SEMI = 'Barlow_600SemiBold';
 
