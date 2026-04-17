@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { Platform, StyleSheet, Linking } from 'react-native';
-import { Home, Play, Rss, Sparkles, User } from 'lucide-react-native';
+import { StyleSheet, Linking } from 'react-native';
+import { CustomTabBar } from './CustomTabBar';
 import { NavigationContainer, useNavigationContainerRef, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -55,7 +55,7 @@ export type RootStackParamList = {
   // Authenticated
   Main:      undefined;
   // Modal / overlay stacks
-  ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[] } | undefined;
+  ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[]; activityType?: string } | undefined;
   RunSummary: {
     runId: string;
     runData?: {
@@ -110,86 +110,20 @@ export type TabParamList = {
   Profile:   undefined;
 };
 
-// ─── Tab icons ───────────────────────────────────────────────────────────────
-const ACTIVE_COLOR   = '#D93518';
-const INACTIVE_COLOR = '#ADADAD';
-const ICON_SIZE      = 22;
-
-type TabIconName = 'Home' | 'Play' | 'Rss' | 'Sparkles' | 'User';
-const ICON_MAP: Record<TabIconName, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
-  Home, Play, Rss, Sparkles, User,
-};
-
-function TabIcon({ focused, icon }: { focused: boolean; icon: TabIconName }) {
-  const Icon = ICON_MAP[icon];
-  return (
-    <Icon
-      size={ICON_SIZE}
-      color={focused ? ACTIVE_COLOR : INACTIVE_COLOR}
-      strokeWidth={focused ? 2 : 1.5}
-    />
-  );
-}
-
 // ─── Bottom Tab Navigator ────────────────────────────────────────────────────
 const Tab = createBottomTabNavigator<TabParamList>();
 
 function TabNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#F5F3EF',
-          borderTopWidth: 0,
-          paddingBottom: Platform.OS === 'ios' ? 0 : 8,
-          height: Platform.OS === 'ios' ? 80 : 60,
-        },
-        tabBarActiveTintColor: '#D93518',
-        tabBarInactiveTintColor: '#ADADAD',
-        tabBarLabelStyle: { fontFamily: 'Barlow_400Regular', fontSize: 10 },
-      }}
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen
-        name="Dashboard"
-        component={DashboardScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="Home" />,
-        }}
-      />
-      <Tab.Screen
-        name="Feed"
-        component={FeedScreen}
-        options={{
-          tabBarLabel: 'Feed',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="Rss" />,
-        }}
-      />
-      <Tab.Screen
-        name="Run"
-        component={RunScreen}
-        options={{
-          tabBarLabel: 'Run',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="Play" />,
-        }}
-      />
-      <Tab.Screen
-        name="Coach"
-        component={CoachScreen}
-        options={{
-          tabBarLabel: 'Coach',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="Sparkles" />,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ focused }) => <TabIcon focused={focused} icon="User" />,
-        }}
-      />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Feed"      component={FeedScreen}      />
+      <Tab.Screen name="Run"       component={RunScreen}       />
+      <Tab.Screen name="Coach"     component={CoachScreen}     />
+      <Tab.Screen name="Profile"   component={ProfileScreen}   />
     </Tab.Navigator>
   );
 }

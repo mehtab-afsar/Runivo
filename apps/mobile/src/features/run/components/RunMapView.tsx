@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Animated, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Layers } from 'lucide-react-native';
 
 let MapLibreGL: any = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* native not available */ }
@@ -66,7 +67,7 @@ export default function RunMapView({
 
       <View style={ss.rightControls}>
         <Pressable style={ss.mapBtn} onPress={() => { setShowStylePicker(s => !s); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
-          <Text style={{ fontSize: 14 }}>🗺</Text>
+          <Layers size={16} color={C.black} strokeWidth={1.5} />
         </Pressable>
       </View>
 

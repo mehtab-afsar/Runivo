@@ -21,6 +21,12 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
 import { ToastProvider } from './src/shared/components/ToastProvider';
 
+// Initialize MapLibre before any map renders (required for non-Mapbox tile sources)
+try {
+  const ML = require('@maplibre/maplibre-react-native');
+  ML.setAccessToken(null);
+} catch { /* native module not linked in this build */ }
+
 // Keep splash visible until fonts and auth state are ready
 SplashScreen.preventAutoHideAsync();
 

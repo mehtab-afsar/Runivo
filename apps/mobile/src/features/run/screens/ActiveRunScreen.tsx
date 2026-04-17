@@ -34,7 +34,7 @@ export default function ActiveRunScreen() {
   const nav = useNavigation<Nav>();
   const route = useRoute<Route>();
   const ghostRoutePoints = route.params?.ghostRoutePoints;
-  const run  = useActiveRun();
+  const run  = useActiveRun(route.params?.activityType ?? 'run');
   const gate = useFeatureGate();
   const flashAnim = useRef(new Animated.Value(0)).current;
 

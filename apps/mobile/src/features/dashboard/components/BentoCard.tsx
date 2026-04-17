@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Calendar, Users, Award, Zap, Play } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { Calendar, Users, Trophy } from 'lucide-react-native';
 import { WeeklyRing } from './WeeklyRing';
 
 const C = { border: '#DDD9D4', red: '#D93518' };
 
 const QUICK_ACTIONS = [
-  { Icon: Calendar, name: 'Events',      screen: 'Events' },
-  { Icon: Users,    name: 'Clubs',       screen: 'Club' },
-  { Icon: Award,    name: 'Leaderboard', screen: 'Leaderboard' },
+  { icon: Calendar, name: 'Events',      screen: 'Events' },
+  { icon: Users,    name: 'Clubs',       screen: 'Club' },
+  { icon: Trophy,   name: 'Leaderboard', screen: 'Leaderboard' },
 ] as const;
 
 interface Props {
@@ -28,13 +28,13 @@ export function BentoCard({ weeklyKm, goalKm, runDays, onNavigate, onStartRun }:
           <WeeklyRing weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays} />
         </View>
         <View style={{ flex: 1, gap: 8 }}>
-          {QUICK_ACTIONS.map(({ Icon, name, screen }) => (
+          {QUICK_ACTIONS.map(({ icon: Icon, name, screen }) => (
             <Pressable
               key={name}
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onNavigate(screen); }}
               style={ss.qa}
             >
-              <View style={ss.qaIcon}><Icon size={14} color={C.red} strokeWidth={1.5} /></View>
+              <View style={ss.qaIcon}><Icon size={16} color="#0A0A0A" strokeWidth={1.5} /></View>
               <Text style={ss.qaLabel}>{name}</Text>
             </Pressable>
           ))}
@@ -42,11 +42,10 @@ export function BentoCard({ weeklyKm, goalKm, runDays, onNavigate, onStartRun }:
       </View>
       <Pressable onPress={onStartRun} style={ss.startBtn}>
         <View style={ss.startLeft}>
-          <View style={ss.startCircle}><Play size={16} color="#fff" fill="#fff" strokeWidth={1.5} /></View>
+          <View style={ss.startCircle}><Text style={ss.startPlay}>&#x25B6;</Text></View>
           <View><Text style={ss.startHint}>TAP TO BEGIN</Text><Text style={ss.startLabel}>Start run</Text></View>
         </View>
         <View style={ss.energy}>
-          <Zap size={11} color="rgba(255,255,255,0.5)" strokeWidth={1.5} />
           <Text style={ss.energyText}>1 energy</Text>
         </View>
       </Pressable>
@@ -64,6 +63,7 @@ const ss = StyleSheet.create({
   startBtn:    { backgroundColor: '#0A0A0A', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   startLeft:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
   startCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+  startPlay:   { fontSize: 14, color: '#fff', marginLeft: 2 },
   startHint:   { fontFamily: 'Barlow_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: 1 },
   startLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 17, color: '#fff', lineHeight: 22 },
   energy:      { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.14)', borderRadius: 10, paddingVertical: 5, paddingHorizontal: 11 },

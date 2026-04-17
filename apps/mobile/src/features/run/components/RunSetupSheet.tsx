@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, Animated, StyleSheet, Switch } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Music2 } from 'lucide-react-native';
+import { Music2, Activity, Footprints, Bike, Mountain, TreePine, Timer, TrendingUp, Route as RouteIcon, Check } from 'lucide-react-native';
 import type { ActivityType } from '../types';
 
 const C = {
@@ -12,14 +12,15 @@ const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 
-const ACTIVITIES: { id: ActivityType; label: string; emoji: string; bg: string }[] = [
-  { id: 'run',      label: 'Run',      emoji: '🏃', bg: '#FDE8E4' },
-  { id: 'walk',     label: 'Walk',     emoji: '🚶', bg: '#D1FAE5' },
-  { id: 'cycle',    label: 'Cycle',    emoji: '🚴', bg: '#E0F2FE' },
-  { id: 'hike',     label: 'Hike',     emoji: '⛰️', bg: '#FEF3C7' },
-  { id: 'trail',    label: 'Trail',    emoji: '🌲', bg: '#DCFCE7' },
-  { id: 'interval', label: 'Intervals',emoji: '🔁', bg: '#EDE9FE' },
-  { id: 'long_run', label: 'Long Run', emoji: '📈', bg: '#FFEDD5' },
+type IconComponent = typeof Activity;
+const ACTIVITIES: { id: ActivityType; label: string; icon: IconComponent; color: string; bg: string }[] = [
+  { id: 'run',      label: 'Run',       icon: Activity,    color: '#D93518', bg: '#FDE8E4' },
+  { id: 'walk',     label: 'Walk',      icon: Footprints,  color: '#059669', bg: '#D1FAE5' },
+  { id: 'cycle',    label: 'Cycle',     icon: Bike,        color: '#0284C7', bg: '#E0F2FE' },
+  { id: 'hike',     label: 'Hike',      icon: Mountain,    color: '#B45309', bg: '#FEF3C7' },
+  { id: 'trail',    label: 'Trail',     icon: TreePine,    color: '#15803D', bg: '#DCFCE7' },
+  { id: 'interval', label: 'Intervals', icon: Timer,       color: '#7C3AED', bg: '#EDE9FE' },
+  { id: 'long_run', label: 'Long Run',  icon: TrendingUp,  color: '#EA580C', bg: '#FFEDD5' },
 ];
 
 interface RunSetupSheetProps {
@@ -48,6 +49,7 @@ export default function RunSetupSheet({
   onPacerToggle, onActivityPress, onRoutePress, onStartPress,
 }: RunSetupSheetProps) {
   const activity = ACTIVITIES.find(a => a.id === activityType) ?? ACTIVITIES[0];
+  const ActivityIcon = activity.icon;
 
   return (
     <Animated.View style={[ss.sheet, { height: sheetAnim }]} {...panHandlers}>
@@ -70,7 +72,7 @@ export default function RunSetupSheet({
       <View style={ss.selectorRow}>
         <Pressable style={[ss.selectorBtn, ss.selectorBtnBorder]} onPress={onActivityPress}>
           <View style={[ss.selectorIcon, { backgroundColor: activity.bg }]}>
-            <Text style={{ fontSize: 14 }}>{activity.emoji}</Text>
+            <ActivityIcon size={16} color={activity.color} strokeWidth={1.5} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={ss.selectorMeta}>Activity</Text>
@@ -80,7 +82,9 @@ export default function RunSetupSheet({
         </Pressable>
         <Pressable style={ss.selectorBtn} onPress={onRoutePress}>
           <View style={[ss.selectorIcon, { backgroundColor: selectedRouteName ? C.black : C.stone }]}>
-            <Text style={{ fontSize: 14 }}>{selectedRouteName ? '✓' : '🗺'}</Text>
+            {selectedRouteName
+              ? <Check size={14} color="#fff" strokeWidth={2.5} />
+              : <RouteIcon size={14} color={C.muted} strokeWidth={1.5} />}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={ss.selectorMeta}>Route</Text>

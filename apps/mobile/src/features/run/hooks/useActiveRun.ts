@@ -68,7 +68,7 @@ function formatPace(kmPerSec: number): string {
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-export function useActiveRun() {
+export function useActiveRun(activityType: string = 'run') {
   const gameEngine = useGameEngine();
 
   const [state, setState] = useState<ActiveRunState>({
@@ -356,7 +356,7 @@ export function useActiveRun() {
 
     const result = await gameEngine.endRunSession({
       id:             finalRunId,
-      activityType:   'run',
+      activityType:   activityType,
       startTime:      startTimeRef.current,
       endTime:        Date.now(),
       distanceMeters: finalDistance * 1000,

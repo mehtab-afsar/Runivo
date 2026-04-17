@@ -39,7 +39,12 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
-// Native files take priority over web files; cjs/mjs needed for supabase-js dist
+// This project's web app lives at apps/web (Vite). Expo web mode is NOT used.
+// Restricting Metro to native platforms prevents the browser from loading a
+// broken React Native bundle when hitting localhost:8081.
+config.resolver.platforms = ['ios', 'android', 'native'];
+
+// Native files take priority; cjs/mjs needed for supabase-js dist
 config.resolver.sourceExts = [
   'native.ts',
   'native.tsx',
