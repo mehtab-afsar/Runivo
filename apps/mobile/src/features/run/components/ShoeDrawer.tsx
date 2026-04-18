@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { Check } from 'lucide-react-native';
 import type { StoredShoe } from '@shared/services/store';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', black: '#0A0A0A', mid: '#E8E4DF', t2: '#6B6560' };
+const C = Colors;
 const FONT      = 'Barlow_400Regular';
 const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_BOLD = 'Barlow_700Bold';
@@ -24,7 +26,7 @@ export default function ShoeDrawer({ shoes, selectedShoe, bottomInset, onSelect,
           <Pressable key={shoe.id} style={ss.row} onPress={() => onSelect(shoe)}>
             <View style={[ss.dot, { backgroundColor: shoe.color ?? C.black }]} />
             <Text style={ss.name}>{shoe.nickname ?? `${shoe.brand} ${shoe.model}`}</Text>
-            {shoe.id === selectedShoe?.id && <Text style={ss.check}>✓</Text>}
+            {shoe.id === selectedShoe?.id && <Check size={14} color={C.black} strokeWidth={2} />}
           </Pressable>
         ))}
       </Pressable>

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', t3: '#ADADAD' };
+const C = Colors;
 
 interface SettingSectionProps {
   title: string;

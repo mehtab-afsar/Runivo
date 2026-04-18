@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { TrendingUp, MapPin, Zap, Navigation, MessageSquare, ThumbsUp, Star } from 'lucide-react-native';
+import { TrendingUp, MapPin, Zap, Navigation, MessageSquare, ThumbsUp, Star, Flame, Trophy, Sparkles } from 'lucide-react-native';
 import Svg, { Polyline, Circle, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import type { FeedPost, ActivityType } from '@features/social/types';
+import { Colors } from '@theme';
 
-const C = {
-  white: '#FFFFFF', stone: '#F0EDE8', mid: '#E8E4DF', border: '#DDD9D4',
-  black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518',
-};
+const C = Colors;
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -103,12 +101,13 @@ export function FeedPostCard({ post, onKudos, onPress, onUserPress }: Props) {
   const actLabel = ACT_CONFIG[actType]?.label ?? 'Run';
 
   // Badges
-  const badges: { bg: string; fg: string; text: string }[] = [];
-  if (post.territoriesClaimed > 0) badges.push({ bg: '#FEF0EE', fg: C.red, text: `⚡ ${post.territoriesClaimed} Zone${post.territoriesClaimed !== 1 ? 's' : ''}` });
-  if (post.xpEarned > 0) badges.push({ bg: '#EDF7F2', fg: '#1A6B40', text: `✨ ${post.xpEarned} XP` });
-  if (post.isPR) badges.push({ bg: '#FDF6E8', fg: '#9E6800', text: '🏆 PR' });
-  if ((post.streakDays ?? 0) > 0) badges.push({ bg: '#FEF0E6', fg: '#C25A00', text: `🔥 ${post.streakDays} day streak` });
-  if (post.leveledUp) badges.push({ bg: '#F0EBF8', fg: '#6B2FBF', text: '🎉 Leveled up!' });
+  type BadgeEntry = { bg: string; fg: string; text: string; Icon?: typeof Zap };
+  const badges: BadgeEntry[] = [];
+  if (post.territoriesClaimed > 0) badges.push({ bg: '#FEF0EE', fg: C.red, text: `${post.territoriesClaimed} Zone${post.territoriesClaimed !== 1 ? 's' : ''}`, Icon: Zap });
+  if (post.xpEarned > 0) badges.push({ bg: '#EDF7F2', fg: '#1A6B40', text: `${post.xpEarned} XP`, Icon: Sparkles });
+  if (post.isPR) badges.push({ bg: '#FDF6E8', fg: '#9E6800', text: 'PR', Icon: Trophy });
+  if ((post.streakDays ?? 0) > 0) badges.push({ bg: '#FEF0E6', fg: '#C25A00', text: `${post.streakDays} day streak`, Icon: Flame });
+  if (post.leveledUp) badges.push({ bg: '#F0EBF8', fg: '#6B2FBF', text: 'Leveled up!', Icon: Star });
 
   return (
     <Pressable style={s.card} onPress={onPress}>
@@ -158,7 +157,8 @@ export function FeedPostCard({ post, onKudos, onPress, onUserPress }: Props) {
       {badges.length > 0 && (
         <View style={s.badgesRow}>
           {badges.map((b, i) => (
-            <View key={i} style={[s.badge, { backgroundColor: b.bg }]}>
+            <View key={i} style={[s.badge, s.badgeRow, { backgroundColor: b.bg }]}>
+              {b.Icon && <b.Icon size={9} color={b.fg} strokeWidth={2} />}
               <Text style={[s.badgeText, { color: b.fg }]}>{b.text}</Text>
             </View>
           ))}
@@ -225,6 +225,7 @@ const s = StyleSheet.create({
   // Badges
   badgesRow:   { flexDirection: 'row', gap: 5, paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid, flexWrap: 'wrap' },
   badge:       { borderRadius: 2, paddingHorizontal: 8, paddingVertical: 3 },
+  badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 3 },
   badgeText:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 0.4 },
   // Reactions
   reactBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 11, paddingBottom: 14 },

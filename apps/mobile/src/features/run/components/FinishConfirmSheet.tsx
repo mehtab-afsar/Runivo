@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', black: '#0A0A0A', red: '#D93518', mid: '#E0DFDD', muted: '#6B6B6B' };
+const C = Colors;
 const FONT      = 'Barlow_400Regular';
 const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_BOLD = 'Barlow_700Bold';

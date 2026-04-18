@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
 import type { GoalType } from '../types';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', red: '#D93518', stone: '#F0EDE8' };
+const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_SEMI = 'Barlow_600SemiBold';

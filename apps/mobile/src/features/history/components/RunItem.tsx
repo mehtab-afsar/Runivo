@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { StoredRun } from '@shared/services/store';
 import { fmtDist, fmtDuration, fmtShortDate } from '@mobile/shared/lib/formatters';
+import { Colors } from '@theme';
 
-const C = { white: '#FFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', red: '#D93518' };
+const C = Colors;
 
 interface Props {
   run: StoredRun;

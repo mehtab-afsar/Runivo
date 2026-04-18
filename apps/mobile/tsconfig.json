@@ -7,7 +7,9 @@
       "@shared/*":        ["../../packages/shared/src/*"],
       "@features/*":      ["./src/features/*"],
       "@navigation/*":    ["./src/navigation/*"],
-      "@mobile/shared/*": ["./src/shared/*"]
+      "@mobile/shared/*": ["./src/shared/*"],
+      "@theme":           ["./src/theme/index.ts"],
+      "@theme/*":         ["./src/theme/*"]
     }
   },
   "include": [

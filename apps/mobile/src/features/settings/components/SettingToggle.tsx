@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
-const C = { stone: '#F0EDE8', black: '#0A0A0A', t3: '#ADADAD' };
+const C = Colors;
 
 interface SegmentedProps {
   options: string[];

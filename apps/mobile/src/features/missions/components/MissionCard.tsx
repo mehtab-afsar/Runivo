@@ -1,24 +1,23 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { MapPin, Map, Flag, Wind, Flame, Timer, Target, Coins, Check, Zap, Shield, Swords, type LucideIcon } from 'lucide-react-native';
 import type { Mission } from '@shared/services/missions';
 import { DifficultyBadge } from './DifficultyBadge';
+import { Colors } from '@theme';
 
-const C = {
-  white: '#FFFFFF', stone: '#F0EDE8', border: '#DDD9D4', black: '#0A0A0A',
-  t2: '#6B6B6B', red: '#D93518', green: '#1A6B40', greenLo: '#EDF7F2', amber: '#9E6800',
-};
+const C = Colors;
 
-const TYPE_EMOJI: Record<string, string> = {
-  run_distance:        '📍',
-  claim_territories:   '⚡',
-  fortify_territories: '🛡️',
-  explore_new_hexes:   '🗺️',
-  run_in_enemy_zone:   '⚔️',
-  capture_enemy:       '🏴',
-  speed_run:           '💨',
-  run_streak:          '🔥',
-  complete_run:        '✅',
-  beat_pace:           '⏱️',
+const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
+  run_distance:        { Icon: MapPin,  color: '#D93518' },
+  claim_territories:   { Icon: Zap,    color: '#EAB308' },
+  fortify_territories: { Icon: Shield, color: '#059669' },
+  explore_new_hexes:   { Icon: Map,    color: '#0284C7' },
+  run_in_enemy_zone:   { Icon: Swords, color: '#DC2626' },
+  capture_enemy:       { Icon: Flag,   color: '#9CA3AF' },
+  speed_run:           { Icon: Wind,   color: '#64748B' },
+  run_streak:          { Icon: Flame,  color: '#EA580C' },
+  complete_run:        { Icon: Check,  color: '#059669' },
+  beat_pace:           { Icon: Timer,  color: '#D93518' },
 };
 
 interface MissionCardProps {
@@ -29,13 +28,14 @@ interface MissionCardProps {
 export function MissionCard({ mission, onClaim }: MissionCardProps) {
   const pct = Math.min(1, mission.current / mission.target);
   const diff = (mission.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard';
-  const emoji = TYPE_EMOJI[mission.type] ?? '🎯';
+  const typeIcon = TYPE_ICON[mission.type] ?? { Icon: Target, color: '#D93518' };
+  const { Icon: MissionIcon, color: iconColor } = typeIcon;
 
   return (
     <View style={[ss.card, mission.claimed && ss.cardClaimed]}>
       <View style={ss.cardRow}>
         <View style={ss.iconBox}>
-          <Text style={{ fontSize: 18 }}>{emoji}</Text>
+          <MissionIcon size={18} color={iconColor} strokeWidth={1.5} />
         </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <View style={ss.titleRow}>
@@ -57,7 +57,12 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
         </Text>
         <View style={ss.rewardRow}>
           {mission.rewards.xp > 0 && <Text style={ss.rewardText}>+{mission.rewards.xp} XP</Text>}
-          {mission.rewards.coins > 0 && <Text style={[ss.rewardText, { color: C.amber }]}> +{mission.rewards.coins}💰</Text>}
+          {mission.rewards.coins > 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[ss.rewardText, { color: C.amber }]}> +{mission.rewards.coins} </Text>
+              <Coins size={11} color={C.amber} strokeWidth={1.5} />
+            </View>
+          )}
         </View>
       </View>
 
@@ -67,8 +72,9 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
         </Pressable>
       )}
       {mission.claimed && (
-        <View style={ss.claimedBanner}>
-          <Text style={ss.claimedText}>✓ Reward claimed</Text>
+        <View style={[ss.claimedBanner, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+          <Check size={12} color={C.green} strokeWidth={2} />
+          <Text style={ss.claimedText}>Reward claimed</Text>
         </View>
       )}
     </View>

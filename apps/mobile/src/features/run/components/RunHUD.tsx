@@ -1,11 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
-const C = {
-  black: '#0A0A0A',
-  white: '#FFFFFF',
-  red:   '#D93518',
-};
+const C = Colors;
 
 const FONT_LIGHT = 'Barlow_300Light';
 const FONT_SEMI  = 'Barlow_600SemiBold';

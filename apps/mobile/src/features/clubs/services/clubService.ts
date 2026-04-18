@@ -60,7 +60,7 @@ export async function createClub(
       join_policy: joinPolicy,
       member_count: 1,
       total_km: 0,
-      created_by: userId,
+      owner_id: userId,
     })
     .select('id, name, description, badge_emoji, member_count, total_km, join_policy')
     .single();
@@ -86,6 +86,12 @@ export async function createClub(
   };
 }
 
+interface ClubMemberRow {
+  user_id: string;
+  role: string;
+  profiles: { username: string | null; level: number | null; total_distance_km: number | null } | null;
+}
+
 /** Fetch club members ranked by total_km descending. */
 export async function fetchClubMembers(clubId: string): Promise<ClubMember[]> {
   const { data } = await supabase
@@ -93,13 +99,13 @@ export async function fetchClubMembers(clubId: string): Promise<ClubMember[]> {
     .select('user_id, role, profiles(username, level, total_distance_km)')
     .eq('club_id', clubId);
   if (!data) return [];
-  return (data as any[])
+  return (data as unknown as ClubMemberRow[])
     .map(m => ({
       id: m.user_id,
       username: m.profiles?.username ?? 'Runner',
       level: m.profiles?.level ?? 1,
       total_km: Math.round(Number(m.profiles?.total_distance_km ?? 0)),
-      role: m.role ?? 'member',
+      role: (m.role as 'admin' | 'member') ?? 'member',
     }))
     .sort((a, b) => b.total_km - a.total_km);
 }
@@ -123,6 +129,13 @@ export async function fetchClubActivity(clubId: string): Promise<ActivityItem[]>
   }));
 }
 
+interface JoinRequestRow {
+  id: string;
+  user_id: string;
+  created_at: string;
+  profiles: { username: string | null } | null;
+}
+
 /** Fetch pending join requests for a club (admin only). */
 export async function fetchJoinRequests(clubId: string): Promise<JoinRequest[]> {
   const { data } = await supabase
@@ -132,7 +145,7 @@ export async function fetchJoinRequests(clubId: string): Promise<JoinRequest[]> 
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
   if (!data) return [];
-  return (data as any[]).map(r => ({
+  return (data as unknown as JoinRequestRow[]).map(r => ({
     id: r.id,
     userId: r.user_id,
     username: r.profiles?.username ?? 'Runner',

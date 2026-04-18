@@ -6,6 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { TrendingUp, Map, Flame, Target, Check, Shield, Zap, type LucideIcon } from 'lucide-react-native';
 import {
   MISSION_TEMPLATES,
   generateBlueprint,
@@ -17,31 +18,32 @@ import { setDailyMissions, getTodaysMissions } from '@shared/services/missionSto
 import { getProfile } from '@shared/services/profile';
 import type { PlayerProfile } from '@shared/services/profile';
 
+import { Colors } from '@theme';
+
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// ── Design tokens ──────────────────────────────────────────────────────────────
 const T = {
-  pageBg:  '#EDEAE5',
-  stone:   '#F0EDE8',
-  mid:     '#E8E4DF',
-  border:  '#DDD9D4',
-  surface: '#F8F6F3',
-  black:   '#0A0A0A',
-  white:   '#FFFFFF',
-  t2:      '#6B6B6B',
-  t3:      '#ADADAD',
+  pageBg:  Colors.stone,
+  stone:   Colors.surface,
+  mid:     Colors.mid,
+  border:  Colors.border,
+  surface: Colors.bg,
+  black:   Colors.black,
+  white:   Colors.white,
+  t2:      Colors.t2,
+  t3:      Colors.t3,
 } as const;
 
-// Mission type → emoji icon
-const TYPE_EMOJI: Record<string, string> = {
-  run_distance:        '📈',
-  claim_territories:   '🧭',
-  fortify_territories: '🛡️',
-  explore_new_hexes:   '🗺️',
-  run_in_enemy_zone:   '⚡',
-  capture_enemy:       '🛡️',
-  speed_run:           '📈',
-  run_streak:          '🔥',
+// Mission type → Lucide icon
+const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
+  run_distance:        { Icon: TrendingUp, color: '#D93518' },
+  claim_territories:   { Icon: Zap,        color: '#EAB308' },
+  fortify_territories: { Icon: Shield,     color: '#059669' },
+  explore_new_hexes:   { Icon: Map,        color: '#0284C7' },
+  run_in_enemy_zone:   { Icon: Zap,        color: '#DC2626' },
+  capture_enemy:       { Icon: Shield,     color: '#059669' },
+  speed_run:           { Icon: TrendingUp, color: '#D93518' },
+  run_streak:          { Icon: Flame,      color: '#EA580C' },
 };
 
 // Difficulty styles on white card
@@ -233,12 +235,12 @@ export default function MissionsScreen() {
                 <View style={ss.blueprintRows}>
                   {blueprintMissions.length > 0
                     ? blueprintMissions.slice(0, 3).map((m, i) => {
-                        const emoji = TYPE_EMOJI[m.type as MissionType] ?? '🎯';
+                        const { Icon: BPIcon, color: bpColor } = TYPE_ICON[m.type as MissionType] ?? { Icon: Target, color: '#D93518' };
                         const dStyle = DIFF_BP[m.difficulty];
                         return (
                           <View key={i} style={ss.blueprintRow}>
                             <View style={ss.blueprintIconBox}>
-                              <Text style={{ fontSize: 14 }}>{emoji}</Text>
+                              <BPIcon size={14} color={bpColor} strokeWidth={1.5} />
                             </View>
                             <View style={ss.blueprintMeta}>
                               <Text style={ss.blueprintMissionTitle}>{m.title}</Text>
@@ -258,7 +260,10 @@ export default function MissionsScreen() {
                   onPress={applyBlueprint}
                   style={({ pressed }) => [ss.applyBtn, pressed && { opacity: 0.85 }]}
                 >
-                  <Text style={ss.applyBtnText}>✓  Apply Blueprint</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Check size={12} color={T.black} strokeWidth={2} />
+                    <Text style={ss.applyBtnText}>Apply Blueprint</Text>
+                  </View>
                 </Pressable>
               </View>
             </View>
@@ -273,7 +278,7 @@ export default function MissionsScreen() {
         renderItem={({ item: template }) => {
           const isSelected  = selected.has(template.title);
           const isDisabled  = !isSelected && selected.size >= 3;
-          const emoji       = TYPE_EMOJI[template.type as MissionType] ?? '🎯';
+          const { Icon: CardIcon, color: cardIconColor } = TYPE_ICON[template.type as MissionType] ?? { Icon: Target, color: '#D93518' };
           const diffStyle   = DIFF_CARD[template.difficulty];
           const catLabel    = template.goalCategory ? CAT_LABELS[template.goalCategory] : null;
           return (
@@ -284,7 +289,7 @@ export default function MissionsScreen() {
               {/* Top row */}
               <View style={ss.cardTopRow}>
                 <View style={[ss.cardIconBox, isSelected && ss.cardIconBoxSelected]}>
-                  <Text style={{ fontSize: 16 }}>{emoji}</Text>
+                  <CardIcon size={16} color={isSelected ? T.white : cardIconColor} strokeWidth={1.5} />
                 </View>
                 <View style={ss.cardMeta}>
                   <Text style={ss.cardTitle}>{template.title}</Text>
@@ -301,7 +306,7 @@ export default function MissionsScreen() {
                 </View>
                 {isSelected && (
                   <View style={ss.checkCircle}>
-                    <Text style={ss.checkText}>✓</Text>
+                    <Check size={11} color={T.white} strokeWidth={2} />
                   </View>
                 )}
               </View>
@@ -335,16 +340,18 @@ export default function MissionsScreen() {
           <View style={ss.slotRow}>
             {[0, 1, 2].map(i => {
               const mission = selectedMissions[i];
-              const emoji   = mission ? (TYPE_EMOJI[mission.type as MissionType] ?? '🎯') : '+';
               const filled  = !!mission;
+              const entry: { Icon: LucideIcon; color: string } = mission ? (TYPE_ICON[mission.type as MissionType] ?? { Icon: Target, color: '#D93518' }) : { Icon: Target, color: T.t3 };
+              const { Icon: SlotIcon } = entry;
               return (
                 <View
                   key={i}
                   style={[ss.slot, filled && ss.slotFilled, i > 0 && { marginLeft: -6 }]}
                 >
-                  <Text style={{ fontSize: filled ? 14 : 16, color: filled ? T.white : T.t3 }}>
-                    {emoji}
-                  </Text>
+                  {filled
+                    ? <SlotIcon size={14} color={T.white} strokeWidth={1.5} />
+                    : <Text style={{ fontSize: 16, color: T.t3 }}>+</Text>
+                  }
                 </View>
               );
             })}

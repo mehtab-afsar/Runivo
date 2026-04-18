@@ -13,12 +13,29 @@
     "android":      "npm run android --workspace=apps/mobile",
     "web":          "npm run dev --workspace=apps/web",
     "build":        "cd apps/web && npx vite build",
+    "typecheck":    "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/mobile",
+    "lint":         "npx eslint apps/web/src --ext .ts,.tsx --max-warnings 0",
     "clean:mobile": "npm run clean --workspace=apps/mobile",
     "clean:web":    "npm run clean --workspace=apps/web",
     "clean":        "npm run clean:mobile && npm run clean:web",
-    "postinstall":  "patch-package"
+    "postinstall":  "patch-package",
+    "prepare":      "husky"
   },
   "devDependencies": {
-    "patch-package": "^8.0.1"
+    "patch-package": "^8.0.1",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0"
+  },
+  "lint-staged": {
+    "apps/web/src/**/*.{ts,tsx}": [
+      "eslint --max-warnings 0",
+      "bash -c 'npm run typecheck --workspace=apps/web'"
+    ],
+    "apps/mobile/src/**/*.{ts,tsx}": [
+      "bash -c 'npm run typecheck --workspace=apps/mobile'"
+    ],
+    "packages/shared/src/**/*.ts": [
+      "bash -c 'npx tsc --noEmit --project packages/shared/tsconfig.json'"
+    ]
   }
 }

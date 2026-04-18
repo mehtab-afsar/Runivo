@@ -2,11 +2,12 @@ import React from 'react';
 import { View, Text, Animated, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Layers } from 'lucide-react-native';
+import { Colors } from '@theme';
 
 let MapLibreGL: any = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* native not available */ }
 
-const C = { bg: '#F7F6F4', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', red: '#D93518' };
+const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_LIGHT = 'Barlow_300Light';
 
@@ -40,9 +41,14 @@ export default function RunMapView({
     <Animated.View style={[ss.container, { bottom: sheetAnim }]}>
       {MapLibreGL ? (
         <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled={false}>
-          {lat !== null && lng !== null && (
-            <MapLibreGL.Camera zoomLevel={15} centerCoordinate={[lng, lat]} animationMode="flyTo" animationDuration={800} />
-          )}
+          <MapLibreGL.Camera
+            zoomLevel={lat !== null && lng !== null ? 15 : 14}
+            centerCoordinate={lat !== null && lng !== null ? [lng, lat] : undefined}
+            followUserLocation={lat === null || lng === null}
+            followZoomLevel={15}
+            animationMode="flyTo"
+            animationDuration={800}
+          />
           <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />
         </MapLibreGL.MapView>
       ) : (

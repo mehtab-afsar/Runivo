@@ -47,13 +47,16 @@ serve(async (req) => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  // Optional webhook secret validation
+  // Webhook secret is required — reject unauthenticated requests even if the env var
+  // hasn't been set yet, so misconfigured deployments fail loudly instead of silently
+  // accepting unauthenticated tier-manipulation requests.
   const secret = Deno.env.get('RC_WEBHOOK_SECRET');
-  if (secret) {
-    const auth = req.headers.get('Authorization') ?? '';
-    if (auth !== `Bearer ${secret}`) {
-      return new Response('Unauthorized', { status: 401 });
-    }
+  if (!secret) {
+    return new Response('Webhook secret not configured', { status: 500 });
+  }
+  const auth = req.headers.get('Authorization') ?? '';
+  if (auth !== `Bearer ${secret}`) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   let payload: { event: RCEvent };

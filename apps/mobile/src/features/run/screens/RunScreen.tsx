@@ -85,7 +85,9 @@ export default function RunScreen() {
         pacerEnabled={pacer.enabled}
         pacerBpm={pacer.bpm}
         pacerPace={pacer.pace}
+        pacerPaceOptions={pacer.paceOptions}
         onPacerToggle={() => pacer.setEnabled(!pacer.enabled)}
+        onPacerPaceEdit={pacer.setPace}
         onActivityPress={() => setShowActivityModal(true)}
         onRoutePress={openRouteModal}
         onStartPress={startRun}

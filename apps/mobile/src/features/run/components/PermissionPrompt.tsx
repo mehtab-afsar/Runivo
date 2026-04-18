@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { MapPin } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { bg: '#F7F6F4', black: '#0A0A0A', red: '#D93518', muted: '#6B6B6B', white: '#FFFFFF' };
+const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_SEMI = 'Barlow_600SemiBold';
@@ -13,7 +15,9 @@ interface PermissionPromptProps {
 export default function PermissionPrompt({ onRequest }: PermissionPromptProps) {
   return (
     <View style={ss.container}>
-      <Text style={ss.icon}>📍</Text>
+      <View style={ss.iconWrap}>
+        <MapPin size={32} color={C.red} strokeWidth={1.5} />
+      </View>
       <Text style={ss.title}>Location Required</Text>
       <Text style={ss.body}>
         Runivo needs access to your location to track your run and capture territory.
@@ -30,12 +34,9 @@ const ss = StyleSheet.create({
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 32, backgroundColor: C.bg,
   },
-  icon:  { fontSize: 48, marginBottom: 16 },
-  title: { fontFamily: FONT_SEMI, fontSize: 20, color: C.black, marginBottom: 12, textAlign: 'center' },
-  body:  { fontFamily: FONT, fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
-  btn:   {
-    backgroundColor: C.red, borderRadius: 12,
-    paddingVertical: 14, paddingHorizontal: 28,
-  },
-  btnLabel: { fontFamily: FONT_MED, fontSize: 14, color: C.white, letterSpacing: 0.3 },
+  iconWrap:  { width: 72, height: 72, borderRadius: 36, backgroundColor: '#FDE8E4', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  title:     { fontFamily: FONT_SEMI, fontSize: 20, color: C.black, marginBottom: 12, textAlign: 'center' },
+  body:      { fontFamily: FONT, fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
+  btn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 28 },
+  btnLabel:  { fontFamily: FONT_MED, fontSize: 14, color: C.white, letterSpacing: 0.3 },
 });

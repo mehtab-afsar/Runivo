@@ -1,8 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { Animated, Text, StyleSheet } from 'react-native';
 import { Flag } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', red: '#D93518' };
+const C = Colors;
 const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_BOLD = 'Barlow_700Bold';
 

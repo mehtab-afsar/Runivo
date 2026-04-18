@@ -4,15 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Zap, Sparkles } from 'lucide-react-native';
+import { Zap, Sparkles, Settings } from 'lucide-react-native';
 import { useCalorieTracker } from '@features/nutrition/hooks/useCalorieTracker';
 import { useNutritionContext } from '@features/nutrition/hooks/useNutritionContext';
 import { useNutritionInsights } from '@features/nutrition/hooks/useNutritionInsights';
 import { TrackerBody } from '@features/nutrition/components/TrackerBody';
 import { AddFoodModal } from '@features/nutrition/components/AddFoodModal';
+import { Colors } from '@theme';
 
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const C = { bg: '#EDEAE5', white: '#fff', black: '#0A0A0A', red: '#D93518', t3: '#ADADAD', t2: '#6B6B6B', border: '#DDD9D4', green: '#1A6B40', greenBg: '#EDF7F2', amber: '#9E6800', amberBg: '#FDF6E8', orange: '#C25A00', orangeBg: '#FEF0E6' };
+const C = Colors;
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'CalorieTracker'>;
@@ -70,7 +71,7 @@ export default function CalorieTrackerScreen() {
   const burnKcalParam = (route.params as { burnKcal?: number } | undefined)?.burnKcal;
   const {
     profile, entries, weekEntries, weekKcals, weekAvg, weekDates, runBurnKcal,
-    loading, refreshing,
+    loading, refreshing, loadError,
     showAddModal, setShowAddModal, defaultMeal, expandedMeal, setExpandedMeal,
     consumed, pct, proteinConsumed, carbsConsumed, fatConsumed,
     addEntry, deleteEntry, refresh, openAdd,
@@ -117,6 +118,21 @@ export default function CalorieTrackerScreen() {
     );
   }
 
+  if (loadError) {
+    return (
+      <SafeAreaView style={s.root}>
+        <View style={s.errorState}>
+          <Text style={s.errorEmoji}>⚠️</Text>
+          <Text style={s.errorTitle}>Couldn't load data</Text>
+          <Text style={s.errorMsg}>{loadError}</Text>
+          <Pressable style={s.retryBtn} onPress={refresh}>
+            <Text style={s.retryLabel}>Retry</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!profile) { navigation.replace('NutritionSetup'); return null; }
 
   // Macro totals for insights
@@ -130,7 +146,7 @@ export default function CalorieTrackerScreen() {
         <Pressable onPress={() => navigation.goBack()} style={s.back}><Text style={s.backText}>←</Text></Pressable>
         <Text style={s.title}>Calorie Tracker</Text>
         <Pressable onPress={() => navigation.navigate('NutritionSetup')} style={s.settingsBtn}>
-          <Text style={s.settingsLabel}>⚙</Text>
+          <Settings size={16} color={C.t2} strokeWidth={1.5} />
         </Pressable>
       </View>
 
@@ -312,6 +328,12 @@ const wc = StyleSheet.create({
 const s = StyleSheet.create({
   root:         { flex: 1, backgroundColor: C.bg },
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorState:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  errorEmoji:   { fontSize: 40, marginBottom: 12 },
+  errorTitle:   { fontFamily: 'Barlow_700Bold', fontSize: 18, color: '#0A0A0A', marginBottom: 8 },
+  errorMsg:     { fontFamily: 'Barlow_400Regular', fontSize: 14, color: '#6B6B6B', textAlign: 'center', marginBottom: 24 },
+  retryBtn:     { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
+  retryLabel:   { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: '#FFFFFF' },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
   back:         { width: 32 },
   backText:     { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },

@@ -36,7 +36,7 @@ export default function NutritionSetupScreen() {
           <NutritionSetupForm
             saving={saving}
             goal={goal} setGoal={setGoal}
-            activityLevel={activityLevel} setActivity={setActivity}
+            activityLevel={activityLevel} setActivity={v => setActivity(v as Parameters<typeof setActivity>[0])}
             diet={diet} setDiet={setDiet}
             sex={sex} setSex={setSex}
             ageStr={ageStr} weightStr={weightStr} heightStr={heightStr}

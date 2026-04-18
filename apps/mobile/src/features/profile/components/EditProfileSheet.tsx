@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image, ScrollView } from 'react-native';
-import { MapPin, Instagram, Camera } from 'lucide-react-native';
+import { MapPin, Instagram, Camera, Activity } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', black: '#0A0A0A', t3: '#ADADAD', border: '#DDD9D4', red: '#D93518', stone: '#F0EDE8' };
+const C = Colors;
 const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
 interface Props {
@@ -86,7 +87,7 @@ export function EditProfileSheet({
 
           <Text style={ss.inputLabel}>Strava</Text>
           <View style={ss.iconInput}>
-            <Text style={{ fontSize: 14, marginRight: 8 }}>🏃</Text>
+            <Activity size={14} color={C.t3} strokeWidth={1.5} style={{ marginRight: 8 }} />
             <TextInput
               style={ss.iconInputText} value={editStrava} onChangeText={setEditStrava}
               placeholder="Strava profile URL" placeholderTextColor={C.t3} autoCapitalize="none"

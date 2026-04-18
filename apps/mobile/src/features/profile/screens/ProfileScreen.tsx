@@ -15,9 +15,10 @@ import { AwardsTab } from '../components/AwardsTab';
 import { NutritionTab } from '../components/NutritionTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import type { ProfileTab } from '../types';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#F8F6F3', black: '#0A0A0A', t3: '#ADADAD', border: '#DDD9D4', red: '#D93518' };
+const C = Colors;
 
 export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();

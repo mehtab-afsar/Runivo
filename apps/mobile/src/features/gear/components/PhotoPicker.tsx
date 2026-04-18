@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Alert } from 'react-native';
+import { Footprints } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A' };
+const C = Colors;
 
 interface PhotoPickerProps {
   uri: string | null;
@@ -43,7 +45,7 @@ export function PhotoPicker({ uri, onPick }: PhotoPickerProps) {
     <View style={s.row}>
       {uri
         ? <Image source={{ uri }} style={s.thumb} />
-        : <View style={s.placeholder}><Text style={{ fontSize: 28 }}>👟</Text></View>
+        : <View style={s.placeholder}><Footprints size={28} color="#6B6B6B" strokeWidth={1.5} /></View>
       }
       <View style={{ gap: 8, flex: 1 }}>
         <Pressable style={s.btn} onPress={takePhoto}>

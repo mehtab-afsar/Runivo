@@ -1,11 +1,11 @@
 import { StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
 export const C = {
-  bg: '#F8F6F3', white: '#FFFFFF', stone: '#F0EDE8',
-  mid: '#E8E4DF', border: '#DDD9D4', black: '#0A0A0A',
-  t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', redLo: '#FEF0EE',
-  gradStart: '#D93518', gradEnd: '#B82E10',
-  redFaint: 'rgba(217,53,24,0.08)',
+  ...Colors,
+  gradStart: '#D93518',
+  gradEnd:   '#B82E10',
+  redFaint:  'rgba(217,53,24,0.08)',
 };
 
 export const shared = StyleSheet.create({

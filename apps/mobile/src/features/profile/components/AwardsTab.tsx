@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Medal } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', white: '#FFFFFF', border: '#DDD9D4' };
+const C = Colors;
 
 interface Award {
   id: string;
@@ -37,7 +39,7 @@ export function AwardsTab({ awards = DEFAULT_AWARDS }: Props) {
       <View style={ss.grid}>
         {awards.map(award => (
           <View key={award.id} style={ss.card}>
-            <Text style={ss.emoji}>{award.emoji}</Text>
+            <View style={ss.emoji}><Medal size={24} color="#D97706" strokeWidth={1.5} /></View>
             <Text style={ss.title}>{award.title}</Text>
             <Text style={ss.desc}>{award.description}</Text>
           </View>
@@ -57,7 +59,7 @@ const ss = StyleSheet.create({
     width: '47%', backgroundColor: C.white, borderRadius: 12,
     borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center', gap: 6,
   },
-  emoji: { fontSize: 28 },
+  emoji: { alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black, textAlign: 'center' },
   desc: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 14 },
   empty: { alignItems: 'center', paddingVertical: 32 },

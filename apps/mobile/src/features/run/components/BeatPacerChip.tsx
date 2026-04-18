@@ -4,8 +4,9 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { Volume2, VolumeX } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { bg: 'rgba(10,10,10,0.75)', border: 'rgba(255,255,255,0.12)', text: '#fff', muted: 'rgba(255,255,255,0.5)', red: '#D93518' };
+const C = Colors;
 
 interface Props {
   bpm: number;
@@ -38,7 +39,7 @@ export default function BeatPacerChip({ bpm, enabled, onToggle }: Props) {
       <Text style={ss.bpm}>{bpm}</Text>
       <Text style={ss.unit}>BPM</Text>
       {enabled
-        ? <Volume2 size={12} color={C.text} strokeWidth={1.5} />
+        ? <Volume2 size={12} color={C.black} strokeWidth={1.5} />
         : <VolumeX size={12} color={C.muted} strokeWidth={1.5} />}
     </Pressable>
   );
@@ -52,6 +53,6 @@ const ss = StyleSheet.create({
   },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red },
   dotMuted: { backgroundColor: C.muted },
-  bpm: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.text },
+  bpm: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
   unit: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.muted, marginRight: 2 },
 });

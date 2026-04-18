@@ -14,27 +14,16 @@ import {
   SafeAreaView, Platform, ActivityIndicator, Linking, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Heart, Activity, TrendingUp, Brain, Smartphone, Check, X } from 'lucide-react-native';
 import { supabase } from '@shared/services/supabase';
+import { Colors } from '@theme';
 import {
   writeRunToHealth,
   readRecentWorkouts,
 } from '../../../shared/services/healthService';
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
-const C = {
-  bg:      '#F8F6F3',
-  white:   '#FFFFFF',
-  ink:     '#0A0A0A',
-  mid:     '#6B6B6B',
-  muted:   '#ADADAD',
-  border:  '#E8E4DF',
-  green:   '#1A6B40',
-  greenLo: '#EDF7F2',
-  red:     '#D93518',
-  redLo:   '#FEF0EE',
-  purple:  '#5A3A8A',
-  purpleLo:'#F2EEF9',
-};
+const C = Colors;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -54,28 +43,28 @@ const DEVICES: DeviceInfo[] = [
   {
     key:         'apple_health',
     name:        'Apple Health',
-    logo:        '❤️',
+    logo:        '__heart__',
     description: 'Sync runs automatically from the Health app.',
     iosOnly:     true,
   },
   {
     key:           'garmin',
     name:          'Garmin Connect',
-    logo:          '🟣',
+    logo:          '__dot_purple__',
     description:   'Import runs with HR, cadence & elevation from Garmin watches.',
     oauthProvider: 'garmin',
   },
   {
     key:           'coros',
     name:          'COROS',
-    logo:          '⚫',
+    logo:          '__dot_dark__',
     description:   'Pull training data from COROS PACE, APEX and VERTIX watches.',
     oauthProvider: 'coros',
   },
   {
     key:           'polar',
     name:          'Polar Flow',
-    logo:          '🔴',
+    logo:          '__dot_red__',
     description:   'Connect Polar watches for recovery & HRV metrics.',
     oauthProvider: 'polar',
   },
@@ -207,7 +196,11 @@ function DeviceCard({
       {/* Row 1 — logo + name + pill */}
       <View style={ss.cardHeader}>
         <View style={[ss.logo, isConnected && ss.logoConnected]}>
-          <Text style={ss.logoEmoji}>{device.logo}</Text>
+          {device.logo === '__heart__'       ? <Heart       size={20} color="#EF4444" strokeWidth={1.5} />
+          : device.logo === '__dot_purple__' ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#8B5CF6' }} />
+          : device.logo === '__dot_dark__'   ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#374151' }} />
+          : device.logo === '__dot_red__'    ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />
+          : <Text style={ss.logoEmoji}>{device.logo}</Text>}
         </View>
         <View style={{ flex: 1 }}>
           <View style={ss.nameRow}>
@@ -218,8 +211,9 @@ function DeviceCard({
               </View>
             )}
             {isConnected && (
-              <View style={ss.connectedPill}>
-                <Text style={ss.connectedPillText}>✓ Connected</Text>
+              <View style={[ss.connectedPill, { flexDirection: 'row', alignItems: 'center', gap: 3 }]}>
+                <Check size={9} color={C.green} strokeWidth={2} />
+                <Text style={ss.connectedPillText}>Connected</Text>
               </View>
             )}
           </View>
@@ -263,7 +257,7 @@ function DeviceCard({
               >
                 {busy
                   ? <ActivityIndicator size="small" color={C.red} />
-                  : <Text style={ss.disconnectBtnText}>✕</Text>
+                  : <X size={14} color={C.red} strokeWidth={2} />
                 }
               </Pressable>
             </>
@@ -462,7 +456,7 @@ export default function ConnectedDevicesScreen() {
       >
         {/* Info banner */}
         <View style={ss.banner}>
-          <Text style={ss.bannerEmoji}>📱</Text>
+          <Smartphone size={15} color={C.purple} strokeWidth={1.5} style={{ marginTop: 1 }} />
           <Text style={ss.bannerText}>
             Connect your fitness devices to automatically import runs, heart rate, cadence and HRV. Existing Runivo runs are never duplicated.
           </Text>
@@ -501,14 +495,14 @@ export default function ConnectedDevicesScreen() {
         {/* Data types info */}
         <View style={ss.dataCard}>
           <Text style={ss.dataCardTitle}>DATA SYNCED FROM DEVICES</Text>
-          {[
-            ['❤️', 'Heart rate',  'Avg & max HR per run'],
-            ['🏃', 'Cadence',     'Steps/min for gait analysis'],
-            ['📈', 'Elevation',   'Total climb per activity'],
-            ['🧠', 'HRV',         'Recovery score for AI coach'],
-          ].map(([emoji, label, desc]) => (
+          {([
+            { Icon: Heart,       color: '#EF4444', label: 'Heart rate',  desc: 'Avg & max HR per run' },
+            { Icon: Activity,    color: '#D93518', label: 'Cadence',     desc: 'Steps/min for gait analysis' },
+            { Icon: TrendingUp,  color: '#D93518', label: 'Elevation',   desc: 'Total climb per activity' },
+            { Icon: Brain,       color: '#5A3A8A', label: 'HRV',         desc: 'Recovery score for AI coach' },
+          ] as const).map(({ Icon, color, label, desc }) => (
             <View key={label} style={ss.dataRow}>
-              <Text style={ss.dataEmoji}>{emoji}</Text>
+              <Icon size={13} color={color} strokeWidth={1.5} />
               <Text style={ss.dataDesc}>
                 <Text style={ss.dataLabel}>{label}</Text>{' — '}{desc}
               </Text>
@@ -544,12 +538,12 @@ const ss = StyleSheet.create({
   },
   backBtn:  { width: 32 },
   backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.mid },
-  title:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.ink },
+  title:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
   scroll:   { paddingHorizontal: 16, paddingBottom: 40 },
 
   banner: {
     flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-    backgroundColor: C.purpleLo,
+    backgroundColor: '#F3EEFF',
     borderWidth: 0.5, borderColor: 'rgba(90,58,138,0.2)',
     borderRadius: 12, padding: 14, marginBottom: 16,
   },
@@ -574,7 +568,7 @@ const ss = StyleSheet.create({
   logoEmoji:      { fontSize: 20 },
 
   nameRow:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  deviceName:  { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.ink },
+  deviceName:  { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
   deviceDesc:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.muted },
 
   iosPill:     { backgroundColor: '#F0F0F0', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
@@ -605,7 +599,7 @@ const ss = StyleSheet.create({
 
   connectBtn: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8,
-    backgroundColor: C.ink,
+    backgroundColor: C.black,
   },
   connectBtnBusy: { backgroundColor: C.border },
   connectBtnText: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#fff' },
@@ -622,7 +616,7 @@ const ss = StyleSheet.create({
   },
   dataRow:   { flexDirection: 'row', gap: 8, marginBottom: 6 },
   dataEmoji: { fontSize: 13 },
-  dataLabel: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.ink },
+  dataLabel: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.black },
   dataDesc:  { flex: 1, fontFamily: 'Barlow_300Light', fontSize: 11, color: C.mid, lineHeight: 16 },
 
   privacyNote: {
@@ -633,7 +627,7 @@ const ss = StyleSheet.create({
   toast: {
     position: 'absolute', bottom: 40,
     alignSelf: 'center',
-    backgroundColor: C.ink, borderRadius: 20,
+    backgroundColor: C.black, borderRadius: 20,
     paddingHorizontal: 18, paddingVertical: 8,
   },
   toastText: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff' },

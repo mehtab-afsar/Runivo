@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { getSettings } from '@shared/services/store';
+import { Map } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -49,7 +50,13 @@ export default function TerritoryMapScreen() {
     <View style={ss.root}>
       {MapLibreGL ? (
         <MapLibreGL.MapView style={ss.map} mapStyle={activeStyle.url} logoEnabled={false} attributionEnabled={false} onPress={map.clearSelection}>
-          <MapLibreGL.Camera ref={cameraRef} zoomLevel={14} centerCoordinate={map.userLocation ?? [77.209, 28.6139]} />
+          <MapLibreGL.Camera
+            ref={cameraRef}
+            zoomLevel={14}
+            centerCoordinate={map.userLocation ?? undefined}
+            followUserLocation={!map.userLocation}
+            followZoomLevel={14}
+          />
           <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />
           {map.filteredGeoJSON?.features.length > 0 && (
             <MapLibreGL.ShapeSource id="territories" shape={map.filteredGeoJSON}
@@ -77,7 +84,7 @@ export default function TerritoryMapScreen() {
       </Pressable>
 
       <Pressable style={[ss.recenterBtn, { top: insets.top + 164 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowStylePicker(v => !v); }}>
-        <Text style={{ fontSize: 14 }}>🗺</Text>
+        <Map size={14} color="#0A0A0A" strokeWidth={1.5} />
       </Pressable>
 
       {showStylePicker && (

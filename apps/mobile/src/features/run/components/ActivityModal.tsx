@@ -6,8 +6,9 @@ import {
   Waves, Accessibility, Snowflake,
 } from 'lucide-react-native';
 import type { ActivityType } from '../types';
+import { Colors } from '@theme';
 
-const C = { bg: '#F7F6F4', white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B' };
+const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';

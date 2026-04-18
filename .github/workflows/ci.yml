@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  typecheck-and-lint:
+    name: Typecheck & Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Web ──────────────────────────────────────────────────────────────────
+      - name: Typecheck (web)
+        run: npm run typecheck --workspace=apps/web
+
+      - name: Lint (web)
+        run: npx eslint apps/web/src --ext .ts,.tsx --max-warnings 0
+        continue-on-error: false
+
+      # ── Mobile ───────────────────────────────────────────────────────────────
+      - name: Typecheck (mobile)
+        run: npm run typecheck --workspace=apps/mobile
+
+      # ── Shared ───────────────────────────────────────────────────────────────
+      - name: Typecheck (shared)
+        run: npx tsc --noEmit --project packages/shared/tsconfig.json
+
+      # ── Tests ────────────────────────────────────────────────────────────────
+      - name: Unit tests (shared)
+        run: |
+          if [ -f packages/shared/package.json ] && grep -q '"test"' packages/shared/package.json; then
+            npm test --workspace=packages/shared
+          else
+            echo "No test script configured in shared package — skipping"
+          fi

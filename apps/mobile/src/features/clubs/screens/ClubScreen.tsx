@@ -7,27 +7,31 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { MapPin, Globe, Flag, Activity, Users, X } from 'lucide-react-native';
 import { useClubs } from '@features/clubs/hooks/useClubs';
 import { ClubCard } from '@features/clubs/components/ClubCard';
 import { SearchBar } from '@features/clubs/components/SearchBar';
+import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Club } from '@features/clubs/types';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ClubTab = 'my_clubs' | 'rankings';
 type RankingScope = 'local' | 'national' | 'international';
 type JoinPolicy = 'open' | 'request' | 'invite';
 
-const C = {
-  bg: '#EDEAE5', white: '#FFFFFF', stone: '#F0EDE8',
-  border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B',
-  t3: '#ADADAD', red: '#D93518',
-};
+const C = Colors;
 
+const SCOPE_ICONS: Record<string, React.ReactNode> = {
+  local:         <MapPin size={11} color="#6B6B6B" strokeWidth={1.5} />,
+  national:      <Flag size={11} color="#6B6B6B" strokeWidth={1.5} />,
+  international: <Globe size={11} color="#6B6B6B" strokeWidth={1.5} />,
+};
 const SCOPES: { value: RankingScope; label: string }[] = [
-  { value: 'local', label: '📍 Local' },
-  { value: 'national', label: '🏳 National' },
-  { value: 'international', label: '🌍 International' },
+  { value: 'local',         label: 'Local'         },
+  { value: 'national',      label: 'National'      },
+  { value: 'international', label: 'International' },
 ];
 
 const BADGE_EMOJIS = [
@@ -43,13 +47,19 @@ const JOIN_POLICIES: { value: JoinPolicy; label: string; desc: string }[] = [
 ];
 
 function RankingRow({ club, rank, onJoin, onLeave, onPress }: { club: Club; rank: number; onJoin: () => void; onLeave: () => void; onPress: () => void }) {
+  const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(club.badge_emoji);
   return (
     <Pressable style={r.row} onPress={onPress}>
       <Text style={r.rank}>#{rank}</Text>
-      <Text style={r.emoji}>{club.badge_emoji}</Text>
+      <View style={r.emojiBox}><BadgeIcon size={20} color={badgeColor} strokeWidth={1.5} /></View>
       <View style={{ flex: 1 }}>
         <Text style={r.name} numberOfLines={1}>{club.name}</Text>
-        <Text style={r.meta}>👥 {club.member_count} · 🏃 {club.total_km.toFixed(0)} km</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 }}>
+          <Users size={10} color="#ADADAD" strokeWidth={1.5} />
+          <Text style={r.meta}>{club.member_count} · </Text>
+          <Activity size={10} color="#ADADAD" strokeWidth={1.5} />
+          <Text style={r.meta}>{club.total_km.toFixed(0)} km</Text>
+        </View>
       </View>
       <Pressable style={[r.joinBtn, club.joined && r.leaveBtn]} onPress={club.joined ? onLeave : onJoin}>
         <Text style={[r.joinLabel, club.joined && r.leaveLabelStyle]}>
@@ -63,7 +73,7 @@ function RankingRow({ club, rank, onJoin, onLeave, onPress }: { club: Club; rank
 const r = StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
   rank:      { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.t3, width: 26, textAlign: 'center' },
-  emoji:     { fontSize: 22, width: 30, textAlign: 'center' },
+  emojiBox:  { width: 30, alignItems: 'center', justifyContent: 'center' },
   name:      { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
   meta:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 1 },
   joinBtn:   { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: C.black, flexShrink: 0 },
@@ -113,7 +123,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
           <View style={cs.sheetHeader}>
             <Text style={cs.sheetTitle}>Create Club</Text>
             <Pressable style={cs.closeBtn} onPress={onClose}>
-              <Text style={cs.closeBtnText}>✕</Text>
+              <X size={14} color={C.t2} strokeWidth={2} />
             </Pressable>
           </View>
 
@@ -314,7 +324,10 @@ export default function ClubScreen() {
             <View style={s.scopeRow}>
               {SCOPES.map(sc => (
                 <Pressable key={sc.value} style={[s.scopeBtn, rankScope === sc.value && s.scopeBtnActive]} onPress={() => setRankScope(sc.value)}>
-                  <Text style={[s.scopeLabel, rankScope === sc.value && s.scopeLabelActive]}>{sc.label}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    {SCOPE_ICONS[sc.value]}
+                    <Text style={[s.scopeLabel, rankScope === sc.value && s.scopeLabelActive]}>{sc.label}</Text>
+                  </View>
                 </Pressable>
               ))}
             </View>

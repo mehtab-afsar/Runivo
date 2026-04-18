@@ -20,10 +20,11 @@ import TargetStep from '../components/TargetStep';
 import PlanSelectionStep from '../components/PlanSelectionStep';
 import NotificationsStep from '../components/NotificationsStep';
 import ReadyStep from '../components/ReadyStep';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const C = { bg: '#F8F6F3', black: '#0A0A0A', red: '#D93518', mid: '#E8E4DF' };
+const C = Colors;
 const todayIdx = (new Date().getDay() + 6) % 7;
 const { width: SCREEN_W } = Dimensions.get('window');
 

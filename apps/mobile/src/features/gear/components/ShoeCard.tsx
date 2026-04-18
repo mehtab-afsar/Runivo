@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Footprints } from 'lucide-react-native';
 import type { StoredShoe } from '@shared/services/store';
 import { ShoeProgressBar } from '@features/gear/components/ShoeProgressBar';
 
@@ -29,7 +30,7 @@ export function ShoeCard({ shoe, kmRun, onSetDefault, onRetire, onDelete }: Shoe
   return (
     <View style={[s.card, shoe.isRetired && s.retired]}>
       <View style={s.top}>
-        <View style={s.icon}><Text style={{ fontSize: 20 }}>👟</Text></View>
+        <View style={s.icon}><Footprints size={20} color="#6B6B6B" strokeWidth={1.5} /></View>
         <View style={{ flex: 1 }}>
           <View style={s.nameRow}>
             <Text style={s.name}>{shoe.nickname || `${shoe.brand} ${shoe.model}`}</Text>

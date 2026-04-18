@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { RankBadge } from './RankBadge';
 import type { LeaderboardEntry } from '../types';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t3: '#ADADAD', red: '#D93518' };
+const C = Colors;
 
 interface Props {
   entry: LeaderboardEntry;

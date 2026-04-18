@@ -34,6 +34,7 @@ export function useCalorieTracker() {
   const [runBurnKcal, setRunBurnKcal] = useState(0);
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
+  const [loadError, setLoadError]     = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [defaultMeal, setDefaultMeal] = useState<Meal>('snacks');
   const [expandedMeal, setExpandedMeal] = useState<Meal | null>(null);
@@ -41,7 +42,16 @@ export function useCalorieTracker() {
   const today = todayKey();
 
   const load = useCallback(async () => {
-    const prof = await fetchNutritionProfile();
+    setLoadError(null);
+    let prof: NutritionProfile | null = null;
+    try {
+      prof = await fetchNutritionProfile() ?? null;
+    } catch {
+      setLoadError('Could not load nutrition data. Check your connection.');
+      setLoading(false);
+      setRefreshing(false);
+      return null;
+    }
     if (!prof) {
       setLoading(false);
       setRefreshing(false);
@@ -149,6 +159,7 @@ export function useCalorieTracker() {
     runBurnKcal,
     loading,
     refreshing,
+    loadError,
     showAddModal,
     setShowAddModal,
     defaultMeal,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { X, Shield, Swords, Flag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TerritoryDetails } from '../types';
 
@@ -33,7 +34,7 @@ export function TerritoryBottomSheet({ territory: t, onClose, onFortify }: Props
           ) : null}
         </View>
         <Pressable onPress={onClose}>
-          <Text style={{ color: '#7A7A7A', fontSize: 18 }}>✕</Text>
+          <X size={18} color="#7A7A7A" strokeWidth={2} />
         </Pressable>
       </View>
 
@@ -53,16 +54,19 @@ export function TerritoryBottomSheet({ territory: t, onClose, onFortify }: Props
       )}
 
       {t.isOwn ? (
-        <Pressable style={ss.fortifyBtn} onPress={() => onFortify(t.h3Index ?? t.id)}>
-          <Text style={ss.fortifyLabel}>🛡️  Fortify — run to strengthen</Text>
+        <Pressable style={[ss.fortifyBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
+          <Shield size={16} color="#fff" strokeWidth={1.5} />
+          <Text style={ss.fortifyLabel}>Fortify — run to strengthen</Text>
         </Pressable>
       ) : t.ownerName ? (
-        <Pressable style={[ss.fortifyBtn, { backgroundColor: '#DC2626' }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
-          <Text style={ss.fortifyLabel}>⚔️  Attack territory</Text>
+        <Pressable style={[ss.fortifyBtn, { backgroundColor: '#DC2626', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
+          <Swords size={16} color="#fff" strokeWidth={1.5} />
+          <Text style={ss.fortifyLabel}>Attack territory</Text>
         </Pressable>
       ) : (
-        <Pressable style={[ss.fortifyBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#0A0A0A' }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
-          <Text style={[ss.fortifyLabel, { color: '#0A0A0A' }]}>🚩  Claim this territory</Text>
+        <Pressable style={[ss.fortifyBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#0A0A0A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
+          <Flag size={16} color="#0A0A0A" strokeWidth={1.5} />
+          <Text style={[ss.fortifyLabel, { color: '#0A0A0A' }]}>Claim this territory</Text>
         </Pressable>
       )}
     </View>

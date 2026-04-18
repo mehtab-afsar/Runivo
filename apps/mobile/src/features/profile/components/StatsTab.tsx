@@ -4,8 +4,9 @@ import { PersonalRecordsCard } from './PersonalRecordsCard';
 import { StatRow } from './StatRow';
 import { AwardsTab } from './AwardsTab';
 import type { PersonalRecord } from '../hooks/useProfile';
+import { Colors } from '@theme';
 
-const C = { black: '#0A0A0A' };
+const C = Colors;
 
 interface Props {
   personalRecords: PersonalRecord[];

@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Bell } from 'lucide-react-native';
 import { fmtRelativeTime } from '@mobile/shared/lib/formatters';
 import type { AppNotification } from '../types';
 import { NOTIF_CONFIG } from '../types';
+import { Colors } from '@theme';
 
-const C = { white: '#FFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518' };
-const DEFAULT_CONFIG = { emoji: '🔔', bg: '#F0EDE8', fg: '#6B6B6B' };
+const C = Colors;
+const DEFAULT_CONFIG = { emoji: '__bell__', bg: '#F0EDE8', fg: '#6B6B6B' };
 
 interface Props {
   notif: AppNotification;
@@ -17,7 +19,10 @@ export function NotifItem({ notif, onPress }: Props) {
   return (
     <Pressable style={[s.card, !notif.read && s.cardUnread]} onPress={onPress}>
       <View style={[s.iconWrap, { backgroundColor: cfg.bg }]}>
-        <Text style={s.emoji}>{cfg.emoji}</Text>
+        {cfg.emoji === '__bell__'
+          ? <Bell size={20} color={cfg.fg} strokeWidth={1.5} />
+          : <Text style={s.emoji}>{cfg.emoji}</Text>
+        }
       </View>
       <View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={s.title}>{notif.title}</Text>

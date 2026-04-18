@@ -3,8 +3,9 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Calendar, Users, Trophy } from 'lucide-react-native';
 import { WeeklyRing } from './WeeklyRing';
+import { Colors } from '@theme';
 
-const C = { border: '#DDD9D4', red: '#D93518' };
+const C = Colors;
 
 const QUICK_ACTIONS = [
   { icon: Calendar, name: 'Events',      screen: 'Events' },

@@ -3,17 +3,18 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, Ac
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Calendar, Clock, MapPin, Users, Share2, Bookmark } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, Users, Share2, Bookmark, X, Check, Activity } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
 import type { RunEvent } from '../types';
 import { CATEGORY_EMOJI } from '../types';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type EventTab = 'upcoming' | 'challenges' | 'past';
 
-const C = { bg: '#EDEAE5', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', white: '#FFFFFF', border: '#DDD9D4', stone: '#F0EDE8' };
+const C = Colors;
 
 const TABS: { id: EventTab; label: string }[] = [
   { id: 'upcoming',   label: 'Upcoming'   },
@@ -44,10 +45,15 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
         <View style={ed.sheetHeader}>
           <View style={ed.chips}>
             <View style={ed.chip}><Text style={ed.chipText}>{emoji} {categoryLabel}</Text></View>
-            {event.distance && <View style={[ed.chip, ed.chipDist]}><Text style={[ed.chipText, { color: C.black }]}>🏃 {event.distance}</Text></View>}
+            {event.distance && (
+              <View style={[ed.chip, ed.chipDist, { flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <Activity size={11} color={C.black} strokeWidth={1.5} />
+                <Text style={[ed.chipText, { color: C.black }]}>{event.distance}</Text>
+              </View>
+            )}
           </View>
           <Pressable style={ed.closeBtn} onPress={onClose}>
-            <Text style={ed.closeBtnText}>✕</Text>
+            <X size={14} color={C.t2} strokeWidth={2} />
           </Pressable>
         </View>
 
@@ -99,9 +105,14 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
             <Bookmark size={18} color={bookmarked ? C.white : C.black} strokeWidth={1.5} fill={bookmarked ? C.red : 'transparent'} />
           </Pressable>
           <Pressable style={[ed.joinBtn, joined && ed.joinBtnJoined]} onPress={() => { onJoin(); onClose(); }}>
-            <Text style={[ed.joinLabel, joined && ed.joinLabelJoined]}>
-              {joined ? '✓ Joined' : 'Join Event'}
-            </Text>
+            {joined ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Check size={14} color="#1A6B40" strokeWidth={2} />
+                <Text style={[ed.joinLabel, ed.joinLabelJoined]}>Joined</Text>
+              </View>
+            ) : (
+              <Text style={ed.joinLabel}>Join Event</Text>
+            )}
           </Pressable>
         </View>
       </View>

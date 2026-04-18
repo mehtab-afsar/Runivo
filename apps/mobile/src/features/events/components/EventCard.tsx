@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Calendar, Clock, MapPin, Activity, Users, Check } from 'lucide-react-native';
 import type { RunEvent } from '../types';
 import { CATEGORY_EMOJI } from '../types';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', stone: '#F0EDE8', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', green: '#1A6B40', greenLo: '#EDF7F2' };
+const C = Colors;
 
 interface Props {
   event: RunEvent;
@@ -26,18 +28,35 @@ export function EventCard({ event, joined, onJoin, onPress }: Props) {
         </View>
       </View>
       <View style={s.metaRow}>
-        <Text style={s.meta}>📅 {event.date}  🕐 {event.time}</Text>
+        <Calendar size={11} color={C.t2} strokeWidth={1.5} />
+        <Text style={s.meta}> {event.date}  </Text>
+        <Clock size={11} color={C.t2} strokeWidth={1.5} />
+        <Text style={s.meta}> {event.time}</Text>
       </View>
       <View style={s.metaRow}>
-        <Text style={s.meta}>📍 {event.location}</Text>
-        {event.distance && <Text style={s.meta}>  🏃 {event.distance}</Text>}
+        <MapPin size={11} color={C.t2} strokeWidth={1.5} />
+        <Text style={s.meta}> {event.location}</Text>
+        {event.distance && (
+          <>
+            <Activity size={11} color={C.t2} strokeWidth={1.5} style={{ marginLeft: 8 }} />
+            <Text style={s.meta}> {event.distance}</Text>
+          </>
+        )}
       </View>
       <View style={s.footer}>
-        <Text style={s.participants}>👥 {event.participants} joined</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Users size={11} color={C.t3} strokeWidth={1.5} />
+          <Text style={s.participants}>{event.participants} joined</Text>
+        </View>
         <Pressable style={[s.joinBtn, joined && s.joinBtnJoined]} onPress={onJoin}>
-          <Text style={[s.joinLabel, joined && s.joinLabelJoined]}>
-            {joined ? '✓ Joined' : 'Join'}
-          </Text>
+          {joined ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Check size={12} color={C.green} strokeWidth={2} />
+              <Text style={[s.joinLabel, s.joinLabelJoined]}>Joined</Text>
+            </View>
+          ) : (
+            <Text style={s.joinLabel}>Join</Text>
+          )}
         </Pressable>
       </View>
     </Pressable>

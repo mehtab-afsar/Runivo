@@ -11,7 +11,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X, Flame } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -28,8 +28,9 @@ import SaveRouteSheet      from '../components/SaveRouteSheet';
 import RunRouteMap         from '../components/RunRouteMap';
 import { buildStoryDataUrl } from '../services/storyCardGenerator';
 import { uploadStory } from '@shared/services/storiesService';
+import { Colors } from '@theme';
 
-const C = { bg: '#EDEAE5', black: '#0A0A0A', white: '#FFFFFF', t3: '#A39E98', red: '#D93518', orange: '#F97316' };
+const C = Colors;
 const FI = 'PlayfairDisplay_400Regular_Italic';
 const FS = 'Barlow_600SemiBold'; const FL = 'Barlow_300Light'; const FM = 'Barlow_500Medium';
 type Nav   = NativeStackNavigationProp<RootStackParamList>;

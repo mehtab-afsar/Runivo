@@ -8,6 +8,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { ArrowLeft, Users, Activity, ClipboardList, Check, X, Heart, Flame, Dumbbell, ThumbsUp, Smile, Laugh } from 'lucide-react-native';
+import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
 import { ChatInput } from '@features/clubs/components/ChatInput';
@@ -24,17 +26,22 @@ import {
 import type { ClubMember, ActivityItem, JoinRequest } from '@features/clubs/types';
 import { supabase } from '@shared/services/supabase';
 import { avatarColor } from '@shared/lib/avatarUtils';
+import { Colors } from '@theme';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
 
-const C = {
-  bg: '#EDEAE5', white: '#FFFFFF', stone: '#F0EDE8',
-  border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B',
-  t3: '#ADADAD', red: '#D93518', green: '#1A6B40',
-};
+const C = Colors;
 
-const REACTION_EMOJIS = ['❤️', '🔥', '💪', '👏', '🤣', '😮'];
+type ReactionEntry = { id: string; Icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>; color: string; emoji: string };
+const REACTION_ENTRIES: ReactionEntry[] = [
+  { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
+  { id: 'flame',    Icon: Flame,    color: '#EA580C', emoji: '🔥' },
+  { id: 'dumbbell', Icon: Dumbbell, color: '#7C3AED', emoji: '💪' },
+  { id: 'thumbsup', Icon: ThumbsUp, color: '#2563EB', emoji: '👏' },
+  { id: 'smile',    Icon: Smile,    color: '#D97706', emoji: '🤣' },
+  { id: 'laugh',    Icon: Laugh,    color: '#059669', emoji: '😮' },
+];
 
 const BADGE_EMOJIS = [
   '🏃','⚡','🔥','💪','🏆','🌍','🦅','🐺','🦁','🌟',
@@ -129,6 +136,7 @@ const ar = StyleSheet.create({
 export default function ClubDetailScreen() {
   const navigation = useNavigation<Nav>();
   const { clubId, clubName, badgeEmoji, memberCount, totalKm, description: initialDesc } = useRoute<Route>().params as any;
+  const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(badgeEmoji);
   const [tab, setTab] = useState<DetailTab>('chat');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | null>(null);
@@ -254,13 +262,18 @@ export default function ClubDetailScreen() {
       {/* Header */}
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Text style={s.backText}>←</Text>
+          <ArrowLeft size={20} color={C.t2} strokeWidth={1.5} />
         </Pressable>
         <View style={s.headerCenter}>
-          <Text style={s.emoji}>{badgeEmoji}</Text>
+          <View style={s.emoji}><BadgeIcon size={26} color={badgeColor} strokeWidth={1.5} /></View>
           <View>
             <Text style={s.title} numberOfLines={1}>{clubName}</Text>
-            <Text style={s.subtitle}>👥 {memberCount} · 🏃 {totalKm.toFixed(0)} km</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Users size={10} color={C.t3} strokeWidth={1.5} />
+              <Text style={s.subtitle}>{memberCount} · </Text>
+              <Activity size={10} color={C.t3} strokeWidth={1.5} />
+              <Text style={s.subtitle}>{totalKm.toFixed(0)} km</Text>
+            </View>
           </View>
         </View>
         <View style={{ width: 32 }} />
@@ -291,7 +304,7 @@ export default function ClubDetailScreen() {
             <View style={s.loader}><ActivityIndicator color={C.red} /></View>
           ) : messages.length === 0 ? (
             <View style={s.empty}>
-              <Text style={{ fontSize: 40 }}>{badgeEmoji}</Text>
+              <BadgeIcon size={40} color={badgeColor} strokeWidth={1.5} />
               <Text style={s.emptyTitle}>No messages yet</Text>
               <Text style={s.emptyText}>Start the conversation with your club!</Text>
             </View>
@@ -385,7 +398,7 @@ export default function ClubDetailScreen() {
             }
             ListEmptyComponent={
               <View style={s.empty}>
-                <Text style={{ fontSize: 36 }}>📋</Text>
+                <ClipboardList size={36} color={C.t3} strokeWidth={1.5} />
                 <Text style={s.emptyTitle}>No activity yet</Text>
                 <Text style={s.emptyText}>Club runs and events will appear here.</Text>
               </View>
@@ -426,7 +439,7 @@ export default function ClubDetailScreen() {
           <Text style={[s.sectionLabel, { marginTop: 20 }]}>CLUB BADGE</Text>
           <View style={s.adminCard}>
             <View style={s.badgeRow}>
-              <Text style={s.bigEmoji}>{badgeEmoji}</Text>
+              <View style={s.bigEmoji}><BadgeIcon size={40} color={badgeColor} strokeWidth={1.5} /></View>
               <Pressable style={s.changeBtn} onPress={() => setShowEmojiPicker(true)}>
                 <Text style={s.changeBtnText}>Change Badge</Text>
               </Pressable>
@@ -452,10 +465,10 @@ export default function ClubDetailScreen() {
                   <Text style={s.reqTime}>{new Date(req.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
                 </View>
                 <Pressable style={s.approveBtn} onPress={() => handleApprove(req)}>
-                  <Text style={s.approveBtnText}>✓</Text>
+                  <Check size={14} color={C.green} strokeWidth={2} />
                 </Pressable>
                 <Pressable style={s.rejectBtn} onPress={() => handleReject(req)}>
-                  <Text style={s.rejectBtnText}>✕</Text>
+                  <X size={14} color={C.red} strokeWidth={2} />
                 </Pressable>
               </View>
             ))
@@ -469,18 +482,18 @@ export default function ClubDetailScreen() {
           <View style={s.picker}>
             <Text style={s.pickerLabel}>React</Text>
             <View style={s.emojiRow}>
-              {REACTION_EMOJIS.map(emoji => (
+              {REACTION_ENTRIES.map(entry => (
                 <Pressable
-                  key={emoji}
+                  key={entry.id}
                   style={s.emojiBtn}
                   onPress={async () => {
                     if (reactingMsgId && currentUserId) {
-                      await reactToMessage(reactingMsgId, emoji, currentUserId);
+                      await reactToMessage(reactingMsgId, entry.emoji, currentUserId);
                     }
                     setReactingMsgId(null);
                   }}
                 >
-                  <Text style={s.emojiChar}>{emoji}</Text>
+                  <entry.Icon size={22} color={entry.color} strokeWidth={1.5} />
                 </Pressable>
               ))}
             </View>
@@ -494,11 +507,14 @@ export default function ClubDetailScreen() {
           <View style={s.badgePickerSheet}>
             <Text style={s.pickerLabel}>Choose Badge</Text>
             <View style={s.badgeGrid}>
-              {BADGE_EMOJIS.map(emoji => (
-                <Pressable key={emoji} style={s.badgePickerBtn} onPress={() => handleBadgeSelect(emoji)}>
-                  <Text style={s.emojiChar}>{emoji}</Text>
-                </Pressable>
-              ))}
+              {BADGE_EMOJIS.map(emoji => {
+                const { icon: PickIcon, color: pickColor } = getEmojiIcon(emoji);
+                return (
+                  <Pressable key={emoji} style={s.badgePickerBtn} onPress={() => handleBadgeSelect(emoji)}>
+                    <PickIcon size={22} color={pickColor} strokeWidth={1.5} />
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         </Pressable>
@@ -513,7 +529,7 @@ const s = StyleSheet.create({
   backBtn:     { width: 32 },
   backText:    { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
   headerCenter:{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' },
-  emoji:       { fontSize: 26 },
+  emoji:       { alignItems: 'center', justifyContent: 'center' },
   title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
   subtitle:    { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
   // Tab bar
@@ -538,7 +554,7 @@ const s = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.white },
   badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  bigEmoji:    { fontSize: 40 },
+  bigEmoji:    { alignItems: 'center', justifyContent: 'center' },
   changeBtn:   { backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: C.border },
   changeBtnText: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
   noRequestsText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3, textAlign: 'center' },

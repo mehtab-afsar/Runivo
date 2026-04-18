@@ -1,10 +1,13 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { X } from 'lucide-react-native';
 import type { StoredSavedRoute } from '@shared/services/store';
+import type { NearbyRoute } from '@shared/services/sync';
 import RouteCard from './RouteCard';
 import type { RouteItem } from './RouteCard';
+import { Colors } from '@theme';
 
-const C = { bg: '#F7F6F4', white: '#FFFFFF', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', t3: '#ADADAD', red: '#D93518', stone: '#F0EDE8' };
+const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -12,7 +15,7 @@ const FONT_LIGHT = 'Barlow_300Light';
 interface RouteModalProps {
   visible: boolean;
   savedRoutes: StoredSavedRoute[];
-  nearbyRoutes: any[];
+  nearbyRoutes: NearbyRoute[];
   nearbyLoading: boolean;
   gpsReady: boolean;
   selectedRouteName: string | null;
@@ -37,14 +40,14 @@ export default function RouteModal({
             <Text style={ss.sub}>Choose a route to follow</Text>
           </View>
           <Pressable style={ss.closeBtn} onPress={onClose}>
-            <Text style={{ color: C.muted, fontSize: 16 }}>✕</Text>
+            <X size={14} color={C.muted} strokeWidth={2} />
           </Pressable>
         </View>
         <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={ss.list} showsVerticalScrollIndicator={false}>
           {selectedRouteName && (
             <Pressable style={[ss.clearRow]} onPress={() => { onClearRoute(); onClose(); }}>
               <View style={[ss.routeIcon, { backgroundColor: C.red }]}>
-                <Text style={{ fontSize: 14, color: '#fff' }}>✕</Text>
+                <X size={14} color="#fff" strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: FONT, fontSize: 12, color: C.red }}>Clear: {selectedRouteName}</Text>

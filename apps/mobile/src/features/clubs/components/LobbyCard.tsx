@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { TrendingUp } from 'lucide-react-native';
+import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518' };
+const C = Colors;
 
 export interface LobbyRoomDisplay {
   id: string;
@@ -18,16 +21,20 @@ interface Props {
 }
 
 export function LobbyCard({ room, onPress }: Props) {
+  const { icon: RoomIcon, color: roomIconColor } = getEmojiIcon(room.emoji);
   return (
     <Pressable style={s.card} onPress={onPress}>
       <View style={[s.roomIcon, { backgroundColor: room.color + '18' }]}>
-        <Text style={{ fontSize: 22 }}>{room.emoji}</Text>
+        <RoomIcon size={22} color={roomIconColor} strokeWidth={1.5} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={s.roomName}>{room.name}</Text>
         <Text style={s.roomDesc}>{room.description}</Text>
         {(room.messagesToday ?? 0) > 0 && (
-          <Text style={s.activityText}>📈 {room.messagesToday} messages today</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            <TrendingUp size={10} color={C.red} strokeWidth={1.5} />
+            <Text style={s.activityText}>{room.messagesToday} messages today</Text>
+          </View>
         )}
       </View>
       <Text style={s.chevron}>›</Text>

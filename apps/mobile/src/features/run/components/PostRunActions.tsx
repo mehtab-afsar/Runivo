@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { Share2, Bookmark } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { black: '#0A0A0A', white: '#FFFFFF', stone: '#F0EDE8', border: '#DDD9D4' };
+const C = Colors;
 const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_MED  = 'Barlow_500Medium';
 

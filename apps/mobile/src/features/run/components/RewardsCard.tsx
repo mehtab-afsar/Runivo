@@ -1,7 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
+import { Sparkles, Check } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { black: '#0A0A0A', white: '#FFFFFF', red: '#D93518', amber: '#9E6800', green: '#1A6B40' };
+const C = Colors;
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -40,7 +42,7 @@ export default function RewardsCard({
     <View style={ss.card}>
       {leveledUp && (
         <View style={ss.levelUpBanner}>
-          <Text style={ss.levelUpEmoji}>🎉</Text>
+          <View style={ss.levelUpIcon}><Sparkles size={18} color="#D93518" strokeWidth={1.5} /></View>
           <View>
             <Text style={ss.levelUpTitle}>Level Up!</Text>
             <Text style={ss.levelUpSub}>Lv {preRunLevel} → Lv {newLevel}</Text>
@@ -67,7 +69,7 @@ export default function RewardsCard({
             {completedMissions!.map(m => (
               <View key={m.id} style={ss.rewardRow}>
                 <View style={ss.rewardLeft}>
-                  <View style={ss.missionCheck}><Text style={ss.missionMark}>✓</Text></View>
+                  <View style={ss.missionCheck}><Check size={9} color={C.green} strokeWidth={2.5} /></View>
                   <Text style={ss.rewardLabel}>{m.title}</Text>
                 </View>
               </View>
@@ -82,7 +84,7 @@ export default function RewardsCard({
 const ss = StyleSheet.create({
   card:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: C.black, borderRadius: 4, padding: 20 },
   levelUpBanner:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(217,53,24,0.15)', borderWidth: 1, borderColor: 'rgba(217,53,24,0.3)', borderRadius: 3, padding: 10, marginBottom: 16 },
-  levelUpEmoji:   { fontSize: 20 },
+  levelUpIcon:    { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   levelUpTitle:   { fontFamily: FONT_SEMI, fontSize: 13, color: C.red },
   levelUpSub:     { fontFamily: FONT, fontSize: 11, color: 'rgba(217,53,24,0.7)', marginTop: 1 },
   xpRow:          { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
@@ -100,5 +102,5 @@ const ss = StyleSheet.create({
   rewardValue:    { fontFamily: FONT_LIGHT, fontSize: 16, color: C.amber },
   missionsHeader: { fontFamily: FONT_SEMI, fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.3)', marginBottom: 10 },
   missionCheck:   { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(26,107,64,0.15)', alignItems: 'center', justifyContent: 'center' },
-  missionMark:    { fontSize: 9, color: C.green },
+  missionMark:    { fontSize: 9, color: C.green }, // kept for safety
 });

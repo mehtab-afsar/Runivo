@@ -15,14 +15,24 @@ config.watchFolders = [workspaceRoot];
 
 // When watchFolders includes the workspace root, Metro shifts all bundle URLs
 // to be relative to the workspace root (e.g. /apps/mobile/index.bundle).
-// The native app always requests /index.bundle, so we rewrite it here.
+// The native app requests /index.bundle (classic) or /.expo/.virtual-metro-entry.bundle
+// (Expo SDK 50+ with expo-dev-client), so we rewrite both here.
 const appRelPath = path.relative(workspaceRoot, path.join(projectRoot, 'index'));
+const appDir     = path.relative(workspaceRoot, projectRoot); // 'apps/mobile'
 config.server = {
   enhanceMiddleware: (middleware) => {
     return (req, res, next) => {
-      // Rewrite /index.bundle → /apps/mobile/index.bundle
-      if (req.url && /^\/(index\.bundle|index\.map)(\?|$)/.test(req.url)) {
-        req.url = req.url.replace(/^\/index/, `/${appRelPath}`);
+      if (req.url) {
+        // Rewrite /index.bundle → /apps/mobile/index.bundle
+        if (/^\/(index\.bundle|index\.map)(\?|$)/.test(req.url)) {
+          req.url = req.url.replace(/^\/index/, `/${appRelPath}`);
+        }
+        // Rewrite /.expo/... → /apps/mobile/.expo/...
+        // Required for expo-dev-client (Expo SDK 50+) which requests
+        // /.expo/.virtual-metro-entry.bundle instead of /index.bundle
+        else if (/^\/.expo\//.test(req.url)) {
+          req.url = req.url.replace(/^\/.expo\//, `/${appDir}/.expo/`);
+        }
       }
       return middleware(req, res, next);
     };
@@ -66,6 +76,7 @@ config.resolver.extraNodeModules = {
   '@features':     path.resolve(projectRoot, 'src/features'),
   '@mobile/shared': path.resolve(projectRoot, 'src/shared'),
   '@navigation':   path.resolve(projectRoot, 'src/navigation'),
+  '@theme':        path.resolve(projectRoot, 'src/theme'),
   // h3-js shim: pre-installs text-encoding polyfill before h3-js loads
   // so Hermes doesn't crash on new TextDecoder("utf-16le")
   'h3-js': path.resolve(projectRoot, 'shims/h3-js.js'),

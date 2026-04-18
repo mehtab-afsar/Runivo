@@ -20,7 +20,7 @@ export function useFeed() {
   const load = useCallback(async (uid: string) => {
     try {
       const [feedData, followIds, suggested] = await Promise.all([
-        fetchFeed(uid),
+        fetchFeed(),
         fetchFollowingIds(uid),
         fetchSuggestedRunners(uid),
       ]);

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Linking } from 'react-native';
 import { CustomTabBar } from './CustomTabBar';
-import { NavigationContainer, useNavigationContainerRef, type LinkingOptions } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef, type LinkingOptions, type NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
@@ -53,7 +53,7 @@ export type RootStackParamList = {
   SignUp:    undefined;
   Onboarding: undefined;
   // Authenticated
-  Main:      undefined;
+  Main:      NavigatorScreenParams<TabParamList> | undefined;
   // Modal / overlay stacks
   ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[]; activityType?: string } | undefined;
   RunSummary: {
@@ -93,6 +93,7 @@ export type RootStackParamList = {
   Gear:      undefined;
   GearAdd:   undefined;
   FootScan:  undefined;
+  TerritoryMap: undefined;
   Notifications: undefined;
   Subscription: undefined;
   StoryViewer: {
@@ -244,6 +245,7 @@ export function AppNavigator({
             <Stack.Screen name="Gear"            component={GearScreen} />
             <Stack.Screen name="GearAdd"         component={GearAddScreen} />
             <Stack.Screen name="FootScan"        component={FootScanScreen} />
+            <Stack.Screen name="TerritoryMap"     component={TerritoryMapScreen} />
             <Stack.Screen name="Notifications"   component={NotificationsScreen} />
             <Stack.Screen name="Subscription"    component={SubscriptionScreen} />
             <Stack.Screen name="StoryViewer"     component={StoryViewerScreen} />

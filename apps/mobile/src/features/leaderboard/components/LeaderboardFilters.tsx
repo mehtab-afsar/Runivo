@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Globe, Flag, MapPin } from 'lucide-react-native';
 import type { LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', stone: '#F0EDE8' };
+const C = Colors;
 
 interface Props {
   tab: LeaderboardTab;
@@ -25,10 +27,15 @@ const TIMEFRAMES: { value: LeaderboardTimeFrame; label: string }[] = [
   { value: 'all', label: 'All time' },
 ];
 
+const SCOPE_ICONS: Record<string, React.ReactNode> = {
+  global:   <Globe size={11} color="#6B6B6B" strokeWidth={1.5} />,
+  national: <Flag size={11} color="#6B6B6B" strokeWidth={1.5} />,
+  local:    <MapPin size={11} color="#6B6B6B" strokeWidth={1.5} />,
+};
 const SCOPES: { value: LeaderboardScope; label: string }[] = [
-  { value: 'global', label: '🌍 Global' },
-  { value: 'national', label: '🏳 National' },
-  { value: 'local', label: '📍 Local' },
+  { value: 'global',   label: 'Global'   },
+  { value: 'national', label: 'National' },
+  { value: 'local',    label: 'Local'    },
 ];
 
 export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeFrameChange, onScopeChange }: Props) {
@@ -51,7 +58,10 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
       <View style={s.scopeRow}>
         {SCOPES.map(sc => (
           <Pressable key={sc.value} style={[s.scopeBtn, scope === sc.value && s.scopeBtnActive]} onPress={() => onScopeChange(sc.value)}>
-            <Text style={[s.scopeLabel, scope === sc.value && s.scopeLabelActive]}>{sc.label}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              {SCOPE_ICONS[sc.value]}
+              <Text style={[s.scopeLabel, scope === sc.value && s.scopeLabelActive]}>{sc.label}</Text>
+            </View>
           </Pressable>
         ))}
       </View>

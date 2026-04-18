@@ -85,8 +85,10 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
     >
       <MapLibreGL.Camera
         ref={cameraRef}
-        zoomLevel={16}
-        centerCoordinate={latest ? [latest.lng, latest.lat] : [0, 0]}
+        zoomLevel={latest ? 16 : 14}
+        centerCoordinate={latest ? [latest.lng, latest.lat] : undefined}
+        followUserLocation={!latest}
+        followZoomLevel={16}
         animationMode="flyTo"
         animationDuration={800}
       />

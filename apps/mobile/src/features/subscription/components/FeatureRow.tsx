@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Check, X } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { black: '#0A0A0A', t2: '#6B6B6B', green: '#1A6B40', greenLo: '#EDF7F2', red: '#D93518', redLo: '#FEF0EE' };
+const C = Colors;
 
 interface FeatureRowProps {
   name: string;
@@ -14,7 +16,10 @@ export function FeatureRow({ name, sub, type = 'check' }: FeatureRowProps) {
   return (
     <View style={ss.row}>
       <View style={[ss.circle, isCheck ? ss.checkCircle : ss.xCircle]}>
-        <Text style={[ss.mark, isCheck ? ss.checkMark : ss.xMark]}>{isCheck ? '✓' : '✕'}</Text>
+        {isCheck
+          ? <Check size={10} color={C.green} strokeWidth={2} />
+          : <X     size={10} color={C.red}   strokeWidth={2} />
+        }
       </View>
       <View style={{ flex: 1 }}>
         <Text style={ss.name}>{name}</Text>

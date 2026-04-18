@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Users, Activity } from 'lucide-react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
+import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import type { Club } from '@features/clubs/types';
+import { Colors } from '@theme';
 
-const C = {
-  white: '#FFFFFF', stone: '#F0EDE8', border: '#DDD9D4',
-  black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD',
-};
+const C = Colors;
 
 interface Props {
   club: Club;
@@ -17,10 +17,11 @@ interface Props {
 
 export function ClubCard({ club, onJoin, onLeave, onPress }: Props) {
   const bg = avatarColor(club.name);
+  const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(club.badge_emoji);
   return (
     <Pressable style={s.card} onPress={onPress}>
       <View style={[s.badge, { backgroundColor: bg + '22' }]}>
-        <Text style={{ fontSize: 22 }}>{club.badge_emoji}</Text>
+        <BadgeIcon size={22} color={badgeColor} strokeWidth={1.5} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={s.clubName}>{club.name}</Text>
@@ -28,8 +29,10 @@ export function ClubCard({ club, onJoin, onLeave, onPress }: Props) {
           <Text style={s.clubDesc} numberOfLines={2}>{club.description}</Text>
         ) : null}
         <View style={s.statsRow}>
-          <Text style={s.stat}>👥 {club.member_count}</Text>
-          <Text style={s.stat}>  🏃 {club.total_km.toFixed(0)} km</Text>
+          <Users size={11} color={C.t3} strokeWidth={1.5} />
+          <Text style={s.stat}> {club.member_count}  </Text>
+          <Activity size={11} color={C.t3} strokeWidth={1.5} />
+          <Text style={s.stat}> {club.total_km.toFixed(0)} km</Text>
         </View>
       </View>
       <Pressable style={[s.joinBtn, club.joined && s.leaveBtn]} onPress={club.joined ? onLeave : onJoin}>
@@ -49,7 +52,7 @@ const s = StyleSheet.create({
   badge: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   clubName: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 2 },
   clubDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, lineHeight: 15, marginBottom: 4 },
-  statsRow: { flexDirection: 'row' },
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
   stat: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
   joinBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: C.black, flexShrink: 0 },
   leaveBtn: { backgroundColor: C.stone },

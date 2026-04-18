@@ -1,7 +1,24 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Activity, Flame, Waves, Mountain, Star, Target, TreePine, RefreshCw, Zap, Route as RouteIcon, Map, Trophy, type LucideIcon } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { stone: '#F0EDE8', border: '#E0DFDD', black: '#0A0A0A', muted: '#6B6B6B', white: '#FFFFFF', red: '#D93518' };
+const ROUTE_ICON_MAP: Record<string, { Icon: LucideIcon; color: string }> = {
+  run:      { Icon: Activity,  color: '#D93518' },
+  flame:    { Icon: Flame,     color: '#EA580C' },
+  waves:    { Icon: Waves,     color: '#0EA5E9' },
+  mountain: { Icon: Mountain,  color: '#78716C' },
+  star:     { Icon: Star,      color: '#F59E0B' },
+  target:   { Icon: Target,    color: '#D93518' },
+  tree:     { Icon: TreePine,  color: '#15803D' },
+  loop:     { Icon: RefreshCw, color: '#7C3AED' },
+  zap:      { Icon: Zap,       color: '#EAB308' },
+  route:    { Icon: RouteIcon, color: '#6B6B6B' },
+  map:      { Icon: Map,       color: '#0284C7' },
+  trophy:   { Icon: Trophy,    color: '#D97706' },
+};
+
+const C = Colors;
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -37,7 +54,7 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
       onPress={() => onSelect(route)}
     >
       <View style={[ss.icon, highlighted && { backgroundColor: '#DBEAFE' }]}>
-        <Text style={ss.emoji}>{route.emoji}</Text>
+        {(() => { const entry = ROUTE_ICON_MAP[route.emoji]; return entry ? <entry.Icon size={18} color={entry.color} strokeWidth={1.5} /> : <Activity size={18} color="#D93518" strokeWidth={1.5} />; })()}
       </View>
       <View style={ss.info}>
         <Text style={ss.name} numberOfLines={1}>{route.name}</Text>

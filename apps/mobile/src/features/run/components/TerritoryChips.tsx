@@ -1,7 +1,8 @@
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
-const C = { border: '#DDD9D4' };
+const C = Colors;
 const FONT      = 'Barlow_400Regular';
 const FONT_SEMI = 'Barlow_600SemiBold';
 

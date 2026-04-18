@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, TextInput, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t3: '#ADADAD', red: '#D93518', mid: '#E8E4DF', bg: '#F8F6F3' };
+const C = Colors;
 
 interface Props {
   value: string;

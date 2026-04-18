@@ -5,16 +5,26 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { X } from 'lucide-react-native';
+import { X, Activity, Flame, Waves, Mountain, Star, Target, TreePine, RefreshCw, Zap, Route as RouteIcon, Map, Trophy, type LucideIcon } from 'lucide-react-native';
 import { saveSavedRoute, type StoredSavedRoute } from '@shared/services/store';
 import { pushSavedRoutes } from '@shared/services/sync';
+import { Colors } from '@theme';
 
-const EMOJI_OPTIONS = ['🏃', '🏁', '🌲', '🏔️', '⭐', '🔥', '🌊', '💪', '🌅', '🏙️', '🛤️', '🎯'];
-const C = {
-  bg: '#EDEAE5', white: '#FFFFFF', black: '#0A0A0A',
-  red: '#D93518', border: '#DDD9D4', t2: '#6B6B6B', t3: '#ADADAD',
-  stone: '#F0EDE8',
-};
+const ICON_OPTIONS: { key: string; Icon: LucideIcon; color: string }[] = [
+  { key: 'run',     Icon: Activity,   color: '#D93518' },
+  { key: 'flame',   Icon: Flame,      color: '#EA580C' },
+  { key: 'waves',   Icon: Waves,      color: '#0EA5E9' },
+  { key: 'mountain',Icon: Mountain,   color: '#78716C' },
+  { key: 'star',    Icon: Star,       color: '#F59E0B' },
+  { key: 'target',  Icon: Target,     color: '#D93518' },
+  { key: 'tree',    Icon: TreePine,   color: '#15803D' },
+  { key: 'loop',    Icon: RefreshCw,  color: '#7C3AED' },
+  { key: 'zap',     Icon: Zap,        color: '#EAB308' },
+  { key: 'route',   Icon: RouteIcon,  color: '#6B6B6B' },
+  { key: 'map',     Icon: Map,        color: '#0284C7' },
+  { key: 'trophy',  Icon: Trophy,     color: '#D97706' },
+];
+const C = Colors;
 
 interface SaveRouteSheetProps {
   visible: boolean;
@@ -30,7 +40,7 @@ export default function SaveRouteSheet({
 }: SaveRouteSheetProps) {
   const insets = useSafeAreaInsets();
   const [name, setName]         = useState('');
-  const [emoji, setEmoji]       = useState('🏃');
+  const [emoji, setEmoji]       = useState('run');
   const [isPublic, setIsPublic] = useState(true);
   const [saving, setSaving]     = useState(false);
 
@@ -54,7 +64,7 @@ export default function SaveRouteSheet({
     pushSavedRoutes().catch(() => {});
     setSaving(false);
     setName('');
-    setEmoji('🏃');
+    setEmoji('run');
     onClose();
   };
 
@@ -75,7 +85,7 @@ export default function SaveRouteSheet({
 
         {/* Route info */}
         <View style={ss.infoRow}>
-          <Text style={ss.infoEmoji}>{emoji}</Text>
+          <View style={ss.infoIconWrap}>{ICON_OPTIONS.find(o => o.key === emoji) ? (() => { const { Icon, color } = ICON_OPTIONS.find(o => o.key === emoji)!; return <Icon size={22} color={color} strokeWidth={1.5} />; })() : null}</View>
           <View>
             <Text style={ss.infoDistance}>{(distanceM / 1000).toFixed(2)} km</Text>
             {durationSec != null && (
@@ -102,13 +112,13 @@ export default function SaveRouteSheet({
         <Text style={ss.sectionLabel}>ICON</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
           <View style={ss.emojiRow}>
-            {EMOJI_OPTIONS.map(e => (
+            {ICON_OPTIONS.map(({ key, Icon, color }) => (
               <Pressable
-                key={e}
-                style={[ss.emojiBtn, emoji === e && ss.emojiBtnActive]}
-                onPress={() => { setEmoji(e); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                key={key}
+                style={[ss.emojiBtn, emoji === key && ss.emojiBtnActive]}
+                onPress={() => { setEmoji(key); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
               >
-                <Text style={{ fontSize: 18 }}>{e}</Text>
+                <Icon size={18} color={emoji === key ? color : C.t2} strokeWidth={1.5} />
               </Pressable>
             ))}
           </View>
@@ -154,7 +164,7 @@ const ss = StyleSheet.create({
   title:         { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
   closeBtn:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
   infoRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 12, padding: 12, marginBottom: 14 },
-  infoEmoji:     { fontSize: 24 },
+  infoIconWrap:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   infoDistance:  { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
   infoDuration:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
   input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },

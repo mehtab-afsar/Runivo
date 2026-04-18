@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
-const C = { white: '#FFF', border: '#DDD9D4', black: '#0A0A0A', t3: '#ADADAD' };
+const C = Colors;
 
 interface Props {
   runCount: number;

@@ -242,7 +242,9 @@ export async function pushUnsyncedRuns(): Promise<void> {
     if (!error) {
       await saveRun({ ...run, synced: true });
     } else {
-      console.warn('[sync] Failed to push run', run.id, error.message);
+      // Throw so withRetry + postRunSync can set sync status to 'error' and surface
+      // a "Could not upload run" message in the UI instead of silently discarding data.
+      throw error;
     }
   }
 }
@@ -341,7 +343,14 @@ export async function claimTerritoryRemote(
 
 /**
  * Subscribe to live territory updates.
- * Territories are now polygon corridors stored locally; remote hex sync is disabled.
+ *
+ * Intentionally a no-op: territories are polygon corridors derived from GPS tracks and
+ * stored locally in IndexedDB/SQLite. There is no server-side territory table to stream
+ * from in real-time — territory state is pulled via pullTerritories() after each run.
+ *
+ * To re-enable real-time territory sync (e.g., for live attack notifications), wire a
+ * Supabase Realtime subscription to the `territories` table here and update pullTerritories
+ * to merge remote state with the local cache.
  */
 export function subscribeTerritories(
   _onUpdate: (territory: StoredTerritory) => void
@@ -441,11 +450,22 @@ export async function pullSavedRoutes(): Promise<void> {
 }
 
 /** Find public routes near a position via PostGIS RPC. */
+export interface NearbyRoute {
+  id: string;
+  name: string;
+  emoji: string;
+  distanceM: number;
+  durationSec: number | null;
+  gpsPoints: { lat: number; lng: number }[];
+  username: string;
+  distM: number;
+}
+
 export async function findRoutesNearby(
   lng: number,
   lat: number,
   radiusM = 5000
-): Promise<{ id: string; name: string; emoji: string; distanceM: number; durationSec: number | null; gpsPoints: { lat: number; lng: number }[]; username: string; distM: number }[]> {
+): Promise<NearbyRoute[]> {
   const { data, error } = await supabase.rpc('find_routes_nearby', {
     p_lng: lng,
     p_lat: lat,
@@ -461,7 +481,7 @@ export async function findRoutesNearby(
     username: string; dist_m: number;
   }
 
-  return (data as RouteNearbyRow[]).map(r => ({
+  return (data as RouteNearbyRow[]).map((r): NearbyRoute => ({
     id: r.id,
     name: r.name,
     emoji: r.emoji,

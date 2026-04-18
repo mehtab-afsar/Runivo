@@ -1,11 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Footprints } from 'lucide-react-native';
 import type { StoredRun, StoredShoe } from '@shared/services/store';
+import { Colors } from '@theme';
 
-const C = {
-  black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', border: '#DDD9D4',
-  stone: '#F0EDE8', red: '#D93518', hair: '#E8E4DF',
-};
+const C = Colors;
 
 interface GearTabProps {
   shoes: StoredShoe[];
@@ -45,7 +44,7 @@ export function GearTab({ shoes, runs = [], onAddShoe }: GearTabProps) {
           return (
             <View key={shoe.id} style={[ss.shoeCard, shoe.isRetired && ss.shoeRetired]}>
               <View style={ss.shoeEmoji}>
-                <Text style={{ fontSize: 22 }}>👟</Text>
+                <Footprints size={22} color="#6B6B6B" strokeWidth={1.5} />
               </View>
               <View style={{ flex: 1 }}>
                 <View style={ss.shoeNameRow}>
@@ -82,7 +81,7 @@ const ss = StyleSheet.create({
   shoeName:      { fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
   shoeBrand:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, marginBottom: 8 },
   statusBadge:   { fontFamily: 'Barlow_500Medium', fontSize: 10 },
-  barTrack:      { height: 5, backgroundColor: C.hair, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
+  barTrack:      { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
   barFill:       { height: '100%', borderRadius: 3 },
   barLabels:     { flexDirection: 'row', justifyContent: 'space-between' },
   barLabel:      { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3 },

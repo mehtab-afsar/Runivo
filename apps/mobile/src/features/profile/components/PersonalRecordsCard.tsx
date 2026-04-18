@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
-const C = { black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', border: '#DDD9D4', white: '#FFFFFF' };
+const C = Colors;
 
 interface PersonalRecord {
   label: string;

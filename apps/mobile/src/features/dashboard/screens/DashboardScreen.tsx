@@ -10,6 +10,7 @@ import { Bell, Map, Zap, Activity, Flame, Target } from 'lucide-react-native';
 const { width: SCREEN_W } = Dimensions.get('window');
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Colors } from '@theme';
 import { useDashboard } from '../hooks/useDashboard';
 import { XPRing } from '../components/XPRing';
 import { TerritoryStats } from '../components/TerritoryStats';
@@ -20,7 +21,7 @@ import { BentoCard } from '../components/BentoCard';
 import { DailyBonusCard } from '../components/DailyBonusCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#F8F6F3', red: '#D93518', t3: '#ADADAD', black: '#0A0A0A', white: '#FFFFFF', border: '#DDD9D4' };
+const C = Colors;
 
 function HeroCarousel({
   weeklyKm, weeklyGoal, caloriesConsumed, calorieGoal,
@@ -126,7 +127,8 @@ export default function DashboardScreen() {
     }, []),
   );
 
-  const go = (screen: string) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate(screen as any); };
+  type GoScreen = 'Notifications' | 'CalorieTracker' | 'TerritoryMap' | 'Missions' | 'History';
+  const go = (screen: GoScreen) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate(screen); };
 
   if (dash.loading || !dash.player) {
     return <View style={[ss.fill, { backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }]}><Text style={ss.loadText}>runivo</Text></View>;
@@ -181,7 +183,7 @@ export default function DashboardScreen() {
           onGoCalories={() => go('CalorieTracker')}
         />
 
-        <BentoCard weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal} runDays={dash.runDays} onNavigate={go} onStartRun={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Run' as any); }} />
+        <BentoCard weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal} runDays={dash.runDays} onNavigate={go as (screen: string) => void} onStartRun={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Main', { screen: 'Run' }); }} />
 
         <View style={ss.section}>
           <View style={ss.sectionHead}>
@@ -227,8 +229,8 @@ export default function DashboardScreen() {
           </View>
           <View style={ss.runsCard}>
             {dash.recentRuns.length > 0
-              ? dash.recentRuns.map((r, i) => <RecentRunRow key={r.id} run={r} isLast={i === dash.recentRuns.length - 1} onPress={run => navigation.navigate('RunSummary' as any, { runId: run.id })} />)
-              : <View style={ss.empty}><Text style={ss.emptyText}>No runs yet</Text><Pressable onPress={() => navigation.navigate('Run' as any)}><Text style={ss.emptyCta}>Start running →</Text></Pressable></View>}
+              ? dash.recentRuns.map((r, i) => <RecentRunRow key={r.id} run={r} isLast={i === dash.recentRuns.length - 1} onPress={run => navigation.navigate('RunSummary', { runId: run.id })} />)
+              : <View style={ss.empty}><Text style={ss.emptyText}>No runs yet</Text><Pressable onPress={() => navigation.navigate('Main', { screen: 'Run' })}><Text style={ss.emptyCta}>Start running →</Text></Pressable></View>}
           </View>
         </View>
       </ScrollView>

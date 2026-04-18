@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Zap, Flame } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { Colors } from '@theme';
 
 const LEVEL_TITLES = [
   'Scout', 'Pathfinder', 'Trailblazer', 'Ranger', 'Explorer',
@@ -15,7 +16,7 @@ interface Props {
   streakDays: number;
 }
 
-const C = { red: '#D93518', amber: '#9E6800', border: '#DDD9D4', bg: '#FFFFFF', black: '#0A0A0A', t3: '#ADADAD' };
+const C = Colors;
 
 export function DashboardPills({ xp, level = 1, energy, streakDays }: Props) {
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

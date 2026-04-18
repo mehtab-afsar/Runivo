@@ -6,10 +6,11 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useRunHistory } from '../hooks/useRunHistory';
 import { RunItem } from '../components/RunItem';
 import { HistoryStats } from '../components/HistoryStats';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const C = { bg: '#F8F6F3', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', white: '#FFFFFF', border: '#DDD9D4', stone: '#F0EDE8' };
+const C = Colors;
 
 const FILTERS = [
   { value: 'all',        label: 'All' },

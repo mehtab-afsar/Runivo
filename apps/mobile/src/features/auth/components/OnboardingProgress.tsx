@@ -1,9 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, Animated } from 'react-native';
+import { Colors } from '@theme';
 
-const C = {
-  black: '#0A0A0A', t3: '#ADADAD', mid: '#E8E4DF', red: '#D93518', border: '#DDD9D4',
-};
+const C = Colors;
 
 const CHAPTERS = [
   { label: 'Level',    steps: [1] },

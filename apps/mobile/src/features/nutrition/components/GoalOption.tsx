@@ -6,17 +6,18 @@ interface GoalOptionProps {
   label: string;
   description?: string;
   emoji?: string;
+  iconNode?: React.ReactNode;
   selected: boolean;
   onSelect: (goal: string) => void;
 }
 
-export function GoalOption({ goal, label, emoji, selected, onSelect }: GoalOptionProps) {
+export function GoalOption({ goal, label, emoji, iconNode, selected, onSelect }: GoalOptionProps) {
   return (
     <Pressable
       style={[s.btn, selected && s.btnActive]}
       onPress={() => onSelect(goal)}
     >
-      {emoji && <Text style={{ fontSize: 18 }}>{emoji}</Text>}
+      {iconNode ?? (emoji ? <Text style={{ fontSize: 18 }}>{emoji}</Text> : null)}
       <Text style={[s.label, selected && s.labelActive]}>{label}</Text>
     </Pressable>
   );

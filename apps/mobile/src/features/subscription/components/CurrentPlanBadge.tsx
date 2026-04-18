@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Check } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { green: '#1A6B40', greenLo: '#EDF7F2' };
+const C = Colors;
 
 interface CurrentPlanBadgeProps {
   tier: string;
@@ -10,7 +12,10 @@ interface CurrentPlanBadgeProps {
 export function CurrentPlanBadge({ tier }: CurrentPlanBadgeProps) {
   return (
     <View style={ss.card}>
-      <Text style={ss.title}>✓ You're on Runivo Plus</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <Check size={14} color={C.green} strokeWidth={2} />
+        <Text style={[ss.title, { marginBottom: 0 }]}>You're on Runivo Plus</Text>
+      </View>
       <Text style={ss.sub}>Enjoy all premium features.</Text>
     </View>
   );

@@ -32,7 +32,7 @@ export async function fetchStories(userId: string): Promise<StoryGroup[]> {
     if (!groupMap.has(uid)) {
       groupMap.set(uid, {
         userId: uid,
-        userName: (row.profiles as any)?.username ?? 'Runner',
+        userName: (row.profiles as unknown as { username: string | null } | null)?.username ?? 'Runner',
         stories: [],
       });
     }

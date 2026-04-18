@@ -3,7 +3,7 @@ import {
   View, Text, Pressable, StyleSheet, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Rss, Sparkles, User } from 'lucide-react-native';
+import { Home, Rss, Sparkles, User, Play } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
@@ -52,7 +52,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             return (
               <Pressable key={route.key} onPress={onPress} style={ss.runOuter}>
                 <View style={[ss.runCircle, focused && ss.runCircleActive]}>
-                  <Text style={ss.runPlay}>▶</Text>
+                  <Play size={20} color="#fff" fill="#fff" strokeWidth={0} />
                 </View>
                 <Text style={[ss.label, { color: ACTIVE, fontFamily: 'Barlow_500Medium' }]}>{meta.label}</Text>
               </Pressable>

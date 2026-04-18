@@ -1,19 +1,20 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Tv, Activity, Trophy, Check, type LucideIcon } from 'lucide-react-native';
 
 type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 
-const OPTIONS: { value: ActivityLevel; label: string; emoji: string }[] = [
-  { value: 'sedentary',   label: 'Sedentary',         emoji: '🛋️' },
-  { value: 'light',       label: 'Lightly active',    emoji: '🚶' },
-  { value: 'moderate',    label: 'Moderately active', emoji: '🏃' },
-  { value: 'active',      label: 'Very active',       emoji: '⚡' },
-  { value: 'very_active', label: 'Athlete',           emoji: '🏆' },
+const OPTIONS: { value: ActivityLevel; label: string; Icon: LucideIcon; iconColor: string }[] = [
+  { value: 'sedentary',   label: 'Sedentary',         Icon: Tv,       iconColor: '#ADADAD' },
+  { value: 'light',       label: 'Lightly active',    Icon: Activity, iconColor: '#6B6B6B' },
+  { value: 'moderate',    label: 'Moderately active', Icon: Activity, iconColor: '#1A6B40' },
+  { value: 'active',      label: 'Very active',       Icon: Activity, iconColor: '#D93518' },
+  { value: 'very_active', label: 'Athlete',           Icon: Trophy,   iconColor: '#D97706' },
 ];
 
 interface ActivityLevelPickerProps {
-  selected: ActivityLevel;
-  onSelect: (level: ActivityLevel) => void;
+  selected: string;
+  onSelect: (level: string) => void;
 }
 
 export function ActivityLevelPicker({ selected, onSelect }: ActivityLevelPickerProps) {
@@ -25,9 +26,11 @@ export function ActivityLevelPicker({ selected, onSelect }: ActivityLevelPickerP
           style={[s.row, selected === opt.value && s.rowActive]}
           onPress={() => onSelect(opt.value)}
         >
-          <Text style={{ fontSize: 18, width: 28 }}>{opt.emoji}</Text>
+          <View style={{ width: 28, alignItems: 'center' }}>
+            <opt.Icon size={18} color={selected === opt.value ? '#fff' : opt.iconColor} strokeWidth={1.5} />
+          </View>
           <Text style={[s.label, selected === opt.value && s.labelActive]}>{opt.label}</Text>
-          {selected === opt.value && <Text style={s.check}>✓</Text>}
+          {selected === opt.value && <Check size={14} color="#1A6B40" strokeWidth={2} />}
         </Pressable>
       ))}
     </View>

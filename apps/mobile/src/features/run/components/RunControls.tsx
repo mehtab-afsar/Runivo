@@ -1,12 +1,9 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { Pause, Play, Square } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = {
-  black: '#0A0A0A',
-  white: '#FFFFFF',
-  red:   '#D93518',
-};
+const C = Colors;
 
 const FONT = 'Barlow_400Regular';
 

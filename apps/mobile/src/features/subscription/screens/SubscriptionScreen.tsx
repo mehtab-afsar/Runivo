@@ -6,14 +6,16 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Flag } from 'lucide-react-native';
 import { useSubscription } from '../hooks/useSubscription';
 import { PlanCard } from '../components/PlanCard';
 import { CurrentPlanBadge } from '../components/CurrentPlanBadge';
 import { FeatureRow } from '../components/FeatureRow';
 import { PLANS, FEATURES, FREE_LIMITS } from '../types';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#EDEAE5', t2: '#6B6B6B', t3: '#ADADAD', black: '#0A0A0A', red: '#D93518' };
+const C = Colors;
 
 export default function SubscriptionScreen() {
   const navigation = useNavigation<Nav>();
@@ -35,7 +37,7 @@ export default function SubscriptionScreen() {
 
       <ScrollView contentContainerStyle={su.content} showsVerticalScrollIndicator={false}>
         <View style={su.hero}>
-          <Text style={su.heroEmoji}>🏴</Text>
+          <View style={su.heroEmoji}><Flag size={48} color="#D93518" strokeWidth={1.5} /></View>
           <Text style={su.heroTitle}>Runivo Plus</Text>
           <Text style={su.heroSub}>Dominate more territory. Run smarter.</Text>
         </View>
@@ -83,7 +85,7 @@ const su = StyleSheet.create({
   title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
   content: { paddingHorizontal: 20, paddingBottom: 60, gap: 6 },
   hero: { alignItems: 'center', paddingVertical: 24 },
-  heroEmoji: { fontSize: 48, marginBottom: 8 },
+  heroEmoji: { marginBottom: 8, alignItems: 'center', justifyContent: 'center' },
   heroTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 28, color: C.black, marginBottom: 6 },
   heroSub: { fontFamily: 'Barlow_300Light', fontSize: 14, color: C.t2, textAlign: 'center' },
   planRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },

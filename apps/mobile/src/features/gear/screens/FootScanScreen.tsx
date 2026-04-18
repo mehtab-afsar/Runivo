@@ -8,14 +8,11 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Camera, RefreshCw, CheckCircle } from 'lucide-react-native';
 import { analyseFootImage, ARCH_INFO, type FootScanResult } from '../services/footScanService';
+import { Colors } from '@theme';
 
 type Step = 'instructions' | 'preview' | 'analysing' | 'result';
 
-const C = {
-  bg: '#F8F6F3', white: '#FFFFFF', ink: '#0A0A0A', mid: '#6B6B6B',
-  border: '#E8E4DF', purple: '#5A3A8A', purpleLo: '#F2EEF9',
-  green: '#1A6B40', greenLo: '#EDF7F2', red: '#D93518',
-};
+const C = Colors;
 
 export default function FootScanScreen() {
   const navigation = useNavigation();
@@ -60,7 +57,7 @@ export default function FootScanScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.back}>
-          <ArrowLeft size={18} color={C.ink} strokeWidth={1.5} />
+          <ArrowLeft size={18} color={C.black} strokeWidth={1.5} />
         </Pressable>
         <Text style={s.title}>Foot Scan</Text>
         <View style={{ width: 36 }} />
@@ -91,7 +88,7 @@ export default function FootScanScreen() {
             {error && <Text style={s.errorText}>{error}</Text>}
             {step === 'preview' && (
               <Pressable style={s.secondaryBtn} onPress={reset}>
-                <RefreshCw size={16} color={C.ink} strokeWidth={1.5} />
+                <RefreshCw size={16} color={C.black} strokeWidth={1.5} />
                 <Text style={s.secondaryBtnText}>Try again</Text>
               </Pressable>
             )}
@@ -110,12 +107,12 @@ export default function FootScanScreen() {
               </View>
               <Text style={s.resultBody}>{result.explanation}</Text>
             </View>
-            <View style={[s.resultCard, { backgroundColor: C.purpleLo }]}>
+            <View style={[s.resultCard, { backgroundColor: '#F3EEFF' }]}>
               <Text style={[s.resultLabel, { color: C.purple }]}>Shoe recommendation</Text>
               <Text style={s.resultBody}>{result.shoeRecommendation}</Text>
             </View>
             <Pressable style={s.secondaryBtn} onPress={reset}>
-              <RefreshCw size={16} color={C.ink} strokeWidth={1.5} />
+              <RefreshCw size={16} color={C.black} strokeWidth={1.5} />
               <Text style={s.secondaryBtnText}>Scan again</Text>
             </Pressable>
           </View>
@@ -129,23 +126,23 @@ const s = StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
   header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 8 },
   back:    { width: 36, height: 36, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  title:   { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.ink },
+  title:   { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
   scroll:  { padding: 16, paddingTop: 8 },
   section: { alignItems: 'center', gap: 16 },
   emoji:   { fontSize: 56, marginTop: 24 },
-  heading: { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.ink, textAlign: 'center' },
+  heading: { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, textAlign: 'center' },
   body:    { fontFamily: 'Barlow_300Light', fontSize: 14, color: C.mid, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
   preview: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, marginVertical: 8 },
   analysingRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   analysingText:   { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.mid },
   errorText:       { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.red, textAlign: 'center' },
-  primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.ink, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
+  primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.black, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
   primaryBtnText:  { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
   secondaryBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
-  secondaryBtnText:{ fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.ink },
+  secondaryBtnText:{ fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black },
   resultCard:      { width: '100%', borderRadius: 12, padding: 16, gap: 8 },
   resultHeader:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   resultTitle:     { fontFamily: 'Barlow_600SemiBold', fontSize: 14, flex: 1 },
   resultLabel:     { fontFamily: 'Barlow_600SemiBold', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
-  resultBody:      { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.ink, lineHeight: 20 },
+  resultBody:      { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.black, lineHeight: 20 },
 });

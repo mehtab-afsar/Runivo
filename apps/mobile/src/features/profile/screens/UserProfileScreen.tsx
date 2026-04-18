@@ -3,15 +3,16 @@ import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIn
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { UserPlus, MessageSquare, Check } from 'lucide-react-native';
+import { UserPlus, MessageSquare, Check, MapPin } from 'lucide-react-native';
 import { supabase } from '@shared/services/supabase';
 import { Avatar } from '../components/Avatar';
 import { avatarColor } from '@shared/lib/avatarUtils';
+import { Colors } from '@theme';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'UserProfile'>;
 
-const C = { bg: '#F8F6F3', white: '#FFFFFF', stone: '#F0EDE8', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518' };
+const C = Colors;
 
 interface UserData {
   display_name: string | null;
@@ -97,7 +98,10 @@ export default function UserProfileScreen() {
             <Text style={s.displayName}>{displayName}</Text>
             {user?.bio ? <Text style={s.bio}>{user.bio}</Text> : null}
             {user?.location ? (
-              <Text style={s.location}>📍 {user.location}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <MapPin size={11} color={C.t3} strokeWidth={1.5} />
+                <Text style={s.location}>{user.location}</Text>
+              </View>
             ) : null}
             {user?.level ? <Text style={s.level}>Level {user.level}</Text> : null}
 

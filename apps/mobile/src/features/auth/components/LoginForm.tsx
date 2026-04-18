@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import HexMark from './HexMark';
 import type { LoginState } from '../hooks/useLogin';
+import { Colors } from '@theme';
 
-const C = { bg: '#F8F6F3', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', border: '#DDD9D4', mid: '#E8E4DF' };
+const C = Colors;
 
 interface Props extends LoginState {
   onGoBack: () => void;

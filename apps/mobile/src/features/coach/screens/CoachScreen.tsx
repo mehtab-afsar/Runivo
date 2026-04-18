@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, TextInput, KeyboardAvoidingView } from 'react-native';
-import { Send } from 'lucide-react-native';
+import { Send, Activity } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -35,7 +35,7 @@ export default function CoachScreen() {
         {coach.messages.length === 0 ? (
           <View style={{ flex: 1 }}>
             <View style={ss.welcome}>
-              <View style={ss.welcomeIcon}><Text style={{ fontSize: 32 }}>🏃</Text></View>
+              <View style={ss.welcomeIcon}><Activity size={32} color="#D93518" strokeWidth={1.5} /></View>
               <Text style={ss.welcomeTitle}>Your AI Running Coach</Text>
               <Text style={ss.welcomeText}>Ask me anything about training, nutrition, form, recovery, or race strategy.</Text>
             </View>
@@ -47,6 +47,12 @@ export default function CoachScreen() {
             contentContainerStyle={{ paddingVertical: 12 }} showsVerticalScrollIndicator={false}
             ListFooterComponent={coach.sending ? <TypingIndicator /> : null} />
         )}
+        {coach.error ? (
+          <View style={ss.errorBanner}>
+            <Text style={ss.errorText}>{coach.error}</Text>
+            <Pressable onPress={() => coach.sendMessage(coach.inputText || undefined)}><Text style={ss.errorRetry}>Retry</Text></Pressable>
+          </View>
+        ) : null}
         <View style={ss.inputBar}>
           <TextInput style={ss.input} value={coach.inputText} onChangeText={coach.setInputText}
             placeholder="Ask your coach..." placeholderTextColor="#ADADAD"
@@ -70,6 +76,9 @@ const ss = StyleSheet.create({
   welcome:       { alignItems: 'center', paddingHorizontal: 40, paddingTop: 40, paddingBottom: 24 },
   welcomeIcon:   { width: 64, height: 64, borderRadius: 20, backgroundColor: '#F2EEF9', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
   welcomeTitle:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: '#0A0A0A', marginBottom: 8, textAlign: 'center' }, welcomeText: { fontFamily: 'Barlow_300Light', fontSize: 13, color: '#6B6B6B', textAlign: 'center', lineHeight: 20 },
+  errorBanner:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FEF0E6', borderTopWidth: 0.5, borderTopColor: '#FCDCB8', paddingHorizontal: 16, paddingVertical: 8 },
+  errorText:     { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#C25A00', flex: 1 },
+  errorRetry:    { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: '#D93518', marginLeft: 12 },
   inputBar:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 0.5, borderTopColor: '#DDD9D4', backgroundColor: '#F8F6F3' },
   input:         { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 24, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 16, paddingVertical: 8, fontFamily: 'Barlow_400Regular', fontSize: 14, color: '#0A0A0A' },
   sendBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E8E4DF', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

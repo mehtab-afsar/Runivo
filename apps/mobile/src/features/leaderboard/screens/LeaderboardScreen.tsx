@@ -9,9 +9,10 @@ import { LeaderboardFilters } from '../components/LeaderboardFilters';
 import type { LeaderboardEntry } from '../types';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { Award } from 'lucide-react-native';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#EDEAE5', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', white: '#FFFFFF', border: '#DDD9D4', gold: '#D4A200', silver: '#9E9E9E', bronze: '#A0522D' };
+const C = Colors;
 
 // Podium: [2nd, 1st, 3rd] order, heights: [50, 70, 36]
 function Podium({ entries, unit, currentUserId }: { entries: LeaderboardEntry[]; unit: string; currentUserId?: string }) {

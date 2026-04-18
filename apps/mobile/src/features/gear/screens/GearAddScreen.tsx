@@ -9,9 +9,10 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useGearAdd } from '@features/gear/hooks/useGearAdd';
 import { PhotoPicker } from '@features/gear/components/PhotoPicker';
 import { CATEGORIES } from '@features/gear/types';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#EDEAE5', white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518' };
+const C = Colors;
 
 export default function GearAddScreen() {
   const navigation = useNavigation<Nav>();

@@ -51,7 +51,7 @@ export async function fetchLeaderboard(
   if (scope === 'national' && playerCountry) profilesQuery = profilesQuery.eq('country', playerCountry);
 
   const profilesResp = await profilesQuery;
-  const scopedProfileIds = new Set((profilesResp.data ?? []).map((p: any) => p.id));
+  const scopedProfileIds = new Set((profilesResp.data ?? []).map((p: { id: string }) => p.id));
 
   let runsQuery = supabase.from('runs').select('user_id, distance_m, xp_earned, territories_claimed').gte('started_at', cutoff);
   const [{ data: runs }, { data: profiles }] = [{ data: (await runsQuery).data?.filter(r => scopedProfileIds.has(r.user_id)) ?? [] }, profilesResp];

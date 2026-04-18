@@ -1,13 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
-import { MapPin } from 'lucide-react-native';
+import { MapPin, Camera, Bell, Settings, Activity } from 'lucide-react-native';
 import { Avatar } from './Avatar';
+import { Colors } from '@theme';
 
-const C = {
-  bg: '#F8F6F3', white: '#FFFFFF', stone: '#F0EDE8',
-  mid: '#E8E4DF', border: '#DDD9D4', black: '#0A0A0A',
-  t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518',
-};
+const C = Colors;
 
 function StatPill({ label, value }: { label: string; value: string }) {
   return (
@@ -57,15 +54,15 @@ export function ProfileHeader({
             <Avatar name={displayName} color={avatarColor} size={60} />
           )}
           <View style={ss.cameraOverlay}>
-            <Text style={{ fontSize: 10 }}>📷</Text>
+            <Camera size={10} color={C.white} strokeWidth={2} />
           </View>
         </Pressable>
         <View style={ss.headerActions}>
           <Pressable style={ss.headerBtn} onPress={onNotificationsPress}>
-            <Text style={ss.headerBtnText}>🔔</Text>
+            <Bell size={16} color={C.black} strokeWidth={1.5} />
           </Pressable>
           <Pressable style={ss.headerBtn} onPress={onSettingsPress}>
-            <Text style={ss.headerBtnText}>⚙️</Text>
+            <Settings size={16} color={C.black} strokeWidth={1.5} />
           </Pressable>
         </View>
       </View>
@@ -84,12 +81,14 @@ export function ProfileHeader({
           )}
           {!!instagram && (
             <View style={ss.metaItem}>
-              <Text style={ss.metaText}>📸 {instagram.replace(/^@/, '')}</Text>
+              <Camera size={11} color={C.t3} strokeWidth={1.5} />
+              <Text style={ss.metaText}>{instagram.replace(/^@/, '')}</Text>
             </View>
           )}
           {!!strava && (
             <View style={ss.metaItem}>
-              <Text style={ss.metaText}>🏃 Strava</Text>
+              <Activity size={11} color={C.t3} strokeWidth={1.5} />
+              <Text style={ss.metaText}>Strava</Text>
             </View>
           )}
         </View>

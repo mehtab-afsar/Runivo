@@ -10,14 +10,10 @@ import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
 import { SegmentedControl, PillCycle } from '../components/SettingToggle';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = {
-  bg: '#F8F6F3', white: '#FFF', border: '#DDD9D4',
-  black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD',
-  red: '#D93518', redBg: '#FEF0EE',
-  proStart: '#D93518', proEnd: '#D03A4F',
-};
+const C = Colors;
 
 export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
@@ -42,7 +38,7 @@ export default function SettingsScreen() {
 
         {/* ── Account ── */}
         <SettingSection title="Account">
-          <Pressable style={s.linkRow} onPress={() => navigation.navigate('Profile')}>
+          <Pressable style={s.linkRow} onPress={() => (navigation as any).navigate('Profile')}>
             <Text style={s.linkLabel}>Edit Profile</Text>
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
@@ -260,7 +256,7 @@ const s = StyleSheet.create({
   linkArrow:   { fontFamily: 'Barlow_300Light', fontSize: 16, color: C.t3 },
   versionText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3 },
   // Upgrade card
-  proCard:     { marginHorizontal: 16, marginBottom: 16, borderRadius: 14, backgroundColor: C.proStart, paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  proCard:     { marginHorizontal: 16, marginBottom: 16, borderRadius: 14, backgroundColor: '#D93518', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   proIconBox:  { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   proTitle:    { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
   proSub:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 1 },

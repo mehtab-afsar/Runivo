@@ -4,12 +4,13 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
 let MapLibreGL: any = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* not available */ }
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-const C = { border: '#DDD9D4', t3: '#A39E98', red: '#D93518', green: '#1A6B40' };
+const C = Colors;
 
 interface Props {
   route: { lat: number; lng: number }[];

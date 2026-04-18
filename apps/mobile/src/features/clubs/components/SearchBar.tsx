@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, TextInput, Pressable, Text, StyleSheet } from 'react-native';
+import { View, TextInput, Pressable, StyleSheet } from 'react-native';
+import { X } from 'lucide-react-native';
+import { Colors } from '@theme';
 
-const C = { white: '#FFFFFF', border: '#DDD9D4', black: '#0A0A0A', t3: '#ADADAD' };
+const C = Colors;
 
 interface Props {
   value: string;
@@ -21,7 +23,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search...' }: Props)
       />
       {value.length > 0 && (
         <Pressable onPress={() => onChange('')} style={s.clear}>
-          <Text style={s.clearText}>✕</Text>
+          <X size={14} color={C.t3} strokeWidth={2} />
         </Pressable>
       )}
     </View>

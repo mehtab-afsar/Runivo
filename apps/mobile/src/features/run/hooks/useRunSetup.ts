@@ -7,7 +7,7 @@ import * as Haptics from 'expo-haptics';
 
 import { getAllTerritories, getPlayer, getSavedRoutes } from '@shared/services/store';
 import type { StoredSavedRoute } from '@shared/services/store';
-import { findRoutesNearby } from '@shared/services/sync';
+import { findRoutesNearby, type NearbyRoute } from '@shared/services/sync';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { ActivityType } from '../types';
 
@@ -32,7 +32,7 @@ export function useRunSetup() {
   const [gps, setGps] = useState<GpsState>({ status: 'searching', accuracy: null, lat: null, lng: null });
   const [intel, setIntel] = useState<IntelStats>({ enemy: 0, neutral: 0, weak: 0 });
   const [savedRoutes, setSavedRoutes]   = useState<StoredSavedRoute[]>([]);
-  const [nearbyRoutes, setNearbyRoutes] = useState<any[]>([]);
+  const [nearbyRoutes, setNearbyRoutes] = useState<NearbyRoute[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<{ name: string; gpsPoints: { lat: number; lng: number }[] } | null>(null);
   const [showActivityModal, setShowActivityModal] = useState(false);
@@ -71,7 +71,8 @@ export function useRunSetup() {
   // Pan responder for draggable sheet
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 6,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 8,
       onPanResponderMove: (_, g) => {
         const cur = isExpandedRef.current ? SHEET_EXPANDED : SHEET_COLLAPSED;
         sheetAnim.setValue(Math.max(SHEET_COLLAPSED, Math.min(SHEET_EXPANDED, cur - g.dy)));

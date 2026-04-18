@@ -1,11 +1,10 @@
 import { supabase } from '@shared/services/supabase';
 import type { FeedPost, SuggestedRunner } from '@features/social/types';
 
-export async function fetchFeed(userId: string): Promise<FeedPost[]> {
+export async function fetchFeed(): Promise<FeedPost[]> {
   const { data, error } = await supabase.rpc('get_feed', {
-    p_limit: 40,
-    p_offset: 0,
-    p_user_id: userId,
+    lim: 40,
+    off_set: 0,
   });
   if (error) throw error;
   return (data ?? []) as FeedPost[];
@@ -17,15 +16,15 @@ export async function toggleKudos(
   hasKudos: boolean,
 ): Promise<void> {
   if (hasKudos) {
-    await supabase.from('kudos').delete().eq('post_id', postId).eq('user_id', userId);
+    await supabase.from('feed_post_likes').delete().eq('post_id', postId).eq('user_id', userId);
   } else {
-    await supabase.from('kudos').insert({ post_id: postId, user_id: userId });
+    await supabase.from('feed_post_likes').insert({ post_id: postId, user_id: userId });
   }
 }
 
 export async function fetchFollowingIds(userId: string): Promise<string[]> {
   const { data } = await supabase
-    .from('follows')
+    .from('followers')
     .select('following_id')
     .eq('follower_id', userId);
   return (data ?? []).map((r: { following_id: string }) => r.following_id);

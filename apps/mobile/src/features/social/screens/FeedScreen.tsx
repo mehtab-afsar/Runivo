@@ -16,20 +16,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FeedPost } from '@features/social/types';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import { avatarColor } from '@shared/lib/avatarUtils';
+import { Bell, Heart, Flame, Crown, Dumbbell, Check, Plus, Zap, Sparkles } from 'lucide-react-native';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type FeedTab = 'explore' | 'following';
 
-const C = {
-  bg: '#F7F6F4', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD',
-  red: '#D93518', border: '#DDD9D4', white: '#FFFFFF', stone: '#F0EDE8',
-};
+const C = Colors;
 
-const REACTIONS = [
-  { key: 'kudos',  emoji: '❤️',  label: 'Kudos' },
-  { key: 'fire',   emoji: '🔥',  label: 'Fire' },
-  { key: 'crown',  emoji: '👑',  label: 'Crown' },
-  { key: 'muscle', emoji: '💪',  label: 'Strong' },
+const REACTIONS: { key: string; Icon: typeof Heart; color: string; label: string }[] = [
+  { key: 'kudos',  Icon: Heart,    color: '#D93518', label: 'Kudos' },
+  { key: 'fire',   Icon: Flame,    color: '#EA580C', label: 'Fire' },
+  { key: 'crown',  Icon: Crown,    color: '#D97706', label: 'Crown' },
+  { key: 'muscle', Icon: Dumbbell, color: '#7C3AED', label: 'Strong' },
 ];
 
 function PostDetailSheet({ post, onClose, onKudos }: { post: FeedPost; onClose: () => void; onKudos: () => void }) {
@@ -58,18 +57,21 @@ function PostDetailSheet({ post, onClose, onKudos }: { post: FeedPost; onClose: 
         </View>
         {(post.territoriesClaimed > 0 || post.xpEarned > 0) && (
           <View style={sd.badgeRow}>
-            {post.territoriesClaimed > 0 && <View style={sd.badge}><Text style={sd.badgeText}>⚡ {post.territoriesClaimed} zones</Text></View>}
-            {post.xpEarned > 0 && <View style={[sd.badge, sd.badgeGreen]}><Text style={[sd.badgeText, { color: '#1A6B40' }]}>✨ {post.xpEarned} XP</Text></View>}
+            {post.territoriesClaimed > 0 && <View style={[sd.badge, sd.badgeInner]}><Zap size={10} color={C.red} strokeWidth={2} /><Text style={sd.badgeText}>{post.territoriesClaimed} zones</Text></View>}
+            {post.xpEarned > 0 && <View style={[sd.badge, sd.badgeGreen, sd.badgeInner]}><Sparkles size={10} color="#1A6B40" strokeWidth={2} /><Text style={[sd.badgeText, { color: '#1A6B40' }]}>{post.xpEarned} XP</Text></View>}
           </View>
         )}
         <Text style={sd.reactLabel}>REACT</Text>
         <View style={sd.reactRow}>
-          {REACTIONS.map(r => (
-            <Pressable key={r.key} style={[sd.reactBtn, r.key === 'kudos' && post.hasKudos && sd.reactBtnActive]} onPress={() => { if (r.key === 'kudos') { onKudos(); onClose(); } }}>
-              <Text style={{ fontSize: 22 }}>{r.emoji}</Text>
-              <Text style={sd.reactBtnLabel}>{r.key === 'kudos' ? post.kudosCount : ''}</Text>
-            </Pressable>
-          ))}
+          {REACTIONS.map(r => {
+            const isActive = r.key === 'kudos' && post.hasKudos;
+            return (
+              <Pressable key={r.key} style={[sd.reactBtn, isActive && sd.reactBtnActive]} onPress={() => { if (r.key === 'kudos') { onKudos(); onClose(); } }}>
+                <r.Icon size={22} color={isActive ? C.white : r.color} strokeWidth={1.5} />
+                <Text style={sd.reactBtnLabel}>{r.key === 'kudos' ? post.kudosCount : ''}</Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
     </Modal>
@@ -92,6 +94,7 @@ const sd = StyleSheet.create({
   divider:       { width: 0.5, height: 32, backgroundColor: C.border },
   badgeRow:      { flexDirection: 'row', gap: 8, marginBottom: 16 },
   badge:         { backgroundColor: '#FEF0EE', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+  badgeInner:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
   badgeGreen:    { backgroundColor: '#EDF7F2' },
   badgeText:     { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.red },
   reactLabel:    { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 10 },
@@ -125,8 +128,8 @@ export default function FeedScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Text style={s.title}>Feed</Text>
-        <Pressable onPress={() => navigation.navigate('Notifications')}>
-          <Text style={{ fontSize: 20 }}>🔔</Text>
+        <Pressable onPress={() => navigation.navigate('Notifications')} hitSlop={8}>
+          <Bell size={20} color={C.black} strokeWidth={1.5} />
         </Pressable>
       </View>
 
@@ -153,7 +156,7 @@ export default function FeedScreen() {
         />
       </View>
 
-      <StoryReel groups={stories} onPress={(g, i) => navigation.navigate('StoryViewer' as any, { groups: stories, initialGroupIndex: i })} />
+      <StoryReel groups={stories} onPress={(g, i) => navigation.navigate('StoryViewer', { groups: stories, initialGroupIndex: i })} />
 
       {loading ? (
         <View style={s.loader}><ActivityIndicator color={C.red} /></View>
@@ -187,7 +190,7 @@ export default function FeedScreen() {
                             style={s.followDot}
                             onPress={() => toggleFollow(runner.id)}
                           >
-                            <Text style={{ fontSize: 9, color: C.white }}>{isFollowing ? '✓' : '+'}</Text>
+                            {isFollowing ? <Check size={9} color={C.white} strokeWidth={3} /> : <Plus size={9} color={C.white} strokeWidth={3} />}
                           </Pressable>
                         </View>
                         <Text style={s.runnerName} numberOfLines={1}>{runner.username.split(' ')[0]}</Text>

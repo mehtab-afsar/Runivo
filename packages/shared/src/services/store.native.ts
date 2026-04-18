@@ -57,6 +57,8 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   beatPacerPace: '5:00',
   beatPacerSound: 'click',
   beatPacerAccent: true,
+  runReminders: true,
+  territoryAlerts: true,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

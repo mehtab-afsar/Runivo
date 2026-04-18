@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { Flame } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getNutritionProfile, getNutritionEntriesRange, type NutritionProfile, type NutritionEntry } from '@shared/services/store';
 import { todayKey } from '../../nutrition/services/nutritionService';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const C = {
-  bg: '#F8F6F3', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD',
-  border: '#DDD9D4', red: '#D93518', hair: '#E8E4DF',
-};
+const C = Colors;
 
 function getWeekDates(): string[] {
   const dates: string[] = [];
@@ -151,7 +150,7 @@ export function NutritionTab() {
                 <View style={[ss.barTrack, { height: maxBarH }]}>
                   <View style={[ss.bar, {
                     height: barH,
-                    backgroundColor: isToday ? C.red : dayKcal > 0 ? C.t3 : C.hair,
+                    backgroundColor: isToday ? C.red : dayKcal > 0 ? C.t3 : C.border,
                   }]} />
                 </View>
                 <Text style={[ss.barDay, isToday && { color: C.red, fontFamily: 'Barlow_600SemiBold' }]}>{DAY_LABELS[i]}</Text>
@@ -165,7 +164,10 @@ export function NutritionTab() {
       {/* Streak + avg */}
       <View style={ss.statRow}>
         <View style={[ss.card, { flex: 1 }]}>
-          <Text style={ss.statCardLabel}>🔥 Streak</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+            <Flame size={12} color="#EA580C" strokeWidth={1.5} />
+            <Text style={[ss.statCardLabel, { marginBottom: 0 }]}>Streak</Text>
+          </View>
           <Text style={ss.statCardValue}>{streak}</Text>
           <Text style={ss.statCardSub}>days in a row</Text>
         </View>

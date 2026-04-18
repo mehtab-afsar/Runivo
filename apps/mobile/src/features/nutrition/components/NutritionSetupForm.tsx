@@ -1,28 +1,32 @@
 import React from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, type KeyboardTypeOptions } from 'react-native';
+import { Flame, Scale, Dumbbell, Beef, Leaf, Fish, Moon } from 'lucide-react-native';
 import { GoalOption } from './GoalOption';
 import { ActivityLevelPicker } from './ActivityLevelPicker';
 
 const GOALS = [
-  { value: 'lose', label: 'Lose weight', emoji: '🔥' },
-  { value: 'maintain', label: 'Maintain', emoji: '⚖️' },
-  { value: 'gain', label: 'Gain muscle', emoji: '💪' },
+  { value: 'lose',     label: 'Lose weight', iconNode: <Flame    size={18} color="#EA580C" strokeWidth={1.5} /> },
+  { value: 'maintain', label: 'Maintain',    iconNode: <Scale    size={18} color="#6B6B6B" strokeWidth={1.5} /> },
+  { value: 'gain',     label: 'Gain muscle', iconNode: <Dumbbell size={18} color="#7C3AED" strokeWidth={1.5} /> },
 ] as const;
 
 const DIETS = [
-  { value: 'everything', label: 'Everything', emoji: '🍗' },
-  { value: 'vegetarian', label: 'Vegetarian', emoji: '🥦' },
-  { value: 'vegan', label: 'Vegan', emoji: '🌱' },
-  { value: 'pescatarian', label: 'Pescatarian', emoji: '🐟' },
-  { value: 'keto', label: 'Keto', emoji: '🥑' },
-  { value: 'halal', label: 'Halal', emoji: '🌙' },
+  { value: 'everything',  label: 'Everything',  iconNode: <Beef  size={14} color="#6B6B6B" strokeWidth={1.5} /> },
+  { value: 'vegetarian',  label: 'Vegetarian',  iconNode: <Leaf  size={14} color="#16A34A" strokeWidth={1.5} /> },
+  { value: 'vegan',       label: 'Vegan',       iconNode: <Leaf  size={14} color="#16A34A" strokeWidth={1.5} /> },
+  { value: 'pescatarian', label: 'Pescatarian', iconNode: <Fish  size={14} color="#0284C7" strokeWidth={1.5} /> },
+  { value: 'keto',        label: 'Keto',        iconNode: <Flame size={14} color="#EA580C" strokeWidth={1.5} /> },
+  { value: 'halal',       label: 'Halal',       iconNode: <Moon  size={14} color="#6B2D8C" strokeWidth={1.5} /> },
 ] as const;
+
+type GoalValue = typeof GOALS[number]['value'];
+type DietValue = typeof DIETS[number]['value'];
 
 interface Props {
   saving: boolean;
-  goal: string; setGoal: (v: any) => void;
-  activityLevel: any; setActivity: (v: any) => void;
-  diet: string; setDiet: (v: any) => void;
+  goal: GoalValue; setGoal: (v: GoalValue) => void;
+  activityLevel: string; setActivity: (v: string) => void;
+  diet: DietValue; setDiet: (v: DietValue) => void;
   sex: 'male' | 'female'; setSex: (v: 'male' | 'female') => void;
   ageStr: string; weightStr: string; heightStr: string;
   updateField: (key: string, v: string) => void;
@@ -35,7 +39,7 @@ export function NutritionSetupForm({ saving, goal, setGoal, activityLevel, setAc
     <>
       <Text style={s.label}>Goal</Text>
       <View style={s.row}>
-        {GOALS.map(g => <GoalOption key={g.value} goal={g.value} label={g.label} emoji={g.emoji} selected={goal === g.value} onSelect={v => setGoal(v as typeof goal)} />)}
+        {GOALS.map(g => <GoalOption key={g.value} goal={g.value} label={g.label} iconNode={g.iconNode} selected={goal === g.value} onSelect={v => setGoal(v as typeof goal)} />)}
       </View>
 
       <Text style={s.label}>Activity Level</Text>
@@ -45,7 +49,7 @@ export function NutritionSetupForm({ saving, goal, setGoal, activityLevel, setAc
       <View style={s.wrap}>
         {DIETS.map(d => (
           <Pressable key={d.value} style={[s.chip, diet === d.value && s.chipOn]} onPress={() => setDiet(d.value)}>
-            <Text style={{ fontSize: 14 }}>{d.emoji}</Text>
+            {d.iconNode}
             <Text style={[s.chipLabel, diet === d.value && s.chipLabelOn]}>{d.label}</Text>
           </Pressable>
         ))}
@@ -64,7 +68,7 @@ export function NutritionSetupForm({ saving, goal, setGoal, activityLevel, setAc
         {([['Age', 'ageStr', ageStr, 'numeric', 3], ['Weight (kg)', 'weightStr', weightStr, 'decimal-pad', 5], ['Height (cm)', 'heightStr', heightStr, 'decimal-pad', 5]] as const).map(([lbl, key, val, kb, max]) => (
           <View key={key} style={{ flex: 1 }}>
             <Text style={s.fieldLabel}>{lbl}</Text>
-            <TextInput style={s.numInput} value={val} onChangeText={v => updateField(key, v)} keyboardType={kb as any} maxLength={Number(max)} />
+            <TextInput style={s.numInput} value={val} onChangeText={v => updateField(key, v)} keyboardType={kb as KeyboardTypeOptions} maxLength={Number(max)} />
           </View>
         ))}
       </View>

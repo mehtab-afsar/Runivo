@@ -3,6 +3,7 @@ import {
   Modal, SafeAreaView, View, Text, TextInput, Pressable,
   ScrollView, StyleSheet, Platform,
 } from 'react-native';
+import { X } from 'lucide-react-native';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
@@ -46,7 +47,7 @@ export function AddFoodModal({ visible, defaultMeal, onAdd, onClose }: AddFoodMo
       <SafeAreaView style={s.root}>
         <View style={s.header}>
           <Pressable onPress={onClose} style={s.closeBtn}>
-            <Text style={s.closeText}>✕</Text>
+            <X size={16} color="#6B6B6B" strokeWidth={2} />
           </Pressable>
           <Text style={s.title}>Add Food</Text>
           <View style={{ width: 40 }} />

@@ -90,5 +90,6 @@ export async function toggleEventJoin(
     await supabase.from('events').update({ participant_count: currentParticipants - 1 }).eq('id', eventId);
   } else {
     await supabase.from('event_participants').upsert({ event_id: eventId, user_id: user.id }, { onConflict: 'event_id,user_id' });
+    await supabase.from('events').update({ participant_count: currentParticipants + 1 }).eq('id', eventId);
   }
 }

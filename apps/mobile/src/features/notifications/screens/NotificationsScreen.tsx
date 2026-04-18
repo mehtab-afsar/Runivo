@@ -5,9 +5,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotifItem } from '../components/NotifItem';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#F8F6F3', black: '#0A0A0A', t2: '#6B6B6B', red: '#D93518' };
+const C = Colors;
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<Nav>();

@@ -7,7 +7,8 @@
 import React, {
   useState, useRef, useCallback, useEffect, type ReactNode,
 } from 'react';
-import { Animated, Text, StyleSheet, Platform } from 'react-native';
+import { Animated, Text, StyleSheet, Platform, View } from 'react-native';
+import { Check, X, AlertTriangle, Info } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ToastContext,
@@ -23,11 +24,11 @@ const BG: Record<ToastType, string> = {
   info:    '#0A0A0A',
 };
 
-const ICONS: Record<ToastType, string> = {
-  success: '✓',
-  error:   '✕',
-  warning: '⚠',
-  info:    'ℹ',
+const ICON_COMPONENTS: Record<ToastType, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
+  success: Check,
+  error:   X,
+  warning: AlertTriangle,
+  info:    Info,
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -113,7 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             { opacity, transform: [{ translateY }] },
           ]}
         >
-          <Text style={ss.icon}>{ICONS[current.type]}</Text>
+          <View style={ss.iconWrap}>{React.createElement(ICON_COMPONENTS[current.type], { size: 14, color: '#FFFFFF', strokeWidth: 2 })}</View>
           <Text style={ss.message} numberOfLines={2}>{current.message}</Text>
         </Animated.View>
       )}
@@ -141,13 +142,10 @@ const ss = StyleSheet.create({
     shadowRadius:     8,
     elevation:        8,
   },
-  icon: {
-    fontFamily: 'Barlow_700Bold',
-    fontSize:   14,
-    color:      '#FFFFFF',
-    lineHeight: 18,
-    width:      16,
-    textAlign:  'center',
+  iconWrap: {
+    width:           16,
+    alignItems:      'center',
+    justifyContent:  'center',
   },
   message: {
     fontFamily: 'Barlow_500Medium',

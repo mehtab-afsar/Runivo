@@ -20,6 +20,19 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
 import { ToastProvider } from './src/shared/components/ToastProvider';
+import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
+import { initSentry, captureException } from './src/shared/services/sentry';
+
+initSentry();
+
+// Catch unhandled JS exceptions and promise rejections in production so they
+// reach Sentry instead of crashing silently or showing a cryptic RN red screen.
+if (!__DEV__) {
+  const handler = (error: Error, isFatal?: boolean) => {
+    captureException(error, { isFatal });
+  };
+  ErrorUtils.setGlobalHandler(handler);
+}
 
 // Initialize MapLibre before any map renders (required for non-Mapbox tile sources)
 try {
@@ -75,13 +88,15 @@ export default function App() {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ToastProvider>
-          <Root />
-        </ToastProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <ToastProvider>
+            <Root />
+          </ToastProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 

@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Zap } from 'lucide-react-native';
+import { Zap, Lightbulb, BedDouble } from 'lucide-react-native';
 import { usePostRunInsights } from '../hooks/usePostRunInsights';
+import { Colors } from '@theme';
 
-const C = { black: '#0A0A0A', white: '#FFFFFF', purple: '#8B5CF6', border: '#DDD9D4', t3: '#A39E98' };
+const C = Colors;
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 
@@ -39,10 +40,10 @@ export default function PostRunInsightsCard({ runId, distance, pace }: PostRunIn
           <Text style={ss.body}>{insights.praise}</Text>
           <Text style={[ss.body, ss.bodyMuted]}>{insights.analysis}</Text>
           {insights.suggestion && (
-            <Text style={[ss.body, ss.suggestion]}>💡 {insights.suggestion}</Text>
+            <Text style={[ss.body, ss.suggestion]}><Lightbulb size={11} color="#1A6B40" strokeWidth={1.5} /> {insights.suggestion}</Text>
           )}
           {insights.recovery && (
-            <Text style={[ss.body, ss.bodyMuted]}>🛌 {insights.recovery}</Text>
+            <Text style={[ss.body, ss.bodyMuted]}><BedDouble size={11} color="#A39E98" strokeWidth={1.5} /> {insights.recovery}</Text>
           )}
         </>
       ) : !loading ? (

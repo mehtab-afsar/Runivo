@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, Ac
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { MessageCircle } from 'lucide-react-native';
 import { useLobby } from '@features/clubs/hooks/useLobby';
 import { LobbyCard } from '@features/clubs/components/LobbyCard';
 import type { LobbyRoomDisplay } from '@features/clubs/components/LobbyCard';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = { bg: '#EDEAE5', black: '#0A0A0A', t2: '#6B6B6B', t3: '#ADADAD', red: '#D93518', redLo: '#FEF0EE' };
+const C = Colors;
 
 const LOBBY_ROOMS: LobbyRoomDisplay[] = [
   { id: 'global',   name: 'Global Runners',   description: 'Connect with runners worldwide',      emoji: '🌍', color: '#1E4D8C' },
@@ -20,7 +22,7 @@ const LOBBY_ROOMS: LobbyRoomDisplay[] = [
 
 const Banner = () => (
   <View style={s.banner}>
-    <Text style={{ fontSize: 18 }}>💬</Text>
+    <MessageCircle size={18} color={C.red} strokeWidth={1.5} />
     <View style={{ flex: 1 }}>
       <Text style={s.bannerTitle}>Be respectful</Text>
       <Text style={s.bannerText}>Keep conversations positive. Toxic behaviour will result in a ban.</Text>

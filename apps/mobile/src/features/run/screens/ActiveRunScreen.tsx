@@ -10,7 +10,7 @@ import { View, Text, Pressable, StyleSheet, Alert, Animated } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Play, Zap, Crown } from 'lucide-react-native';
+import { Play, Zap, Crown, X } from 'lucide-react-native';
 import { useActiveRun }         from '../hooks/useActiveRun';
 import { postRunSync }          from '@shared/services/sync';
 import { buildRunSummaryParams } from '../services/runNavigationHelper';
@@ -24,8 +24,9 @@ import FinishConfirmSheet from '../components/FinishConfirmSheet';
 import BeatPacerChip      from '../components/BeatPacerChip';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
+import { Colors } from '@theme';
 
-const C = { bg:'#F7F6F4', black:'#0A0A0A', red:'#D93518', muted:'#6B6B6B', white:'#FFFFFF', mid:'#E0DFDD', green:'#1A6B40', amber:'#F59E0B' };
+const C = Colors;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
 
@@ -103,7 +104,7 @@ export default function ActiveRunScreen() {
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
       <View style={ss.header}>
-        <Pressable onPress={handleBack} style={ss.back} hitSlop={12}><Text style={ss.backTxt}>✕</Text></Pressable>
+        <Pressable onPress={handleBack} style={ss.back} hitSlop={12}><X size={16} color="#9E9994" strokeWidth={2} /></Pressable>
         <Text style={ss.title}>{!run.isRunning ? 'Ready to Run' : run.isPaused ? 'Paused' : 'Running'}</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -159,7 +160,6 @@ const ss = StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  backTxt:     { fontFamily: 'Barlow_700Bold', fontSize: 16, color: C.muted },
   title:       { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black, letterSpacing: 0.3 },
   map:         { flex: 1, overflow: 'hidden' },
   gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },

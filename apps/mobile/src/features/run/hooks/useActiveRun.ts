@@ -366,11 +366,12 @@ export function useActiveRun(activityType: string = 'run') {
     });
 
     return {
-      runId:     finalRunId,
-      distance:  finalDistance,
-      elapsed:   finalElapsed,
-      pace:      finalPace,
-      gpsPoints: gpsPointsRef.current,
+      runId:               finalRunId,
+      distance:            finalDistance,
+      elapsed:             finalElapsed,
+      pace:                finalPace,
+      gpsPoints:           gpsPointsRef.current,
+      territoriesClaimed:  (result as any)?.run?.territoriesClaimed?.length ?? 0,
       ...result,
     };
   }, [gameEngine]);

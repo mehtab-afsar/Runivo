@@ -10,14 +10,16 @@ import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
 export function useLobbyChat(roomId: string) {
   const [messages, setMessages] = useState<LobbyMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     fetchMessages(roomId)
       .then((msgs) => setMessages(msgs))
-      .catch(() => { /* offline */ })
+      .catch(() => setError('Could not load messages. Check your connection.'))
       .finally(() => setLoading(false));
 
     const unsubscribe = subscribeToMessages(roomId, (msg) => {
@@ -45,5 +47,5 @@ export function useLobbyChat(roomId: string) {
     setSending(false);
   }, [inputText, sending, roomId]);
 
-  return { messages, loading, inputText, setInputText, sending, sendMessage };
+  return { messages, loading, error, inputText, setInputText, sending, sendMessage };
 }

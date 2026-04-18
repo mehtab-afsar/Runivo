@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  View, Image, StyleSheet, Pressable, Text, StatusBar,
+  View, Image, StyleSheet, Pressable, StatusBar,
 } from 'react-native';
+import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -41,7 +42,7 @@ export default function StoryViewerScreen() {
       <StoryOverlay group={currentGroup} storyIndex={storyIdx} topOffset={insets.top} />
 
       <Pressable style={[s.closeBtn, { top: insets.top + 24 }]} onPress={close}>
-        <Text style={s.closeIcon}>✕</Text>
+        <X size={16} color="#fff" strokeWidth={2} />
       </Pressable>
 
       <View style={s.tapRow}>
