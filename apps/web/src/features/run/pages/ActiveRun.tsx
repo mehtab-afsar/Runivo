@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate, useLocation, useBlocker } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -85,11 +85,18 @@ export default function ActiveRun() {
 
   const [mapReady, setMapReady]             = useState(false);
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm]   = useState(false);
 
-  // Block navigation while a run is active — prevents data loss on back swipe
-  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    isRunning && currentLocation.pathname !== nextLocation.pathname
-  );
+  // Warn before browser close/refresh while a run is active
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!isRunning) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isRunning]);
 
   // Init map
   useEffect(() => {
@@ -348,7 +355,7 @@ export default function ActiveRun() {
         )}
       </AnimatePresence>
 
-      {/* ── RECENTER BUTTON ────────────────────────────────────────────── */}
+      {/* ── BACK / RECENTER BUTTON ─────────────────────────────────────── */}
       <div className="absolute right-4 z-20" style={{ top: 'max(16px, env(safe-area-inset-top))' }}>
         <motion.button whileTap={{ scale: 0.88 }} onClick={recenterMap}
           style={{ width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', border: `0.5px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
@@ -531,13 +538,13 @@ export default function ActiveRun() {
         )}
       </AnimatePresence>
 
-      {/* ── BACK-NAVIGATION GUARD ─────────────────────────────────────── */}
+      {/* ── LEAVE CONFIRM SHEET (manual back button) ──────────────────── */}
       <AnimatePresence>
-        {blocker.state === 'blocked' && (
+        {showLeaveConfirm && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.45)' }}
-              onClick={() => blocker.reset()} />
+              onClick={() => setShowLeaveConfirm(false)} />
             <motion.div
               initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 200, opacity: 0 }}
               transition={{ type: 'spring', damping: 28 }}
@@ -552,11 +559,11 @@ export default function ActiveRun() {
                   Your run is in progress. If you leave now, all data will be lost.
                 </p>
                 <div style={{ display: 'flex', gap: 12 }}>
-                  <button onClick={() => blocker.reset()}
+                  <button onClick={() => setShowLeaveConfirm(false)}
                     style={{ flex: 1, padding: '14px 0', borderRadius: 14, background: T.bg, border: `0.5px solid ${T.border}`, fontFamily: T.font, fontWeight: 400, fontSize: 14, color: T.muted }}>
                     Stay
                   </button>
-                  <button onClick={() => { blocker.proceed(); }}
+                  <button onClick={() => navigate(-1)}
                     style={{ flex: 1, padding: '14px 0', borderRadius: 14, background: '#FF3B30', fontFamily: T.font, fontWeight: 500, fontSize: 14, color: '#fff' }}>
                     Leave & discard
                   </button>
