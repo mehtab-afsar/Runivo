@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Activity, Flame, Waves, Mountain, Star, Target, TreePine, RefreshCw, Zap, Route as RouteIcon, Map, Trophy, type LucideIcon } from 'lucide-react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 const ROUTE_ICON_MAP: Record<string, { Icon: LucideIcon; color: string }> = {
   run:      { Icon: Activity,  color: '#D93518' },
@@ -18,7 +18,6 @@ const ROUTE_ICON_MAP: Record<string, { Icon: LucideIcon; color: string }> = {
   trophy:   { Icon: Trophy,    color: '#D97706' },
 };
 
-const C = Colors;
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -40,6 +39,8 @@ interface RouteCardProps {
 }
 
 export default function RouteCard({ route, onSelect, highlighted = false }: RouteCardProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const distKm = (route.distanceM / 1000).toFixed(2);
   const meta = [
     `${distKm} km`,
@@ -64,11 +65,13 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
   );
 }
 
-const ss = StyleSheet.create({
-  row:   { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
-  icon:  { width: 40, height: 40, borderRadius: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  emoji: { fontSize: 18 },
-  info:  { flex: 1 },
-  name:  { fontFamily: FONT_MED, fontSize: 13, color: C.black },
-  meta:  { fontFamily: FONT_LIGHT, fontSize: 11, color: C.muted, marginTop: 1 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:   { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
+    icon:  { width: 40, height: 40, borderRadius: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    emoji: { fontSize: 18 },
+    info:  { flex: 1 },
+    name:  { fontFamily: FONT_MED, fontSize: 13, color: C.black },
+    meta:  { fontFamily: FONT_LIGHT, fontSize: 11, color: C.muted, marginTop: 1 },
+  });
+}

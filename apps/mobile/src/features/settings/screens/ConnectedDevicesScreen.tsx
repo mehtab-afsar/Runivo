@@ -8,7 +8,7 @@
  *  4. Linking listener catches the URL and calls completeOAuth
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
   SafeAreaView, Platform, ActivityIndicator, Linking, Alert,
@@ -16,14 +16,11 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Heart, Activity, TrendingUp, Brain, Smartphone, Check, X } from 'lucide-react-native';
 import { supabase } from '@shared/services/supabase';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 import {
   writeRunToHealth,
   readRecentWorkouts,
 } from '../../../shared/services/healthService';
-
-// ── Design tokens ──────────────────────────────────────────────────────────────
-const C = Colors;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -173,7 +170,7 @@ async function saveAppleHealthConnection(connected: boolean): Promise<void> {
 
 function DeviceCard({
   device, status, lastSyncAt,
-  onConnect, onDisconnect, onSync, busy,
+  onConnect, onDisconnect, onSync, busy, C,
 }: {
   device:      DeviceInfo;
   status:      ConnectionStatus;
@@ -182,7 +179,9 @@ function DeviceCard({
   onDisconnect:() => void;
   onSync:      () => void;
   busy:        boolean;
+  C:           AppColors;
 }) {
+  const ss = useMemo(() => mkStyles(C), [C]);
   const isConnected   = status === 'connected';
   const isUnavailable = status === 'unavailable';
   const isLoading     = status === 'loading';
@@ -283,6 +282,8 @@ function DeviceCard({
 // ── Main screen ────────────────────────────────────────────────────────────────
 
 export default function ConnectedDevicesScreen() {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation();
 
   // Apple Health
@@ -475,6 +476,7 @@ export default function ConnectedDevicesScreen() {
                 onDisconnect={handleAhDisconnect}
                 onSync={handleAhSync}
                 busy={ahBusy}
+                C={C}
               />
             );
           }
@@ -488,6 +490,7 @@ export default function ConnectedDevicesScreen() {
               onDisconnect={() => handleOAuthDisconnect(device)}
               onSync={() => {}}
               busy={oauthBusy === device.key}
+              C={C}
             />
           );
         })}
@@ -527,7 +530,7 @@ export default function ConnectedDevicesScreen() {
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-const ss = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   root:   { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row', alignItems: 'center',
@@ -631,4 +634,4 @@ const ss = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 8,
   },
   toastText: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff' },
-});
+}); }

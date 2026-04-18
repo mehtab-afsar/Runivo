@@ -4,7 +4,7 @@
  * Renders: RunStatGrid, SplitsList, RewardsCard, PostRunInsightsCard,
  *          ShoeChip, ShoeDrawer, FuelCard, PostRunActions.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -28,9 +28,8 @@ import SaveRouteSheet      from '../components/SaveRouteSheet';
 import RunRouteMap         from '../components/RunRouteMap';
 import { buildStoryDataUrl } from '../services/storyCardGenerator';
 import { uploadStory } from '@shared/services/storiesService';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FI = 'PlayfairDisplay_400Regular_Italic';
 const FS = 'Barlow_600SemiBold'; const FL = 'Barlow_300Light'; const FM = 'Barlow_500Medium';
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
@@ -40,6 +39,8 @@ function fmt(s: number) { const m = Math.floor(s/60); return `${String(m).padSta
 function pace(p: number) { const m = Math.floor(p); return `${m}:${String(Math.floor((p-m)*60)).padStart(2,'0')}`; }
 
 export default function RunSummaryScreen() {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -181,18 +182,20 @@ export default function RunSummaryScreen() {
   );
 }
 
-const ss = StyleSheet.create({
-  root:       { flex: 1, backgroundColor: C.bg },
-  close:      { position: 'absolute', right: 16, zIndex: 20, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
-  title:      { paddingHorizontal: 16, paddingTop: 52, paddingBottom: 20 },
-  type:       { fontFamily: FS, fontSize: 10, letterSpacing: 1.4, color: C.t3, marginBottom: 4 },
-  heading:    { fontFamily: FI, fontSize: 28, lineHeight: 32, marginBottom: 6 },
-  date:       { fontFamily: FL, fontSize: 12, color: C.t3 },
-  card:       { marginHorizontal: 16, marginBottom: 12 },
-  fuel:       { marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(249,115,22,0.2)' },
-  fuelIcon:   { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(249,115,22,0.12)', alignItems: 'center', justifyContent: 'center' },
-  fuelTitle:  { fontFamily: FM, fontSize: 13, color: C.black },
-  fuelSub:    { fontFamily: FL, fontSize: 11, color: C.t3, marginTop: 1 },
-  fuelBtn:    { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: C.black },
-  fuelBtnText:{ fontFamily: FS, fontSize: 10, color: C.white, letterSpacing: 0.4 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:       { flex: 1, backgroundColor: C.bg },
+    close:      { position: 'absolute', right: 16, zIndex: 20, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
+    title:      { paddingHorizontal: 16, paddingTop: 52, paddingBottom: 20 },
+    type:       { fontFamily: FS, fontSize: 10, letterSpacing: 1.4, color: C.t3, marginBottom: 4 },
+    heading:    { fontFamily: FI, fontSize: 28, lineHeight: 32, marginBottom: 6 },
+    date:       { fontFamily: FL, fontSize: 12, color: C.t3 },
+    card:       { marginHorizontal: 16, marginBottom: 12 },
+    fuel:       { marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(249,115,22,0.2)' },
+    fuelIcon:   { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(249,115,22,0.12)', alignItems: 'center', justifyContent: 'center' },
+    fuelTitle:  { fontFamily: FM, fontSize: 13, color: C.black },
+    fuelSub:    { fontFamily: FL, fontSize: 11, color: C.t3, marginTop: 1 },
+    fuelBtn:    { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: C.black },
+    fuelBtnText:{ fontFamily: FS, fontSize: 10, color: C.white, letterSpacing: 0.4 },
+  });
+}

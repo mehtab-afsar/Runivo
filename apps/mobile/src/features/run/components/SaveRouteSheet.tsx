@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet,
   Modal, ScrollView, Switch, ActivityIndicator,
@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { X, Activity, Flame, Waves, Mountain, Star, Target, TreePine, RefreshCw, Zap, Route as RouteIcon, Map, Trophy, type LucideIcon } from 'lucide-react-native';
 import { saveSavedRoute, type StoredSavedRoute } from '@shared/services/store';
 import { pushSavedRoutes } from '@shared/services/sync';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 const ICON_OPTIONS: { key: string; Icon: LucideIcon; color: string }[] = [
   { key: 'run',     Icon: Activity,   color: '#D93518' },
@@ -24,8 +24,6 @@ const ICON_OPTIONS: { key: string; Icon: LucideIcon; color: string }[] = [
   { key: 'map',     Icon: Map,        color: '#0284C7' },
   { key: 'trophy',  Icon: Trophy,     color: '#D97706' },
 ];
-const C = Colors;
-
 interface SaveRouteSheetProps {
   visible: boolean;
   gpsPoints: { lat: number; lng: number }[];
@@ -38,6 +36,8 @@ interface SaveRouteSheetProps {
 export default function SaveRouteSheet({
   visible, gpsPoints, distanceM, durationSec, sourceRunId, onClose,
 }: SaveRouteSheetProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [name, setName]         = useState('');
   const [emoji, setEmoji]       = useState('run');
@@ -156,26 +156,28 @@ export default function SaveRouteSheet({
   );
 }
 
-const ss = StyleSheet.create({
-  backdrop:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet:         { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
-  handle:        { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
-  header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-  title:         { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
-  closeBtn:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
-  infoRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 12, padding: 12, marginBottom: 14 },
-  infoIconWrap:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  infoDistance:  { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
-  infoDuration:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-  input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },
-  sectionLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 8 },
-  emojiRow:      { flexDirection: 'row', gap: 8 },
-  emojiBtn:      { width: 42, height: 42, borderRadius: 10, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  emojiBtnActive:{ backgroundColor: '#FCE8EB', borderWidth: 2, borderColor: C.red },
-  toggleRow:     { flexDirection: 'row', alignItems: 'center', borderWidth: 0.5, borderColor: C.border, borderRadius: 12, padding: 12, marginBottom: 16 },
-  toggleLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-  toggleSub:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-  saveBtn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  saveBtnDisabled:{ backgroundColor: C.border },
-  saveBtnText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    backdrop:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+    sheet:         { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
+    handle:        { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
+    header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+    title:         { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
+    closeBtn:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
+    infoRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 12, padding: 12, marginBottom: 14 },
+    infoIconWrap:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    infoDistance:  { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
+    infoDuration:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },
+    sectionLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 8 },
+    emojiRow:      { flexDirection: 'row', gap: 8 },
+    emojiBtn:      { width: 42, height: 42, borderRadius: 10, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    emojiBtnActive:{ backgroundColor: '#FCE8EB', borderWidth: 2, borderColor: C.red },
+    toggleRow:     { flexDirection: 'row', alignItems: 'center', borderWidth: 0.5, borderColor: C.border, borderRadius: 12, padding: 12, marginBottom: 16 },
+    toggleLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+    toggleSub:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    saveBtn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+    saveBtnDisabled:{ backgroundColor: C.border },
+    saveBtnText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
+  });
+}

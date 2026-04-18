@@ -5,7 +5,7 @@
  * UI: RunHUD, RunControls, ClaimToast, ClaimProgressRing, FinishConfirmSheet.
  * Gate: useFeatureGate enforces territory cap for free-tier users.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Alert, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -24,13 +24,14 @@ import FinishConfirmSheet from '../components/FinishConfirmSheet';
 import BeatPacerChip      from '../components/BeatPacerChip';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
 
 export default function ActiveRunScreen() {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -138,7 +139,7 @@ export default function ActiveRunScreen() {
       )}
       <RunHUD distance={run.distance} pace={run.pace} elapsed={run.elapsed} energy={run.sessionEnergy ?? 0} claimProgress={run.claimProgress} />
       {run.isRunning && (
-        <View style={ss.pacerWrap}>
+        <View style={ss.pacerSection}>
           <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
         </View>
       )}
@@ -156,25 +157,27 @@ export default function ActiveRunScreen() {
   );
 }
 
-const ss = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: C.bg },
-  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title:       { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black, letterSpacing: 0.3 },
-  map:         { flex: 1, overflow: 'hidden' },
-  gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  gpsDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
-  gpsTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.white },
-  claimBar:    { height: 4, backgroundColor: C.mid, flexDirection: 'row', alignItems: 'center' },
-  claimFill:   { height: '100%', backgroundColor: C.red },
-  claimLbl:    { position: 'absolute', right: 8, fontFamily: 'Barlow_600SemiBold', fontSize: 8, letterSpacing: 0.6, color: C.red },
-  claimLblRow: { position: 'absolute', right: 8, flexDirection: 'row', alignItems: 'center' },
-  errBanner:   { backgroundColor: '#FEF0EE', padding: 10, alignItems: 'center' },
-  errTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.red },
-  energyBanner:{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDF6E8', padding: 8, paddingHorizontal: 16 },
-  energyTxt:   { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#9E6800' },
-  pacerWrap:   { position: 'absolute', top: 56, right: 16 },
-  controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
-  startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
-  claimFlash:  { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: '#D93518', borderRadius: 2, zIndex: 40, pointerEvents: 'none' } as any,
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:        { flex: 1, backgroundColor: C.bg },
+    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+    back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    title:       { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black, letterSpacing: 0.3 },
+    map:         { flex: 1, overflow: 'hidden' },
+    gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+    gpsDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
+    gpsTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.white },
+    claimBar:    { height: 4, backgroundColor: C.mid, flexDirection: 'row', alignItems: 'center' },
+    claimFill:   { height: '100%', backgroundColor: C.red },
+    claimLbl:    { position: 'absolute', right: 8, fontFamily: 'Barlow_600SemiBold', fontSize: 8, letterSpacing: 0.6, color: C.red },
+    claimLblRow: { position: 'absolute', right: 8, flexDirection: 'row', alignItems: 'center' },
+    errBanner:   { backgroundColor: '#FEF0EE', padding: 10, alignItems: 'center' },
+    errTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.red },
+    energyBanner:{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDF6E8', padding: 8, paddingHorizontal: 16 },
+    energyTxt:   { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#9E6800' },
+    pacerSection: { backgroundColor: C.black, alignItems: 'center', paddingVertical: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
+    controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
+    startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
+    claimFlash:  { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: '#D93518', borderRadius: 2, zIndex: 40, pointerEvents: 'none' } as any,
+  });
+}

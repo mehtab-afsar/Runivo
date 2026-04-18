@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Globe, Flag, MapPin } from 'lucide-react-native';
+import { TrendingUp, Navigation, Zap, Globe, Flag, MapPin } from 'lucide-react-native';
 import type { LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   tab: LeaderboardTab;
@@ -15,74 +13,96 @@ interface Props {
   onScopeChange: (s: LeaderboardScope) => void;
 }
 
-const TABS: { value: LeaderboardTab; label: string }[] = [
-  { value: 'distance', label: 'Distance' },
-  { value: 'xp', label: 'XP' },
-  { value: 'territories', label: 'Zones' },
+const METRIC_TABS: { value: LeaderboardTab; label: string; Icon: typeof TrendingUp }[] = [
+  { value: 'distance',    label: 'Distance', Icon: TrendingUp },
+  { value: 'territories', label: 'Zones',    Icon: Navigation },
+  { value: 'xp',          label: 'XP',       Icon: Zap        },
 ];
 
 const TIMEFRAMES: { value: LeaderboardTimeFrame; label: string }[] = [
-  { value: 'week', label: 'This week' },
-  { value: 'month', label: 'This month' },
-  { value: 'all', label: 'All time' },
+  { value: 'week',  label: 'This Week'  },
+  { value: 'month', label: 'This Month' },
+  { value: 'all',   label: 'All Time'   },
 ];
 
-const SCOPE_ICONS: Record<string, React.ReactNode> = {
-  global:   <Globe size={11} color="#6B6B6B" strokeWidth={1.5} />,
-  national: <Flag size={11} color="#6B6B6B" strokeWidth={1.5} />,
-  local:    <MapPin size={11} color="#6B6B6B" strokeWidth={1.5} />,
-};
-const SCOPES: { value: LeaderboardScope; label: string }[] = [
-  { value: 'global',   label: 'Global'   },
-  { value: 'national', label: 'National' },
-  { value: 'local',    label: 'Local'    },
+const SCOPE_DEFS: { value: LeaderboardScope; label: string; Icon: typeof Globe }[] = [
+  { value: 'global',   label: 'Global',   Icon: Globe  },
+  { value: 'national', label: 'National', Icon: Flag   },
+  { value: 'local',    label: 'Local',    Icon: MapPin },
 ];
 
 export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeFrameChange, onScopeChange }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
+
   return (
     <>
-      <View style={s.tabRow}>
-        {TABS.map(t => (
-          <Pressable key={t.value} style={[s.tabBtn, tab === t.value && s.tabBtnActive]} onPress={() => onTabChange(t.value)}>
-            <Text style={[s.tabLabel, tab === t.value && s.tabLabelActive]}>{t.label}</Text>
-          </Pressable>
-        ))}
+      {/* Metric tabs — icon + label pills */}
+      <View style={s.row}>
+        {METRIC_TABS.map(t => {
+          const active = tab === t.value;
+          const Icon = t.Icon;
+          return (
+            <Pressable
+              key={t.value}
+              style={[s.pill, active && s.pillActive]}
+              onPress={() => onTabChange(t.value)}
+            >
+              <Icon size={11} color={active ? C.red : C.t3} strokeWidth={1.5} />
+              <Text style={[s.pillLabel, active && s.pillLabelActive]}>{t.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
+
+      {/* Time-frame — text pills, active = redLo */}
       <View style={s.tfRow}>
-        {TIMEFRAMES.map(tf => (
-          <Pressable key={tf.value} style={[s.tfBtn, timeFrame === tf.value && s.tfBtnActive]} onPress={() => onTimeFrameChange(tf.value)}>
-            <Text style={[s.tfLabel, timeFrame === tf.value && s.tfLabelActive]}>{tf.label}</Text>
-          </Pressable>
-        ))}
+        {TIMEFRAMES.map(tf => {
+          const active = timeFrame === tf.value;
+          return (
+            <Pressable
+              key={tf.value}
+              style={[s.tfBtn, active && s.tfBtnActive]}
+              onPress={() => onTimeFrameChange(tf.value)}
+            >
+              <Text style={[s.tfLabel, active && s.tfLabelActive]}>{tf.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
-      <View style={s.scopeRow}>
-        {SCOPES.map(sc => (
-          <Pressable key={sc.value} style={[s.scopeBtn, scope === sc.value && s.scopeBtnActive]} onPress={() => onScopeChange(sc.value)}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {SCOPE_ICONS[sc.value]}
-              <Text style={[s.scopeLabel, scope === sc.value && s.scopeLabelActive]}>{sc.label}</Text>
-            </View>
-          </Pressable>
-        ))}
+
+      {/* Scope pills */}
+      <View style={s.row}>
+        {SCOPE_DEFS.map(sc => {
+          const active = scope === sc.value;
+          const Icon = sc.Icon;
+          return (
+            <Pressable
+              key={sc.value}
+              style={[s.pill, active && s.pillActive]}
+              onPress={() => onScopeChange(sc.value)}
+            >
+              <Icon size={11} color={active ? C.red : C.t3} strokeWidth={1.5} />
+              <Text style={[s.pillLabel, active && s.pillLabelActive]}>{sc.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     </>
   );
 }
 
-const s = StyleSheet.create({
-  tabRow:         { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 8 },
-  tabBtn:         { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
-  tabBtnActive:   { backgroundColor: C.black, borderColor: C.black },
-  tabLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t2 },
-  tabLabelActive: { color: '#fff', fontFamily: 'Barlow_500Medium' },
-  tfRow:          { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 8 },
-  tfBtn:          { flex: 1, paddingVertical: 6, borderRadius: 6, alignItems: 'center' },
-  tfBtnActive:    { backgroundColor: '#E8E4DF' },
-  tfLabel:        { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
-  tfLabelActive:  { color: C.black, fontFamily: 'Barlow_400Regular' },
-  scopeRow:       { flexDirection: 'row', marginHorizontal: 16, gap: 6, marginBottom: 10 },
-  scopeBtn:       { flex: 1, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
-  scopeBtnActive: { backgroundColor: C.black, borderColor: C.black },
-  scopeLabel:     { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t2 },
-  scopeLabelActive:{ color: C.white, fontFamily: 'Barlow_500Medium' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:             { flexDirection: 'row', paddingHorizontal: 16, gap: 6, marginBottom: 8 },
+    pill:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, paddingHorizontal: 6, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.bg },
+    pillActive:      { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
+    pillLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3 },
+    pillLabelActive: { fontFamily: 'Barlow_500Medium', color: C.red },
+    tfRow:           { flexDirection: 'row', paddingHorizontal: 16, gap: 4, marginBottom: 8 },
+    tfBtn:           { flex: 1, paddingVertical: 6, borderRadius: 4, alignItems: 'center' },
+    tfBtnActive:     { backgroundColor: C.redLo },
+    tfLabel:         { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
+    tfLabelActive:   { fontFamily: 'Barlow_500Medium', color: C.red },
+  });
+}

@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TrendingUp, MapPin, Zap, Navigation, MessageSquare, ThumbsUp, Star, Flame, Trophy, Sparkles } from 'lucide-react-native';
 import Svg, { Polyline, Circle, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import type { FeedPost, ActivityType } from '@features/social/types';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -91,6 +89,8 @@ interface Props {
 }
 
 export function FeedPostCard({ post, onKudos, onPress, onUserPress }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const color = avatarColor(post.username);
   const initial = post.username.slice(0, 1).toUpperCase();
   const [fireActive, setFireActive] = useState(false);
@@ -206,34 +206,36 @@ export function FeedPostCard({ post, onKudos, onPress, onUserPress }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  card:        { backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
-  // Header
-  header:      { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
-  avatar:      { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  avatarText:  { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
-  username:    { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-  time:        { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-  actChip:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 3, backgroundColor: C.stone },
-  actChipText: { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t2, letterSpacing: 0.4 },
-  // Stats
-  statsRow:    { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: C.mid, paddingVertical: 12, paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-  statItem:    { flex: 1 },
-  statVal:     { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
-  statLbl:     { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, letterSpacing: 0.8, marginTop: 2 },
-  statDivider: { width: 0.5, height: 32, backgroundColor: C.mid, alignSelf: 'center', marginHorizontal: 4 },
-  // Badges
-  badgesRow:   { flexDirection: 'row', gap: 5, paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid, flexWrap: 'wrap' },
-  badge:       { borderRadius: 2, paddingHorizontal: 8, paddingVertical: 3 },
-  badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  badgeText:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 0.4 },
-  // Reactions
-  reactBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 11, paddingBottom: 14 },
-  reactLeft:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  reactCount:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
-  commentRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  commentCount:{ fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
-  reactChips:  { flexDirection: 'row', gap: 6 },
-  chip:        { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 2, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.stone },
-  chipActive:  { backgroundColor: C.black, borderColor: C.black },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card:        { backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    // Header
+    header:      { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
+    avatar:      { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    avatarText:  { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
+    username:    { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+    time:        { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    actChip:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 3, backgroundColor: C.stone },
+    actChipText: { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t2, letterSpacing: 0.4 },
+    // Stats
+    statsRow:    { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: C.mid, paddingVertical: 12, paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: C.mid },
+    statItem:    { flex: 1 },
+    statVal:     { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
+    statLbl:     { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, letterSpacing: 0.8, marginTop: 2 },
+    statDivider: { width: 0.5, height: 32, backgroundColor: C.mid, alignSelf: 'center', marginHorizontal: 4 },
+    // Badges
+    badgesRow:   { flexDirection: 'row', gap: 5, paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid, flexWrap: 'wrap' },
+    badge:       { borderRadius: 2, paddingHorizontal: 8, paddingVertical: 3 },
+    badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    badgeText:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 0.4 },
+    // Reactions
+    reactBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 11, paddingBottom: 14 },
+    reactLeft:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    reactCount:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
+    commentRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    commentCount:{ fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
+    reactChips:  { flexDirection: 'row', gap: 6 },
+    chip:        { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 2, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.stone },
+    chipActive:  { backgroundColor: C.black, borderColor: C.black },
+  });
+}

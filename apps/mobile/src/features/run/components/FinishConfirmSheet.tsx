@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT      = 'Barlow_400Regular';
 const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_BOLD = 'Barlow_700Bold';
@@ -27,6 +26,8 @@ interface FinishConfirmSheetProps {
 export default function FinishConfirmSheet({
   distance, elapsed, territoriesClaimed, bottomInset, onKeepRunning, onFinish,
 }: FinishConfirmSheetProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Pressable style={ss.overlay} onPress={onKeepRunning}>
       <Pressable style={[ss.sheet, { paddingBottom: bottomInset + 16 }]}>
@@ -45,14 +46,16 @@ export default function FinishConfirmSheet({
   );
 }
 
-const ss = StyleSheet.create({
-  overlay:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 100 },
-  sheet:      { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24 },
-  title:      { fontFamily: FONT_BOLD, fontSize: 18, color: C.black, textAlign: 'center', marginBottom: 8 },
-  sub:        { fontFamily: FONT, fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24 },
-  actions:    { flexDirection: 'row', gap: 12 },
-  cancel:     { flex: 1, paddingVertical: 14, borderRadius: 3, borderWidth: 1, borderColor: C.mid, alignItems: 'center' },
-  cancelText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.black },
-  finish:     { flex: 1, paddingVertical: 14, borderRadius: 3, backgroundColor: C.red, alignItems: 'center' },
-  finishText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.white },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    overlay:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 100 },
+    sheet:      { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24 },
+    title:      { fontFamily: FONT_BOLD, fontSize: 18, color: C.black, textAlign: 'center', marginBottom: 8 },
+    sub:        { fontFamily: FONT, fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24 },
+    actions:    { flexDirection: 'row', gap: 12 },
+    cancel:     { flex: 1, paddingVertical: 14, borderRadius: 3, borderWidth: 1, borderColor: C.mid, alignItems: 'center' },
+    cancelText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.black },
+    finish:     { flex: 1, paddingVertical: 14, borderRadius: 3, backgroundColor: C.red, alignItems: 'center' },
+    finishText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.white },
+  });
+}

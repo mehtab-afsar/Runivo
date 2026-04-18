@@ -1,15 +1,16 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
 import { Sparkles, Check } from 'lucide-react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 const FONT_SEMI  = 'Barlow_600SemiBold';
 
 function XPBar({ fromPct, toPct }: { fromPct: number; toPct: number }) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const anim = useRef(new Animated.Value(fromPct)).current;
   useEffect(() => {
     Animated.timing(anim, { toValue: toPct, duration: 1400, delay: 500, useNativeDriver: false }).start();
@@ -38,6 +39,8 @@ export default function RewardsCard({
   xp, level, xpProgress, xpNeeded,
   xpPercent, xpPrevPercent, leveledUp, preRunLevel, newLevel, completedMissions,
 }: RewardsCardProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.card}>
       {leveledUp && (
@@ -81,26 +84,28 @@ export default function RewardsCard({
   );
 }
 
-const ss = StyleSheet.create({
-  card:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: C.black, borderRadius: 4, padding: 20 },
-  levelUpBanner:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(217,53,24,0.15)', borderWidth: 1, borderColor: 'rgba(217,53,24,0.3)', borderRadius: 3, padding: 10, marginBottom: 16 },
-  levelUpIcon:    { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
-  levelUpTitle:   { fontFamily: FONT_SEMI, fontSize: 13, color: C.red },
-  levelUpSub:     { fontFamily: FONT, fontSize: 11, color: 'rgba(217,53,24,0.7)', marginTop: 1 },
-  xpRow:          { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
-  xpLabel:        { fontFamily: FONT_SEMI, fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)' },
-  xpValue:        { fontFamily: FONT_LIGHT, fontSize: 22, color: C.red, letterSpacing: -0.5 },
-  xpUnit:         { fontFamily: FONT, fontSize: 12, color: 'rgba(217,53,24,0.7)' },
-  xpTrack:        { height: 4, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
-  xpFill:         { height: '100%', backgroundColor: C.red, borderRadius: 2 },
-  xpRowLabels:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  xpRowLabel:     { fontFamily: FONT, fontSize: 10, color: 'rgba(255,255,255,0.3)' },
-  rewardRows:     { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' },
-  rewardRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#111', padding: 10 },
-  rewardLeft:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rewardLabel:    { fontFamily: FONT, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
-  rewardValue:    { fontFamily: FONT_LIGHT, fontSize: 16, color: C.amber },
-  missionsHeader: { fontFamily: FONT_SEMI, fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.3)', marginBottom: 10 },
-  missionCheck:   { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(26,107,64,0.15)', alignItems: 'center', justifyContent: 'center' },
-  missionMark:    { fontSize: 9, color: C.green }, // kept for safety
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card:           { marginHorizontal: 16, marginBottom: 12, backgroundColor: C.black, borderRadius: 4, padding: 20 },
+    levelUpBanner:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(217,53,24,0.15)', borderWidth: 1, borderColor: 'rgba(217,53,24,0.3)', borderRadius: 3, padding: 10, marginBottom: 16 },
+    levelUpIcon:    { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+    levelUpTitle:   { fontFamily: FONT_SEMI, fontSize: 13, color: C.red },
+    levelUpSub:     { fontFamily: FONT, fontSize: 11, color: 'rgba(217,53,24,0.7)', marginTop: 1 },
+    xpRow:          { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 },
+    xpLabel:        { fontFamily: FONT_SEMI, fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)' },
+    xpValue:        { fontFamily: FONT_LIGHT, fontSize: 22, color: C.red, letterSpacing: -0.5 },
+    xpUnit:         { fontFamily: FONT, fontSize: 12, color: 'rgba(217,53,24,0.7)' },
+    xpTrack:        { height: 4, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
+    xpFill:         { height: '100%', backgroundColor: C.red, borderRadius: 2 },
+    xpRowLabels:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+    xpRowLabel:     { fontFamily: FONT, fontSize: 10, color: 'rgba(255,255,255,0.3)' },
+    rewardRows:     { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' },
+    rewardRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#111', padding: 10 },
+    rewardLeft:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    rewardLabel:    { fontFamily: FONT, fontSize: 12, color: 'rgba(255,255,255,0.5)' },
+    rewardValue:    { fontFamily: FONT_LIGHT, fontSize: 16, color: C.amber },
+    missionsHeader: { fontFamily: FONT_SEMI, fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.3)', marginBottom: 10 },
+    missionCheck:   { width: 16, height: 16, borderRadius: 8, backgroundColor: 'rgba(26,107,64,0.15)', alignItems: 'center', justifyContent: 'center' },
+    missionMark:    { fontSize: 9, color: C.green }, // kept for safety
+  });
+}

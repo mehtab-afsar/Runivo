@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, Animated, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Music2, Activity, Footprints, Bike, Mountain, TreePine, Timer, TrendingUp, Route as RouteIcon, Check, Pencil, Play } from 'lucide-react-native';
 import type { ActivityType } from '../types';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -48,6 +47,8 @@ export default function RunSetupSheet({
   pacerEnabled, pacerBpm, pacerPace, pacerPaceOptions,
   onPacerToggle, onPacerPaceEdit, onActivityPress, onRoutePress, onStartPress,
 }: RunSetupSheetProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const activity = ACTIVITIES.find(a => a.id === activityType) ?? ACTIVITIES[0];
   const ActivityIcon = activity.icon;
   const [showPacePicker, setShowPacePicker] = useState(false);
@@ -55,20 +56,6 @@ export default function RunSetupSheet({
   return (
     <Animated.View style={[ss.sheet, { height: sheetAnim }]} {...panHandlers}>
       <View style={ss.handleWrap}><View style={ss.handle} /></View>
-
-      <View style={ss.statsRow}>
-        {[
-          { label: 'DIST', value: '0.00', unit: 'km' },
-          { label: 'TIME', value: '0:00', unit: '' },
-          { label: 'PACE', value: '0:00', unit: '/km' },
-          { label: 'ZONES', value: String(intelEnemy + intelNeutral), unit: '' },
-        ].map((s, i) => (
-          <View key={s.label} style={[ss.statCell, i > 0 && ss.statCellBorder]}>
-            <Text style={ss.statLabel}>{s.label}</Text>
-            <Text style={ss.statValue}>{s.value}{s.unit ? <Text style={ss.statUnit}> {s.unit}</Text> : null}</Text>
-          </View>
-        ))}
-      </View>
 
       <View style={ss.selectorRow}>
         <TouchableOpacity style={[ss.selectorBtn, ss.selectorBtnBorder]} onPress={onActivityPress} activeOpacity={0.7}>
@@ -166,45 +153,41 @@ export default function RunSetupSheet({
   );
 }
 
-const ss = StyleSheet.create({
-  sheet:            { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 8 },
-  handleWrap:       { alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
-  handle:           { width: 36, height: 3, borderRadius: 9, backgroundColor: C.border },
-  statsRow:         { flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
-  statCell:         { flex: 1, alignItems: 'center', paddingVertical: 10 },
-  statCellBorder:   { borderLeftWidth: 0.5, borderLeftColor: C.border },
-  statLabel:        { fontFamily: FONT, fontSize: 8, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 },
-  statValue:        { fontFamily: FONT_LIGHT, fontSize: 20, color: C.black, lineHeight: 24, marginTop: 2 },
-  statUnit:         { fontFamily: FONT, fontSize: 9, color: C.muted },
-  selectorRow:      { flexDirection: 'row', marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
-  selectorBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12 },
-  selectorBtnBorder:{ borderRightWidth: 0.5, borderRightColor: C.border },
-  selectorIcon:     { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  selectorMeta:     { fontFamily: FONT, fontSize: 8, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 },
-  selectorVal:      { fontFamily: FONT_MED, fontSize: 12, color: C.black, marginTop: 1 },
-  chevron:          { fontFamily: FONT_LIGHT, fontSize: 16, color: C.t3 },
-  intelRow:         { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 10 },
-  chip:             { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, borderWidth: 0.5, borderColor: C.border },
-  chipText:         { fontFamily: FONT, fontSize: 11 },
-  pacerCard:        { marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
-  pacerRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14 },
-  pacerLeft:        { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  pacerRight:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  pacerTitle:       { fontFamily: FONT_MED, fontSize: 12, color: C.black },
-  pacerSub:         { fontFamily: FONT_LIGHT, fontSize: 10, color: C.muted, marginTop: 1 },
-  editBtn:          { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FDE8E4', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 4 },
-  editBtnTxt:       { fontFamily: FONT_MED, fontSize: 9, color: C.red, letterSpacing: 0.5 },
-  pacePickerScroll: { borderTopWidth: 0.5, borderTopColor: C.border },
-  pacePickerContent:{ flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingVertical: 10 },
-  paceChip:         { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'baseline', gap: 2 },
-  paceChipActive:   { backgroundColor: C.red, borderColor: C.red },
-  paceChipTxt:      { fontFamily: FONT_MED, fontSize: 13, color: C.black },
-  paceChipTxtActive:{ color: C.white },
-  paceChipUnit:     { fontFamily: FONT, fontSize: 9, color: C.muted },
-  startWrap:        { paddingHorizontal: 16, marginTop: 'auto' },
-  startBtn:         { backgroundColor: C.black, borderRadius: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
-  startBtnDisabled: { backgroundColor: '#D1D5DB' },
-  startDot:         { width: 34, height: 34, borderRadius: 17, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
-  startDotDisabled: { backgroundColor: '#9CA3AF' },
-  startLabel:       { fontFamily: FONT_MED, fontSize: 14, color: '#fff', letterSpacing: 1.5 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    sheet:            { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 8 },
+    handleWrap:       { alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
+    handle:           { width: 36, height: 3, borderRadius: 9, backgroundColor: C.border },
+    selectorRow:      { flexDirection: 'row', marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    selectorBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12 },
+    selectorBtnBorder:{ borderRightWidth: 0.5, borderRightColor: C.border },
+    selectorIcon:     { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    selectorMeta:     { fontFamily: FONT, fontSize: 8, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 },
+    selectorVal:      { fontFamily: FONT_MED, fontSize: 12, color: C.black, marginTop: 1 },
+    chevron:          { fontFamily: FONT_LIGHT, fontSize: 16, color: C.t3 },
+    intelRow:         { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 10 },
+    chip:             { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, borderWidth: 0.5, borderColor: C.border },
+    chipText:         { fontFamily: FONT, fontSize: 11 },
+    pacerCard:        { marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    pacerRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14 },
+    pacerLeft:        { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+    pacerRight:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    pacerTitle:       { fontFamily: FONT_MED, fontSize: 12, color: C.black },
+    pacerSub:         { fontFamily: FONT_LIGHT, fontSize: 10, color: C.muted, marginTop: 1 },
+    editBtn:          { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FDE8E4', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 4 },
+    editBtnTxt:       { fontFamily: FONT_MED, fontSize: 9, color: C.red, letterSpacing: 0.5 },
+    pacePickerScroll: { borderTopWidth: 0.5, borderTopColor: C.border },
+    pacePickerContent:{ flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingVertical: 10 },
+    paceChip:         { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+    paceChipActive:   { backgroundColor: C.red, borderColor: C.red },
+    paceChipTxt:      { fontFamily: FONT_MED, fontSize: 13, color: C.black },
+    paceChipTxtActive:{ color: C.white },
+    paceChipUnit:     { fontFamily: FONT, fontSize: 9, color: C.muted },
+    startWrap:        { paddingHorizontal: 16, marginTop: 'auto' },
+    startBtn:         { backgroundColor: C.black, borderRadius: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+    startBtnDisabled: { backgroundColor: '#D1D5DB' },
+    startDot:         { width: 34, height: 34, borderRadius: 17, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+    startDotDisabled: { backgroundColor: '#9CA3AF' },
+    startLabel:       { fontFamily: FONT_MED, fontSize: 14, color: '#fff', letterSpacing: 1.5 },
+  });
+}

@@ -6,11 +6,9 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useRunHistory } from '../hooks/useRunHistory';
 import { RunItem } from '../components/RunItem';
 import { HistoryStats } from '../components/HistoryStats';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const C = Colors;
 
 const FILTERS = [
   { value: 'all',        label: 'All' },
@@ -27,6 +25,8 @@ const FILTERS = [
 type FilterValue = typeof FILTERS[number]['value'];
 
 export default function HistoryScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { runs, refreshing, totalKm, avgKm, refresh } = useRunHistory();
   const [filter, setFilter] = useState<FilterValue>('all');
@@ -79,20 +79,22 @@ export default function HistoryScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: C.bg },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-  backBtn:      { width: 32 },
-  backText:     { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
-  title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-  filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.white, flexGrow: 0 },
-  filterContent:{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' },
-  chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
-  chipActive:   { backgroundColor: C.black, borderColor: C.black },
-  chipText:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t2 },
-  chipTextActive:{ color: C.white, fontFamily: 'Barlow_500Medium' },
-  list:         { paddingHorizontal: 16, paddingBottom: 100, gap: 8, paddingTop: 8 },
-  empty:        { alignItems: 'center' as const, paddingVertical: 48 },
-  emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-  emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:         { flex: 1, backgroundColor: C.bg },
+    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
+    backBtn:      { width: 32 },
+    backText:     { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+    title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+    filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.white, flexGrow: 0 },
+    filterContent:{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' },
+    chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
+    chipActive:   { backgroundColor: C.black, borderColor: C.black },
+    chipText:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t2 },
+    chipTextActive:{ color: C.white, fontFamily: 'Barlow_500Medium' },
+    list:         { paddingHorizontal: 16, paddingBottom: 100, gap: 8, paddingTop: 8 },
+    empty:        { alignItems: 'center' as const, paddingVertical: 48 },
+    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
+  });
+}

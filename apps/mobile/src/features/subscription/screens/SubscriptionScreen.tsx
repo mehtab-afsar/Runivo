@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView,
   Platform, ActivityIndicator,
@@ -12,12 +12,13 @@ import { PlanCard } from '../components/PlanCard';
 import { CurrentPlanBadge } from '../components/CurrentPlanBadge';
 import { FeatureRow } from '../components/FeatureRow';
 import { PLANS, FEATURES, FREE_LIMITS } from '../types';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = Colors;
 
 export default function SubscriptionScreen() {
+  const C = useTheme();
+  const su = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { isPremium, loading, purchasing, rcPrices, purchasePlan, restorePlan, RC_PRODUCT_ANNUAL, RC_PRODUCT_MONTHLY } = useSubscription();
   const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>('annual');
@@ -77,7 +78,7 @@ export default function SubscriptionScreen() {
   );
 }
 
-const su = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 32 },
@@ -96,4 +97,4 @@ const su = StyleSheet.create({
   restoreText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
   sectionLabel: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 16, marginBottom: 8 },
   legal: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 16, marginTop: 16 },
-});
+}); }

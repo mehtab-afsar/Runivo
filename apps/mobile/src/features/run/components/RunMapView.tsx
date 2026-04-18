@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Animated, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Layers } from 'lucide-react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 let MapLibreGL: any = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* native not available */ }
 
-const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_LIGHT = 'Barlow_300Light';
 
@@ -35,6 +34,8 @@ export default function RunMapView({
   lat, lng, gpsStatus, mapStyle, onMapStyleChange,
   sheetAnim, topInset, intelEnemy, intelWeak, gpsColor: dotColor, gpsLabel: gpsTxt,
 }: RunMapViewProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const [showStylePicker, setShowStylePicker] = React.useState(false);
 
   return (
@@ -100,7 +101,7 @@ export default function RunMapView({
   );
 }
 
-const ss = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   container:    { position: 'absolute', top: 0, left: 0, right: 0 },
   map:          { flex: 1, minHeight: 300 },
   fallback:     { backgroundColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center', height: 300 },
@@ -120,4 +121,4 @@ const ss = StyleSheet.create({
   overlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(247,246,244,0.8)', alignItems: 'center', justifyContent: 'center', gap: 8 },
   overlayTitle: { fontFamily: FONT, fontSize: 14, color: C.black },
   overlaySub:   { fontFamily: FONT_LIGHT, fontSize: 11, color: C.muted },
-});
+}); }

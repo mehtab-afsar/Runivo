@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 const FONT_LIGHT = 'Barlow_300Light';
 const FONT_SEMI  = 'Barlow_600SemiBold';
@@ -24,6 +22,8 @@ function formatElapsed(seconds: number): string {
 }
 
 export default function RunHUD({ distance, pace, elapsed, energy, claimProgress }: RunHUDProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.container}>
       <View style={ss.distanceBlock}>
@@ -48,14 +48,16 @@ export default function RunHUD({ distance, pace, elapsed, energy, claimProgress 
   );
 }
 
-const ss = StyleSheet.create({
-  container:        { backgroundColor: C.black, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
-  distanceBlock:    { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 16 },
-  distanceValue:    { fontFamily: FONT_LIGHT, fontSize: 72, color: C.white, letterSpacing: -2, lineHeight: 76 },
-  distanceUnit:     { fontFamily: FONT_LIGHT, fontSize: 22, color: 'rgba(255,255,255,0.4)' },
-  secondaryStats:   { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 },
-  secondaryStat:    { flex: 1, alignItems: 'center' },
-  secondaryStatMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  secondaryValue:   { fontFamily: FONT_LIGHT, fontSize: 20, color: C.white, letterSpacing: -0.5 },
-  secondaryLabel:   { fontFamily: FONT_SEMI, fontSize: 8, letterSpacing: 1, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    container:        { backgroundColor: C.black, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
+    distanceBlock:    { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 16 },
+    distanceValue:    { fontFamily: FONT_LIGHT, fontSize: 72, color: C.white, letterSpacing: -2, lineHeight: 76 },
+    distanceUnit:     { fontFamily: FONT_LIGHT, fontSize: 22, color: 'rgba(255,255,255,0.4)' },
+    secondaryStats:   { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 },
+    secondaryStat:    { flex: 1, alignItems: 'center' },
+    secondaryStatMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+    secondaryValue:   { fontFamily: FONT_LIGHT, fontSize: 20, color: C.white, letterSpacing: -0.5 },
+    secondaryLabel:   { fontFamily: FONT_SEMI, fontSize: 8, letterSpacing: 1, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
+  });
+}

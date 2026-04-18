@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { MapPin, Camera, Bell, Settings, Activity } from 'lucide-react-native';
 import { Avatar } from './Avatar';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 function StatPill({ label, value }: { label: string; value: string }) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.statPill}>
       <Text style={ss.statPillValue}>{value}</Text>
@@ -41,6 +41,8 @@ export function ProfileHeader({
   thisWeekKm, weeklyGoalKm,
   onEditPress, onNotificationsPress, onSettingsPress,
 }: ProfileHeaderProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const goalPct = Math.min(1, weeklyGoalKm > 0 ? thisWeekKm / weeklyGoalKm : 0);
   const r = xpPercent / 100;
 
@@ -123,32 +125,34 @@ export function ProfileHeader({
   );
 }
 
-const ss = StyleSheet.create({
-  header: { padding: 20, paddingBottom: 0 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  headerActions: { flexDirection: 'row', gap: 8 },
-  headerBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
-  headerBtnText: { fontSize: 16 },
-  avatarBtn: { position: 'relative' },
-  avatarPhoto: { width: 60, height: 60, borderRadius: 30 },
-  cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
-  displayName: { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black, marginBottom: 2 },
-  bioText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, marginBottom: 6, lineHeight: 17 },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 6 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
-  levelLabel: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.red, marginBottom: 8 },
-  xpBarWrap: { height: 3, backgroundColor: C.mid, borderRadius: 2, marginBottom: 16, overflow: 'hidden' },
-  xpBarTrack: { flexDirection: 'row', flex: 1 },
-  xpBarFill: { height: 3, backgroundColor: C.red },
-  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  statPill: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 10, alignItems: 'center' },
-  statPillValue: { fontFamily: 'Barlow_600SemiBold', fontSize: 17, color: C.black, letterSpacing: -0.5 },
-  statPillLabel: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
-  weekCard: { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 20 },
-  weekCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  weekCardTitle: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
-  weekCardGoal: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
-  weekBarBg: { height: 4, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
-  weekBarFill: { height: 4, backgroundColor: C.red },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    header: { padding: 20, paddingBottom: 0 },
+    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+    headerActions: { flexDirection: 'row', gap: 8 },
+    headerBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
+    headerBtnText: { fontSize: 16 },
+    avatarBtn: { position: 'relative' },
+    avatarPhoto: { width: 60, height: 60, borderRadius: 30 },
+    cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
+    displayName: { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black, marginBottom: 2 },
+    bioText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, marginBottom: 6, lineHeight: 17 },
+    metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 6 },
+    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    metaText: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+    levelLabel: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.red, marginBottom: 8 },
+    xpBarWrap: { height: 3, backgroundColor: C.mid, borderRadius: 2, marginBottom: 16, overflow: 'hidden' },
+    xpBarTrack: { flexDirection: 'row', flex: 1 },
+    xpBarFill: { height: 3, backgroundColor: C.red },
+    statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+    statPill: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 10, alignItems: 'center' },
+    statPillValue: { fontFamily: 'Barlow_600SemiBold', fontSize: 17, color: C.black, letterSpacing: -0.5 },
+    statPillLabel: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
+    weekCard: { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 20 },
+    weekCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    weekCardTitle: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
+    weekCardGoal: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
+    weekBarBg: { height: 4, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
+    weekBarFill: { height: 4, backgroundColor: C.red },
+  });
+}

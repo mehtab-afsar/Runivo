@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
   Platform, ActivityIndicator, RefreshControl, Alert, Animated,
@@ -6,6 +6,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { ArrowLeft, Plus, Footprints } from 'lucide-react-native';
+import { useTheme, type AppColors } from '@theme';
 import { useShoeTracker } from '@features/gear/hooks/useShoeTracker';
 import { ShoeCard } from '@features/gear/components/ShoeCard';
 import type { StoredShoe } from '@shared/services/store';
@@ -13,10 +15,12 @@ import type { StoredShoe } from '@shared/services/store';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function GearScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { shoes, shoeKm, loading, refreshing, refresh, setDefault, retire, deleteShoe } = useShoeTracker();
-  const activeShoes  = shoes.filter(s => !s.isRetired);
-  const retiredShoes = shoes.filter(s => s.isRetired);
+  const activeShoes  = shoes.filter(sh => !sh.isRetired);
+  const retiredShoes = shoes.filter(sh => sh.isRetired);
   const [toast, setToast] = useState('');
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
@@ -46,22 +50,22 @@ export default function GearScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Text style={s.backText}>←</Text>
+          <ArrowLeft size={18} color={C.t2} strokeWidth={2} />
         </Pressable>
         <Text style={s.title}>Gear</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <Pressable onPress={() => navigation.navigate('FootScan')} style={[s.addBtn, { backgroundColor: '#5A3A8A' }]}>
-            <Text style={s.addLabel}>🦶</Text>
+          <Pressable onPress={() => navigation.navigate('FootScan')} style={[s.addBtn, { backgroundColor: C.purple }]}>
+            <Footprints size={14} color="#fff" strokeWidth={1.5} />
           </Pressable>
           <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn}>
-            <Text style={s.addLabel}>+</Text>
+            <Plus size={16} color="#fff" strokeWidth={2.5} />
           </Pressable>
         </View>
       </View>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color="#D93518" />
+          <ActivityIndicator color={C.red} />
         </View>
       ) : (
         <FlatList
@@ -87,7 +91,7 @@ export default function GearScreen() {
           }}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor="#D93518" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
           ListEmptyComponent={
             <View style={s.empty}>
               <Text style={s.emptyTitle}>No shoes yet</Text>
@@ -108,27 +112,21 @@ export default function GearScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#EDEAE5' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12,
-  },
-  backBtn: { width: 32 },
-  backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: '#6B6B6B' },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: '#0A0A0A' },
-  addBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#0A0A0A', alignItems: 'center', justifyContent: 'center' },
-  addLabel: { fontFamily: 'Barlow_400Regular', fontSize: 20, color: '#fff', lineHeight: 22 },
-  list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
-  empty: { alignItems: 'center', paddingVertical: 48 },
-  emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: '#0A0A0A', marginBottom: 6 },
-  emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: '#6B6B6B', textAlign: 'center', marginBottom: 16 },
-  emptyBtn: { backgroundColor: '#0A0A0A', borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
-  emptyBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
-  sectionLabel: { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
-  toast: {
-    position: 'absolute', bottom: 36, left: 20, right: 20,
-    backgroundColor: '#0A0A0A', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16,
-  },
-  toastText: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#fff', textAlign: 'center' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:          { flex: 1, backgroundColor: C.stone },
+    header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
+    backBtn:       { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+    title:         { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+    addBtn:        { width: 32, height: 32, borderRadius: 8, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center' },
+    list:          { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
+    empty:         { alignItems: 'center', paddingVertical: 48 },
+    emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyText:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', marginBottom: 16 },
+    emptyBtn:      { backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
+    emptyBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
+    sectionLabel:  { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
+    toast:         { position: 'absolute', bottom: 36, left: 20, right: 20, backgroundColor: C.black, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16 },
+    toastText:     { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#fff', textAlign: 'center' },
+  });
+}

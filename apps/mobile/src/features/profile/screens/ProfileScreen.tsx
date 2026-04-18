@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,12 +15,13 @@ import { AwardsTab } from '../components/AwardsTab';
 import { NutritionTab } from '../components/NutritionTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import type { ProfileTab } from '../types';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = Colors;
 
 export default function ProfileScreen() {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { player, loading, xpProgress } = usePlayerStats();
   const {
@@ -103,15 +104,17 @@ export default function ProfileScreen() {
   );
 }
 
-const ss = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg }, center: { alignItems: 'center', justifyContent: 'center' }, content: { padding: 20 },
-  briefCard:    { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, marginBottom: 14 },
-  briefHeader:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  briefTitle:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1, color: '#ADADAD' },
-  briefHeadline:{ fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 4 },
-  briefTip:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: '#6B6B6B', lineHeight: 18 },
-  tabsScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: '#fff' },
-  tabsContent: { paddingHorizontal: 12 },
-  tab: { paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
-  tabActive: { borderBottomColor: C.black }, tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 }, tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg }, center: { alignItems: 'center', justifyContent: 'center' }, content: { padding: 20 },
+    briefCard:    { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, marginBottom: 14 },
+    briefHeader:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+    briefTitle:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1, color: '#ADADAD' },
+    briefHeadline:{ fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 4 },
+    briefTip:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: '#6B6B6B', lineHeight: 18 },
+    tabsScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: '#fff' },
+    tabsContent: { paddingHorizontal: 12 },
+    tab: { paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
+    tabActive: { borderBottomColor: C.black }, tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 }, tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
+  });
+}

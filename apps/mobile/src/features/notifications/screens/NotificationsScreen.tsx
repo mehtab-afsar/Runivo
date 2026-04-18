@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, RefreshControl } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotifItem } from '../components/NotifItem';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = Colors;
 
 export default function NotificationsScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { notifs, refreshing, unreadCount, markRead, markAllRead, refresh } = useNotifications();
 
@@ -51,7 +52,7 @@ export default function NotificationsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 40 },
@@ -62,4 +63,4 @@ const s = StyleSheet.create({
   empty: { alignItems: 'center' as const, paddingVertical: 48 },
   emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
   emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', paddingHorizontal: 24 },
-});
+}); }

@@ -1,9 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { Pause, Play, Square } from 'lucide-react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 const FONT = 'Barlow_400Regular';
 
@@ -15,6 +13,8 @@ interface RunControlsProps {
 }
 
 export default function RunControls({ isPaused, onPause, onResume, onStop }: RunControlsProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.controls}>
       <Pressable
@@ -34,22 +34,24 @@ export default function RunControls({ isPaused, onPause, onResume, onStop }: Run
   );
 }
 
-const ss = StyleSheet.create({
-  controls: {
-    backgroundColor: C.black,
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 24,
-    paddingTop: 20, paddingHorizontal: 24,
-  },
-  finishBtn: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: C.red, alignItems: 'center', justifyContent: 'center',
-    shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
-  },
-  secondaryControl: {
-    alignItems: 'center', gap: 4, padding: 12,
-    borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  secondaryControlLabel: { fontFamily: FONT, fontSize: 10, color: 'rgba(255,255,255,0.5)' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    controls: {
+      backgroundColor: C.black,
+      flexDirection: 'row', alignItems: 'center',
+      justifyContent: 'center', gap: 24,
+      paddingTop: 20, paddingHorizontal: 24,
+    },
+    finishBtn: {
+      width: 64, height: 64, borderRadius: 32,
+      backgroundColor: C.red, alignItems: 'center', justifyContent: 'center',
+      shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
+    },
+    secondaryControl: {
+      alignItems: 'center', gap: 4, padding: 12,
+      borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    secondaryControlLabel: { fontFamily: FONT, fontSize: 10, color: 'rgba(255,255,255,0.5)' },
+  });
+}

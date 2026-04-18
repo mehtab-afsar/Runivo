@@ -10,10 +10,9 @@ import { useNutritionContext } from '@features/nutrition/hooks/useNutritionConte
 import { useNutritionInsights } from '@features/nutrition/hooks/useNutritionInsights';
 import { TrackerBody } from '@features/nutrition/components/TrackerBody';
 import { AddFoodModal } from '@features/nutrition/components/AddFoodModal';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const C = Colors;
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'CalorieTracker'>;
@@ -21,9 +20,10 @@ type Route = RouteProp<RootStackParamList, 'CalorieTracker'>;
 const CHART_H = 80;
 
 /** Weekly 7-bar calorie chart */
-function WeeklyChart({ weekKcals, weekAvg, goal, weekDates }: {
-  weekKcals: number[]; weekAvg: number; goal: number; weekDates: string[];
+function WeeklyChart({ weekKcals, weekAvg, goal, weekDates, C }: {
+  weekKcals: number[]; weekAvg: number; goal: number; weekDates: string[]; C: AppColors;
 }) {
+  const wc = useMemo(() => mkWcStyles(C), [C]);
   const maxKcal = Math.max(goal, ...weekKcals, 1);
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -66,6 +66,8 @@ function WeeklyChart({ weekKcals, weekAvg, goal, weekDates }: {
 }
 
 export default function CalorieTrackerScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const burnKcalParam = (route.params as { burnKcal?: number } | undefined)?.burnKcal;
@@ -221,7 +223,7 @@ export default function CalorieTrackerScreen() {
             {/* Weekly bar chart */}
             <WeeklyChart
               weekKcals={weekKcals} weekAvg={weekAvg}
-              goal={profile.dailyGoalKcal} weekDates={weekDates}
+              goal={profile.dailyGoalKcal} weekDates={weekDates} C={C}
             />
 
             {/* Macro summary card */}
@@ -306,7 +308,7 @@ export default function CalorieTrackerScreen() {
   );
 }
 
-const wc = StyleSheet.create({
+function mkWcStyles(C: AppColors) { return StyleSheet.create({
   card:       { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   cardHead:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   cardTitle:  { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1, color: C.t3 },
@@ -323,9 +325,9 @@ const wc = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot:  { width: 6, height: 6, borderRadius: 3 },
   legendText: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3 },
-});
+}); }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   root:         { flex: 1, backgroundColor: C.bg },
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorState:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
@@ -382,4 +384,4 @@ const s = StyleSheet.create({
   aiBody:       { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, lineHeight: 17 },
   coachBtn:     { backgroundColor: C.black, borderRadius: 10, padding: 14, alignItems: 'center' },
   coachBtnText: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.white },
-});
+}); }

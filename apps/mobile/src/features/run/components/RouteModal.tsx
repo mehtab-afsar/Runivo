@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { X } from 'lucide-react-native';
 import type { StoredSavedRoute } from '@shared/services/store';
 import type { NearbyRoute } from '@shared/services/sync';
 import RouteCard from './RouteCard';
 import type { RouteItem } from './RouteCard';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -30,6 +29,8 @@ export default function RouteModal({
   visible, savedRoutes, nearbyRoutes, nearbyLoading, gpsReady,
   selectedRouteName, bottomInset, onSelectRoute, onClearRoute, onFindNearby, onClose,
 }: RouteModalProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={ss.overlay} onPress={onClose} />
@@ -91,17 +92,19 @@ export default function RouteModal({
   );
 }
 
-const ss = StyleSheet.create({
-  overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
-  sheet:       { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
-  header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
-  title:       { fontFamily: FONT_MED, fontSize: 17, color: C.black },
-  sub:         { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, marginTop: 2 },
-  closeBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  list:        { paddingHorizontal: 20, paddingBottom: 16, gap: 8 },
-  clearRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FDE8E4', borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
-  routeIcon:   { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  section:     { fontFamily: FONT_LIGHT, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 2 },
-  empty:       { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, paddingTop: 4, paddingBottom: 8 },
-  nearbyHeader:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
+    sheet:       { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
+    header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
+    title:       { fontFamily: FONT_MED, fontSize: 17, color: C.black },
+    sub:         { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, marginTop: 2 },
+    closeBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    list:        { paddingHorizontal: 20, paddingBottom: 16, gap: 8 },
+    clearRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FDE8E4', borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
+    routeIcon:   { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    section:     { fontFamily: FONT_LIGHT, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 2 },
+    empty:       { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, paddingTop: 4, paddingBottom: 8 },
+    nearbyHeader:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  });
+}

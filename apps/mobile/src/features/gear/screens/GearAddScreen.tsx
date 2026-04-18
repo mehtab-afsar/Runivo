@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView,
   Platform, TextInput, ActivityIndicator, KeyboardAvoidingView,
@@ -9,12 +9,13 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useGearAdd } from '@features/gear/hooks/useGearAdd';
 import { PhotoPicker } from '@features/gear/components/PhotoPicker';
 import { CATEGORIES } from '@features/gear/types';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = Colors;
 
 export default function GearAddScreen() {
+  const C = useTheme();
+  const ga = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const {
     brand, model, nickname, category, maxKm, photoUri, setPhotoUri,
@@ -74,7 +75,7 @@ export default function GearAddScreen() {
   );
 }
 
-const ga = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 32 },
@@ -93,4 +94,4 @@ const ga = StyleSheet.create({
   saveBtn: { backgroundColor: C.black, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   saveBtnDisabled: { opacity: 0.4 },
   saveLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
-});
+}); }

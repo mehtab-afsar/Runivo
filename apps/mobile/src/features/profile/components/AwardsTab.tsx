@@ -1,9 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Medal } from 'lucide-react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface Award {
   id: string;
@@ -24,6 +22,9 @@ const DEFAULT_AWARDS: Award[] = [
 ];
 
 export function AwardsTab({ awards = DEFAULT_AWARDS }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
+
   if (awards.length === 0) {
     return (
       <View style={ss.empty}>
@@ -49,20 +50,22 @@ export function AwardsTab({ awards = DEFAULT_AWARDS }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  sectionTitle: {
-    fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black,
-    letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12,
-  },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  card: {
-    width: '47%', backgroundColor: C.white, borderRadius: 12,
-    borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center', gap: 6,
-  },
-  emoji: { alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black, textAlign: 'center' },
-  desc: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 14 },
-  empty: { alignItems: 'center', paddingVertical: 32 },
-  emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-  emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    sectionTitle: {
+      fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black,
+      letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12,
+    },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    card: {
+      width: '47%', backgroundColor: C.white, borderRadius: 12,
+      borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center', gap: 6,
+    },
+    emoji: { alignItems: 'center', justifyContent: 'center' },
+    title: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black, textAlign: 'center' },
+    desc: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 14 },
+    empty: { alignItems: 'center', paddingVertical: 32 },
+    emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+  });
+}

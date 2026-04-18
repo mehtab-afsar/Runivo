@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,10 +7,9 @@ import { MessageCircle } from 'lucide-react-native';
 import { useLobby } from '@features/clubs/hooks/useLobby';
 import { LobbyCard } from '@features/clubs/components/LobbyCard';
 import type { LobbyRoomDisplay } from '@features/clubs/components/LobbyCard';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = Colors;
 
 const LOBBY_ROOMS: LobbyRoomDisplay[] = [
   { id: 'global',   name: 'Global Runners',   description: 'Connect with runners worldwide',      emoji: '🌍', color: '#1E4D8C' },
@@ -20,7 +19,10 @@ const LOBBY_ROOMS: LobbyRoomDisplay[] = [
   { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        emoji: '🌙', color: '#6B2D8C' },
 ];
 
-const Banner = () => (
+const Banner = () => {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
+  return (
   <View style={s.banner}>
     <MessageCircle size={18} color={C.red} strokeWidth={1.5} />
     <View style={{ flex: 1 }}>
@@ -28,9 +30,12 @@ const Banner = () => (
       <Text style={s.bannerText}>Keep conversations positive. Toxic behaviour will result in a ban.</Text>
     </View>
   </View>
-);
+  );
+};
 
 export default function LobbyScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { rooms, loading } = useLobby();
   const activityById = Object.fromEntries(rooms.map(r => [r.id, r.messagesToday]));
@@ -64,15 +69,17 @@ export default function LobbyScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-  back: { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-  subtitle: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 1 },
-  list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
-  loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  banner: { backgroundColor: C.redLo, borderRadius: 14, padding: 14, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 8 },
-  bannerTitle: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.red, marginBottom: 2 },
-  bannerText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
+    back: { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+    title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+    subtitle: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 1 },
+    list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
+    loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    banner: { backgroundColor: C.redLo, borderRadius: 14, padding: 14, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 8 },
+    bannerTitle: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.red, marginBottom: 2 },
+    bannerText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
+  });
+}

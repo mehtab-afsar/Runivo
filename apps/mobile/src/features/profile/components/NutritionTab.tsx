@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Flame } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -6,11 +6,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getNutritionProfile, getNutritionEntriesRange, type NutritionProfile, type NutritionEntry } from '@shared/services/store';
 import { todayKey } from '../../nutrition/services/nutritionService';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const C = Colors;
 
 function getWeekDates(): string[] {
   const dates: string[] = [];
@@ -30,6 +28,8 @@ function getWeekDates(): string[] {
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
 export function NutritionTab() {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const [profile, setProfile] = useState<NutritionProfile | null>(null);
   const [weekEntries, setWeekEntries] = useState<Record<string, NutritionEntry[]>>({});
@@ -192,36 +192,38 @@ export function NutritionTab() {
   );
 }
 
-const ss = StyleSheet.create({
-  root: { paddingBottom: 8 },
-  center: { alignItems: 'center', paddingVertical: 32 },
-  card: {
-    backgroundColor: '#F8F6F3', borderRadius: 14,
-    borderWidth: 0.5, borderColor: '#DDD9D4',
-    padding: 14, marginHorizontal: 0,
-  },
-  cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  cardLabel: { fontFamily: 'Barlow_500Medium', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
-  editLink: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.red },
-  goalRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  goalCell: { flex: 1, alignItems: 'center' },
-  goalValue: { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
-  goalUnit: { fontSize: 9, color: C.t3 },
-  goalCellLabel: { fontFamily: 'Barlow_400Regular', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6, color: C.t3, marginTop: 2 },
-  barsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  barCol: { flex: 1, alignItems: 'center', gap: 4 },
-  barTrack: { width: '100%', justifyContent: 'flex-end', alignItems: 'center' },
-  bar: { width: '55%', borderRadius: 3 },
-  barDay: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3 },
-  barKcal: { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3 },
-  statRow: { flexDirection: 'row', marginTop: 10 },
-  statCardLabel: { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3, marginBottom: 6 },
-  statCardValue: { fontFamily: 'Barlow_300Light', fontSize: 22, color: C.black, letterSpacing: -0.5, lineHeight: 26 },
-  statCardSub: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  btn: { backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
-  btnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
-  empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 20 },
-  emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 8 },
-  emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root: { paddingBottom: 8 },
+    center: { alignItems: 'center', paddingVertical: 32 },
+    card: {
+      backgroundColor: '#F8F6F3', borderRadius: 14,
+      borderWidth: 0.5, borderColor: '#DDD9D4',
+      padding: 14, marginHorizontal: 0,
+    },
+    cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+    cardLabel: { fontFamily: 'Barlow_500Medium', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
+    editLink: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.red },
+    goalRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    goalCell: { flex: 1, alignItems: 'center' },
+    goalValue: { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
+    goalUnit: { fontSize: 9, color: C.t3 },
+    goalCellLabel: { fontFamily: 'Barlow_400Regular', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6, color: C.t3, marginTop: 2 },
+    barsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+    barCol: { flex: 1, alignItems: 'center', gap: 4 },
+    barTrack: { width: '100%', justifyContent: 'flex-end', alignItems: 'center' },
+    bar: { width: '55%', borderRadius: 3 },
+    barDay: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3 },
+    barKcal: { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3 },
+    statRow: { flexDirection: 'row', marginTop: 10 },
+    statCardLabel: { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3, marginBottom: 6 },
+    statCardValue: { fontFamily: 'Barlow_300Light', fontSize: 22, color: C.black, letterSpacing: -0.5, lineHeight: 26 },
+    statCardSub: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
+    totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    btn: { backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
+    btnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
+    empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 20 },
+    emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 8 },
+    emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
+  });
+}

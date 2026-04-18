@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView,
   Platform, Switch, Alert, Linking,
@@ -10,12 +10,13 @@ import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
 import { SegmentedControl, PillCycle } from '../components/SettingToggle';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const C = Colors;
 
 export default function SettingsScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const {
     settings, updateSetting, signOut,
@@ -243,7 +244,7 @@ export default function SettingsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn:     { width: 32 },
@@ -266,4 +267,4 @@ const s = StyleSheet.create({
   signOutBtn:  { borderWidth: 0.5, borderColor: C.red, borderRadius: 8, paddingVertical: 13, alignItems: 'center' },
   signOutLabel:{ fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.red, textTransform: 'uppercase', letterSpacing: 1 },
   version:     { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', paddingBottom: 8 },
-});
+}); }

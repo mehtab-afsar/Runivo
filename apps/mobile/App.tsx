@@ -22,6 +22,8 @@ import { getPlayer } from '@shared/services/store';
 import { ToastProvider } from './src/shared/components/ToastProvider';
 import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
 import { initSentry, captureException } from './src/shared/services/sentry';
+import { ThemeProvider } from './src/theme/ThemeContext';
+import { useSettings } from './src/features/settings/hooks/useSettings';
 
 initSentry();
 
@@ -45,6 +47,7 @@ SplashScreen.preventAutoHideAsync();
 
 function Root() {
   const { user, loading } = useAuth();
+  const { settings } = useSettings();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
 
@@ -67,11 +70,14 @@ function Root() {
 
   if (loading || checkingOnboarding) return null;
 
+  const isDark = settings.darkMode;
   return (
-    <View style={styles.root} onLayout={onLayoutRootView}>
-      <AppNavigator isAuthenticated={user !== null} needsOnboarding={needsOnboarding} />
-      <StatusBar style="light" />
-    </View>
+    <ThemeProvider isDark={isDark}>
+      <View style={[styles.root, { backgroundColor: isDark ? '#0D0D0D' : '#F8F6F3' }]} onLayout={onLayoutRootView}>
+        <AppNavigator isAuthenticated={user !== null} needsOnboarding={needsOnboarding} />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+      </View>
+    </ThemeProvider>
   );
 }
 

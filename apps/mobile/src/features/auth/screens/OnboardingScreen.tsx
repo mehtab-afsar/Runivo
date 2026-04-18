@@ -35,19 +35,26 @@ export default function OnboardingScreen() {
   // Slide animation
   const slideX = useRef(new Animated.Value(0)).current;
   const prevStep = useRef(ob.step);
+  const transitioning = useRef(false);
 
   useEffect(() => {
     if (prevStep.current === ob.step) return;
     const goingForward = ob.step > prevStep.current;
     prevStep.current = ob.step;
+    transitioning.current = true;
 
     slideX.setValue(goingForward ? SCREEN_W : -SCREEN_W);
     Animated.timing(slideX, {
       toValue: 0,
       duration: 240,
       useNativeDriver: true,
-    }).start();
+    }).start(() => { transitioning.current = false; });
   }, [ob.step, slideX]);
+
+  const handleNext = () => {
+    if (transitioning.current) return;
+    ob.goNext();
+  };
 
   const renderStep = () => {
     switch (ob.step) {
@@ -111,7 +118,7 @@ export default function OnboardingScreen() {
       <View style={ss.footer}>
         <Pressable
           style={[ss.cta, isLast ? ss.ctaBlack : ob.canContinue() ? ss.ctaRed : ss.ctaDisabled]}
-          onPress={isLast ? ob.submit : ob.goNext}
+          onPress={isLast ? ob.submit : handleNext}
           disabled={!ob.canContinue() || ob.loading}
         >
           {ob.loading

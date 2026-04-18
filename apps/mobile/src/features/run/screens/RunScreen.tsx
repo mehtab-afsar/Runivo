@@ -1,12 +1,8 @@
-/**
- * RunScreen — pre-run setup tab. ≤80 lines.
- * Fetches: GPS, intel, routes via useRunSetup.
- * Renders: RunMapView, RunSetupSheet, ActivityModal, RouteModal.
- */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSettings } from '@shared/services/store';
+import { useTheme, type AppColors } from '@theme';
 
 import { useRunSetup } from '../hooks/useRunSetup';
 import { useBeatPacer } from '../hooks/useBeatPacer';
@@ -29,6 +25,8 @@ function gpsLabel(status: string, acc: number | null): string {
 }
 
 export default function RunScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const MAP_STYLE_URLS: Record<string, string> = {
     Standard:  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -40,9 +38,9 @@ export default function RunScreen() {
   const [mapStyle, setMapStyle] = React.useState(MAP_STYLE_URLS.Standard);
 
   useEffect(() => {
-    getSettings().then(s => {
-      if (s.mapStyle && MAP_STYLE_URLS[s.mapStyle]) {
-        setMapStyle(MAP_STYLE_URLS[s.mapStyle]);
+    getSettings().then(st => {
+      if (st.mapStyle && MAP_STYLE_URLS[st.mapStyle]) {
+        setMapStyle(MAP_STYLE_URLS[st.mapStyle]);
       }
     });
   }, []);
@@ -58,7 +56,7 @@ export default function RunScreen() {
   const pacer = useBeatPacer();
 
   return (
-    <View style={ss.root}>
+    <View style={s.root}>
       <RunMapView
         lat={gps.lat}
         lng={gps.lng}
@@ -116,4 +114,6 @@ export default function RunScreen() {
   );
 }
 
-const ss = StyleSheet.create({ root: { flex: 1, backgroundColor: '#F7F6F4' } });
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({ root: { flex: 1, backgroundColor: C.bg } });
+}

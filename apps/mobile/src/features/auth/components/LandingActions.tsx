@@ -8,39 +8,39 @@ interface Props {
 
 export default function LandingActions({ onSignUp, onSignIn }: Props) {
   return (
-    <View style={s.ctas}>
-      <Pressable style={[s.btn, s.btnBlack]} onPress={onSignUp}>
-        <Text style={s.btnLabelWhite}>Create account</Text>
+    <View style={s.wrap}>
+      <Pressable style={s.btnPrimary} onPress={onSignUp}>
+        <Text style={s.btnPrimaryLabel}>CREATE ACCOUNT</Text>
       </Pressable>
-      <Pressable style={[s.btn, s.btnOutline]} onPress={onSignIn}>
-        <Text style={s.btnLabelBlack}>I already have an account</Text>
+      <Pressable style={s.btnSecondary} onPress={onSignIn}>
+        <Text style={s.btnSecondaryLabel}>SIGN IN</Text>
       </Pressable>
-      <Text style={s.legal}>
-        By continuing you agree to our Terms of Service and Privacy Policy.
-      </Text>
+      <Text style={s.footer}>Free to start · No credit card required</Text>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  ctas: {
-    paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 28,
-    gap: 8, zIndex: 2,
+  wrap: {
+    paddingHorizontal: 28,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 28,
+    gap: 0,
   },
-  btn: { paddingVertical: 13, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  btnBlack: { backgroundColor: '#0A0A0A' },
-  btnOutline: { borderWidth: 0.5, borderColor: '#DDD9D4' },
-  btnLabelWhite: {
-    fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#FFFFFF',
-    textTransform: 'uppercase', letterSpacing: 1,
+  btnPrimary: {
+    backgroundColor: '#0A0A0A', borderRadius: 4,
+    paddingVertical: 15, alignItems: 'center', marginBottom: 14,
   },
-  btnLabelBlack: {
-    fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#0A0A0A',
-    textTransform: 'uppercase', letterSpacing: 1,
+  btnPrimaryLabel: {
+    fontFamily: 'Barlow_500Medium', fontSize: 12,
+    color: '#FFFFFF', letterSpacing: 1.2,
   },
-  legal: {
-    fontFamily: 'Barlow_300Light', fontSize: 8, color: '#ADADAD',
-    textAlign: 'center', marginTop: 4, lineHeight: 13,
+  btnSecondary: { alignItems: 'center', paddingVertical: 6, marginBottom: 16 },
+  btnSecondaryLabel: {
+    fontFamily: 'Barlow_400Regular', fontSize: 12,
+    color: '#6B6B6B', letterSpacing: 0.8,
+  },
+  footer: {
+    fontFamily: 'Barlow_300Light', fontSize: 10,
+    color: '#ADADAD', textAlign: 'center',
   },
 });

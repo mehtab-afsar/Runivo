@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image, ScrollView } from 'react-native';
 import { MapPin, Instagram, Camera, Activity } from 'lucide-react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
 interface Props {
@@ -34,6 +33,8 @@ export function EditProfileSheet({
   editAvatarUri, onPickAvatar,
   onSave, onCancel,
 }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Pressable style={ss.overlay} onPress={onCancel}>
       <Pressable style={ss.sheet} onPress={() => {}}>
@@ -114,41 +115,43 @@ export function EditProfileSheet({
   );
 }
 
-const ss = StyleSheet.create({
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(10,10,10,0.4)', justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: C.white, borderTopLeftRadius: 16, borderTopRightRadius: 16,
-    padding: 24, paddingBottom: Platform.OS === 'ios' ? 36 : 24, maxHeight: '85%',
-  },
-  sheetTitle: { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black, marginBottom: 20 },
-  avatarWrap: { alignSelf: 'center', marginBottom: 20, position: 'relative' },
-  avatarPreview: { width: 72, height: 72, borderRadius: 36 },
-  avatarPlaceholder: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
-  cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
-  inputLabel: {
-    fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3,
-    textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6,
-  },
-  input: {
-    fontFamily: 'Barlow_300Light', fontSize: 14, color: C.black,
-    borderWidth: 0.5, borderColor: C.border, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
-  },
-  iconInput: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 0.5, borderColor: C.border, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
-  },
-  iconInputText: { flex: 1, fontFamily: 'Barlow_300Light', fontSize: 14, color: C.black },
-  swatchRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  swatch: { width: 32, height: 32, borderRadius: 16 },
-  swatchSel: {
-    borderWidth: 3, borderColor: C.white,
-    shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
-  },
-  saveBtn: { backgroundColor: C.black, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginBottom: 8 },
-  saveBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    overlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(10,10,10,0.4)', justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: C.white, borderTopLeftRadius: 16, borderTopRightRadius: 16,
+      padding: 24, paddingBottom: Platform.OS === 'ios' ? 36 : 24, maxHeight: '85%',
+    },
+    sheetTitle: { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black, marginBottom: 20 },
+    avatarWrap: { alignSelf: 'center', marginBottom: 20, position: 'relative' },
+    avatarPreview: { width: 72, height: 72, borderRadius: 36 },
+    avatarPlaceholder: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
+    cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
+    inputLabel: {
+      fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3,
+      textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6,
+    },
+    input: {
+      fontFamily: 'Barlow_300Light', fontSize: 14, color: C.black,
+      borderWidth: 0.5, borderColor: C.border, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
+    },
+    iconInput: {
+      flexDirection: 'row', alignItems: 'center',
+      borderWidth: 0.5, borderColor: C.border, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
+    },
+    iconInputText: { flex: 1, fontFamily: 'Barlow_300Light', fontSize: 14, color: C.black },
+    swatchRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+    swatch: { width: 32, height: 32, borderRadius: 16 },
+    swatchSel: {
+      borderWidth: 3, borderColor: C.white,
+      shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    },
+    saveBtn: { backgroundColor: C.black, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginBottom: 8 },
+    saveBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
+  });
+}

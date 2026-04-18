@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { MapPin } from 'lucide-react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_SEMI = 'Barlow_600SemiBold';
@@ -13,6 +12,8 @@ interface PermissionPromptProps {
 }
 
 export default function PermissionPrompt({ onRequest }: PermissionPromptProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.container}>
       <View style={ss.iconWrap}>
@@ -29,7 +30,7 @@ export default function PermissionPrompt({ onRequest }: PermissionPromptProps) {
   );
 }
 
-const ss = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   container: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 32, backgroundColor: C.bg,
@@ -39,4 +40,4 @@ const ss = StyleSheet.create({
   body:      { fontFamily: FONT, fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
   btn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 28 },
   btnLabel:  { fontFamily: FONT_MED, fontSize: 14, color: C.white, letterSpacing: 0.3 },
-});
+}); }

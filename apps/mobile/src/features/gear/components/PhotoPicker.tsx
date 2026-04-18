@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Alert } from 'react-native';
 import { Footprints } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface PhotoPickerProps {
   uri: string | null;
@@ -12,6 +10,8 @@ interface PhotoPickerProps {
 }
 
 export function PhotoPicker({ uri, onPick }: PhotoPickerProps) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const pickFromLibrary = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -59,7 +59,7 @@ export function PhotoPicker({ uri, onPick }: PhotoPickerProps) {
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 16, marginBottom: 4 },
   thumb: { width: 72, height: 72, borderRadius: 12 },
   placeholder: {
@@ -72,4 +72,4 @@ const s = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 12,
   },
   btnText: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
-});
+}); }

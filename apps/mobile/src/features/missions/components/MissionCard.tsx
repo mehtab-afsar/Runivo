@@ -1,11 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MapPin, Map, Flag, Wind, Flame, Timer, Target, Coins, Check, Zap, Shield, Swords, type LucideIcon } from 'lucide-react-native';
 import type { Mission } from '@shared/services/missions';
 import { DifficultyBadge } from './DifficultyBadge';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
   run_distance:        { Icon: MapPin,  color: '#D93518' },
@@ -26,6 +24,8 @@ interface MissionCardProps {
 }
 
 export function MissionCard({ mission, onClaim }: MissionCardProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const pct = Math.min(1, mission.current / mission.target);
   const diff = (mission.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard';
   const typeIcon = TYPE_ICON[mission.type] ?? { Icon: Target, color: '#D93518' };
@@ -81,7 +81,7 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
   );
 }
 
-const ss = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   card: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   cardClaimed: { opacity: 0.7 },
   cardRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
@@ -99,4 +99,4 @@ const ss = StyleSheet.create({
   claimBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
   claimedBanner: { marginTop: 10, backgroundColor: C.greenLo, borderRadius: 6, paddingVertical: 8, alignItems: 'center' },
   claimedText: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.green },
-});
+}); }

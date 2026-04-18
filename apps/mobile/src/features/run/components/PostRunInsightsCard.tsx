@@ -1,10 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Zap, Lightbulb, BedDouble } from 'lucide-react-native';
 import { usePostRunInsights } from '../hooks/usePostRunInsights';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 
@@ -23,6 +22,8 @@ function ruleBasedInsight(distance: number, pace: number): string {
 }
 
 export default function PostRunInsightsCard({ runId, distance, pace }: PostRunInsightsCardProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const { insights, loading } = usePostRunInsights(runId);
 
   return (
@@ -53,12 +54,14 @@ export default function PostRunInsightsCard({ runId, distance, pace }: PostRunIn
   );
 }
 
-const ss = StyleSheet.create({
-  card:       { marginHorizontal: 16, marginBottom: 12, padding: 14, backgroundColor: C.white, borderRadius: 4, borderWidth: 0.5, borderColor: C.border },
-  header:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  iconWrap:   { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(139,92,246,0.1)', alignItems: 'center', justifyContent: 'center' },
-  title:      { fontFamily: FONT_MED, fontSize: 12, color: C.black },
-  body:       { fontFamily: FONT_LIGHT, fontSize: 13, color: '#4B5563', lineHeight: 19, marginBottom: 4 },
-  bodyMuted:  { color: C.t3, fontSize: 12 },
-  suggestion: { color: '#1A6B40', fontSize: 12 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card:       { marginHorizontal: 16, marginBottom: 12, padding: 14, backgroundColor: C.white, borderRadius: 4, borderWidth: 0.5, borderColor: C.border },
+    header:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    iconWrap:   { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(139,92,246,0.1)', alignItems: 'center', justifyContent: 'center' },
+    title:      { fontFamily: FONT_MED, fontSize: 12, color: C.black },
+    body:       { fontFamily: FONT_LIGHT, fontSize: 13, color: '#4B5563', lineHeight: 19, marginBottom: 4 },
+    bodyMuted:  { color: C.t3, fontSize: 12 },
+    suggestion: { color: '#1A6B40', fontSize: 12 },
+  });
+}

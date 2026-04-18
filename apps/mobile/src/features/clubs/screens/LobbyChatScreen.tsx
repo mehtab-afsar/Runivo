@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 import { Heart, Flame, Dumbbell, ThumbsUp, Smile, Laugh, Globe, Activity, Trophy, Moon } from 'lucide-react-native';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
@@ -14,7 +14,6 @@ import { supabase } from '@shared/services/supabase';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'LobbyChat'>;
-const C = Colors;
 
 type ReactionEntry = { id: string; Icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>; color: string; emoji: string };
 const REACTION_ENTRIES: ReactionEntry[] = [
@@ -36,6 +35,8 @@ const LOBBY_ROOMS: LobbyRoomEntry[] = [
 ];
 
 export default function LobbyChatScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { lobbyId } = useRoute<Route>().params;
   const room = LOBBY_ROOMS.find(r => r.id === lobbyId) ?? LOBBY_ROOMS[0];
@@ -113,20 +114,22 @@ export default function LobbyChatScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  header:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
-  back:         { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
-  roomIcon:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  roomName:     { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
-  roomDesc:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
-  loader:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty:        { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
-  emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-  emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
-  overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-  picker:       { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
-  pickerLabel:  { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.t2, letterSpacing: 0.4 },
-  emojiRow:     { flexDirection: 'row', gap: 8 },
-  emojiBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center' },
-  emoji:        { fontSize: 22 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    header:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
+    back:         { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+    roomIcon:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    roomName:     { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
+    roomDesc:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+    loader:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    empty:        { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
+    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
+    emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+    overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
+    picker:       { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
+    pickerLabel:  { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.t2, letterSpacing: 0.4 },
+    emojiRow:     { flexDirection: 'row', gap: 8 },
+    emojiBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center' },
+    emoji:        { fontSize: 22 },
+  });
+}

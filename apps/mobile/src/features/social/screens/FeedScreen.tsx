@@ -17,12 +17,10 @@ import type { FeedPost } from '@features/social/types';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { Bell, Heart, Flame, Crown, Dumbbell, Check, Plus, Zap, Sparkles } from 'lucide-react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type FeedTab = 'explore' | 'following';
-
-const C = Colors;
 
 const REACTIONS: { key: string; Icon: typeof Heart; color: string; label: string }[] = [
   { key: 'kudos',  Icon: Heart,    color: '#D93518', label: 'Kudos' },
@@ -32,6 +30,8 @@ const REACTIONS: { key: string; Icon: typeof Heart; color: string; label: string
 ];
 
 function PostDetailSheet({ post, onClose, onKudos }: { post: FeedPost; onClose: () => void; onKudos: () => void }) {
+  const C = useTheme();
+  const sd = useMemo(() => mkSd(C), [C]);
   const insets = useSafeAreaInsets();
   const fmt = (s: number) => { const m = Math.floor(s / 60); return `${m}:${String(s % 60).padStart(2, '0')}`; };
   return (
@@ -78,33 +78,9 @@ function PostDetailSheet({ post, onClose, onKudos }: { post: FeedPost; onClose: 
   );
 }
 
-const sd = StyleSheet.create({
-  backdrop:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet:         { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
-  handle:        { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  userRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  avatar:        { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  avatarText:    { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.white },
-  username:      { fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
-  time:          { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-  statsRow:      { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 12, padding: 14, marginBottom: 12 },
-  statItem:      { flex: 1, alignItems: 'center' },
-  statVal:       { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
-  statLbl:       { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
-  divider:       { width: 0.5, height: 32, backgroundColor: C.border },
-  badgeRow:      { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  badge:         { backgroundColor: '#FEF0EE', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
-  badgeInner:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  badgeGreen:    { backgroundColor: '#EDF7F2' },
-  badgeText:     { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.red },
-  reactLabel:    { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 10 },
-  reactRow:      { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  reactBtn:      { flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: C.stone, borderRadius: 12, borderWidth: 0.5, borderColor: C.border },
-  reactBtnActive:{ backgroundColor: '#FCE8EB', borderColor: C.red },
-  reactBtnLabel: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-});
-
 export default function FeedScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkS(C), [C]);
   const navigation = useNavigation<Nav>();
   const [tab, setTab]             = useState<FeedTab>('explore');
   const [stories, setStories]     = useState<StoryGroup[]>([]);
@@ -225,29 +201,59 @@ export default function FeedScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root:           { flex: 1, backgroundColor: C.bg },
-  header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 8 },
-  title:          { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black },
-  tabs:           { flexDirection: 'row', paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: C.border },
-  tabBtn:         { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
-  tabBtnActive:   { borderBottomColor: C.black },
-  tabLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
-  tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
-  searchRow:      { paddingHorizontal: 20, paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
-  searchInput:    { height: 34, backgroundColor: C.white, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 12, fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
-  list:           { paddingBottom: 100 },
-  loader:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Suggested runners
-  suggestedSection: { backgroundColor: C.bg, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-  suggestedLabel:   { fontFamily: 'Barlow_300Light', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: C.t3, paddingHorizontal: 20, marginBottom: 14 },
-  suggestedScroll:  { paddingHorizontal: 20, gap: 10 },
-  runnerCard:       { alignItems: 'center', gap: 6, minWidth: 72 },
-  runnerAvatarWrap: { position: 'relative' },
-  runnerAvatar:     { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.border },
-  runnerAvatarFollowing: { borderWidth: 2, borderColor: C.black },
-  runnerAvatarText: { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: C.white },
-  followDot:        { position: 'absolute', bottom: -1, right: -1, width: 18, height: 18, borderRadius: 9, backgroundColor: C.black, borderWidth: 1.5, borderColor: C.white, alignItems: 'center', justifyContent: 'center' },
-  runnerName:       { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.black, textAlign: 'center' },
-  runnerKm:         { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', marginTop: -3 },
-});
+function mkSd(C: AppColors) {
+  return StyleSheet.create({
+    backdrop:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+    sheet:         { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
+    handle:        { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+    userRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+    avatar:        { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+    avatarText:    { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.white },
+    username:      { fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
+    time:          { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    statsRow:      { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 12, padding: 14, marginBottom: 12 },
+    statItem:      { flex: 1, alignItems: 'center' },
+    statVal:       { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
+    statLbl:       { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    divider:       { width: 0.5, height: 32, backgroundColor: C.border },
+    badgeRow:      { flexDirection: 'row', gap: 8, marginBottom: 16 },
+    badge:         { backgroundColor: '#FEF0EE', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
+    badgeInner:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    badgeGreen:    { backgroundColor: '#EDF7F2' },
+    badgeText:     { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.red },
+    reactLabel:    { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 10 },
+    reactRow:      { flexDirection: 'row', gap: 10, marginBottom: 8 },
+    reactBtn:      { flex: 1, alignItems: 'center', paddingVertical: 12, backgroundColor: C.stone, borderRadius: 12, borderWidth: 0.5, borderColor: C.border },
+    reactBtnActive:{ backgroundColor: '#FCE8EB', borderColor: C.red },
+    reactBtnLabel: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+  });
+}
+
+function mkS(C: AppColors) {
+  return StyleSheet.create({
+    root:           { flex: 1, backgroundColor: C.bg },
+    header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 8 },
+    title:          { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black },
+    tabs:           { flexDirection: 'row', paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    tabBtn:         { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
+    tabBtnActive:   { borderBottomColor: C.black },
+    tabLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
+    tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
+    searchRow:      { paddingHorizontal: 20, paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    searchInput:    { height: 34, backgroundColor: C.white, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 12, fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
+    list:           { paddingBottom: 100 },
+    loader:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    // Suggested runners
+    suggestedSection: { backgroundColor: C.bg, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    suggestedLabel:   { fontFamily: 'Barlow_300Light', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: C.t3, paddingHorizontal: 20, marginBottom: 14 },
+    suggestedScroll:  { paddingHorizontal: 20, gap: 10 },
+    runnerCard:       { alignItems: 'center', gap: 6, minWidth: 72 },
+    runnerAvatarWrap: { position: 'relative' },
+    runnerAvatar:     { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.border },
+    runnerAvatarFollowing: { borderWidth: 2, borderColor: C.black },
+    runnerAvatarText: { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: C.white },
+    followDot:        { position: 'absolute', bottom: -1, right: -1, width: 18, height: 18, borderRadius: 9, backgroundColor: C.black, borderWidth: 1.5, borderColor: C.white, alignItems: 'center', justifyContent: 'center' },
+    runnerName:       { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.black, textAlign: 'center' },
+    runnerKm:         { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', marginTop: -3 },
+  });
+}

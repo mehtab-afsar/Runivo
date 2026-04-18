@@ -1,14 +1,3 @@
-/**
- * Runivo mobile color tokens — single source of truth.
- *
- * Usage:
- *   import { Colors } from '@mobile/theme/colors';
- *   <View style={{ backgroundColor: Colors.bg }} />
- *
- * Every screen previously defined its own `const C = { ... }` or `const T = { ... }`.
- * Replace those with an import from this file.
- */
-
 export const Colors = {
   // Backgrounds
   bg:      '#F8F6F3',
@@ -43,10 +32,51 @@ export const Colors = {
   bronze:  '#A0522D',
 
   // Aliases for legacy screen names
-  muted:   '#6B6B6B',  // same as t2
-  greenLo: '#EDF7F2',  // same as greenBg
+  muted:   '#6B6B6B',
+  greenLo: '#EDF7F2',
   redLo:   '#FEF0EE',
   purple:  '#8B5CF6',
 } as const;
 
+export const DarkColors = {
+  // Backgrounds
+  bg:      '#0D0D0D',
+  surface: '#1A1816',
+  mid:     '#252220',
+  stone:   '#1E1C1A',
+
+  // Borders & dividers
+  border:  '#333030',
+
+  // Text
+  black:   '#F2EFE9',
+  t1:      '#F2EFE9',
+  t2:      '#9E9894',
+  t3:      '#5A5550',
+
+  // Brand / interactive
+  red:     '#D93518',
+  white:   '#FFFFFF',
+
+  // Semantic
+  green:   '#22A85A',
+  greenBg: '#0C2318',
+  amber:   '#C27F00',
+  amberBg: '#231A00',
+  orange:  '#D97010',
+  orangeBg:'#271200',
+
+  // Leaderboard medals
+  gold:    '#D4A200',
+  silver:  '#9E9E9E',
+  bronze:  '#A0522D',
+
+  // Aliases
+  muted:   '#9E9894',
+  greenLo: '#0C2318',
+  redLo:   '#2A0C06',
+  purple:  '#8B5CF6',
+} as const;
+
+export type AppColors = Record<keyof typeof Colors, string>;
 export type ColorKey = keyof typeof Colors;

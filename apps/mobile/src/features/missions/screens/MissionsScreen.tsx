@@ -18,21 +18,9 @@ import { setDailyMissions, getTodaysMissions } from '@shared/services/missionSto
 import { getProfile } from '@shared/services/profile';
 import type { PlayerProfile } from '@shared/services/profile';
 
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const T = {
-  pageBg:  Colors.stone,
-  stone:   Colors.surface,
-  mid:     Colors.mid,
-  border:  Colors.border,
-  surface: Colors.bg,
-  black:   Colors.black,
-  white:   Colors.white,
-  t2:      Colors.t2,
-  t3:      Colors.t3,
-} as const;
 
 // Mission type → Lucide icon
 const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
@@ -90,6 +78,19 @@ const GOAL_LABELS: Record<PlayerProfile['primaryGoal'], string> = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function MissionsScreen() {
+  const C = useTheme();
+  const T = {
+    pageBg:  C.stone,
+    stone:   C.surface,
+    mid:     C.mid,
+    border:  C.border,
+    surface: C.bg,
+    black:   C.black,
+    white:   C.white,
+    t2:      C.t2,
+    t3:      C.t3,
+  } as const;
+  const ss = useMemo(() => mkStyles(T), [C]);
   const navigation = useNavigation<Nav>();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -377,7 +378,8 @@ export default function MissionsScreen() {
   );
 }
 
-const ss = StyleSheet.create({
+type TTokens = { pageBg: string; stone: string; mid: string; border: string; surface: string; black: string; white: string; t2: string; t3: string };
+function mkStyles(T: TTokens) { return StyleSheet.create({
   root:            { flex: 1, backgroundColor: T.pageBg },
   loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
@@ -459,4 +461,4 @@ const ss = StyleSheet.create({
   slotFilled: { backgroundColor: T.black, zIndex: 3 },
   saveBtn:    { flex: 1, backgroundColor: T.black, borderRadius: 3, paddingVertical: 13, alignItems: 'center' },
   saveBtnText:{ fontFamily: 'Barlow_500Medium', fontSize: 12, color: T.white, textTransform: 'uppercase', letterSpacing: 0.6 },
-});
+}); }

@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Zap, Flame } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 const LEVEL_TITLES = [
   'Scout', 'Pathfinder', 'Trailblazer', 'Ranger', 'Explorer',
@@ -16,9 +16,9 @@ interface Props {
   streakDays: number;
 }
 
-const C = Colors;
-
 export function DashboardPills({ xp, level = 1, energy, streakDays }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   const title = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)] ?? 'Scout';
 
@@ -49,13 +49,15 @@ export function DashboardPills({ xp, level = 1, energy, streakDays }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 22, paddingBottom: 20 },
-  pill: {
-    height: 34, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, borderRadius: 20,
-  },
-  dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.border },
-  pillV: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
-  pillL: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 22, paddingBottom: 20 },
+    pill: {
+      height: 34, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, borderRadius: 20,
+    },
+    dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.border },
+    pillV: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
+    pillL: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
+  });
+}

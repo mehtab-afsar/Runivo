@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TrendingUp } from 'lucide-react-native';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 export interface LobbyRoomDisplay {
   id: string;
@@ -21,6 +19,8 @@ interface Props {
 }
 
 export function LobbyCard({ room, onPress }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const { icon: RoomIcon, color: roomIconColor } = getEmojiIcon(room.emoji);
   return (
     <Pressable style={s.card} onPress={onPress}>
@@ -42,14 +42,16 @@ export function LobbyCard({ room, onPress }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  card: {
-    backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5,
-    borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
-  },
-  roomIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  roomName: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 2 },
-  roomDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
-  activityText: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.red, marginTop: 4 },
-  chevron: { fontFamily: 'Barlow_300Light', fontSize: 22, color: C.t3, flexShrink: 0 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5,
+      borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
+    },
+    roomIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    roomName: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 2 },
+    roomDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
+    activityText: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.red, marginTop: 4 },
+    chevron: { fontFamily: 'Barlow_300Light', fontSize: 22, color: C.t3, flexShrink: 0 },
+  });
+}
