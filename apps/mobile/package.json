@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@expo-google-fonts/barlow": "^0.4.1",
+    "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/playfair-display": "^0.4.2",
     "@expo/metro-runtime": "~55.0.6",
     "@kingstinct/react-native-healthkit": "^13.3.1",

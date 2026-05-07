@@ -13,6 +13,11 @@ import {
   Barlow_700Bold,
 } from '@expo-google-fonts/barlow';
 import { PlayfairDisplay_400Regular_Italic } from '@expo-google-fonts/playfair-display';
+import {
+  DMSans_300Light,
+  DMSans_400Regular,
+  DMSans_500Medium,
+} from '@expo-google-fonts/dm-sans';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -89,6 +94,9 @@ export default function App() {
     Barlow_600SemiBold,
     Barlow_700Bold,
     PlayfairDisplay_400Regular_Italic,
+    DMSans_300Light,
+    DMSans_400Regular,
+    DMSans_500Medium,
   });
 
   if (!fontsLoaded && !fontError) return null;

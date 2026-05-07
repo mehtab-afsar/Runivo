@@ -5,10 +5,10 @@ import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, Pressable, ScrollView, StyleSheet, Animated,
 } from 'react-native';
-import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Ellipse, Path, Rect } from 'react-native-svg';
 import type { OnboardingData } from '../types';
 import { AGES, HEIGHTS, WEIGHTS } from '../types';
-import { C, shared } from './onboardingStyles';
+import { D, shared } from './onboardingStyles';
 
 // ─── Animated mascots ────────────────────────────────────────────────────────
 
@@ -44,25 +44,17 @@ function MascotMan({ active }: { active: boolean }) {
   return (
     <Animated.View style={{ transform: [{ translateY: bounceY }] }}>
       <Svg width={52} height={52} viewBox="0 0 52 52">
-        {/* Torso */}
         <Rect x="18" y="28" width="16" height="14" rx="4" fill="#0A0A0A" />
-        {/* Head */}
         <Circle cx="26" cy="20" r="10" fill="#F5C8A0" />
-        {/* Hair */}
         <Path d="M16 18 Q16 10 26 10 Q36 10 36 18" fill="#3B2A1A" />
-        {/* Eyes */}
         <Ellipse cx="22.5" cy="20" rx="1.5" ry="1.5" fill="#3B2A1A" />
         <Ellipse cx="29.5" cy="20" rx="1.5" ry="1.5" fill="#3B2A1A" />
-        {/* Smile */}
         <Path d="M22 24 Q26 27 30 24" stroke="#3B2A1A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-        {/* Arms */}
         <Rect x="10" y="28" width="8" height="4" rx="2" fill="#0A0A0A" />
         <Rect x="34" y="28" width="8" height="4" rx="2" fill="#0A0A0A" />
-        {/* Legs */}
         <Rect x="19" y="41" width="5" height="7" rx="2.5" fill="#555" />
         <Rect x="28" y="41" width="5" height="7" rx="2.5" fill="#555" />
       </Svg>
-      {/* Animated cheeks overlay */}
       <Animated.View
         style={{
           position: 'absolute', top: 19, left: 10, right: 10,
@@ -109,24 +101,16 @@ function MascotWoman({ active }: { active: boolean }) {
   return (
     <Animated.View style={{ transform: [{ translateY: bounceY }] }}>
       <Svg width={52} height={52} viewBox="0 0 52 52">
-        {/* Dress */}
         <Path d="M16 28 Q18 42 26 42 Q34 42 36 28 Z" fill="#D93518" />
-        {/* Torso */}
         <Rect x="19" y="26" width="14" height="8" rx="3" fill="#D93518" />
-        {/* Head */}
         <Circle cx="26" cy="19" r="10" fill="#F5C8A0" />
-        {/* Hair */}
         <Path d="M16 17 Q16 8 26 8 Q36 8 36 17 Q34 14 26 15 Q18 14 16 17Z" fill="#5C3A1E" />
         <Path d="M34 12 Q40 14 38 20" stroke="#5C3A1E" strokeWidth="3" fill="none" strokeLinecap="round" />
-        {/* Eyes */}
         <Ellipse cx="22.5" cy="19" rx="1.5" ry="1.8" fill="#3B2A1A" />
         <Ellipse cx="29.5" cy="19" rx="1.5" ry="1.8" fill="#3B2A1A" />
-        {/* Smile */}
         <Path d="M22 23.5 Q26 26.5 30 23.5" stroke="#3B2A1A" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-        {/* Arms */}
         <Rect x="10" y="27" width="9" height="4" rx="2" fill="#D93518" />
         <Rect x="33" y="27" width="9" height="4" rx="2" fill="#D93518" />
-        {/* Legs */}
         <Rect x="20" y="41" width="4" height="7" rx="2" fill="#F5C8A0" />
         <Rect x="28" y="41" width="4" height="7" rx="2" fill="#F5C8A0" />
       </Svg>
@@ -304,39 +288,39 @@ const s = StyleSheet.create({
   cheek:          { width: 12, height: 8, borderRadius: 6, backgroundColor: '#E8A090' },
   genderRow:      { flexDirection: 'row', gap: 10, marginBottom: 20 },
   genderCard: {
-    flex: 1, alignItems: 'center', paddingVertical: 14, paddingHorizontal: 6,
-    borderRadius: 16, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.stone,
+    flex: 1, alignItems: 'center', paddingVertical: 18, paddingHorizontal: 6,
+    borderRadius: 12, borderWidth: 1, borderColor: D.div, backgroundColor: D.surf,
   },
-  genderCardSel:  { backgroundColor: '#FFF6F7', borderColor: C.red },
-  genderLabel:    { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.t3, marginTop: 6 },
-  genderLabelSel: { color: C.red },
+  genderCardSel:  { borderColor: D.red, borderWidth: 1.5 },
+  genderLabel:    { fontFamily: 'DMSans_400Regular', fontSize: 11, color: D.t2, marginTop: 8 },
+  genderLabelSel: { fontFamily: 'DMSans_500Medium', color: D.red },
   drumSection:    { marginBottom: 12 },
   drumTwoCol:     { flexDirection: 'row', marginBottom: 12 },
-  drumColHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  drumColLabel:   { fontFamily: 'Barlow_400Regular', fontSize: 8, color: C.t3, textTransform: 'uppercase', letterSpacing: 2 },
-  drumColUnit:    { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3 },
-  drumPanel:      { backgroundColor: C.stone, borderRadius: 16, overflow: 'hidden' },
-  unitToggle:     { flexDirection: 'row', backgroundColor: '#ECEAE7', borderRadius: 8, padding: 2 },
+  drumColHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  drumColLabel:   { fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+  drumColUnit:    { fontFamily: 'DMSans_300Light', fontSize: 10, color: D.t3 },
+  drumPanel:      { backgroundColor: D.surf, borderRadius: 12, overflow: 'hidden' },
+  unitToggle:     { flexDirection: 'row', backgroundColor: D.div, borderRadius: 8, padding: 2 },
   unitToggleBtn:  { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  unitToggleBtnSel: { backgroundColor: C.white },
-  unitToggleLabel:    { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3 },
-  unitToggleLabelSel: { color: C.red },
+  unitToggleBtnSel: { backgroundColor: '#fff' },
+  unitToggleLabel:    { fontFamily: 'DMSans_500Medium', fontSize: 10, color: D.t3 },
+  unitToggleLabelSel: { color: D.red },
 });
 
 const ds = StyleSheet.create({
   drumItem:       { alignItems: 'center', justifyContent: 'center' },
-  drumItemText:   { fontFamily: 'Barlow_300Light', fontSize: 16, color: C.t3 },
-  drumItemActive: { fontFamily: 'Barlow_400Regular', fontSize: 20, color: C.black },
+  drumItemText:   { fontFamily: 'DMSans_300Light', fontSize: 16, color: D.t3 },
+  drumItemActive: { fontFamily: 'DMSans_500Medium', fontSize: 20, color: D.t1 },
   selectorBand:   {
     position: 'absolute', top: 2 * 44, left: 0, right: 0, height: 44,
-    borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: C.border, zIndex: 1,
+    borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, zIndex: 1,
   },
   fadeTop: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 40,
-    backgroundColor: 'rgba(240,237,232,0.75)',
+    position: 'absolute', top: 0, left: 0, right: 0, height: 44,
+    backgroundColor: 'rgba(237,233,228,0.85)',
   },
   fadeBot: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
-    backgroundColor: 'rgba(240,237,232,0.75)',
+    position: 'absolute', bottom: 0, left: 0, right: 0, height: 44,
+    backgroundColor: 'rgba(237,233,228,0.85)',
   },
 });

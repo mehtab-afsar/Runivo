@@ -1,10 +1,10 @@
 /**
- * Step 6 — "You're ready to run" confirmation screen.
+ * Step 7 — "You're ready to run" confirmation screen.
  */
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Check } from 'lucide-react-native';
-import { C } from './onboardingStyles';
+import { D } from './onboardingStyles';
 import { GOAL_LABELS, EXP_LABELS } from '../types';
 import type { OnboardingData } from '../types';
 
@@ -25,25 +25,23 @@ export default function ReadyStep({ weeklyKmDisplay, primaryGoal, experienceLeve
   const checkScale   = useRef(new Animated.Value(0.6)).current;
   const checkOpacity = useRef(new Animated.Value(0)).current;
 
-  const cardAnims = useRef(summaryCards.map(() => ({
-    opacity: new Animated.Value(0),
+  const rowAnims = useRef(summaryCards.map(() => ({
+    opacity:    new Animated.Value(0),
     translateY: new Animated.Value(10),
   }))).current;
 
   useEffect(() => {
-    // Animate check circle
     Animated.parallel([
-      Animated.spring(checkScale, { toValue: 1, damping: 18, useNativeDriver: true }),
+      Animated.spring(checkScale,   { toValue: 1, damping: 18, useNativeDriver: true }),
       Animated.timing(checkOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
 
-    // Stagger summary cards after a short delay
     setTimeout(() => {
       Animated.stagger(
         80,
-        cardAnims.map(({ opacity, translateY }) =>
+        rowAnims.map(({ opacity, translateY }) =>
           Animated.parallel([
-            Animated.timing(opacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+            Animated.timing(opacity,    { toValue: 1, duration: 280, useNativeDriver: true }),
             Animated.spring(translateY, { toValue: 0, damping: 22, useNativeDriver: true }),
           ])
         )
@@ -53,54 +51,64 @@ export default function ReadyStep({ weeklyKmDisplay, primaryGoal, experienceLeve
 
   return (
     <View style={s.wrap}>
-      <Animated.View
-        style={[
-          s.checkCircle,
-          { opacity: checkOpacity, transform: [{ scale: checkScale }] },
-        ]}
-      >
-        <Check size={22} color={C.black} strokeWidth={2} />
+      <Animated.View style={[s.checkCircle, { opacity: checkOpacity, transform: [{ scale: checkScale }] }]}>
+        <Check size={22} color={D.t1} strokeWidth={2} />
       </Animated.View>
+
       <Text style={s.eyebrow}>You're in</Text>
-      <Text style={s.title}>You're ready to run.</Text>
+      <Text style={s.title}>You're ready{'\n'}to run.</Text>
       <Text style={s.sub}>Your profile is set up. Time to claim some territory.</Text>
-      <View style={{ width: '100%', gap: 8, marginBottom: 24 }}>
+
+      <View style={s.summaryList}>
         {summaryCards.map((c, i) => (
           <Animated.View
             key={c.label}
             style={[
-              s.summaryRowCard,
-              {
-                opacity: cardAnims[i].opacity,
-                transform: [{ translateY: cardAnims[i].translateY }],
-              },
+              s.summaryRow,
+              i === 0 && s.summaryRowFirst,
+              { opacity: rowAnims[i].opacity, transform: [{ translateY: rowAnims[i].translateY }] },
             ]}
           >
-            <Text style={s.summaryRowLabel}>{c.label}</Text>
-            <Text style={s.summaryRowVal}>{c.val}</Text>
+            <Text style={s.summaryLabel}>{c.label}</Text>
+            <Text style={s.summaryVal}>{c.val}</Text>
           </Animated.View>
         ))}
       </View>
+
       {error ? <Text style={s.errText}>{error}</Text> : null}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   checkCircle: {
-    width: 56, height: 56, borderRadius: 28,
-    borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    width: 52, height: 52, borderRadius: 26,
+    borderWidth: 1, borderColor: D.div, backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
-  eyebrow: { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black, marginBottom: 8, textAlign: 'center' },
-  sub: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, textAlign: 'center', lineHeight: 17, marginBottom: 24 },
-  summaryRowCard: {
-    backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border,
-    borderRadius: 8, padding: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  eyebrow: {
+    fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.red,
+    textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 10,
   },
-  summaryRowLabel: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
-  summaryRowVal: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.black },
-  errText: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.red, textAlign: 'center', marginBottom: 10 },
+  title: {
+    fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 36,
+    color: D.t1, lineHeight: 40, textAlign: 'center', marginBottom: 10,
+  },
+  sub: {
+    fontFamily: 'DMSans_300Light', fontSize: 13, color: D.t2,
+    textAlign: 'center', lineHeight: 19, marginBottom: 32,
+  },
+  summaryList: { width: '100%', marginBottom: 16 },
+  summaryRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: D.div,
+  },
+  summaryRowFirst: { borderTopWidth: 1, borderTopColor: D.div },
+  summaryLabel: { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t2 },
+  summaryVal:   { fontFamily: 'DMSans_500Medium', fontSize: 14, color: D.t1 },
+  errText: {
+    fontFamily: 'DMSans_400Regular', fontSize: 10, color: D.red,
+    textAlign: 'center', marginTop: 8,
+  },
 });
