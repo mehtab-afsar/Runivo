@@ -8,14 +8,24 @@ import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
 
+const QUICK_ADDS = [
+  { name: 'Banana',         kcal: 90,  protein: 1,  carbs: 23, fat: 0 },
+  { name: 'Protein shake',  kcal: 150, protein: 25, carbs: 6,  fat: 3 },
+  { name: 'Black coffee',   kcal: 5,   protein: 0,  carbs: 1,  fat: 0 },
+  { name: 'Protein bar',    kcal: 200, protein: 20, carbs: 22, fat: 5 },
+  { name: 'Greek yogurt',   kcal: 100, protein: 17, carbs: 6,  fat: 0 },
+  { name: 'Chicken breast', kcal: 165, protein: 31, carbs: 0,  fat: 4 },
+];
+
 interface AddFoodModalProps {
   visible: boolean;
   defaultMeal: Meal;
+  defaultKcal?: number;
   onAdd: (entry: Omit<NutritionEntry, 'id' | 'date' | 'loggedAt' | 'xpAwarded'>) => void;
   onClose: () => void;
 }
 
-export function AddFoodModal({ visible, defaultMeal, onAdd, onClose }: AddFoodModalProps) {
+export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose }: AddFoodModalProps) {
   const [name, setName]       = useState('');
   const [kcal, setKcal]       = useState('');
   const [protein, setProtein] = useState('');
@@ -25,7 +35,25 @@ export function AddFoodModal({ visible, defaultMeal, onAdd, onClose }: AddFoodMo
 
   useEffect(() => { setMeal(defaultMeal); }, [defaultMeal]);
 
+  useEffect(() => {
+    if (defaultKcal && defaultKcal > 0) {
+      setKcal(String(defaultKcal));
+    }
+  }, [defaultKcal]);
+
   const canAdd = name.trim().length > 0 && parseFloat(kcal) > 0;
+
+  const applyQuickAdd = (q: typeof QUICK_ADDS[0]) => {
+    setName(q.name);
+    setKcal(String(q.kcal));
+    setProtein(String(q.protein));
+    setCarbs(String(q.carbs));
+    setFat(String(q.fat));
+  };
+
+  const reset = () => {
+    setName(''); setKcal(''); setProtein(''); setCarbs(''); setFat('');
+  };
 
   const handleAdd = () => {
     if (!canAdd) return;
@@ -39,21 +67,24 @@ export function AddFoodModal({ visible, defaultMeal, onAdd, onClose }: AddFoodMo
       source: 'manual',
       synced: false,
     });
-    setName(''); setKcal(''); setProtein(''); setCarbs(''); setFat('');
+    reset();
   };
 
+  const handleClose = () => { reset(); onClose(); };
+
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={handleClose}>
       <SafeAreaView style={s.root}>
         <View style={s.header}>
-          <Pressable onPress={onClose} style={s.closeBtn}>
+          <Pressable onPress={handleClose} style={s.closeBtn}>
             <X size={16} color="#6B6B6B" strokeWidth={2} />
           </Pressable>
-          <Text style={s.title}>Add Food</Text>
+          <Text style={s.title}>Log Food</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+          {/* Meal selector */}
           <View style={s.mealRow}>
             {MEALS.map(m => (
               <Pressable
@@ -67,12 +98,33 @@ export function AddFoodModal({ visible, defaultMeal, onAdd, onClose }: AddFoodMo
             ))}
           </View>
 
+          {/* Quick-add chips */}
+          <Text style={s.sectionLabel}>QUICK ADD</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipsContent}>
+            {QUICK_ADDS.map(q => (
+              <Pressable key={q.name} style={s.chip} onPress={() => applyQuickAdd(q)}>
+                <Text style={s.chipName}>{q.name}</Text>
+                <Text style={s.chipKcal}>{q.kcal} kcal</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          {/* Food name */}
           <Text style={s.fieldLabel}>Food name *</Text>
-          <TextInput style={s.input} value={name} onChangeText={setName} placeholder="e.g. Chicken breast" placeholderTextColor="#ADADAD" />
+          <TextInput
+            style={s.input} value={name} onChangeText={setName}
+            placeholder="e.g. Chicken breast" placeholderTextColor="#ADADAD"
+          />
 
+          {/* Calories */}
           <Text style={s.fieldLabel}>Calories *</Text>
-          <TextInput style={s.input} value={kcal} onChangeText={setKcal} placeholder="300" placeholderTextColor="#ADADAD" keyboardType="decimal-pad" />
+          <TextInput
+            style={s.input} value={kcal} onChangeText={setKcal}
+            placeholder="300" placeholderTextColor="#ADADAD"
+            keyboardType="decimal-pad"
+          />
 
+          {/* Macros row */}
           <View style={s.row}>
             <View style={{ flex: 1 }}>
               <Text style={s.fieldLabel}>Protein (g)</Text>
@@ -104,32 +156,24 @@ const s = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12,
     borderBottomWidth: 0.5, borderBottomColor: '#DDD9D4',
   },
-  closeBtn: { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  closeText: { fontFamily: 'Barlow_400Regular', fontSize: 16, color: '#6B6B6B' },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: '#0A0A0A' },
-  content: { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
-  mealRow: { flexDirection: 'row', gap: 6, marginTop: 14, marginBottom: 8 },
-  mealBtn: {
-    flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#FFFFFF',
-    borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 2,
-  },
+  closeBtn:    { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
+  title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: '#0A0A0A' },
+  content:     { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
+  sectionLabel:{ fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
+  mealRow:     { flexDirection: 'row', gap: 6, marginTop: 14, marginBottom: 4 },
+  mealBtn:     { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 2 },
   mealBtnActive: { backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' },
-  mealLabel: { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#6B6B6B' },
+  mealLabel:   { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#6B6B6B' },
   mealLabelActive: { color: '#fff', fontFamily: 'Barlow_400Regular' },
-  fieldLabel: {
-    fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD',
-    textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 10, marginBottom: 4,
-  },
-  input: {
-    backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4',
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontFamily: 'Barlow_400Regular', fontSize: 14, color: '#0A0A0A',
-  },
-  row: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  addBtn: {
-    backgroundColor: '#0A0A0A', borderRadius: 10, paddingVertical: 14,
-    alignItems: 'center', marginTop: 20,
-  },
+  chips:       { flexGrow: 0 },
+  chipsContent:{ flexDirection: 'row', gap: 6 },
+  chip:        { backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2 },
+  chipName:    { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#0A0A0A' },
+  chipKcal:    { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#ADADAD' },
+  fieldLabel:  { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 10, marginBottom: 4 },
+  input:       { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: '#0A0A0A' },
+  row:         { flexDirection: 'row', gap: 8, marginTop: 4 },
+  addBtn:      { backgroundColor: '#0A0A0A', borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   addBtnDisabled: { opacity: 0.4 },
   addBtnLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
 });

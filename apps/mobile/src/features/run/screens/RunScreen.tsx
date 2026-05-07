@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getSettings } from '@shared/services/store';
+import { postRunSync } from '@shared/services/sync';
 import { useTheme, type AppColors } from '@theme';
 
 import { useRunSetup } from '../hooks/useRunSetup';
 import { useBeatPacer } from '../hooks/useBeatPacer';
+import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint } from '../hooks/useActiveRun';
 import RunMapView    from '../components/RunMapView';
 import RunSetupSheet from '../components/RunSetupSheet';
 import ActivityModal from '../components/ActivityModal';
@@ -28,12 +30,14 @@ export default function RunScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
+  const TERRAIN_GL = JSON.stringify({ version: 8, sources: { 'raster-tiles': { type: 'raster', tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'], tileSize: 256 } }, layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles' }] });
+  const SATELLITE_GL = JSON.stringify({ version: 8, sources: { 'raster-tiles': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 } }, layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles' }] });
   const MAP_STYLE_URLS: Record<string, string> = {
     Standard:  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     Dark:      'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
     Light:     'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-    Terrain:   'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-    Satellite: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    Terrain:   TERRAIN_GL,
+    Satellite: SATELLITE_GL,
   };
   const [mapStyle, setMapStyle] = React.useState(MAP_STYLE_URLS.Standard);
 
@@ -43,6 +47,37 @@ export default function RunScreen() {
         setMapStyle(MAP_STYLE_URLS[st.mapStyle]);
       }
     });
+  }, []);
+
+  // Crash recovery: if a previous run was interrupted (app killed mid-run), the GPS
+  // checkpoint still exists in AsyncStorage. Offer to sync it so the run isn't lost.
+  useEffect(() => {
+    findInterruptedRunCheckpoint().then(cp => {
+      if (!cp || cp.points.length < 2) {
+        if (cp) clearInterruptedRunCheckpoint();
+        return;
+      }
+      const km = (cp.points.length * 3 / 1000).toFixed(1); // rough estimate
+      Alert.alert(
+        'Interrupted Run Found',
+        `A run was interrupted before it could be saved (~${km} km of GPS data). Would you like to recover it?`,
+        [
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => clearInterruptedRunCheckpoint(),
+          },
+          {
+            text: 'Recover',
+            onPress: async () => {
+              await postRunSync();
+              clearInterruptedRunCheckpoint();
+            },
+          },
+        ],
+      );
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const {
     activityType, setActivityType, gps, intel,

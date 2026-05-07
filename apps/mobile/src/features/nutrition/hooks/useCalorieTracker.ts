@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NutritionEntry, NutritionProfile } from '@shared/services/store';
-import { getNutritionEntriesRange, getRunsSince } from '@shared/services/store';
+import { getRunsSince } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import {
   fetchTodayEntries,
   fetchNutritionProfile,
+  fetchWeekEntries,
   addEntry,
   deleteEntry,
   todayKey,
@@ -61,10 +62,10 @@ export function useCalorieTracker() {
     const e = await fetchTodayEntries(today);
     setEntries(e);
 
-    // Weekly entries for chart
+    // Weekly entries for chart — pull from Supabase first, fall back to local
     const weekDates = getWeekDates();
     try {
-      const range = await getNutritionEntriesRange(weekDates[0], weekDates[weekDates.length - 1]);
+      const range = await fetchWeekEntries(weekDates[0], weekDates[weekDates.length - 1]);
       const byDate: Record<string, NutritionEntry[]> = {};
       weekDates.forEach(d => { byDate[d] = []; });
       range.forEach(entry => { if (byDate[entry.date]) byDate[entry.date].push(entry); });

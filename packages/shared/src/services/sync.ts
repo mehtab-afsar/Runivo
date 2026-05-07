@@ -53,6 +53,8 @@ import {
   getRunById,
   getSavedRoutes,
   saveSavedRoute,
+  saveTerritories,
+  getAllTerritories,
   getNutritionProfile,
   getUnsyncedNutritionEntries,
   markNutritionEntrySynced,
@@ -293,23 +295,65 @@ export async function pullRuns(limit = 50): Promise<void> {
 }
 
 // ----------------------------------------------------------------
-// TERRITORY SYNC
+// TERRITORY SYNC (polygon corridors)
 // ----------------------------------------------------------------
 
 /**
- * Pull all territories from Supabase and cache in IndexedDB.
- * Called on app launch and after a run finishes.
+ * Push locally-saved polygon run territories to Supabase.
+ * Territories are corridor shapes that match the GPS path — any shape the runner traced.
+ * Uses upsert so re-runs are idempotent.
+ */
+export async function pushPolygonTerritories(): Promise<void> {
+  const user = await getAuthenticatedUser();
+  if (!user) return;
+
+  const all = await getAllTerritories();
+  const mine = all.filter(t => t.ownerId === user.id && t.polygon.length >= 4);
+  if (mine.length === 0) return;
+
+  const { error } = await supabase.from('run_territories').upsert(
+    mine.map(t => ({
+      id:               t.id,
+      owner_id:         user.id,
+      owner_name:       t.ownerName,
+      run_id:           t.runId || null,
+      polygon:          t.polygon,
+      area_m2:          t.areaM2,
+      defense:          t.defense,
+      tier:             t.tier,
+      claimed_at:       t.claimedAt ? new Date(t.claimedAt).toISOString() : null,
+      last_fortified_at: t.lastFortifiedAt ? new Date(t.lastFortifiedAt).toISOString() : null,
+    })),
+    { onConflict: 'id' },
+  );
+  if (error) console.warn('[sync] pushPolygonTerritories failed:', error.message);
+}
+
+/**
+ * Pull all run territories from Supabase and cache locally.
+ * This includes territories from all players so the map shows everyone's captured areas.
  */
 export async function pullTerritories(): Promise<void> {
   const { data, error } = await supabase
-    .from('territories')
-    .select('*');
+    .from('run_territories')
+    .select('id, owner_id, owner_name, run_id, polygon, area_m2, defense, tier, claimed_at, last_fortified_at');
 
-  if (error || !data) return;
+  if (error || !data || data.length === 0) return;
 
-  // Territories are now polygon corridors created locally from run GPS paths.
-  // Remote hex-based territory rows are no longer imported.
-  void data;
+  const territories: StoredTerritory[] = data.map(row => ({
+    id:              row.id,
+    polygon:         row.polygon as [number, number][],
+    areaM2:          Number(row.area_m2),
+    runId:           row.run_id ?? '',
+    ownerId:         row.owner_id,
+    ownerName:       row.owner_name,
+    defense:         row.defense,
+    tier:            row.tier,
+    claimedAt:       row.claimed_at ? new Date(row.claimed_at).getTime() : null,
+    lastFortifiedAt: row.last_fortified_at ? new Date(row.last_fortified_at).getTime() : null,
+  }));
+
+  await saveTerritories(territories);
 }
 
 /**
@@ -575,14 +619,15 @@ export async function initialSync(): Promise<void> {
   // Push any runs/routes/nutrition data recorded offline
   await Promise.allSettled([
     pushUnsyncedRuns(),
+    pushPolygonTerritories(),
     pushSavedRoutes(),
     pushNutritionLogs(),
     pushNutritionProfile(),
   ]);
 }
 
-/** Call after finishing a run to persist everything. */
-export async function postRunSync(): Promise<void> {
+/** Call after finishing a run to persist everything. Returns {ok:false} on failure (run is safe locally). */
+export async function postRunSync(): Promise<{ ok: boolean }> {
   setSyncStatus('syncing');
   try {
     // 1. Push run first — DB trigger fires, increments total_runs / total_distance_km
@@ -597,13 +642,18 @@ export async function postRunSync(): Promise<void> {
     await pullProfile();
     // 6. Refresh run list
     await pullRuns();
-    // 7. Sync any new nutrition entries logged during the run (XP food bonuses etc.)
+    // 7. Push polygon territories (run corridor shapes) to server, then pull all
+    await pushPolygonTerritories();
+    await pullTerritories();
+    // 8. Sync any new nutrition entries logged during the run (XP food bonuses etc.)
     await pushNutritionLogs();
     setSyncStatus('idle');
+    return { ok: true };
   } catch (err) {
     console.error('[sync] postRunSync failed:', err);
     setSyncStatus(!navigator.onLine ? 'offline' : 'error');
     // Don't attempt a pull on error — stale local state is safer than an overwritten local
+    return { ok: false };
   }
 }
 

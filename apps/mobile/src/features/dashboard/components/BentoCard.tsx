@@ -34,9 +34,10 @@ const CAL_CIRC = 263.9; // 2 * π * 42
 function CalorieRing({ consumed, goal, onPress }: { consumed: number; goal: number; onPress: () => void }) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const pct      = Math.min(consumed / Math.max(goal, 1), 1);
-  const remaining = Math.max(goal - consumed, 0);
-  const ringColor = pct > 1.0 ? '#C25A00' : pct >= 0.9 ? '#F97316' : '#F97316';
+  const pct       = consumed / Math.max(goal, 1);
+  const clampedPct = Math.min(pct, 1);
+  const remaining  = Math.max(goal - consumed, 0);
+  const ringColor  = pct > 1.0 ? '#C25A00' : pct >= 0.8 ? '#F97316' : '#22C55E';
 
   return (
     <Pressable style={ss.slideInner} onPress={onPress}>
@@ -49,7 +50,7 @@ function CalorieRing({ consumed, goal, onPress }: { consumed: number; goal: numb
               cx={50} cy={50} r={42} stroke={ringColor} strokeWidth={5}
               strokeLinecap="round" fill="none"
               strokeDasharray={CAL_CIRC}
-              strokeDashoffset={CAL_CIRC * (1 - pct)}
+              strokeDashoffset={CAL_CIRC * (1 - clampedPct)}
               transform="rotate(-90, 50, 50)"
             />
           </Svg>

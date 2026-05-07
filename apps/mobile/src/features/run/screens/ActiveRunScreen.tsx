@@ -14,6 +14,7 @@ import { Play, Zap, Crown, X } from 'lucide-react-native';
 import { useActiveRun }         from '../hooks/useActiveRun';
 import { postRunSync }          from '@shared/services/sync';
 import { buildRunSummaryParams } from '../services/runNavigationHelper';
+import { useToast }             from '@mobile/shared/hooks/useToast';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useFeatureGate }     from '@features/subscription/hooks/useFeatureGate';
 import ClaimToast         from '../components/ClaimToast';
@@ -38,6 +39,7 @@ export default function ActiveRunScreen() {
   const ghostRoutePoints = route.params?.ghostRoutePoints;
   const run  = useActiveRun(route.params?.activityType ?? 'run');
   const gate = useFeatureGate();
+  const { showToast } = useToast();
   const flashAnim = useRef(new Animated.Value(0)).current;
 
   // When claim progress reaches 100% and user is at territory limit, navigate to
@@ -79,7 +81,10 @@ export default function ActiveRunScreen() {
     setShowConfirm(false);
     const result = await run.finishRun();
     if (!result) return;
-    await postRunSync();
+    const { ok } = await postRunSync();
+    if (!ok) {
+      showToast({ message: 'Sync failed — run saved locally, will retry when online', type: 'warning', duration: 6000 });
+    }
     nav.replace('RunSummary', buildRunSummaryParams(result as Parameters<typeof buildRunSummaryParams>[0]));
   };
 

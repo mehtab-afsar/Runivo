@@ -7,6 +7,15 @@ import { Home, Rss, Sparkles, User, Play } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, type AppColors } from '@theme';
+import { FEATURES } from '../config/features';
+
+const TAB_ENABLED: Record<string, boolean> = {
+  Dashboard: FEATURES.DASHBOARD,
+  Feed:      FEATURES.SOCIAL_FEED,
+  Run:       FEATURES.RUN_TRACKING,
+  Coach:     FEATURES.AI_COACH,
+  Profile:   FEATURES.PROFILE,
+};
 
 type NonRunIcon = 'Home' | 'Rss' | 'Sparkles' | 'User';
 const ICON_MAP: Record<NonRunIcon, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
@@ -63,14 +72,21 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           }
 
           const IconComp = ICON_MAP[meta.icon as NonRunIcon];
-          const color    = focused ? C.red : C.t3;
+          const enabled  = TAB_ENABLED[route.name] !== false;
+          const color    = enabled && focused ? C.red : C.t3;
 
           return (
             <Pressable key={route.key} onPress={onPress} style={s.tab}>
               <IconComp size={22} color={color} strokeWidth={focused ? 2 : 1.5} />
-              <Text style={[s.label, { color, fontFamily: focused ? 'Barlow_500Medium' : 'Barlow_400Regular' }]}>
-                {meta.label}
-              </Text>
+              {enabled ? (
+                <Text style={[s.label, { color, fontFamily: focused ? 'Barlow_500Medium' : 'Barlow_400Regular' }]}>
+                  {meta.label}
+                </Text>
+              ) : (
+                <View style={s.soonBadge}>
+                  <Text style={s.soonText}>SOON</Text>
+                </View>
+              )}
             </Pressable>
           );
         })}
@@ -86,6 +102,8 @@ function mkStyles(C: AppColors) {
     row:             { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 6 },
     tab:             { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 4 },
     label:           { fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase' },
+    soonBadge:       { backgroundColor: C.orange, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
+    soonText:        { fontSize: 8, fontFamily: 'Barlow_700Bold', color: '#fff', letterSpacing: 0.5 },
     runOuter:        { flex: 1, alignItems: 'center', gap: 5, paddingBottom: 4 },
     runCircle:       { width: 54, height: 54, borderRadius: 27, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: -20, shadowColor: C.red, shadowOpacity: 0.38, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
     runCircleActive: { shadowOpacity: 0.55, shadowRadius: 16 },

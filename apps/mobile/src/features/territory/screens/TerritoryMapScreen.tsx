@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { getSettings } from '@shared/services/store';
-import { Map } from 'lucide-react-native';
+import { Locate, Layers } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -14,12 +14,42 @@ import { TerritoryBottomSheet } from '../components/TerritoryBottomSheet';
 import { TerritoryStatsBar } from '../components/TerritoryStatsBar';
 import type { TerritoryDetails } from '../types';
 
+// MapLibre GL requires a style JSON URL for vector tile styles.
+// For raster tile sources (Terrain, Satellite), we wrap the XYZ tile
+// URL inside an inline GL style object so MapLibre can consume it.
+
+const TERRAIN_STYLE = JSON.stringify({
+  version: 8,
+  sources: {
+    'raster-tiles': {
+      type: 'raster',
+      tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenTopoMap contributors',
+    },
+  },
+  layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 17 }],
+});
+
+const SATELLITE_STYLE = JSON.stringify({
+  version: 8,
+  sources: {
+    'raster-tiles': {
+      type: 'raster',
+      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tileSize: 256,
+      attribution: '© Esri, Maxar, Earthstar Geographics',
+    },
+  },
+  layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 19 }],
+});
+
 const MAP_STYLES = [
   { id: 'standard',  label: 'Standard',  color: '#E8F5E9', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
   { id: 'dark',      label: 'Dark',      color: '#263238', url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
   { id: 'light',     label: 'Light',     color: '#FAFAFA', url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
-  { id: 'terrain',   label: 'Terrain',   color: '#C8E6C9', url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png' },
-  { id: 'satellite', label: 'Satellite', color: '#1B5E20', url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' },
+  { id: 'terrain',   label: 'Terrain',   color: '#C8E6C9', url: TERRAIN_STYLE },
+  { id: 'satellite', label: 'Satellite', color: '#1B5E20', url: SATELLITE_STYLE },
 ] as const;
 
 let MapLibreGL: any = null;
@@ -47,6 +77,18 @@ export default function TerritoryMapScreen() {
       }
     });
   }, []);
+
+  const handleRecenter = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (map.userLocation && cameraRef.current) {
+      cameraRef.current.setCamera({
+        centerCoordinate: map.userLocation,
+        zoomLevel: 14,
+        animationDuration: 400,
+        animationMode: 'flyTo',
+      });
+    }
+  };
 
   return (
     <View style={s.root}>
@@ -81,26 +123,28 @@ export default function TerritoryMapScreen() {
         <TerritoryFilterChips activeFilter={map.filter} counts={fc} onSelect={map.setFilter} />
       </View>
 
-      <Pressable style={[s.recenterBtn, { top: insets.top + 116 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); if (map.userLocation) cameraRef.current?.flyTo(map.userLocation, 200); }}>
-        <Map size={14} color={C.black} strokeWidth={1.5} />
+      {/* Recenter button — uses Locate icon so it's visually distinct from the style picker */}
+      <Pressable style={[s.floatBtn, { top: insets.top + 116 }]} onPress={handleRecenter}>
+        <Locate size={15} color={C.black} strokeWidth={1.5} />
       </Pressable>
 
-      <Pressable style={[s.recenterBtn, { top: insets.top + 164 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowStylePicker(v => !v); }}>
-        <Map size={14} color={C.black} strokeWidth={1.5} />
+      {/* Map style picker button — uses Layers icon */}
+      <Pressable style={[s.floatBtn, { top: insets.top + 164 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowStylePicker(v => !v); }}>
+        <Layers size={15} color={showStylePicker ? C.red : C.black} strokeWidth={1.5} />
       </Pressable>
 
       {showStylePicker && (
         <View style={[s.stylePicker, { top: insets.top + 164 }]}>
-          <Text style={s.stylePickerTitle}>Map Style</Text>
+          <Text style={s.stylePickerTitle}>MAP STYLE</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {MAP_STYLES.map(style => (
               <Pressable
                 key={style.id}
-                style={[s.styleSwatch, { borderColor: activeStyleId === style.id ? C.black : 'transparent', borderWidth: activeStyleId === style.id ? 2 : 0 }]}
+                style={[s.styleSwatch, activeStyleId === style.id && s.styleSwatchActive]}
                 onPress={() => { setActiveStyleId(style.id); setShowStylePicker(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
               >
                 <View style={[s.swatchColor, { backgroundColor: style.color }]} />
-                <Text style={s.swatchLabel}>{style.label}</Text>
+                <Text style={[s.swatchLabel, activeStyleId === style.id && s.swatchLabelActive]}>{style.label}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -126,12 +170,14 @@ function mkStyles(C: AppColors) {
     header:           { position: 'absolute', left: 12, right: 12, zIndex: 20, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: C.border },
     title:            { flex: 1, fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
     filterRow:        { position: 'absolute', left: 12, right: 12, zIndex: 20 },
-    recenterBtn:      { position: 'absolute', right: 12, zIndex: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    floatBtn:         { position: 'absolute', right: 12, zIndex: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
     loader:           { ...StyleSheet.absoluteFillObject, zIndex: 50, backgroundColor: C.bg + '80', alignItems: 'center', justifyContent: 'center' },
-    stylePicker:      { position: 'absolute', right: 56, zIndex: 30, backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
-    stylePickerTitle: { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 0.8, color: C.t3, marginBottom: 8 },
-    styleSwatch:      { alignItems: 'center', gap: 4, borderRadius: 10, padding: 4 },
-    swatchColor:      { width: 48, height: 34, borderRadius: 8 },
-    swatchLabel:      { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.black, textAlign: 'center' },
+    stylePicker:      { position: 'absolute', right: 56, zIndex: 30, backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 12, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 8, maxWidth: 260 },
+    stylePickerTitle: { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 1, color: C.t3, marginBottom: 10 },
+    styleSwatch:      { alignItems: 'center', gap: 5, borderRadius: 10, padding: 6, borderWidth: 1.5, borderColor: 'transparent' },
+    styleSwatchActive:{ borderColor: C.black },
+    swatchColor:      { width: 44, height: 32, borderRadius: 8 },
+    swatchLabel:      { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t2, textAlign: 'center' },
+    swatchLabelActive:{ fontFamily: 'Barlow_600SemiBold', color: C.black },
   });
 }

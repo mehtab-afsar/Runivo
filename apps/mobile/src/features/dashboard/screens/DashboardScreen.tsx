@@ -132,12 +132,30 @@ export default function DashboardScreen() {
               <Activity size={11} color={C.t3} strokeWidth={1.5} />
               <Text style={s.sectionTitle}>  RECENT RUNS</Text>
             </View>
-            <Pressable onPress={() => go('History')}><Text style={s.sectionAction}>See all →</Text></Pressable>
+            {dash.recentRuns.length > 0 && (
+              <Pressable onPress={() => go('History')}><Text style={s.sectionAction}>See all →</Text></Pressable>
+            )}
           </View>
           <View style={s.runsCard}>
             {dash.recentRuns.length > 0
-              ? dash.recentRuns.map((r, i) => <RecentRunRow key={r.id} run={r} isLast={i === dash.recentRuns.length - 1} onPress={run => navigation.navigate('RunSummary', { runId: run.id })} />)
-              : <View style={s.empty}><Text style={s.emptyText}>No runs yet</Text><Pressable onPress={() => navigation.navigate('Main', { screen: 'Run' })}><Text style={s.emptyCta}>Start running →</Text></Pressable></View>}
+              ? dash.recentRuns.map((r, i) => (
+                  <RecentRunRow
+                    key={r.id} run={r} isLast={i === dash.recentRuns.length - 1}
+                    onPress={run => navigation.navigate('RunSummary', { runId: run.id })}
+                  />
+                ))
+              : (
+                <View style={s.firstRunCard}>
+                  <Text style={s.firstRunTitle}>Your first run awaits</Text>
+                  <Text style={s.firstRunBody}>Hit the streets, claim territory and start earning XP. Your stats and history will live here.</Text>
+                  <Pressable
+                    style={s.firstRunBtn}
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Main', { screen: 'Run' }); }}
+                  >
+                    <Text style={s.firstRunBtnText}>Start your first run →</Text>
+                  </Pressable>
+                </View>
+              )}
           </View>
         </View>
       </ScrollView>
@@ -163,9 +181,11 @@ function mkStyles(C: AppColors) {
     missionCard:     { backgroundColor: C.black, borderRadius: 20, padding: 18 },
     cardLabel:       { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
     runsCard:        { backgroundColor: C.white, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
-    empty:           { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
-    emptyText:       { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3 },
-    emptyCta:        { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.red },
+    firstRunCard:    { padding: 24, alignItems: 'center', gap: 10 },
+    firstRunTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, fontStyle: 'italic', textAlign: 'center' },
+    firstRunBody:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
+    firstRunBtn:     { marginTop: 4, backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28 },
+    firstRunBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
     syncChip:        { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', backgroundColor: C.red, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, gap: 4 },
     syncDot:         { fontSize: 8, color: '#FFFFFF', lineHeight: 12 },
     syncText:        { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#FFFFFF', letterSpacing: 0.2 },

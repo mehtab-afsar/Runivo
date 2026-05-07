@@ -28,12 +28,15 @@ export default function HistoryScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { runs, refreshing, totalKm, avgKm, refresh } = useRunHistory();
+  const { runs, refreshing, refresh } = useRunHistory();
   const [filter, setFilter] = useState<FilterValue>('all');
 
   const filtered = useMemo(() =>
     filter === 'all' ? runs : runs.filter(r => r.activityType === filter),
   [runs, filter]);
+
+  const filteredTotalKm = useMemo(() => filtered.reduce((acc, r) => acc + r.distanceMeters / 1000, 0), [filtered]);
+  const filteredAvgKm   = useMemo(() => filteredTotalKm / Math.max(filtered.length, 1), [filteredTotalKm, filtered.length]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -46,7 +49,7 @@ export default function HistoryScreen() {
       </View>
 
       {runs.length > 0 && (
-        <HistoryStats runCount={filtered.length} totalKm={filtered.reduce((s, r) => s + r.distanceMeters / 1000, 0)} avgKm={avgKm} />
+        <HistoryStats runCount={filtered.length} totalKm={filteredTotalKm} avgKm={filteredAvgKm} />
       )}
 
       {/* Activity type filter chips */}
@@ -70,8 +73,19 @@ export default function HistoryScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={s.emptyTitle}>{filter === 'all' ? 'No runs yet' : `No ${filter} activities`}</Text>
-            <Text style={s.emptyText}>{filter === 'all' ? 'Your run history will appear here.' : 'Try a different filter.'}</Text>
+            <Text style={s.emptyTitle}>
+              {filter === 'all' ? 'No runs yet' : `No ${filter} activities`}
+            </Text>
+            <Text style={s.emptyText}>
+              {filter === 'all'
+                ? 'Head out for your first run and your history will appear here.'
+                : 'Try a different filter or log a new activity.'}
+            </Text>
+            {filter === 'all' && (
+              <Pressable style={s.emptyBtn} onPress={() => navigation.navigate('Main', { screen: 'Run' })}>
+                <Text style={s.emptyBtnText}>Start a run →</Text>
+              </Pressable>
+            )}
           </View>
         }
       />
@@ -93,8 +107,10 @@ function mkStyles(C: AppColors) {
     chipText:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t2 },
     chipTextActive:{ color: C.white, fontFamily: 'Barlow_500Medium' },
     list:         { paddingHorizontal: 16, paddingBottom: 100, gap: 8, paddingTop: 8 },
-    empty:        { alignItems: 'center' as const, paddingVertical: 48 },
-    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
+    empty:        { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 32, gap: 8 },
+    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, textAlign: 'center' },
+    emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
+    emptyBtn:     { marginTop: 8, backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28 },
+    emptyBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
   });
 }

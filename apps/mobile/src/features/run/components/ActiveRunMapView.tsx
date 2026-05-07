@@ -43,7 +43,7 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
     };
   }, [gpsPoints]);
 
-  // Start dot (first GPS point)
+  // Start dot (first GPS point) — pin lat/lng primitives in dep array (not the object)
   const startDotGeoJSON = useMemo((): GeoJSON.Feature<GeoJSON.Point> | null => {
     if (gpsPoints.length < 1) return null;
     return {
@@ -51,7 +51,8 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
       geometry: { type: 'Point', coordinates: [gpsPoints[0].lng, gpsPoints[0].lat] },
       properties: {},
     };
-  }, [gpsPoints.length > 0 ? gpsPoints[0] : null]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gpsPoints[0]?.lat, gpsPoints[0]?.lng]);
 
   // Ghost route (selected route overlay)
   const ghostGeoJSON = useMemo((): GeoJSON.Feature<GeoJSON.LineString> | null => {
@@ -79,9 +80,9 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
       logoEnabled={false}
       attributionEnabled={false}
       compassEnabled={false}
-      zoomEnabled={false}
+      zoomEnabled
       rotateEnabled={false}
-      scrollEnabled={false}
+      scrollEnabled
     >
       <MapLibreGL.Camera
         ref={cameraRef}

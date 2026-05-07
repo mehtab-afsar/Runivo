@@ -35,6 +35,7 @@ export class ClaimEngine {
   private lastProgressEmitMs = 0;
   private sessionXP = 0;
   private listeners: ((event: ClaimEvent) => void)[] = [];
+  private claimedHexIds: string[] = [];
 
   constructor(_playerId: string) {}
 
@@ -100,6 +101,7 @@ export class ClaimEngine {
 
         const xp = GAME_CONFIG.XP_CLAIM_NEUTRAL;
         this.sessionXP += xp;
+        this.claimedHexIds.push(hex);
 
         this.emit({ type: 'claimed', xpEarned: xp, timestamp: now });
       }
@@ -119,6 +121,10 @@ export class ClaimEngine {
     };
   }
 
+  getClaimedHexIds(): string[] {
+    return [...this.claimedHexIds];
+  }
+
   reset() {
     this.state = {
       currentHex: null,
@@ -131,5 +137,6 @@ export class ClaimEngine {
     this.hexEnteredAt = null;
     this.lastProgressEmitMs = 0;
     this.sessionXP = 0;
+    this.claimedHexIds = [];
   }
 }

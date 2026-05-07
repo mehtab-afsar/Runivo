@@ -11,9 +11,9 @@ interface MacroBarsProps {
 }
 
 const MACROS = [
-  { key: 'protein', label: 'Protein', color: '#D93518' },
-  { key: 'carbs',   label: 'Carbs',   color: '#9E6800' },
-  { key: 'fat',     label: 'Fat',     color: '#1A6B40' },
+  { key: 'protein', label: 'Protein', color: '#1D6FB8' },
+  { key: 'carbs',   label: 'Carbs',   color: '#F59E0B' },
+  { key: 'fat',     label: 'Fat',     color: '#22C55E' },
 ] as const;
 
 export function MacroBars({
@@ -31,14 +31,14 @@ export function MacroBars({
     <View style={s.row}>
       {MACROS.map((m, i) => {
         const ratio = Math.min(data[i].consumed / Math.max(data[i].goal, 1), 1);
+        const over  = data[i].consumed > data[i].goal;
         return (
           <View key={m.key} style={{ flex: 1 }}>
             <Text style={s.label}>{m.label}</Text>
-            <View style={s.bar}>
-              <View style={[s.fill, { flex: ratio, backgroundColor: m.color }]} />
-              <View style={{ flex: Math.max(0, 1 - ratio) }} />
+            <View style={s.track}>
+              <View style={[s.fill, { width: `${ratio * 100}%` as `${number}%`, backgroundColor: over ? '#F97316' : m.color }]} />
             </View>
-            <Text style={s.value}>{Math.round(data[i].consumed)}g / {data[i].goal}g</Text>
+            <Text style={s.value}>{Math.round(data[i].consumed)}<Text style={s.goal}>/{data[i].goal}g</Text></Text>
           </View>
         );
       })}
@@ -47,15 +47,10 @@ export function MacroBars({
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 12 },
-  label: {
-    fontFamily: 'Barlow_300Light', fontSize: 9, color: '#ADADAD',
-    textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, textAlign: 'center',
-  },
-  bar: {
-    height: 4, backgroundColor: '#E8E4DF', borderRadius: 2,
-    overflow: 'hidden', flexDirection: 'row', marginBottom: 4,
-  },
-  fill: { height: 4 },
-  value: { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#6B6B6B', textAlign: 'center' },
+  row:   { flexDirection: 'row', gap: 12 },
+  label: { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5, textAlign: 'center' },
+  track: { height: 5, backgroundColor: '#E8E4DF', borderRadius: 3, overflow: 'hidden', marginBottom: 5 },
+  fill:  { height: '100%', borderRadius: 3 },
+  value: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#0A0A0A', textAlign: 'center' },
+  goal:  { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD' },
 });

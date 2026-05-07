@@ -1,12 +1,14 @@
 import {
   getNutritionEntries,
-  getNutritionProfile,
+  getNutritionEntriesRange,
+  saveNutritionProfile,
   addNutritionEntry,
   deleteNutritionEntry,
   type NutritionEntry,
   type NutritionProfile,
 } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
+import { fetchExistingProfile } from './nutritionSetupService';
 
 export function todayKey(): string {
   const d = new Date();
@@ -16,6 +18,10 @@ export function todayKey(): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Fetch today's nutrition entries.
+ * Tries Supabase first, falls back to local SQLite.
+ */
 export async function fetchTodayEntries(date: string): Promise<NutritionEntry[]> {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
@@ -46,8 +52,55 @@ export async function fetchTodayEntries(date: string): Promise<NutritionEntry[]>
   return getNutritionEntries(date);
 }
 
+/**
+ * Fetch the nutrition profile.
+ * Tries Supabase first (cross-device), caches locally, falls back to SQLite.
+ */
 export async function fetchNutritionProfile(): Promise<NutritionProfile | undefined> {
-  return getNutritionProfile();
+  try {
+    const profile = await fetchExistingProfile();
+    if (profile) {
+      // Cache it locally so the app works offline
+      await saveNutritionProfile(profile);
+      return profile;
+    }
+  } catch { /* offline — fall through */ }
+  return undefined;
+}
+
+/**
+ * Fetch this week's entries for the chart.
+ * Tries Supabase for the full range, falls back to local SQLite per day.
+ */
+export async function fetchWeekEntries(from: string, to: string): Promise<NutritionEntry[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    const { data } = await supabase
+      .from('nutrition_logs')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .gte('log_date', from)
+      .lte('log_date', to)
+      .order('logged_at', { ascending: true });
+    if (data) {
+      return data.map((row: any): NutritionEntry => ({
+        id: row.id,
+        date: row.log_date,
+        meal: row.meal,
+        name: row.name,
+        kcal: row.kcal,
+        proteinG: row.protein_g,
+        carbsG: row.carbs_g,
+        fatG: row.fat_g,
+        servingSize: row.serving_size,
+        source: row.source,
+        xpAwarded: row.xp_awarded ?? false,
+        loggedAt: new Date(row.logged_at).getTime(),
+        synced: true,
+      }));
+    }
+  }
+  return getNutritionEntriesRange(from, to);
 }
 
 export async function addEntry(

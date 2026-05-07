@@ -302,6 +302,7 @@ export default function CalorieTrackerScreen() {
 
       <AddFoodModal
         visible={showAddModal} defaultMeal={defaultMeal}
+        defaultKcal={burnKcalParam}
         onAdd={addEntry} onClose={() => setShowAddModal(false)}
       />
     </SafeAreaView>

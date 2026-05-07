@@ -8,6 +8,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGameEngine } from '@shared/hooks/useGameEngine';
 import {
   startBackgroundTracking,
@@ -15,6 +16,34 @@ import {
   drainBgGpsBuffer,
   clearBgGpsBuffer,
 } from '../services/locationTask';
+
+const GPS_CHECKPOINT_INTERVAL_MS = 30_000;
+const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
+
+/** Returns any checkpoint key written by an interrupted run (crash recovery). */
+export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[] } | null> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const checkpointKey = keys.find(k => k.startsWith(GPS_CHECKPOINT_PREFIX));
+    if (!checkpointKey) return null;
+    const raw = await AsyncStorage.getItem(checkpointKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { startTime: number; points: GPSPoint[] };
+    const runId = checkpointKey.slice(GPS_CHECKPOINT_PREFIX.length);
+    return { runId, ...parsed };
+  } catch {
+    return null;
+  }
+}
+
+/** Discard any lingering checkpoint (called when user dismisses recovery). */
+export async function clearInterruptedRunCheckpoint(): Promise<void> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const checkpointKeys = keys.filter(k => k.startsWith(GPS_CHECKPOINT_PREFIX));
+    if (checkpointKeys.length > 0) await AsyncStorage.multiRemove(checkpointKeys);
+  } catch { /* ignore */ }
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export interface GPSPoint {
@@ -86,10 +115,11 @@ export function useActiveRun(activityType: string = 'run') {
     gpsError:           null,
   });
 
-  const locationSubRef    = useRef<Location.LocationSubscription | null>(null);
-  const appStateSubRef    = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
-  const timerRef          = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef      = useRef<number>(0);
+  const locationSubRef      = useRef<Location.LocationSubscription | null>(null);
+  const appStateSubRef      = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
+  const timerRef            = useRef<ReturnType<typeof setInterval> | null>(null);
+  const checkpointIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef        = useRef<number>(0);
   const pauseStartRef     = useRef<number>(0);
   const totalPausedMsRef  = useRef<number>(0);
   const lastPositionRef   = useRef<{ lat: number; lng: number } | null>(null);
@@ -142,6 +172,7 @@ export function useActiveRun(activityType: string = 'run') {
       locationSubRef.current?.remove();
       appStateSubRef.current?.remove();
       if (timerRef.current) clearInterval(timerRef.current);
+      if (checkpointIntervalRef.current) clearInterval(checkpointIntervalRef.current);
       deactivateKeepAwake();
       stopBackgroundTracking().catch(() => {});
       clearBgGpsBuffer(runIdRef.current);
@@ -205,6 +236,19 @@ export function useActiveRun(activityType: string = 'run') {
     pendingDistanceRef.current = 0;
     totalDistanceRef.current   = 0;
     isFinishingRef.current     = false;
+
+    // Periodic GPS checkpoint: persists in-memory GPS points to AsyncStorage every 30s
+    // so a crash/force-kill doesn't lose the entire run trace.
+    const cpKey = `${GPS_CHECKPOINT_PREFIX}${runIdRef.current}`;
+    if (checkpointIntervalRef.current) clearInterval(checkpointIntervalRef.current);
+    checkpointIntervalRef.current = setInterval(async () => {
+      if (gpsPointsRef.current.length > 0) {
+        await AsyncStorage.setItem(cpKey, JSON.stringify({
+          startTime: startTimeRef.current,
+          points: gpsPointsRef.current,
+        })).catch(() => {});
+      }
+    }, GPS_CHECKPOINT_INTERVAL_MS);
 
     setState(prev => ({
       ...prev,
@@ -324,6 +368,7 @@ export function useActiveRun(activityType: string = 'run') {
     appStateSubRef.current?.remove();
     appStateSubRef.current = null;
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (checkpointIntervalRef.current) { clearInterval(checkpointIntervalRef.current); checkpointIntervalRef.current = null; }
     deactivateKeepAwake();
 
     // Stop background task and merge any remaining buffered points
@@ -364,6 +409,9 @@ export function useActiveRun(activityType: string = 'run') {
       avgPace:        finalPace,
       gpsPoints:      gpsPointsRef.current,
     });
+
+    // Run is now saved to IndexedDB — safe to discard the crash checkpoint
+    await AsyncStorage.removeItem(`${GPS_CHECKPOINT_PREFIX}${finalRunId}`).catch(() => {});
 
     return {
       runId:               finalRunId,

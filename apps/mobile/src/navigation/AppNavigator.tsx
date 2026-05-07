@@ -11,6 +11,10 @@ import {
 import { syncPushSubscriptionOnLoad } from '@shared/services/pushNotificationService';
 import { configureRevenueCat } from '@features/subscription/services/purchaseService';
 
+// ─── Feature flags ───────────────────────────────────────────────────────────
+import { FEATURES, FEATURE_LABELS } from '../config/features';
+import { ComingSoon } from '@mobile/shared/components/ComingSoon';
+
 // ─── Screens ─────────────────────────────────────────────────────────────────
 import DashboardScreen       from '@features/dashboard/screens/DashboardScreen';
 import ActiveRunScreen       from '@features/run/screens/ActiveRunScreen';
@@ -121,9 +125,9 @@ function TabNavigator() {
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Feed"      component={FeedScreen}      />
+      <Tab.Screen name="Feed"  component={FEATURES.SOCIAL_FEED ? FeedScreen  : () => <ComingSoon feature={FEATURE_LABELS.SOCIAL_FEED!} />} />
       <Tab.Screen name="Run"       component={RunScreen}       />
-      <Tab.Screen name="Coach"     component={CoachScreen}     />
+      <Tab.Screen name="Coach" component={FEATURES.AI_COACH   ? CoachScreen : () => <ComingSoon feature={FEATURE_LABELS.AI_COACH!} />} />
       <Tab.Screen name="Profile"   component={ProfileScreen}   />
     </Tab.Navigator>
   );
