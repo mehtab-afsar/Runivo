@@ -263,12 +263,14 @@ export function useGameEngine() {
       distanceMeters: number;
       durationSec: number;
       avgPace: string;
+      elevationGainM?: number;
       gpsPoints: {
         lat: number;
         lng: number;
         timestamp: number;
         speed: number;
         accuracy: number;
+        altitude: number;
       }[];
     }) => {
       if (!player || !claimEngineRef.current) return;
@@ -332,16 +334,21 @@ export function useGameEngine() {
       });
 
       const defaultShoe = await getDefaultShoe().catch(() => undefined);
+      const claimedCount = territoryIds.length;
+      const distanceKm = runData.distanceMeters / 1000;
+      const coinsEarned = Math.floor(distanceKm * 2) + claimedCount * 5;
+
       const run: StoredRun = {
         ...runData,
         territoriesClaimed: territoryIds,
         territoriesFortified: [],
         xpEarned: totalXP,
-        coinsEarned: 0,
+        coinsEarned,
         enemyCaptured: 0,
         preRunLevel,
         synced: false,
         shoeId: defaultShoe?.id,
+        elevationGainM: runData.elevationGainM,
       };
       await saveRun(run);
 
@@ -358,7 +365,7 @@ export function useGameEngine() {
         ...player,
         xp: newXP,
         level: newLevel,
-        coins: player.coins,
+        coins: player.coins + coinsEarned,
         totalDistanceKm: player.totalDistanceKm + currentRunKm,
         totalRuns: player.totalRuns + 1,
         totalTerritoriesClaimed: player.totalTerritoriesClaimed + territoriesToSave.length,

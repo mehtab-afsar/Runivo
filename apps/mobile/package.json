@@ -23,6 +23,7 @@
     "@react-navigation/native-stack": "^7.14.6",
     "@runivo/shared": "*",
     "@supabase/supabase-js": "^2.99.3",
+    "buffer": "^6.0.3",
     "expo": "~55.0.8",
     "expo-av": "^16.0.8",
     "expo-build-properties": "~55.0.10",
@@ -52,10 +53,13 @@
     "react-native-safe-area-context": "~5.6.2",
     "react-native-screens": "~4.23.0",
     "react-native-svg": "15.15.3",
-    "react-native-web": "^0.21.0"
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-web": "^0.21.0",
+    "text-encoding": "^0.7.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "metro-runtime": "^0.84.4",
     "typescript": "~5.9.2"
   },
   "private": true

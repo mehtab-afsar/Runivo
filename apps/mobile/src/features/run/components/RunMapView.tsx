@@ -1,8 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, Animated, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Layers } from 'lucide-react-native';
 import { useTheme, type AppColors } from '@theme';
+import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
 let MapLibreGL: any = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* native not available */ }
@@ -34,6 +35,7 @@ interface RunMapViewProps {
   lat: number | null;
   lng: number | null;
   gpsStatus: string;
+  gpsAccuracy: number | null;
   mapStyle: string;
   onMapStyleChange: (url: string) => void;
   sheetAnim: Animated.Value;
@@ -45,7 +47,7 @@ interface RunMapViewProps {
 }
 
 export default function RunMapView({
-  lat, lng, gpsStatus, mapStyle, onMapStyleChange,
+  lat, lng, gpsStatus, gpsAccuracy, mapStyle, onMapStyleChange,
   sheetAnim, topInset, intelEnemy, intelWeak, gpsColor: dotColor, gpsLabel: gpsTxt,
 }: RunMapViewProps) {
   const C = useTheme();
@@ -56,14 +58,14 @@ export default function RunMapView({
     <Animated.View style={[ss.container, { bottom: sheetAnim }]}>
       {MapLibreGL ? (
         <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled={false}>
-          <MapLibreGL.Camera
-            zoomLevel={lat !== null && lng !== null ? 15 : 14}
-            centerCoordinate={lat !== null && lng !== null ? [lng, lat] : undefined}
-            followUserLocation={lat === null || lng === null}
-            followZoomLevel={15}
-            animationMode="flyTo"
-            animationDuration={800}
-          />
+          {lat !== null && lng !== null && (
+            <MapLibreGL.Camera
+              zoomLevel={15}
+              centerCoordinate={[lng, lat]}
+              animationMode="flyTo"
+              animationDuration={800}
+            />
+          )}
           <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />
         </MapLibreGL.MapView>
       ) : (
@@ -105,11 +107,7 @@ export default function RunMapView({
       )}
 
       {gpsStatus === 'searching' && (
-        <View style={ss.overlay}>
-          <ActivityIndicator color={C.black} size="large" />
-          <Text style={ss.overlayTitle}>Fetching GPS</Text>
-          <Text style={ss.overlaySub}>Finding your position</Text>
-        </View>
+        <GPSAcquiringOverlay accuracy={gpsAccuracy} />
       )}
     </Animated.View>
   );
@@ -132,7 +130,4 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   preview:      { width: 28, height: 28, borderRadius: 6, borderWidth: 0.5, borderColor: C.border },
   previewActive:{ borderWidth: 2, borderColor: C.black },
   previewLabel: { fontFamily: FONT, fontSize: 12, color: C.muted },
-  overlay:      { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(247,246,244,0.8)', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  overlayTitle: { fontFamily: FONT, fontSize: 14, color: C.black },
-  overlaySub:   { fontFamily: FONT_LIGHT, fontSize: 11, color: C.muted },
 }); }

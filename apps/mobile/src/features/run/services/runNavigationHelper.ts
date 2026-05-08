@@ -27,6 +27,7 @@ export function buildRunSummaryParams(result: Record<string, unknown> & {
       newStreak:          result.newStreak as number,
       completedMissions:  result.completedMissions as { id: string; title: string }[],
       startTime:          Date.now() - result.elapsed * 1000,
+      elevationGainM:     (result.run as any)?.elevationGainM as number | undefined,
     },
   };
 }

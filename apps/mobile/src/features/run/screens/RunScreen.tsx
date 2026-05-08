@@ -96,6 +96,7 @@ export default function RunScreen() {
         lat={gps.lat}
         lng={gps.lng}
         gpsStatus={gps.status}
+        gpsAccuracy={gps.accuracy}
         mapStyle={mapStyle}
         onMapStyleChange={setMapStyle}
         sheetAnim={sheetAnim}

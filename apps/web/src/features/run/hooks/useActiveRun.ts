@@ -10,6 +10,7 @@ interface GPSPoint {
   timestamp: number;
   speed: number;
   accuracy: number;
+  altitude: number;
 }
 
 interface ActiveRunState {
@@ -236,6 +237,7 @@ export function useActiveRun() {
           timestamp: now,
           speed: gpsSpeed,
           accuracy,
+          altitude: 0,
         };
         gpsPointsRef.current.push(point);
 

@@ -2,10 +2,10 @@
  * PlanSelectionStep — step 5 of onboarding.
  * Shows Premium vs Free plan cards matching the web onboarding experience.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ActivityIndicator,
-  Modal, ScrollView,
+  Animated, ScrollView,
 } from 'react-native';
 import { Check, Zap, Map, Brain, Shield, Footprints } from 'lucide-react-native';
 import { C } from './onboardingStyles';
@@ -39,6 +39,19 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
   const [restoring, setRestoring] = useState(false);
   const [freeConfirm, setFreeConfirm] = useState(false);
   const [purchaseError, setPurchaseError] = useState('');
+  const overlayAnim = useRef(new Animated.Value(0)).current;
+
+  const openFreeConfirm = () => {
+    setFreeConfirm(true);
+    Animated.timing(overlayAnim, { toValue: 1, duration: 380, useNativeDriver: true }).start();
+  };
+
+  const closeFreeConfirm = (cb?: () => void) => {
+    Animated.timing(overlayAnim, { toValue: 0, duration: 240, useNativeDriver: true }).start(() => {
+      setFreeConfirm(false);
+      cb?.();
+    });
+  };
 
   useEffect(() => {
     // Try to fetch real price from RevenueCat
@@ -79,6 +92,7 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={s.wrap}
@@ -121,7 +135,7 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
       {/* Free card */}
       <Pressable
         style={[s.card, s.freeCard, plan === 'free' && s.freeCardSelected]}
-        onPress={() => setFreeConfirm(true)}
+        onPress={openFreeConfirm}
       >
         <View style={s.cardHeader}>
           <View>
@@ -148,14 +162,12 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
           : <Text style={s.restoreText}>Restore purchases</Text>}
       </Pressable>
 
-      {/* Free confirmation modal */}
-      <Modal
-        visible={freeConfirm}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setFreeConfirm(false)}
-      >
-        <Pressable style={s.overlay} onPress={() => setFreeConfirm(false)}>
+    </ScrollView>
+
+      {/* Free confirmation — fade overlay outside ScrollView so it covers the full screen */}
+      {freeConfirm && (
+        <Animated.View style={[s.overlay, { opacity: overlayAnim }]} pointerEvents="auto">
+          <Pressable style={s.overlayBackdrop} onPress={() => closeFreeConfirm()} />
           <View style={s.sheet}>
             <View style={s.handle} />
             <Text style={s.sheetTitle}>Continue for free?</Text>
@@ -163,16 +175,16 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
               You'll have limited territory claims and no AI Coach.
               You can upgrade from Settings anytime.
             </Text>
-            <Pressable style={s.sheetConfirm} onPress={() => { setFreeConfirm(false); onSelectPlan('free'); }}>
+            <Pressable style={s.sheetConfirm} onPress={() => closeFreeConfirm(() => onSelectPlan('free'))}>
               <Text style={s.sheetConfirmLabel}>Yes, continue for free</Text>
             </Pressable>
-            <Pressable style={s.sheetCancel} onPress={() => setFreeConfirm(false)}>
+            <Pressable style={s.sheetCancel} onPress={() => closeFreeConfirm()}>
               <Text style={s.sheetCancelLabel}>Go back</Text>
             </Pressable>
           </View>
-        </Pressable>
-      </Modal>
-    </ScrollView>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -205,8 +217,9 @@ const s = StyleSheet.create({
 
   restoreText:     { fontFamily: 'DMSans_300Light', fontSize: 10, color: C.t3, textAlign: 'center', textDecorationLine: 'underline' },
 
-  overlay:         { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet:           { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, alignItems: 'center' },
+  overlay:         { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 10 },
+  overlayBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(17,17,16,0.88)' },
+  sheet:           { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 48, alignItems: 'center' },
   handle:          { width: 36, height: 3, borderRadius: 2, backgroundColor: C.border, marginBottom: 20 },
   sheetTitle:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, marginBottom: 8, textAlign: 'center' },
   sheetSub:        { fontFamily: 'DMSans_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 24 },

@@ -29,7 +29,7 @@ export default function ClaimProgressRing({ progress, visible }: ClaimProgressRi
       <View style={ss.bg} />
       <View style={ss.fill}>
         <Text style={ss.pct}>{Math.round(progress * 100)}%</Text>
-        <Text style={ss.label}>CLAIMING</Text>
+        <Text style={ss.label}>ZONE</Text>
       </View>
     </View>
   );

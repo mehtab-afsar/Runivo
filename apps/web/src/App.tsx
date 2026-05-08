@@ -38,6 +38,7 @@ const ShoeList          = lazy(() => import('@features/gear/pages/ShoeList'));
 const AddShoe           = lazy(() => import('@features/gear/pages/AddShoe'));
 const FootScan          = lazy(() => import('@features/gear/pages/FootScan'));
 const ConnectedDevices  = lazy(() => import('@features/settings/pages/ConnectedDevices'));
+const Admin             = lazy(() => import('@features/admin/pages/Admin'));
 
 function LayoutWithNav({ children }: { children: React.ReactNode }) {
   return (
@@ -283,6 +284,13 @@ function AnimatedRoutes() {
         <Route path="/gear/scan" element={
           <FeatureErrorBoundary feature="Foot Scan">
             <PageTransition><FootScan onDone={() => history.back()} onClose={() => history.back()} /></PageTransition>
+          </FeatureErrorBoundary>
+        } />
+
+        {/* Admin CMS */}
+        <Route path="/admin" element={
+          <FeatureErrorBoundary feature="Admin">
+            <PageTransition><Admin /></PageTransition>
           </FeatureErrorBoundary>
         } />
 

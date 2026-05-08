@@ -30,6 +30,7 @@ export interface PassedRunData {
   newStreak?: number;
   completedMissions?: { id: string; title: string }[];
   startTime?: number;
+  elevationGainM?: number;
 }
 
 interface UseRunSummaryResult {

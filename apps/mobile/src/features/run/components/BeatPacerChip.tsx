@@ -11,10 +11,11 @@ const C = Colors;
 interface Props {
   bpm: number;
   enabled: boolean;
+  outOfRange?: boolean;
   onToggle: () => void;
 }
 
-export default function BeatPacerChip({ bpm, enabled, onToggle }: Props) {
+export default function BeatPacerChip({ bpm, enabled, outOfRange, onToggle }: Props) {
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -32,6 +33,15 @@ export default function BeatPacerChip({ bpm, enabled, onToggle }: Props) {
     loop.start();
     return () => loop.stop();
   }, [enabled, bpm, pulse]);
+
+  if (outOfRange) {
+    return (
+      <Pressable style={[ss.chip, ss.chipMuted]} onPress={onToggle} hitSlop={8}>
+        <VolumeX size={12} color={C.muted} strokeWidth={1.5} />
+        <Text style={ss.rangeText}>Pace out of range</Text>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable style={ss.chip} onPress={onToggle} hitSlop={8}>
@@ -51,8 +61,10 @@ const ss = StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border,
     borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12,
   },
+  chipMuted: { opacity: 0.6 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red },
   dotMuted: { backgroundColor: C.muted },
   bpm: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
   unit: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.muted, marginRight: 2 },
+  rangeText: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.muted },
 });

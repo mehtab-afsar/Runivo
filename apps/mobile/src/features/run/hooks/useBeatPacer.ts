@@ -14,6 +14,8 @@ try { Audio = require('expo-av').Audio; } catch { /* native module not available
 
 // ── BPM table (pace string → BPM) ─────────────────────────────────────────────
 const BPM_TABLE: [string, number][] = [
+  ['2:30', 200],
+  ['3:00', 192],
   ['3:30', 185],
   ['4:00', 180],
   ['4:30', 176],
@@ -22,25 +24,40 @@ const BPM_TABLE: [string, number][] = [
   ['6:00', 163],
   ['6:30', 159],
   ['7:00', 155],
+  ['7:30', 150],
+  ['8:00', 145],
+  ['9:00', 138],
+  ['10:00', 130],
 ];
 const PACE_OPTIONS = BPM_TABLE.map(([pace]) => pace);
+
+const toSec = (s: string) => { const [m, sc] = s.split(':').map(Number); return m * 60 + (sc || 0); };
+const TABLE_MIN_SEC = toSec(BPM_TABLE[0][0]);
+const TABLE_MAX_SEC = toSec(BPM_TABLE[BPM_TABLE.length - 1][0]);
+
+export function isOutOfRange(pace: string): boolean {
+  const s = toSec(pace);
+  return s < TABLE_MIN_SEC || s > TABLE_MAX_SEC;
+}
 
 export function paceToBpm(pace: string): number {
   const exact = BPM_TABLE.find(([p]) => p === pace);
   if (exact) return exact[1];
+  const s = toSec(pace);
+  // Clamp to edges rather than returning a default
+  if (s < TABLE_MIN_SEC) return BPM_TABLE[0][1];
+  if (s > TABLE_MAX_SEC) return BPM_TABLE[BPM_TABLE.length - 1][1];
   // Interpolate between nearest entries
   for (let i = 0; i < BPM_TABLE.length - 1; i++) {
     const [p1, b1] = BPM_TABLE[i];
     const [p2, b2] = BPM_TABLE[i + 1];
-    const toSec = (s: string) => { const [m, sc] = s.split(':').map(Number); return m * 60 + sc; };
-    const t = toSec(pace);
     const t1 = toSec(p1);
     const t2 = toSec(p2);
-    if (t >= t1 && t <= t2) {
-      return Math.round(b1 + (b2 - b1) * ((t - t1) / (t2 - t1)));
+    if (s >= t1 && s <= t2) {
+      return Math.round(b1 + (b2 - b1) * ((s - t1) / (t2 - t1)));
     }
   }
-  return 172;
+  return BPM_TABLE[BPM_TABLE.length - 1][1];
 }
 
 interface BeatPacerState {
@@ -166,6 +183,7 @@ export function useBeatPacer() {
     enabled: state.enabled,
     pace: state.pace,
     bpm: state.bpm,
+    outOfRange: isOutOfRange(state.pace),
     paceOptions: PACE_OPTIONS,
     setEnabled,
     setPace,

@@ -118,7 +118,9 @@ export interface StoredRun {
     timestamp: number;
     speed: number;
     accuracy: number;
+    altitude: number;
   }[];
+  elevationGainM?: number;
   territoriesClaimed: string[];
   territoriesFortified: string[];
   xpEarned: number;

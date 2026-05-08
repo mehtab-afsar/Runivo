@@ -35,7 +35,11 @@
   "include": ["src", "../../packages/shared/src"],
   "exclude": [
     "node_modules",
-    "../../apps/mobile"
+    "../../apps/mobile",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
