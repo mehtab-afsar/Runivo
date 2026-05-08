@@ -10,14 +10,14 @@ import {
 } from '../services/coachService';
 
 export function useCoachChat() {
-  const [messages, setMessages]       = useState<CoachMessage[]>([]);
-  const [sending, setSending]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [inputText, setInputText]     = useState('');
+  const [messages, setMessages]         = useState<CoachMessage[]>([]);
+  const [sending, setSending]           = useState(false);
+  const [error, setError]               = useState<string | null>(null);
+  const [inputText, setInputText]       = useState('');
   const [trainingPlan, setTrainingPlan] = useState<TrainingPlan | null>(null);
-  const [planLoading, setPlanLoading] = useState(false);
-  const [planOpen, setPlanOpen]       = useState(false);
-  const [goalInput, setGoalInput]     = useState('');
+  const [planLoading, setPlanLoading]   = useState(false);
+  const [planOpen, setPlanOpen]         = useState(false);
+  const [goalInput, setGoalInput]       = useState('');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -45,14 +45,14 @@ export function useCoachChat() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
-      const reply = await apiSendMessage(msg, session.access_token);
+      const { content, type } = await apiSendMessage(msg, session.access_token);
       const aiMsg: CoachMessage = {
-        id: `opt-reply-${Date.now()}`, role: 'assistant', content: reply, created_at: new Date().toISOString(),
+        id: `opt-reply-${Date.now()}`, role: 'assistant', content, type, created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, aiMsg]);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
-      setError(e?.message ?? 'Failed to send');
+      setError((e as Error)?.message ?? 'Failed to send');
     } finally {
       setSending(false);
     }
@@ -67,8 +67,8 @@ export function useCoachChat() {
       if (!session) throw new Error('Not authenticated');
       const plan = await requestTrainingPlan(goalInput.trim(), session.access_token);
       setTrainingPlan(plan);
-    } catch (e: any) {
-      setError(e?.message ?? 'Failed to generate plan');
+    } catch (e: unknown) {
+      setError((e as Error)?.message ?? 'Failed to generate plan');
     } finally {
       setPlanLoading(false);
     }

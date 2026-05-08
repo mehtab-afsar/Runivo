@@ -5,6 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotifItem } from '../components/NotifItem';
+import { routeNotificationUrl } from '../services/notificationHandler';
 import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -36,7 +37,15 @@ export default function NotificationsScreen() {
       <FlatList
         data={notifs}
         keyExtractor={n => n.id}
-        renderItem={({ item }) => <NotifItem notif={item} onPress={() => markRead(item.id)} />}
+        renderItem={({ item }) => (
+          <NotifItem
+            notif={item}
+            onPress={() => {
+              markRead(item.id);
+              routeNotificationUrl(item.action_url, navigation);
+            }}
+          />
+        )}
         ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}

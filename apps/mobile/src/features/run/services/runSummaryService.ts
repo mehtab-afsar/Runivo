@@ -1,4 +1,4 @@
-import { getRunById, saveRun, getDefaultShoe, getShoes } from '@shared/services/store';
+import { getRunById, saveRun, getDefaultShoe, getShoes, getNutritionProfile } from '@shared/services/store';
 import type { StoredRun, StoredShoe } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import { writeRunToHealth } from '@mobile/shared/services/healthService';
@@ -90,12 +90,14 @@ export async function syncRunToHealth(run: {
   success?: boolean; duration: number; distance: number; startTime?: number;
 }): Promise<void> {
   if (!run.success || run.duration <= 0) return;
+  const profile = await getNutritionProfile().catch(() => undefined);
+  const weightKg = profile?.weightKg ?? 70;
   const now = Date.now();
   await writeRunToHealth({
     startTime:      run.startTime ?? (now - run.duration * 1000),
     endTime:        run.startTime ? run.startTime + run.duration * 1000 : now,
     distanceMeters: run.distance * 1000,
-    calories:       Math.round(run.distance * 60 * 0.95),
+    calories:       Math.round(run.distance * weightKg * 0.95),
   }).catch(() => {});
 }
 
@@ -112,6 +114,7 @@ export interface RunStats {
 export function computeRunStats(run: {
   distance: number; duration: number; pace: number;
   territoriesClaimed?: number; xpEarned?: number; coinsEarned?: number;
+  weightKg?: number;
 }): RunStats {
   const m = Math.floor(run.pace);
   const s = Math.floor((run.pace - m) * 60);
@@ -122,6 +125,6 @@ export function computeRunStats(run: {
     territories: run.territoriesClaimed ?? 0,
     xp:          run.xpEarned ?? 0,
     coins:       run.coinsEarned ?? 0,
-    calories:    Math.round(run.distance * 60 * 0.95),
+    calories:    Math.round(run.distance * (run.weightKg ?? 70) * 0.95),
   };
 }

@@ -27,7 +27,7 @@ import LevelUpOverlay      from '../components/LevelUpOverlay';
 import SaveRouteSheet      from '../components/SaveRouteSheet';
 import RunRouteMap         from '../components/RunRouteMap';
 import { buildStoryDataUrl } from '../services/storyCardGenerator';
-import { uploadStory } from '@shared/services/storiesService';
+import { getNutritionProfile } from '@shared/services/store';
 import { useTheme, type AppColors } from '@theme';
 
 const FI = 'PlayfairDisplay_400Regular_Italic';
@@ -52,8 +52,21 @@ export default function RunSummaryScreen() {
 
   const [showLevelUp, setShowLevelUp]       = useState(true);
   const [showSaveRoute, setShowSaveRoute]   = useState(false);
+  const [weightKg, setWeightKg]             = useState(70);
+  const [hasNutritionProfile, setHasNutritionProfile] = useState(false);
 
-  const calories   = Math.round(runData.distance * 60 * 0.95);
+  useEffect(() => {
+    getNutritionProfile().then(p => {
+      if (p?.weightKg) { setWeightKg(p.weightKg); setHasNutritionProfile(true); }
+    }).catch(() => {});
+  }, []);
+
+  // MET-based calorie estimate (±10% vs 50%+ error from naive distance × weight formula)
+  const calories = useMemo(() => {
+    const speedKmh = runData.duration > 0 ? (runData.distance / runData.duration) * 3600 : 0;
+    const met = Math.max(3.5, Math.min(18, 2.5 + 0.9 * speedKmh));
+    return Math.round((met * weightKg * runData.duration) / 3600);
+  }, [runData.distance, runData.duration, weightKg]);
   const heading    = !runData.success ? `${runData.actionType || 'Action'} Failed`
     : runData.actionType === 'attack' ? 'Territory Conquered'
     : runData.actionType === 'defend' ? 'Territory Defended'
@@ -70,27 +83,8 @@ export default function RunSummaryScreen() {
     { label: 'Time',     value: fmt(runData.duration) },
     { label: 'Avg Pace', value: pace(runData.pace), unit: '/km' },
     { label: 'Claimed',  value: String(runData.success ? (runData.territoriesClaimed || 0) : 0) },
+    ...(runData.elevationGainM && runData.elevationGainM > 0 ? [{ label: 'Elevation', value: `↑ ${runData.elevationGainM}`, unit: 'm' }] : []),
   ];
-
-  // Auto story upload — fire and forget after 1500ms, matching web behaviour
-  useEffect(() => {
-    if (!runData.success || runData.distance < 0.5) return;
-    const t = setTimeout(() => {
-      try {
-        const dataUrl = buildStoryDataUrl({
-          distance: runData.distance.toFixed(2),
-          duration: fmt(runData.duration),
-          pace:     pace(runData.pace),
-          xp:       runData.xpEarned ?? 0,
-          heading,
-          actionType: runData.actionType,
-        });
-        uploadStory(dataUrl, runId).catch(() => {});
-      } catch { /* swallow */ }
-    }, 1500);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
@@ -123,8 +117,12 @@ export default function RunSummaryScreen() {
           <View style={ss.fuel}>
             <View style={ss.fuelIcon}><Flame size={16} color={C.orange} strokeWidth={1.5} /></View>
             <View style={{ flex: 1 }}>
-              <Text style={ss.fuelTitle}>You burned ~{calories} kcal</Text>
-              <Text style={ss.fuelSub}>Priority next 2hrs: 35-40g protein + 60-80g carbs</Text>
+              <Text style={ss.fuelTitle}>~{calories} kcal (est.)</Text>
+              <Text style={ss.fuelSub}>
+                {hasNutritionProfile
+                  ? `~${Math.round(runData.distance * 2)}g protein · ~${Math.round(runData.distance * 4)}g carbs within 2hrs`
+                  : 'Refuel within 2 hours'}
+              </Text>
             </View>
             <Pressable style={ss.fuelBtn} onPress={() => navigation.navigate('CalorieTracker', { burnKcal: calories })}>
               <Text style={ss.fuelBtnText}>+ LOG</Text>

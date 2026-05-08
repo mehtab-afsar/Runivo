@@ -52,6 +52,7 @@ export interface GPSPoint {
   timestamp: number;
   speed: number;
   accuracy: number;
+  altitude: number;
 }
 
 interface ClaimEvent {
@@ -133,6 +134,10 @@ export function useActiveRun(activityType: string = 'run') {
   // Refs that mirror state for use inside callbacks/finishRun — avoids stale closures
   const elapsedRef        = useRef<number>(0);
   const paceRef           = useRef<string>('0:00');
+  // isPausedRef mirrors isPaused state for use inside GPS callback (avoids stale closure)
+  const isPausedRef       = useRef<boolean>(false);
+  const prevAltitudeRef   = useRef<number | null>(null);
+  const elevationGainRef  = useRef<number>(0);
 
   // ── Claim events ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -214,7 +219,7 @@ export function useActiveRun(activityType: string = 'run') {
             lastPositionRef.current = { lat: pt.lat, lng: pt.lng };
             gpsPointsRef.current.push({
               lat: pt.lat, lng: pt.lng, timestamp: pt.timestamp,
-              speed: pt.speed, accuracy: pt.accuracy,
+              speed: pt.speed, accuracy: pt.accuracy, altitude: 0,
             });
           }
           setState(prev => ({
@@ -236,6 +241,9 @@ export function useActiveRun(activityType: string = 'run') {
     pendingDistanceRef.current = 0;
     totalDistanceRef.current   = 0;
     isFinishingRef.current     = false;
+    isPausedRef.current        = false;
+    prevAltitudeRef.current    = null;
+    elevationGainRef.current   = 0;
 
     // Periodic GPS checkpoint: persists in-memory GPS points to AsyncStorage every 30s
     // so a crash/force-kill doesn't lose the entire run trace.
@@ -284,9 +292,15 @@ export function useActiveRun(activityType: string = 'run') {
         distanceInterval: 3,
       },
       (location) => {
-        const { latitude, longitude, speed, accuracy } = location.coords;
+        // Skip GPS points while paused — prevents distance inflation
+        if (isPausedRef.current) return;
+
+        const { latitude, longitude, speed, accuracy, altitude } = location.coords;
         const now = Date.now();
         const gpsSpeed = speed ?? 0;
+
+        // Skip low-accuracy points (same threshold as claim engine)
+        if ((accuracy ?? 100) > 30) return;
 
         let deltaKm = 0;
         if (lastPositionRef.current) {
@@ -309,9 +323,16 @@ export function useActiveRun(activityType: string = 'run') {
         }
         lastPositionRef.current = { lat: latitude, lng: longitude };
 
+        // Accumulate elevation gain (>0.5m threshold filters out GPS altitude noise)
+        const alt = altitude ?? 0;
+        if (prevAltitudeRef.current !== null && alt > prevAltitudeRef.current + 0.5) {
+          elevationGainRef.current += alt - prevAltitudeRef.current;
+        }
+        prevAltitudeRef.current = alt;
+
         gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy ?? 10, deltaKm);
 
-        gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10 });
+        gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10, altitude: alt });
 
         // Throttle React state updates to max 1/sec
         if (now - lastGpsStateUpdateRef.current < 1000) return;
@@ -345,6 +366,7 @@ export function useActiveRun(activityType: string = 'run') {
 
   // ── Pause / Resume ──────────────────────────────────────────────────────────
   const pauseRun = useCallback(() => {
+    isPausedRef.current = true;
     setState(prev => ({ ...prev, isPaused: true }));
     pauseStartRef.current = Date.now();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -352,6 +374,9 @@ export function useActiveRun(activityType: string = 'run') {
 
   const resumeRun = useCallback(() => {
     totalPausedMsRef.current += Date.now() - pauseStartRef.current;
+    // Reset last position so the first point after resume doesn't create a large delta
+    lastPositionRef.current = null;
+    isPausedRef.current = false;
     setState(prev => ({ ...prev, isPaused: false }));
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
@@ -384,7 +409,7 @@ export function useActiveRun(activityType: string = 'run') {
         lastPositionRef.current = { lat: pt.lat, lng: pt.lng };
         gpsPointsRef.current.push({
           lat: pt.lat, lng: pt.lng, timestamp: pt.timestamp,
-          speed: pt.speed, accuracy: pt.accuracy,
+          speed: pt.speed, accuracy: pt.accuracy, altitude: 0,
         });
       }
     }
@@ -408,6 +433,7 @@ export function useActiveRun(activityType: string = 'run') {
       durationSec:    finalElapsed,
       avgPace:        finalPace,
       gpsPoints:      gpsPointsRef.current,
+      elevationGainM: Math.round(elevationGainRef.current),
     });
 
     // Run is now saved to IndexedDB — safe to discard the crash checkpoint

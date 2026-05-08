@@ -30,25 +30,49 @@ export async function saveNutritionProfileService(profile: NutritionProfile): Pr
 export async function fetchExistingProfile(): Promise<NutritionProfile | undefined> {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
-    const { data } = await supabase
+    // Try saved nutrition profile first
+    const { data: np } = await supabase
       .from('nutrition_profiles')
       .select('*')
       .eq('user_id', session.user.id)
       .single();
-    if (data) {
+    if (np) {
       return {
         id: 'profile',
-        goal: data.goal,
-        activityLevel: data.activity_level,
-        diet: data.diet,
-        weightKg: data.weight_kg,
-        heightCm: data.height_cm,
-        age: data.age,
-        sex: data.sex,
-        dailyGoalKcal: data.daily_goal_kcal,
-        proteinGoalG: data.protein_goal_g,
-        carbsGoalG: data.carbs_goal_g,
-        fatGoalG: data.fat_goal_g,
+        goal: np.goal,
+        activityLevel: np.activity_level,
+        diet: np.diet,
+        weightKg: np.weight_kg,
+        heightCm: np.height_cm,
+        age: np.age,
+        sex: np.sex,
+        dailyGoalKcal: np.daily_goal_kcal,
+        proteinGoalG: np.protein_goal_g,
+        carbsGoalG: np.carbs_goal_g,
+        fatGoalG: np.fat_goal_g,
+      } as NutritionProfile;
+    }
+
+    // Fall back to onboarding body stats stored in profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('age, height_cm, weight_kg')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    if (profile?.weight_kg || profile?.height_cm || profile?.age) {
+      return {
+        id: 'profile',
+        goal: 'maintain',
+        activityLevel: 'moderate',
+        diet: 'everything',
+        sex: 'male',
+        weightKg: profile.weight_kg ?? 70,
+        heightCm: profile.height_cm ?? 170,
+        age: profile.age ?? 25,
+        dailyGoalKcal: 0,
+        proteinGoalG: 0,
+        carbsGoalG: 0,
+        fatGoalG: 0,
       } as NutritionProfile;
     }
   }

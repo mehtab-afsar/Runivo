@@ -1,4 +1,4 @@
-export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6;
 
 /** Simplified onboarding profile written to Supabase on completion. */
 export interface OnboardingProfile {

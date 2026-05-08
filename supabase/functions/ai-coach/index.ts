@@ -2,7 +2,7 @@ import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Feature = 'weekly_brief' | 'post_run' | 'training_plan' | 'coach_chat' | 'nutrition_insights';
+type Feature = 'weekly_brief' | 'post_run' | 'training_plan' | 'coach_chat' | 'nutrition_insights' | 'quick_prompts';
 
 interface RequestBody {
   feature: Feature;
@@ -832,7 +832,19 @@ ${ctx.shoes.length > 0
   : 'No shoes tracked yet.'}
 
 == INSTRUCTIONS ==
-Answer questions using the runner's specific numbers above. Be concise (under 150 words). Reference their actual paces, distances, and dates when relevant. For nutrition questions, use their logged data. For territory questions, acknowledge the game mechanic. When you lack data to answer precisely, say so and ask for clarification.`;
+Answer questions using the runner's specific numbers above. Be concise (under 150 words). Reference their actual paces, distances, and dates when relevant. For nutrition questions, use their logged data. For territory questions, acknowledge the game mechanic. When you lack data to answer precisely, say so and ask for clarification.
+
+== GUARDRAILS ==
+You ONLY answer questions about: running, training, fitness, recovery, nutrition for athletes, running gear, and the Runivo territory game.
+
+If asked anything outside these topics, respond EXACTLY with:
+"I'm your running coach — I can only help with training, nutrition, and running-related questions. What would you like to work on?"
+
+NEVER provide: medical diagnoses, specific medication recommendations, financial/legal/relationship advice, or anything unrelated to running or fitness.
+
+For pain or injury questions: acknowledge the concern, give general prevention and recovery advice (rest, ice, elevation), and recommend seeing a physiotherapist or sports doctor for a proper diagnosis.
+
+TONE: Expert, direct, data-driven. Use the runner's actual numbers from the profile above. Never be vague when you have real data. Keep responses under 180 words unless generating a structured plan.`;
 
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
@@ -938,6 +950,80 @@ Be specific: reference actual grams, days, and patterns you can see in the data.
   return payload;
 }
 
+// ─── Quick prompts ────────────────────────────────────────────────────────────
+function handleQuickPrompts(ctx: UserContext): Array<{ label: string; message: string }> {
+  const prompts: Array<{ label: string; message: string }> = [];
+
+  // Days since last run
+  const lastRun = ctx.runs90d[0];
+  const daysSince = lastRun
+    ? Math.floor((Date.now() - new Date(lastRun.started_at).getTime()) / 86_400_000)
+    : 999;
+
+  if (daysSince >= 4) {
+    prompts.push({
+      label:   `${daysSince} days off — plan a comeback run?`,
+      message: `It's been ${daysSince} days since my last run. Help me plan a good comeback run based on my fitness.`,
+    });
+  } else if (ctx.trend === 'declining') {
+    prompts.push({
+      label:   'Your pace has dropped — why?',
+      message: 'My pace has been declining recently. Based on my data, what could be causing it and how do I fix it?',
+    });
+  } else if (ctx.trend === 'improving') {
+    prompts.push({
+      label:   "You're improving — what's next?",
+      message: 'My pace has been improving lately. Based on my current fitness, what should my next goal be?',
+    });
+  }
+
+  // Weekly volume check
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const thisWeekKm   = ctx.runs90d
+    .filter(r => r.started_at >= sevenDaysAgo)
+    .reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
+  const weeklyGoal   = ctx.weeklyKm * 1.1; // 10% more than current avg = goal
+  if (prompts.length < 2 && thisWeekKm < weeklyGoal * 0.5) {
+    prompts.push({
+      label:   'Behind weekly goal — catch up plan?',
+      message: `I'm only at ${thisWeekKm.toFixed(1)} km this week. Help me catch up to my weekly goal without overtraining.`,
+    });
+  }
+
+  // Nutrition prompt
+  if (prompts.length < 3 && ctx.nutrition && ctx.nutrition.daysUnderProtein80g >= 4) {
+    prompts.push({
+      label:   'Low protein this week — fix it?',
+      message: `I've been under 80g protein for ${ctx.nutrition.daysUnderProtein80g} days this week. How should I adjust my diet to support my training?`,
+    });
+  }
+
+  // Shoe wear warning
+  if (prompts.length < 3) {
+    const wornShoe = ctx.shoes.find(s => s.pctWorn >= 85 && s.isDefault);
+    if (wornShoe) {
+      prompts.push({
+        label:   `${wornShoe.name} at ${wornShoe.pctWorn}% — replace soon?`,
+        message: `My main running shoes (${wornShoe.name}) are at ${wornShoe.pctWorn}% worn (${wornShoe.totalKm}/${wornShoe.maxKm} km). Should I replace them now and what should I look for?`,
+      });
+    }
+  }
+
+  // Pad with quality static fallbacks
+  const fallbacks: Array<{ label: string; message: string }> = [
+    { label: 'Build me a training plan',       message: 'Build me a personalised training plan based on my current fitness and weekly schedule.' },
+    { label: 'Analyse my last run',            message: 'Analyse my most recent run and tell me what it reveals about my current fitness.' },
+    { label: 'How to improve my pace?',        message: 'Based on my recent runs, what is the most effective way for me to improve my pace?' },
+    { label: 'What to eat before a long run?', message: 'What should I eat the day before and morning of a long run, based on my nutrition goals?' },
+  ];
+  for (const fb of fallbacks) {
+    if (prompts.length >= 4) break;
+    if (!prompts.some(p => p.message === fb.message)) prompts.push(fb);
+  }
+
+  return prompts.slice(0, 4);
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  '*',
@@ -997,6 +1083,10 @@ Deno.serve(async (req) => {
 
       case 'nutrition_insights':
         result = await handleNutritionInsights(anthropic, supabase, user.id, ctx);
+        break;
+
+      case 'quick_prompts':
+        result = handleQuickPrompts(ctx);
         break;
 
       default:

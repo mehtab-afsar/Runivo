@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
-  View, StyleSheet, Platform, Pressable, Text,
+  View, StyleSheet, Pressable, Text,
   ActivityIndicator, Animated, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,14 +15,114 @@ import AvatarStep from '../components/AvatarStep';
 import GoalStep from '../components/GoalStep';
 import TargetStep from '../components/TargetStep';
 import PlanSelectionStep from '../components/PlanSelectionStep';
-import NotificationsStep from '../components/NotificationsStep';
 import ReadyStep from '../components/ReadyStep';
+import type { OnboardingData } from '../types';
 
-const D = { bg: '#F7F5F2', t1: '#111110', div: '#E2DFDA' };
+const D = { bg: '#F7F5F2', t1: '#111110', t2: '#7A7873', t3: '#B8B5B0', red: '#C8391A' };
 const todayIdx = (new Date().getDay() + 6) % 7;
 const { width: SCREEN_W } = Dimensions.get('window');
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// ─── Loading quotes ───────────────────────────────────────────────────────────
+
+const GOAL_QUOTES: Record<string, string[]> = {
+  get_fit: [
+    "Your city awaits its new conqueror.",
+    "Territories don't claim themselves.",
+    "The streets you know are about to become yours.",
+    "Every run is a border redrawn.",
+  ],
+  lose_weight: [
+    "Every hexagon is a calorie that never knew what hit it.",
+    "The best weight to lose? The distance between you and a territory.",
+    "Running to something. Not from it.",
+    "Your map is about to get a lot more colourful.",
+  ],
+  run_faster: [
+    "Speed is territory claimed per second.",
+    "Faster runners. Wider empires.",
+    "The clock is ticking. So are the hexagons.",
+    "Personal bests are made one conquest at a time.",
+  ],
+  explore: [
+    "The best routes haven't been discovered yet — by you.",
+    "Every corner is a potential conquest.",
+    "Explorer mode: activated.",
+    "Maps are better when they're yours.",
+  ],
+  compete: [
+    "Someone, somewhere, is already defending their turf.",
+    "Champions don't wait. They conquer.",
+    "The leaderboard has your name. It just doesn't know it yet.",
+    "Your rivals haven't heard of you yet.",
+  ],
+};
+
+const LEVEL_QUOTES: Record<string, string[]> = {
+  new:         ["Every empire started with a single step.", "The world's greatest runners all had a first run."],
+  casual:      ["Casual pace. Serious territory.", "Consistency beats intensity. Every hexagon counts."],
+  regular:     ["You know the drill. Now own the streets.", "Routine runners build the biggest empires."],
+  competitive: ["Elite mode: on.", "Your pace. Your rules. Your empire.", "The territory won't defend itself."],
+};
+
+function getQuotes(goal: OnboardingData['primaryGoal'], level: OnboardingData['experienceLevel']): string[] {
+  return [
+    ...(GOAL_QUOTES[goal] ?? GOAL_QUOTES.get_fit),
+    ...(LEVEL_QUOTES[level] ?? []),
+  ];
+}
+
+// ─── Loading overlay ──────────────────────────────────────────────────────────
+
+function LoadingOverlay({ visible, goal, level }: {
+  visible: boolean;
+  goal: OnboardingData['primaryGoal'];
+  level: OnboardingData['experienceLevel'];
+}) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const quotes  = useRef(getQuotes(goal, level)).current;
+  const [qIdx, setQIdx]         = useState(() => Math.floor(Math.random() * quotes.length));
+  const [quoteOpacity] = useState(() => new Animated.Value(1));
+
+  useEffect(() => {
+    if (!visible) return;
+    Animated.timing(opacity, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+
+    const cycle = setInterval(() => {
+      Animated.timing(quoteOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
+        setQIdx(i => (i + 1) % quotes.length);
+        Animated.timing(quoteOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      });
+    }, 2800);
+
+    return () => clearInterval(cycle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View style={[lo.root, { opacity }]}>
+      <View style={lo.inner}>
+        <ActivityIndicator color={D.t3} size="small" style={{ marginBottom: 32 }} />
+        <Text style={lo.eyebrow}>Setting up your profile</Text>
+        <Animated.Text style={[lo.quote, { opacity: quoteOpacity }]}>
+          "{quotes[qIdx]}"
+        </Animated.Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+const lo = StyleSheet.create({
+  root:   { ...StyleSheet.absoluteFillObject, backgroundColor: D.bg, zIndex: 50, alignItems: 'center', justifyContent: 'center' },
+  inner:  { paddingHorizontal: 40, alignItems: 'center' },
+  eyebrow:{ fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 20 },
+  quote:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: D.t1, textAlign: 'center', lineHeight: 30 },
+});
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
   const navigation = useNavigation<Nav>();
@@ -63,8 +163,7 @@ export default function OnboardingScreen() {
         />
       );
       case 5: return <PlanSelectionStep plan={ob.data.plan} onSelectPlan={p => { ob.update('plan', p); ob.goNext(); }} />;
-      case 6: return <NotificationsStep />;
-      case 7: return (
+      case 6: return (
         <ReadyStep
           weeklyKmDisplay={ob.weeklyKmDisplay}
           primaryGoal={ob.data.primaryGoal}
@@ -76,17 +175,16 @@ export default function OnboardingScreen() {
     }
   };
 
-  const isLast = ob.step === 7;
+  const isLast    = ob.step === 6;
   const isPlanStep = ob.step === 5;
-  const ctaLabel = isLast ? (ob.loading ? 'Setting up…' : 'Start running  →') : 'Continue  →';
+  const ctaLabel  = isLast ? 'Start running  →' : 'Continue  →';
 
   return (
     <View style={ss.root}>
-      {/* 2px red bar — flush above safe area */}
       <View style={ss.topBar} />
       <View style={{ height: insets.top }} />
 
-      {ob.step < 7 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
+      {ob.step < 6 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
 
       <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideX }] }]}>
         {renderStep()}
@@ -99,21 +197,26 @@ export default function OnboardingScreen() {
             onPress={isLast ? ob.submit : handleNext}
             disabled={!ob.canContinue() || ob.loading}
           >
-            {ob.loading
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={ss.ctaLabel}>{ctaLabel}</Text>}
+            <Text style={ss.ctaLabel}>{ctaLabel}</Text>
           </Pressable>
         </View>
       )}
+
+      {/* Full-screen loading overlay with cycling quotes — shown after "Start running" */}
+      <LoadingOverlay
+        visible={ob.loading}
+        goal={ob.data.primaryGoal}
+        level={ob.data.experienceLevel}
+      />
     </View>
   );
 }
 
 const ss = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: '#F7F5F2' },
-  topBar:      { height: 2, backgroundColor: '#C8391A' },
+  root:        { flex: 1, backgroundColor: D.bg },
+  topBar:      { height: 2, backgroundColor: D.red },
   footer:      { paddingHorizontal: 24, paddingTop: 12 },
-  cta:         { backgroundColor: '#111110', borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
-  ctaDisabled: { backgroundColor: '#999' },
+  cta:         { backgroundColor: D.t1, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
+  ctaDisabled: { opacity: 0.4 },
   ctaLabel:    { fontFamily: 'DMSans_500Medium', fontSize: 13, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.8 },
 });

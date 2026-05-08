@@ -51,14 +51,11 @@ export default function ActiveRunScreen() {
 
   useEffect(() => {
     if (atTerritoryLimit && run.claimProgress >= 100 && run.isRunning) {
-      Alert.alert(
-        'Territory Limit Reached',
-        `Free plan is capped at ${gate.territoryLimit} zones. Upgrade to claim unlimited territory.`,
-        [
-          { text: 'Keep Running', style: 'cancel' },
-          { text: 'Upgrade', onPress: () => nav.navigate('Subscription') },
-        ],
-      );
+      showToast({
+        message: `Free plan: ${gate.territoryLimit} zones claimed. Upgrade after your run for unlimited territory.`,
+        type: 'warning',
+        duration: 5000,
+      });
     }
   // Only re-trigger when progress first hits 100 while at limit
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,7 +142,8 @@ export default function ActiveRunScreen() {
       <RunHUD distance={run.distance} pace={run.pace} elapsed={run.elapsed} energy={run.sessionEnergy ?? 0} claimProgress={run.claimProgress} />
       {run.isRunning && (
         <View style={ss.pacerSection}>
-          <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
+          <Text style={ss.pacerLabel}>BEAT PACER</Text>
+          <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} outOfRange={pacer.outOfRange} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
         </View>
       )}
       <ClaimProgressRing progress={run.claimProgress / 100} visible={run.isRunning && run.claimProgress > 0} />
@@ -180,7 +178,8 @@ function mkStyles(C: AppColors) {
     errTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.red },
     energyBanner:{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDF6E8', padding: 8, paddingHorizontal: 16 },
     energyTxt:   { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#9E6800' },
-    pacerSection: { backgroundColor: C.black, alignItems: 'center', paddingVertical: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
+    pacerSection: { backgroundColor: C.black, alignItems: 'center', paddingTop: 8, paddingBottom: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
+    pacerLabel:   { fontFamily: 'DMSans_300Light', fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
     controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
     startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
     claimFlash:  { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: '#D93518', borderRadius: 2, zIndex: 40, pointerEvents: 'none' } as any,

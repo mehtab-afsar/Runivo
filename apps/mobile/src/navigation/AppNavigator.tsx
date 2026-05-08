@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Linking } from 'react-native';
 import { CustomTabBar } from './CustomTabBar';
+import { CoachNavProvider } from './CoachNavContext';
 import { NavigationContainer, useNavigationContainerRef, type LinkingOptions, type NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -78,6 +79,7 @@ export type RootStackParamList = {
       newStreak?: number;
       completedMissions?: { id: string; title: string }[];
       startTime?: number;
+      elevationGainM?: number;
     };
   };
   Coach:     undefined;
@@ -201,6 +203,7 @@ export function AppNavigator({
   }, [isAuthenticated]);
 
   return (
+    <CoachNavProvider>
     <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
@@ -258,6 +261,7 @@ export function AppNavigator({
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </CoachNavProvider>
   );
 }
 

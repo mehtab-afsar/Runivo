@@ -3,21 +3,25 @@ import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIn
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Sparkles } from 'lucide-react-native';
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import { useProfile } from '../hooks/useProfile';
-import { useWeeklyBrief } from '@features/coach/hooks/useWeeklyBrief';
 import { ProfileHeader } from '../components/ProfileHeader';
-import { GearTab } from '../components/GearTab';
-import { RunsTab } from '../components/RunsTab';
+import { ActivityFeedTab } from '../components/ActivityFeedTab';
 import { StatsTab } from '../components/StatsTab';
 import { AwardsTab } from '../components/AwardsTab';
-import { NutritionTab } from '../components/NutritionTab';
+import { TerritoryTab } from '../components/TerritoryTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import type { ProfileTab } from '../types';
 import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const TABS: { key: ProfileTab; label: string }[] = [
+  { key: 'activity',   label: 'Activity' },
+  { key: 'stats',      label: 'Stats' },
+  { key: 'territory',  label: 'Territory' },
+  { key: 'awards',     label: 'Awards' },
+];
 
 export default function ProfileScreen() {
   const C = useTheme();
@@ -25,7 +29,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const { player, loading, xpProgress } = usePlayerStats();
   const {
-    runs, shoes, weeklyGoalKm, personalRecords, thisWeekKm,
+    runs, weeklyGoalKm, personalRecords, thisWeekKm, followers, following,
     tab, setTab, avatarColor, avatarUri, displayName, bio, location, instagram, strava,
     isEditing, editName, setEditName, editColor, setEditColor, editBio, setEditBio,
     editLocation, setEditLocation, editInstagram, setEditInstagram, editStrava, setEditStrava,
@@ -33,7 +37,6 @@ export default function ProfileScreen() {
     startEdit, saveEdit, cancelEdit,
   } = useProfile();
 
-  const { brief } = useWeeklyBrief();
   const displayedName = displayName || player?.username || 'Runner';
   const totalKm = runs.reduce((s, r) => s + r.distanceMeters / 1000, 0);
 
@@ -48,43 +51,35 @@ export default function ProfileScreen() {
           level={player?.level ?? 1} xpPercent={xpProgress?.percent ?? 0}
           totalKm={totalKm} totalRuns={runs.length} thisWeekKm={thisWeekKm}
           totalTerritories={player?.totalTerritoriesClaimed ?? 0} weeklyGoalKm={weeklyGoalKm}
+          followers={followers} following={following}
           onEditPress={startEdit} onNotificationsPress={() => navigation.navigate('Notifications')}
           onSettingsPress={() => navigation.navigate('Settings')}
         />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ss.tabsScroll} contentContainerStyle={ss.tabsContent}>
-          {(['overview', 'stats', 'awards', 'nutrition', 'gear'] as ProfileTab[]).map(t => (
-            <Pressable key={t} style={[ss.tab, tab === t && ss.tabActive]} onPress={() => setTab(t)}>
-              <Text style={[ss.tabLabel, tab === t && ss.tabLabelActive]}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </Text>
+          {TABS.map(t => (
+            <Pressable key={t.key} style={[ss.tab, tab === t.key && ss.tabActive]} onPress={() => setTab(t.key)}>
+              <Text style={[ss.tabLabel, tab === t.key && ss.tabLabelActive]}>{t.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         <View style={ss.content}>
-          {tab === 'overview' && (
-            <>
-              {brief && (
-                <View style={ss.briefCard}>
-                  <View style={ss.briefHeader}>
-                    <Sparkles size={13} color="#8B5CF6" strokeWidth={1.5} />
-                    <Text style={ss.briefTitle}>THIS WEEK</Text>
-                  </View>
-                  <Text style={ss.briefHeadline}>{brief.headline}</Text>
-                  <Text style={ss.briefTip}>{brief.tip}</Text>
-                </View>
-              )}
-              <RunsTab runs={runs} />
-            </>
-          )}
+          {tab === 'activity' && <ActivityFeedTab runs={runs} />}
           {tab === 'stats' && (
-            <StatsTab personalRecords={personalRecords} totalRuns={runs.length} totalKm={totalKm}
-              totalTerritories={player?.totalTerritoriesClaimed ?? 0} streakDays={player?.streakDays ?? 0} />
+            <StatsTab
+              personalRecords={personalRecords} totalRuns={runs.length} totalKm={totalKm}
+              totalTerritories={player?.totalTerritoriesClaimed ?? 0} streakDays={player?.streakDays ?? 0}
+              runs={runs}
+            />
           )}
-          {tab === 'awards' && <AwardsTab />}
-          {tab === 'nutrition' && <NutritionTab />}
-          {tab === 'gear' && <GearTab shoes={shoes} runs={runs} onAddShoe={() => navigation.navigate('GearAdd')} />}
+          {tab === 'territory' && <TerritoryTab />}
+          {tab === 'awards' && (
+            <AwardsTab
+              runs={runs} streakDays={player?.streakDays ?? 0}
+              totalTerritories={player?.totalTerritoriesClaimed ?? 0} level={player?.level ?? 1}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -106,15 +101,14 @@ export default function ProfileScreen() {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.bg }, center: { alignItems: 'center', justifyContent: 'center' }, content: { padding: 20 },
-    briefCard:    { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, marginBottom: 14 },
-    briefHeader:  { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-    briefTitle:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1, color: '#ADADAD' },
-    briefHeadline:{ fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 4 },
-    briefTip:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: '#6B6B6B', lineHeight: 18 },
+    root: { flex: 1, backgroundColor: C.bg },
+    center: { alignItems: 'center', justifyContent: 'center' },
+    content: { padding: 20 },
     tabsScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: '#fff' },
     tabsContent: { paddingHorizontal: 12 },
     tab: { paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
-    tabActive: { borderBottomColor: C.black }, tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 }, tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
+    tabActive: { borderBottomColor: C.black },
+    tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
+    tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
   });
 }

@@ -30,6 +30,8 @@ interface ProfileHeaderProps {
   totalTerritories: number;
   thisWeekKm: number;
   weeklyGoalKm: number;
+  followers: number;
+  following: number;
   onEditPress: () => void;
   onNotificationsPress: () => void;
   onSettingsPress: () => void;
@@ -38,7 +40,7 @@ interface ProfileHeaderProps {
 export function ProfileHeader({
   displayName, bio, avatarColor, avatarUri, location, instagram, strava,
   level, xpPercent, totalKm, totalRuns, totalTerritories,
-  thisWeekKm, weeklyGoalKm,
+  thisWeekKm, weeklyGoalKm, followers, following,
   onEditPress, onNotificationsPress, onSettingsPress,
 }: ProfileHeaderProps) {
   const C = useTheme();
@@ -111,6 +113,14 @@ export function ProfileHeader({
         <StatPill label="Territories" value={String(totalTerritories)} />
       </View>
 
+      <View style={ss.socialRow}>
+        <Text style={ss.socialCount}>{followers}</Text>
+        <Text style={ss.socialLabel}> Followers</Text>
+        <Text style={ss.socialDot}>  ·  </Text>
+        <Text style={ss.socialCount}>{following}</Text>
+        <Text style={ss.socialLabel}> Following</Text>
+      </View>
+
       <View style={ss.weekCard}>
         <View style={ss.weekCardHeader}>
           <Text style={ss.weekCardTitle}>This week</Text>
@@ -148,6 +158,10 @@ function mkStyles(C: AppColors) {
     statPill: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 10, alignItems: 'center' },
     statPillValue: { fontFamily: 'Barlow_600SemiBold', fontSize: 17, color: C.black, letterSpacing: -0.5 },
     statPillLabel: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
+    socialRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+    socialCount: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+    socialLabel: { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2 },
+    socialDot: { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3 },
     weekCard: { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 20 },
     weekCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     weekCardTitle: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },

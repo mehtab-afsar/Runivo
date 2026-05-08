@@ -63,11 +63,10 @@ function Root() {
   useEffect(() => {
     if (!user) return;
     setCheckingOnboarding(true);
-    supabase
-      .from('profiles')
-      .select('onboarding_completed_at')
-      .eq('id', user.id)
-      .maybeSingle()
+    // Wrap in Promise.resolve so .catch()/.finally() are available (maybeSingle returns PromiseLike)
+    Promise.resolve(
+      supabase.from('profiles').select('onboarding_completed_at').eq('id', user.id).maybeSingle()
+    )
       .then(({ data }) => {
         setNeedsOnboarding(!data?.onboarding_completed_at);
       })

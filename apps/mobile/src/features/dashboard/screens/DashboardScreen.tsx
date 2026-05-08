@@ -16,7 +16,6 @@ import { MissionRow } from '../components/MissionRow';
 import { RecentRunRow } from '../components/RecentRunRow';
 import { DashboardPills } from '../components/DashboardPills';
 import { BentoCard } from '../components/BentoCard';
-import { DailyBonusCard } from '../components/DailyBonusCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,13 +46,6 @@ export default function DashboardScreen() {
 
   return (
     <View style={[s.fill, { backgroundColor: C.bg }]}>
-      {!dash.bonusCollected && (dash.loginBonusCoins ?? 0) > 0 && (
-        <DailyBonusCard
-          coins={dash.loginBonusCoins!}
-          onCollect={dash.collectBonus}
-        />
-      )}
-
       <ScrollView style={s.fill} contentContainerStyle={{ paddingBottom: 100, paddingTop: insets.top }} showsVerticalScrollIndicator={false}>
         <View style={s.header}>
           <View style={{ flex: 1 }}>

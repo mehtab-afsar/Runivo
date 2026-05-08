@@ -15,8 +15,8 @@ interface Props extends LoginState {
 }
 
 export default function LoginForm({
-  email, password, showPwd, loading, error, valid,
-  setEmail, setPassword, setShowPwd, handleSignIn,
+  email, password, showPwd, loading, error, resetSent, valid,
+  setEmail, setPassword, setShowPwd, handleSignIn, handleForgotPassword,
   onGoBack, onGoSignUp,
 }: Props) {
   const [emailFocused, setEmailFocused] = useState(false);
@@ -76,7 +76,15 @@ export default function LoginForm({
             </View>
           </View>
 
-          {error ? <Text style={s.errText}>{error}</Text> : null}
+          <Pressable onPress={handleForgotPassword} style={s.forgotRow} disabled={loading}>
+            <Text style={s.forgotText}>Forgot password?</Text>
+          </Pressable>
+
+          {resetSent
+            ? <Text style={s.resetSentText}>Check your inbox — reset link sent.</Text>
+            : error
+              ? <Text style={s.errText}>{error}</Text>
+              : null}
         </View>
       </ScrollView>
 
@@ -121,7 +129,10 @@ const s = StyleSheet.create({
   fieldInput: { fontFamily: 'Barlow_300Light', fontSize: 14, color: C.black, paddingVertical: 0 },
   eyeBtn: { paddingLeft: 8 },
   eyeText: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
+  forgotRow: { alignSelf: 'flex-end', paddingTop: 10 },
+  forgotText: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, textDecorationLine: 'underline' },
   errText: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.red, marginTop: 8 },
+  resetSentText: { fontFamily: 'Barlow_300Light', fontSize: 11, color: '#2D7D46', marginTop: 8 },
   cta: { paddingHorizontal: 24, paddingBottom: Platform.OS === 'ios' ? 28 : 20, paddingTop: 12 },
   btn: { paddingVertical: 13, borderRadius: 4, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   btnBlack: { backgroundColor: C.black },

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { NutritionProfile } from '@shared/services/store';
 import {
   saveNutritionProfileService,
@@ -85,6 +85,10 @@ export function useNutritionSetup() {
     setWeightStr(String(p.weightKg));
     setHeightStr(String(p.heightCm));
   }, []);
+
+  useEffect(() => {
+    loadExisting();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     saving,

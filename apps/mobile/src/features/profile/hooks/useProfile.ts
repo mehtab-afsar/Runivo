@@ -18,8 +18,10 @@ export function useProfile() {
   const [shoes, setShoes] = useState<StoredShoe[]>([]);
   const [weeklyGoalKm, setWeeklyGoalKm] = useState(20);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
-  const [tab, setTab] = useState<ProfileTab>('overview');
+  const [tab, setTab] = useState<ProfileTab>('activity');
 
+  const [followers, setFollowers] = useState(0);
+  const [following, setFollowing] = useState(0);
   const [avatarColor, setAvatarColor] = useState(SWATCHES[0]);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -43,6 +45,8 @@ export function useProfile() {
     setShoes(data.shoes);
     setWeeklyGoalKm(data.weeklyGoalKm);
     setPersonalRecords(data.personalRecords);
+    setFollowers(data.followers);
+    setFollowing(data.following);
     if (data.avatarColor) setAvatarColor(data.avatarColor);
     if (data.displayName) setDisplayName(data.displayName);
     if (data.bio) setBio(data.bio);
@@ -130,6 +134,7 @@ export function useProfile() {
 
   return {
     runs, shoes, weeklyGoalKm, personalRecords, thisWeekKm,
+    followers, following,
     tab, setTab,
     avatarColor, avatarUri, displayName, bio, location, instagram, strava,
     isEditing,

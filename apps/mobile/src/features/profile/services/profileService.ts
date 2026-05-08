@@ -55,11 +55,23 @@ export async function fetchProfileData() {
     }
   }
 
+  let followers = 0;
+  let following = 0;
+  if (session) {
+    const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
+      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', session.user.id),
+      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', session.user.id),
+    ]);
+    followers = followersCount ?? 0;
+    following = followingCount ?? 0;
+  }
+
   return {
     runs, shoes,
     weeklyGoalKm: weeklyGoalKmFromDb ?? settings.weeklyGoalKm,
     personalRecords, avatarColor, displayName, bio, location, instagram, strava, avatarUrl,
     primaryGoal, experienceLevel, weeklyFrequency, distanceUnit, notificationsEnabled, missionDifficulty,
+    followers, following,
   };
 }
 

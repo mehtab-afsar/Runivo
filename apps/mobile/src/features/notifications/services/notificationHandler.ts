@@ -21,33 +21,39 @@
 
 import * as Notifications from 'expo-notifications';
 import type { NavigationContainerRef } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 
 type NavRef = NavigationContainerRef<RootStackParamList>;
+type NavProp = NativeStackNavigationProp<RootStackParamList>;
+
+type AnyNav = { navigate: (screen: string, params?: unknown) => void };
+
+function applyRoute(nav: AnyNav, actionUrl: string): void {
+  const url = actionUrl ?? '/';
+
+  if (url.startsWith('/run/summary/')) { nav.navigate('History'); return; }
+  if (url === '/notifications') { nav.navigate('Notifications'); return; }
+  if (url === '/missions')      { nav.navigate('Missions');      return; }
+  if (url === '/leaderboard')   { nav.navigate('Leaderboard');   return; }
+  if (url === '/profile')       { nav.navigate('Main');          return; }
+  if (url === '/events')        { nav.navigate('Events');        return; }
+  if (url === '/clubs')         { nav.navigate('Club');          return; }
+  if (url === '/feed')          { nav.navigate('Main');          return; }
+  if (url === '/lobby')         { nav.navigate('Lobby');         return; }
+  if (url === '/history')       { nav.navigate('History');       return; }
+  // /territory/:hexId and unknown paths — no navigation
+}
+
+/** Navigate from a notification action_url using a screen navigation prop. */
+export function routeNotificationUrl(url: string | undefined, navigation: NavProp): void {
+  if (!url) return;
+  applyRoute(navigation as AnyNav, url);
+}
 
 function navigate(navRef: NavRef, actionUrl: string): void {
   if (!navRef.isReady()) return;
-
-  const url = actionUrl ?? '/';
-
-  if (url.startsWith('/run/summary/')) {
-    const runId = url.split('/')[3];
-    // RunSummary expects a result object; navigate to History instead for
-    // notification-triggered deep links (full result data not available here)
-    navRef.navigate('History');
-    return;
-  }
-
-  if (url === '/notifications') { navRef.navigate('Notifications'); return; }
-  if (url === '/missions')      { navRef.navigate('Missions');      return; }
-  if (url === '/leaderboard')   { navRef.navigate('Leaderboard');   return; }
-  if (url === '/profile')       { navRef.navigate('Main');          return; } // Profile is a tab
-  if (url === '/events')        { navRef.navigate('Events');        return; }
-  if (url === '/clubs')         { navRef.navigate('Club');          return; }
-  if (url === '/feed')          { navRef.navigate('Main');          return; } // Feed is a tab
-  if (url === '/lobby')         { navRef.navigate('Lobby');         return; }
-  if (url === '/history')       { navRef.navigate('History');       return; }
-  // /territory/:hexId and unknown paths — no navigation
+  applyRoute(navRef as AnyNav, actionUrl);
 }
 
 let _cleanup: (() => void) | null = null;

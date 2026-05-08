@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform,
+  View, Text, Pressable, StyleSheet, Platform, Animated, Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Rss, Sparkles, User, Play } from 'lucide-react-native';
@@ -8,6 +8,7 @@ import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, type AppColors } from '@theme';
 import { FEATURES } from '../config/features';
+import { useCoachNav } from './CoachNavContext';
 
 const TAB_ENABLED: Record<string, boolean> = {
   Dashboard: FEATURES.DASHBOARD,
@@ -30,68 +31,92 @@ const TAB_META: { label: string; icon: NonRunIcon | 'Run' }[] = [
   { label: 'PROFILE', icon: 'User'     },
 ];
 
+// Approximate tab bar content height (excluding safe area padding).
+// Used to size the spacer and compute slide distance.
+const TAB_CONTENT_H = 62;
+
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'ios' ? 16 : 8);
+  const tabBarH = TAB_CONTENT_H + bottomPad;
+
+  const { coachActive } = useCoachNav();
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: coachActive ? tabBarH : 0,
+      duration: coachActive ? 280 : 220,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      useNativeDriver: true,
+    }).start();
+  }, [coachActive, tabBarH]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeRoute = state.routes[state.index];
   if (activeRoute.name === 'Run') return null;
 
   return (
-    <View style={[s.wrapper, { paddingBottom: bottomPad }]}>
-      <View style={s.topBorder} />
+    <>
+      {/* Spacer so content behind tab bar isn't occluded. Hidden when coach is active. */}
+      {!coachActive && <View style={{ height: tabBarH }} />}
 
-      {/* Tabs */}
-      <View style={s.row}>
-        {state.routes.map((route, index) => {
-          const focused = state.index === index;
-          const meta    = TAB_META[index];
-          const isRun   = meta.icon === 'Run';
+      <Animated.View
+        style={[s.wrapper, { paddingBottom: bottomPad, transform: [{ translateY: slideAnim }] }]}
+        pointerEvents={coachActive ? 'none' : 'auto'}
+      >
+        <View style={s.topBorder} />
 
-          const onPress = () => {
-            Haptics.impactAsync(isRun
-              ? Haptics.ImpactFeedbackStyle.Medium
-              : Haptics.ImpactFeedbackStyle.Light);
-            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-            if (!focused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+        <View style={s.row}>
+          {state.routes.map((route, index) => {
+            const focused = state.index === index;
+            const meta    = TAB_META[index];
+            const isRun   = meta.icon === 'Run';
+
+            const onPress = () => {
+              Haptics.impactAsync(isRun
+                ? Haptics.ImpactFeedbackStyle.Medium
+                : Haptics.ImpactFeedbackStyle.Light);
+              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+              if (!focused && !event.defaultPrevented) {
+                navigation.navigate(route.name);
+              }
+            };
+
+            if (isRun) {
+              return (
+                <Pressable key={route.key} onPress={onPress} style={s.runOuter}>
+                  <View style={[s.runCircle, focused && s.runCircleActive]}>
+                    <Play size={20} color="#fff" fill="#fff" strokeWidth={0} />
+                  </View>
+                  <Text style={[s.label, { color: C.red, fontFamily: 'Barlow_500Medium' }]}>{meta.label}</Text>
+                </Pressable>
+              );
             }
-          };
 
-          if (isRun) {
+            const IconComp = ICON_MAP[meta.icon as NonRunIcon];
+            const enabled  = TAB_ENABLED[route.name] !== false;
+            const color    = enabled && focused ? C.red : C.t3;
+
             return (
-              <Pressable key={route.key} onPress={onPress} style={s.runOuter}>
-                <View style={[s.runCircle, focused && s.runCircleActive]}>
-                  <Play size={20} color="#fff" fill="#fff" strokeWidth={0} />
-                </View>
-                <Text style={[s.label, { color: C.red, fontFamily: 'Barlow_500Medium' }]}>{meta.label}</Text>
+              <Pressable key={route.key} onPress={onPress} style={s.tab}>
+                <IconComp size={22} color={color} strokeWidth={focused ? 2 : 1.5} />
+                {enabled ? (
+                  <Text style={[s.label, { color, fontFamily: focused ? 'Barlow_500Medium' : 'Barlow_400Regular' }]}>
+                    {meta.label}
+                  </Text>
+                ) : (
+                  <View style={s.soonBadge}>
+                    <Text style={s.soonText}>SOON</Text>
+                  </View>
+                )}
               </Pressable>
             );
-          }
-
-          const IconComp = ICON_MAP[meta.icon as NonRunIcon];
-          const enabled  = TAB_ENABLED[route.name] !== false;
-          const color    = enabled && focused ? C.red : C.t3;
-
-          return (
-            <Pressable key={route.key} onPress={onPress} style={s.tab}>
-              <IconComp size={22} color={color} strokeWidth={focused ? 2 : 1.5} />
-              {enabled ? (
-                <Text style={[s.label, { color, fontFamily: focused ? 'Barlow_500Medium' : 'Barlow_400Regular' }]}>
-                  {meta.label}
-                </Text>
-              ) : (
-                <View style={s.soonBadge}>
-                  <Text style={s.soonText}>SOON</Text>
-                </View>
-              )}
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
+          })}
+        </View>
+      </Animated.View>
+    </>
   );
 }
 
