@@ -24,6 +24,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
+import { supabase } from '@shared/services/supabase';
 import { ToastProvider } from './src/shared/components/ToastProvider';
 import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
 import { initSentry, captureException } from './src/shared/services/sentry';
@@ -56,14 +57,26 @@ function Root() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(false);
 
-  // When the user becomes authenticated, check if they have a player record.
-  // If not, they are a new sign-up and need to complete onboarding.
+  // Check Supabase profiles table to determine if this specific user has completed
+  // onboarding. Local getPlayer() is NOT user-scoped (random UUID), so a leftover
+  // record from a prior session would incorrectly skip onboarding for new users.
   useEffect(() => {
     if (!user) return;
     setCheckingOnboarding(true);
-    getPlayer()
-      .then(player => setNeedsOnboarding(player === null || player === undefined))
-      .catch(() => setNeedsOnboarding(false))
+    supabase
+      .from('profiles')
+      .select('onboarding_completed_at')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setNeedsOnboarding(!data?.onboarding_completed_at);
+      })
+      .catch(() =>
+        // Offline fallback — check local store; default to showing onboarding if unclear
+        getPlayer()
+          .then(player => setNeedsOnboarding(!player))
+          .catch(() => setNeedsOnboarding(true))
+      )
       .finally(() => setCheckingOnboarding(false));
   }, [user?.id]);
 
