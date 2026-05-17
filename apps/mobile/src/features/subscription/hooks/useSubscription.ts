@@ -42,7 +42,7 @@ export function useSubscription() {
     }
   };
 
-  const purchasePlan = useCallback(async (planId: string, rcProductId: string) => {
+  const purchasePlan = useCallback(async (_planId: string, rcProductId: string) => {
     if (purchasing) return;
     setPurchasing(true);
     try {

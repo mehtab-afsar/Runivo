@@ -1,25 +1,15 @@
-export type TerritoryFilter = 'all' | 'mine' | 'enemy' | 'weak' | 'neutral';
+import type { TerritoryTier } from '@shared/types/game';
 
-export interface TerritoryDetail {
-  id:        string;
-  status:    'owned' | 'enemy' | 'neutral';
-  ownerName: string | null;
-  defense:   number;
-  tier:      string;
-}
-
-export interface TerritoryStats {
-  owned:   number;
-  enemy:   number;
-  neutral: number;
-}
+export type TerritoryFilter = 'all' | 'mine' | 'rivals' | 'stale';
 
 export interface TerritoryDetails {
-  id:          string;
-  h3Index?:    string;
-  ownerName:   string | null;
-  defense:     number;
-  tier:        string;
-  capturedAt?: string;
-  isOwn:       boolean;
+  id:         string;
+  ownerId:    string;
+  ownerName:  string;
+  isOwn:      boolean;
+  freshness:  number;
+  tier:       TerritoryTier;
+  areaM2:     number;
+  claimedAt:  string;
+  isLoopFill: boolean;
 }

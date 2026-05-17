@@ -8,7 +8,7 @@ const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_BOLD = 'Barlow_700Bold';
 
 interface ClaimToastProps {
-  event: { type: string; xpEarned?: number; coinsEarned?: number } | null;
+  event: { type: string; paceEarned?: number } | null;
   onDismiss: () => void;
 }
 
@@ -30,7 +30,9 @@ export default function ClaimToast({ event, onDismiss }: ClaimToastProps) {
     <Animated.View style={[ss.toast, { opacity }]}>
       <Flag size={14} color={C.white} strokeWidth={1.5} />
       <Text style={ss.text}>Territory Claimed!</Text>
-      {event.xpEarned ? <Text style={ss.xp}>+{event.xpEarned} XP</Text> : null}
+      {(event.paceEarned ?? 0) > 0
+        ? <Text style={ss.xp}>+{event.paceEarned} PACE</Text>
+        : null}
     </Animated.View>
   );
 }

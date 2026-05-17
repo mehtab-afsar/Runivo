@@ -22,8 +22,8 @@ export default function RunControls({ isPaused, onPause, onResume, onStop }: Run
         onPress={isPaused ? onResume : onPause}
       >
         {isPaused
-          ? <Play size={22} color={C.black} strokeWidth={2} />
-          : <Pause size={22} color={C.black} strokeWidth={2} />}
+          ? <Play size={22} color={C.white} strokeWidth={2} />
+          : <Pause size={22} color={C.white} strokeWidth={2} />}
         <Text style={ss.secondaryControlLabel}>{isPaused ? 'Resume' : 'Pause'}</Text>
       </Pressable>
 

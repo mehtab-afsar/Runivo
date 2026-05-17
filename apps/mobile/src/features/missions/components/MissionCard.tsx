@@ -1,21 +1,20 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { MapPin, Map, Flag, Wind, Flame, Timer, Target, Coins, Check, Zap, Shield, Swords, type LucideIcon } from 'lucide-react-native';
+import { MapPin, Flag, Wind, Flame, Timer, Target, Check, Zap, Shield, Swords, type LucideIcon } from 'lucide-react-native';
 import type { Mission } from '@shared/services/missions';
 import { DifficultyBadge } from './DifficultyBadge';
 import { useTheme, type AppColors } from '@theme';
 
 const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
-  run_distance:        { Icon: MapPin,  color: '#D93518' },
-  claim_territories:   { Icon: Zap,    color: '#EAB308' },
-  fortify_territories: { Icon: Shield, color: '#059669' },
-  explore_new_hexes:   { Icon: Map,    color: '#0284C7' },
-  run_in_enemy_zone:   { Icon: Swords, color: '#DC2626' },
-  capture_enemy:       { Icon: Flag,   color: '#9CA3AF' },
-  speed_run:           { Icon: Wind,   color: '#64748B' },
-  run_streak:          { Icon: Flame,  color: '#EA580C' },
-  complete_run:        { Icon: Check,  color: '#059669' },
-  beat_pace:           { Icon: Timer,  color: '#D93518' },
+  run_distance:      { Icon: MapPin,  color: '#D93518' },
+  claim_territories: { Icon: Zap,    color: '#EAB308' },
+  capture_enemy:     { Icon: Flag,   color: '#9CA3AF' },
+  speed_run:         { Icon: Wind,   color: '#64748B' },
+  run_streak:        { Icon: Flame,  color: '#EA580C' },
+  defend_zone:  { Icon: Shield, color: '#059669' },
+  steal_rival:  { Icon: Swords, color: '#DC2626' },
+  complete_run: { Icon: Check,  color: '#059669' },
+  beat_pace:    { Icon: Timer,  color: '#D93518' },
 };
 
 interface MissionCardProps {
@@ -56,12 +55,8 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
           {mission.completed ? 'Completed!' : `${mission.current} / ${mission.target}`}
         </Text>
         <View style={ss.rewardRow}>
-          {mission.rewards.xp > 0 && <Text style={ss.rewardText}>+{mission.rewards.xp} XP</Text>}
-          {mission.rewards.coins > 0 && (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={[ss.rewardText, { color: C.amber }]}> +{mission.rewards.coins} </Text>
-              <Coins size={11} color={C.amber} strokeWidth={1.5} />
-            </View>
+          {(mission.rewards.pace ?? 0) > 0 && (
+            <Text style={ss.rewardText}>+{mission.rewards.pace} PACE</Text>
           )}
         </View>
       </View>

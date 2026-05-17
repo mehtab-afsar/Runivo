@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import {
   computeSplits,
@@ -10,6 +9,7 @@ import {
 } from '../services/runSummaryService';
 import type { RunStats, Split } from '../services/runSummaryService';
 import type { StoredShoe } from '@shared/services/store';
+import type { TerritoryPolygon, RunnerRank } from '@shared/types/game';
 import { getRuns } from '@shared/services/store';
 
 export interface PassedRunData {
@@ -20,17 +20,28 @@ export interface PassedRunData {
   route?: { lat: number; lng: number }[];
   actionType?: string;
   success?: boolean;
-  xpEarned?: number;
-  coinsEarned?: number;
   bonusCoins?: number;
   enemyCaptured?: number;
-  leveledUp?: boolean;
   preRunLevel?: number;
   newLevel?: number;
   newStreak?: number;
   completedMissions?: { id: string; title: string }[];
   startTime?: number;
   elevationGainM?: number;
+  // PACE economy (new)
+  paceEarned?: number;
+  paceBreakdown?: {
+    fromDistance: number;
+    fromNewZones: number;
+    fromStolenZones: number;
+    fromStreak: number;
+  };
+  cappedAt?: number;
+  territory?: TerritoryPolygon | null;
+  runnerRank?: RunnerRank;
+  paceTotalEarned?: number;
+  runnerRankPaceToNext?: number;
+  rivalZonesStolen?: number;
 }
 
 interface UseRunSummaryResult {
@@ -92,8 +103,6 @@ export function useRunSummary(
       duration:           runData.duration,
       pace:               runData.pace,
       territoriesClaimed: runData.territoriesClaimed,
-      xpEarned:           runData.xpEarned,
-      coinsEarned:        runData.coinsEarned,
     }),
   [runData]);
 

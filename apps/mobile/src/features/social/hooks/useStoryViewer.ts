@@ -21,7 +21,7 @@ export function useStoryViewer(groups: StoryGroup[], initialGroupIndex = 0, onCl
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }, []);
 
-  const startTimer = useCallback((remainingMs: number) => {
+  const startTimer = useCallback((_remainingMs: number) => {
     stopTimer();
     startTimeRef.current = Date.now();
     timerRef.current = setInterval(() => {

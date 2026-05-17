@@ -4,7 +4,6 @@ import { X } from 'lucide-react-native';
 import type { StoredSavedRoute } from '@shared/services/store';
 import type { NearbyRoute } from '@shared/services/sync';
 import RouteCard from './RouteCard';
-import type { RouteItem } from './RouteCard';
 import { useTheme, type AppColors } from '@theme';
 
 const FONT = 'Barlow_400Regular';

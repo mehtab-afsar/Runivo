@@ -2,13 +2,14 @@ import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Feature = 'weekly_brief' | 'post_run' | 'training_plan' | 'coach_chat' | 'nutrition_insights' | 'quick_prompts';
+type Feature = 'weekly_brief' | 'post_run' | 'training_plan' | 'coach_chat' | 'nutrition_insights' | 'quick_prompts' | 'territory_strategy' | 'adapt_plan' | 'pace_intelligence' | 'habit_tracking';
 
 interface RequestBody {
   feature: Feature;
-  runId?: string;
+  runId?:  string;
   message?: string;
-  goal?: string;
+  goal?:   string;
+  planId?: string;
 }
 
 interface WeeklyBriefPayload {
@@ -30,6 +31,7 @@ interface PostRunPayload {
 }
 
 interface TrainingPlanPayload {
+  planId?: string;
   weeks: Array<{
     week: number;
     focus: string;
@@ -42,6 +44,16 @@ interface NutritionInsightsPayload {
     title: string;
     body: string;
     icon: string;
+  }>;
+  generatedAt: string;
+}
+
+interface PaceIntelligencePayload {
+  insights: Array<{
+    icon: string;
+    headline: string;
+    body: string;
+    recommendation: string;
   }>;
   generatedAt: string;
 }
@@ -63,6 +75,19 @@ interface NutritionDayLog {
   fatG: number;
 }
 
+interface PlanCompliance {
+  goal: string;
+  weekCurrent: number;
+  weeksTotal: number;
+  sessionsPlannedThisWeek: number;
+  sessionsCompletedThisWeek: number;
+  sessionsMissedThisWeek: number;
+  kmActualThisWeek: number;
+  streakDays: number;
+  consistencyLast8Weeks: number[];
+  avgConsistencyLast8Weeks: number | null;
+}
+
 interface UserContext {
   runs90d: RunRecord[];
   totalKm90d: number;
@@ -73,8 +98,15 @@ interface UserContext {
   tempoPace: string;
   prs: { fastestPace: string | null; longestRun: number; best5kPace: string | null };
   racePredictions: { fiveK: string; tenK: string; half: string; full: string } | null;
-  zonesOwned: number;
-  zonesClaimed90d: number;
+  staleZoneCount: number;
+  avgFreshness: number;
+  totalAreaM2: number;
+  largestTierHeld: string;
+  territoryScore: number;
+  runnerRank: string;
+  paceWeeklyEarned: number;
+  paceWeeklyCapLimit: number;
+  planCompliance: PlanCompliance | null;
   nutrition: {
     dailyGoalKcal: number;
     proteinGoalG: number;
@@ -229,7 +261,15 @@ async function buildUserContext(
   const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const todayStr        = todayISODate();
 
-  const [runsRes, territoriesRes, nutritionProfileRes, nutritionLogsRes, eventsRes, shoesRes] = await Promise.all([
+  const mondayISO = (() => {
+    const now = new Date();
+    const diff = (now.getUTCDay() + 6) % 7;
+    const mon  = new Date(now);
+    mon.setUTCDate(now.getUTCDate() - diff);
+    return mon.toISOString().split('T')[0];
+  })();
+
+  const [runsRes, polygonsRes, profileRes, nutritionProfileRes, nutritionLogsRes, eventsRes, shoesRes, activePlanRes, consistencyHistRes] = await Promise.all([
     supabase
       .from('runs')
       .select('id, distance_m, duration_sec, avg_pace, started_at, territories_claimed, avg_hr, max_hr, avg_cadence, elevation_gain_m, hrv_ms, calories_kcal')
@@ -238,9 +278,15 @@ async function buildUserContext(
       .gte('started_at', ninetyDaysAgo)
       .order('started_at', { ascending: false }),
     supabase
-      .from('territories')
-      .select('h3_index')
-      .eq('owner_id', userId),
+      .from('territory_polygons')
+      .select('area_m2, freshness, last_defended_at, tier')
+      .eq('owner_id', userId)
+      .limit(100),
+    supabase
+      .from('profiles')
+      .select('runner_rank, pace_weekly_earned, pace_total_earned, subscription_tier, territory_score, streak_days')
+      .eq('id', userId)
+      .single(),
     supabase
       .from('nutrition_profiles')
       .select('daily_goal_kcal, protein_goal_g, goal, weight_kg')
@@ -268,6 +314,18 @@ async function buildUserContext(
       .eq('is_retired', false)
       .order('is_default', { ascending: false })
       .limit(5),
+    // Active training plan
+    supabase
+      .from('training_plans')
+      .select('id, goal, week_current, weeks_total, plan_data')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Consistency history (last 8 weeks)
+    supabase
+      .rpc('get_consistency_history', { p_user_id: userId, p_weeks: 8 }),
   ]);
 
   const runs90d = (runsRes.data ?? []) as RunRecord[];
@@ -357,10 +415,30 @@ async function buildUserContext(
   }
 
   // ── Territory ────────────────────────────────────────────────────────────────
-  const zonesOwned  = (territoriesRes.data ?? []).length;
-  const claimedSet  = new Set<string>();
-  runs90d.forEach(r => (r.territories_claimed ?? []).forEach(h => claimedSet.add(h)));
-  const zonesClaimed90d = claimedSet.size;
+  const polygonRows  = (polygonsRes.data ?? []) as { area_m2: number; freshness: number; last_defended_at: string; tier: string }[];
+  const profileRow   = profileRes.data as { runner_rank: string | null; pace_weekly_earned: number | null; pace_total_earned: number | null; subscription_tier: string | null; territory_score: number | null; streak_days: number | null } | null;
+
+  const MS_PER_DAY  = 86_400_000;
+  const now         = Date.now();
+  const tierOrder   = ['patch', 'block', 'district', 'quarter', 'domain'];
+
+  let staleZoneCount  = 0;
+  let totalArea       = 0;
+  let weightedFresh   = 0;
+  let largestTierHeld = 'patch';
+
+  for (const p of polygonRows) {
+    const daysSince        = (now - new Date(p.last_defended_at).getTime()) / MS_PER_DAY;
+    const currentFreshness = Math.max(0, p.freshness - Math.floor(daysSince * 10));
+    if (currentFreshness < 40) staleZoneCount++;
+    totalArea     += p.area_m2;
+    weightedFresh += currentFreshness * p.area_m2;
+    if (tierOrder.indexOf(p.tier) > tierOrder.indexOf(largestTierHeld)) largestTierHeld = p.tier;
+  }
+
+  const avgFreshness       = totalArea > 0 ? Math.round(weightedFresh / totalArea) : 100;
+  const isPremium          = profileRow?.subscription_tier === 'premium';
+  const paceWeeklyCapLimit = isPremium ? 150 : 100;
 
   // ── Nutrition ────────────────────────────────────────────────────────────────
   let nutrition = null;
@@ -420,6 +498,71 @@ async function buildUserContext(
     };
   }
 
+  // ── Plan compliance ──────────────────────────────────────────────────────────
+  const activePlanRow = activePlanRes.data as {
+    id: string; goal: string; week_current: number; weeks_total: number;
+    plan_data: { weeks: Array<{ week: number; focus: string; sessions: Array<{ day: string; type: string; description: string }> }> };
+  } | null;
+
+  const DAY_OFFSET: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+
+  let planCompliance: PlanCompliance | null = null;
+  if (activePlanRow) {
+    const weekIdx       = activePlanRow.week_current - 1;
+    const currentWeek   = activePlanRow.plan_data.weeks[weekIdx];
+    const sessions      = currentWeek?.sessions ?? [];
+    const runSessions   = sessions.filter(s => s.type !== 'Rest');
+
+    // Which of this week's run sessions have a matching run date?
+    const thisWeekRunDates = new Set(
+      runs90d
+        .filter(r => r.started_at >= mondayISO + 'T00:00:00Z')
+        .map(r => r.started_at.split('T')[0])
+    );
+
+    let completed = 0;
+    let missed    = 0;
+    const todayISO = new Date().toISOString().split('T')[0];
+
+    for (const s of runSessions) {
+      const offset = DAY_OFFSET[s.day] ?? 0;
+      const d      = new Date(mondayISO);
+      d.setUTCDate(d.getUTCDate() + offset);
+      const dateStr = d.toISOString().split('T')[0];
+      if (thisWeekRunDates.has(dateStr)) {
+        completed++;
+      } else if (dateStr < todayISO) {
+        missed++;
+      }
+    }
+
+    const kmThisWeek = runs90d
+      .filter(r => r.started_at >= mondayISO + 'T00:00:00Z')
+      .reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
+
+    const histRows = (consistencyHistRes.data ?? []) as Array<{
+      week_start: string; consistency_score: number; sessions_completed: number;
+      sessions_planned: number; km_actual: number; streak_days_eow: number;
+    }>;
+    const scores = histRows.map(w => w.consistency_score);
+    const avgScore = scores.length > 0
+      ? Math.round(scores.reduce((s, n) => s + n, 0) / scores.length)
+      : null;
+
+    planCompliance = {
+      goal:                      activePlanRow.goal,
+      weekCurrent:               activePlanRow.week_current,
+      weeksTotal:                activePlanRow.weeks_total,
+      sessionsPlannedThisWeek:   runSessions.length,
+      sessionsCompletedThisWeek: completed,
+      sessionsMissedThisWeek:    missed,
+      kmActualThisWeek:          parseFloat(kmThisWeek.toFixed(1)),
+      streakDays:                profileRow?.streak_days ?? 0,
+      consistencyLast8Weeks:     scores.reverse(),
+      avgConsistencyLast8Weeks:  avgScore,
+    };
+  }
+
   return {
     runs90d,
     totalKm90d:    parseFloat(runs90d.reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0).toFixed(1)),
@@ -430,8 +573,15 @@ async function buildUserContext(
     tempoPace,
     prs,
     racePredictions,
-    zonesOwned,
-    zonesClaimed90d,
+    staleZoneCount,
+    avgFreshness,
+    totalAreaM2:        totalArea,
+    largestTierHeld,
+    territoryScore:     profileRow?.territory_score ?? 0,
+    runnerRank:         profileRow?.runner_rank ?? 'pacer',
+    paceWeeklyEarned:   profileRow?.pace_weekly_earned ?? 0,
+    paceWeeklyCapLimit,
+    planCompliance,
     nutrition,
     shoes: (shoesRes.data ?? []).map((s: { brand: string; model: string; nickname: string | null; total_km: number; max_km: number; is_default: boolean }) => ({
       name:      s.nickname ?? `${s.brand} ${s.model}`,
@@ -466,8 +616,11 @@ async function handleWeeklyBrief(
     paceZones: ctx.paceZones,
     fastestPace: ctx.prs.fastestPace,
     // bust if nutrition changes significantly
-    daysHitKcal: ctx.nutrition?.daysHitKcalTarget ?? null,
-    avgProtein:  ctx.nutrition?.recentAvgProteinG ?? null,
+    daysHitKcal:      ctx.nutrition?.daysHitKcalTarget ?? null,
+    avgProtein:       ctx.nutrition?.recentAvgProteinG ?? null,
+    paceWeeklyEarned: ctx.paceWeeklyEarned,
+    staleZoneCount:   ctx.staleZoneCount,
+    territoryScore:   ctx.territoryScore,
   };
   const hash = await contextHash(hashInput);
 
@@ -494,9 +647,15 @@ async function handleWeeklyBrief(
     const runDayProtein  = avg(runDayLogs,  'proteinG');
     const restDayProtein = avg(restDayLogs, 'proteinG');
 
+    const avgDeficit  = n.dailyGoalKcal - n.recentAvgKcal;
+    const deficitLine = avgDeficit >= 0
+      ? `Avg daily deficit: ${avgDeficit} kcal`
+      : `Avg daily surplus: ${Math.abs(avgDeficit)} kcal`;
+
     nutritionBlock = `
 Nutrition last 7 days:
 - Hit calorie target (±10%): ${n.daysHitKcalTarget}/7 days
+- ${deficitLine} (goal: ${n.dailyGoalKcal} kcal/day, avg consumed: ${n.recentAvgKcal} kcal/day)
 - Average protein: ${n.recentAvgProteinG}g vs ${n.proteinGoalG}g target
 - Days under 80g protein: ${n.daysUnderProtein80g}
 - Run-day protein avg: ${runDayProtein}g | Rest-day protein avg: ${restDayProtein}g
@@ -523,6 +682,11 @@ Pace zones: ${ctx.paceZones.easy}% easy / ${ctx.paceZones.moderate}% moderate / 
 ${prLine}
 ${raceLine}
 ${nutritionBlock}
+Territory status:
+- PACE earned this week: ${ctx.paceWeeklyEarned} / ${ctx.paceWeeklyCapLimit}
+- Territory Score: ${ctx.territoryScore} TS
+- Stale zones: ${ctx.staleZoneCount} (easy to steal by rivals)
+- Average freshness: ${ctx.avgFreshness}%
 
 Respond ONLY with valid JSON (no markdown fences):
 {"headline":"one punchy motivating line ≤12 words","insights":["specific insight 1","specific insight 2","specific insight 3"],"tip":"one actionable tip for this week ≤20 words"${ctx.nutrition ? `,"nutrition":{"summary":"...","connection":"...","priority":"..."}` : ''}}
@@ -633,7 +797,7 @@ Add a "recovery" field: a specific 2-sentence recovery prescription. Sentence 1:
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 192,
-    system:     'You are Runivo Intelligence — a concise running coach. Return only valid JSON.',
+    system:     'You are the Runivo AI Coach — a concise running coach. Return only valid JSON.',
     messages: [{
       role:    'user',
       content: `Post-run feedback.
@@ -681,17 +845,22 @@ async function handleTrainingPlan(
   goal: string,
   ctx: UserContext,
 ): Promise<TrainingPlanPayload> {
-  const hashInput = { goal, weeklyKm: ctx.weeklyKm, runCount: ctx.runs90d.length };
-  const hash      = await contextHash(hashInput);
-
-  const { data: cached } = await supabase
-    .from('ai_cache')
-    .select('payload, context_hash')
+  // Check for an existing active plan with the same goal first
+  const { data: activePlan } = await supabase
+    .from('training_plans')
+    .select('id, plan_data, goal')
     .eq('user_id', userId)
-    .eq('feature', 'training_plan')
-    .single();
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (cached?.context_hash === hash) return cached.payload as TrainingPlanPayload;
+  if (activePlan && activePlan.goal === (goal || '')) {
+    return { ...(activePlan.plan_data as TrainingPlanPayload), planId: activePlan.id };
+  }
+
+  const hashInput = { goal, weeklyKm: ctx.weeklyKm, runCount: ctx.runs90d.length, staleZoneCount: ctx.staleZoneCount };
+  const hash      = await contextHash(hashInput);
 
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
@@ -704,6 +873,7 @@ Current weekly avg: ${ctx.weeklyKm} km/week.
 Pace zones: ${ctx.paceZones.easy}% easy / ${ctx.paceZones.moderate}% moderate / ${ctx.paceZones.tempo}% tempo / ${ctx.paceZones.hard}% hard.
 Easy pace: ~${ctx.easyPace}/km. Tempo pace: ~${ctx.tempoPace}/km.
 ${ctx.prs.longestRun > 0 ? `Longest run ever: ${ctx.prs.longestRun} km.` : ''}
+Territory: ${ctx.staleZoneCount} stale zones need defense runs. Territory Score: ${ctx.territoryScore} TS.
 Goal: ${goal || 'improve general fitness and consistency'}.
 
 Include zone-specific target paces in session descriptions (e.g. "5km at ${ctx.easyPace}/km easy").
@@ -744,7 +914,32 @@ Keep descriptions under 15 words. Progressively overload each week.`,
     generated_at: new Date().toISOString(),
   }, { onConflict: 'user_id,feature' });
 
-  return payload;
+  // Persist into training_plans table
+  let planId: string = '';
+  if (activePlan) {
+    // Replace existing plan with fresh generation for new goal
+    await supabase
+      .from('training_plans')
+      .update({ goal, plan_data: payload, week_current: 1, updated_at: new Date().toISOString() })
+      .eq('id', activePlan.id);
+    planId = activePlan.id;
+  } else {
+    const { data: newPlan } = await supabase
+      .from('training_plans')
+      .insert({
+        user_id:     userId,
+        goal:        goal || 'improve general fitness',
+        weeks_total: payload.weeks.length,
+        week_current: 1,
+        status:      'active',
+        plan_data:   payload,
+      })
+      .select('id')
+      .single();
+    planId = newPlan?.id ?? '';
+  }
+
+  return { ...payload, planId };
 }
 
 async function handleCoachChat(
@@ -799,9 +994,19 @@ async function handleCoachChat(
     ? `Daily goal: ${ctx.nutrition.dailyGoalKcal} kcal | Protein goal: ${ctx.nutrition.proteinGoalG}g | Goal: ${ctx.nutrition.goal} | Recent 7-day avg: ${ctx.nutrition.recentAvgKcal} kcal / ${ctx.nutrition.recentAvgProteinG}g protein | Days hit target: ${ctx.nutrition.daysHitKcalTarget}/7 | Days under 80g protein: ${ctx.nutrition.daysUnderProtein80g}/7`
     : 'No nutrition data logged.';
 
-  const systemPrompt = `You are Runivo Intelligence — a personal running coach embedded in Runivo, a GPS running app with territory capture mechanics (users claim hexagonal map zones by running through them).
+  const systemPrompt = `You are the Runivo AI Coach — an elite running coach and territory strategist embedded in the Runivo app.
+
+ABOUT RUNIVO:
+Runivo is a gamified running app where runners claim real-world territory by running through it. Your GPS path generates a corridor polygon. Rivals can steal your territory by running through it. Territory freshness decays over time (−10/day) — stale zones (freshness < 40) are easy to steal. Runners win by running consistently to defend and expand their ground.
+
+ECONOMY (never mention XP, coins, energy, or levels):
+- PACE: runners earn 1 PACE per km, 5 per new zone, 10 per rival zone stolen. Weekly cap: ${ctx.paceWeeklyCapLimit} PACE. Resets Monday.
+- Territory Score (TS): sum of all polygon area × freshness multiplier. Competitive ranking.
+- Runner Rank: Pacer → Strider → Chaser → Hunter → Sovereign. Based on total PACE earned all-time.
+- Freshness: each polygon decays from 100 to 0 over 10 days. Below 40 = stale = easy to steal.
 
 == RUNNER PROFILE ==
+Rank: ${ctx.runnerRank} | PACE this week: ${ctx.paceWeeklyEarned} / ${ctx.paceWeeklyCapLimit}
 Last 90 days: ${ctx.totalKm90d} km across ${ctx.runs90d.length} runs. Weekly avg: ${ctx.weeklyKm} km/wk.
 Pace trend: ${ctx.trend}.
 
@@ -820,8 +1025,16 @@ ${prLines || 'No personal records yet.'}
 ${raceLine}
 
 == TERRITORY ==
-Zones currently owned: ${ctx.zonesOwned}
-Unique zones captured last 90 days: ${ctx.zonesClaimed90d}
+Territory Score: ${ctx.territoryScore} TS | Largest tier: ${ctx.largestTierHeld}
+Total area: ${Math.round(ctx.totalAreaM2).toLocaleString()} m²
+Stale zones (freshness < 40): ${ctx.staleZoneCount} — rivals can steal these now
+Average freshness: ${ctx.avgFreshness}%
+
+== TRAINING PLAN & HABIT ==
+${ctx.planCompliance ? `Goal: ${ctx.planCompliance.goal} (Week ${ctx.planCompliance.weekCurrent}/${ctx.planCompliance.weeksTotal})
+This week: ${ctx.planCompliance.sessionsCompletedThisWeek}/${ctx.planCompliance.sessionsPlannedThisWeek} sessions completed, ${ctx.planCompliance.kmActualThisWeek} km run${ctx.planCompliance.sessionsMissedThisWeek > 0 ? `, ${ctx.planCompliance.sessionsMissedThisWeek} missed` : ' — on track'}
+Run streak: ${ctx.planCompliance.streakDays} day${ctx.planCompliance.streakDays !== 1 ? 's' : ''}${ctx.planCompliance.avgConsistencyLast8Weeks !== null ? `
+Avg consistency last 8 weeks: ${ctx.planCompliance.avgConsistencyLast8Weeks}%` : ''}` : `No active training plan. Current run streak: ${ctx.planCompliance?.streakDays ?? 0} days.`}
 
 == NUTRITION ==
 ${nutritionLine}
@@ -831,20 +1044,19 @@ ${ctx.shoes.length > 0
   ? ctx.shoes.map(s => `${s.isDefault ? '[default] ' : ''}${s.name}: ${s.totalKm}km / ${s.maxKm}km (${s.pctWorn}% worn${s.pctWorn >= 85 ? ', NEAR RETIREMENT' : ''})`).join('\n')
   : 'No shoes tracked yet.'}
 
-== INSTRUCTIONS ==
-Answer questions using the runner's specific numbers above. Be concise (under 150 words). Reference their actual paces, distances, and dates when relevant. For nutrition questions, use their logged data. For territory questions, acknowledge the game mechanic. When you lack data to answer precisely, say so and ask for clarification.
+COACHING PHILOSOPHY:
+1. Connect training advice to territorial benefit where relevant.
+2. Be direct and specific — cite actual data (distances, paces, zones, PACE earned).
+3. Never give generic advice when you have real data.
+4. Injury: give general advice and recommend a physio. Never diagnose.
+5. Off-topic: redirect warmly — "I'm your running and territory coach."
 
-== GUARDRAILS ==
-You ONLY answer questions about: running, training, fitness, recovery, nutrition for athletes, running gear, and the Runivo territory game.
+TONE: Confident, warm, competitive. Like a coach who has run 50 marathons and also plays chess. Keep responses under 180 words unless generating a structured plan.
 
-If asked anything outside these topics, respond EXACTLY with:
-"I'm your running coach — I can only help with training, nutrition, and running-related questions. What would you like to work on?"
-
-NEVER provide: medical diagnoses, specific medication recommendations, financial/legal/relationship advice, or anything unrelated to running or fitness.
-
-For pain or injury questions: acknowledge the concern, give general prevention and recovery advice (rest, ice, elevation), and recommend seeing a physiotherapist or sports doctor for a proper diagnosis.
-
-TONE: Expert, direct, data-driven. Use the runner's actual numbers from the profile above. Never be vague when you have real data. Keep responses under 180 words unless generating a structured plan.`;
+GUARDRAILS:
+- Only discuss: running, training, fitness, recovery, athlete nutrition, gear, Runivo territory strategy, PACE economy.
+- Never: medical diagnosis, financial advice, political opinions.
+- Never promise specific race times — give ranges.`;
 
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
@@ -950,6 +1162,111 @@ Be specific: reference actual grams, days, and patterns you can see in the data.
   return payload;
 }
 
+// ─── Pace intelligence ────────────────────────────────────────────────────────
+async function handlePaceIntelligence(
+  anthropic: Anthropic,
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  ctx: UserContext,
+): Promise<PaceIntelligencePayload> {
+  const recentRuns = ctx.runs90d.slice(0, 30);
+  const hash = await contextHash({
+    runCount: recentRuns.length,
+    lastDate: recentRuns[0]?.started_at?.slice(0, 10),
+    avgPace: ctx.easyPace,
+    weeklyKm: Math.round(ctx.weeklyKm),
+    trend: ctx.trend,
+    paceEarned: ctx.paceWeeklyEarned,
+  });
+
+  const { data: cached } = await supabase
+    .from('ai_cache')
+    .select('payload, context_hash')
+    .eq('user_id', userId)
+    .eq('feature', 'pace_intelligence')
+    .single();
+
+  if (cached?.context_hash === hash) return cached.payload as PaceIntelligencePayload;
+
+  const prompt = `You are Pace, the Runivo running coach. Analyze this runner's data and return exactly 3 insight cards as JSON.
+
+RUNNER: ${ctx.totalKm90d.toFixed(1)} km in 90 days, ${recentRuns.length} runs, trend: ${ctx.trend}
+EASY PACE: ${ctx.easyPace} /km, TEMPO: ${ctx.tempoPace} /km
+WEEKLY AVG (last 8 weeks): ${ctx.weeklyKm.toFixed(1)} km/wk
+BEST: longest ${ctx.prs.longestRun.toFixed(1)} km, fastest pace ${ctx.prs.fastestPace ?? 'N/A'}
+
+Generate 3 insight cards. Each must cite SPECIFIC numbers from the data. Do not be generic.
+Required types: (1) PACING pattern, (2) WEEKLY LOAD trend, (3) ONE concrete improvement.
+
+Return ONLY valid JSON:
+{"insights":[{"icon":"emoji","headline":"≤12 words specific claim","body":"2 sentences with actual numbers","recommendation":"≤15 words concrete action"}]}`;
+
+  const response = await anthropic.messages.create({
+    model:      'claude-sonnet-4-6',
+    max_tokens: 400,
+    system:     'You are Runivo Intelligence — a data-driven running coach. Return only valid JSON.',
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  await logUsage(supabase, userId, 'pace_intelligence', response.usage);
+
+  let parsed: PaceIntelligencePayload;
+  try {
+    const text = (response.content[0] as { type: 'text'; text: string }).text;
+    const raw = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
+    parsed = { insights: raw.insights ?? [], generatedAt: new Date().toISOString() };
+  } catch {
+    parsed = { insights: [], generatedAt: new Date().toISOString() };
+  }
+
+  await supabase.from('ai_cache').upsert({
+    user_id:      userId,
+    feature:      'pace_intelligence',
+    payload:      parsed,
+    context_hash: hash,
+    generated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,feature' });
+
+  return parsed;
+}
+
+// ─── Territory strategy ───────────────────────────────────────────────────────
+async function handleTerritoryStrategy(
+  anthropic: Anthropic,
+  ctx: UserContext,
+): Promise<string> {
+  const staleDesc = ctx.staleZoneCount > 0
+    ? `${ctx.staleZoneCount} stale zone(s) with avg freshness ${ctx.avgFreshness}% — rivals can steal these now.`
+    : 'All zones are currently fresh (freshness ≥ 40).';
+
+  const recentRunLines = ctx.runs90d.slice(0, 5)
+    .map(r => `- ${((r.distance_m ?? 0) / 1000).toFixed(1)}km at ${r.avg_pace ?? '–'}/km`)
+    .join('\n');
+
+  const response = await anthropic.messages.create({
+    model:      'claude-sonnet-4-6',
+    max_tokens: 400,
+    system:     'You are the Runivo AI Coach — a territory strategist. Be specific and competitive.',
+    messages: [{
+      role:    'user',
+      content: `Plan a territory strategy for ${ctx.runnerRank}-ranked runner.
+
+TERRITORY STATUS:
+- Score: ${ctx.territoryScore} TS | Largest tier: ${ctx.largestTierHeld}
+- Total area: ${Math.round(ctx.totalAreaM2).toLocaleString()} m²
+- ${staleDesc}
+- PACE this week: ${ctx.paceWeeklyEarned} / ${ctx.paceWeeklyCapLimit}
+
+RECENT RUNS:
+${recentRunLines || 'No recent runs.'}
+
+Give a specific 3-run strategy: which zones to prioritize defending, optimal route types (loop for park capture vs corridor for street claiming), and how to balance defense vs expansion given their current fitness. Under 250 words. Be competitive — frame it as protecting their empire.`,
+    }],
+  });
+
+  return (response.content[0] as { type: 'text'; text: string }).text;
+}
+
 // ─── Quick prompts ────────────────────────────────────────────────────────────
 function handleQuickPrompts(ctx: UserContext): Array<{ label: string; message: string }> {
   const prompts: Array<{ label: string; message: string }> = [];
@@ -1024,6 +1341,166 @@ function handleQuickPrompts(ctx: UserContext): Array<{ label: string; message: s
   return prompts.slice(0, 4);
 }
 
+async function handleAdaptPlan(
+  anthropic: Anthropic,
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  planId: string,
+  ctx: UserContext,
+): Promise<{ planId: string; adaptedWeek: Array<{ day: string; type: string; description: string }> }> {
+  const { data: plan } = await supabase
+    .from('training_plans')
+    .select('id, goal, week_current, weeks_total, plan_data')
+    .eq('id', planId)
+    .eq('user_id', userId)
+    .single();
+
+  if (!plan) throw new Error('Plan not found');
+
+  const weekIdx     = (plan.week_current as number) - 1;
+  const planData    = plan.plan_data as TrainingPlanPayload;
+  const currentWeek = planData.weeks[weekIdx];
+
+  // Find runs from the past 7 days to assess adherence
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const recentRuns   = ctx.runs90d.filter(r => r.started_at >= sevenDaysAgo);
+  const totalRecentKm = recentRuns.reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
+  const runDays       = new Set(recentRuns.map(r => r.started_at.split('T')[0])).size;
+
+  // Count completed vs planned sessions
+  const plannedActive = currentWeek?.sessions.filter(s => s.type !== 'Rest').length ?? 0;
+
+  const response = await anthropic.messages.create({
+    model:      'claude-sonnet-4-6',
+    max_tokens: 512,
+    system:     'You are Runivo Intelligence — a running coach. Return only valid JSON.',
+    messages: [{
+      role:    'user',
+      content: `Adapt training plan for next week (Week ${(plan.week_current as number) + 1}).
+Goal: ${plan.goal}.
+Last week planned: ${plannedActive} active sessions. Actual: ${runDays} run days, ${totalRecentKm.toFixed(1)} km.
+Weekly avg (90d): ${ctx.weeklyKm} km/wk. Easy pace: ~${ctx.easyPace}/km. Tempo: ~${ctx.tempoPace}/km.
+Trend: ${ctx.trend}.
+
+Rules: if actual km < 70% of planned, reduce next week by 10%. If actual km ≥ planned, increase by 5–10%.
+Respond ONLY with valid JSON:
+{"note":"one sentence explaining the adaptation ≤20 words","sessions":[{"day":"Mon","type":"Easy Run","description":"brief ≤12 words"},{"day":"Wed","type":"Tempo","description":"brief ≤12 words"},{"day":"Fri","type":"Long Run","description":"brief ≤12 words"},{"day":"Sun","type":"Rest","description":"light stretching"}]}`,
+    }],
+  });
+
+  await logUsage(supabase, userId, 'adapt_plan', response.usage);
+
+  let adaptedNote    = 'Adapted based on last week\'s performance.';
+  let adaptedSessions: Array<{ day: string; type: string; description: string }> = currentWeek?.sessions ?? [];
+
+  try {
+    const text   = (response.content[0] as { type: 'text'; text: string }).text;
+    const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
+    adaptedNote    = parsed.note ?? adaptedNote;
+    adaptedSessions = parsed.sessions ?? adaptedSessions;
+  } catch { /* use defaults */ }
+
+  // Update plan_data for current week with adapted sessions
+  const updatedWeeks = planData.weeks.map((w, i) =>
+    i === weekIdx ? { ...w, sessions: adaptedSessions } : w
+  );
+
+  await supabase
+    .from('training_plans')
+    .update({ plan_data: { weeks: updatedWeeks }, updated_at: new Date().toISOString() })
+    .eq('id', planId);
+
+  await supabase
+    .from('plan_adaptations')
+    .insert({
+      plan_id:          planId,
+      week_number:      plan.week_current,
+      adaptation_note:  adaptedNote,
+      adapted_sessions: adaptedSessions,
+    });
+
+  return { planId, adaptedWeek: adaptedSessions };
+}
+
+// ─── Habit tracking ───────────────────────────────────────────────────────────
+async function handleHabitTracking(
+  anthropic: Anthropic,
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  ctx: UserContext,
+): Promise<string> {
+  const pc      = ctx.planCompliance;
+  const streak  = pc?.streakDays ?? 0;
+  const history = pc?.consistencyLast8Weeks ?? [];
+  const avg8w   = pc?.avgConsistencyLast8Weeks;
+
+  // Recent run day pattern (last 28 days)
+  const twentyEightDaysAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString();
+  const recentRuns = ctx.runs90d.filter(r => r.started_at >= twentyEightDaysAgo);
+  const dayNames   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayCounts: Record<string, number> = {};
+  for (const r of recentRuns) {
+    const name = dayNames[new Date(r.started_at).getDay()];
+    dayCounts[name] = (dayCounts[name] ?? 0) + 1;
+  }
+  const dayPattern = dayNames
+    .map(d => `${d}:${dayCounts[d] ?? 0}`)
+    .join(' ');
+
+  const runLines = recentRuns.slice(0, 14).map(r => {
+    const d = new Date(r.started_at);
+    return `${dayNames[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}: ${((r.distance_m ?? 0) / 1000).toFixed(1)}km`;
+  }).join(', ');
+
+  const planSection = pc
+    ? `TRAINING PLAN: "${pc.goal}" (Week ${pc.weekCurrent}/${pc.weeksTotal})
+This week: ${pc.sessionsCompletedThisWeek}/${pc.sessionsPlannedThisWeek} sessions completed${pc.sessionsMissedThisWeek > 0 ? `, ${pc.sessionsMissedThisWeek} missed` : ', on track'}
+Consistency last 8 weeks (oldest→newest): ${history.length > 0 ? history.join('%, ') + '%' : 'no history yet'}
+8-week average: ${avg8w !== null ? avg8w + '%' : 'N/A'}`
+    : 'No active training plan — running without a curriculum.';
+
+  const content = `You are Pace, the Runivo running coach. Give ${ctx.runnerRank}-ranked runner a habit analysis.
+
+STREAK: ${streak} day${streak !== 1 ? 's' : ''} current run streak
+
+${planSection}
+
+DAY PATTERN (last 28 days, runs per day):
+${dayPattern}
+
+RECENT RUNS:
+${runLines || 'No recent runs.'}
+
+Write a habit analysis in EXACTLY these 4 sections. Label each section clearly.
+
+1. STREAK — Comment on the ${streak}-day streak specifically. Is ${streak} days impressive for their level? Compare to typical runners.
+2. CONSISTENCY — Interpret the plan compliance data. What does the trend say — building, plateauing, declining?
+3. PATTERN — Which days do they actually run vs avoid? Name the specific days. Is there a gap that hurts progress?
+4. ONE FOCUS — One specific, actionable habit change. Not generic. Reference their actual data.
+
+Be direct. Use real numbers. Under 220 words total. Conversational, not clinical.`;
+
+  const response = await anthropic.messages.create({
+    model:      'claude-sonnet-4-6',
+    max_tokens: 400,
+    system:     'You are Pace — a direct, data-driven running coach embedded in the Runivo app.',
+    messages:   [{ role: 'user', content }],
+  });
+
+  await logUsage(supabase, userId, 'coach_chat', response.usage);
+
+  const reply = (response.content[0] as { type: 'text'; text: string }).text;
+
+  await supabase.from('coach_messages').insert({
+    user_id:    userId,
+    role:       'assistant',
+    content:    reply,
+    created_at: new Date().toISOString(),
+  });
+
+  return reply;
+}
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin':  '*',
@@ -1085,8 +1562,27 @@ Deno.serve(async (req) => {
         result = await handleNutritionInsights(anthropic, supabase, user.id, ctx);
         break;
 
+      case 'pace_intelligence':
+        result = await handlePaceIntelligence(anthropic, supabase, user.id, ctx);
+        break;
+
       case 'quick_prompts':
         result = handleQuickPrompts(ctx);
+        break;
+
+      case 'territory_strategy':
+        result = await handleTerritoryStrategy(anthropic, ctx);
+        break;
+
+      case 'adapt_plan': {
+        const apPlanId = body.planId;
+        if (!apPlanId) return new Response('Missing planId', { status: 400, headers: CORS_HEADERS });
+        result = await handleAdaptPlan(anthropic, supabase, user.id, apPlanId, ctx);
+        break;
+      }
+
+      case 'habit_tracking':
+        result = await handleHabitTracking(anthropic, supabase, user.id, ctx);
         break;
 
       default:

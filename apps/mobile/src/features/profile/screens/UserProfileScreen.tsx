@@ -35,6 +35,7 @@ export default function UserProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -47,8 +48,9 @@ export default function UserProfileScreen() {
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        setIsOwnProfile(session.user.id === userId);
         const { data: follow } = await supabase
-          .from('follows')
+          .from('followers')
           .select('id')
           .eq('follower_id', session.user.id)
           .eq('following_id', userId)
@@ -62,19 +64,17 @@ export default function UserProfileScreen() {
 
   const handleFollow = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session || session.user.id === userId) return;
     setFollowLoading(true);
     if (isFollowing) {
-      await supabase.from('follows').delete().eq('follower_id', session.user.id).eq('following_id', userId);
+      await supabase.from('followers').delete().eq('follower_id', session.user.id).eq('following_id', userId);
       setIsFollowing(false);
     } else {
-      await supabase.from('follows').insert({ follower_id: session.user.id, following_id: userId });
+      await supabase.from('followers').insert({ follower_id: session.user.id, following_id: userId });
       setIsFollowing(true);
     }
     setFollowLoading(false);
   };
-
-  const handleMessage = () => {};
 
   const displayName = user?.display_name || username;
   const color = user?.avatar_color || avatarColor(username);
@@ -106,26 +106,28 @@ export default function UserProfileScreen() {
             {user?.level ? <Text style={s.level}>Level {user.level}</Text> : null}
 
             {/* Follow / Message actions */}
-            <View style={s.actions}>
-              <Pressable
-                style={[s.followBtn, isFollowing && s.followingBtn]}
-                onPress={handleFollow}
-                disabled={followLoading}
-              >
-                {isFollowing ? (
-                  <Check size={14} color={C.black} strokeWidth={2} />
-                ) : (
-                  <UserPlus size={14} color={C.white} strokeWidth={2} />
-                )}
-                <Text style={[s.followBtnLabel, isFollowing && s.followingBtnLabel]}>
-                  {isFollowing ? 'Following' : 'Follow'}
-                </Text>
-              </Pressable>
-              <Pressable style={[s.messageBtn, s.messageBtnDisabled]} disabled>
-                <MessageSquare size={14} color={C.t3} strokeWidth={1.5} />
-                <Text style={[s.messageBtnLabel, s.messageBtnLabelDisabled]}>Message</Text>
-              </Pressable>
-            </View>
+            {!isOwnProfile && (
+              <View style={s.actions}>
+                <Pressable
+                  style={[s.followBtn, isFollowing && s.followingBtn]}
+                  onPress={handleFollow}
+                  disabled={followLoading}
+                >
+                  {isFollowing ? (
+                    <Check size={14} color={C.black} strokeWidth={2} />
+                  ) : (
+                    <UserPlus size={14} color={C.white} strokeWidth={2} />
+                  )}
+                  <Text style={[s.followBtnLabel, isFollowing && s.followingBtnLabel]}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
+                </Pressable>
+                <Pressable style={[s.messageBtn, s.messageBtnDisabled]} disabled>
+                  <MessageSquare size={14} color={C.t3} strokeWidth={1.5} />
+                  <Text style={[s.messageBtnLabel, s.messageBtnLabelDisabled]}>Message</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* Stats grid */}

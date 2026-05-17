@@ -3,12 +3,11 @@
 export type MissionType =
   | 'run_distance'
   | 'claim_territories'
-  | 'fortify_territories'
   | 'capture_enemy'
-  | 'explore_new_hexes'
-  | 'run_in_enemy_zone'
   | 'speed_run'
   | 'run_streak'
+  | 'defend_zone'
+  | 'steal_rival'
   | 'complete_run'
   | 'beat_pace';
 
@@ -202,6 +201,104 @@ export interface Season {
       partnerDiscounts: { [brand: string]: number };
     };
   };
+}
+
+// ── Award system types ────────────────────────────────────────────────────────
+
+export type AwardCategory = 'territory' | 'distance' | 'streak' | 'pace';
+
+export type AwardId =
+  | 'first_claim' | 'first_blood' | 'park_capture'
+  | 'district_owner' | 'quarter_owner' | 'domain_lord'
+  | 'city_builder' | 'defender' | 'sovereign_rank'
+  | 'first_5k' | 'first_10k' | 'first_halfmarathon'
+  | 'km_100' | 'km_500' | 'km_1000'
+  | 'streak_7' | 'streak_30' | 'early_bird'
+  | 'sub_5' | 'sub_4_30' | 'monthly_100';
+
+export interface Award {
+  id: AwardId;
+  title: string;
+  description: string;
+  icon: string;
+  category: AwardCategory;
+  unlockedAt: string | null;
+  progressCurrent?: number;
+  progressTarget?: number;
+}
+
+export interface PersonalRecord {
+  fastest1kSec: number | null;
+  fastest5kSec: number | null;
+  fastest10kSec: number | null;
+  longestRunM: number | null;
+  bestPaceSec: number | null;
+}
+
+export interface ProfileStats {
+  totalKm: number;
+  totalRuns: number;
+  avgPaceSec: number;
+  totalCalories: number;
+  totalZones: number;
+}
+
+// ── New territory + PACE economy types ───────────────────────────────────────
+
+export type TerritoryTier = 'patch' | 'block' | 'district' | 'quarter' | 'domain';
+export type RunnerRank = 'pacer' | 'strider' | 'chaser' | 'hunter' | 'sovereign';
+
+export interface TerritoryPolygon {
+  id: string;
+  runId: string;
+  ownerId: string;
+  ownerName: string;
+  polygon: [number, number][];   // closed ring [lng, lat][], RDP-simplified
+  areaM2: number;
+  freshness: number;             // 0–100
+  lastDefendedAt: string;        // ISO
+  claimedAt: string;             // ISO
+  isLoopFill: boolean;
+  tier: TerritoryTier;
+  synced: boolean;
+}
+
+export interface ProcessRunTerritoryResponse {
+  territoryGenerated: boolean;
+  newZonesClaimed:    number;
+  rivalZonesStolen:   number;
+  paceAdjustment:     number;
+  stolenFromUserIds:  string[];
+}
+
+// ── Training plan types ───────────────────────────────────────────────────────
+
+export type SessionType = 'Easy Run' | 'Tempo' | 'Long Run' | 'Intervals' | 'Rest' | 'Cross-train' | 'Race';
+export type PlanStatus  = 'active' | 'completed' | 'abandoned';
+
+export interface PlannedSession {
+  day:         string;
+  type:        SessionType | string;
+  description: string;
+}
+
+export interface TrainingWeek {
+  week:     number;
+  focus:    string;
+  sessions: PlannedSession[];
+}
+
+export interface TrainingPlan {
+  id:            string;
+  userId:        string;
+  goal:          string;
+  goalRaceDate?: string;
+  weeksTotal:    number;
+  weekCurrent:   number;
+  status:        PlanStatus;
+  planData:      { weeks: TrainingWeek[] };
+  createdAt:     string;
+  updatedAt:     string;
 }
 
 export interface GameEvent {

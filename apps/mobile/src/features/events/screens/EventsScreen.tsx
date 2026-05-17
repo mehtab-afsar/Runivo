@@ -224,12 +224,14 @@ export default function EventsScreen() {
           data={filteredEvents}
           keyExtractor={e => e.id}
           renderItem={({ item }) => (
-            <EventCard
-              event={item}
-              joined={joinedIds.has(item.id)}
-              onJoin={() => handleJoin(item.id)}
-              onPress={() => setSelectedEvent(item)}
-            />
+            <View style={item.category === 'brand-challenge' ? s.paceCardAccent : undefined}>
+              <EventCard
+                event={item}
+                joined={joinedIds.has(item.id)}
+                onJoin={() => handleJoin(item.id)}
+                onPress={() => setSelectedEvent(item)}
+              />
+            </View>
           )}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
@@ -290,5 +292,6 @@ function mkStyles(C: AppColors) {
     emptyText:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, textAlign: 'center' },
     // FAB
     fab:            { position: 'absolute', right: 14, width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+    paceCardAccent: { borderLeftWidth: 3, borderLeftColor: C.red },
   });
 }

@@ -1,4 +1,5 @@
 import { openDB, IDBPDatabase } from 'idb';
+import type { TerritoryPolygon, RunnerRank, TerritoryTier } from '../types/game';
 
 const DB_NAME = 'runivo';
 const DB_VERSION = 10;
@@ -123,8 +124,8 @@ export interface StoredRun {
   elevationGainM?: number;
   territoriesClaimed: string[];
   territoriesFortified: string[];
-  xpEarned: number;
-  coinsEarned: number;
+  xpEarned?: number;
+  coinsEarned?: number;
   enemyCaptured: number;
   preRunLevel: number;
   synced: boolean;
@@ -133,6 +134,7 @@ export interface StoredRun {
   caloriesBurned?: number;   // kcal, from wearable
   importSource?: string;     // 'apple_health' | 'garmin' | 'coros' | 'polar'
   externalId?: string;       // platform workout ID, prevents duplicate imports
+  rivalZonesStolen?: number; // populated after process-run-territory resolves
 }
 
 export interface StoredTerritory {
@@ -151,11 +153,12 @@ export interface StoredTerritory {
 export interface StoredPlayer {
   id: string;
   username: string;
-  level: number;
-  xp: number;
-  coins: number;
-  energy: number;
-  lastEnergyRegen: number;
+  // Legacy fields — kept optional so existing installs don't crash
+  level?: number;
+  xp?: number;
+  coins?: number;
+  energy?: number;
+  lastEnergyRegen?: number;
   totalDistanceKm: number;
   totalRuns: number;
   totalTerritoriesClaimed: number;
@@ -165,6 +168,16 @@ export interface StoredPlayer {
   lastLoginBonusDate: string | null; // YYYY-MM-DD of last daily login bonus collection
   unlockedAchievements: string[];
   createdAt: number;
+  // PACE economy (new)
+  paceBalance?: number;
+  paceTotalEarned?: number;
+  paceWeeklyEarned?: number;
+  paceWeeklyResetAt?: string;  // ISO
+  runnerRank?: RunnerRank;
+  territoryScore?: number;
+  largestTierAchieved?: TerritoryTier;
+  earnedAwardIds?: string[];
+  pinnedRunId?: string;
 }
 
 export interface StoredSavedRoute {
@@ -325,11 +338,17 @@ export async function getPlayer(): Promise<StoredPlayer | null> {
   const all = await idbSafe(() => db.getAll('player'), [], 'getPlayer');
   const p = all[0] || null;
   if (!p) return null;
-  // Backfill new fields for records created before schema v5/v6
+  // Backfill new fields for records created before schema v5/v6/v11+
   return {
     totalEnemyCaptured: 0,
     unlockedAchievements: [],
     lastLoginBonusDate: null,
+    paceBalance: 0,
+    paceTotalEarned: 0,
+    paceWeeklyEarned: 0,
+    paceWeeklyResetAt: new Date().toISOString(),
+    runnerRank: 'pacer' as RunnerRank,
+    territoryScore: 0,
     ...p,
   };
 }
@@ -343,11 +362,6 @@ export async function initializePlayer(username: string): Promise<StoredPlayer> 
   const player: StoredPlayer = {
     id: crypto.randomUUID(),
     username,
-    level: 1,
-    xp: 0,
-    coins: 100,
-    energy: 10,
-    lastEnergyRegen: Date.now(),
     totalDistanceKm: 0,
     totalRuns: 0,
     totalTerritoriesClaimed: 0,
@@ -357,6 +371,13 @@ export async function initializePlayer(username: string): Promise<StoredPlayer> 
     lastLoginBonusDate: null,
     unlockedAchievements: [],
     createdAt: Date.now(),
+    // PACE defaults
+    paceBalance: 0,
+    paceTotalEarned: 0,
+    paceWeeklyEarned: 0,
+    paceWeeklyResetAt: new Date().toISOString(),
+    runnerRank: 'pacer',
+    territoryScore: 0,
   };
   await savePlayer(player);
   return player;
@@ -422,6 +443,23 @@ export async function getAllTerritories(): Promise<StoredTerritory[]> {
 export async function getPlayerTerritoryIds(playerId: string): Promise<string[]> {
   const all = await getAllTerritories();
   return all.filter(t => t.ownerId === playerId).map(t => t.id);
+}
+
+export async function saveTerritory(territory: TerritoryPolygon): Promise<void> {
+  const db = await getDB();
+  await idbSafe(() => db.put('territories', territory), undefined, 'saveTerritory');
+}
+
+export async function getTerritoryPolygons(ownerId?: string): Promise<TerritoryPolygon[]> {
+  const db = await getDB();
+  const all = await idbSafe(
+    () => db.getAll('territories') as Promise<TerritoryPolygon[]>,
+    [],
+    'getTerritoryPolygons',
+  );
+  // Filter to records with polygon-engine shape (have freshness field)
+  const polygons = all.filter((t: any) => typeof t.freshness === 'number');
+  return ownerId ? polygons.filter(t => t.ownerId === ownerId) : polygons;
 }
 
 export async function queueAction(action: {

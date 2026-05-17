@@ -2,17 +2,17 @@
 // Key difference from web: generateDailyMissions accepts a difficulty param
 // instead of reading from localStorage.
 
-export type GoalCategory = 'weight_loss' | 'endurance' | 'speed' | 'territory' | 'explorer' | 'all';
+export type GoalCategory = 'weight_loss' | 'endurance' | 'speed' | 'territory' | 'explorer' | 'all' | 'health';
 
 export type MissionType =
   | 'claim_territories'
   | 'run_distance'
-  | 'run_in_enemy_zone'
-  | 'fortify_territories'
   | 'run_streak'
   | 'capture_enemy'
   | 'speed_run'
-  | 'explore_new_hexes';
+  | 'defend_zone'
+  | 'steal_rival'
+  | 'nutrition_streak';
 
 export interface Mission {
   id: string;
@@ -24,31 +24,30 @@ export interface Mission {
   current: number;
   completed: boolean;
   claimed: boolean;
-  rewards: { xp: number; coins: number };
+  rewards: { pace: number };
   expiresAt: number;
   difficulty: 'easy' | 'medium' | 'hard';
   goalCategory?: GoalCategory;
 }
 
 export const MISSION_TEMPLATES: Omit<Mission, 'id' | 'current' | 'completed' | 'claimed' | 'expiresAt'>[] = [
-  { type: 'run_distance',       title: 'Morning Miles',       description: 'Run a total of 1 km today',                    icon: '🏃', target: 1,   rewards: { xp: 30,  coins: 15  }, difficulty: 'easy',   goalCategory: 'endurance' },
-  { type: 'claim_territories',  title: 'Land Grab',           description: 'Claim 1 new territory',                        icon: '🏴', target: 1,   rewards: { xp: 40,  coins: 20  }, difficulty: 'easy',   goalCategory: 'territory' },
-  { type: 'fortify_territories',title: 'Shore Up Defenses',   description: 'Fortify 2 of your territories',                icon: '🛡️', target: 2,   rewards: { xp: 35,  coins: 15  }, difficulty: 'easy',   goalCategory: 'territory' },
-  { type: 'explore_new_hexes',  title: 'Explorer',            description: 'Run through 5 different hexes',                icon: '🧭', target: 5,   rewards: { xp: 25,  coins: 10  }, difficulty: 'easy',   goalCategory: 'explorer'  },
-  { type: 'run_distance',       title: 'Calorie Crusher',     description: 'Run 2 km to torch calories',                   icon: '🔥', target: 2,   rewards: { xp: 55,  coins: 25  }, difficulty: 'easy',   goalCategory: 'weight_loss' },
-  { type: 'run_distance',       title: 'Steady State',        description: 'Run 1.5 km at a comfortable, sustained pace',  icon: '💪', target: 1.5, rewards: { xp: 45,  coins: 20  }, difficulty: 'easy',   goalCategory: 'endurance' },
-  { type: 'run_distance',       title: 'Push Further',        description: 'Run a total of 3 km today',                    icon: '🔥', target: 3,   rewards: { xp: 80,  coins: 40  }, difficulty: 'medium', goalCategory: 'endurance' },
-  { type: 'claim_territories',  title: 'Territorial',         description: 'Claim 3 territories in one session',           icon: '⚡', target: 3,   rewards: { xp: 100, coins: 50  }, difficulty: 'medium', goalCategory: 'territory' },
-  { type: 'capture_enemy',      title: 'Hostile Takeover',    description: 'Capture 1 enemy territory',                    icon: '⚔️', target: 1,   rewards: { xp: 75,  coins: 35  }, difficulty: 'medium', goalCategory: 'territory' },
-  { type: 'run_in_enemy_zone',  title: 'Behind Enemy Lines',  description: 'Run 500m through enemy territory',             icon: '🎯', target: 0.5, rewards: { xp: 60,  coins: 30  }, difficulty: 'medium', goalCategory: 'territory' },
-  { type: 'speed_run',          title: 'Speed Demon',         description: 'Maintain pace under 6:00/km for 1 km',         icon: '💨', target: 1,   rewards: { xp: 70,  coins: 35  }, difficulty: 'medium', goalCategory: 'speed'     },
-  { type: 'run_distance',       title: 'Fat Burn Zone',       description: 'Complete a 4 km steady-state run',             icon: '💧', target: 4,   rewards: { xp: 120, coins: 60  }, difficulty: 'medium', goalCategory: 'weight_loss' },
-  { type: 'explore_new_hexes',  title: 'Off The Beaten Path', description: 'Discover 10 new map hexes',                    icon: '🗺️', target: 10,  rewards: { xp: 150, coins: 85  }, difficulty: 'medium', goalCategory: 'explorer'  },
-  { type: 'run_distance',       title: 'Endurance Test',      description: 'Run 5 km in a single session',                 icon: '🏆', target: 5,   rewards: { xp: 200, coins: 120 }, difficulty: 'hard',   goalCategory: 'endurance' },
-  { type: 'claim_territories',  title: 'Empire Builder',      description: 'Claim 5 territories today',                    icon: '👑', target: 5,   rewards: { xp: 250, coins: 150 }, difficulty: 'hard',   goalCategory: 'territory' },
-  { type: 'capture_enemy',      title: 'War Machine',         description: 'Capture 3 enemy territories in one run',       icon: '💀', target: 3,   rewards: { xp: 300, coins: 200 }, difficulty: 'hard',   goalCategory: 'territory' },
-  { type: 'run_distance',       title: 'Long Haul',           description: 'Run 8 km to build serious aerobic base',       icon: '🏅', target: 8,   rewards: { xp: 280, coins: 170 }, difficulty: 'hard',   goalCategory: 'endurance' },
-  { type: 'speed_run',          title: 'Sprint Intervals',    description: 'Complete 3 km with sub-5:30/km pace',          icon: '🚀', target: 3,   rewards: { xp: 180, coins: 110 }, difficulty: 'hard',   goalCategory: 'speed'     },
+  { type: 'run_distance',      title: 'Morning Miles',    description: 'Run a total of 1 km today',                    icon: '🏃', target: 1,   rewards: { pace: 4  }, difficulty: 'easy',   goalCategory: 'endurance'   },
+  { type: 'claim_territories', title: 'Land Grab',        description: 'Claim 1 new territory',                        icon: '🏴', target: 1,   rewards: { pace: 5  }, difficulty: 'easy',   goalCategory: 'territory'   },
+  { type: 'run_distance',      title: 'Calorie Crusher',  description: 'Run 2 km to torch calories',                   icon: '🔥', target: 2,   rewards: { pace: 7  }, difficulty: 'easy',   goalCategory: 'weight_loss' },
+  { type: 'run_distance',      title: 'Steady State',     description: 'Run 1.5 km at a comfortable, sustained pace',  icon: '💪', target: 1.5, rewards: { pace: 6  }, difficulty: 'easy',   goalCategory: 'endurance'   },
+  { type: 'run_distance',      title: 'Push Further',     description: 'Run a total of 3 km today',                    icon: '🔥', target: 3,   rewards: { pace: 10 }, difficulty: 'medium', goalCategory: 'endurance'   },
+  { type: 'claim_territories', title: 'Territorial',      description: 'Claim 3 territories in one session',           icon: '⚡', target: 3,   rewards: { pace: 12 }, difficulty: 'medium', goalCategory: 'territory'   },
+  { type: 'capture_enemy',     title: 'Hostile Takeover', description: 'Capture 1 enemy territory',                    icon: '⚔️', target: 1,   rewards: { pace: 8  }, difficulty: 'medium', goalCategory: 'territory'   },
+  { type: 'speed_run',         title: 'Speed Demon',      description: 'Maintain pace under 6:00/km for 1 km',         icon: '💨', target: 1,   rewards: { pace: 9  }, difficulty: 'medium', goalCategory: 'speed'       },
+  { type: 'run_distance',      title: 'Fat Burn Zone',    description: 'Complete a 4 km steady-state run',             icon: '💧', target: 4,   rewards: { pace: 15 }, difficulty: 'medium', goalCategory: 'weight_loss' },
+  { type: 'defend_zone',       title: 'Defend Your Turf', description: 'Re-run through one of your stale zones to refresh it', icon: '🛡', target: 1, rewards: { pace: 20 }, difficulty: 'medium', goalCategory: 'territory'   },
+  { type: 'run_distance',      title: 'Endurance Test',   description: 'Run 5 km in a single session',                 icon: '🏆', target: 5,   rewards: { pace: 25 }, difficulty: 'hard',   goalCategory: 'endurance'   },
+  { type: 'claim_territories', title: 'Empire Builder',   description: 'Claim 5 territories today',                    icon: '👑', target: 5,   rewards: { pace: 30 }, difficulty: 'hard',   goalCategory: 'territory'   },
+  { type: 'capture_enemy',     title: 'War Machine',      description: 'Capture 3 enemy territories in one run',       icon: '💀', target: 3,   rewards: { pace: 40 }, difficulty: 'hard',   goalCategory: 'territory'   },
+  { type: 'run_distance',      title: 'Long Haul',        description: 'Run 8 km to build serious aerobic base',       icon: '🏅', target: 8,   rewards: { pace: 35 }, difficulty: 'hard',   goalCategory: 'endurance'   },
+  { type: 'speed_run',         title: 'Sprint Intervals', description: 'Complete 3 km with sub-5:30/km pace',          icon: '🚀', target: 3,   rewards: { pace: 22 }, difficulty: 'hard',   goalCategory: 'speed'       },
+  { type: 'steal_rival',       title: 'Take Their Ground', description: 'Capture part of a rival\'s territory on your run', icon: '⚔️', target: 1, rewards: { pace: 30 }, difficulty: 'hard',  goalCategory: 'territory'   },
+  { type: 'nutrition_streak',  title: 'Fuel Right',        description: 'Log at least 3 meals per day for 5 days this week', icon: '🥗', target: 5, rewards: { pace: 15 }, difficulty: 'medium', goalCategory: 'health' },
 ];
 
 export const GOAL_TO_CATEGORY: Record<'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete', GoalCategory> = {
@@ -164,13 +163,12 @@ export function generateBlueprint(
 export function updateMissionProgress(
   missions: Mission[],
   runResult: {
-    distanceKm:            number;
-    territoriesClaimed:    string[];
-    territoriesFortified:  string[];
-    enemyCaptured:         number;
-    hexesVisited:          number;
-    enemyZoneDistanceKm:   number;
-    fastKmCount:           number;
+    distanceKm:          number;
+    territoriesClaimed:  string[];
+    enemyCaptured:       number;
+    fastKmCount:         number;
+    defendedZonesCount:  number;
+    rivalZonesStolen:    number;
   },
 ): Mission[] {
   return missions.map(mission => {
@@ -179,13 +177,13 @@ export function updateMissionProgress(
     let newCurrent = mission.current;
 
     switch (mission.type) {
-      case 'run_distance':       newCurrent += runResult.distanceKm; break;
-      case 'claim_territories':  newCurrent += runResult.territoriesClaimed.length; break;
-      case 'fortify_territories':newCurrent += runResult.territoriesFortified.length; break;
-      case 'capture_enemy':      newCurrent += runResult.enemyCaptured; break;
-      case 'explore_new_hexes':  newCurrent += runResult.hexesVisited; break;
-      case 'run_in_enemy_zone':  newCurrent += runResult.enemyZoneDistanceKm; break;
-      case 'speed_run':          newCurrent += runResult.fastKmCount; break;
+      case 'run_distance':      newCurrent += runResult.distanceKm; break;
+      case 'claim_territories': newCurrent += runResult.territoriesClaimed.length; break;
+      case 'capture_enemy':     newCurrent += runResult.enemyCaptured; break;
+      case 'speed_run':         newCurrent += runResult.fastKmCount; break;
+      case 'defend_zone':       newCurrent += runResult.defendedZonesCount; break;
+      case 'steal_rival':       newCurrent += runResult.rivalZonesStolen; break;
+      case 'nutrition_streak':  break; // updated by updateMissionsAfterNutritionLog
     }
 
     const completed = newCurrent >= mission.target;

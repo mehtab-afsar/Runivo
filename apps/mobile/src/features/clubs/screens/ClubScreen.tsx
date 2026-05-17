@@ -10,7 +10,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import {
   MapPin, Globe, Flag, Activity, Users, X, Plus, Check,
   Flame, Zap, Trophy, Shield, Navigation, Dumbbell, Target, Medal,
-  Rocket, Star, Swords, Wind, Waves, Mountain, Gem, Crown, Leaf,
+  Rocket, Star, Swords, Waves, Mountain, Gem, Crown, Leaf,
   Footprints, Bike, UserCheck, Lock, ArrowLeft, Award,
   type LucideIcon,
 } from 'lucide-react-native';
@@ -27,11 +27,17 @@ type ClubTab = 'my_clubs' | 'rankings';
 type RankingScope = 'local' | 'national' | 'international';
 type JoinPolicy = 'open' | 'request' | 'invite';
 
-const SCOPE_ICONS: Record<string, React.ReactNode> = {
-  local:         <MapPin size={11} color="#6B6B6B" strokeWidth={1.5} />,
-  national:      <Flag size={11} color="#6B6B6B" strokeWidth={1.5} />,
-  international: <Globe size={11} color="#6B6B6B" strokeWidth={1.5} />,
-};
+const CLUB_TIERS: { bg: string; fg: string; label: string; minKm: number }[] = [
+  { bg: '#F1EFE8', fg: '#5F5E5A', label: 'Local',    minKm: 0    },
+  { bg: '#E6F1FB', fg: '#185FA5', label: 'Active',   minKm: 100  },
+  { bg: '#EEEDFE', fg: '#3C3489', label: 'Regional', minKm: 500  },
+  { bg: '#FAEEDA', fg: '#854F0B', label: 'Pro',      minKm: 1000 },
+  { bg: '#FCEBEB', fg: '#A32D2D', label: 'Elite',    minKm: 5000 },
+];
+function getClubTier(km: number) {
+  return [...CLUB_TIERS].reverse().find(t => km >= t.minKm) ?? CLUB_TIERS[0];
+}
+
 const SCOPES: { value: RankingScope; label: string }[] = [
   { value: 'local',         label: 'Local'         },
   { value: 'national',      label: 'National'      },
@@ -72,6 +78,7 @@ function RankingRow({ club, rank, onPress, isLast }: { club: Club; rank: number;
   const r = useMemo(() => mkRStyles(C), [C]);
   const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(club.badge_emoji);
   const bg = avatarColor(club.name);
+  const tier = getClubTier(club.total_km);
   return (
     <Pressable style={[r.row, !isLast && r.rowBorder]} onPress={onPress}>
       <Text style={r.rank}>{rank}</Text>
@@ -81,6 +88,9 @@ function RankingRow({ club, rank, onPress, isLast }: { club: Club; rank: number;
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={r.name} numberOfLines={1}>{club.name}</Text>
         <Text style={r.meta}>{club.member_count} members</Text>
+      </View>
+      <View style={[r.tierBadge, { backgroundColor: tier.bg }]}>
+        <Text style={[r.tierText, { color: tier.fg }]}>{tier.label.toUpperCase()}</Text>
       </View>
       <View style={r.cols}>
         <Text style={r.colVal}>{club.total_km.toFixed(0)}<Text style={r.colUnit}> km</Text></Text>
@@ -100,6 +110,8 @@ function mkRStyles(C: AppColors) {
     cols:      { flexDirection: 'row', alignItems: 'center', gap: 24 },
     colVal:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.black, textAlign: 'right', width: 56 },
     colUnit:   { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3 },
+    tierBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+    tierText:  { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase' as const },
   });
 }
 

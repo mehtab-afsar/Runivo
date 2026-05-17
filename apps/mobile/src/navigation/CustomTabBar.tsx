@@ -3,7 +3,7 @@ import {
   View, Text, Pressable, StyleSheet, Platform, Animated, Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Rss, Sparkles, User, Play } from 'lucide-react-native';
+import { Home, Rss, User, Play } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, type AppColors } from '@theme';
@@ -18,17 +18,17 @@ const TAB_ENABLED: Record<string, boolean> = {
   Profile:   FEATURES.PROFILE,
 };
 
-type NonRunIcon = 'Home' | 'Rss' | 'Sparkles' | 'User';
-const ICON_MAP: Record<NonRunIcon, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
-  Home, Rss, Sparkles, User,
+type NonRunIcon = 'Home' | 'Rss' | 'PaceX' | 'User';
+const ICON_MAP: Record<Exclude<NonRunIcon, 'PaceX'>, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
+  Home, Rss, User,
 };
 
 const TAB_META: { label: string; icon: NonRunIcon | 'Run' }[] = [
-  { label: 'HOME',    icon: 'Home'     },
-  { label: 'FEED',    icon: 'Rss'      },
-  { label: 'RUN',     icon: 'Run'      },
-  { label: 'COACH',   icon: 'Sparkles' },
-  { label: 'PROFILE', icon: 'User'     },
+  { label: 'HOME',    icon: 'Home'  },
+  { label: 'FEED',    icon: 'Rss'   },
+  { label: 'RUN',     icon: 'Run'   },
+  { label: 'PACE',    icon: 'PaceX' },
+  { label: 'PROFILE', icon: 'User'  },
 ];
 
 // Approximate tab bar content height (excluding safe area padding).
@@ -56,6 +56,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   const activeRoute = state.routes[state.index];
   if (activeRoute.name === 'Run') return null;
+  if (coachActive) return null;
 
   return (
     <>
@@ -95,13 +96,17 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               );
             }
 
-            const IconComp = ICON_MAP[meta.icon as NonRunIcon];
+            const isPaceX  = meta.icon === 'PaceX';
             const enabled  = TAB_ENABLED[route.name] !== false;
             const color    = enabled && focused ? C.red : C.t3;
+            const IconComp = isPaceX ? null : ICON_MAP[meta.icon as Exclude<NonRunIcon, 'PaceX'>];
 
             return (
               <Pressable key={route.key} onPress={onPress} style={s.tab}>
-                <IconComp size={22} color={color} strokeWidth={focused ? 2 : 1.5} />
+                {isPaceX || !IconComp
+                  ? <Text style={{ fontFamily: 'Barlow_700Bold', fontSize: 22, color, lineHeight: 26 }}>X</Text>
+                  : <IconComp size={22} color={color} strokeWidth={focused ? 2 : 1.5} />
+                }
                 {enabled ? (
                   <Text style={[s.label, { color, fontFamily: focused ? 'Barlow_500Medium' : 'Barlow_400Regular' }]}>
                     {meta.label}

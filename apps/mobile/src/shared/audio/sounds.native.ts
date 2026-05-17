@@ -46,7 +46,6 @@ class SoundManager {
   private sounds: Partial<Record<SoundName, any>> = {};
   private enabled = true;
   private volume  = 1.0;
-  private loaded  = false;
 
   constructor() {
     this.init().catch(() => {});
@@ -67,7 +66,6 @@ class SoundManager {
       if (en !== null)  this.enabled = en === 'true';
       if (vol !== null) this.volume  = parseFloat(vol);
     } catch { /* ignore */ }
-    this.loaded = true;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

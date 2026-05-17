@@ -14,9 +14,16 @@
     "scheme": "runivo",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.runivo.app"
+      "bundleIdentifier": "com.runivo.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Runivo uses your location to track your run route.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Runivo tracks your run in the background to capture territory zones.",
+        "UIBackgroundModes": ["location"]
+      }
     },
     "android": {
+      "package": "com.runivo.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0A0A0A",
         "foregroundImage": "./assets/android-icon-foreground.png",

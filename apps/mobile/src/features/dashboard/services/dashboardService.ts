@@ -1,22 +1,20 @@
 import {
-  getAllTerritories,
+  getTerritoryPolygons,
   getRuns,
   getSettings,
   getNutritionProfile,
   getNutritionEntries,
   localDateString,
-  type StoredTerritory,
   type StoredRun,
 } from '@shared/services/store';
-import { GAME_CONFIG } from '@shared/services/config';
+import type { TerritoryPolygon } from '@shared/types/game';
 import { ensureTodaysMissions } from '@shared/services/missionStore';
 import type { Mission } from '@shared/services/missions';
 
 export interface DashboardData {
-  territories: StoredTerritory[];
+  territories: TerritoryPolygon[];
   missions: Mission[];
   recentRuns: StoredRun[];
-  loginBonusCoins: number;
   weeklyKm: number;
   runDays: boolean[];
   weeklyGoal: number;
@@ -24,10 +22,10 @@ export interface DashboardData {
   calorieGoal: number;
 }
 
-export async function fetchDashboardData(userId: string): Promise<DashboardData> {
+export async function fetchDashboardData(_userId: string): Promise<DashboardData> {
   const [missions, allTerritories, settings, allRuns] = await Promise.all([
     ensureTodaysMissions(),
-    getAllTerritories(),
+    getTerritoryPolygons(),
     getSettings(),
     getRuns(100),
   ]);
@@ -70,7 +68,6 @@ export async function fetchDashboardData(userId: string): Promise<DashboardData>
     territories: allTerritories,
     missions,
     recentRuns,
-    loginBonusCoins: 0, // provided by usePlayerStats
     weeklyKm,
     runDays,
     weeklyGoal,

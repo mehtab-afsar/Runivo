@@ -6,11 +6,15 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { GPSPoint } from '../hooks/useActiveRun';
+import { kalmanSmooth } from '@shared/services/claimEngine';
 
 let MapLibreGL: typeof import('@maplibre/maplibre-react-native') | null = null;
 try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* simulator / Expo Go */ }
 
-const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const _hour = new Date().getHours();
+const DARK_STYLE = (_hour >= 19 || _hour < 6)
+  ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+  : 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 
 interface Props {
   gpsPoints: GPSPoint[];
@@ -33,15 +37,22 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
     });
   }, [latest?.lat, latest?.lng, isRunning]);
 
-  // Build GeoJSON LineString from gpsPoints
+  // Kalman-smoothed display path — keeps raw gpsPoints for distance/territory calculation
+  const displayPath = useMemo(() => {
+    if (gpsPoints.length < 3) return gpsPoints;
+    return kalmanSmooth(gpsPoints.slice(-200));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gpsPoints.length]);
+
+  // Build GeoJSON LineString from smoothed display path
   const trailGeoJSON = useMemo((): GeoJSON.Feature<GeoJSON.LineString> | null => {
-    if (gpsPoints.length < 2) return null;
+    if (displayPath.length < 2) return null;
     return {
       type: 'Feature',
-      geometry: { type: 'LineString', coordinates: gpsPoints.map(p => [p.lng, p.lat]) },
+      geometry: { type: 'LineString', coordinates: displayPath.map(p => [p.lng, p.lat]) },
       properties: {},
     };
-  }, [gpsPoints]);
+  }, [displayPath]);
 
   // Start dot (first GPS point) — pin lat/lng primitives in dep array (not the object)
   const startDotGeoJSON = useMemo((): GeoJSON.Feature<GeoJSON.Point> | null => {
@@ -88,8 +99,6 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
         ref={cameraRef}
         zoomLevel={latest ? 16 : 14}
         centerCoordinate={latest ? [latest.lng, latest.lat] : undefined}
-        followUserLocation={!latest}
-        followZoomLevel={16}
         animationMode="flyTo"
         animationDuration={800}
       />

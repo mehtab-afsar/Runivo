@@ -22,7 +22,7 @@ export interface Territory {
 }
 
 export function getHexAtPosition(lat: number, lng: number): string {
-  return latLngToCell(lat, lng, GAME_CONFIG.HEX_RESOLUTION);
+  return latLngToCell(lat, lng, 9);
 }
 
 export function getHexBoundary(hexId: string): [number, number][] {
@@ -42,7 +42,7 @@ export function getHexesInBounds(
   west: number,
   north: number,
   east: number,
-  resolution: number = GAME_CONFIG.HEX_RESOLUTION
+  resolution: number = 9
 ): string[] {
   const hexes = new Set<string>();
   const latStep = (north - south) / 30;
@@ -68,7 +68,7 @@ export function hexToGeoJSON(hexId: string): [number, number][] {
 
 export function getDecayedDefense(defense: number, lastFortifiedAt: number): number {
   const hoursSince = (Date.now() - lastFortifiedAt) / (1000 * 60 * 60);
-  const decayPerHour = GAME_CONFIG.TERRITORY_DECAY_PER_DAY / 24;
+  const decayPerHour = GAME_CONFIG.FRESHNESS_DECAY_PER_DAY / 24;
   const decayed = defense - (hoursSince * decayPerHour);
   return Math.max(0, Math.round(decayed * 10) / 10);
 }

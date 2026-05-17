@@ -1,152 +1,271 @@
-import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Platform, KeyboardAvoidingView } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { Sparkles } from 'lucide-react-native';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, Pressable,
+  SafeAreaView, ActivityIndicator, Platform,
+} from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@navigation/AppNavigator';
+import { X } from 'lucide-react-native';
 import { supabase } from '@shared/services/supabase';
+import { getTerritoryPolygons } from '@shared/services/store';
+import { GAME_CONFIG } from '@shared/services/config';
+import type { TerritoryPolygon } from '@shared/types/game';
 import { useTheme, type AppColors } from '@theme';
 import { useCoachNav } from '@navigation/CoachNavContext';
 import { useCoachChat } from '../hooks/useCoachChat';
-import { getQuickPrompts, type QuickPrompt } from '../services/coachService';
-import { MessageBubble } from '../components/MessageBubble';
-import { TypingIndicator } from '../components/TypingIndicator';
-import { CoachFloatingInput } from '../components/CoachFloatingInput';
-import { CoachSidebar } from '../components/CoachSidebar';
+import { usePlanScreen } from '../hooks/usePlanScreen';
+import { getQuickPrompts } from '../services/coachService';
 import { CoachWelcome } from '../components/CoachWelcome';
+import { CoachSidebar } from '../components/CoachSidebar';
+import { PaceInsightCard } from '../components/PaceInsightCard';
+import { PaceAutoCard } from '../components/PaceAutoCard';
+import { PaceChatModal } from '../components/PaceChatModal';
+import { WeekGrid } from '../components/WeekGrid';
+import { computeConsistencyScore } from '../utils/consistencyScore';
+import { buildInsightMessage, getTodaySession, getStaleZones } from '../utils/insightBuilder';
 
-const STATIC_PROMPTS: QuickPrompt[] = [
-  { label: 'How can I improve my pace?',    message: 'How can I improve my pace?' },
-  { label: 'Build me a 5K training plan',   message: 'Build me a 5K training plan' },
-  { label: 'Analyse my last run',           message: 'Analyse my most recent run' },
-  { label: 'What to eat before a long run?',message: 'What should I eat before a long run?' },
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+function PaceXLogo({ size = 22 }: { size?: number }) {
+  const C = useTheme();
+  return (
+    <Text>
+      <Text style={{ fontFamily: 'Barlow_600SemiBold', fontSize: size, color: C.black }}>Pace</Text>
+      <Text style={{ fontFamily: 'Barlow_700Bold', fontSize: size + 1, color: C.red }}>X</Text>
+    </Text>
+  );
+}
+
+const QUICK_ACTIONS = [
+  { label: '💬 Ask Pace',    territory: false, prompt: '' },
+  { label: '🗺 Territory',    territory: false, prompt: 'Plan my territory strategy for this week' },
+  { label: '📊 My Week',     territory: false, prompt: 'Give me my weekly review' },
 ];
 
 export default function CoachScreen() {
-  const C    = useTheme();
-  const ss   = useMemo(() => mkStyles(C), [C]);
-  const insets = useSafeAreaInsets();
-  const listRef = useRef<FlatList>(null);
-  const coach   = useCoachChat();
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
+  const navigation = useNavigation<Nav>();
   const { setCoachActive } = useCoachNav();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [quickPrompts, setQuickPrompts] = useState<QuickPrompt[]>(STATIC_PROMPTS);
 
-  // useFocusEffect (not useEffect) because tab screens persist in the tree —
-  // they don't unmount when you switch tabs, they just blur/focus.
+  const coach    = useCoachChat();
+  const planData = usePlanScreen();
+
+  const [chatVisible,         setChatVisible]         = useState(false);
+  const [capabilitiesVisible, setCapabilitiesVisible] = useState(false);
+  const [staleZones,          setStaleZones]          = useState<TerritoryPolygon[]>([]);
+  const [playerName,          setPlayerName]          = useState('Runner');
+  const [paceWeeklyEarned,    setPaceWeeklyEarned]    = useState(0);
+  const [paceWeeklyCap,       setPaceWeeklyCap]       = useState<number>(GAME_CONFIG.PACE_WEEKLY_CAP_FREE);
+
   useFocusEffect(
     useCallback(() => {
       setCoachActive(true);
-      // Fetch contextual quick prompts on focus, fall back to statics
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (!session) return;
-        getQuickPrompts(session.access_token).then(setQuickPrompts).catch(() => {});
+        const uid = session.user.id;
+
+        getQuickPrompts(session.access_token).catch(() => {});
+
+        const fetchProfile = async () => {
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('username, pace_weekly_earned, subscription_tier')
+              .eq('id', uid)
+              .maybeSingle();
+            if (!data) return;
+            setPlayerName(data.username ?? 'Runner');
+            setPaceWeeklyEarned(data.pace_weekly_earned ?? 0);
+            setPaceWeeklyCap(
+              data.subscription_tier === 'premium'
+                ? GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM
+                : GAME_CONFIG.PACE_WEEKLY_CAP_FREE,
+            );
+          } catch { /* offline */ }
+        };
+        fetchProfile();
+
+        getTerritoryPolygons(uid).then(all => setStaleZones(getStaleZones(all, uid)));
       }).catch(() => {});
+
       return () => setCoachActive(false);
-    }, [setCoachActive])
+    }, [setCoachActive]),
   );
 
-  useEffect(() => {
-    if (coach.messages.length > 0) {
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+  const hasActivePlan  = planData.plan?.status === 'active';
+  const todaySession   = useMemo(() => getTodaySession(planData.sessions), [planData.sessions]);
+  const consistency    = useMemo(() => computeConsistencyScore(planData.sessions), [planData.sessions]);
+  const insight        = useMemo(() => buildInsightMessage({
+    todaySession,
+    staleZones,
+    playerName,
+    paceWeeklyEarned,
+    paceWeeklyCap,
+  }), [todaySession, staleZones, playerName, paceWeeklyEarned, paceWeeklyCap]);
+
+  const autoCard = useMemo(() => {
+    const triggered = coach.messages.filter(m => m.auto_triggered);
+    return triggered.length > 0 ? triggered[triggered.length - 1] : null;
+  }, [coach.messages]);
+
+  const openChatWithPrompt = useCallback((prompt: string) => {
+    if (prompt) coach.setInputText(prompt);
+    setChatVisible(true);
+  }, [coach]);
+
+  const handleCapabilitySelect = useCallback((message: string) => {
+    if (message === 'habit_tracking') {
+      setChatVisible(true);
+      coach.requestHabitAnalysis();
+      return;
     }
-  }, [coach.messages.length]);
+    openChatWithPrompt(message);
+  }, [openChatWithPrompt, coach]);
 
   return (
-    <View style={[ss.screen, { backgroundColor: C.bg }]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <View style={[ss.root, { paddingTop: insets.top }]}>
+    <SafeAreaView style={s.root}>
+      {/* Header */}
+      <View style={[s.header, { borderBottomColor: C.border }]}>
+        <PaceXLogo size={22} />
+        <Pressable
+          style={[s.closeBtn, { backgroundColor: C.stone, borderColor: C.border }]}
+          onPress={() => navigation.navigate('Dashboard' as never)}
+          hitSlop={8}
+        >
+          <X size={16} color={C.t2} strokeWidth={1.5} />
+        </Pressable>
+      </View>
 
-          {/* ── Header ─────────────────────────────────────────────── */}
-          <View style={[ss.header, { borderBottomColor: C.border }]}>
-            <View style={ss.avatar}>
-              <Sparkles size={16} color="#7C3AED" strokeWidth={1.5} />
-            </View>
-            <View>
-              <Text style={[ss.title, { color: C.black }]}>AI Coach</Text>
-              <Text style={ss.subtitle}>Powered by Claude</Text>
-            </View>
+      {planData.loading ? (
+        <View style={s.loader}>
+          <ActivityIndicator color={C.red} />
+        </View>
+      ) : !hasActivePlan ? (
+        /* ── State A: no active plan ─────────────────────────────── */
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
+          <CoachWelcome
+            goalInput={coach.goalInput}
+            onGoalChange={coach.setGoalInput}
+            onGenerate={coach.generatePlan}
+            planLoading={coach.planLoading}
+            onOpenChat={() => setChatVisible(true)}
+          />
+        </ScrollView>
+      ) : (
+        /* ── State B: active plan ────────────────────────────────── */
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
+
+          {/* Daily insight card */}
+          <PaceInsightCard
+            headline={insight.headline}
+            body={insight.body}
+            consistencyScore={consistency.score}
+            paceWeeklyEarned={paceWeeklyEarned}
+            paceWeeklyCap={paceWeeklyCap}
+          />
+
+          {/* Week section */}
+          <View style={s.weekSection}>
+            <Text style={[s.sectionLabel, { color: C.t3 }]}>
+              THIS WEEK · Week {planData.plan!.weekCurrent} of {planData.plan!.weeksTotal}
+            </Text>
+            <WeekGrid sessions={planData.sessions} compact />
           </View>
 
-          {/* ── Messages / welcome ─────────────────────────────────── */}
-          {coach.messages.length === 0 ? (
-            <View style={{ flex: 1 }}>
-              <CoachWelcome />
-              <View style={ss.promptsWrap}>
-                {quickPrompts.map(p => (
-                  <Pressable
-                    key={p.message}
-                    style={({ pressed }) => [
-                      ss.promptChip,
-                      { borderColor: C.border, backgroundColor: pressed ? C.mid : C.white },
-                    ]}
-                    onPress={() => coach.sendMessage(p.message)}
-                  >
-                    <Text style={[ss.promptText, { color: C.black }]}>{p.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          ) : (
-            <FlatList
-              ref={listRef}
-              style={{ flex: 1 }}
-              data={coach.messages}
-              keyExtractor={m => m.id}
-              renderItem={({ item }) => <MessageBubble role={item.role} content={item.content} type={item.type} />}
-              contentContainerStyle={{ paddingVertical: 12 }}
-              showsVerticalScrollIndicator={false}
-              ListFooterComponent={coach.sending ? <TypingIndicator /> : null}
+          {/* CTA row */}
+          <View style={s.ctaRow}>
+            <Pressable
+              style={[s.ctaBtn, s.ctaBtnPrimary, { backgroundColor: C.black }]}
+              onPress={() => navigation.navigate('Run' as never)}
+            >
+              <Text style={s.ctaBtnPrimaryLabel}>Start today's run →</Text>
+            </Pressable>
+            <Pressable
+              style={[s.ctaBtn, s.ctaBtnSecondary, { borderColor: C.border, backgroundColor: C.surface }]}
+              onPress={() => navigation.navigate('CoachPlan' as never)}
+            >
+              <Text style={[s.ctaBtnSecondaryLabel, { color: C.black }]}>View full plan</Text>
+            </Pressable>
+          </View>
+
+          {/* Quick action pills */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.pillsScroll}
+            style={s.pillsWrap}
+          >
+            {QUICK_ACTIONS.map(a => (
+              <Pressable
+                key={a.label}
+                style={({ pressed }) => [s.pill, { borderColor: C.border, backgroundColor: pressed ? C.mid : C.surface }]}
+                onPress={() => openChatWithPrompt(a.prompt)}
+              >
+                <Text style={[s.pillLabel, { color: C.black }]}>{a.label}</Text>
+              </Pressable>
+            ))}
+            <Pressable
+              style={({ pressed }) => [s.pill, { borderColor: C.border, backgroundColor: pressed ? C.mid : C.surface }]}
+              onPress={() => setCapabilitiesVisible(true)}
+            >
+              <Text style={[s.pillLabel, { color: C.black }]}>➕ More</Text>
+            </Pressable>
+          </ScrollView>
+
+          {/* Auto-triggered card */}
+          {autoCard && (
+            <PaceAutoCard
+              message={autoCard}
+              onReadMore={() => setChatVisible(true)}
             />
           )}
+        </ScrollView>
+      )}
 
-          {/* ── Error banner ───────────────────────────────────────── */}
-          {!!coach.error && (
-            <View style={ss.errorBanner}>
-              <Text style={ss.errorText}>{coach.error}</Text>
-              <Pressable onPress={() => coach.sendMessage(coach.inputText || undefined)}>
-                <Text style={[ss.errorRetry, { color: C.red }]}>Retry</Text>
-              </Pressable>
-            </View>
-          )}
-
-          {/* ── Floating curved input ──────────────────────────────── */}
-          <CoachFloatingInput
-            value={coach.inputText}
-            onChangeText={coach.setInputText}
-            onSend={() => coach.sendMessage()}
-            sending={coach.sending}
-            onOpenSidebar={() => setSidebarOpen(true)}
-          />
-        </View>
-      </KeyboardAvoidingView>
-
-      {/* Sidebar lives outside KAV so keyboard movement doesn't shift it */}
-      <CoachSidebar
-        visible={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onSelectCapability={(message) => coach.sendMessage(message)}
+      {/* Chat modal */}
+      <PaceChatModal
+        visible={chatVisible}
+        onClose={() => setChatVisible(false)}
+        messages={coach.messages}
+        sending={coach.sending}
+        error={coach.error}
+        inputText={coach.inputText}
+        setInputText={coach.setInputText}
+        onSend={coach.sendMessage}
+        onRetry={coach.retryLastMessage}
+        onOpenCapabilities={() => { setChatVisible(false); setCapabilitiesVisible(true); }}
       />
-    </View>
+
+      {/* Capabilities sheet */}
+      <CoachSidebar
+        visible={capabilitiesVisible}
+        onClose={() => setCapabilitiesVisible(false)}
+        onSelectCapability={handleCapabilitySelect}
+      />
+    </SafeAreaView>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    screen:      { flex: 1 },
-    root:        { flex: 1 },
-    header:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
-    avatar:      { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(124,58,237,0.08)', alignItems: 'center', justifyContent: 'center' },
-    title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18 },
-    subtitle:    { fontFamily: 'DMSans_300Light', fontSize: 10, color: C.t3, marginTop: 1 },
-    promptsWrap: { paddingHorizontal: 16, gap: 8, paddingBottom: 12 },
-    promptChip:  { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, borderWidth: 0.5 },
-    promptText:  { fontFamily: 'DMSans_400Regular', fontSize: 13 },
-    errorBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(220,38,38,0.06)', borderTopWidth: 0.5, borderTopColor: 'rgba(220,38,38,0.18)', paddingHorizontal: 16, paddingVertical: 8 },
-    errorText:   { fontFamily: 'DMSans_400Regular', fontSize: 13, color: C.red, flex: 1 },
-    errorRetry:  { fontFamily: 'DMSans_500Medium', fontSize: 13, marginLeft: 12 },
+    root:                { flex: 1, backgroundColor: C.bg },
+    header:              { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
+    closeBtn:            { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
+    loader:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    scrollContent:       { paddingBottom: 120 },
+    weekSection:         { paddingHorizontal: 16, marginBottom: 14 },
+    sectionLabel:        { fontFamily: 'Barlow_300Light', fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10 },
+    ctaRow:              { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 16 },
+    ctaBtn:              { flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+    ctaBtnPrimary:       {},
+    ctaBtnPrimaryLabel:  { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: '#fff' },
+    ctaBtnSecondary:     { borderWidth: 0.5 },
+    ctaBtnSecondaryLabel:{ fontFamily: 'Barlow_500Medium', fontSize: 13 },
+    pillsWrap:           { marginBottom: 16 },
+    pillsScroll:         { paddingHorizontal: 16, gap: 8 },
+    pill:                { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5 },
+    pillLabel:           { fontFamily: 'Barlow_400Regular', fontSize: 13 },
   });
 }

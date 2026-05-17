@@ -24,6 +24,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
+import { getProfile } from '@shared/services/profile';
+import { pushProfile } from '@shared/services/sync';
 import { supabase } from '@shared/services/supabase';
 import { ToastProvider } from './src/shared/components/ToastProvider';
 import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
@@ -45,7 +47,7 @@ if (!__DEV__) {
 // Initialize MapLibre before any map renders (required for non-Mapbox tile sources)
 try {
   const ML = require('@maplibre/maplibre-react-native');
-  ML.setAccessToken(null);
+  ML.setAccessToken(''); // empty string is required by maplibre-react-native v10 for non-Mapbox tile servers
 } catch { /* native module not linked in this build */ }
 
 // Keep splash visible until fonts and auth state are ready
@@ -55,20 +57,35 @@ function Root() {
   const { user, loading } = useAuth();
   const { settings } = useSettings();
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  const [checkingOnboarding, setCheckingOnboarding] = useState(false);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
   // Check Supabase profiles table to determine if this specific user has completed
   // onboarding. Local getPlayer() is NOT user-scoped (random UUID), so a leftover
   // record from a prior session would incorrectly skip onboarding for new users.
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setCheckingOnboarding(false); return; }
     setCheckingOnboarding(true);
     // Wrap in Promise.resolve so .catch()/.finally() are available (maybeSingle returns PromiseLike)
     Promise.resolve(
       supabase.from('profiles').select('onboarding_completed_at').eq('id', user.id).maybeSingle()
     )
-      .then(({ data }) => {
-        setNeedsOnboarding(!data?.onboarding_completed_at);
+      .then(async ({ data }) => {
+        if (data !== null) {
+          // Supabase has a profile row for this user — trust it completely.
+          // Do NOT fall through to local getProfile(): local store is not user-scoped
+          // and returns stale data from prior accounts on the same device.
+          setNeedsOnboarding(!data.onboarding_completed_at);
+          return;
+        }
+        // Supabase has no row at all (offline or trigger delay) — fall back to local store
+        const localProfile = await getProfile().catch(() => undefined);
+        if (localProfile?.onboardingCompletedAt) {
+          setNeedsOnboarding(false);
+          // Re-attempt the sync in the background so Supabase catches up
+          pushProfile().catch(() => {});
+          return;
+        }
+        setNeedsOnboarding(true);
       })
       .catch(() =>
         // Offline fallback — check local store; default to showing onboarding if unclear

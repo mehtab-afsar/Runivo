@@ -22,7 +22,6 @@ export async function saveRunToSupabase(run: StoredRun): Promise<void> {
     gps_points: run.gpsPoints,
     territories_claimed: run.territoriesClaimed,
     territories_fortified: run.territoriesFortified,
-    xp_earned: run.xpEarned,
     coins_earned: run.coinsEarned,
     shoe_id: run.shoeId ?? null,
     enemy_captured: run.enemyCaptured,
@@ -106,14 +105,12 @@ export interface RunStats {
   paceStr: string;
   duration: number;
   territories: number;
-  xp: number;
-  coins: number;
   calories: number;
 }
 
 export function computeRunStats(run: {
   distance: number; duration: number; pace: number;
-  territoriesClaimed?: number; xpEarned?: number; coinsEarned?: number;
+  territoriesClaimed?: number;
   weightKg?: number;
 }): RunStats {
   const m = Math.floor(run.pace);
@@ -123,8 +120,6 @@ export function computeRunStats(run: {
     paceStr:     `${m}:${s.toString().padStart(2, '0')}`,
     duration:    run.duration,
     territories: run.territoriesClaimed ?? 0,
-    xp:          run.xpEarned ?? 0,
-    coins:       run.coinsEarned ?? 0,
     calories:    Math.round(run.distance * (run.weightKg ?? 70) * 0.95),
   };
 }

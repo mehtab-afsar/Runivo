@@ -6,7 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { TrendingUp, Map, Flame, Target, Check, Shield, Zap, type LucideIcon } from 'lucide-react-native';
+import { TrendingUp, Flame, Target, Check, Shield, Zap, type LucideIcon } from 'lucide-react-native';
 import {
   MISSION_TEMPLATES,
   generateBlueprint,
@@ -18,20 +18,19 @@ import { setDailyMissions, getTodaysMissions } from '@shared/services/missionSto
 import { getProfile } from '@shared/services/profile';
 import type { PlayerProfile } from '@shared/services/profile';
 
-import { useTheme, type AppColors } from '@theme';
+import { useTheme } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 // Mission type → Lucide icon
 const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
-  run_distance:        { Icon: TrendingUp, color: '#D93518' },
-  claim_territories:   { Icon: Zap,        color: '#EAB308' },
-  fortify_territories: { Icon: Shield,     color: '#059669' },
-  explore_new_hexes:   { Icon: Map,        color: '#0284C7' },
-  run_in_enemy_zone:   { Icon: Zap,        color: '#DC2626' },
-  capture_enemy:       { Icon: Shield,     color: '#059669' },
-  speed_run:           { Icon: TrendingUp, color: '#D93518' },
-  run_streak:          { Icon: Flame,      color: '#EA580C' },
+  run_distance:      { Icon: TrendingUp, color: '#D93518' },
+  claim_territories: { Icon: Zap,        color: '#EAB308' },
+  capture_enemy:     { Icon: Shield,     color: '#059669' },
+  speed_run:         { Icon: TrendingUp, color: '#D93518' },
+  run_streak:        { Icon: Flame,      color: '#EA580C' },
+  defend_zone:       { Icon: Shield,     color: '#059669' },
+  steal_rival:       { Icon: Zap,        color: '#DC2626' },
 };
 
 // Difficulty styles on white card
@@ -245,7 +244,7 @@ export default function MissionsScreen() {
                             </View>
                             <View style={ss.blueprintMeta}>
                               <Text style={ss.blueprintMissionTitle}>{m.title}</Text>
-                              <Text style={ss.blueprintMissionXp}>+{m.rewards.xp} XP</Text>
+                              <Text style={ss.blueprintMissionXp}>+{m.rewards.pace} PACE</Text>
                             </View>
                             <View style={[ss.diffPill, { backgroundColor: dStyle.bg }]}>
                               <Text style={[ss.diffPillText, { color: dStyle.fg }]}>{m.difficulty}</Text>
@@ -317,11 +316,8 @@ export default function MissionsScreen() {
 
               {/* Rewards row */}
               <View style={ss.rewardsRow}>
-                <Text style={ss.rewardValue}>+{template.rewards.xp}</Text>
-                <Text style={ss.rewardUnit}> XP</Text>
-                <View style={ss.rewardDivider} />
-                <Text style={ss.rewardValue}>+{template.rewards.coins}</Text>
-                <Text style={ss.rewardUnit}> coins</Text>
+                <Text style={ss.rewardValue}>+{template.rewards.pace}</Text>
+                <Text style={ss.rewardUnit}> PACE</Text>
               </View>
             </Pressable>
           );

@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getPlayer, savePlayer, getRuns, getAllTerritories } from '@shared/services/store';
+import { getPlayer, savePlayer, getRuns, getAllTerritories, getTerritoryPolygons } from '@shared/services/store';
 import type { StoredPlayer, StoredRun } from '@shared/services/store';
-import { GAME_CONFIG } from '@shared/services/config';
 import { collectLoginBonus } from '@shared/services/passiveIncome';
 
 export function usePlayerStats() {
   const [player, setPlayer] = useState<StoredPlayer | null>(null);
   const [recentRuns, setRecentRuns] = useState<StoredRun[]>([]);
+  const [totalAreaM2, setTotalAreaM2] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loginBonusCoins, setLoginBonusCoins] = useState(0);
+  const [loginBonusCoins, _setLoginBonusCoins] = useState(0);
 
   useEffect(() => {
     load();
@@ -22,34 +22,24 @@ export function usePlayerStats() {
       if (p) {
         const territories = await getAllTerritories();
         const ownedCount = territories.filter(t => t.ownerId === p!.id).length;
-        const { coinsEarned, updatedPlayer, alreadyCollected } = collectLoginBonus(p, ownedCount);
+        const { updatedPlayer, alreadyCollected } = collectLoginBonus(p, ownedCount);
         if (!alreadyCollected) {
           await savePlayer(updatedPlayer);
           p = updatedPlayer;
-          if (coinsEarned > 0) setLoginBonusCoins(coinsEarned);
         }
       }
 
       setPlayer(p);
-      const runs = await getRuns(10);
+      const [runs, polygons] = await Promise.all([
+        getRuns(10),
+        p ? getTerritoryPolygons(p.id) : Promise.resolve([]),
+      ]);
       setRecentRuns(runs);
+      setTotalAreaM2(polygons.reduce((s, poly) => s + poly.areaM2, 0));
     } finally {
       setLoading(false);
     }
   };
 
-  const xpProgress = player
-    ? (() => {
-        const levels = GAME_CONFIG.LEVEL_XP;
-        const currentLevelXP = levels[player.level - 1] || 0;
-        const nextLevelXP = levels[player.level] || currentLevelXP + 1000;
-        const progress = player.xp - currentLevelXP;
-        const needed = nextLevelXP - currentLevelXP;
-        return { progress, needed, percent: needed > 0 ? (progress / needed) * 100 : 100 };
-      })()
-    : { progress: 0, needed: 100, percent: 0 };
-
-  const levelTitle = GAME_CONFIG.LEVEL_TITLES[(player?.level ?? 1) - 1] || 'Scout';
-
-  return { player, recentRuns, loading, xpProgress, levelTitle, loginBonusCoins, reload: load };
+  return { player, recentRuns, totalAreaM2, loading, loginBonusCoins, reload: load };
 }

@@ -1,17 +1,17 @@
 import React, { useRef, useEffect } from 'react';
 import { View, TextInput, Pressable, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Zap, ArrowUp } from 'lucide-react-native';
+import { LayoutGrid, ArrowUp } from 'lucide-react-native';
 
 interface Props {
-  value:          string;
-  onChangeText:   (text: string) => void;
-  onSend:         () => void;
-  sending:        boolean;
-  onOpenSidebar:  () => void;
+  value:              string;
+  onChangeText:       (text: string) => void;
+  onSend:             () => void;
+  sending:            boolean;
+  onOpenCapabilities: () => void;
 }
 
-export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpenSidebar }: Props) {
+export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpenCapabilities }: Props) {
   const insets   = useSafeAreaInsets();
   const slideY   = useRef(new Animated.Value(60)).current;
   const opacity  = useRef(new Animated.Value(0)).current;
@@ -30,8 +30,8 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
   return (
     <Animated.View style={[ss.outer, { paddingBottom: Math.max(insets.bottom, 8) + 4, transform: [{ translateY: slideY }], opacity }]}>
       <View style={ss.pill}>
-        <Pressable style={ss.zapBtn} onPress={onOpenSidebar} hitSlop={8}>
-          <Zap size={16} color="#7C3AED" strokeWidth={1.5} />
+        <Pressable style={ss.zapBtn} onPress={onOpenCapabilities} hitSlop={8}>
+          <LayoutGrid size={16} color="#7C3AED" strokeWidth={1.5} />
         </Pressable>
         <TextInput
           style={ss.input}

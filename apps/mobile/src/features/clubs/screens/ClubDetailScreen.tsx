@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
   KeyboardAvoidingView, Platform, ActivityIndicator, Modal,
-  TextInput, ScrollView, Alert,
+  TextInput, ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';

@@ -11,6 +11,7 @@ import {
   deleteEntry,
   todayKey,
 } from '@features/nutrition/services/nutritionService';
+import { updateMissionsAfterNutritionLog } from '@shared/services/missionStore';
 
 function getWeekDates(): string[] {
   const dates: string[] = [];
@@ -121,10 +122,22 @@ export function useCalorieTracker() {
         xpAwarded: false,
       };
       const id = await addEntry(full as Omit<NutritionEntry, 'id'>);
-      setEntries(prev => [...prev, { ...full, id }]);
+      const updatedEntries = [...entries, { ...full, id }];
+      setEntries(updatedEntries);
       setShowAddModal(false);
+
+      // Compute nutrition_streak mission progress (non-blocking)
+      const todayFoodEntries = updatedEntries.filter(e => e.source !== 'run');
+      const todayMealTypes = new Set(todayFoodEntries.map(e => e.meal)).size;
+      let streakDays = todayMealTypes >= 3 ? 1 : 0;
+      for (const [date, dayEntries] of Object.entries(weekEntries)) {
+        if (date === today) continue;
+        const meals = new Set(dayEntries.filter(e => e.source !== 'run').map(e => e.meal)).size;
+        if (meals >= 3) streakDays++;
+      }
+      updateMissionsAfterNutritionLog({ streakDays }).catch(() => {});
     },
-    [today],
+    [today, entries, weekEntries],
   );
 
   const handleDeleteEntry = useCallback(async (id: number) => {

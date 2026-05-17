@@ -69,19 +69,35 @@ config.resolver.sourceExts = [
 ];
 
 // Module aliases
+// Note: extraNodeModules exact-matches only work for bare names (no sub-paths).
+// Metro 0.83 parses '@shared/hooks/useAuth' as package '@shared/hooks', not '@shared',
+// so prefix-based aliases must be handled via resolveRequest instead.
 config.resolver.extraNodeModules = {
-  // Shared business logic
-  '@shared': path.resolve(workspaceRoot, 'packages/shared/src'),
-  // Mobile-app-internal aliases (used throughout apps/mobile/src/)
-  '@features':     path.resolve(projectRoot, 'src/features'),
-  '@mobile/shared': path.resolve(projectRoot, 'src/shared'),
-  '@navigation':   path.resolve(projectRoot, 'src/navigation'),
-  '@theme':        path.resolve(projectRoot, 'src/theme'),
+  // @theme is imported as exactly '@theme' (no sub-path), so exact-match works here.
+  '@theme': path.resolve(projectRoot, 'src/theme'),
   // h3-js shim: pre-installs text-encoding polyfill before h3-js loads
   // so Hermes doesn't crash on new TextDecoder("utf-16le")
   'h3-js': path.resolve(projectRoot, 'shims/h3-js.js'),
   // Force the full-featured npm buffer polyfill (supports utf-16le)
   'buffer': path.resolve(workspaceRoot, 'node_modules/buffer'),
+};
+
+// Prefix-based alias resolution — handles @shared/*, @features/*, @navigation/*, @mobile/shared/*
+const PREFIX_ALIASES = [
+  ['@shared/',        path.resolve(workspaceRoot, 'packages/shared/src') + path.sep],
+  ['@features/',      path.resolve(projectRoot, 'src/features')          + path.sep],
+  ['@navigation/',    path.resolve(projectRoot, 'src/navigation')        + path.sep],
+  ['@mobile/shared/', path.resolve(projectRoot, 'src/shared')            + path.sep],
+];
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  for (const [prefix, target] of PREFIX_ALIASES) {
+    if (moduleName.startsWith(prefix)) {
+      const rest = moduleName.slice(prefix.length);
+      return context.resolveRequest(context, target + rest, platform);
+    }
+  }
+  return context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = config;

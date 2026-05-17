@@ -1,6 +1,6 @@
 import { supabase } from '@shared/services/supabase';
 import { initializePlayer, getSettings, saveSettings } from '@shared/services/store';
-import { saveProfile, computeWeeklyGoal } from '@shared/services/profile';
+import { saveProfile } from '@shared/services/profile';
 import { pushProfile } from '@shared/services/sync';
 import type { OnboardingData } from '../types';
 

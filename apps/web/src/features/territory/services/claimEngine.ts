@@ -1,5 +1,4 @@
 import { latLngToCell } from 'h3-js';
-import { GAME_CONFIG } from '@shared/services/config';
 
 export type ClaimEventType = 'claim_progress' | 'claimed' | 'energy_blocked';
 
@@ -19,7 +18,7 @@ export interface ClaimState {
   isActive: boolean;
 }
 
-const CLAIM_MS = (GAME_CONFIG.CLAIM_TIME_IN_HEX_SEC ?? 60) * 1000;
+const CLAIM_MS = 60 * 1000;
 const PROGRESS_EMIT_INTERVAL_MS = 10_000; // emit every ~10 seconds
 
 export class ClaimEngine {
@@ -34,7 +33,6 @@ export class ClaimEngine {
   private trackedHex: string | null = null;
   private hexEnteredAt: number | null = null;
   private lastProgressEmitMs = 0;
-  private sessionXP = 0;
   private listeners: ((event: ClaimEvent) => void)[] = [];
 
   constructor(_playerId: string) {}
@@ -99,10 +97,7 @@ export class ClaimEngine {
         this.state.hexDwellMs = 0;
         this.state.claimProgress = 0;
 
-        const xp = GAME_CONFIG.XP_CLAIM_NEUTRAL;
-        this.sessionXP += xp;
-
-        this.emit({ type: 'claimed', xpEarned: xp, timestamp: now });
+        this.emit({ type: 'claimed', timestamp: now });
       }
     }
 
@@ -114,10 +109,7 @@ export class ClaimEngine {
   }
 
   getSessionStats() {
-    return {
-      claimed: this.state.territoriesClaimed,
-      xp: this.sessionXP,
-    };
+    return { claimed: this.state.territoriesClaimed };
   }
 
   reset() {
@@ -131,6 +123,5 @@ export class ClaimEngine {
     this.trackedHex = null;
     this.hexEnteredAt = null;
     this.lastProgressEmitMs = 0;
-    this.sessionXP = 0;
   }
 }

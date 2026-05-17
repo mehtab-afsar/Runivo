@@ -2,8 +2,10 @@
  * Web (IDB) implementation of missionStore.
  * Metro automatically picks missionStore.native.ts on iOS/Android.
  */
-import { getDB, getSettings } from './store';
+import { getDB, getPlayer, savePlayer, getSettings } from './store';
 import { Mission, MISSION_TEMPLATES, updateMissionProgress, generateDailyMissions } from './missions';
+import { GAME_CONFIG } from './config';
+import { computeRunnerRank } from './claimEngine';
 
 const STORE_NAME = 'missions';
 
@@ -26,13 +28,12 @@ export async function saveMissions(missions: Mission[]): Promise<void> {
 }
 
 export async function updateMissionsAfterRun(runResult: {
-  distanceKm:           number;
-  territoriesClaimed:   string[];
-  territoriesFortified: string[];
-  enemyCaptured:        number;
-  hexesVisited:         number;
-  enemyZoneDistanceKm:  number;
-  fastKmCount:          number;
+  distanceKm:          number;
+  territoriesClaimed:  string[];
+  enemyCaptured:       number;
+  fastKmCount:         number;
+  defendedZonesCount:  number;
+  rivalZonesStolen:    number;
 }): Promise<{ missions: Mission[]; newlyCompleted: Mission[] }> {
   const current             = await getTodaysMissions();
   const previouslyCompleted = current.filter(m => m.completed).map(m => m.id);
@@ -48,6 +49,23 @@ export async function claimMissionReward(missionId: string): Promise<Mission | n
   if (!mission || !mission.completed || mission.claimed) return null;
   mission.claimed = true;
   await db.put(STORE_NAME, mission);
+
+  const player = await getPlayer();
+  if (player) {
+    const paceReward = mission.rewards.pace ?? 0;
+    const cap = GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
+    const remaining = cap - (player.paceWeeklyEarned ?? 0);
+    const credited = Math.min(paceReward, Math.max(0, remaining));
+    const newTotal = (player.paceTotalEarned ?? 0) + credited;
+    await savePlayer({
+      ...player,
+      paceBalance:      (player.paceBalance ?? 0) + credited,
+      paceTotalEarned:  newTotal,
+      paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + credited,
+      runnerRank:       computeRunnerRank(newTotal),
+    });
+  }
+
   return mission;
 }
 
@@ -68,6 +86,22 @@ export async function setDailyMissions(templateTitles: string[]): Promise<Missio
   await Promise.all(missions.map(m => tx.store.put(m)));
   await tx.done;
   return missions;
+}
+
+export async function updateMissionsAfterNutritionLog(
+  { streakDays }: { streakDays: number },
+): Promise<{ missions: Mission[]; newlyCompleted: Mission[] }> {
+  const current             = await getTodaysMissions();
+  const previouslyCompleted = current.filter(m => m.completed).map(m => m.id);
+  const updated             = current.map(mission => {
+    if (mission.type !== 'nutrition_streak' || mission.completed) return mission;
+    const newCurrent = Math.min(streakDays, mission.target);
+    const completed  = newCurrent >= mission.target;
+    return { ...mission, current: newCurrent, completed };
+  });
+  await saveMissions(updated);
+  const newlyCompleted = updated.filter(m => m.completed && !previouslyCompleted.includes(m.id));
+  return { missions: updated, newlyCompleted };
 }
 
 export async function ensureTodaysMissions(): Promise<Mission[]> {

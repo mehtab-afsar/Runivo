@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { bufferPath, polygonAreaM2, calculateLevel } from './useGameEngine';
+import { bufferPath, polygonAreaM2 } from './useGameEngine';
 import { GAME_CONFIG } from '../services/config';
 
 // ── bufferPath ────────────────────────────────────────────────────────────────
@@ -81,35 +81,3 @@ describe('polygonAreaM2', () => {
   });
 });
 
-// ── calculateLevel ────────────────────────────────────────────────────────────
-
-describe('calculateLevel', () => {
-  it('returns level 1 at 0 XP', () => {
-    expect(calculateLevel(0)).toBe(1);
-  });
-
-  it('returns level 1 just below the threshold for level 2', () => {
-    const threshold = GAME_CONFIG.LEVEL_XP[1]; // XP needed for level 2
-    expect(calculateLevel(threshold - 1)).toBe(1);
-  });
-
-  it('returns level 2 at exactly the level-2 threshold', () => {
-    const threshold = GAME_CONFIG.LEVEL_XP[1];
-    expect(calculateLevel(threshold)).toBe(2);
-  });
-
-  it('returns the max level when XP exceeds the last threshold', () => {
-    const maxXP = GAME_CONFIG.LEVEL_XP[GAME_CONFIG.LEVEL_XP.length - 1] + 99999;
-    const maxLevel = GAME_CONFIG.LEVEL_XP.length;
-    expect(calculateLevel(maxXP)).toBe(maxLevel);
-  });
-
-  it('returns correct intermediate levels', () => {
-    // Level 5 threshold
-    const lvl5XP = GAME_CONFIG.LEVEL_XP[4];
-    expect(calculateLevel(lvl5XP)).toBe(5);
-
-    const lvl10XP = GAME_CONFIG.LEVEL_XP[9];
-    expect(calculateLevel(lvl10XP)).toBe(10);
-  });
-});

@@ -7,7 +7,6 @@
  *   if (!gate.canClaimTerritory(ownedCount)) showTerritoryPaywall();
  */
 import { useSubscription } from './useSubscription';
-import { GAME_CONFIG } from '@shared/services/config';
 
 export type GatedFeature =
   | 'ai_coach'
@@ -53,9 +52,7 @@ const PREMIUM_FEATURES = new Set<GatedFeature>([
 export function useFeatureGate(): FeatureGateResult {
   const { isPremium, loading } = useSubscription();
 
-  const territoryLimit = isPremium
-    ? Infinity
-    : GAME_CONFIG.MAX_TERRITORIES_FREE;
+  const territoryLimit = Infinity;
 
   const canUse = (feature: GatedFeature): boolean => {
     if (loading) return false;
@@ -64,15 +61,14 @@ export function useFeatureGate(): FeatureGateResult {
     return true;
   };
 
-  const canClaimTerritory = (currentOwnedCount: number): boolean => {
+  const canClaimTerritory = (_currentOwnedCount: number): boolean => {
     if (loading) return false;
-    if (isPremium) return true;
-    return currentOwnedCount < GAME_CONFIG.MAX_TERRITORIES_FREE;
+    return true;
   };
 
   const territoryBlockReason = (currentOwnedCount: number): string | null => {
     if (canClaimTerritory(currentOwnedCount)) return null;
-    return `Free plan is limited to ${GAME_CONFIG.MAX_TERRITORIES_FREE} territories. Upgrade to claim more.`;
+    return null;
   };
 
   return {

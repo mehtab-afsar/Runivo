@@ -39,16 +39,16 @@ export function usePlayerStats() {
 
   const xpProgress = player
     ? (() => {
-        const levels = GAME_CONFIG.LEVEL_XP;
-        const currentLevelXP = levels[player.level - 1] || 0;
-        const nextLevelXP = levels[player.level] || currentLevelXP + 1000;
-        const progress = player.xp - currentLevelXP;
-        const needed = nextLevelXP - currentLevelXP;
-        return { progress, needed, percent: needed > 0 ? (progress / needed) * 100 : 100 };
+        const weekly = player.paceWeeklyEarned ?? 0;
+        const cap    = GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
+        const percent = cap > 0 ? Math.min(100, (weekly / cap) * 100) : 0;
+        return { progress: weekly, needed: cap, percent };
       })()
     : { progress: 0, needed: 100, percent: 0 };
 
-  const levelTitle = GAME_CONFIG.LEVEL_TITLES[(player?.level ?? 1) - 1] || 'Scout';
+  const levelTitle = player?.runnerRank
+    ? player.runnerRank.charAt(0).toUpperCase() + player.runnerRank.slice(1)
+    : 'Pacer';
 
   return { player, recentRuns, loading, xpProgress, levelTitle, loginBonusCoins, reload: load };
 }

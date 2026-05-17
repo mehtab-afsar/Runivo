@@ -9,8 +9,7 @@ interface RunHUDProps {
   distance: number;
   pace: string;
   elapsed: number;
-  energy: number;
-  claimProgress: number;
+  liveAreaM2?: number;
 }
 
 function formatElapsed(seconds: number): string {
@@ -21,7 +20,7 @@ function formatElapsed(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function RunHUD({ distance, pace, elapsed, energy, claimProgress }: RunHUDProps) {
+export default function RunHUD({ distance, pace, elapsed, liveAreaM2 }: RunHUDProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
@@ -40,8 +39,10 @@ export default function RunHUD({ distance, pace, elapsed, energy, claimProgress 
           <Text style={ss.secondaryLabel}>PACE /KM</Text>
         </View>
         <View style={ss.secondaryStat}>
-          <Text style={[ss.secondaryValue, { color: C.red }]}>{energy}</Text>
-          <Text style={ss.secondaryLabel}>ENERGY</Text>
+          <Text style={[ss.secondaryValue, { color: C.green }]}>
+            {liveAreaM2 && liveAreaM2 > 0 ? `~${Math.round(liveAreaM2).toLocaleString()}` : '—'}
+          </Text>
+          <Text style={ss.secondaryLabel}>ZONE M²</Text>
         </View>
       </View>
     </View>

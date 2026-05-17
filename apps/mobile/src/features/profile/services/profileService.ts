@@ -110,3 +110,59 @@ export async function updateUsername(userId: string, name: string): Promise<void
 export async function updateAvatarColor(userId: string, color: string): Promise<void> {
   await supabase.from('profiles').update({ avatar_color: color }).eq('id', userId);
 }
+
+export async function fetchAwards(userId: string): Promise<{ awardId: string; unlockedAt: string }[]> {
+  try {
+    const { data } = await supabase
+      .from('user_awards')
+      .select('award_id, unlocked_at')
+      .eq('user_id', userId);
+    return (data ?? []).map((r: { award_id: string; unlocked_at: string }) => ({
+      awardId: r.award_id,
+      unlockedAt: r.unlocked_at,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchProfileStats(userId: string, period: string): Promise<{
+  totalKm: number; totalRuns: number; avgPaceSec: number; totalCalories: number; totalZones: number;
+}> {
+  try {
+    const { data } = await supabase.rpc('get_profile_stats', { p_user_id: userId, p_period: period });
+    return data as { totalKm: number; totalRuns: number; avgPaceSec: number; totalCalories: number; totalZones: number };
+  } catch {
+    return { totalKm: 0, totalRuns: 0, avgPaceSec: 0, totalCalories: 0, totalZones: 0 };
+  }
+}
+
+export async function fetchPersonalRecordsFromDb(userId: string): Promise<{
+  fastest1kSec: number | null;
+  fastest5kSec: number | null;
+  fastest10kSec: number | null;
+  longestRunM: number | null;
+  bestPaceSec: number | null;
+} | null> {
+  try {
+    const { data } = await supabase
+      .from('personal_records')
+      .select('fastest_1k_sec, fastest_5k_sec, fastest_10k_sec, longest_run_m, best_pace_sec')
+      .eq('user_id', userId)
+      .single();
+    if (!data) return null;
+    return {
+      fastest1kSec:  data.fastest_1k_sec  ?? null,
+      fastest5kSec:  data.fastest_5k_sec  ?? null,
+      fastest10kSec: data.fastest_10k_sec ?? null,
+      longestRunM:   data.longest_run_m   ?? null,
+      bestPaceSec:   data.best_pace_sec   ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function setPinnedRun(userId: string, runId: string | null): Promise<void> {
+  await supabase.from('profiles').update({ pinned_run_id: runId }).eq('id', userId);
+}

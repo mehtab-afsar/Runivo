@@ -1,0 +1,72 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import * as Location from 'expo-location';
+import { D } from './onboardingStyles';
+
+let ML: any = null;
+try { ML = require('@maplibre/maplibre-react-native'); } catch {}
+
+const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const LONDON: [number, number] = [-0.1278, 51.5074];
+
+export default function CityMapPreviewStep() {
+  const [coord, setCoord] = useState<[number, number] | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { setCoord(LONDON); return; }
+      const last = await Location.getLastKnownPositionAsync();
+      if (last) { setCoord([last.coords.longitude, last.coords.latitude]); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest });
+      setCoord([pos.coords.longitude, pos.coords.latitude]);
+    })().catch(() => setCoord(LONDON));
+  }, []);
+
+  const center = coord ?? LONDON;
+
+  return (
+    <View style={ss.container}>
+      {ML ? (
+        coord ? (
+          <ML.MapView
+            style={{ flex: 1 }}
+            styleURL={DARK_STYLE}
+            zoomEnabled={false}
+            scrollEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            logoEnabled={false}
+            attributionEnabled={false}
+          >
+            <ML.Camera centerCoordinate={center} zoomLevel={14} animationDuration={0} />
+            <ML.UserLocation visible renderMode="native" />
+          </ML.MapView>
+        ) : (
+          <View style={ss.loading}>
+            <ActivityIndicator size="large" color={D.red} />
+          </View>
+        )
+      ) : (
+        <View style={ss.loading}>
+          <ActivityIndicator size="large" color={D.red} />
+        </View>
+      )}
+
+      <View style={ss.textOverlay}>
+        <Text style={ss.overlayEyebrow}>Your empire</Text>
+        <Text style={ss.overlayTitle}>Your city awaits.</Text>
+        <Text style={ss.overlaySub}>Every run claims new ground. Start anywhere.</Text>
+      </View>
+    </View>
+  );
+}
+
+const ss = StyleSheet.create({
+  container:      { flex: 1, backgroundColor: '#0A0A0A' },
+  loading:        { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  textOverlay:    { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(247,245,242,0.94)', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
+  overlayEyebrow: { fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.red, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 6 },
+  overlayTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 28, color: D.t1, marginBottom: 8, lineHeight: 30 },
+  overlaySub:     { fontFamily: 'DMSans_300Light', fontSize: 13, color: D.t2, lineHeight: 19 },
+});

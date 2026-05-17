@@ -6,7 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Plus, Footprints } from 'lucide-react-native';
+import { ArrowLeft, Plus } from 'lucide-react-native';
 import { useTheme, type AppColors } from '@theme';
 import { useShoeTracker } from '@features/gear/hooks/useShoeTracker';
 import { ShoeCard } from '@features/gear/components/ShoeCard';
@@ -54,9 +54,11 @@ export default function GearScreen() {
         </Pressable>
         <Text style={s.title}>Gear</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
+          {/* V1.1 — foot scan
           <Pressable onPress={() => navigation.navigate('FootScan')} style={[s.addBtn, { backgroundColor: C.purple }]}>
             <Footprints size={14} color="#fff" strokeWidth={1.5} />
           </Pressable>
+          */}
           <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn}>
             <Plus size={16} color="#fff" strokeWidth={2.5} />
           </Pressable>

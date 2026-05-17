@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, Animated, StyleSheet, Switch, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, Animated, StyleSheet, TouchableOpacity, Switch, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Music2, Activity, Footprints, Bike, Mountain, TreePine, Timer, TrendingUp, Route as RouteIcon, Check, Pencil, Play } from 'lucide-react-native';
+import { Activity, Footprints, Bike, Mountain, TreePine, Timer, TrendingUp, Route as RouteIcon, Check, Play, Music2 } from 'lucide-react-native';
 import type { ActivityType } from '../types';
 import { useTheme, type AppColors } from '@theme';
 
@@ -25,17 +25,13 @@ interface RunSetupSheetProps {
   panHandlers: object;
   activityType: ActivityType;
   selectedRouteName: string | null;
-  intelEnemy: number;
-  intelNeutral: number;
-  intelWeak: number;
   gpsReady: boolean;
   bottomInset: number;
   pacerEnabled: boolean;
-  pacerBpm: number;
   pacerPace: string;
   pacerPaceOptions: string[];
   onPacerToggle: () => void;
-  onPacerPaceEdit: (pace: string) => void;
+  onPacerPaceChange: (pace: string) => void;
   onActivityPress: () => void;
   onRoutePress: () => void;
   onStartPress: () => void;
@@ -43,20 +39,20 @@ interface RunSetupSheetProps {
 
 export default function RunSetupSheet({
   sheetAnim, panHandlers, activityType, selectedRouteName,
-  intelEnemy, intelNeutral, intelWeak, gpsReady, bottomInset,
-  pacerEnabled, pacerBpm, pacerPace, pacerPaceOptions,
-  onPacerToggle, onPacerPaceEdit, onActivityPress, onRoutePress, onStartPress,
+  gpsReady, bottomInset,
+  pacerEnabled, pacerPace, pacerPaceOptions, onPacerToggle, onPacerPaceChange,
+  onActivityPress, onRoutePress, onStartPress,
 }: RunSetupSheetProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const activity = ACTIVITIES.find(a => a.id === activityType) ?? ACTIVITIES[0];
   const ActivityIcon = activity.icon;
-  const [showPacePicker, setShowPacePicker] = useState(false);
 
   return (
     <Animated.View style={[ss.sheet, { height: sheetAnim }]} {...panHandlers}>
       <View style={ss.handleWrap}><View style={ss.handle} /></View>
 
+      {/* Activity + Route row */}
       <View style={ss.selectorRow}>
         <TouchableOpacity style={[ss.selectorBtn, ss.selectorBtnBorder]} onPress={onActivityPress} activeOpacity={0.7}>
           <View style={[ss.selectorIcon, { backgroundColor: activity.bg }]}>
@@ -82,58 +78,47 @@ export default function RunSetupSheet({
         </TouchableOpacity>
       </View>
 
-      <View style={ss.intelRow}>
-        <View style={[ss.chip, { backgroundColor: '#FDE8E4' }]}><Text style={[ss.chipText, { color: C.red }]}>{intelEnemy} Enemy</Text></View>
-        <View style={[ss.chip, { backgroundColor: C.white }]}><Text style={[ss.chipText, { color: C.muted }]}>{intelNeutral} Free</Text></View>
-        <View style={[ss.chip, { backgroundColor: '#FFFBEB' }]}><Text style={[ss.chipText, { color: '#B45309' }]}>{intelWeak} Weak</Text></View>
-      </View>
-
+      {/* Beat Pacer toggle */}
       <View style={ss.pacerCard}>
-        <View style={ss.pacerRow}>
-          <TouchableOpacity
-            style={ss.pacerLeft}
-            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPacerToggle(); }}
-            activeOpacity={0.7}
-          >
+        <TouchableOpacity
+          style={ss.pacerRow}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPacerToggle(); }}
+          activeOpacity={0.7}
+        >
+          <View style={[ss.pacerIcon, { backgroundColor: pacerEnabled ? '#FDE8E4' : C.stone }]}>
             <Music2 size={14} color={pacerEnabled ? C.red : C.muted} strokeWidth={1.5} />
-            <View>
-              <Text style={ss.pacerTitle}>Beat Pacer</Text>
-              <Text style={ss.pacerSub}>{pacerEnabled ? `${pacerBpm} BPM · ${pacerPace}/km` : 'Off'}</Text>
-            </View>
-          </TouchableOpacity>
-          <View style={ss.pacerRight}>
-            {pacerEnabled && (
-              <TouchableOpacity
-                style={ss.editBtn}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowPacePicker(v => !v); }}
-                activeOpacity={0.7}
-                hitSlop={8}
-              >
-                <Pencil size={11} color={C.red} strokeWidth={2} />
-                <Text style={ss.editBtnTxt}>PACE</Text>
-              </TouchableOpacity>
-            )}
-            <Switch
-              value={pacerEnabled}
-              onValueChange={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPacerToggle(); }}
-              trackColor={{ false: C.border, true: C.red }}
-              thumbColor={C.white}
-            />
           </View>
-        </View>
-        {pacerEnabled && showPacePicker && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ss.pacePickerScroll} contentContainerStyle={ss.pacePickerContent}>
+          <View style={{ flex: 1 }}>
+            <Text style={ss.pacerTitle}>Beat Pacer</Text>
+            <Text style={ss.pacerSub}>{pacerEnabled ? `${pacerPace}/km rhythm` : 'Off — tap to enable'}</Text>
+          </View>
+          <Switch
+            value={pacerEnabled}
+            onValueChange={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPacerToggle(); }}
+            trackColor={{ false: C.border, true: C.red }}
+            thumbColor={C.white}
+          />
+        </TouchableOpacity>
+
+        {/* Pace picker — only when pacer is on */}
+        {pacerEnabled && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={ss.paceScroll}
+            contentContainerStyle={ss.paceScrollContent}
+          >
             {pacerPaceOptions.map(p => {
               const active = p === pacerPace;
               return (
                 <TouchableOpacity
                   key={p}
                   style={[ss.paceChip, active && ss.paceChipActive]}
-                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPacerPaceEdit(p); setShowPacePicker(false); }}
+                  onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPacerPaceChange(p); }}
                   activeOpacity={0.7}
                 >
                   <Text style={[ss.paceChipTxt, active && ss.paceChipTxtActive]}>{p}</Text>
-                  <Text style={[ss.paceChipUnit, active && ss.paceChipTxtActive]}>/km</Text>
+                  <Text style={[ss.paceChipUnit, active && ss.paceChipUnitActive]}>/km</Text>
                 </TouchableOpacity>
               );
             })}
@@ -141,6 +126,7 @@ export default function RunSetupSheet({
         )}
       </View>
 
+      {/* Start button */}
       <View style={[ss.startWrap, { paddingBottom: Math.max(bottomInset, 16) }]}>
         <TouchableOpacity style={[ss.startBtn, !gpsReady && ss.startBtnDisabled]} onPress={onStartPress} disabled={!gpsReady} activeOpacity={0.85}>
           <View style={[ss.startDot, !gpsReady && ss.startDotDisabled]}>
@@ -165,24 +151,19 @@ function mkStyles(C: AppColors) {
     selectorMeta:     { fontFamily: FONT, fontSize: 8, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 },
     selectorVal:      { fontFamily: FONT_MED, fontSize: 12, color: C.black, marginTop: 1 },
     chevron:          { fontFamily: FONT_LIGHT, fontSize: 16, color: C.t3 },
-    intelRow:         { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 10 },
-    chip:             { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, borderWidth: 0.5, borderColor: C.border },
-    chipText:         { fontFamily: FONT, fontSize: 11 },
     pacerCard:        { marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
-    pacerRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14 },
-    pacerLeft:        { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-    pacerRight:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    pacerRow:         { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 14 },
+    pacerIcon:        { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     pacerTitle:       { fontFamily: FONT_MED, fontSize: 12, color: C.black },
     pacerSub:         { fontFamily: FONT_LIGHT, fontSize: 10, color: C.muted, marginTop: 1 },
-    editBtn:          { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FDE8E4', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 4 },
-    editBtnTxt:       { fontFamily: FONT_MED, fontSize: 9, color: C.red, letterSpacing: 0.5 },
-    pacePickerScroll: { borderTopWidth: 0.5, borderTopColor: C.border },
-    pacePickerContent:{ flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingVertical: 10 },
-    paceChip:         { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'baseline', gap: 2 },
+    paceScroll:       { borderTopWidth: 0.5, borderTopColor: C.border },
+    paceScrollContent:{ flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingVertical: 10 },
+    paceChip:         { flexDirection: 'row', alignItems: 'baseline', gap: 1, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
     paceChipActive:   { backgroundColor: C.red, borderColor: C.red },
-    paceChipTxt:      { fontFamily: FONT_MED, fontSize: 13, color: C.black },
-    paceChipTxtActive:{ color: C.white },
+    paceChipTxt:      { fontFamily: FONT_MED, fontSize: 14, color: C.black },
+    paceChipTxtActive:{ color: '#fff' },
     paceChipUnit:     { fontFamily: FONT, fontSize: 9, color: C.muted },
+    paceChipUnitActive:{ color: 'rgba(255,255,255,0.7)' },
     startWrap:        { paddingHorizontal: 16, marginTop: 'auto' },
     startBtn:         { backgroundColor: C.black, borderRadius: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
     startBtnDisabled: { backgroundColor: '#D1D5DB' },

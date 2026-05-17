@@ -3,8 +3,12 @@ import * as ImagePicker from 'expo-image-picker';
 import type { StoredRun, StoredShoe } from '@shared/services/store';
 import { getSettings, saveSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
-import { fetchProfileData, updateProfile, uploadAvatar } from '../services/profileService';
+import {
+  fetchProfileData, updateProfile, uploadAvatar,
+  fetchAwards, fetchProfileStats, setPinnedRun,
+} from '../services/profileService';
 import type { ProfileTab } from '../types';
+import type { ProfileStats } from '@shared/types/game';
 
 const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
@@ -18,10 +22,16 @@ export function useProfile() {
   const [shoes, setShoes] = useState<StoredShoe[]>([]);
   const [weeklyGoalKm, setWeeklyGoalKm] = useState(20);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
-  const [tab, setTab] = useState<ProfileTab>('activity');
+  const [tab, setTab] = useState<ProfileTab>('overview');
 
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
+
+  // New: awards, stats, pinned run
+  const [earnedAwards, setEarnedAwards] = useState<{ awardId: string; unlockedAt: string }[]>([]);
+  const [statsPeriod, setStatsPeriod] = useState<'week' | 'month' | 'year' | 'all'>('all');
+  const [statsData, setStatsData] = useState<ProfileStats>({ totalKm: 0, totalRuns: 0, avgPaceSec: 0, totalCalories: 0, totalZones: 0 });
+  const [pinnedRunId, setPinnedRunId] = useState<string | null>(null);
   const [avatarColor, setAvatarColor] = useState(SWATCHES[0]);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -65,6 +75,24 @@ export function useProfile() {
       const current = await getSettings();
       await saveSettings({ ...current, ...toWrite });
     }
+
+    // Load awards and stats
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const [awards, stats] = await Promise.all([
+        fetchAwards(session.user.id),
+        fetchProfileStats(session.user.id, 'all'),
+      ]);
+      setEarnedAwards(awards);
+      setStatsData(stats);
+    }
+  }, []);
+
+  const loadStats = useCallback(async (period: 'week' | 'month' | 'year' | 'all') => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const stats = await fetchProfileStats(session.user.id, period);
+    setStatsData(stats);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -132,6 +160,13 @@ export function useProfile() {
     setIsEditing(false);
   }, [editName, editBio, editColor, editLocation, editInstagram, editStrava, editAvatarUri, avatarUri]);
 
+  const pinRun = useCallback(async (runId: string | null) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    await setPinnedRun(session.user.id, runId);
+    setPinnedRunId(runId);
+  }, []);
+
   return {
     runs, shoes, weeklyGoalKm, personalRecords, thisWeekKm,
     followers, following,
@@ -146,5 +181,11 @@ export function useProfile() {
     editStrava, setEditStrava,
     editAvatarUri, pickAvatar,
     startEdit, saveEdit, cancelEdit,
+    earnedAwards,
+    statsData, statsPeriod, setStatsPeriod: (p: 'week' | 'month' | 'year' | 'all') => {
+      setStatsPeriod(p);
+      loadStats(p);
+    },
+    pinnedRunId, pinRun,
   };
 }

@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { PersonalRecordsCard } from './PersonalRecordsCard';
 import { StatRow } from './StatRow';
 import type { PersonalRecord } from '../hooks/useProfile';
 import type { StoredRun } from '@shared/services/store';
-import { Colors } from '@theme';
+import type { ProfileStats } from '@shared/types/game';
+import { Colors, useTheme } from '@theme';
 
 const C = Colors;
 
@@ -170,6 +171,44 @@ function RacePredictions({ personalRecords }: { personalRecords: PersonalRecord[
   );
 }
 
+// ── Period selector ───────────────────────────────────────────────────────────
+
+const PERIODS: { key: 'week' | 'month' | 'year' | 'all'; label: string }[] = [
+  { key: 'week',  label: 'This week' },
+  { key: 'month', label: 'This month' },
+  { key: 'year',  label: 'This year' },
+  { key: 'all',   label: 'All time' },
+];
+
+function PeriodSelector({ value, onChange }: {
+  value: 'week' | 'month' | 'year' | 'all';
+  onChange: (p: 'week' | 'month' | 'year' | 'all') => void;
+}) {
+  const C = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+      {PERIODS.map(p => (
+        <Pressable
+          key={p.key}
+          onPress={() => onChange(p.key)}
+          style={{
+            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+            backgroundColor: value === p.key ? C.black : C.stone,
+            borderWidth: 0.5, borderColor: value === p.key ? C.black : C.border,
+          }}
+        >
+          <Text style={{
+            fontFamily: value === p.key ? 'Barlow_500Medium' : 'Barlow_400Regular',
+            fontSize: 11, color: value === p.key ? C.white : C.t2,
+          }}>
+            {p.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface Props {
@@ -179,18 +218,23 @@ interface Props {
   totalTerritories: number;
   streakDays: number;
   runs: StoredRun[];
+  statsData?: ProfileStats;
+  statsPeriod?: 'week' | 'month' | 'year' | 'all';
+  onPeriodChange?: (p: 'week' | 'month' | 'year' | 'all') => void;
 }
 
-export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories, streakDays, runs }: Props) {
+export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories, streakDays, runs, statsData, statsPeriod = 'all', onPeriodChange }: Props) {
+  const periodStats = statsData ?? { totalKm, totalRuns, avgPaceSec: 0, totalCalories: 0, totalZones: totalTerritories };
   const allTime = [
-    { label: 'Total runs',  value: String(totalRuns) },
-    { label: 'Total km',    value: totalKm.toFixed(1) },
-    { label: 'Territories', value: String(totalTerritories) },
+    { label: 'Total runs',  value: String(periodStats.totalRuns) },
+    { label: 'Total km',    value: Number(periodStats.totalKm).toFixed(1) },
+    { label: 'Zones',       value: String(periodStats.totalZones) },
     { label: 'Streak',      value: `${streakDays}d` },
   ];
 
   return (
     <View>
+      {onPeriodChange && <PeriodSelector value={statsPeriod} onChange={onPeriodChange} />}
       <SectionHeader label="Personal records" />
       <PersonalRecordsCard records={personalRecords} />
 

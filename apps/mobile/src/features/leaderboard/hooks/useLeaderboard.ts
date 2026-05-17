@@ -17,7 +17,7 @@ export interface LeaderboardState {
 }
 
 export function useLeaderboard(): LeaderboardState {
-  const [tab, setTab] = useState<LeaderboardTab>('distance');
+  const [tab, setTab] = useState<LeaderboardTab>('territory_score');
   const [timeFrame, setTimeFrame] = useState<LeaderboardTimeFrame>('week');
   const [scope, setScope] = useState<LeaderboardScope>('global');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -40,7 +40,7 @@ export function useLeaderboard(): LeaderboardState {
 
   useEffect(() => { load(); }, [load]);
 
-  const unit = tab === 'distance' ? 'km' : tab === 'xp' ? 'XP' : '⚡';
+  const unit = tab === 'distance' ? 'km' : tab === 'weekly_pace' ? 'PACE' : 'TS';
 
   return { entries, loading, tab, timeFrame, scope, unit, currentUserId, setTab, setTimeFrame, setScope };
 }

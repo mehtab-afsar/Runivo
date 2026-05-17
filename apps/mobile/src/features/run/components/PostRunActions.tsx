@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { Share2, Bookmark } from 'lucide-react-native';
+import { Share2, Bookmark, Download } from 'lucide-react-native';
 import { Colors } from '@theme';
 
 const C = Colors;
@@ -12,9 +12,10 @@ interface PostRunActionsProps {
   onSave: () => void;
   onDone: () => void;
   canSave?: boolean;
+  onSaveImage?: () => void;
 }
 
-export default function PostRunActions({ onShare, onSave, onDone, canSave = true }: PostRunActionsProps) {
+export default function PostRunActions({ onShare, onSave, onDone, canSave = true, onSaveImage }: PostRunActionsProps) {
   return (
     <View style={ss.col}>
       <View style={ss.row}>
@@ -25,6 +26,12 @@ export default function PostRunActions({ onShare, onSave, onDone, canSave = true
           <Share2 size={14} strokeWidth={2} color={C.black} />
           <Text style={ss.secondaryBtnText}>Share</Text>
         </Pressable>
+        {onSaveImage && (
+          <Pressable style={ss.secondaryBtn} onPress={onSaveImage}>
+            <Download size={14} strokeWidth={2} color={C.black} />
+            <Text style={ss.secondaryBtnText}>Save</Text>
+          </Pressable>
+        )}
       </View>
       {canSave && (
         <Pressable style={ss.saveBtn} onPress={onSave}>

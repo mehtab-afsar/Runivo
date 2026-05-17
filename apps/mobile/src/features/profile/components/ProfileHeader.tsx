@@ -1,135 +1,121 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
-import { MapPin, Camera, Bell, Settings, Activity } from 'lucide-react-native';
+import { Settings, Pencil } from 'lucide-react-native';
 import { Avatar } from './Avatar';
 import { useTheme, type AppColors } from '@theme';
+import { RANK_COLORS } from '@shared/constants/territory';
 
-function StatPill({ label, value }: { label: string; value: string }) {
-  const C = useTheme();
-  const ss = useMemo(() => mkStyles(C), [C]);
-  return (
-    <View style={ss.statPill}>
-      <Text style={ss.statPillValue}>{value}</Text>
-      <Text style={ss.statPillLabel}>{label}</Text>
-    </View>
-  );
-}
+const RANK_EMOJIS: Record<string, string> = {
+  pacer: '🚶',
+  strider: '🏃',
+  chaser: '👥',
+  hunter: '🎯',
+  sovereign: '⭐',
+};
 
 interface ProfileHeaderProps {
   displayName: string;
+  username?: string;
   bio: string;
   avatarColor: string;
   avatarUri?: string | null;
-  location?: string;
-  instagram?: string;
-  strava?: string;
-  level: number;
-  xpPercent: number;
+  runnerRank: string;
+  rankPct: number;
+  // kept for compat but not rendered in header
   totalKm: number;
   totalRuns: number;
   totalTerritories: number;
+  totalAreaM2: number;
   thisWeekKm: number;
   weeklyGoalKm: number;
   followers: number;
   following: number;
+  isOwnProfile?: boolean;
   onEditPress: () => void;
   onNotificationsPress: () => void;
   onSettingsPress: () => void;
+  onFollowersPress?: () => void;
+  onFollowingPress?: () => void;
+  onTerritoryPress?: () => void;
+  // unused below but kept for compat
+  location?: string;
+  instagram?: string;
+  strava?: string;
 }
 
 export function ProfileHeader({
-  displayName, bio, avatarColor, avatarUri, location, instagram, strava,
-  level, xpPercent, totalKm, totalRuns, totalTerritories,
-  thisWeekKm, weeklyGoalKm, followers, following,
-  onEditPress, onNotificationsPress, onSettingsPress,
+  displayName, username, bio, avatarColor, avatarUri,
+  runnerRank, rankPct,
+  followers, following,
+  isOwnProfile = true,
+  onEditPress, onSettingsPress, onFollowersPress, onFollowingPress,
 }: ProfileHeaderProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const goalPct = Math.min(1, weeklyGoalKm > 0 ? thisWeekKm / weeklyGoalKm : 0);
-  const r = xpPercent / 100;
+  const rankColor = RANK_COLORS[runnerRank] ?? RANK_COLORS.pacer;
+  const rankEmoji = RANK_EMOJIS[runnerRank] ?? '🚶';
+  const displayRank = runnerRank.charAt(0).toUpperCase() + runnerRank.slice(1);
 
   return (
     <View style={ss.header}>
-      <View style={ss.headerTop}>
-        <Pressable onPress={onEditPress} style={ss.avatarBtn}>
+      {/* Avatar + Info side-by-side */}
+      <View style={ss.row}>
+        <Pressable onPress={isOwnProfile ? onEditPress : undefined} style={ss.avatarWrap}>
           {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={ss.avatarPhoto} />
+            <Image source={{ uri: avatarUri }} style={ss.avatarImg} />
           ) : (
-            <Avatar name={displayName} color={avatarColor} size={60} />
+            <Avatar name={displayName} color={avatarColor} size={72} />
           )}
-          <View style={ss.cameraOverlay}>
-            <Camera size={10} color={C.white} strokeWidth={2} />
-          </View>
+          {isOwnProfile && (
+            <View style={ss.avatarEditBadge}>
+              <Pencil size={10} color="#fff" strokeWidth={2.5} />
+            </View>
+          )}
         </Pressable>
-        <View style={ss.headerActions}>
-          <Pressable style={ss.headerBtn} onPress={onNotificationsPress}>
-            <Bell size={16} color={C.black} strokeWidth={1.5} />
+
+        <View style={ss.infoBlock}>
+          <Text style={ss.displayName} numberOfLines={1}>{displayName}</Text>
+
+          <Text style={ss.rankLine}>
+            {username ? `@${username}  ·  ` : ''}
+            <Text style={ss.rankEmoji}>{rankEmoji} </Text>
+            <Text style={[ss.rankName, { color: rankColor.fg }]}>{displayRank}</Text>
+          </Text>
+
+          {/* Followers / Following */}
+          <View style={ss.socialLine}>
+            <Pressable onPress={onFollowingPress} hitSlop={8}>
+              <Text style={ss.socialText}>
+                <Text style={ss.socialNum}>{following}</Text>
+                <Text style={ss.socialLabel}> following</Text>
+              </Text>
+            </Pressable>
+            <Text style={ss.socialDot}> · </Text>
+            <Pressable onPress={onFollowersPress} hitSlop={8}>
+              <Text style={ss.socialText}>
+                <Text style={ss.socialNum}>{followers}</Text>
+                <Text style={ss.socialLabel}> followers</Text>
+              </Text>
+            </Pressable>
+          </View>
+
+          {!!bio && (
+            <Text style={ss.bio} numberOfLines={2} maxFontSizeMultiplier={1}>{bio}</Text>
+          )}
+        </View>
+
+        {/* Settings icon top-right */}
+        {isOwnProfile && (
+          <Pressable style={ss.settingsBtn} onPress={onSettingsPress} hitSlop={8}>
+            <Settings size={20} color={C.black} strokeWidth={1.5} />
           </Pressable>
-          <Pressable style={ss.headerBtn} onPress={onSettingsPress}>
-            <Settings size={16} color={C.black} strokeWidth={1.5} />
-          </Pressable>
-        </View>
+        )}
       </View>
 
-      <Text style={ss.displayName}>{displayName}</Text>
-      {bio ? <Text style={ss.bioText}>{bio}</Text> : null}
-
-      {/* Location + social links */}
-      {(location || instagram || strava) && (
-        <View style={ss.metaRow}>
-          {!!location && (
-            <View style={ss.metaItem}>
-              <MapPin size={11} color={C.t3} strokeWidth={1.5} />
-              <Text style={ss.metaText}>{location}</Text>
-            </View>
-          )}
-          {!!instagram && (
-            <View style={ss.metaItem}>
-              <Camera size={11} color={C.t3} strokeWidth={1.5} />
-              <Text style={ss.metaText}>{instagram.replace(/^@/, '')}</Text>
-            </View>
-          )}
-          {!!strava && (
-            <View style={ss.metaItem}>
-              <Activity size={11} color={C.t3} strokeWidth={1.5} />
-              <Text style={ss.metaText}>Strava</Text>
-            </View>
-          )}
-        </View>
-      )}
-
-      <Text style={ss.levelLabel}>Level {level}</Text>
-
-      <View style={ss.xpBarWrap}>
-        <View style={ss.xpBarTrack}>
-          <View style={[ss.xpBarFill, { flex: r }]} />
-          <View style={{ flex: Math.max(0, 1 - r) }} />
-        </View>
-      </View>
-
-      <View style={ss.statsRow}>
-        <StatPill label="Total km" value={totalKm.toFixed(0)} />
-        <StatPill label="Total runs" value={String(totalRuns)} />
-        <StatPill label="Territories" value={String(totalTerritories)} />
-      </View>
-
-      <View style={ss.socialRow}>
-        <Text style={ss.socialCount}>{followers}</Text>
-        <Text style={ss.socialLabel}> Followers</Text>
-        <Text style={ss.socialDot}>  ·  </Text>
-        <Text style={ss.socialCount}>{following}</Text>
-        <Text style={ss.socialLabel}> Following</Text>
-      </View>
-
-      <View style={ss.weekCard}>
-        <View style={ss.weekCardHeader}>
-          <Text style={ss.weekCardTitle}>This week</Text>
-          <Text style={ss.weekCardGoal}>{thisWeekKm.toFixed(1)} / {weeklyGoalKm} km</Text>
-        </View>
-        <View style={ss.weekBarBg}>
-          <View style={[ss.weekBarFill, { flex: goalPct }]} />
-          <View style={{ flex: 1 - goalPct }} />
-        </View>
+      {/* Rank progress bar — full width below the row */}
+      <View style={ss.rankBarBg}>
+        <View style={[ss.rankBarFill, { flex: Math.max(0.01, rankPct) }]} />
+        <View style={{ flex: Math.max(0, 1 - rankPct) }} />
       </View>
     </View>
   );
@@ -137,36 +123,30 @@ export function ProfileHeader({
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    header: { padding: 20, paddingBottom: 0 },
-    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-    headerActions: { flexDirection: 'row', gap: 8 },
-    headerBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
-    headerBtnText: { fontSize: 16 },
-    avatarBtn: { position: 'relative' },
-    avatarPhoto: { width: 60, height: 60, borderRadius: 30 },
-    cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
-    displayName: { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black, marginBottom: 2 },
-    bioText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, marginBottom: 6, lineHeight: 17 },
-    metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 6 },
-    metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    metaText: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
-    levelLabel: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.red, marginBottom: 8 },
-    xpBarWrap: { height: 3, backgroundColor: C.mid, borderRadius: 2, marginBottom: 16, overflow: 'hidden' },
-    xpBarTrack: { flexDirection: 'row', flex: 1 },
-    xpBarFill: { height: 3, backgroundColor: C.red },
-    statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-    statPill: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 10, alignItems: 'center' },
-    statPillValue: { fontFamily: 'Barlow_600SemiBold', fontSize: 17, color: C.black, letterSpacing: -0.5 },
-    statPillLabel: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
-    socialRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-    socialCount: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    socialLabel: { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2 },
-    socialDot: { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3 },
-    weekCard: { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 20 },
-    weekCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    weekCardTitle: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
-    weekCardGoal: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
-    weekBarBg: { height: 4, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
-    weekBarFill: { height: 4, backgroundColor: C.red },
+    header:          { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
+    row:             { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 14 },
+    avatarWrap:      { position: 'relative' },
+    avatarImg:       { width: 72, height: 72, borderRadius: 36 },
+    avatarEditBadge: {
+      position: 'absolute', bottom: 0, right: 0,
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: C.black,
+      borderWidth: 2, borderColor: C.bg,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    infoBlock:    { flex: 1, gap: 4 },
+    displayName:  { fontFamily: 'Barlow_600SemiBold', fontSize: 17, color: C.black, letterSpacing: -0.2 },
+    rankLine:     { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
+    rankEmoji:    { fontSize: 12 },
+    rankName:     { fontFamily: 'Barlow_500Medium', fontSize: 12 },
+    socialLine:   { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
+    socialText:   {},
+    socialNum:    { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black },
+    socialLabel:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
+    socialDot:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3 },
+    bio:          { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, lineHeight: 17, marginTop: 3 },
+    settingsBtn:  { padding: 2, alignSelf: 'flex-start' },
+    rankBarBg:    { height: 3, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
+    rankBarFill:  { height: 3, backgroundColor: C.red },
   });
 }

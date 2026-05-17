@@ -4,7 +4,9 @@
  */
 import * as SQLite from 'expo-sqlite';
 import { Mission, generateDailyMissions, updateMissionProgress, MISSION_TEMPLATES } from './missions';
-import { getSettings } from './store';
+import { getPlayer, savePlayer, getSettings } from './store';
+import { GAME_CONFIG } from './config';
+import { computeRunnerRank } from './claimEngine';
 
 const _db = SQLite.openDatabaseSync('runivo.db');
 
@@ -43,13 +45,12 @@ export async function saveMissions(missions: Mission[]): Promise<void> {
 }
 
 export async function updateMissionsAfterRun(runResult: {
-  distanceKm:           number;
-  territoriesClaimed:   string[];
-  territoriesFortified: string[];
-  enemyCaptured:        number;
-  hexesVisited:         number;
-  enemyZoneDistanceKm:  number;
-  fastKmCount:          number;
+  distanceKm:          number;
+  territoriesClaimed:  string[];
+  enemyCaptured:       number;
+  fastKmCount:         number;
+  defendedZonesCount:  number;
+  rivalZonesStolen:    number;
 }): Promise<{ missions: Mission[]; newlyCompleted: Mission[] }> {
   const current             = await getTodaysMissions();
   const previouslyCompleted = current.filter(m => m.completed).map(m => m.id);
@@ -73,6 +74,23 @@ export async function claimMissionReward(missionId: string): Promise<Mission | n
     'INSERT OR REPLACE INTO missions (id, data, expires_at) VALUES (?, ?, ?)',
     [mission.id, JSON.stringify(mission), mission.expiresAt],
   );
+
+  const player = await getPlayer();
+  if (player) {
+    const paceReward = mission.rewards.pace ?? 0;
+    const cap = GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
+    const remaining = cap - (player.paceWeeklyEarned ?? 0);
+    const credited = Math.min(paceReward, Math.max(0, remaining));
+    const newTotal = (player.paceTotalEarned ?? 0) + credited;
+    await savePlayer({
+      ...player,
+      paceBalance:      (player.paceBalance ?? 0) + credited,
+      paceTotalEarned:  newTotal,
+      paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + credited,
+      runnerRank:       computeRunnerRank(newTotal),
+    });
+  }
+
   return mission;
 }
 
@@ -89,6 +107,22 @@ export async function setDailyMissions(templateTitles: string[]): Promise<Missio
   });
   await saveMissions(missions);
   return missions;
+}
+
+export async function updateMissionsAfterNutritionLog(
+  { streakDays }: { streakDays: number },
+): Promise<{ missions: Mission[]; newlyCompleted: Mission[] }> {
+  const current             = await getTodaysMissions();
+  const previouslyCompleted = current.filter(m => m.completed).map(m => m.id);
+  const updated             = current.map(mission => {
+    if (mission.type !== 'nutrition_streak' || mission.completed) return mission;
+    const newCurrent = Math.min(streakDays, mission.target);
+    const completed  = newCurrent >= mission.target;
+    return { ...mission, current: newCurrent, completed };
+  });
+  await saveMissions(updated);
+  const newlyCompleted = updated.filter(m => m.completed && !previouslyCompleted.includes(m.id));
+  return { missions: updated, newlyCompleted };
 }
 
 export async function ensureTodaysMissions(): Promise<Mission[]> {

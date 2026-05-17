@@ -18,6 +18,7 @@ import type {
   StoredSettings,
   PendingAction,
 } from './store';
+import type { TerritoryPolygon, RunnerRank } from '../types/game';
 
 // Re-export types so callers can import from either file without caring which.
 export type {
@@ -30,6 +31,8 @@ export type {
   NutritionEntry,
   StoredSettings,
   PendingAction,
+  TerritoryPolygon,
+  RunnerRank,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,9 +174,15 @@ export async function getPlayer(): Promise<StoredPlayer | null> {
   const p = JSON.parse(row.data) as StoredPlayer;
   return {
     ...p,
-    totalEnemyCaptured:  p.totalEnemyCaptured  ?? 0,
+    totalEnemyCaptured:   p.totalEnemyCaptured  ?? 0,
     unlockedAchievements: p.unlockedAchievements ?? [],
-    lastLoginBonusDate:  p.lastLoginBonusDate  ?? null,
+    lastLoginBonusDate:   p.lastLoginBonusDate  ?? null,
+    paceBalance:          p.paceBalance          ?? 0,
+    paceTotalEarned:      p.paceTotalEarned      ?? 0,
+    paceWeeklyEarned:     p.paceWeeklyEarned     ?? 0,
+    paceWeeklyResetAt:    p.paceWeeklyResetAt    ?? new Date().toISOString(),
+    runnerRank:           p.runnerRank            ?? 'pacer',
+    territoryScore:       p.territoryScore        ?? 0,
   };
 }
 
@@ -190,11 +199,6 @@ export async function initializePlayer(username: string): Promise<StoredPlayer> 
   const player: StoredPlayer = {
     id: crypto.randomUUID(),
     username,
-    level: 1,
-    xp: 0,
-    coins: 100,
-    energy: 10,
-    lastEnergyRegen: Date.now(),
     totalDistanceKm: 0,
     totalRuns: 0,
     totalTerritoriesClaimed: 0,
@@ -204,6 +208,12 @@ export async function initializePlayer(username: string): Promise<StoredPlayer> 
     lastLoginBonusDate: null,
     unlockedAchievements: [],
     createdAt: Date.now(),
+    paceBalance: 0,
+    paceTotalEarned: 0,
+    paceWeeklyEarned: 0,
+    paceWeeklyResetAt: new Date().toISOString(),
+    runnerRank: 'pacer',
+    territoryScore: 0,
   };
   await savePlayer(player);
   return player;
@@ -279,6 +289,23 @@ export async function getAllTerritories(): Promise<StoredTerritory[]> {
 export async function getPlayerTerritoryIds(playerId: string): Promise<string[]> {
   const all = await getAllTerritories();
   return all.filter(t => t.ownerId === playerId).map(t => t.id);
+}
+
+export async function saveTerritory(territory: TerritoryPolygon): Promise<void> {
+  await ready();
+  _db.runSync(
+    'INSERT OR REPLACE INTO territories (id, data) VALUES (?, ?)',
+    territory.id,
+    JSON.stringify(territory),
+  );
+}
+
+export async function getTerritoryPolygons(ownerId?: string): Promise<TerritoryPolygon[]> {
+  await ready();
+  const rows = _db.getAllSync<{ data: string }>('SELECT data FROM territories');
+  const all = rows.map(r => JSON.parse(r.data));
+  const polygons = all.filter((t: any) => typeof t.freshness === 'number') as TerritoryPolygon[];
+  return ownerId ? polygons.filter(t => t.ownerId === ownerId) : polygons;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

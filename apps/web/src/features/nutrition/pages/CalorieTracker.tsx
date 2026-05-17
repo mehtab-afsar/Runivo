@@ -209,7 +209,7 @@ export default function CalorieTracker() {
     await addNutritionEntry({ ...entry, date: today, loggedAt: Date.now(), xpAwarded: xp > 0 });
     if (xp > 0) {
       const player = await getPlayer();
-      if (player) await savePlayer({ ...player, xp: player.xp + xp });
+      if (player) await savePlayer({ ...player, xp: (player.xp ?? 0) + xp });
     }
     await load();
     setShowSearch(false);

@@ -1,63 +1,63 @@
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Zap, Flame } from 'lucide-react-native';
+import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { Flame, Diamond } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, type AppColors } from '@theme';
 
-const LEVEL_TITLES = [
-  'Scout', 'Pathfinder', 'Trailblazer', 'Ranger', 'Explorer',
-  'Captain', 'Vanguard', 'Commander', 'Warlord', 'Legend',
-];
-
 interface Props {
-  xp: number;
-  level?: number;
-  energy: number;
+  runnerRank?: string;
+  paceWeeklyEarned: number;
+  weeklyCapLimit: number;
   streakDays: number;
 }
 
-export function DashboardPills({ xp, level = 1, energy, streakDays }: Props) {
+export function DashboardPills({ runnerRank = 'pacer', paceWeeklyEarned, weeklyCapLimit, streakDays }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  const title = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)] ?? 'Scout';
+  const rank = runnerRank.charAt(0).toUpperCase() + runnerRank.slice(1);
+  const barPct = Math.min(100, weeklyCapLimit > 0 ? (paceWeeklyEarned / weeklyCapLimit) * 100 : 0);
 
   return (
-    <View style={ss.row}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={ss.row}
+    >
+      {/* Runner rank */}
       <Pressable onPress={tap} style={ss.pill}>
-        <Text style={ss.pillV}>{xp.toLocaleString()} XP</Text>
-        <View style={ss.dot} />
-        <Text style={ss.pillL}>{title}</Text>
+        <Diamond size={11} color={C.red} strokeWidth={1.5} />
+        <Text style={ss.pillV}>{rank}</Text>
       </Pressable>
 
-      {energy < 5 && (
-        <Pressable onPress={tap} style={ss.pill}>
-          <Zap size={13} color={C.red} strokeWidth={1.5} />
-          <Text style={ss.pillV}>{energy}/10</Text>
-          <Text style={ss.pillL}>energy</Text>
-        </Pressable>
-      )}
+      {/* Weekly PACE progress */}
+      <Pressable onPress={tap} style={[ss.pill, ss.pacePill]}>
+        <Text style={ss.pillV}>{paceWeeklyEarned} / {weeklyCapLimit}</Text>
+        <Text style={ss.pillL}> PACE</Text>
+        <View style={ss.barBg}>
+          <View style={[ss.barFill, { width: `${barPct}%` as any }]} />
+        </View>
+      </Pressable>
 
-      {(streakDays || 0) > 0 && (
-        <Pressable onPress={tap} style={ss.pill}>
-          <Flame size={13} color={C.red} strokeWidth={1.5} />
-          <Text style={ss.pillV}>{streakDays}</Text>
-          <Text style={ss.pillL}>day streak</Text>
-        </Pressable>
-      )}
-    </View>
+      {/* Streak — always shown */}
+      <Pressable onPress={tap} style={ss.pill}>
+        <Flame size={13} color={streakDays > 0 ? C.red : C.t3} strokeWidth={1.5} />
+        <Text style={ss.pillV}>{streakDays}</Text>
+        <Text style={ss.pillL}>{streakDays === 1 ? 'day' : 'days'}</Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 22, paddingBottom: 20 },
-    pill: {
-      height: 34, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 5,
-      backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, borderRadius: 20,
-    },
-    dot: { width: 3, height: 3, borderRadius: 1.5, backgroundColor: C.border },
-    pillV: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
-    pillL: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
+    row:       { flexDirection: 'row', gap: 6, paddingHorizontal: 22, paddingBottom: 20 },
+    pill:      { height: 38, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, borderRadius: 20 },
+    pacePill:  { flexDirection: 'column', alignItems: 'flex-start', paddingVertical: 7, height: 'auto' as any, gap: 0 },
+    paceRow:   { flexDirection: 'row', alignItems: 'center' },
+    barBg:     { width: 90, height: 2, borderRadius: 1, backgroundColor: C.border, marginTop: 4 },
+    barFill:   { height: '100%', borderRadius: 1, backgroundColor: C.red },
+    pillV:     { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
+    pillL:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
   });
 }

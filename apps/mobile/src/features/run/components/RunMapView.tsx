@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Layers } from 'lucide-react-native';
+import { Layers, X } from 'lucide-react-native';
 import { useTheme, type AppColors } from '@theme';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
@@ -44,11 +44,13 @@ interface RunMapViewProps {
   intelWeak: number;
   gpsColor: string;
   gpsLabel: string;
+  onClose: () => void;
 }
 
 export default function RunMapView({
   lat, lng, gpsStatus, gpsAccuracy, mapStyle, onMapStyleChange,
   sheetAnim, topInset, intelEnemy, intelWeak, gpsColor: dotColor, gpsLabel: gpsTxt,
+  onClose,
 }: RunMapViewProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -75,22 +77,22 @@ export default function RunMapView({
       )}
 
       <View style={[ss.header, { top: topInset + 8 }]}>
+        {/* Close button */}
+        <Pressable style={ss.closeBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onClose(); }} hitSlop={10}>
+          <X size={14} color={C.black} strokeWidth={2.5} />
+        </Pressable>
+
+        {/* GPS pill */}
         <View style={ss.pill}>
           <View style={[ss.dot, { backgroundColor: dotColor }]} />
           <Text style={ss.pillTxt}>{gpsTxt}</Text>
         </View>
-        <View style={{ flex: 1 }} />
-        {(intelEnemy > 0 || intelWeak > 0) && (
-          <View style={ss.pill}>
-            <View style={[ss.dot, { backgroundColor: C.red }]} />
-            <Text style={ss.pillTxt}>{intelEnemy} enemy · {intelWeak} weak</Text>
-          </View>
-        )}
-      </View>
 
-      <View style={ss.rightControls}>
+        <View style={{ flex: 1 }} />
+
+        {/* Map style picker */}
         <Pressable style={ss.mapBtn} onPress={() => { setShowStylePicker(s => !s); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
-          <Layers size={16} color={C.black} strokeWidth={1.5} />
+          <Layers size={14} color={C.black} strokeWidth={1.5} />
         </Pressable>
       </View>
 
@@ -119,12 +121,12 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   fallback:     { backgroundColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center', height: 300 },
   fallbackText: { fontFamily: FONT, fontSize: 14, color: '#6B7280' },
   header:       { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  closeBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
   pill:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 0.5, borderColor: C.border },
   dot:          { width: 7, height: 7, borderRadius: 3.5 },
   pillTxt:      { fontFamily: FONT, fontSize: 12, color: C.black },
-  rightControls:{ position: 'absolute', right: 16, top: '40%' },
-  mapBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  picker:       { position: 'absolute', right: 64, top: '30%', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, padding: 12, minWidth: 130, borderWidth: 0.5, borderColor: C.border },
+  mapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  picker:       { position: 'absolute', right: 16, top: 60, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, padding: 12, minWidth: 130, borderWidth: 0.5, borderColor: C.border, zIndex: 20 },
   pickerLabel:  { fontFamily: FONT_LIGHT, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 },
   pickerRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   preview:      { width: 28, height: 28, borderRadius: 6, borderWidth: 0.5, borderColor: C.border },

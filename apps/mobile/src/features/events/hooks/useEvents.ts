@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Alert } from 'react-native';
 import type { RunEvent } from '../types';
 import { fetchEvents, toggleEventJoin } from '../services/eventService';
 
@@ -38,6 +39,11 @@ export function useEvents(): EventsState {
     const isJoined = joinedIds.has(eventId);
     const event = events.find(e => e.id === eventId);
     if (!event) return;
+
+    if (event.category === 'king-of-hill' || event.category === 'territory-war') {
+      Alert.alert('Coming Soon', 'Territory War events are launching soon. Stay tuned!');
+      return;
+    }
 
     // Optimistic update
     setJoinedIds(prev => {

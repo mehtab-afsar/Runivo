@@ -1,11 +1,12 @@
 import { supabase } from '@shared/services/supabase';
 
 export interface CoachMessage {
-  id:         string;
-  role:       'user' | 'assistant';
-  content:    string;
-  type?:      string;
-  created_at: string;
+  id:              string;
+  role:            'user' | 'assistant';
+  content:         string;
+  type?:           string;
+  auto_triggered?: boolean;
+  created_at:      string;
 }
 
 export interface TrainingWeek {
@@ -76,6 +77,15 @@ export async function requestTrainingPlan(goal: string, sessionToken: string): P
   return plan as TrainingPlan;
 }
 
+export async function requestHabitTracking(sessionToken: string): Promise<{ content: string }> {
+  const { data, error } = await supabase.functions.invoke('ai-coach', {
+    body:    { feature: 'habit_tracking' },
+    headers: { Authorization: `Bearer ${sessionToken}` },
+  });
+  if (error) throw error;
+  return parseReply(data);
+}
+
 export async function getQuickPrompts(sessionToken: string): Promise<QuickPrompt[]> {
   try {
     const { data, error } = await supabase.functions.invoke('ai-coach', {
@@ -94,10 +104,36 @@ export async function getQuickPrompts(sessionToken: string): Promise<QuickPrompt
   ];
 }
 
+export interface PaceInsightCard {
+  icon: string;
+  headline: string;
+  body: string;
+  recommendation: string;
+}
+
+export async function requestPaceIntelligence(
+  sessionToken: string,
+): Promise<{ insights: PaceInsightCard[] } | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-coach', {
+      body: { feature: 'pace_intelligence' },
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+    if (error || !data) return null;
+    const inner = (data as Record<string, unknown>).data ?? data;
+    if (typeof inner === 'object' && inner !== null && 'insights' in inner) {
+      return inner as { insights: PaceInsightCard[] };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadMessageHistory(userId: string): Promise<CoachMessage[]> {
   const { data } = await supabase
     .from('coach_messages')
-    .select('id, role, content, created_at')
+    .select('id, role, content, auto_triggered, created_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
     .limit(50);

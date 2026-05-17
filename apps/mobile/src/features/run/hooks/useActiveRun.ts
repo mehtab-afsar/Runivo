@@ -19,6 +19,7 @@ import {
 
 const GPS_CHECKPOINT_INTERVAL_MS = 30_000;
 const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
+const GPS_LOCK_REQUIRED_POINTS = 3;
 
 /** Returns any checkpoint key written by an interrupted run (crash recovery). */
 export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[] } | null> {
@@ -55,14 +56,6 @@ export interface GPSPoint {
   altitude: number;
 }
 
-interface ClaimEvent {
-  type: 'claim_progress' | 'claimed' | 'energy_blocked';
-  progress?: number;
-  xpEarned?: number;
-  coinsEarned?: number;
-  timestamp: number;
-}
-
 interface ActiveRunState {
   isRunning: boolean;
   isPaused: boolean;
@@ -71,10 +64,6 @@ interface ActiveRunState {
   pace: string;
   currentSpeed: number;
   gpsPoints: GPSPoint[];
-  claimProgress: number;
-  territoriesClaimed: number;
-  lastClaimEvent: ClaimEvent | null;
-  energyBlocked: boolean;
   gpsError: string | null;
 }
 
@@ -102,19 +91,16 @@ export function useActiveRun(activityType: string = 'run') {
   const gameEngine = useGameEngine();
 
   const [state, setState] = useState<ActiveRunState>({
-    isRunning:          false,
-    isPaused:           false,
-    elapsed:            0,
-    distance:           0,
-    pace:               '0:00',
-    currentSpeed:       0,
-    gpsPoints:          [],
-    claimProgress:      0,
-    territoriesClaimed: 0,
-    lastClaimEvent:     null,
-    energyBlocked:      false,
-    gpsError:           null,
+    isRunning:    false,
+    isPaused:     false,
+    elapsed:      0,
+    distance:     0,
+    pace:         '0:00',
+    currentSpeed: 0,
+    gpsPoints:    [],
+    gpsError:     null,
   });
+  const [gpsLocked, setGpsLocked] = useState(false);
 
   const locationSubRef      = useRef<Location.LocationSubscription | null>(null);
   const appStateSubRef      = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
@@ -135,41 +121,13 @@ export function useActiveRun(activityType: string = 'run') {
   const elapsedRef        = useRef<number>(0);
   const paceRef           = useRef<string>('0:00');
   // isPausedRef mirrors isPaused state for use inside GPS callback (avoids stale closure)
-  const isPausedRef       = useRef<boolean>(false);
-  const prevAltitudeRef   = useRef<number | null>(null);
-  const elevationGainRef  = useRef<number>(0);
+  const isPausedRef            = useRef<boolean>(false);
+  // gpsLockedRef + consecutiveGoodPointsRef: prevents distance accumulation from iOS stale cache
+  const gpsLockedRef           = useRef<boolean>(false);
+  const consecutiveGoodPointsRef = useRef(0);
+  const prevAltitudeRef        = useRef<number | null>(null);
+  const elevationGainRef       = useRef<number>(0);
 
-  // ── Claim events ────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const unsub = gameEngine.onClaimEvent((event: ClaimEvent) => {
-      setState(prev => ({ ...prev, lastClaimEvent: event }));
-
-      switch (event.type) {
-        case 'claim_progress':
-          setState(prev => ({ ...prev, claimProgress: event.progress ?? 0 }));
-          break;
-        case 'claimed':
-          setState(prev => ({
-            ...prev,
-            territoriesClaimed: prev.territoriesClaimed + 1,
-            claimProgress:      0,
-            energyBlocked:      false,
-          }));
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          setTimeout(() => {
-            setState(prev =>
-              prev.lastClaimEvent?.type === 'claimed' ? { ...prev, lastClaimEvent: null } : prev
-            );
-          }, 4000);
-          break;
-        case 'energy_blocked':
-          setState(prev => ({ ...prev, energyBlocked: true }));
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          break;
-      }
-    });
-    return unsub;
-  }, [gameEngine]);
 
   // ── Cleanup on unmount ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -196,7 +154,6 @@ export function useActiveRun(activityType: string = 'run') {
     // Request background permission (soft — if denied, foreground-only tracking still works)
     await Location.requestBackgroundPermissionsAsync().catch(() => {});
 
-    await gameEngine.startClaimEngine();
     await activateKeepAwakeAsync();
 
     // App state handler: re-acquire keep-awake on foreground resume + drain bg buffer.
@@ -236,14 +193,17 @@ export function useActiveRun(activityType: string = 'run') {
     pauseStartRef.current    = 0;
     totalPausedMsRef.current = 0;
     lastPositionRef.current  = null;
-    runIdRef.current         = `run-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    runIdRef.current         = crypto.randomUUID();
     gpsPointsRef.current     = [];
     pendingDistanceRef.current = 0;
     totalDistanceRef.current   = 0;
-    isFinishingRef.current     = false;
-    isPausedRef.current        = false;
-    prevAltitudeRef.current    = null;
-    elevationGainRef.current   = 0;
+    isFinishingRef.current          = false;
+    isPausedRef.current             = false;
+    gpsLockedRef.current            = false;
+    consecutiveGoodPointsRef.current = 0;
+    prevAltitudeRef.current         = null;
+    elevationGainRef.current        = 0;
+    setGpsLocked(false);
 
     // Periodic GPS checkpoint: persists in-memory GPS points to AsyncStorage every 30s
     // so a crash/force-kill doesn't lose the entire run trace.
@@ -260,16 +220,13 @@ export function useActiveRun(activityType: string = 'run') {
 
     setState(prev => ({
       ...prev,
-      isRunning:          true,
-      isPaused:           false,
-      elapsed:            0,
-      distance:           0,
-      pace:               '0:00',
-      gpsPoints:          [],
-      territoriesClaimed: 0,
-      claimProgress:      0,
-      lastClaimEvent:     null,
-      gpsError:           null,
+      isRunning: true,
+      isPaused:  false,
+      elapsed:   0,
+      distance:  0,
+      pace:      '0:00',
+      gpsPoints: [],
+      gpsError:  null,
     }));
 
     // 1-second timer
@@ -300,7 +257,19 @@ export function useActiveRun(activityType: string = 'run') {
         const gpsSpeed = speed ?? 0;
 
         // Skip low-accuracy points (same threshold as claim engine)
-        if ((accuracy ?? 100) > 30) return;
+        if ((accuracy ?? 100) > 30) {
+          consecutiveGoodPointsRef.current = 0;
+          return;
+        }
+
+        // Require 3 consecutive accurate points before trusting GPS — prevents
+        // iOS stale-cache snap (the "California bug") from inflating distance.
+        consecutiveGoodPointsRef.current++;
+        if (!gpsLockedRef.current && consecutiveGoodPointsRef.current >= GPS_LOCK_REQUIRED_POINTS) {
+          gpsLockedRef.current = true;
+          setGpsLocked(true);
+        }
+        if (!gpsLockedRef.current) return;
 
         let deltaKm = 0;
         if (lastPositionRef.current) {
@@ -329,8 +298,6 @@ export function useActiveRun(activityType: string = 'run') {
           elevationGainRef.current += alt - prevAltitudeRef.current;
         }
         prevAltitudeRef.current = alt;
-
-        gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy ?? 10, deltaKm);
 
         gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10, altitude: alt });
 
@@ -452,13 +419,12 @@ export function useActiveRun(activityType: string = 'run') {
 
   return {
     ...state,
+    gpsLocked,
     startRun,
     pauseRun,
     resumeRun,
     finishRun,
     player:               gameEngine.player,
-    sessionStats:         gameEngine.sessionStats,
-    sessionEnergy:        gameEngine.sessionEnergy,
     playerTerritoryCount: gameEngine.playerTerritoryCount,
   };
 }

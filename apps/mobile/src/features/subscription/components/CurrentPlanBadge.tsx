@@ -7,7 +7,7 @@ interface CurrentPlanBadgeProps {
   tier: string;
 }
 
-export function CurrentPlanBadge({ tier }: CurrentPlanBadgeProps) {
+export function CurrentPlanBadge({ tier: _tier }: CurrentPlanBadgeProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   return (

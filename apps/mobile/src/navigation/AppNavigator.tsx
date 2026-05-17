@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Linking } from 'react-native';
+import { Linking } from 'react-native';
 import { CustomTabBar } from './CustomTabBar';
 import { CoachNavProvider } from './CoachNavContext';
 import { NavigationContainer, useNavigationContainerRef, type LinkingOptions, type NavigatorScreenParams } from '@react-navigation/native';
@@ -26,6 +26,9 @@ import FeedScreen            from '@features/social/screens/FeedScreen';
 import StoryViewerScreen     from '@features/social/screens/StoryViewerScreen';
 import ProfileScreen         from '@features/profile/screens/ProfileScreen';
 import UserProfileScreen     from '@features/profile/screens/UserProfileScreen';
+import FollowersScreen       from '@features/profile/screens/FollowersScreen';
+import FollowingScreen       from '@features/profile/screens/FollowingScreen';
+import AwardDetailScreen     from '@features/profile/screens/AwardDetailScreen';
 import MissionsScreen        from '@features/missions/screens/MissionsScreen';
 import HistoryScreen         from '@features/history/screens/HistoryScreen';
 import NotificationsScreen   from '@features/notifications/screens/NotificationsScreen';
@@ -49,6 +52,9 @@ import LandingScreen         from '@features/auth/screens/LandingScreen';
 import LoginScreen           from '@features/auth/screens/LoginScreen';
 import SignUpScreen          from '@features/auth/screens/SignUpScreen';
 import OnboardingScreen      from '@features/auth/screens/OnboardingScreen';
+import PACEStoreScreen       from '@features/store/screens/PACEStoreScreen';
+import CoachPlanScreen      from '@features/coach/screens/CoachPlanScreen';
+import RunReplayScreen      from '@features/run/screens/RunReplayScreen';
 
 // ─── Route param types ───────────────────────────────────────────────────────
 export type RootStackParamList = {
@@ -71,15 +77,21 @@ export type RootStackParamList = {
       route?: { lat: number; lng: number }[];
       actionType?: string;
       success?: boolean;
-      xpEarned?: number;
       enemyCaptured?: number;
-      leveledUp?: boolean;
       preRunLevel?: number;
       newLevel?: number;
       newStreak?: number;
       completedMissions?: { id: string; title: string }[];
       startTime?: number;
       elevationGainM?: number;
+      paceEarned?: number;
+      paceBreakdown?: { fromDistance: number; fromNewZones: number; fromStolenZones: number; fromStreak: number };
+      cappedAt?: number;
+      territory?: { id: string; runId: string; ownerId: string; ownerName: string; polygon: [number, number][]; areaM2: number; freshness: number; lastDefendedAt: string; claimedAt: string; isLoopFill: boolean; tier: 'patch' | 'block' | 'district' | 'quarter' | 'domain'; synced: boolean } | null;
+      runnerRank?: 'pacer' | 'strider' | 'chaser' | 'hunter' | 'sovereign';
+      paceTotalEarned?: number;
+      runnerRankPaceToNext?: number;
+      rivalZonesStolen?: number;
     };
   };
   Coach:     undefined;
@@ -99,7 +111,7 @@ export type RootStackParamList = {
   Gear:      undefined;
   GearAdd:   undefined;
   FootScan:  undefined;
-  TerritoryMap: undefined;
+  TerritoryMap: { initialFilter?: 'all' | 'mine' | 'rivals' | 'stale' } | undefined;
   Notifications: undefined;
   Subscription: undefined;
   StoryViewer: {
@@ -107,6 +119,17 @@ export type RootStackParamList = {
     initialGroupIndex: number;
   };
   UserProfile: { userId: string; username: string };
+  Followers: { userId: string };
+  Following: { userId: string };
+  AwardDetail: { awardId: string; unlockedAt: string | null };
+  PACEStore:  undefined;
+  CoachPlan:  undefined;
+  RunReplay: {
+    runId: string;
+    route: { lat: number; lng: number }[];
+    durationSec: number;
+    pace: number;
+  };
 };
 
 export type TabParamList = {
@@ -257,6 +280,12 @@ export function AppNavigator({
             <Stack.Screen name="Subscription"    component={SubscriptionScreen} />
             <Stack.Screen name="StoryViewer"     component={StoryViewerScreen} />
             <Stack.Screen name="UserProfile"     component={UserProfileScreen} />
+            <Stack.Screen name="Followers"       component={FollowersScreen}   />
+            <Stack.Screen name="Following"       component={FollowingScreen}   />
+            <Stack.Screen name="AwardDetail"     component={AwardDetailScreen} options={{ presentation: 'modal' }} />
+            <Stack.Screen name="PACEStore"       component={PACEStoreScreen}   options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen name="CoachPlan"       component={CoachPlanScreen}   options={{ headerShown: false }} />
+            <Stack.Screen name="RunReplay"       component={RunReplayScreen}   options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>
@@ -265,5 +294,3 @@ export function AppNavigator({
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const styles = StyleSheet.create({});

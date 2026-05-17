@@ -1,34 +1,49 @@
 /**
  * ActiveRunScreen — live run view.
- * Data: useActiveRun (GPS, distance, pace, claim progress).
+ * Data: useActiveRun (GPS, distance, pace).
  * Navigation: buildRunSummaryParams helper.
- * UI: RunHUD, RunControls, ClaimToast, ClaimProgressRing, FinishConfirmSheet.
- * Gate: useFeatureGate enforces territory cap for free-tier users.
+ * UI: RunHUD, RunControls, FinishConfirmSheet + 4 live territory banners.
+ * Pause state: custom slide-up card (Reanimated 4) instead of native alert.
  */
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, Animated } from 'react-native';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Play, Zap, Crown, X } from 'lucide-react-native';
-import { useActiveRun }         from '../hooks/useActiveRun';
-import { postRunSync }          from '@shared/services/sync';
-import { buildRunSummaryParams } from '../services/runNavigationHelper';
-import { useToast }             from '@mobile/shared/hooks/useToast';
+import { Play, X } from 'lucide-react-native';
+import { useActiveRun }          from '../hooks/useActiveRun';
+import { postRunSync, createFeedPost } from '@shared/services/sync';
+import { getTerritoryPolygons } from '@shared/services/store';
+import { buildRunSummaryParams }  from '../services/runNavigationHelper';
+import { useToast }              from '@mobile/shared/hooks/useToast';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useFeatureGate }     from '@features/subscription/hooks/useFeatureGate';
-import ClaimToast         from '../components/ClaimToast';
 import RunHUD             from '../components/RunHUD';
 import RunControls        from '../components/RunControls';
-import ClaimProgressRing  from '../components/ClaimProgressRing';
 import FinishConfirmSheet from '../components/FinishConfirmSheet';
 import BeatPacerChip      from '../components/BeatPacerChip';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
 import { useTheme, type AppColors } from '@theme';
+import {
+  estimateLiveArea,
+  detectLoopClose,
+  isNearRivalTerritory,
+} from '@shared/services/claimEngine';
+import { GAME_CONFIG } from '@shared/services/config';
+import { useAuth } from '@shared/hooks/useAuth';
+import type { TerritoryPolygon } from '@shared/types/game';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
+
+function fmtTime(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
 
 export default function ActiveRunScreen() {
   const C = useTheme();
@@ -37,44 +52,61 @@ export default function ActiveRunScreen() {
   const nav = useNavigation<Nav>();
   const route = useRoute<Route>();
   const ghostRoutePoints = route.params?.ghostRoutePoints;
-  const run  = useActiveRun(route.params?.activityType ?? 'run');
-  const gate = useFeatureGate();
+  const activityType = route.params?.activityType ?? 'run';
+  const run  = useActiveRun(activityType);
   const { showToast } = useToast();
-  const flashAnim = useRef(new Animated.Value(0)).current;
+  const { user } = useAuth();
 
-  // When claim progress reaches 100% and user is at territory limit, navigate to
-  // the subscription screen instead of silently failing on the server.
-  const atTerritoryLimit =
-    !gate.loading &&
-    !gate.isPremium &&
-    !gate.canClaimTerritory(run.playerTerritoryCount ?? 0);
+  // ── Live territory HUD banners ─────────────────────────────────────────────
+  const [liveAreaM2,    setLiveAreaM2]    = useState(0);
+  const [speedWarning,  setSpeedWarning]  = useState(false);
+  const [loopClosing,   setLoopClosing]   = useState(false);
+  const [nearRival,     setNearRival]     = useState(false);
+  const rivalPolygonsRef = useRef<TerritoryPolygon[]>([]);
+
+  // Load rival polygons once at run start — rivals don't change mid-run
+  useEffect(() => {
+    const uid = user?.id;
+    if (!uid) return;
+    getTerritoryPolygons().then(all => {
+      rivalPolygonsRef.current = all.filter(t => t.ownerId !== uid);
+    }).catch(() => {});
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update live area estimate every 30s
+  useEffect(() => {
+    if (!run.isRunning) return;
+    const id = setInterval(() => {
+      const pts = run.gpsPoints.map(p => ({ ...p }));
+      setLiveAreaM2(estimateLiveArea(pts, activityType));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [run.isRunning, run.gpsPoints, activityType]);
+
+  // Speed warning + loop close: update on each GPS point change
+  useEffect(() => {
+    if (!run.isRunning || run.gpsPoints.length < 2) return;
+    const last = run.gpsPoints[run.gpsPoints.length - 1];
+    setSpeedWarning(last.speed > GAME_CONFIG.MAX_RUN_SPEED_MS);
+    const first = run.gpsPoints[0];
+    setLoopClosing(detectLoopClose(last, first, run.distance * 1000));
+    setNearRival(isNearRivalTerritory(last.lat, last.lng, rivalPolygonsRef.current));
+  }, [run.gpsPoints.length, run.isRunning]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Pause card animation ───────────────────────────────────────────────────
+  const pauseCardY = useSharedValue(400);
+  const pauseCardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: pauseCardY.value }],
+  }));
 
   useEffect(() => {
-    if (atTerritoryLimit && run.claimProgress >= 100 && run.isRunning) {
-      showToast({
-        message: `Free plan: ${gate.territoryLimit} zones claimed. Upgrade after your run for unlimited territory.`,
-        type: 'warning',
-        duration: 5000,
-      });
-    }
-  // Only re-trigger when progress first hits 100 while at limit
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atTerritoryLimit, run.claimProgress >= 100]);
+    pauseCardY.value = withSpring(run.isPaused ? 0 : 400, { damping: 22, stiffness: 220 });
+  }, [run.isPaused]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Flash red border when territory is claimed
-  useEffect(() => {
-    if (!run.lastClaimEvent || run.lastClaimEvent.type !== 'claimed') return;
-    Animated.sequence([
-      Animated.timing(flashAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
-      Animated.timing(flashAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
-      Animated.timing(flashAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
-      Animated.timing(flashAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start();
-  }, [run.lastClaimEvent]);
   const [showConfirm, setShowConfirm] = useState(false);
   const pacer = useBeatPacer();
 
-  const doFinish = async () => {
+  const doFinish = useCallback(async () => {
     setShowConfirm(false);
     const result = await run.finishRun();
     if (!result) return;
@@ -82,10 +114,28 @@ export default function ActiveRunScreen() {
     if (!ok) {
       showToast({ message: 'Sync failed — run saved locally, will retry when online', type: 'warning', duration: 6000 });
     }
+    if (result.run) {
+      const { id: runId, distanceMeters } = result.run;
+      createFeedPost(
+        runId,
+        distanceMeters / 1000,
+        result.territory ? 1 : 0,
+        {
+          paceEarned:      result.paceEarned,
+          territoryTier:   result.territory?.tier ?? null,
+          territoryAreaM2: result.territory?.areaM2 ?? null,
+          runnerRank:      result.runnerRank,
+          durationSec:     Math.round(run.elapsed),
+          avgPace:         run.pace,
+          activityType:    activityType,
+          routePoints:     run.gpsPoints.map(p => ({ lat: p.lat, lng: p.lng })),
+        },
+      ).catch(() => {});
+    }
     nav.replace('RunSummary', buildRunSummaryParams(result as Parameters<typeof buildRunSummaryParams>[0]));
-  };
+  }, [run, nav, showToast]);
 
-  const handleFinish = () => {
+  const handleFinish = useCallback(() => {
     if (run.distance < 0.05 && run.elapsed < 30) {
       Alert.alert('End Run?', "You haven't run far enough. End anyway?", [
         { text: 'Keep Running', style: 'cancel' },
@@ -94,15 +144,15 @@ export default function ActiveRunScreen() {
       return;
     }
     setShowConfirm(true);
-  };
+  }, [run.distance, run.elapsed, doFinish]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (!run.isRunning) { nav.goBack(); return; }
     Alert.alert('Cancel Run?', 'Your run will be lost.', [
       { text: 'Keep Running', style: 'cancel' },
       { text: 'Cancel', style: 'destructive', onPress: () => nav.goBack() },
     ]);
-  };
+  }, [run.isRunning, nav]);
 
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
@@ -111,8 +161,16 @@ export default function ActiveRunScreen() {
         <Text style={ss.title}>{!run.isRunning ? 'Ready to Run' : run.isPaused ? 'Paused' : 'Running'}</Text>
         <View style={{ width: 36 }} />
       </View>
+
       <View style={ss.map}>
         <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} />
+        {run.isRunning && !run.gpsLocked && (
+          <View style={ss.gpsAcquiring}>
+            <ActivityIndicator size="small" color={C.red} />
+            <Text style={ss.gpsAcquiringText}>Acquiring GPS…</Text>
+            <Text style={ss.gpsAcquiringSub}>Move outside for better signal</Text>
+          </View>
+        )}
         {run.isRunning && (
           <View style={ss.gpsTag}>
             <View style={ss.gpsDot} />
@@ -120,41 +178,88 @@ export default function ActiveRunScreen() {
           </View>
         )}
       </View>
-      {/* Claim flash overlay */}
-      <Animated.View
-        pointerEvents="none"
-        style={[ss.claimFlash, { opacity: flashAnim }]}
-      />
 
-      {run.isRunning && run.claimProgress > 0 && (
-        <View style={ss.claimBar}>
-          <View style={[ss.claimFill, { width: `${run.claimProgress}%` as `${number}%`, backgroundColor: atTerritoryLimit ? C.amber : C.red }]} />
-          {atTerritoryLimit
-            ? <View style={ss.claimLblRow}><Crown size={8} color={C.amber} strokeWidth={2} /><Text style={[ss.claimLbl, { color: C.amber }]}> UPGRADE TO CLAIM</Text></View>
-            : <Text style={ss.claimLbl}>{Math.round(run.claimProgress)}% CLAIMING</Text>}
+      {/* Live territory banners */}
+      {run.gpsError && (
+        <View style={ss.errBanner}><Text style={ss.errTxt}>{run.gpsError}</Text></View>
+      )}
+      {run.isRunning && speedWarning && (
+        <View style={[ss.banner, ss.bannerRed]}>
+          <Text style={ss.bannerTxt}>Too fast — this segment won't earn territory</Text>
         </View>
       )}
-      <ClaimToast event={run.lastClaimEvent} onDismiss={() => {}} />
-      {run.gpsError && <View style={ss.errBanner}><Text style={ss.errTxt}>{run.gpsError}</Text></View>}
-      {run.energyBlocked && run.isRunning && (
-        <View style={ss.energyBanner}><Zap size={12} color={C.amber} strokeWidth={1.5} /><Text style={ss.energyTxt}>Energy depleted — run to regenerate</Text></View>
+      {run.isRunning && loopClosing && !speedWarning && (
+        <View style={[ss.banner, ss.bannerTeal]}>
+          <Text style={ss.bannerTxt}>Loop closing — keep going to fill the zone</Text>
+        </View>
       )}
-      <RunHUD distance={run.distance} pace={run.pace} elapsed={run.elapsed} energy={run.sessionEnergy ?? 0} claimProgress={run.claimProgress} />
+      {run.isRunning && nearRival && !speedWarning && !loopClosing && (
+        <View style={[ss.banner, ss.bannerAmber]}>
+          <Text style={ss.bannerTxt}>Rival territory ahead</Text>
+        </View>
+      )}
+
+      <RunHUD
+        distance={run.distance}
+        pace={run.pace}
+        elapsed={run.elapsed}
+        liveAreaM2={run.isRunning ? liveAreaM2 : undefined}
+      />
+
       {run.isRunning && (
         <View style={ss.pacerSection}>
           <Text style={ss.pacerLabel}>BEAT PACER</Text>
           <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} outOfRange={pacer.outOfRange} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
         </View>
       )}
-      <ClaimProgressRing progress={run.claimProgress / 100} visible={run.isRunning && run.claimProgress > 0} />
+
       <View style={[ss.controls, { paddingBottom: insets.bottom + 16 }]}>
         {!run.isRunning
           ? <Pressable style={ss.startBtn} onPress={run.startRun}><Play size={28} color={C.white} strokeWidth={2} fill={C.white} /></Pressable>
-          : <RunControls isPaused={run.isPaused} onPause={run.pauseRun} onResume={run.resumeRun} onStop={handleFinish} />}
+          : !run.isPaused
+            ? <RunControls isPaused={false} onPause={run.pauseRun} onResume={run.resumeRun} onStop={handleFinish} />
+            : <View style={{ height: 72 }} />
+        }
       </View>
+
+      {/* Pause overlay — tap to resume */}
+      {run.isPaused && (
+        <Pressable style={ss.pauseOverlay} onPress={run.resumeRun} />
+      )}
+
+      {/* Pause card */}
+      <Animated.View style={[ss.pauseCard, { paddingBottom: insets.bottom + 16 }, pauseCardStyle]}>
+        <View style={ss.pauseHandle} />
+        <Text style={ss.pauseTitle}>PAUSED</Text>
+        <Text style={ss.pauseTime}>{fmtTime(run.elapsed)}</Text>
+        <View style={ss.pauseStats}>
+          <View style={ss.pauseStat}>
+            <Text style={ss.pauseStatVal}>{run.distance.toFixed(2)}</Text>
+            <Text style={ss.pauseStatLbl}>km</Text>
+          </View>
+          <View style={ss.pauseStatDivider} />
+          <View style={ss.pauseStat}>
+            <Text style={ss.pauseStatVal}>{run.pace}</Text>
+            <Text style={ss.pauseStatLbl}>avg pace</Text>
+          </View>
+        </View>
+        <Pressable style={ss.resumeBtn} onPress={run.resumeRun}>
+          <Text style={ss.resumeBtnTxt}>Resume</Text>
+        </Pressable>
+        <Pressable style={ss.pauseFinishBtn} onPress={handleFinish}>
+          <Text style={ss.pauseFinishBtnTxt}>Finish run</Text>
+        </Pressable>
+      </Animated.View>
+
       {showConfirm && (
-        <FinishConfirmSheet distance={run.distance} elapsed={run.elapsed} territoriesClaimed={run.territoriesClaimed}
-          bottomInset={insets.bottom} onKeepRunning={() => setShowConfirm(false)} onFinish={doFinish} />
+        <FinishConfirmSheet
+          distance={run.distance}
+          elapsed={run.elapsed}
+          territoriesClaimed={0}
+          bottomInset={insets.bottom}
+          onKeepRunning={() => setShowConfirm(false)}
+          onFinish={doFinish}
+        />
       )}
     </View>
   );
@@ -170,18 +275,34 @@ function mkStyles(C: AppColors) {
     gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
     gpsDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
     gpsTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.white },
-    claimBar:    { height: 4, backgroundColor: C.mid, flexDirection: 'row', alignItems: 'center' },
-    claimFill:   { height: '100%', backgroundColor: C.red },
-    claimLbl:    { position: 'absolute', right: 8, fontFamily: 'Barlow_600SemiBold', fontSize: 8, letterSpacing: 0.6, color: C.red },
-    claimLblRow: { position: 'absolute', right: 8, flexDirection: 'row', alignItems: 'center' },
     errBanner:   { backgroundColor: '#FEF0EE', padding: 10, alignItems: 'center' },
     errTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.red },
-    energyBanner:{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDF6E8', padding: 8, paddingHorizontal: 16 },
-    energyTxt:   { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#9E6800' },
+    banner:      { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, paddingHorizontal: 16 },
+    bannerRed:   { backgroundColor: '#FEF0EE' },
+    bannerTeal:  { backgroundColor: '#E6F7F5' },
+    bannerAmber:      { backgroundColor: '#FEF8E7' },
+    bannerTxt:        { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.black },
+    gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16 },
+    gpsAcquiringText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
+    gpsAcquiringSub:  { fontFamily: 'Barlow_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.6)' },
     pacerSection: { backgroundColor: C.black, alignItems: 'center', paddingTop: 8, paddingBottom: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
     pacerLabel:   { fontFamily: 'DMSans_300Light', fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
     controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
     startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
-    claimFlash:  { ...StyleSheet.absoluteFillObject, borderWidth: 4, borderColor: '#D93518', borderRadius: 2, zIndex: 40, pointerEvents: 'none' } as any,
+    // Pause card
+    pauseOverlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 10 },
+    pauseCard:         { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, paddingHorizontal: 24, zIndex: 11, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 20 },
+    pauseHandle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 20 },
+    pauseTitle:        { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1.4, color: C.t3, textAlign: 'center', marginBottom: 8 },
+    pauseTime:         { fontFamily: 'Barlow_300Light', fontSize: 52, color: C.black, textAlign: 'center', letterSpacing: -2, lineHeight: 56, marginBottom: 16 },
+    pauseStats:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, marginBottom: 24 },
+    pauseStat:         { alignItems: 'center', gap: 2 },
+    pauseStatVal:      { fontFamily: 'Barlow_600SemiBold', fontSize: 22, color: C.black },
+    pauseStatLbl:      { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3, letterSpacing: 0.6 },
+    pauseStatDivider:  { width: 1, height: 32, backgroundColor: C.border },
+    resumeBtn:         { backgroundColor: C.black, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
+    resumeBtnTxt:      { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: '#fff' },
+    pauseFinishBtn:    { paddingVertical: 12, alignItems: 'center' },
+    pauseFinishBtnTxt: { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.t3 },
   });
 }

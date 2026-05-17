@@ -391,8 +391,8 @@ export default function Profile() {
     {
       title: 'Levels',
       items: [
-        { key: 'level_5',  label: 'Rising Star', Icon: Star,  earned: player.level >= 5,  progress: Math.min(1, player.level / 5),  progressLabel: `Lv. ${player.level} / 5` },
-        { key: 'level_10', label: 'Veteran',     Icon: Award, earned: player.level >= 10, progress: Math.min(1, player.level / 10), progressLabel: `Lv. ${player.level} / 10` },
+        { key: 'level_5',  label: 'Rising Star', Icon: Star,  earned: (player.level ?? 1) >= 5,  progress: Math.min(1, (player.level ?? 1) / 5),  progressLabel: `Lv. ${player.level ?? 1} / 5` },
+        { key: 'level_10', label: 'Veteran',     Icon: Award, earned: (player.level ?? 1) >= 10, progress: Math.min(1, (player.level ?? 1) / 10), progressLabel: `Lv. ${player.level ?? 1} / 10` },
       ],
     },
   ];
@@ -508,7 +508,7 @@ export default function Profile() {
             />
           </div>
           <span style={{ fontFamily: F, fontWeight: 300, fontSize: 10, color: C.muted, whiteSpace: 'nowrap' }}>
-            {Math.round(xpProgress.percent)}% → Lv. {player.level + 1}
+            {Math.round(xpProgress.percent)}% weekly PACE
           </span>
         </div>
 

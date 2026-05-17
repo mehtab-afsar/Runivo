@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native';
+import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
 import type { ActivityType } from '../types';
 import { Colors } from '@theme';
 

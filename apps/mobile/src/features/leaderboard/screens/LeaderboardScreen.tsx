@@ -14,7 +14,7 @@ import { useTheme, type AppColors } from '@theme';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 // Podium: [2nd, 1st, 3rd] order, heights: [50, 70, 36]
-function Podium({ entries, unit, currentUserId }: { entries: LeaderboardEntry[]; unit: string; currentUserId?: string }) {
+function Podium({ entries, unit, currentUserId: _currentUserId }: { entries: LeaderboardEntry[]; unit: string; currentUserId?: string }) {
   const C = useTheme();
   const ps = useMemo(() => mkPsStyles(C), [C]);
   if (entries.length < 3) return null;
@@ -23,7 +23,10 @@ function Podium({ entries, unit, currentUserId }: { entries: LeaderboardEntry[];
   const heights = [50, 70, 36];
   const avatarSizes = [36, 44, 30];
   const medalColors = [C.silver, C.gold, C.bronze];
-  const fmtVal = (v: number) => unit === 'km' ? `${v.toFixed(1)} km` : unit === 'XP' ? `${v.toLocaleString()} XP` : `${Math.floor(v)} zones`;
+  const fmtVal = (v: number) =>
+    unit === 'km'     ? `${v.toFixed(1)} km`
+    : unit === 'PACE' ? `${v} PACE`
+    : `${Intl.NumberFormat().format(Math.round(v))} TS`;
 
   return (
     <View style={ps.wrap}>
@@ -41,7 +44,7 @@ function Podium({ entries, unit, currentUserId }: { entries: LeaderboardEntry[];
             <View style={ps.youBadge}><Text style={ps.youText}>YOU</Text></View>
           )}
           <Text style={ps.val}>{fmtVal(entry.value)}</Text>
-          <View style={[ps.block, { height: heights[i], backgroundColor: i === 1 ? C.black : '#DDD9D4' }]}>
+          <View style={[ps.block, { height: heights[i], backgroundColor: i === 1 ? C.black : C.stone }, i === 1 && ps.blockFirst]}>
             <Text style={[ps.rankNum, { color: i === 1 ? C.white : C.t2 }]}>#{ranks[i]}</Text>
           </View>
         </View>
@@ -62,7 +65,8 @@ function mkPsStyles(C: AppColors) {
     val:        { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, textAlign: 'center' },
     youBadge:   { backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 2 },
     youText:    { fontFamily: 'Barlow_600SemiBold', fontSize: 8, color: C.red, letterSpacing: 0.5 },
-    block:      { width: '100%', borderTopLeftRadius: 4, borderTopRightRadius: 4, alignItems: 'center', justifyContent: 'center' },
+    block:      { width: '100%', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    blockFirst: { shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: -3 }, elevation: 3 },
     rankNum:    { fontFamily: 'Barlow_600SemiBold', fontSize: 11 },
   });
 }
@@ -76,7 +80,10 @@ export default function LeaderboardScreen() {
   // Current player's entry (for sticky footer if rank > 3)
   const playerEntry = entries.find(e => e.isPlayer);
   const playerOutsideTop3 = playerEntry && playerEntry.rank > 3;
-  const fmtVal = (v: number) => unit === 'km' ? `${v.toFixed(1)} km` : unit === 'XP' ? `${v.toLocaleString()} XP` : `${Math.floor(v)} zones`;
+  const fmtVal = (v: number) =>
+    unit === 'km'     ? `${v.toFixed(1)} km`
+    : unit === 'PACE' ? `${v} PACE`
+    : `${Intl.NumberFormat().format(Math.round(v))} TS`;
 
   return (
     <SafeAreaView style={s.root}>
@@ -149,7 +156,7 @@ function mkStyles(C: AppColors) {
     root: { flex: 1, backgroundColor: C.bg },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+    title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 24, color: C.black },
     list:          { paddingBottom: 100 },
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
     emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },

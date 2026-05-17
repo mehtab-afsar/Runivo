@@ -4,37 +4,29 @@ import type { LeaderboardEntry, LeaderboardTab, LeaderboardTimeFrame, Leaderboar
 export async function fetchLeaderboard(
   tab: LeaderboardTab,
   timeFrame: LeaderboardTimeFrame,
-  scope: LeaderboardScope = 'global',
+  _scope: LeaderboardScope = 'global',
 ): Promise<LeaderboardEntry[]> {
   const { data: { user } } = await supabase.auth.getUser();
 
-  // For scoped queries, get player's country first
-  let playerCountry: string | null = null;
-  if (scope !== 'global' && user) {
-    const { data: profile } = await supabase.from('profiles').select('country, city').eq('id', user.id).single();
-    playerCountry = profile?.country ?? null;
-  }
-
   if (timeFrame === 'week') {
-    let query = supabase
+    const query = supabase
       .from('leaderboard_weekly')
-      .select('id, username, level, weekly_xp, weekly_km, weekly_territories, rank, country')
+      .select('id, username, runner_rank, territory_score, weekly_pace, weekly_km, weekly_territories, rank')
       .order('rank', { ascending: true })
       .limit(50);
-    if (scope === 'national' && playerCountry) query = query.eq('country', playerCountry);
     const { data } = await query;
 
     if (!data) return [];
 
     const mapped: LeaderboardEntry[] = data.map(row => ({
-      rank: row.rank,
-      userId: row.id,
-      name: row.username,
-      level: row.level,
+      rank:       row.rank,
+      userId:     row.id,
+      name:       row.username,
+      runnerRank: row.runner_rank ?? 'pacer',
       value:
-        tab === 'distance' ? Math.round(Number(row.weekly_km) * 10) / 10
-        : tab === 'xp' ? Number(row.weekly_xp)
-        : Number(row.weekly_territories),
+        tab === 'distance'       ? Math.round(Number(row.weekly_km) * 10) / 10
+        : tab === 'weekly_pace'  ? Number(row.weekly_pace)
+        : Math.round(Number(row.territory_score)),
       isPlayer: user?.id === row.id,
     }));
     mapped.sort((a, b) => b.value - a.value);
@@ -47,39 +39,42 @@ export async function fetchLeaderboard(
       ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
       : new Date(0).toISOString();
 
-  let profilesQuery = supabase.from('profiles').select('id, username, level, country');
-  if (scope === 'national' && playerCountry) profilesQuery = profilesQuery.eq('country', playerCountry);
+  const profilesQuery = supabase
+    .from('profiles')
+    .select('id, username, runner_rank, territory_score, pace_total_earned');
 
   const profilesResp = await profilesQuery;
   const scopedProfileIds = new Set((profilesResp.data ?? []).map((p: { id: string }) => p.id));
 
-  let runsQuery = supabase.from('runs').select('user_id, distance_m, xp_earned, territories_claimed').gte('started_at', cutoff);
-  const [{ data: runs }, { data: profiles }] = [{ data: (await runsQuery).data?.filter(r => scopedProfileIds.has(r.user_id)) ?? [] }, profilesResp];
+  const runsResp = await supabase
+    .from('runs')
+    .select('user_id, distance_m, territories_claimed')
+    .gte('started_at', cutoff);
+  const runs = (runsResp.data ?? []).filter(r => scopedProfileIds.has(r.user_id));
+  const profiles = profilesResp.data ?? [];
 
-  if (!runs || !profiles) return [];
+  if (!profiles.length) return [];
 
-  const profileMap = new Map(profiles.map(p => [p.id, p]));
-  const totals = new Map<string, { km: number; xp: number; zones: number }>();
+  const kmTotals = new Map<string, number>();
 
   for (const run of runs) {
-    const prev = totals.get(run.user_id) ?? { km: 0, xp: 0, zones: 0 };
-    totals.set(run.user_id, {
-      km: prev.km + run.distance_m / 1000,
-      xp: prev.xp + (run.xp_earned ?? 0),
-      zones: prev.zones + (run.territories_claimed?.length ?? 0),
-    });
+    kmTotals.set(run.user_id, (kmTotals.get(run.user_id) ?? 0) + run.distance_m / 1000);
   }
 
-  const mapped: LeaderboardEntry[] = Array.from(totals.entries()).map(([uid, t]) => {
-    const p = profileMap.get(uid);
+  const mapped: LeaderboardEntry[] = profiles.map(p => {
+    const km = kmTotals.get(p.id) ?? 0;
+    const ts = Math.round(Number(p.territory_score ?? 0));
+    const pace = Number(p.pace_total_earned ?? 0);
     return {
-      rank: 0,
-      userId: uid,
-      name: p?.username ?? 'Runner',
-      level: p?.level ?? 1,
-      value: tab === 'distance' ? Math.round(t.km * 10) / 10
-             : tab === 'xp' ? t.xp : t.zones,
-      isPlayer: user?.id === uid,
+      rank:       0,
+      userId:     p.id,
+      name:       p.username ?? 'Runner',
+      runnerRank: p.runner_rank ?? 'pacer',
+      value:
+        tab === 'distance'      ? Math.round(km * 10) / 10
+        : tab === 'weekly_pace' ? pace
+        : ts,
+      isPlayer: user?.id === p.id,
     };
   });
   mapped.sort((a, b) => b.value - a.value);

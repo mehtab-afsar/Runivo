@@ -2,7 +2,7 @@
  * BeatPacerChip — in-run HUD chip showing BPM + mute toggle + pulse dot.
  */
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { Volume2, VolumeX } from 'lucide-react-native';
 import { Colors } from '@theme';
 

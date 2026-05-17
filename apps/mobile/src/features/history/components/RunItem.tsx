@@ -45,13 +45,6 @@ export function RunItem({ run, onPress }: Props) {
         </View>
       </View>
 
-      {/* XP badge */}
-      {run.xpEarned > 0 && (
-        <View style={s.xpBadge}>
-          <Text style={s.xpText}>+{run.xpEarned}</Text>
-          <Text style={s.xpLabel}>XP</Text>
-        </View>
-      )}
     </Pressable>
   );
 }
@@ -67,7 +60,4 @@ const s = StyleSheet.create({
   pillText:    { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t2 },
   pillRed:     { backgroundColor: '#FDE8E4', borderColor: 'rgba(217,53,24,0.2)' },
   pillTextRed: { color: C.red },
-  xpBadge:    { alignItems: 'center', backgroundColor: '#F9F5F0', borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 10, paddingVertical: 8 },
-  xpText:     { fontFamily: 'Barlow_700Bold', fontSize: 14, color: C.black },
-  xpLabel:    { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3, letterSpacing: 0.5 },
 });

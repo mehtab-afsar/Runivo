@@ -3,40 +3,42 @@ import { View, Text, Pressable, StyleSheet, Animated, ScrollView, Dimensions } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useTheme } from '@theme';
-import { CoachCapabilityCard } from './CoachCapabilityCard';
 
-const SCREEN_H    = Dimensions.get('window').height;
-const SHEET_H     = SCREEN_H * 0.82;
+const SCREEN_H = Dimensions.get('window').height;
+const SHEET_H  = SCREEN_H * 0.88;
 
-const CAPABILITIES = [
-  { label: 'Training Plan',     icon: '📋', description: 'Generate a personalised plan',          message: 'Build me a personalised training plan based on my current fitness' },
-  { label: 'Run Analysis',      icon: '📊', description: 'Deep dive on your latest run',           message: 'Analyse my most recent run' },
-  { label: 'Weekly Brief',      icon: '📅', description: 'Summary of your training week',          message: 'Give me my weekly training brief' },
-  { label: 'Pace Coach',        icon: '⚡', description: "What's holding your pace back",          message: 'I want to improve my pace. Based on my data, what is holding me back?' },
-  { label: 'Race Prep',         icon: '🏁', description: 'Prepare for your next race',             message: 'Help me prepare for my next race' },
-  { label: 'Nutrition Advice',  icon: '🥗', description: 'Fuel strategy for your training load',   message: 'Give me personalised nutrition advice for my training load' },
-  { label: 'Injury Prevention', icon: '🛡️', description: 'Catch overtraining early',              message: 'Based on my training load, am I at risk of overtraining or injury?' },
-  { label: 'Goal Setting',      icon: '🎯', description: 'Set your next milestone',                message: 'Help me set a new running goal based on my current fitness' },
-];
+interface Capability {
+  emoji: string;
+  name: string;
+  desc: string;
+  free: boolean;
+  prompt: string;
+}
 
-const DATA_ACCESS = ['Last 20 runs', 'Nutrition profile', 'Gear & shoes', 'Territory map', 'Personal records'];
-const RULES = [
-  'Stays on running & health topics',
-  "Won't give medical diagnoses",
-  'References your actual data',
+const CAPABILITIES: Capability[] = [
+  { emoji: '☀️', name: 'Morning Brief',      desc: 'Daily readiness + territory alert',    free: true,  prompt: '' },
+  { emoji: '⚡', name: 'Post-Run Debrief',   desc: 'Auto after every run',                 free: true,  prompt: 'Analyse my last run' },
+  { emoji: '📊', name: 'Weekly Review',      desc: 'Auto every Sunday',                    free: true,  prompt: 'Give me my weekly review' },
+  { emoji: '🔥', name: 'Habit Tracking',     desc: 'Consistency score + streak',           free: true,  prompt: 'habit_tracking' },
+  { emoji: '🗺',  name: 'Territory Strategy', desc: 'Which zones to defend or expand',      free: false, prompt: 'Plan my territory strategy for this week' },
+  { emoji: '📅', name: 'Training Plan',      desc: 'Structured 4–8 week curriculum',       free: false, prompt: 'Create me a training plan' },
+  { emoji: '💬', name: 'Ask Anything',       desc: 'Running coach on demand',              free: false, prompt: '' },
+  { emoji: '🥗', name: 'Nutrition Coach',    desc: '14-day food + run pattern analysis',   free: false, prompt: 'Analyse my nutrition this week' },
+  { emoji: '🏁', name: 'Race Prep',          desc: 'Goal race → peaking plan',             free: false, prompt: 'Help me prepare for a race' },
+  { emoji: '🛡',  name: 'Injury Prevention',  desc: 'Weekly load + decline monitoring',     free: true,  prompt: 'I have pain — what should I do?' },
 ];
 
 interface Props {
-  visible:              boolean;
-  onClose:              () => void;
-  onSelectCapability:   (message: string) => void;
+  visible:            boolean;
+  onClose:            () => void;
+  onSelectCapability: (message: string) => void;
 }
 
 export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
-  const C        = useTheme();
-  const insets   = useSafeAreaInsets();
-  const translateY   = useRef(new Animated.Value(SHEET_H)).current;
-  const backdropOp   = useRef(new Animated.Value(0)).current;
+  const C       = useTheme();
+  const insets  = useSafeAreaInsets();
+  const translateY = useRef(new Animated.Value(SHEET_H)).current;
+  const backdropOp = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
@@ -54,7 +56,6 @@ export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
 
   return (
     <>
-      {/* Backdrop */}
       <Animated.View
         style={[ss.backdrop, { opacity: backdropOp }]}
         pointerEvents={visible ? 'auto' : 'none'}
@@ -62,46 +63,41 @@ export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
         <Pressable style={{ flex: 1 }} onPress={onClose} />
       </Animated.View>
 
-      {/* Sheet */}
-      <Animated.View
-        style={[ss.sheet, { height: SHEET_H, paddingBottom: insets.bottom + 8, transform: [{ translateY }] }]}
-      >
+      <Animated.View style={[ss.sheet, { height: SHEET_H, paddingBottom: insets.bottom + 8, transform: [{ translateY }] }]}>
         <View style={ss.handle} />
-        <View style={[ss.sheetHeader, { borderBottomColor: C.border }]}>
-          <Text style={[ss.sheetTitle, { color: C.t3 }]}>COACH CAPABILITIES</Text>
+
+        <View style={[ss.header, { borderBottomColor: C.border }]}>
+          <Text style={[ss.headerTitle, { color: C.black }]}>
+            What <Text style={{ color: C.black }}>Pace</Text><Text style={[ss.xRed, { color: C.red }]}>X</Text> can do
+          </Text>
           <Pressable onPress={onClose} hitSlop={12}>
             <X size={18} color={C.t3} strokeWidth={2} />
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-          {CAPABILITIES.map(cap => (
-            <CoachCapabilityCard
-              key={cap.label}
-              label={cap.label}
-              description={cap.description}
-              icon={cap.icon}
-              onPress={() => { onClose(); onSelectCapability(cap.message); }}
-            />
+        <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={ss.grid}>
+          {CAPABILITIES.map((cap, i) => (
+            <Pressable
+              key={cap.name}
+              style={({ pressed }) => [
+                ss.capCard,
+                { backgroundColor: pressed ? C.mid : C.surface, borderColor: C.border },
+              ]}
+              onPress={() => {
+                onClose();
+                if (cap.prompt) onSelectCapability(cap.prompt);
+              }}
+            >
+              <Text style={ss.capEmoji}>{cap.emoji}</Text>
+              <Text style={[ss.capName, { color: C.black }]}>{cap.name}</Text>
+              <Text style={[ss.capDesc, { color: C.t3 }]} numberOfLines={2}>{cap.desc}</Text>
+              <View style={[ss.pill, { backgroundColor: cap.free ? C.greenBg : C.amberBg }]}>
+                <Text style={[ss.pillText, { color: cap.free ? C.green : C.amber }]}>
+                  {cap.free ? 'Free' : 'Premium'}
+                </Text>
+              </View>
+            </Pressable>
           ))}
-
-          <View style={[ss.section, { borderTopColor: C.border }]}>
-            <Text style={[ss.sectionTitle, { color: C.t3 }]}>DATA ACCESS</Text>
-            <View style={ss.dataGrid}>
-              {DATA_ACCESS.map(d => (
-                <View key={d} style={[ss.dataChip, { borderColor: C.border }]}>
-                  <Text style={[ss.dataText, { color: C.t2 }]}>✓ {d}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <View style={[ss.section, { borderTopColor: C.border }]}>
-            <Text style={[ss.sectionTitle, { color: C.t3 }]}>RULES & GUARDRAILS</Text>
-            {RULES.map(r => (
-              <Text key={r} style={[ss.ruleText, { color: C.t2 }]}>• {r}</Text>
-            ))}
-          </View>
         </ScrollView>
       </Animated.View>
     </>
@@ -112,12 +108,14 @@ const ss = StyleSheet.create({
   backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 90 },
   sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 91, overflow: 'hidden' },
   handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(10,10,10,0.12)', alignSelf: 'center', marginTop: 12, marginBottom: 4 },
-  sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
-  sheetTitle:  { fontFamily: 'DMSans_500Medium', fontSize: 10, letterSpacing: 1.2 },
-  section:     { paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: 0.5 },
-  sectionTitle:{ fontFamily: 'DMSans_500Medium', fontSize: 10, letterSpacing: 1.2, marginBottom: 12 },
-  dataGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  dataChip:    { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, borderWidth: 0.5, backgroundColor: 'rgba(10,10,10,0.025)' },
-  dataText:    { fontFamily: 'DMSans_400Regular', fontSize: 11 },
-  ruleText:    { fontFamily: 'DMSans_300Light', fontSize: 12, marginBottom: 6, lineHeight: 18 },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
+  headerTitle: { fontFamily: 'Barlow_600SemiBold', fontSize: 15 },
+  xRed:        { fontFamily: 'Barlow_700Bold' },
+  grid:        { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
+  capCard:     { width: '47%', borderRadius: 12, borderWidth: 0.5, padding: 12, gap: 4 },
+  capEmoji:    { fontSize: 22, marginBottom: 4 },
+  capName:     { fontFamily: 'Barlow_500Medium', fontSize: 12 },
+  capDesc:     { fontFamily: 'Barlow_300Light', fontSize: 10, lineHeight: 14 },
+  pill:        { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
+  pillText:    { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 0.3 },
 });

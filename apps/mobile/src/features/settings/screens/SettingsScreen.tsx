@@ -119,30 +119,6 @@ export default function SettingsScreen() {
           </SettingRow>
         </SettingSection>
 
-        {/* ── Beat Pacer ── */}
-        <SettingSection title="Beat Pacer">
-          <SettingRow label="Enable Beat Pacer" sub="Audible rhythm to maintain pace">
-            <Switch value={settings.beatPacerEnabled} onValueChange={v => updateSetting({ beatPacerEnabled: v })} {...sw} />
-          </SettingRow>
-          {settings.beatPacerEnabled && (
-            <>
-              <SettingRow label="Target Pace" sub="min/km">
-                <PillCycle value={settings.beatPacerPace} onPress={cycleBeatPacerPace} />
-              </SettingRow>
-              <SettingRow label="Sound">
-                <SegmentedControl
-                  options={['Click', 'Woodblock', 'Hi-hat']}
-                  value={settings.beatPacerSound === 'click' ? 'Click' : settings.beatPacerSound === 'woodblock' ? 'Woodblock' : 'Hi-hat'}
-                  onChange={v => updateSetting({ beatPacerSound: v === 'Click' ? 'click' : v === 'Woodblock' ? 'woodblock' : 'hihat' })}
-                />
-              </SettingRow>
-              <SettingRow label="Accent beat" sub="Emphasise first beat of each bar">
-                <Switch value={settings.beatPacerAccent} onValueChange={v => updateSetting({ beatPacerAccent: v })} {...sw} />
-              </SettingRow>
-            </>
-          )}
-        </SettingSection>
-
         {/* ── Run ── */}
         <SettingSection title="Run Settings">
           <SettingRow label="Auto-pause" sub="Pause tracking when you stop moving">
@@ -160,38 +136,18 @@ export default function SettingsScreen() {
           </SettingRow>
         </SettingSection>
 
-        {/* ── Missions ── */}
-        <SettingSection title="Missions">
-          <SettingRow label="Daily missions" sub="Generate new missions each day">
-            <Switch value={settings.dailyMissionsEnabled} onValueChange={v => updateSetting({ dailyMissionsEnabled: v })} {...sw} />
-          </SettingRow>
-          <SettingRow label="Mission difficulty">
-            <PillCycle value={settings.missionDifficulty} onPress={cycleDifficulty} />
-          </SettingRow>
-        </SettingSection>
-
-        {/* ── Devices ── */}
-        <SettingSection title="Devices">
-          <Pressable style={s.linkRow} onPress={() => navigation.navigate('ConnectedDevices')}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.linkLabel}>Connected Devices</Text>
-              <Text style={s.linkSub}>Apple Health, Garmin, COROS…</Text>
-            </View>
-            <Text style={s.linkArrow}>→</Text>
-          </Pressable>
-        </SettingSection>
-
         {/* ── Data & Privacy ── */}
         <SettingSection title="Data & Privacy">
           <Pressable style={s.linkRow} onPress={() => Alert.alert('Export Run Data', 'Export feature coming soon.')}>
-            <Text style={s.linkLabel}>Export Run Data</Text>
+            <Text style={s.linkLabel}>Export My Data</Text>
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
-          <Pressable style={s.linkRow} onPress={clearHistory}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.linkLabel}>Clear Run History</Text>
-              <Text style={s.linkSub}>Removes local data only</Text>
-            </View>
+          <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/privacy')}>
+            <Text style={s.linkLabel}>Privacy Policy</Text>
+            <Text style={s.linkArrow}>→</Text>
+          </Pressable>
+          <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/terms')}>
+            <Text style={s.linkLabel}>Terms of Service</Text>
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
           <Pressable style={s.linkRow} onPress={deleteAccount}>
@@ -200,8 +156,8 @@ export default function SettingsScreen() {
           </Pressable>
         </SettingSection>
 
-        {/* ── Support ── */}
-        <SettingSection title="Support">
+        {/* ── About ── */}
+        <SettingSection title="About">
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/help')}>
             <Text style={s.linkLabel}>Help & FAQ</Text>
             <Text style={s.linkArrow}>→</Text>
@@ -211,7 +167,7 @@ export default function SettingsScreen() {
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
           <View style={s.linkRow}>
-            <Text style={s.linkLabel}>About Runivo</Text>
+            <Text style={s.linkLabel}>App Version</Text>
             <Text style={s.versionText}>v1.0.0</Text>
           </View>
         </SettingSection>

@@ -21,7 +21,7 @@ export function MissionRow({ mission: m, isLast }: Props) {
           <View style={[ss.barFill, { width: `${bar * 100}%`, backgroundColor: m.completed ? '#4ADE80' : '#D93518' }]} />
         </View>
       </View>
-      <Text style={[ss.xp, m.completed && ss.xpDone]}>+{m.rewards.xp} XP</Text>
+      <Text style={[ss.xp, m.completed && ss.xpDone]}>+{m.rewards.pace} PACE</Text>
     </View>
   );
 }

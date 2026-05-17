@@ -14,9 +14,9 @@ interface Props {
 }
 
 const METRIC_TABS: { value: LeaderboardTab; label: string; Icon: typeof TrendingUp }[] = [
-  { value: 'distance',    label: 'Distance', Icon: TrendingUp },
-  { value: 'territories', label: 'Zones',    Icon: Navigation },
-  { value: 'xp',          label: 'XP',       Icon: Zap        },
+  { value: 'territory_score', label: 'Territory', Icon: Navigation },
+  { value: 'distance',        label: 'Distance',  Icon: TrendingUp },
+  { value: 'weekly_pace',     label: 'PACE',      Icon: Zap        },
 ];
 
 const TIMEFRAMES: { value: LeaderboardTimeFrame; label: string }[] = [

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameEngine } from '@shared/hooks/useGameEngine';
-import { ClaimEvent } from '@features/territory/services/claimEngine';
+import { ClaimEngine, ClaimEvent } from '@features/territory/services/claimEngine';
 import { haptic } from '@shared/lib/haptics';
 import { soundManager } from '@shared/audio/sounds';
 
@@ -46,6 +46,7 @@ export function useActiveRun() {
     gpsError: null,
   });
 
+  const claimEngineRef = useRef<ClaimEngine | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -92,45 +93,35 @@ export function useActiveRun() {
     };
   }, [releaseWakeLock]);
 
-  useEffect(() => {
-    const unsub = gameEngine.onClaimEvent((event: ClaimEvent) => {
-      setState(prev => ({ ...prev, lastClaimEvent: event }));
-
-      switch (event.type) {
-        case 'claim_progress':
-          setState(prev => ({ ...prev, claimProgress: event.progress ?? 0 }));
-          if (event.progress && event.progress % 25 < 5) {
-            soundManager.play('tick', 0.3);
-          }
-          break;
-        case 'claimed':
-          setState(prev => ({
-            ...prev,
-            territoriesClaimed: prev.territoriesClaimed + 1,
-            claimProgress: 0,
-            energyBlocked: false,
-          }));
-          haptic('success');
-          soundManager.play('claim');
-          setTimeout(() => soundManager.play('coin', 0.4), 300);
-          setTimeout(() => {
-            setState(prev => {
-              if (prev.lastClaimEvent?.type === 'claimed') {
-                return { ...prev, lastClaimEvent: null };
-              }
-              return prev;
-            });
-          }, 4000);
-          break;
-        case 'energy_blocked':
-          setState(prev => ({ ...prev, energyBlocked: true }));
-          haptic('light');
-          break;
-      }
-    });
-
-    return unsub;
-  }, [gameEngine]);
+  function handleClaimEvent(event: ClaimEvent) {
+    setState(prev => ({ ...prev, lastClaimEvent: event }));
+    switch (event.type) {
+      case 'claim_progress':
+        setState(prev => ({ ...prev, claimProgress: event.progress ?? 0 }));
+        if (event.progress && event.progress % 25 < 5) soundManager.play('tick', 0.3);
+        break;
+      case 'claimed':
+        setState(prev => ({
+          ...prev,
+          territoriesClaimed: prev.territoriesClaimed + 1,
+          claimProgress: 0,
+          energyBlocked: false,
+        }));
+        haptic('success');
+        soundManager.play('claim');
+        setTimeout(() => soundManager.play('coin', 0.4), 300);
+        setTimeout(() => {
+          setState(prev =>
+            prev.lastClaimEvent?.type === 'claimed' ? { ...prev, lastClaimEvent: null } : prev
+          );
+        }, 4000);
+        break;
+      case 'energy_blocked':
+        setState(prev => ({ ...prev, energyBlocked: true }));
+        haptic('light');
+        break;
+    }
+  }
 
   const haversine = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371000;
@@ -153,7 +144,8 @@ export function useActiveRun() {
   };
 
   const startRun = useCallback(async () => {
-    await gameEngine.startClaimEngine();
+    claimEngineRef.current = new ClaimEngine(gameEngine.player?.id ?? 'anon');
+    claimEngineRef.current.onEvent(handleClaimEvent);
 
     // Keep screen on while running — prevents GPS from being suspended on lock
     await acquireWakeLock();
@@ -228,8 +220,7 @@ export function useActiveRun() {
           // d < 1: sub-metre — still add the point for trail density, just don't count distance
         }
         lastPositionRef.current = { lat: latitude, lng: longitude };
-        // Pass distanceDelta so energy regenerates in real-time
-        gameEngine.updateClaim(latitude, longitude, gpsSpeed, accuracy, deltaKm);
+        claimEngineRef.current?.update(latitude, longitude, gpsSpeed, accuracy);
 
         const point: GPSPoint = {
           lat: latitude,
@@ -356,7 +347,5 @@ export function useActiveRun() {
     resumeRun,
     finishRun,
     player: gameEngine.player,
-    sessionStats: gameEngine.sessionStats,
-    sessionEnergy: gameEngine.sessionEnergy,
   };
 }

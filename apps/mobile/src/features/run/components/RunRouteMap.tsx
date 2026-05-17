@@ -25,9 +25,6 @@ export default function RunRouteMap({ route }: Props) {
   const maxLng = Math.max(...coords.map(c => c[0]));
   const minLat = Math.min(...coords.map(c => c[1]));
   const maxLat = Math.max(...coords.map(c => c[1]));
-  const centerLng = (minLng + maxLng) / 2;
-  const centerLat = (minLat + maxLat) / 2;
-
   const geojson = {
     type: 'Feature' as const,
     properties: {},

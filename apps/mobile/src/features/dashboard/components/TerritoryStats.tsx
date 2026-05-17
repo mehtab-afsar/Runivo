@@ -4,16 +4,20 @@ import { View, Text, StyleSheet } from 'react-native';
 interface Props {
   ownedCount: number;
   weakZones:  number;
-  avgDefense: number;
-  dailyIncome: number;
+  avgFreshness: number;
+  totalAreaM2: number;
 }
 
-export function TerritoryStats({ ownedCount, weakZones, avgDefense, dailyIncome }: Props) {
+export function TerritoryStats({ ownedCount, weakZones, avgFreshness, totalAreaM2 }: Props) {
+  const areaLabel = totalAreaM2 >= 1000
+    ? `${(totalAreaM2 / 1000).toFixed(1)}k m²`
+    : `${Math.round(totalAreaM2)} m²`;
+
   const stats = [
-    { value: String(ownedCount),    label: 'ZONES OWNED',  color: '#0A0A0A' },
-    { value: `${avgDefense}%`,       label: 'AVG DEFENSE',  color: '#0A0A0A' },
-    { value: `+${dailyIncome}`,      label: 'DAILY INCOME', color: '#0A0A0A' },
-    { value: String(weakZones),      label: 'WEAK ZONES',   color: weakZones > 0 ? '#D93518' : '#0A0A0A' },
+    { value: String(ownedCount),      label: 'ZONES OWNED',   color: '#0A0A0A' },
+    { value: `${avgFreshness}%`,       label: 'AVG FRESHNESS', color: '#0A0A0A' },
+    { value: areaLabel,                label: 'TOTAL AREA',    color: '#0A0A0A' },
+    { value: String(weakZones),        label: 'WEAK ZONES',    color: weakZones > 0 ? '#D93518' : '#0A0A0A' },
   ];
 
   return (

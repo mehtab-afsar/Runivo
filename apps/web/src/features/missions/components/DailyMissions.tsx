@@ -33,8 +33,8 @@ export function DailyMissions() {
       if (player) {
         const updated = {
           ...player,
-          xp: player.xp + claimed.rewards.xp,
-          coins: player.coins + claimed.rewards.coins,
+          xp: (player.xp ?? 0) + (claimed.rewards.xp ?? 0),
+          coins: (player.coins ?? 0) + (claimed.rewards.coins ?? 0),
         };
         await savePlayer(updated);
       }

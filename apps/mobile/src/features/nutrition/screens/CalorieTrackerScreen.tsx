@@ -75,7 +75,7 @@ export default function CalorieTrackerScreen() {
     profile, entries, weekEntries, weekKcals, weekAvg, weekDates, runBurnKcal,
     loading, refreshing, loadError,
     showAddModal, setShowAddModal, defaultMeal, expandedMeal, setExpandedMeal,
-    consumed, pct, proteinConsumed, carbsConsumed, fatConsumed,
+    consumed: _consumed, pct: _pct, proteinConsumed, carbsConsumed, fatConsumed,
     addEntry, deleteEntry, refresh, openAdd,
   } = useCalorieTracker();
 

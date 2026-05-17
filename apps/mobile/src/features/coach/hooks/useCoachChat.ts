@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@shared/services/supabase';
 import {
   sendMessage as apiSendMessage,
   loadMessageHistory,
   requestTrainingPlan,
+  requestHabitTracking,
   fetchCachedTrainingPlan,
   type CoachMessage,
   type TrainingPlan,
@@ -18,6 +19,7 @@ export function useCoachChat() {
   const [planLoading, setPlanLoading]   = useState(false);
   const [planOpen, setPlanOpen]         = useState(false);
   const [goalInput, setGoalInput]       = useState('');
+  const lastSentMsgRef = useRef<string>('');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -33,6 +35,7 @@ export function useCoachChat() {
   const sendMessage = useCallback(async (text?: string) => {
     const msg = (text ?? inputText).trim();
     if (!msg || sending) return;
+    lastSentMsgRef.current = msg;
     setInputText('');
     setSending(true);
     setError(null);
@@ -74,7 +77,30 @@ export function useCoachChat() {
     }
   }, [goalInput, planLoading]);
 
+  const requestHabitAnalysis = useCallback(async () => {
+    if (sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const { content } = await requestHabitTracking(session.access_token);
+      const aiMsg: CoachMessage = {
+        id: `opt-habit-${Date.now()}`, role: 'assistant', content, created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (e: unknown) {
+      setError((e as Error)?.message ?? 'Failed to load habit analysis');
+    } finally {
+      setSending(false);
+    }
+  }, [sending]);
+
   const togglePlanOpen = useCallback(() => setPlanOpen(o => !o), []);
+
+  const retryLastMessage = useCallback(() => {
+    if (lastSentMsgRef.current) sendMessage(lastSentMsgRef.current);
+  }, [sendMessage]);
 
   return {
     messages,
@@ -86,7 +112,9 @@ export function useCoachChat() {
     planOpen,
     goalInput,
     sendMessage,
+    retryLastMessage,
     generatePlan,
+    requestHabitAnalysis,
     setInputText,
     setGoalInput,
     togglePlanOpen,

@@ -1,19 +1,21 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { TrendingUp, MapPin, Zap, Navigation, MessageSquare, ThumbsUp, Star, Flame, Trophy, Sparkles } from 'lucide-react-native';
+import { Heart, MessageCircle, Sparkles } from 'lucide-react-native';
 import Svg, { Polyline, Circle, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
-import type { FeedPost, ActivityType } from '@features/social/types';
+import { TIER_CONFIG } from '@shared/constants/territory';
+import type { FeedPost } from '@features/social/types';
 import { useTheme, type AppColors } from '@theme';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
+  const m = Math.floor(diff / 60000);
+  if (m < 1)  return 'now';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
 }
 
 function fmtTime(sec: number): string {
@@ -22,36 +24,26 @@ function fmtTime(sec: number): string {
   return `${m}m`;
 }
 
-const ACT_CONFIG: Record<ActivityType, { label: string; Icon: typeof TrendingUp }> = {
-  run:      { label: 'Run',      Icon: TrendingUp },
-  trail:    { label: 'Trail',    Icon: MapPin },
-  interval: { label: 'Interval', Icon: Zap },
-  long_run: { label: 'Long Run', Icon: Navigation },
-};
-
 const MAP_W = 375;
 const MAP_H = 110;
-const PAD = 16;
+const PAD   = 16;
 
 function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
-  if (points.length < 2) return null;
-
-  const lats = points.map(p => p.lat);
-  const lngs = points.map(p => p.lng);
+  const lats  = points.map(p => p.lat);
+  const lngs  = points.map(p => p.lng);
   const minLat = Math.min(...lats), maxLat = Math.max(...lats);
   const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
   const rangeW = maxLng - minLng || 0.0001;
   const rangeH = maxLat - minLat || 0.0001;
-  const scale = Math.min((MAP_W - PAD * 2) / rangeW, (MAP_H - PAD * 2) / rangeH);
+  const scale  = Math.min((MAP_W - PAD * 2) / rangeW, (MAP_H - PAD * 2) / rangeH);
 
   const pts = points.map(p => ({
     x: PAD + (p.lng - minLng) * scale,
     y: MAP_H - PAD - (p.lat - minLat) * scale,
   }));
-
-  const polyline = pts.map(p => `${p.x},${p.y}`).join(' ');
+  const poly  = pts.map(p => `${p.x},${p.y}`).join(' ');
   const start = pts[0];
-  const end = pts[pts.length - 1];
+  const end   = pts[pts.length - 1];
 
   return (
     <View style={rm.wrap}>
@@ -59,18 +51,13 @@ function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
         <Defs>
           <LinearGradient id="fadeBottom" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0.6" stopColor="#F0EDE8" stopOpacity="0" />
-            <Stop offset="1" stopColor="#F0EDE8" stopOpacity="1" />
+            <Stop offset="1"   stopColor="#F0EDE8" stopOpacity="1" />
           </LinearGradient>
         </Defs>
-        {/* Route glow */}
-        <Polyline points={polyline} fill="none" stroke="#D93518" strokeWidth="6" strokeOpacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Route line */}
-        <Polyline points={polyline} fill="none" stroke="#D93518" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Start dot */}
+        <Polyline points={poly} fill="none" stroke="#D93518" strokeWidth="6"   strokeOpacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
+        <Polyline points={poly} fill="none" stroke="#D93518" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         <Circle cx={start.x} cy={start.y} r="5" fill="#1A6B40" stroke="#fff" strokeWidth="1.5" />
-        {/* End dot */}
-        <Circle cx={end.x} cy={end.y} r="5" fill="#D93518" stroke="#fff" strokeWidth="1.5" />
-        {/* Bottom fade overlay */}
+        <Circle cx={end.x}   cy={end.y}   r="5" fill="#D93518" stroke="#fff" strokeWidth="1.5" />
         <Rect x="0" y="0" width={MAP_W} height={MAP_H} fill="url(#fadeBottom)" />
       </Svg>
     </View>
@@ -84,158 +71,114 @@ const rm = StyleSheet.create({
 interface Props {
   post: FeedPost;
   onKudos: () => void;
-  onPress: () => void;
+  onComment: () => void;
   onUserPress?: () => void;
 }
 
-export function FeedPostCard({ post, onKudos, onPress, onUserPress }: Props) {
+export function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
-  const color = avatarColor(post.username);
+
+  const color   = avatarColor(post.username);
   const initial = post.username.slice(0, 1).toUpperCase();
-  const [fireActive, setFireActive] = useState(false);
-  const [crownActive, setCrownActive] = useState(false);
-
-  const actType = post.activityType ?? 'run';
-  const ActIcon = ACT_CONFIG[actType]?.Icon ?? TrendingUp;
-  const actLabel = ACT_CONFIG[actType]?.label ?? 'Run';
-
-  // Badges
-  type BadgeEntry = { bg: string; fg: string; text: string; Icon?: typeof Zap };
-  const badges: BadgeEntry[] = [];
-  if (post.territoriesClaimed > 0) badges.push({ bg: '#FEF0EE', fg: C.red, text: `${post.territoriesClaimed} Zone${post.territoriesClaimed !== 1 ? 's' : ''}`, Icon: Zap });
-  if (post.xpEarned > 0) badges.push({ bg: '#EDF7F2', fg: '#1A6B40', text: `${post.xpEarned} XP`, Icon: Sparkles });
-  if (post.isPR) badges.push({ bg: '#FDF6E8', fg: '#9E6800', text: 'PR', Icon: Trophy });
-  if ((post.streakDays ?? 0) > 0) badges.push({ bg: '#FEF0E6', fg: '#C25A00', text: `${post.streakDays} day streak`, Icon: Flame });
-  if (post.leveledUp) badges.push({ bg: '#F0EBF8', fg: '#6B2FBF', text: 'Leveled up!', Icon: Star });
+  const showRank = post.runnerRank && post.runnerRank !== 'pacer';
 
   return (
-    <Pressable style={s.card} onPress={onPress}>
+    <View style={s.card}>
 
-      {/* A — Header */}
-      <View style={s.header}>
-        <Pressable onPress={onUserPress} style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-          <View style={[s.avatar, { backgroundColor: color }]}>
-            <Text style={s.avatarText}>{initial}</Text>
-          </View>
-          <View style={{ flex: 1, marginLeft: 10 }}>
-            <Text style={s.username}>{post.username}</Text>
-            <Text style={s.time}>{timeAgo(post.createdAt)}</Text>
-          </View>
-        </Pressable>
-        {/* Activity chip */}
-        <View style={s.actChip}>
-          <ActIcon size={10} color={C.t2} strokeWidth={2} />
-          <Text style={s.actChipText}>{actLabel.toUpperCase()}</Text>
+      {/* Header */}
+      <Pressable style={s.header} onPress={onUserPress}>
+        <View style={[s.avatar, { backgroundColor: color }]}>
+          <Text style={s.avatarText}>{initial}</Text>
         </View>
-      </View>
+        <View style={s.userInfo}>
+          <Text style={s.username}>{post.username}</Text>
+          <Text style={s.subtitle}>
+            {showRank ? `${post.runnerRank} · ${timeAgo(post.createdAt)}` : timeAgo(post.createdAt)}
+          </Text>
+        </View>
+      </Pressable>
 
-      {/* B — Stats row */}
-      <View style={s.statsRow}>
-        <View style={s.statItem}>
-          <Text style={s.statVal}>{fmtDistShort(post.distanceM)}</Text>
-          <Text style={s.statLbl}>DISTANCE</Text>
-        </View>
-        <View style={s.statDivider} />
-        <View style={s.statItem}>
-          <Text style={s.statVal}>{post.durationSec > 0 ? fmtTime(post.durationSec) : '–'}</Text>
-          <Text style={s.statLbl}>TIME</Text>
-        </View>
-        <View style={s.statDivider} />
-        <View style={s.statItem}>
-          <Text style={s.statVal}>{post.avgPace || '–'}</Text>
-          <Text style={s.statLbl}>PACE</Text>
-        </View>
-      </View>
-
-      {/* B.5 — Route map hero */}
-      {(post.routePoints?.length ?? 0) >= 2 && (
+      {/* Route map (only if 5+ points) */}
+      {(post.routePoints?.length ?? 0) >= 5 && (
         <RouteMapHero points={post.routePoints!} />
       )}
 
-      {/* C — Badges strip */}
-      {badges.length > 0 && (
-        <View style={s.badgesRow}>
-          {badges.map((b, i) => (
-            <View key={i} style={[s.badge, s.badgeRow, { backgroundColor: b.bg }]}>
-              {b.Icon && <b.Icon size={9} color={b.fg} strokeWidth={2} />}
-              <Text style={[s.badgeText, { color: b.fg }]}>{b.text}</Text>
+      {/* Stats inline row */}
+      <View style={s.statsRow}>
+        <Text style={s.statVal}>{fmtDistShort(post.distanceM)}</Text>
+        {post.avgPace ? (
+          <><Text style={s.statSep}> · </Text><Text style={s.statVal}>{post.avgPace}/km</Text></>
+        ) : null}
+        {post.durationSec > 0 ? (
+          <><Text style={s.statSep}> · </Text><Text style={s.statVal}>{fmtTime(post.durationSec)}</Text></>
+        ) : null}
+      </View>
+
+      {/* Badges (only if present) */}
+      {(post.paceEarned > 0 || !!post.territoryTier) && (
+        <View style={s.badges}>
+          {post.paceEarned > 0 && (
+            <View style={s.badgePace}>
+              <Sparkles size={9} color="#1A6B40" strokeWidth={2} />
+              <Text style={s.badgePaceText}>+{post.paceEarned} PACE</Text>
             </View>
-          ))}
+          )}
+          {post.territoryTier && (() => {
+            const tc = TIER_CONFIG[post.territoryTier] ?? TIER_CONFIG.patch;
+            return (
+              <View style={[s.badgeTier, { backgroundColor: tc.bg }]}>
+                <Text style={[s.badgeTierText, { color: tc.fg }]}>{tc.label}</Text>
+              </View>
+            );
+          })()}
         </View>
       )}
 
-      {/* D — Reactions bar */}
-      <View style={s.reactBar}>
-        {/* Left: kudos count + comment count */}
-        <View style={s.reactLeft}>
+      {/* Actions */}
+      <View style={s.actions}>
+        <Pressable style={s.actionBtn} onPress={onKudos}>
+          <Heart
+            size={15}
+            color={post.hasKudos ? C.red : C.t2}
+            fill={post.hasKudos ? C.red : 'none'}
+            strokeWidth={1.5}
+          />
           {post.kudosCount > 0 && (
-            <Text style={s.reactCount}>{post.kudosCount + (post.hasKudos ? 0 : 0)}</Text>
+            <Text style={s.actionCount}>{post.kudosCount}</Text>
           )}
-          {(post.commentCount ?? 0) > 0 && (
-            <View style={s.commentRow}>
-              <MessageSquare size={12} color={C.t3} strokeWidth={1.5} />
-              <Text style={s.commentCount}>{post.commentCount}</Text>
-            </View>
+        </Pressable>
+        <Pressable style={s.actionBtn} onPress={onComment}>
+          <MessageCircle size={15} color={C.t2} strokeWidth={1.5} />
+          {post.commentCount > 0 && (
+            <Text style={s.actionCount}>{post.commentCount}</Text>
           )}
-        </View>
-
-        {/* Right: 3 reaction chips */}
-        <View style={s.reactChips}>
-          <Pressable
-            style={[s.chip, post.hasKudos && s.chipActive]}
-            onPress={onKudos}
-          >
-            <ThumbsUp size={12} color={post.hasKudos ? C.white : C.t2} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            style={[s.chip, fireActive && s.chipActive]}
-            onPress={() => setFireActive(v => !v)}
-          >
-            <Star size={12} color={fireActive ? C.white : C.t2} strokeWidth={2} />
-          </Pressable>
-          <Pressable
-            style={[s.chip, crownActive && s.chipActive]}
-            onPress={() => setCrownActive(v => !v)}
-          >
-            <Zap size={12} color={crownActive ? C.white : C.t2} strokeWidth={2} />
-          </Pressable>
-        </View>
+        </Pressable>
       </View>
-    </Pressable>
+
+    </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:        { backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    // Header
-    header:      { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
-    avatar:      { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    avatarText:  { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
-    username:    { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    time:        { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-    actChip:     { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 3, backgroundColor: C.stone },
-    actChipText: { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t2, letterSpacing: 0.4 },
-    // Stats
-    statsRow:    { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: C.mid, paddingVertical: 12, paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    statItem:    { flex: 1 },
-    statVal:     { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
-    statLbl:     { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, letterSpacing: 0.8, marginTop: 2 },
-    statDivider: { width: 0.5, height: 32, backgroundColor: C.mid, alignSelf: 'center', marginHorizontal: 4 },
-    // Badges
-    badgesRow:   { flexDirection: 'row', gap: 5, paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid, flexWrap: 'wrap' },
-    badge:       { borderRadius: 2, paddingHorizontal: 8, paddingVertical: 3 },
-    badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 3 },
-    badgeText:   { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 0.4 },
-    // Reactions
-    reactBar:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 11, paddingBottom: 14 },
-    reactLeft:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    reactCount:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
-    commentRow:  { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    commentCount:{ fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
-    reactChips:  { flexDirection: 'row', gap: 6 },
-    chip:        { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 2, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.stone },
-    chipActive:  { backgroundColor: C.black, borderColor: C.black },
+    card:         { backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    header:       { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
+    avatar:       { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    avatarText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
+    userInfo:     { flex: 1, marginLeft: 10 },
+    username:     { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+    subtitle:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    statsRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 2 },
+    statVal:      { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
+    statSep:      { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3 },
+    badges:       { flexDirection: 'row', gap: 5, paddingHorizontal: 16, paddingBottom: 10, flexWrap: 'wrap' },
+    badgePace:    { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#EDF7F2', borderRadius: 2, paddingHorizontal: 7, paddingVertical: 3 },
+    badgePaceText:{ fontFamily: 'Barlow_500Medium', fontSize: 10, color: '#1A6B40', letterSpacing: 0.4 },
+    badgeTier:    { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 3 },
+    badgeTierText:{ fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 0.4 },
+    actions:      { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4 },
+    actionBtn:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    actionCount:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
   });
 }

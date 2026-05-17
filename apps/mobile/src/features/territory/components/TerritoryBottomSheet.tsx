@@ -1,93 +1,88 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { X, Shield, Swords, Flag } from 'lucide-react-native';
+import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
+import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TerritoryDetails } from '../types';
+import type { TerritoryTier } from '@shared/types/game';
 
-interface Props {
-  territory: TerritoryDetails;
-  onClose:   () => void;
-  onFortify: (h3Index: string) => void;
+function freshnessColor(f: number): string {
+  if (f >= 70) return '#D93518';
+  if (f >= 40) return '#EAB308';
+  return '#EF9F27';
 }
 
-function defenseColor(d: number) { return d > 70 ? '#1A7A4A' : d > 30 ? '#B87A00' : '#D93518'; }
-function statusLabel(isOwn: boolean, ownerName: string | null) { return isOwn ? 'YOURS' : ownerName ? 'ENEMY' : 'NEUTRAL'; }
-function statusColor(isOwn: boolean, ownerName: string | null) { return isOwn ? '#D93518' : ownerName ? '#DC2626' : '#ADADAD'; }
-function statusBg(isOwn: boolean, ownerName: string | null)    { return isOwn ? '#FFF1EE' : ownerName ? '#FEF2F2' : '#EBEBEB'; }
+const TIER_LABELS: Record<TerritoryTier, string> = {
+  patch: 'Patch', block: 'Block', district: 'District', quarter: 'Quarter', domain: 'Domain',
+};
 
-export function TerritoryBottomSheet({ territory: t, onClose, onFortify }: Props) {
+interface Props {
+  polygon:  TerritoryDetails;
+  onClose:  () => void;
+  onDefend: () => void;
+}
+
+export function TerritoryBottomSheet({ polygon, onClose, onDefend }: Props) {
   const insets = useSafeAreaInsets();
+  const translateY = useSharedValue(300);
+
+  useEffect(() => {
+    translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+  }, []);
+
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ translateY: translateY.value }] }));
+
+  const daysSince = Math.floor((Date.now() - new Date(polygon.claimedAt).getTime()) / 86_400_000);
+  const claimedLabel = daysSince === 0 ? 'Today' : daysSince === 1 ? 'Yesterday' : `${daysSince} days ago`;
+  const fColor = freshnessColor(polygon.freshness);
 
   return (
-    <View style={[ss.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+    <Animated.View style={[ss.sheet, { bottom: insets.bottom + 8 }, animStyle]}>
       <View style={ss.handle} />
 
-      <View style={ss.header}>
-        <View style={{ flex: 1, gap: 4 }}>
-          <View style={[ss.badge, { backgroundColor: statusBg(t.isOwn, t.ownerName), alignSelf: 'flex-start' }]}>
-            <Text style={[ss.badgeText, { color: statusColor(t.isOwn, t.ownerName) }]}>
-              {statusLabel(t.isOwn, t.ownerName)}
-            </Text>
-          </View>
-          {(t.h3Index ?? t.id) ? (
-            <Text style={ss.hexId}>{t.h3Index ?? t.id}</Text>
-          ) : null}
+      <Pressable style={ss.closeBtn} onPress={onClose}>
+        <X size={18} color="#7A7A7A" strokeWidth={2} />
+      </Pressable>
+
+      <View style={ss.tierRow}>
+        <View style={ss.tierBadge}>
+          <Text style={ss.tierText}>{TIER_LABELS[polygon.tier]}</Text>
         </View>
-        <Pressable onPress={onClose}>
-          <X size={18} color="#7A7A7A" strokeWidth={2} />
-        </Pressable>
+        {polygon.isLoopFill && (
+          <Text style={ss.parkLabel}>Park ●</Text>
+        )}
       </View>
 
-      <View style={ss.defenseRow}>
-        <Text style={ss.defenseLabel}>Defense</Text>
-        <View style={ss.track}>
-          <View style={[ss.fill, { width: `${t.defense}%` as any, backgroundColor: defenseColor(t.defense) }]} />
-        </View>
-        <Text style={[ss.defenseVal, { color: defenseColor(t.defense) }]}>{t.defense}%</Text>
+      <Text style={ss.ownerName}>{polygon.isOwn ? 'Your zone' : polygon.ownerName}</Text>
+      <Text style={ss.meta}>{Math.round(polygon.areaM2).toLocaleString()} m² · {polygon.freshness}% fresh</Text>
+      <Text style={ss.claimed}>Claimed {claimedLabel}</Text>
+
+      <View style={ss.trackBg}>
+        <View style={[ss.trackFill, { width: `${polygon.freshness}%` as any, backgroundColor: fColor }]} />
       </View>
 
-      {t.tier && t.tier !== 'standard' && (
-        <View style={ss.tierRow}>
-          <Text style={ss.tierLabel}>Tier</Text>
-          <Text style={ss.tierVal}>{t.tier}</Text>
-        </View>
-      )}
-
-      {t.isOwn ? (
-        <Pressable style={[ss.fortifyBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
-          <Shield size={16} color="#fff" strokeWidth={1.5} />
-          <Text style={ss.fortifyLabel}>Fortify — run to strengthen</Text>
-        </Pressable>
-      ) : t.ownerName ? (
-        <Pressable style={[ss.fortifyBtn, { backgroundColor: '#DC2626', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
-          <Swords size={16} color="#fff" strokeWidth={1.5} />
-          <Text style={ss.fortifyLabel}>Attack territory</Text>
-        </Pressable>
-      ) : (
-        <Pressable style={[ss.fortifyBtn, { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#0A0A0A', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }]} onPress={() => onFortify(t.h3Index ?? t.id)}>
-          <Flag size={16} color="#0A0A0A" strokeWidth={1.5} />
-          <Text style={[ss.fortifyLabel, { color: '#0A0A0A' }]}>Claim this territory</Text>
+      {polygon.isOwn && (
+        <Pressable style={ss.defendBtn} onPress={onDefend}>
+          <Text style={ss.defendText}>Defend this zone →</Text>
         </Pressable>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
 const ss = StyleSheet.create({
-  sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 10 },
-  handle:      { width: 36, height: 3, borderRadius: 9, backgroundColor: '#E0DFDD', alignSelf: 'center', marginBottom: 16 },
-  header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
-  hexId:       { fontFamily: 'Courier', fontSize: 10, color: '#ADADAD', letterSpacing: 0.5 },
-  badge:       { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
-  badgeText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 11, letterSpacing: 1 },
-  defenseRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  defenseLabel:{ fontFamily: 'Barlow_400Regular', fontSize: 12, color: '#7A7A7A', width: 60 },
-  track:       { flex: 1, height: 6, borderRadius: 3, backgroundColor: '#F0EDE8', overflow: 'hidden' },
-  fill:        { height: '100%', borderRadius: 3 },
-  defenseVal:  { fontFamily: 'Barlow_600SemiBold', fontSize: 12, width: 36, textAlign: 'right' },
-  tierRow:     { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 },
-  tierLabel:   { fontFamily: 'Barlow_300Light', fontSize: 11, color: '#ADADAD' },
-  tierVal:     { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#0A0A0A', textTransform: 'capitalize' },
-  fortifyBtn:  { backgroundColor: '#0A0A0A', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
-  fortifyLabel:{ fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff', letterSpacing: 1 },
+  sheet:     { position: 'absolute', left: 16, right: 16, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, zIndex: 40, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
+  handle:    { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E0DFDD', alignSelf: 'center', marginBottom: 12 },
+  closeBtn:  { position: 'absolute', top: 16, right: 16 },
+  tierRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  tierBadge: { backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  tierText:  { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#D93518', letterSpacing: 0.5 },
+  parkLabel: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#4CAF50' },
+  ownerName: { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: '#0A0A0A', marginBottom: 2 },
+  meta:      { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#7A7A7A', marginBottom: 2 },
+  claimed:   { fontFamily: 'Barlow_400Regular', fontSize: 12, color: '#ADADAD', marginBottom: 10 },
+  trackBg:   { width: '100%', height: 6, borderRadius: 3, backgroundColor: '#F0EDE8', overflow: 'hidden', marginBottom: 14 },
+  trackFill: { height: '100%', borderRadius: 3 },
+  defendBtn: { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
+  defendText:{ fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: '#fff' },
 });

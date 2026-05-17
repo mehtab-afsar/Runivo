@@ -1,23 +1,18 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
-import { getSettings } from '@shared/services/store';
-import { Locate, Layers } from 'lucide-react-native';
+import React, { useRef, useState, useMemo } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import { MapPin, Layers } from 'lucide-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, type AppColors } from '@theme';
+import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTerritoryMap } from '../hooks/useTerritoryMap';
 import { TerritoryFilterChips } from '../components/TerritoryFilterChips';
 import { TerritoryBottomSheet } from '../components/TerritoryBottomSheet';
 import { TerritoryStatsBar } from '../components/TerritoryStatsBar';
-import type { TerritoryDetails } from '../types';
 
-// MapLibre GL requires a style JSON URL for vector tile styles.
-// For raster tile sources (Terrain, Satellite), we wrap the XYZ tile
-// URL inside an inline GL style object so MapLibre can consume it.
-
+// Raster tile sources need to be wrapped in an inline GL style JSON
 const TERRAIN_STYLE = JSON.stringify({
   version: 8,
   sources: {
@@ -52,132 +47,159 @@ const MAP_STYLES = [
   { id: 'satellite', label: 'Satellite', color: '#1B5E20', url: SATELLITE_STYLE },
 ] as const;
 
-let MapLibreGL: any = null;
-try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* not linked */ }
+let ML: any = null;
+try { ML = require('@maplibre/maplibre-react-native'); } catch {}
+
+const ACCENT = '#D93518';
+
+const territoryFillStyle = {
+  fillColor: ['case',
+    ['all', ['==', ['get', 'isOwn'], true], ['>=', ['get', 'freshness'], 70]], ACCENT,
+    ['all', ['==', ['get', 'isOwn'], true], ['>=', ['get', 'freshness'], 40]], '#D4785A',
+    ['all', ['==', ['get', 'isOwn'], true], ['<',  ['get', 'freshness'], 40]], '#EF9F27',
+    '#6B7FA3',
+  ],
+  fillOpacity: ['case', ['==', ['get', 'isOwn'], true], 0.40, 0.25],
+} as any;
+
+const territoryLineStyle = {
+  lineColor:   ['case', ['==', ['get', 'isOwn'], true], ACCENT, '#8899BB'],
+  lineWidth:   ['case', ['==', ['get', 'isOwn'], true], 2.0, 1.0],
+  lineOpacity: 0.8,
+} as any;
+
+const selectedFillStyle = { fillColor: ACCENT, fillOpacity: 0.55 };
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function TerritoryMapScreen() {
-  const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
-  const navigation = useNavigation<Nav>(); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const C      = useTheme();
+  const ss     = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<Nav>();
+  const route  = useRoute<RouteProp<RootStackParamList, 'TerritoryMap'>>();
+  const initialFilter = route.params?.initialFilter;
+
+  const {
+    ownPolygons, rivalPolygons, geoJSON, activeFilter, setActiveFilter,
+    selectedPolygon, setSelectedPolygon, stats, isLoadingRivals,
+    defaultCenter, handleBboxChange,
+  } = useTerritoryMap(initialFilter);
+
   const cameraRef = useRef<any>(null);
-  const map = useTerritoryMap();
-  const fc = { all: map.ownedCount + map.enemyCount + map.freeCount, mine: map.ownedCount, enemy: map.enemyCount, weak: 0, neutral: map.freeCount };
-  const [activeStyleId, setActiveStyleId] = useState<string>('standard');
-  const [showStylePicker, setShowStylePicker] = useState(false);
-  const activeStyle = MAP_STYLES.find(st => st.id === activeStyleId) ?? MAP_STYLES[0];
+  const [styleIdx, setStyleIdx] = useState(0);
 
-  useEffect(() => {
-    getSettings().then(st => {
-      if (st.mapStyle) {
-        const id = st.mapStyle.toLowerCase();
-        if (MAP_STYLES.find(m => m.id === id)) setActiveStyleId(id);
-      }
-    });
-  }, []);
-
-  const handleRecenter = () => {
+  const cycleMapStyle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (map.userLocation && cameraRef.current) {
-      cameraRef.current.setCamera({
-        centerCoordinate: map.userLocation,
-        zoomLevel: 14,
-        animationDuration: 400,
-        animationMode: 'flyTo',
-      });
-    }
+    setStyleIdx(prev => (prev + 1) % MAP_STYLES.length);
   };
 
+  const selectedFilter = selectedPolygon
+    ? ['==', ['get', 'id'], selectedPolygon.id]
+    : ['==', ['get', 'id'], ''];
+
+  function handleRegionChange(feature: any) {
+    const bounds = feature?.properties?.visibleBounds;
+    if (!bounds) return;
+    handleBboxChange({
+      minLng: bounds[0][0], minLat: bounds[0][1],
+      maxLng: bounds[1][0], maxLat: bounds[1][1],
+    });
+  }
+
+  function handlePolygonPress(e: any) {
+    const feat = e.features?.[0];
+    if (!feat) { setSelectedPolygon(null); return; }
+    const p = feat.properties as any;
+    setSelectedPolygon({
+      id: p.id, ownerId: p.ownerId, ownerName: p.ownerName,
+      isOwn: p.isOwn, freshness: p.freshness, tier: p.tier,
+      areaM2: p.areaM2, claimedAt: p.claimedAt, isLoopFill: p.isLoopFill,
+    });
+  }
+
+  const isEmpty = ownPolygons.length === 0 && rivalPolygons.length === 0 && !isLoadingRivals;
+
   return (
-    <View style={s.root}>
-      {MapLibreGL ? (
-        <MapLibreGL.MapView style={s.map} mapStyle={activeStyle.url} logoEnabled={false} attributionEnabled={false} onPress={map.clearSelection}>
-          <MapLibreGL.Camera
+    <View style={ss.container}>
+      {ML ? (
+        <ML.MapView
+          style={ss.map}
+          styleURL={MAP_STYLES[styleIdx].url}
+          onRegionDidChange={handleRegionChange}
+          logoEnabled={false}
+          attributionEnabled={false}
+        >
+          <ML.Camera
             ref={cameraRef}
-            zoomLevel={14}
-            centerCoordinate={map.userLocation ?? undefined}
-            followUserLocation={!map.userLocation}
-            followZoomLevel={14}
+            centerCoordinate={defaultCenter}
+            zoomLevel={13}
+            animationDuration={0}
           />
-          <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />
-          {map.filteredGeoJSON?.features.length > 0 && (
-            <MapLibreGL.ShapeSource id="territories" shape={map.filteredGeoJSON}
-              onPress={(e: any) => { const p = e.features?.[0]?.properties; if (!p) return; Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); map.selectTerritory({ id: p.id, ownerName: null, defense: p.defense, tier: p.tier ?? 'standard', isOwn: p.isOwned, h3Index: p.id } as TerritoryDetails); }}>
-              <MapLibreGL.FillLayer id="territory-fill" style={{ fillColor: ['get', 'fillColor'], fillOpacity: 0.2 }} />
-              <MapLibreGL.LineLayer id="territory-border" style={{ lineColor: ['get', 'fillColor'], lineWidth: 1.5, lineOpacity: 0.7 }} />
-            </MapLibreGL.ShapeSource>
+          <ML.UserLocation visible={true} />
+          {geoJSON.features.length > 0 && (
+            <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
+              <ML.FillLayer id="territory-fill" style={territoryFillStyle} />
+              <ML.LineLayer id="territory-line" style={territoryLineStyle} />
+              <ML.FillLayer id="territory-selected" style={selectedFillStyle} filter={selectedFilter} />
+            </ML.ShapeSource>
           )}
-        </MapLibreGL.MapView>
+        </ML.MapView>
       ) : (
-        <View style={[s.map, s.fallback]}><ActivityIndicator color={C.black} /><Text style={s.fallbackText}>Map unavailable in simulator</Text></View>
+        <View style={ss.map} />
       )}
 
-      <View style={[s.header, { top: insets.top + 8 }]}>
-        <Text style={s.title}>Territory</Text>
-        <TerritoryStatsBar ownedCount={map.ownedCount} enemyCount={map.enemyCount} freeCount={map.freeCount} />
+      <View style={[ss.topOverlay, { top: insets.top + 12 }]}>
+        <TerritoryFilterChips
+          activeFilter={activeFilter}
+          staleCount={stats.staleCount}
+          onSelect={setActiveFilter}
+        />
+        <Pressable style={ss.styleBtn} onPress={cycleMapStyle}>
+          <Layers size={18} color="#fff" strokeWidth={1.5} />
+        </Pressable>
       </View>
 
-      <View style={[s.filterRow, { top: insets.top + 62 }]}>
-        <TerritoryFilterChips activeFilter={map.filter} counts={fc} onSelect={map.setFilter} />
-      </View>
-
-      {/* Recenter button — uses Locate icon so it's visually distinct from the style picker */}
-      <Pressable style={[s.floatBtn, { top: insets.top + 116 }]} onPress={handleRecenter}>
-        <Locate size={15} color={C.black} strokeWidth={1.5} />
-      </Pressable>
-
-      {/* Map style picker button — uses Layers icon */}
-      <Pressable style={[s.floatBtn, { top: insets.top + 164 }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowStylePicker(v => !v); }}>
-        <Layers size={15} color={showStylePicker ? C.red : C.black} strokeWidth={1.5} />
-      </Pressable>
-
-      {showStylePicker && (
-        <View style={[s.stylePicker, { top: insets.top + 164 }]}>
-          <Text style={s.stylePickerTitle}>MAP STYLE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-            {MAP_STYLES.map(style => (
-              <Pressable
-                key={style.id}
-                style={[s.styleSwatch, activeStyleId === style.id && s.styleSwatchActive]}
-                onPress={() => { setActiveStyleId(style.id); setShowStylePicker(false); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-              >
-                <View style={[s.swatchColor, { backgroundColor: style.color }]} />
-                <Text style={[s.swatchLabel, activeStyleId === style.id && s.swatchLabelActive]}>{style.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+      {isEmpty && (
+        <View style={ss.emptyState}>
+          <MapPin size={48} color="rgba(255,255,255,0.5)" strokeWidth={1.5} />
+          <Text style={ss.emptyTitle}>No territories yet</Text>
+          <Text style={ss.emptyBody}>Start a run to claim your first zone</Text>
+          <Pressable style={ss.emptyBtn}
+            onPress={() => navigation.navigate('Main', { screen: 'Run' })}>
+            <Text style={ss.emptyBtnText}>Start a run →</Text>
+          </Pressable>
         </View>
       )}
 
-      {map.selectedTerritory && (
-        <TerritoryBottomSheet territory={map.selectedTerritory} onClose={map.clearSelection}
-          onFortify={async h3 => { await map.fortify(h3); navigation.navigate('ActiveRun' as any); map.clearSelection(); }} />
+      {selectedPolygon ? (
+        <TerritoryBottomSheet
+          polygon={selectedPolygon}
+          onClose={() => setSelectedPolygon(null)}
+          onDefend={() => { setSelectedPolygon(null); navigation.navigate('Main', { screen: 'Run' }); }}
+        />
+      ) : (
+        <TerritoryStatsBar
+          stats={stats}
+          isLoadingRivals={isLoadingRivals}
+          bottomInset={insets.bottom}
+        />
       )}
-
-      {map.loading && <View style={s.loader}><ActivityIndicator color={C.red} size="large" /></View>}
     </View>
   );
 }
 
-function mkStyles(C: AppColors) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function mkStyles(_C: AppColors) {
   return StyleSheet.create({
-    root:             { flex: 1, backgroundColor: C.bg },
-    map:              { flex: 1 },
-    fallback:         { backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', gap: 8 },
-    fallbackText:     { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.t2 },
-    header:           { position: 'absolute', left: 12, right: 12, zIndex: 20, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 0.5, borderColor: C.border },
-    title:            { flex: 1, fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    filterRow:        { position: 'absolute', left: 12, right: 12, zIndex: 20 },
-    floatBtn:         { position: 'absolute', right: 12, zIndex: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
-    loader:           { ...StyleSheet.absoluteFillObject, zIndex: 50, backgroundColor: C.bg + '80', alignItems: 'center', justifyContent: 'center' },
-    stylePicker:      { position: 'absolute', right: 56, zIndex: 30, backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 12, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 8, maxWidth: 260 },
-    stylePickerTitle: { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 1, color: C.t3, marginBottom: 10 },
-    styleSwatch:      { alignItems: 'center', gap: 5, borderRadius: 10, padding: 6, borderWidth: 1.5, borderColor: 'transparent' },
-    styleSwatchActive:{ borderColor: C.black },
-    swatchColor:      { width: 44, height: 32, borderRadius: 8 },
-    swatchLabel:      { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t2, textAlign: 'center' },
-    swatchLabelActive:{ fontFamily: 'Barlow_600SemiBold', color: C.black },
+    container:    { flex: 1, backgroundColor: '#000' },
+    map:          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+    topOverlay:   { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+    styleBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
+    emptyState:   { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', gap: 12, padding: 40 },
+    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: '#fff', fontStyle: 'italic' },
+    emptyBody:    { fontFamily: 'Barlow_300Light', fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
+    emptyBtn:     { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
+    emptyBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
   });
 }

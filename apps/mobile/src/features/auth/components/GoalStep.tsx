@@ -10,6 +10,14 @@ const ICONS: Record<OnboardingData['primaryGoal'], IconComp> = {
   get_fit: Heart, lose_weight: Flame, run_faster: Zap, explore: Compass, compete: Swords,
 };
 
+const GOAL_HINTS: Record<OnboardingData['primaryGoal'], string> = {
+  get_fit:     'Missions will build your endurance week over week.',
+  lose_weight: 'Every run burns calories. Your map shows the proof.',
+  run_faster:  'Pace targets and tempo missions will define your plan.',
+  explore:     'New hexagons = new routes. Your city is the gym.',
+  compete:     'Territory battles and leaderboard ranking await.',
+};
+
 interface Props {
   primaryGoal: OnboardingData['primaryGoal'];
   onChange: (v: OnboardingData['primaryGoal']) => void;
@@ -58,6 +66,10 @@ export default function GoalStep({ primaryGoal, onChange }: Props) {
           </Animated.View>
         );
       })}
+
+      <View style={s.hint}>
+        <Text style={s.hintText}>{GOAL_HINTS[primaryGoal]}</Text>
+      </View>
     </ScrollView>
   );
 }
@@ -71,4 +83,6 @@ const s = StyleSheet.create({
   labelSel:    { fontFamily: 'DMSans_500Medium', color: D.t1 },
   sub:         { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t3, marginTop: 2 },
   dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
+  hint:        { marginTop: 20, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(200,57,26,0.05)', borderRadius: 8, borderLeftWidth: 2, borderLeftColor: D.red },
+  hintText:    { fontFamily: 'DMSans_300Light', fontSize: 13, color: D.t1, lineHeight: 19 },
 });

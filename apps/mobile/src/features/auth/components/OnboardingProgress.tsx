@@ -3,10 +3,10 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { D } from './onboardingStyles';
 
 const CHAPTERS = [
-  { label: 'Level',    steps: [1] },
-  { label: 'Body',     steps: [2] },
-  { label: 'Training', steps: [3, 4] },
-  { label: 'Setup',    steps: [5, 6] },
+  { label: 'Goal',    steps: [1] },
+  { label: 'Profile', steps: [2] },
+  { label: 'Plan',    steps: [3, 4] },
+  { label: 'Setup',   steps: [5, 6] },
 ];
 
 interface Props {

@@ -36,6 +36,7 @@
     "expo-keep-awake": "~55.0.4",
     "expo-linear-gradient": "~55.0.9",
     "expo-location": "~55.1.4",
+    "expo-media-library": "~55.0.17",
     "expo-notifications": "~55.0.13",
     "expo-secure-store": "~55.0.9",
     "expo-sharing": "^55.0.14",
@@ -59,6 +60,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "babel-plugin-module-resolver": "^5.0.3",
     "metro-runtime": "^0.84.4",
     "typescript": "~5.9.2"
   },

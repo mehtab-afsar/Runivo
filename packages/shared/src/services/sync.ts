@@ -33,6 +33,12 @@ function setSyncStatus(s: SyncStatus): void {
   _statusListeners.forEach(fn => fn(s));
 }
 
+function computeLargestTier(polygons: { tier: string }[]): string {
+  const order = ['patch', 'block', 'district', 'quarter', 'domain'];
+  return polygons.reduce((best, p) =>
+    order.indexOf(p.tier) > order.indexOf(best) ? p.tier : best, 'patch');
+}
+
 async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
   for (let i = 0; i < attempts; i++) {
     try {
@@ -53,15 +59,15 @@ import {
   getRunById,
   getSavedRoutes,
   saveSavedRoute,
-  saveTerritories,
-  getAllTerritories,
+  getTerritoryPolygons,
+  saveTerritory,
   getNutritionProfile,
   getUnsyncedNutritionEntries,
   markNutritionEntrySynced,
   type StoredRun,
-  type StoredTerritory,
   type StoredPlayer,
 } from './store';
+import type { TerritoryPolygon, TerritoryTier } from '../types/game';
 import { getProfile } from './profile';
 
 /**
@@ -95,12 +101,18 @@ export async function pushProfile(): Promise<void> {
     xp: player.xp,
     coins: player.coins,
     energy: player.energy,
-    last_energy_regen: new Date(player.lastEnergyRegen).toISOString(),
+    last_energy_regen: player.lastEnergyRegen ? new Date(player.lastEnergyRegen).toISOString() : new Date().toISOString(),
     total_distance_km: player.totalDistanceKm,
     total_runs: player.totalRuns,
     total_territories_claimed: player.totalTerritoriesClaimed,
     streak_days: player.streakDays,
     last_run_date: player.lastRunDate,
+    // PACE economy fields
+    pace_balance:        player.paceBalance        ?? 0,
+    pace_total_earned:   player.paceTotalEarned    ?? 0,
+    pace_weekly_earned:  player.paceWeeklyEarned   ?? 0,
+    pace_weekly_reset_at: player.paceWeeklyResetAt ?? new Date().toISOString(),
+    runner_rank:         player.runnerRank         ?? 'pacer',
     // Onboarding prefs + biometrics
     ...(profile && {
       // Biometrics (migration 013)
@@ -235,14 +247,95 @@ export async function pushUnsyncedRuns(): Promise<void> {
       gps_points: simplifiedPoints,
       territories_claimed: run.territoriesClaimed,
       territories_fortified: run.territoriesFortified,
-      xp_earned: run.xpEarned,
-      coins_earned: run.coinsEarned,
+      xp_earned: run.xpEarned ?? 0,
+      coins_earned: run.coinsEarned ?? 0,
       enemy_captured: run.enemyCaptured ?? 0,
       pre_run_level: run.preRunLevel ?? 1,
     }, { onConflict: 'id' });
 
     if (!error) {
       await saveRun({ ...run, synced: true });
+      // Invoke territory processing on the server (PostGIS steal/claim logic).
+      // Runs fire-and-forget: failure here doesn't block the sync — PACE adjustment
+      // from stolen zones will be credited on the next successful sync.
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        if (session.session) {
+          const { data: result } = await supabase.functions.invoke('process-run-territory', {
+            body: {
+              runId:        run.id,
+              userId:       user.id,
+              gpsPoints:    run.gpsPoints,   // full original GPS trace (not simplified)
+              activityType: run.activityType,
+              distanceKm:   run.distanceMeters / 1000,
+            },
+          });
+          if (result && typeof result.paceAdjustment === 'number' && result.paceAdjustment > 0) {
+            const player = await getPlayer();
+            if (player) {
+              await savePlayer({
+                ...player,
+                paceBalance:      (player.paceBalance      ?? 0) + result.paceAdjustment,
+                paceTotalEarned:  (player.paceTotalEarned  ?? 0) + result.paceAdjustment,
+                paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + result.paceAdjustment,
+              });
+            }
+          }
+
+          // Auto post-run debrief — fire-and-forget, non-blocking
+          ;(async () => {
+            try {
+              const { data: debriefData } = await supabase.functions.invoke('ai-coach', {
+                body: { feature: 'post_run', runId: run.id },
+              });
+              if (debriefData?.data) {
+                const p = debriefData.data as { praise?: string; analysis?: string; suggestion?: string; recovery?: string };
+                const content = [p.praise, p.analysis, p.suggestion, p.recovery].filter(Boolean).join('\n\n');
+                if (content && user) {
+                  await supabase.from('coach_messages').insert({
+                    user_id:        user.id,
+                    role:           'assistant',
+                    content,
+                    auto_triggered: true,
+                    created_at:     new Date().toISOString(),
+                  });
+                }
+              }
+            } catch { /* non-critical */ }
+          })();
+
+          // Milestone card — check if largest tier improved
+          ;(async () => {
+            try {
+              const localPolygons = await getTerritoryPolygons();
+              if (localPolygons.length > 0) {
+                const newLargestTier  = computeLargestTier(localPolygons) as TerritoryTier;
+                const currentPlayer   = await getPlayer();
+                const prevLargestTier = currentPlayer?.largestTierAchieved ?? 'patch';
+                const tierOrder       = ['patch', 'block', 'district', 'quarter', 'domain'];
+                if (tierOrder.indexOf(newLargestTier) > tierOrder.indexOf(prevLargestTier)) {
+                  await supabase.from('feed_posts').insert({
+                    user_id:           user.id,
+                    post_type:         'milestone',
+                    territory_tier:    newLargestTier,
+                    territory_area_m2: localPolygons.reduce((s, p) => s + p.areaM2, 0),
+                    runner_rank:       currentPlayer?.runnerRank ?? 'pacer',
+                    pace_earned:       0,
+                    distance_km:       0,
+                    xp_earned:         0,
+                    leveled_up:        false,
+                  });
+                  if (currentPlayer) {
+                    await savePlayer({ ...currentPlayer, largestTierAchieved: newLargestTier });
+                  }
+                }
+              }
+            } catch { /* non-critical */ }
+          })();
+        }
+      } catch {
+        // Non-fatal — territory/PACE from steal will be re-evaluated on next sync
+      }
     } else {
       // Throw so withRetry + postRunSync can set sync status to 'error' and surface
       // a "Could not upload run" message in the UI instead of silently discarding data.
@@ -299,61 +392,121 @@ export async function pullRuns(limit = 50): Promise<void> {
 // ----------------------------------------------------------------
 
 /**
- * Push locally-saved polygon run territories to Supabase.
- * Territories are corridor shapes that match the GPS path — any shape the runner traced.
- * Uses upsert so re-runs are idempotent.
+ * Push locally-unsynced TerritoryPolygon records to the territory_polygons Supabase table.
+ * The DB trigger tp_geom_trigger derives the PostGIS geom from polygon_coords automatically.
+ * Each record is marked synced locally after a successful upsert.
  */
 export async function pushPolygonTerritories(): Promise<void> {
   const user = await getAuthenticatedUser();
   if (!user) return;
 
-  const all = await getAllTerritories();
-  const mine = all.filter(t => t.ownerId === user.id && t.polygon.length >= 4);
-  if (mine.length === 0) return;
+  const all = await getTerritoryPolygons();
+  const unsynced = all.filter(t => t.ownerId === user.id && !t.synced && t.polygon.length >= 4);
+  if (unsynced.length === 0) return;
 
-  const { error } = await supabase.from('run_territories').upsert(
-    mine.map(t => ({
+  for (const t of unsynced) {
+    const { error } = await supabase.from('territory_polygons').upsert({
       id:               t.id,
+      run_id:           t.runId || null,
       owner_id:         user.id,
       owner_name:       t.ownerName,
-      run_id:           t.runId || null,
-      polygon:          t.polygon,
+      polygon_coords:   t.polygon,
       area_m2:          t.areaM2,
-      defense:          t.defense,
+      freshness:        t.freshness,
+      last_defended_at: t.lastDefendedAt,
+      claimed_at:       t.claimedAt,
+      is_loop_fill:     t.isLoopFill,
       tier:             t.tier,
-      claimed_at:       t.claimedAt ? new Date(t.claimedAt).toISOString() : null,
-      last_fortified_at: t.lastFortifiedAt ? new Date(t.lastFortifiedAt).toISOString() : null,
-    })),
-    { onConflict: 'id' },
-  );
-  if (error) console.warn('[sync] pushPolygonTerritories failed:', error.message);
+    }, { onConflict: 'id' });
+
+    if (!error) {
+      await saveTerritory({ ...t, synced: true });
+    } else {
+      console.warn('[sync] pushPolygonTerritories:', t.id, error.message);
+    }
+  }
 }
 
 /**
- * Pull all run territories from Supabase and cache locally.
- * This includes territories from all players so the map shows everyone's captured areas.
+ * Pull all territory polygons from Supabase and merge into local store.
+ * Rows with empty polygon_coords (legacy rows without the new column) are skipped.
+ * Locally-unsynced records (pending push) are never overwritten.
  */
 export async function pullTerritories(): Promise<void> {
   const { data, error } = await supabase
-    .from('run_territories')
-    .select('id, owner_id, owner_name, run_id, polygon, area_m2, defense, tier, claimed_at, last_fortified_at');
+    .from('territory_polygons')
+    .select('id, run_id, owner_id, owner_name, polygon_coords, area_m2, freshness, last_defended_at, claimed_at, is_loop_fill, tier')
+    .limit(2000);
 
   if (error || !data || data.length === 0) return;
 
-  const territories: StoredTerritory[] = data.map(row => ({
-    id:              row.id,
-    polygon:         row.polygon as [number, number][],
-    areaM2:          Number(row.area_m2),
-    runId:           row.run_id ?? '',
-    ownerId:         row.owner_id,
-    ownerName:       row.owner_name,
-    defense:         row.defense,
-    tier:            row.tier,
-    claimedAt:       row.claimed_at ? new Date(row.claimed_at).getTime() : null,
-    lastFortifiedAt: row.last_fortified_at ? new Date(row.last_fortified_at).getTime() : null,
-  }));
+  const existing = await getTerritoryPolygons();
+  const localMap = new Map(existing.map(t => [t.id, t]));
 
-  await saveTerritories(territories);
+  for (const row of data) {
+    const local = localMap.get(row.id);
+    if (local && !local.synced) continue;
+
+    const coords = (row.polygon_coords as [number, number][]) ?? [];
+    if (coords.length < 4) continue;
+
+    await saveTerritory({
+      id:             row.id,
+      runId:          row.run_id ?? '',
+      ownerId:        row.owner_id,
+      ownerName:      row.owner_name ?? '',
+      polygon:        coords,
+      areaM2:         Number(row.area_m2),
+      freshness:      row.freshness ?? 100,
+      lastDefendedAt: row.last_defended_at,
+      claimedAt:      row.claimed_at,
+      isLoopFill:     row.is_loop_fill ?? false,
+      tier:           row.tier as TerritoryTier,
+      synced:         true,
+    });
+  }
+}
+
+/**
+ * Fetches territory polygons visible within a map viewport bounding box.
+ * Returns ALL owners' territories (for rival rendering).
+ * Results are NOT persisted to local store — held in component state only.
+ * Uses the get_map_polygons PostGIS RPC which filters by spatial intersection.
+ */
+export async function pullMapPolygons(bbox: {
+  minLat: number; minLng: number; maxLat: number; maxLng: number;
+}): Promise<TerritoryPolygon[]> {
+  const { data, error } = await supabase.rpc('get_map_polygons', {
+    min_lat: bbox.minLat,
+    min_lng: bbox.minLng,
+    max_lat: bbox.maxLat,
+    max_lng: bbox.maxLng,
+  });
+
+  if (error || !data) return [];
+
+  const rows = data as {
+    id: string; owner_id: string; owner_name: string | null;
+    area_m2: number; freshness: number; last_defended_at: string;
+    is_loop_fill: boolean; tier: string; polygon_coords: [number, number][];
+  }[];
+
+  return rows
+    .filter(r => r.polygon_coords && r.polygon_coords.length >= 4)
+    .map(r => ({
+      id:             r.id,
+      runId:          '',
+      ownerId:        r.owner_id,
+      ownerName:      r.owner_name ?? '',
+      polygon:        r.polygon_coords,
+      areaM2:         Number(r.area_m2),
+      freshness:      r.freshness ?? 100,
+      lastDefendedAt: r.last_defended_at,
+      claimedAt:      r.last_defended_at,
+      isLoopFill:     r.is_loop_fill ?? false,
+      tier:           r.tier as TerritoryTier,
+      synced:         true,
+    }));
 }
 
 /**
@@ -397,7 +550,7 @@ export async function claimTerritoryRemote(
  * to merge remote state with the local cache.
  */
 export function subscribeTerritories(
-  _onUpdate: (territory: StoredTerritory) => void
+  _onUpdate: (territory: TerritoryPolygon) => void
 ): () => void {
   return () => {};
 }
@@ -661,16 +814,39 @@ export async function postRunSync(): Promise<{ ok: boolean }> {
 // FEED
 // ----------------------------------------------------------------
 
-export async function createFeedPost(runId: string, distanceKm: number, territoriesClaimed: number, content?: string) {
+export async function createFeedPost(
+  runId: string,
+  distanceKm: number,
+  territoriesClaimed: number,
+  opts?: {
+    paceEarned?: number;
+    territoryTier?: string | null;
+    territoryAreaM2?: number | null;
+    runnerRank?: string;
+    content?: string;
+    durationSec?: number;
+    avgPace?: string;
+    activityType?: string;
+    routePoints?: { lat: number; lng: number }[];
+  },
+) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
   const { error } = await supabase.from('feed_posts').insert({
-    user_id: user.id,
-    run_id: runId,
-    distance_km: distanceKm,
+    user_id:             user.id,
+    run_id:              runId,
+    distance_km:         distanceKm,
     territories_claimed: territoriesClaimed,
-    content: content ?? null,
+    content:             opts?.content ?? null,
+    pace_earned:         opts?.paceEarned ?? 0,
+    territory_tier:      opts?.territoryTier ?? null,
+    territory_area_m2:   opts?.territoryAreaM2 ?? null,
+    runner_rank:         opts?.runnerRank ?? 'pacer',
+    duration_sec:        opts?.durationSec ?? 0,
+    avg_pace:            opts?.avgPace ?? '',
+    activity_type:       opts?.activityType ?? 'run',
+    route_points:        opts?.routePoints ?? null,
   });
   if (error) console.warn('[sync] feed post failed:', error.message);
 }

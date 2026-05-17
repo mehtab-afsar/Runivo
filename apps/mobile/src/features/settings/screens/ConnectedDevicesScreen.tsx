@@ -18,7 +18,6 @@ import { Heart, Activity, TrendingUp, Brain, Smartphone, Check, X } from 'lucide
 import { supabase } from '@shared/services/supabase';
 import { useTheme, type AppColors } from '@theme';
 import {
-  writeRunToHealth,
   readRecentWorkouts,
 } from '../../../shared/services/healthService';
 

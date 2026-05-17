@@ -1,184 +1,153 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GAME_CONFIG } from '../services/config';
 import { localDateString } from '../services/store';
-import { supabase } from '../services/supabase';
 import {
   getPlayer,
   savePlayer,
   initializePlayer,
-  getAllTerritories,
-  saveTerritories,
   saveRun,
+  saveTerritory,
+  getTerritoryPolygons,
   getDefaultShoe,
+  getRuns,
   StoredPlayer,
-  StoredTerritory,
   StoredRun,
 } from '../services/store';
-import { ClaimEngine, ClaimEvent, ClaimState } from '../services/claimEngine';
+import {
+  buildTerritoryPolygon,
+  calculateRunPACE,
+  computeRunnerRank,
+  buildCorridorPolygon,
+  polygonAreaM2,
+} from '../services/claimEngine';
+import type { TerritoryPolygon, RunnerRank } from '../types/game';
 import { updateMissionsAfterRun } from '../services/missionStore';
 
-// ── Award key → human-readable label (mirrors Profile.tsx awardSections) ─────
+// ── Award key → human-readable label ─────────────────────────────────────────
 const AWARD_LABELS: Record<string, string> = {
-  first_run:    'First Steps',
-  '5k_club':    '5K Club',
-  '10k_warrior':'10K Warrior',
-  '50k':        '50K Explorer',
-  streak_3:     'On Fire',
-  streak_7:     'Week Warrior',
-  streak_30:    'Monthly Grind',
-  first_zone:   'Zone Claimer',
-  zones_10:     'Map Maker',
-  zones_50:     'Conqueror',
-  level_5:      'Rising Star',
-  level_10:     'Veteran',
+  first_claim:        'First Claim',
+  first_blood:        'First Blood',
+  park_capture:       'Park Capture',
+  district_owner:     'District Owner',
+  quarter_owner:      'Quarter Owner',
+  domain_lord:        'Domain Lord',
+  city_builder:       'City Builder',
+  defender:           'Defender',
+  sovereign_rank:     'Sovereign',
+  first_5k:           'First 5K',
+  first_10k:          '10K Club',
+  first_halfmarathon: 'Half Done',
+  km_100:             '100km',
+  km_500:             '500km Club',
+  km_1000:            '1000km',
+  streak_7:           'On Fire',
+  streak_30:          'Unstoppable',
+  early_bird:         'Early Bird',
+  sub_5:              'Sub-5',
+  sub_4_30:           'Sub-4:30',
+  monthly_100:        'Century Month',
 };
 
-/** Returns the set of award keys earned given the player stats + longest run known. */
-function computeEarnedAwardKeys(p: StoredPlayer, longestRunKm: number): Set<string> {
-  const s = new Set<string>();
-  if (p.totalRuns >= 1)                     s.add('first_run');
-  if (longestRunKm >= 5)                    s.add('5k_club');
-  if (longestRunKm >= 10)                   s.add('10k_warrior');
-  if (p.totalDistanceKm >= 50)              s.add('50k');
-  if (p.streakDays >= 3)                    s.add('streak_3');
-  if (p.streakDays >= 7)                    s.add('streak_7');
-  if (p.streakDays >= 30)                   s.add('streak_30');
-  if (p.totalTerritoriesClaimed >= 1)       s.add('first_zone');
-  if (p.totalTerritoriesClaimed >= 10)      s.add('zones_10');
-  if (p.totalTerritoriesClaimed >= 50)      s.add('zones_50');
-  if (p.level >= 5)                         s.add('level_5');
-  if (p.level >= 10)                        s.add('level_10');
-  return s;
+async function checkAndAwardAchievements(params: {
+  run: StoredRun;
+  territory: TerritoryPolygon | null;
+  rivalZonesStolen: number;
+  defendedZonesCount: number;
+  player: StoredPlayer;
+  totalKm: number;
+}): Promise<string[]> {
+  const { run, territory, rivalZonesStolen, defendedZonesCount, player, totalKm } = params;
+  const earned = new Set<string>([
+    ...(player.earnedAwardIds ?? []),
+    ...(player.unlockedAchievements ?? []),
+  ]);
+  const newAwards: string[] = [];
+  const grant = (id: string) => { if (!earned.has(id)) { earned.add(id); newAwards.push(id); } };
+
+  const distKm = run.distanceMeters / 1000;
+  const runHour = new Date(run.startTime).getHours();
+
+  if (territory) grant('first_claim');
+  if (territory?.tier === 'district' || territory?.tier === 'quarter' || territory?.tier === 'domain') grant('district_owner');
+  if (territory?.tier === 'quarter' || territory?.tier === 'domain') grant('quarter_owner');
+  if (territory?.tier === 'domain') grant('domain_lord');
+  if (territory?.isLoopFill) grant('park_capture');
+  if (rivalZonesStolen > 0) grant('first_blood');
+  if (defendedZonesCount > 0) grant('defender');
+  if (totalKm * 200 >= 500_000) grant('city_builder');
+  if ((player.paceTotalEarned ?? 0) >= 4000) grant('sovereign_rank');
+
+  if (distKm >= 5)  grant('first_5k');
+  if (distKm >= 10) grant('first_10k');
+  if (distKm >= 21) grant('first_halfmarathon');
+  if (totalKm >= 100)  grant('km_100');
+  if (totalKm >= 500)  grant('km_500');
+  if (totalKm >= 1000) grant('km_1000');
+
+  if ((player.streakDays ?? 0) >= 7)  grant('streak_7');
+  if ((player.streakDays ?? 0) >= 30) grant('streak_30');
+
+  // early_bird: check if 5 runs before 6am (including this one)
+  if (runHour < 6) {
+    const allRuns = await getRuns(500);
+    const earlyCount = allRuns.filter(r => new Date(r.startTime).getHours() < 6).length;
+    if (earlyCount >= 5) grant('early_bird');
+  }
+
+  if (newAwards.length > 0) {
+    try {
+      const { supabase } = await import('../services/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await Promise.all(newAwards.map(id =>
+          Promise.resolve(supabase.from('user_awards').insert({ user_id: user.id, award_id: id })).catch(() => {})
+        ));
+      }
+    } catch { /* offline — awards persist locally */ }
+  }
+  return newAwards;
+}
+
+// Resets paceWeeklyEarned when a new Monday (UTC 00:00) has passed since last reset.
+function checkAndResetWeeklyPace(p: StoredPlayer): StoredPlayer {
+  const resetAt = p.paceWeeklyResetAt ? new Date(p.paceWeeklyResetAt) : new Date(0);
+  const now = new Date();
+  const daysSinceMonday = (now.getUTCDay() + 6) % 7;
+  const lastMonday = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceMonday,
+  ));
+  if (resetAt < lastMonday) {
+    return { ...p, paceWeeklyEarned: 0, paceWeeklyResetAt: lastMonday.toISOString() };
+  }
+  return p;
 }
 
 export interface GameEngineState {
   player: StoredPlayer | null;
   loading: boolean;
   playerTerritoryCount: number;
-  claimState: ClaimState | null;
-  sessionStats: {
-    claimed: number;
-    xp: number;
-  };
 }
 
-/**
- * Build a corridor polygon (GeoJSON [lng,lat][] closed ring) around a GPS path.
- * radiusM = half-width of the corridor in metres.
- */
+// Backward-compat re-export — delegates to claimEngine geometry functions.
 export function bufferPath(
   points: { lat: number; lng: number }[],
-  radiusM: number
+  radiusM: number,
 ): [number, number][] {
   if (points.length < 2) return [];
-
-  const avgLat = points.reduce((s, p) => s + p.lat, 0) / points.length;
-  const latScale = GAME_CONFIG.METERS_PER_DEGREE_LAT;
-  const lngScale = GAME_CONFIG.METERS_PER_DEGREE_LAT * Math.cos((avgLat * Math.PI) / 180);
-
-  const left: [number, number][] = [];
-  const right: [number, number][] = [];
-
-  for (let i = 0; i < points.length; i++) {
-    const { lat, lng } = points[i];
-    const prev = points[Math.max(0, i - 1)];
-    const next = points[Math.min(points.length - 1, i + 1)];
-
-    // Direction vector in metres
-    const dx = (next.lng - prev.lng) * lngScale;
-    const dy = (next.lat - prev.lat) * latScale;
-    const len = Math.sqrt(dx * dx + dy * dy);
-
-    if (len < 0.001) {
-      if (left.length > 0) {
-        left.push(left[left.length - 1]);
-        right.push(right[right.length - 1]);
-      } else {
-        left.push([lng, lat]);
-        right.push([lng, lat]);
-      }
-      continue;
-    }
-
-    // Perpendicular unit vector
-    const px = -dy / len;
-    const py = dx / len;
-
-    const offLng = (px * radiusM) / lngScale;
-    const offLat = (py * radiusM) / latScale;
-
-    left.push([lng + offLng, lat + offLat]);
-    right.push([lng - offLng, lat - offLat]);
-  }
-
-  const coords: [number, number][] = [...left, ...right.reverse()];
-  coords.push(coords[0]); // close the ring
-  return coords;
+  return buildCorridorPolygon(
+    points.map(p => ({ ...p, timestamp: 0, speed: 0 })),
+    radiusM,
+  );
 }
 
-/** Approximate polygon area in m² using the shoelace formula. */
-export function polygonAreaM2(coords: [number, number][]): number {
-  const n = coords.length - 1;
-  if (n < 3) return 0;
-  let area = 0;
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n;
-    area += coords[i][0] * coords[j][1];
-    area -= coords[j][0] * coords[i][1];
-  }
-  area = Math.abs(area) / 2;
-  // Convert deg² → m²
-  const avgLat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
-  const mPerDeg = GAME_CONFIG.METERS_PER_DEGREE_LAT;
-  return area * mPerDeg * mPerDeg * Math.cos((avgLat * Math.PI) / 180);
-}
+export { polygonAreaM2 };
 
 export function useGameEngine() {
-  const [player, setPlayer] = useState<StoredPlayer | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [player, setPlayer]               = useState<StoredPlayer | null>(null);
+  const [loading, setLoading]             = useState(true);
   const [playerTerritoryCount, setPlayerTerritoryCount] = useState(0);
-  const [claimState, setClaimState] = useState<ClaimState | null>(null);
-  const [sessionStats, setSessionStats] = useState({ claimed: 0, xp: 0 });
-  const [sessionEnergy, setSessionEnergy] = useState(0);
 
-  const claimEngineRef = useRef<ClaimEngine | null>(null);
-  const claimListenersRef = useRef<((event: ClaimEvent) => void)[]>([]);
-  // Tracks energy during active run (real-time regen from distance)
-  const sessionEnergyRef = useRef<number>(0);
-
-  useEffect(() => {
-    loadPlayer();
-  }, []);
-
-  // Sync energy from server on visibility change (app foregrounded).
-  // Replaces the client-side 30-second polling interval that used the device clock
-  // (exploitable by advancing the device clock to gain free energy).
-  useEffect(() => {
-    if (!player) return;
-
-    const syncEnergyFromServer = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data: newEnergy } = await supabase.rpc('sync_energy', { p_user_id: session.user.id });
-      if (typeof newEnergy === 'number') {
-        const updated = { ...player, energy: newEnergy, lastEnergyRegen: Date.now() };
-        setPlayer(updated);
-        await savePlayer(updated);
-      }
-    };
-
-    // Sync once on mount
-    // (visibilitychange / AppState handling is done at the app layer on mobile)
-    syncEnergyFromServer();
-    if (typeof document !== 'undefined' && document.addEventListener) {
-      const onVisibility = () => {
-        if (document.visibilityState === 'visible') syncEnergyFromServer();
-      };
-      document.addEventListener('visibilitychange', onVisibility);
-      return () => document.removeEventListener('visibilitychange', onVisibility);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player?.id]);
+  useEffect(() => { loadPlayer(); }, []);
 
   const loadPlayer = async () => {
     setLoading(true);
@@ -186,73 +155,16 @@ export function useGameEngine() {
     if (!p) {
       p = await initializePlayer('Runner');
     }
+    p = checkAndResetWeeklyPace(p);
+    if (p.paceWeeklyEarned === 0 && p.paceWeeklyResetAt) {
+      await savePlayer(p);
+    }
 
-    const allTerritories = await getAllTerritories();
-    const ownedCount = allTerritories.filter(t => t.ownerId === p.id).length;
-    setPlayerTerritoryCount(ownedCount);
-
+    const polygons = await getTerritoryPolygons(p.id);
+    setPlayerTerritoryCount(polygons.length);
     setPlayer(p);
     setLoading(false);
   };
-
-  const startClaimEngine = useCallback(async () => {
-    if (!player) return;
-
-    // Sync energy from server before run starts so we have the canonical value
-    let startEnergy = player.energy;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: serverEnergy } = await supabase.rpc('sync_energy', { p_user_id: session.user.id });
-      if (typeof serverEnergy === 'number') {
-        startEnergy = serverEnergy;
-        const updated = { ...player, energy: serverEnergy, lastEnergyRegen: Date.now() };
-        setPlayer(updated);
-        await savePlayer(updated);
-      }
-    }
-
-    const engine = new ClaimEngine(player.id);
-    claimEngineRef.current = engine;
-    // Seed session energy from server-synced value
-    sessionEnergyRef.current = startEnergy;
-    setSessionEnergy(startEnergy);
-
-    const unsub = engine.onEvent((event) => {
-      claimListenersRef.current.forEach(l => l(event));
-      setSessionStats(engine.getSessionStats());
-      // Energy is now deducted server-side by the claim_territory RPC.
-      // Local energy display is refreshed at end of run via postRunSync → pullProfile.
-    });
-
-    return unsub;
-  }, [player]);
-
-  const updateClaim = useCallback(
-    (lat: number, lng: number, speed: number, accuracy: number, distanceDeltaKm = 0) => {
-      if (!claimEngineRef.current) return null;
-      // Real-time energy regen from running distance
-      if (distanceDeltaKm > 0) {
-        const regen = distanceDeltaKm * GAME_CONFIG.ENERGY_REGEN_PER_KM_RUN;
-        sessionEnergyRef.current = Math.min(
-          GAME_CONFIG.MAX_ENERGY,
-          sessionEnergyRef.current + regen
-        );
-        setSessionEnergy(Math.round(sessionEnergyRef.current));
-      }
-      const canClaim = sessionEnergyRef.current >= GAME_CONFIG.ENERGY_COST_CLAIM;
-      const state = claimEngineRef.current.update(lat, lng, speed, accuracy, canClaim);
-      setClaimState(state);
-      return state;
-    },
-    []
-  );
-
-  const onClaimEvent = useCallback((listener: (event: ClaimEvent) => void) => {
-    claimListenersRef.current.push(listener);
-    return () => {
-      claimListenersRef.current = claimListenersRef.current.filter(l => l !== listener);
-    };
-  }, []);
 
   const endRunSession = useCallback(
     async (runData: {
@@ -273,46 +185,12 @@ export function useGameEngine() {
         altitude: number;
       }[];
     }) => {
-      if (!player || !claimEngineRef.current) return;
+      if (!player) return;
 
-      const stats = claimEngineRef.current.getSessionStats();
+      // 1. Build territory polygon client-side
+      const buildResult = buildTerritoryPolygon(runData.gpsPoints, runData.activityType);
 
-      // Build a territory polygon from the run path (min MIN_CLAIM_DISTANCE_M to qualify)
-      const territoriesToSave: StoredTerritory[] = [];
-
-      if (runData.distanceMeters >= GAME_CONFIG.MIN_CLAIM_DISTANCE_M && runData.gpsPoints.length >= 2) {
-        // Downsample GPS points to at most MAX_GPS_SAMPLE_POINTS for efficiency
-        const pts = runData.gpsPoints;
-        const step = Math.max(1, Math.floor(pts.length / GAME_CONFIG.MAX_GPS_SAMPLE_POINTS));
-        const sampled = pts.filter((_, i) => i % step === 0);
-        if (sampled.length < 2) sampled.push(pts[pts.length - 1]);
-
-        const polygon = bufferPath(sampled, GAME_CONFIG.CORRIDOR_BUFFER_M);
-        const areaM2 = polygonAreaM2(polygon);
-
-        territoriesToSave.push({
-          id: crypto.randomUUID(),
-          polygon,
-          areaM2,
-          runId: runData.id,
-          ownerId: player.id,
-          ownerName: player.username,
-          defense: GAME_CONFIG.CAPTURED_INITIAL_DEFENSE,
-          tier: 'common',
-          claimedAt: Date.now(),
-          lastFortifiedAt: Date.now(),
-        });
-      }
-
-      const territoryIds = territoriesToSave.map(t => t.id);
-
-      const distanceXP = Math.floor((runData.distanceMeters / 1000) * GAME_CONFIG.XP_PER_KM);
-      const totalXP = stats.xp + distanceXP;
-
-      const preRunLevel = player.level;
-      const newXP = player.xp + totalXP;
-      const newLevel = calculateLevel(newXP);
-
+      // 2. Save run to local store
       const today = localDateString();
       const yesterday = localDateString(new Date(Date.now() - GAME_CONFIG.MS_PER_DAY));
       const oldStreak = player.streakDays;
@@ -324,135 +202,131 @@ export function useGameEngine() {
       }
 
       const missionResult = await updateMissionsAfterRun({
-        distanceKm: runData.distanceMeters / 1000,
-        territoriesClaimed: territoryIds,
-        territoriesFortified: [],
-        enemyCaptured: 0,
-        hexesVisited: 0,
-        enemyZoneDistanceKm: 0,
-        fastKmCount: 0,
+        distanceKm:          runData.distanceMeters / 1000,
+        territoriesClaimed:  buildResult ? [buildResult.tier] : [],
+        enemyCaptured:       0,
+        fastKmCount:         0,
+        defendedZonesCount:  0,
+        rivalZonesStolen:    0,
       });
 
       const defaultShoe = await getDefaultShoe().catch(() => undefined);
-      const claimedCount = territoryIds.length;
-      const distanceKm = runData.distanceMeters / 1000;
-      const coinsEarned = Math.floor(distanceKm * 2) + claimedCount * 5;
 
       const run: StoredRun = {
         ...runData,
-        territoriesClaimed: territoryIds,
+        territoriesClaimed:   buildResult ? ['pending'] : [],
         territoriesFortified: [],
-        xpEarned: totalXP,
-        coinsEarned,
         enemyCaptured: 0,
-        preRunLevel,
+        preRunLevel: 0,
         synced: false,
         shoeId: defaultShoe?.id,
         elevationGainM: runData.elevationGainM,
       };
-      await saveRun(run);
+      const safeGpsPoints = run.gpsPoints.filter(p =>
+        isFinite(p.lat) && isFinite(p.lng) &&
+        isFinite(p.accuracy) && isFinite(p.speed) &&
+        isFinite(p.timestamp)
+      );
+      await saveRun({ ...run, gpsPoints: safeGpsPoints });
 
-      if (territoriesToSave.length > 0) {
-        await saveTerritories(territoriesToSave);
+      // 3. Save territory polygon if generated
+      let territory: TerritoryPolygon | null = null;
+      if (buildResult) {
+        territory = {
+          id:             crypto.randomUUID(),
+          runId:          runData.id,
+          ownerId:        player.id,
+          ownerName:      player.username,
+          polygon:        buildResult.polygon,
+          areaM2:         buildResult.areaM2,
+          freshness:      100,
+          lastDefendedAt: new Date().toISOString(),
+          claimedAt:      new Date().toISOString(),
+          isLoopFill:     buildResult.isLoopFill,
+          tier:           buildResult.tier,
+          synced:         false,
+        };
+        await saveTerritory(territory);
       }
 
-      const currentRunKm = runData.distanceMeters / 1000;
+      // 4. Calculate PACE (0 stolen zones — server refines after sync)
+      const distanceKm = runData.distanceMeters / 1000;
+      const paceResult = calculateRunPACE({
+        distanceKm,
+        newZonesClaimed: buildResult ? 1 : 0,
+        stolenZones:     0,
+        streakDays:      newStreak,
+        paceWeeklyEarned: player.paceWeeklyEarned ?? 0,
+        isPremium:       false,
+      });
 
-      // Capture which awards were already acknowledged before this run
-      const preAcknowledged = new Set(player.unlockedAchievements ?? []);
+      // 5. Update player PACE fields
+      const newPaceTotalEarned = (player.paceTotalEarned ?? 0) + paceResult.paceEarned;
+      const newRunnerRank: RunnerRank = computeRunnerRank(newPaceTotalEarned);
 
       const updatedPlayer: StoredPlayer = {
         ...player,
-        xp: newXP,
-        level: newLevel,
-        coins: player.coins + coinsEarned,
-        totalDistanceKm: player.totalDistanceKm + currentRunKm,
-        totalRuns: player.totalRuns + 1,
-        totalTerritoriesClaimed: player.totalTerritoriesClaimed + territoriesToSave.length,
-        streakDays: newStreak,
-        lastRunDate: today,
+        totalDistanceKm:         player.totalDistanceKm + distanceKm,
+        totalRuns:               player.totalRuns + 1,
+        totalTerritoriesClaimed: player.totalTerritoriesClaimed + (buildResult ? 1 : 0),
+        streakDays:              newStreak,
+        lastRunDate:             today,
+        paceBalance:             (player.paceBalance ?? 0) + paceResult.paceEarned,
+        paceTotalEarned:         newPaceTotalEarned,
+        paceWeeklyEarned:        (player.paceWeeklyEarned ?? 0) + paceResult.paceEarned,
+        runnerRank:              newRunnerRank,
       };
 
-      // Detect awards newly earned by this run
-      const postEarned = computeEarnedAwardKeys(updatedPlayer, currentRunKm);
-      const newlyUnlockedAwards: string[] = [];
-      for (const key of postEarned) {
-        if (!preAcknowledged.has(key)) {
-          newlyUnlockedAwards.push(key);
-        }
-      }
-      // Persist the expanded acknowledged set so we don't re-surface them
-      updatedPlayer.unlockedAchievements = [
-        ...preAcknowledged,
+      const newlyUnlockedAwards = await checkAndAwardAchievements({
+        run,
+        territory,
+        rivalZonesStolen: 0,
+        defendedZonesCount: 0,
+        player: updatedPlayer,
+        totalKm: updatedPlayer.totalDistanceKm,
+      });
+      updatedPlayer.earnedAwardIds = [
+        ...(updatedPlayer.earnedAwardIds ?? updatedPlayer.unlockedAchievements ?? []),
         ...newlyUnlockedAwards,
       ];
 
       await savePlayer(updatedPlayer);
       setPlayer(updatedPlayer);
 
-      claimEngineRef.current.reset();
-      claimEngineRef.current = null;
-      setClaimState(null);
-      setSessionStats({ claimed: 0, xp: 0 });
+      const polygons = await getTerritoryPolygons(player.id);
+      setPlayerTerritoryCount(polygons.length);
 
-      const allTerritories = await getAllTerritories();
-      setPlayerTerritoryCount(allTerritories.filter(t => t.ownerId === player.id).length);
+      const rankOrder: RunnerRank[] = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'];
+      const nextRankName = rankOrder[rankOrder.indexOf(newRunnerRank) + 1];
+      const runnerRankPaceToNext = nextRankName
+        ? GAME_CONFIG.RUNNER_RANK_THRESHOLDS[nextRankName] - newPaceTotalEarned
+        : 0;
 
       return {
         run,
-        xpEarned: totalXP,
-        leveledUp: newLevel > preRunLevel,
-        preRunLevel,
-        newLevel,
+        paceEarned:           paceResult.paceEarned,
+        paceBreakdown:        paceResult.breakdown,
+        cappedAt:             paceResult.cappedAt,
+        territory,
+        runnerRank:           newRunnerRank,
+        paceTotalEarned:      newPaceTotalEarned,
+        runnerRankPaceToNext: Math.max(0, runnerRankPaceToNext),
         newStreak,
         completedMissions: missionResult.newlyCompleted,
-        claimedPolygons: territoriesToSave.map(t => t.polygon),
         newlyUnlockedAwards: newlyUnlockedAwards.map(key => ({
           key,
           label: AWARD_LABELS[key] ?? key,
         })),
       };
     },
-    [player]
-  );
-
-  const addXP = useCallback(
-    async (amount: number) => {
-      if (!player) return;
-      const newXP = player.xp + amount;
-      const newLevel = calculateLevel(newXP);
-      const updated = { ...player, xp: newXP, level: newLevel };
-      await savePlayer(updated);
-      setPlayer(updated);
-      return { leveledUp: newLevel > player.level, newLevel };
-    },
-    [player]
+    [player],
   );
 
   return {
     player,
     loading,
     playerTerritoryCount,
-    claimState,
-    sessionStats,
-    sessionEnergy,
-    startClaimEngine,
-    updateClaim,
-    onClaimEvent,
     endRunSession,
-    addXP,
     reloadPlayer: loadPlayer,
   };
-}
-
-export function calculateLevel(xp: number): number {
-  const levels = GAME_CONFIG.LEVEL_XP;
-  let level = 1;
-  for (let i = levels.length - 1; i >= 0; i--) {
-    if (xp >= levels[i]) {
-      level = i + 1;
-      break;
-    }
-  }
-  return level;
 }

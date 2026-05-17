@@ -238,7 +238,7 @@ export default function Dashboard() {
           {/* Currency pills */}
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: GAP } as React.CSSProperties}>
             {([
-              { Icon: Coins, value: player.coins.toLocaleString(),              label: 'coins',  color: '#9E6800' },
+              { Icon: Coins, value: (player.coins ?? 0).toLocaleString(),              label: 'coins',  color: '#9E6800' },
               { Icon: Zap,   value: `${player.energy}/${10}`,                   label: 'energy', color: T.red     },
               { Icon: Check, value: String(player.streakDays || 0),             label: 'streak', color: T.red     },
             ] as const).map(({ Icon, value, label, color }) => (

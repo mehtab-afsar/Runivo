@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
+import { Text, Animated, StyleSheet } from 'react-native';
 import { Coins } from 'lucide-react-native';
 
 interface Props {

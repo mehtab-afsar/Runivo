@@ -65,5 +65,5 @@ const ss = StyleSheet.create({
   statLabel:   { fontFamily: 'DMSans_300Light', fontSize: 11, color: 'rgba(10,10,10,0.5)' },
   tipBox:      { marginTop: 10, backgroundColor: 'rgba(124,58,237,0.06)', borderRadius: 8, padding: 10 },
   tipText:     { fontFamily: 'DMSans_400Regular', fontSize: 12, color: '#0A0A0A', lineHeight: 18 },
-  rawText:     { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#0A0A0A', lineHeight: 20 },
+  rawText:     { fontFamily: 'DMSans_400Regular', fontSize: 13, color: '#0A0A0A', lineHeight: 20 },
 });

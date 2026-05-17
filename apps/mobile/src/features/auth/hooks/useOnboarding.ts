@@ -60,7 +60,7 @@ export function useOnboarding(onComplete: () => void): OnboardingState {
   }, [step, data.gender]);
 
   const goNext = useCallback(() => {
-    if (step < 6) setStep((step + 1) as OnboardingStep);
+    if (step < 7) setStep((step + 1) as OnboardingStep);
   }, [step]);
 
   const goBack = useCallback(() => {

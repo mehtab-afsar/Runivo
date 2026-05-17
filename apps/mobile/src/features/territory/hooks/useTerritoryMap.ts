@@ -1,100 +1,137 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { getPlayer } from '@shared/services/store';
-import type { StoredTerritory } from '@shared/services/store';
+import { computeTerritoryScore } from '@shared/services/claimEngine';
+import { GAME_CONFIG } from '@shared/services/config';
 import {
-  fetchMyTerritories,
-  subscribeToTerritoryChanges,
-  fortifyTerritory,
+  fetchOwnPolygons,
+  fetchRivalPolygons,
+  subscribeToOwnPolygons,
+  type BBox,
 } from '../services/territoryService';
+import type { TerritoryPolygon } from '@shared/types/game';
 import type { TerritoryFilter, TerritoryDetails } from '../types';
+import type { FeatureCollection } from 'geojson';
 
-export function useTerritoryMap() {
-  const [territories, setTerritories]           = useState<StoredTerritory[]>([]);
-  const [playerId, setPlayerId]                  = useState<string>('');
-  const [filter, setFilter]                      = useState<TerritoryFilter>('all');
-  const [selectedTerritory, setSelectedTerritory] = useState<TerritoryDetails | null>(null);
-  const [userLocation, setUserLocation]          = useState<[number, number] | null>(null);
-  const [loading, setLoading]                    = useState(true);
+export function useTerritoryMap(initialFilter?: TerritoryFilter) {
+  const [ownPolygons, setOwnPolygons]         = useState<TerritoryPolygon[]>([]);
+  const [rivalPolygons, setRivalPolygons]     = useState<TerritoryPolygon[]>([]);
+  const [activeFilter, setActiveFilter]       = useState<TerritoryFilter>(initialFilter ?? 'all');
+  const [selectedPolygon, setSelectedPolygon] = useState<TerritoryDetails | null>(null);
+  const [isLoadingRivals, setIsLoadingRivals] = useState(false);
+  const [deviceLocation, setDeviceLocation]   = useState<[number, number] | null>(null);
+  const [currentUserId, setCurrentUserId]     = useState('');
+  const bboxDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     (async () => {
       const player = await getPlayer();
-      if (player) {
-        setPlayerId(player.id);
-        const { territories: all } = await fetchMyTerritories();
-        setTerritories(all);
-      }
-      setLoading(false);
-    })();
-
-    (async () => {
+      if (player?.id) setCurrentUserId(player.id);
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setUserLocation([loc.coords.longitude, loc.coords.latitude]);
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setDeviceLocation([loc.coords.longitude, loc.coords.latitude]);
+      }
     })();
-
-    const unsubscribe = subscribeToTerritoryChanges(setTerritories);
-    return unsubscribe;
   }, []);
 
-  const { filteredGeoJSON, ownedCount, enemyCount, freeCount } = useMemo(() => {
-    const owned   = territories.filter(t => t.ownerId === playerId);
-    const enemy   = territories.filter(t => t.ownerId && t.ownerId !== playerId);
-    const free    = territories.filter(t => !t.ownerId);
+  const loadOwnPolygons = useCallback(async () => {
+    if (!currentUserId) return;
+    const polys = await fetchOwnPolygons(currentUserId);
+    setOwnPolygons(polys);
+  }, [currentUserId]);
 
-    const filtered = territories.filter(t => {
-      if (filter === 'mine')  return t.ownerId === playerId;
-      if (filter === 'enemy') return t.ownerId && t.ownerId !== playerId;
-      if (filter === 'weak')  return t.ownerId && t.ownerId !== playerId && t.defense < 40;
-      return true;
-    });
+  useFocusEffect(useCallback(() => {
+    loadOwnPolygons();
+    if (!currentUserId) return;
+    const unsub = subscribeToOwnPolygons(currentUserId, loadOwnPolygons);
+    return unsub;
+  }, [currentUserId, loadOwnPolygons]));
 
-    const geoJSON = {
-      type: 'FeatureCollection' as const,
-      features: filtered.map(t => {
-        const isOwned  = t.ownerId === playerId;
-        const isEnemy  = !!(t.ownerId && t.ownerId !== playerId);
-        const fillColor = isOwned ? '#D93518' : isEnemy ? '#DC2626' : '#9CA3AF';
-        return {
-          type: 'Feature' as const,
-          id: t.id,
-          properties: { id: t.id, ownerId: t.ownerId ?? '', defense: t.defense, tier: t.tier ?? 'standard', fillColor, isOwned, isEnemy },
-          geometry: { type: 'Polygon' as const, coordinates: [t.polygon ?? []] },
-        };
-      }),
+  const handleBboxChange = useCallback((newBbox: BBox) => {
+    if (bboxDebounceRef.current) clearTimeout(bboxDebounceRef.current);
+    bboxDebounceRef.current = setTimeout(async () => {
+      if (!currentUserId) return;
+      setIsLoadingRivals(true);
+      try {
+        const rivals = await fetchRivalPolygons(newBbox, currentUserId);
+        setRivalPolygons(rivals);
+      } catch { /* silent */ } finally {
+        setIsLoadingRivals(false);
+      }
+    }, 400);
+  }, [currentUserId]);
+
+  const visiblePolygons = useMemo(() => {
+    switch (activeFilter) {
+      case 'mine':   return ownPolygons;
+      case 'rivals': return rivalPolygons;
+      case 'stale':  return ownPolygons.filter(p => p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT);
+      default:       return [...ownPolygons, ...rivalPolygons];
+    }
+  }, [activeFilter, ownPolygons, rivalPolygons]);
+
+  const geoJSON = useMemo((): FeatureCollection => ({
+    type: 'FeatureCollection',
+    features: visiblePolygons
+      .filter(p => p.polygon.length >= 3)
+      .map(p => ({
+        type: 'Feature',
+        id: p.id,
+        geometry: { type: 'Polygon', coordinates: [p.polygon] },
+        properties: {
+          id:         p.id,
+          ownerId:    p.ownerId,
+          ownerName:  p.ownerName,
+          isOwn:      p.ownerId === currentUserId,
+          freshness:  p.freshness,
+          tier:       p.tier,
+          areaM2:     p.areaM2,
+          isLoopFill: p.isLoopFill,
+          claimedAt:  p.claimedAt,
+        },
+      })),
+  }), [visiblePolygons, currentUserId]);
+
+  const stats = useMemo(() => {
+    const totalArea = ownPolygons.reduce((s, p) => s + p.areaM2, 0);
+    return {
+      ownCount:       ownPolygons.length,
+      totalAreaM2:    totalArea,
+      avgFreshness:   totalArea > 0
+        ? Math.round(ownPolygons.reduce((s, p) => s + p.freshness * p.areaM2, 0) / totalArea)
+        : 100,
+      staleCount:     ownPolygons.filter(p => p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT).length,
+      rivalCount:     rivalPolygons.length,
+      territoryScore: computeTerritoryScore(ownPolygons),
     };
+  }, [ownPolygons, rivalPolygons]);
 
-    return { filteredGeoJSON: geoJSON, ownedCount: owned.length, enemyCount: enemy.length, freeCount: free.length };
-  }, [territories, playerId, filter]);
-
-  const selectTerritory = useCallback((detail: TerritoryDetails) => {
-    setSelectedTerritory(detail);
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedTerritory(null);
-  }, []);
-
-  const fortify = useCallback(async (h3Index: string) => {
-    if (!playerId) return;
-    await fortifyTerritory(h3Index, playerId);
-  }, [playerId]);
+  const defaultCenter = useMemo((): [number, number] => {
+    if (ownPolygons.length > 0) {
+      const lng = ownPolygons.reduce((s, p) => s + p.polygon[0][0], 0) / ownPolygons.length;
+      const lat = ownPolygons.reduce((s, p) => s + p.polygon[0][1], 0) / ownPolygons.length;
+      return [lng, lat];
+    }
+    return deviceLocation ?? [0, 0];
+  }, [ownPolygons, deviceLocation]);
 
   return {
-    territories,
-    filter,
-    selectedTerritory,
-    userLocation,
-    loading,
-    filteredGeoJSON,
-    ownedCount,
-    enemyCount,
-    freeCount,
-    setFilter,
-    selectTerritory,
-    clearSelection,
-    fortify,
+    ownPolygons,
+    rivalPolygons,
+    visiblePolygons,
+    geoJSON,
+    activeFilter,
+    setActiveFilter,
+    selectedPolygon,
+    setSelectedPolygon,
+    stats,
+    isLoadingRivals,
+    deviceLocation,
+    defaultCenter,
+    handleBboxChange,
+    currentUserId,
+    loadOwnPolygons,
   };
 }

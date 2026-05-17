@@ -18,7 +18,6 @@ const ROUTE_ICON_MAP: Record<string, { Icon: LucideIcon; color: string }> = {
   trophy:   { Icon: Trophy,    color: '#D97706' },
 };
 
-const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 

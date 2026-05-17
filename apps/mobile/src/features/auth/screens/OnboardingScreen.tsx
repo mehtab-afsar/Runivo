@@ -7,15 +7,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import * as Notifications from 'expo-notifications';
 
 import { useOnboarding } from '../hooks/useOnboarding';
 import OnboardingProgress from '../components/OnboardingProgress';
-import UsernameStep from '../components/UsernameStep';
-import AvatarStep from '../components/AvatarStep';
 import GoalStep from '../components/GoalStep';
 import TargetStep from '../components/TargetStep';
-import PlanSelectionStep from '../components/PlanSelectionStep';
-import ReadyStep from '../components/ReadyStep';
+import ProfileStep from '../components/ProfileStep';
+import CityMapPreviewStep from '../components/CityMapPreviewStep';
+import FirstMissionStep from '../components/FirstMissionStep';
+import NotificationPermissionStep from '../components/NotificationPermissionStep';
+import LaunchStep from '../components/LaunchStep';
 import type { OnboardingData } from '../types';
 
 const D = { bg: '#F7F5F2', t1: '#111110', t2: '#7A7873', t3: '#B8B5B0', red: '#C8391A' };
@@ -144,14 +146,24 @@ export default function OnboardingScreen() {
     });
   }, [ob.step, slideX]);
 
-  const handleNext = () => { if (!transitioning.current) ob.goNext(); };
+  const handleNext = async () => {
+    if (transitioning.current) return;
+    if (ob.step === 6) {
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        ob.update('notificationsEnabled', status === 'granted');
+      } catch {
+        ob.update('notificationsEnabled', false);
+      }
+    }
+    ob.goNext();
+  };
 
   const renderStep = () => {
     switch (ob.step) {
-      case 1: return <UsernameStep experienceLevel={ob.data.experienceLevel} onChange={v => ob.update('experienceLevel', v)} />;
-      case 2: return <AvatarStep data={ob.data} onChange={(k, v) => ob.update(k, v)} />;
-      case 3: return <GoalStep primaryGoal={ob.data.primaryGoal} onChange={v => ob.update('primaryGoal', v)} />;
-      case 4: return (
+      case 1: return <GoalStep primaryGoal={ob.data.primaryGoal} onChange={v => ob.update('primaryGoal', v)} />;
+      case 2: return <ProfileStep data={ob.data} onChange={(k, v) => ob.update(k, v)} />;
+      case 3: return (
         <TargetStep
           data={ob.data}
           selectedDays={ob.selectedDays}
@@ -162,9 +174,11 @@ export default function OnboardingScreen() {
           onDistanceChange={v => ob.update('preferredDistance', v)}
         />
       );
-      case 5: return <PlanSelectionStep plan={ob.data.plan} onSelectPlan={p => { ob.update('plan', p); ob.goNext(); }} />;
-      case 6: return (
-        <ReadyStep
+      case 4: return <CityMapPreviewStep />;
+      case 5: return <FirstMissionStep primaryGoal={ob.data.primaryGoal} />;
+      case 6: return <NotificationPermissionStep />;
+      case 7: return (
+        <LaunchStep
           weeklyKmDisplay={ob.weeklyKmDisplay}
           primaryGoal={ob.data.primaryGoal}
           experienceLevel={ob.data.experienceLevel}
@@ -175,32 +189,29 @@ export default function OnboardingScreen() {
     }
   };
 
-  const isLast    = ob.step === 6;
-  const isPlanStep = ob.step === 5;
-  const ctaLabel  = isLast ? 'Start running  →' : 'Continue  →';
+  const isLast   = ob.step === 7;
+  const ctaLabel = isLast ? 'Start running  →' : 'Continue  →';
 
   return (
     <View style={ss.root}>
       <View style={ss.topBar} />
       <View style={{ height: insets.top }} />
 
-      {ob.step < 6 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
+      {ob.step < 7 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
 
       <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideX }] }]}>
         {renderStep()}
       </Animated.View>
 
-      {!isPlanStep && (
-        <View style={[ss.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-          <Pressable
-            style={[ss.cta, (!ob.canContinue() || ob.loading) && ss.ctaDisabled]}
-            onPress={isLast ? ob.submit : handleNext}
-            disabled={!ob.canContinue() || ob.loading}
-          >
-            <Text style={ss.ctaLabel}>{ctaLabel}</Text>
-          </Pressable>
-        </View>
-      )}
+      <View style={[ss.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+        <Pressable
+          style={[ss.cta, (!ob.canContinue() || ob.loading) && ss.ctaDisabled]}
+          onPress={isLast ? ob.submit : handleNext}
+          disabled={!ob.canContinue() || ob.loading}
+        >
+          <Text style={ss.ctaLabel}>{ctaLabel}</Text>
+        </Pressable>
+      </View>
 
       {/* Full-screen loading overlay with cycling quotes — shown after "Start running" */}
       <LoadingOverlay
