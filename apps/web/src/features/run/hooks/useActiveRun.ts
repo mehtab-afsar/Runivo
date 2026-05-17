@@ -275,7 +275,7 @@ export function useActiveRun() {
 
     haptic('medium');
     soundManager.play('start_run');
-  }, [gameEngine]);
+  }, [gameEngine, acquireWakeLock]);
 
   const pauseRun = useCallback(() => {
     setState(prev => ({ ...prev, isPaused: true }));
@@ -338,7 +338,7 @@ export function useActiveRun() {
       gpsPoints: gpsPointsRef.current,
       ...result,
     };
-  }, [gameEngine, state]);
+  }, [gameEngine, state, releaseWakeLock]);
 
   return {
     ...state,

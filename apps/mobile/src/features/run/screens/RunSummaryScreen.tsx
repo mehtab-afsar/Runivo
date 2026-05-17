@@ -6,7 +6,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X, Flame, Diamond, Play } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import * as MediaLibrary from 'expo-media-library';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useRunSummary } from '../hooks/useRunSummary';
@@ -415,12 +414,8 @@ export default function RunSummaryScreen() {
               const base64 = dataUrl.replace(/^data:image\/svg\+xml;base64,/, '');
               const fileUri = FileSystem.cacheDirectory + `runivo_run_${Date.now()}.svg`;
               await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-              const { status } = await MediaLibrary.requestPermissionsAsync();
-              if (status === 'granted') {
-                await MediaLibrary.saveToLibraryAsync(fileUri);
-                Alert.alert('Saved', 'Run card saved to your library.');
-              } else {
-                Alert.alert('Permission needed', 'Allow photo library access in Settings to save.');
+              if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri, { mimeType: 'image/svg+xml', dialogTitle: 'Save run card' });
               }
             } catch {
               Alert.alert('Could not save', 'Please try again.');

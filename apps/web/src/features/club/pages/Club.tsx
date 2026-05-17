@@ -191,6 +191,7 @@ export default function Club() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClub?.id]);
 
   const loadMyClubs = async () => {

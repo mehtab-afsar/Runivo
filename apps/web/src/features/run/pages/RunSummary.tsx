@@ -122,6 +122,7 @@ export const RunSummary: React.FC = () => {
     })
     // Load enriched run (for wearable HR/cadence/elevation if available)
     if (runId) getRunById(runId).then(r => setEnrichedRun(r ?? null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Auto-upload story card 1500ms after mount (fire-and-forget)
