@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TerritoryDetails } from '../types';
 import type { TerritoryTier } from '@shared/types/game';
@@ -41,7 +41,7 @@ export function TerritoryBottomSheet({ polygon, onClose, onDefend }: Props) {
       <View style={ss.handle} />
 
       <Pressable style={ss.closeBtn} onPress={onClose}>
-        <X size={18} color="#7A7A7A" strokeWidth={2} />
+        <X size={18} color="#7A7A7A" weight="regular" />
       </Pressable>
 
       <View style={ss.tierRow}>
@@ -76,13 +76,13 @@ const ss = StyleSheet.create({
   closeBtn:  { position: 'absolute', top: 16, right: 16 },
   tierRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   tierBadge: { backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  tierText:  { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#D93518', letterSpacing: 0.5 },
-  parkLabel: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#4CAF50' },
-  ownerName: { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: '#0A0A0A', marginBottom: 2 },
-  meta:      { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#7A7A7A', marginBottom: 2 },
-  claimed:   { fontFamily: 'Barlow_400Regular', fontSize: 12, color: '#ADADAD', marginBottom: 10 },
+  tierText:  { fontWeight: '600', fontSize: 11, color: '#D93518', letterSpacing: 0.5 },
+  parkLabel: { fontSize: 11, color: '#4CAF50' },
+  ownerName: { fontWeight: '600', fontSize: 16, color: '#0A0A0A', marginBottom: 2 },
+  meta:      { fontSize: 13, color: '#7A7A7A', marginBottom: 2 },
+  claimed:   { fontSize: 12, color: '#ADADAD', marginBottom: 10 },
   trackBg:   { width: '100%', height: 6, borderRadius: 3, backgroundColor: '#F0EDE8', overflow: 'hidden', marginBottom: 14 },
   trackFill: { height: '100%', borderRadius: 3 },
   defendBtn: { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-  defendText:{ fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: '#fff' },
+  defendText:{ fontWeight: '600', fontSize: 15, color: '#fff' },
 });

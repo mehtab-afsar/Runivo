@@ -1,13 +1,13 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { Footprints, PersonStanding, Zap, Flame } from 'lucide-react-native';
+import { Footprints, Person, Lightning, Fire, type Icon } from 'phosphor-react-native';
 import { EXP_OPTIONS } from '../types';
 import type { OnboardingData } from '../types';
 import { D, shared } from './onboardingStyles';
 
-type IconComp = React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
+type IconComp = Icon;
 const ICONS: Record<OnboardingData['experienceLevel'], IconComp> = {
-  new: Footprints, casual: PersonStanding, regular: Zap, competitive: Flame,
+  new: Footprints, casual: Person, regular: Lightning, competitive: Fire,
 };
 
 interface Props {
@@ -48,7 +48,7 @@ export default function UsernameStep({ experienceLevel, onChange }: Props) {
           >
             <Pressable style={s.row} onPress={() => onChange(opt.key)}>
               <View style={[s.accent, sel && s.accentActive]} />
-              <Icon size={18} color={sel ? D.red : D.t3} strokeWidth={1.5} />
+              <Icon size={18} color={sel ? D.red : D.t3} weight="light" />
               <View style={{ flex: 1 }}>
                 <Text style={[s.label, sel && s.labelSel]}>{opt.label}</Text>
                 <Text style={s.sub}>{opt.sub}</Text>
@@ -64,11 +64,11 @@ export default function UsernameStep({ experienceLevel, onChange }: Props) {
 
 const s = StyleSheet.create({
   rule:        { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  row:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: D.div },
+  row:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
   accent:      { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
   accentActive:{ backgroundColor: D.red },
-  label:       { fontFamily: 'DMSans_400Regular', fontSize: 15, color: D.t2 },
-  labelSel:    { fontFamily: 'DMSans_500Medium', color: D.t1 },
-  sub:         { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t3, marginTop: 2 },
+  label:       { fontSize: 15, color: D.t2 },
+  labelSel:    { fontWeight: '500', color: D.t1 },
+  sub:         { fontSize: 12, color: D.t3, marginTop: 2 },
   dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
 });

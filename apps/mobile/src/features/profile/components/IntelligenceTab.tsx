@@ -48,7 +48,7 @@ function riegelPredict(baseSec: number, baseDist: number, targetDist: number): s
 
 function SectionLabel({ label, C }: { label: string; C: AppColors }) {
   return (
-    <Text style={{ fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 10, marginTop: 20 }}>
+    <Text style={{ fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 10, marginTop: 20 }}>
       {label}
     </Text>
   );
@@ -93,8 +93,8 @@ function mkChartStyles(C: AppColors) {
     barKm: { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3, marginBottom: 2 },
     barTrack: { width: '100%', height: 80, justifyContent: 'flex-end', flexDirection: 'column' },
     barFill: { borderRadius: 3, width: '100%' },
-    barLabel: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 4 },
-    barLabelActive: { fontFamily: 'Barlow_500Medium', color: C.red },
+    barLabel: { fontSize: 9, color: C.t3, marginTop: 4 },
+    barLabelActive: { fontWeight: '500', color: C.red },
   });
 }
 
@@ -140,8 +140,8 @@ function mkZonesStyles(C: AppColors) {
     zonesCard:    { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, gap: 12 },
     zoneRow:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
     zoneLeft:     { width: 72 },
-    zoneLabel:    { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
-    zoneRange:    { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3 },
+    zoneLabel:    { fontWeight: '500', fontSize: 12, color: C.black },
+    zoneRange:    { fontSize: 9, color: C.t3 },
     zoneBarWrap:  { flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, flexDirection: 'row', overflow: 'hidden' },
     zoneBarFill:  { height: 6, backgroundColor: C.red, borderRadius: 3 },
     zoneTime:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
@@ -188,11 +188,11 @@ function mkRaceStyles(C: AppColors) {
   return StyleSheet.create({
     grid:  { flexDirection: 'row', gap: 8 },
     card:  { flex: 1, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center' },
-    val:   { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black, letterSpacing: -0.5 },
-    label: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.black, marginTop: 2 },
-    note:  { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 1 },
+    val:   { fontWeight: '600', fontSize: 16, color: C.black, letterSpacing: -0.5 },
+    label: { fontWeight: '500', fontSize: 11, color: C.black, marginTop: 2 },
+    note:  { fontSize: 9, color: C.t3, marginTop: 1 },
     empty: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
-    emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+    emptyText: { fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }
 
@@ -246,12 +246,12 @@ function mkConsistencyStyles(C: AppColors) {
     barCol:        { flex: 1, alignItems: 'center', height: 80 },
     barTrack:      { width: '100%', flex: 1, flexDirection: 'column' },
     barFill:       { borderRadius: 3, width: '100%' },
-    barLabel:      { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3, marginTop: 4, textAlign: 'center' },
-    barLabelActive:{ fontFamily: 'Barlow_500Medium', color: C.red },
+    barLabel:      { fontSize: 8, color: C.t3, marginTop: 4, textAlign: 'center' },
+    barLabelActive:{ fontWeight: '500', color: C.red },
     statsRow:      { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: C.border, paddingTop: 10, gap: 0 },
     stat:          { flex: 1, alignItems: 'center' },
     statVal:       { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: C.black },
-    statLbl:       { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    statLbl:       { fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }
 
@@ -341,13 +341,13 @@ export function IntelligenceTab({ runs, personalRecords }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    trendLabel:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, marginBottom: 8 },
+    trendLabel:     { fontSize: 12, color: C.t2, marginBottom: 8 },
     insightCard:    { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, marginBottom: 10 },
     insightIcon:    { fontSize: 20 },
-    insightHeadline:{ fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginTop: 8 },
-    insightBody:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, lineHeight: 19, marginTop: 6 },
-    insightRec:     { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.red, fontStyle: 'italic', marginTop: 8 },
+    insightHeadline:{ fontWeight: '600', fontSize: 14, color: C.black, marginTop: 8 },
+    insightBody:    { fontSize: 13, color: C.t2, lineHeight: 19, marginTop: 6 },
+    insightRec:     { fontSize: 12, color: C.red, fontStyle: 'italic', marginTop: 8 },
     insightEmpty:   { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
-    insightEmptyText:{ fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+    insightEmptyText:{ fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }

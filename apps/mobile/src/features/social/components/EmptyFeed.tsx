@@ -25,5 +25,5 @@ export function EmptyFeed({ tab }: Props) {
 const s = StyleSheet.create({
   wrap: { alignItems: 'center', paddingVertical: 48 },
   title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-  text: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+  text: { fontSize: 12, color: C.t2, textAlign: 'center' },
 });

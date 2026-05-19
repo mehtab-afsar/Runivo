@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
-import { Settings, Pencil } from 'lucide-react-native';
+import { Gear, Pencil } from 'phosphor-react-native';
 import { Avatar } from './Avatar';
 import { useTheme, type AppColors } from '@theme';
 import { RANK_COLORS } from '@shared/constants/territory';
@@ -68,7 +68,7 @@ export function ProfileHeader({
           )}
           {isOwnProfile && (
             <View style={ss.avatarEditBadge}>
-              <Pencil size={10} color="#fff" strokeWidth={2.5} />
+              <Pencil size={10} color="#fff" weight="bold" />
             </View>
           )}
         </Pressable>
@@ -107,7 +107,7 @@ export function ProfileHeader({
         {/* Settings icon top-right */}
         {isOwnProfile && (
           <Pressable style={ss.settingsBtn} onPress={onSettingsPress} hitSlop={8}>
-            <Settings size={20} color={C.black} strokeWidth={1.5} />
+            <Gear size={20} color={C.black} weight="light" />
           </Pressable>
         )}
       </View>
@@ -135,16 +135,16 @@ function mkStyles(C: AppColors) {
       alignItems: 'center', justifyContent: 'center',
     },
     infoBlock:    { flex: 1, gap: 4 },
-    displayName:  { fontFamily: 'Barlow_600SemiBold', fontSize: 17, color: C.black, letterSpacing: -0.2 },
-    rankLine:     { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
+    displayName:  { fontWeight: '600', fontSize: 17, color: C.black, letterSpacing: -0.2 },
+    rankLine:     { fontSize: 12, color: C.t2 },
     rankEmoji:    { fontSize: 12 },
-    rankName:     { fontFamily: 'Barlow_500Medium', fontSize: 12 },
+    rankName:     { fontWeight: '500', fontSize: 12 },
     socialLine:   { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
     socialText:   {},
-    socialNum:    { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black },
-    socialLabel:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
-    socialDot:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3 },
-    bio:          { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, lineHeight: 17, marginTop: 3 },
+    socialNum:    { fontWeight: '600', fontSize: 12, color: C.black },
+    socialLabel:  { fontSize: 12, color: C.t2 },
+    socialDot:    { fontSize: 12, color: C.t3 },
+    bio:          { fontSize: 12, color: C.t2, lineHeight: 17, marginTop: 3 },
     settingsBtn:  { padding: 2, alignSelf: 'flex-start' },
     rankBarBg:    { height: 3, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
     rankBarFill:  { height: 3, backgroundColor: C.red },

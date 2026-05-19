@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { Check } from 'lucide-react-native';
+import { Check } from 'phosphor-react-native';
 import type { StoredShoe } from '@shared/services/store';
 import { useTheme, type AppColors } from '@theme';
 
@@ -27,7 +27,7 @@ export default function ShoeDrawer({ shoes, selectedShoe, bottomInset, onSelect,
           <Pressable key={shoe.id} style={ss.row} onPress={() => onSelect(shoe)}>
             <View style={[ss.dot, { backgroundColor: shoe.color ?? C.black }]} />
             <Text style={ss.name}>{shoe.nickname ?? `${shoe.brand} ${shoe.model}`}</Text>
-            {shoe.id === selectedShoe?.id && <Check size={14} color={C.black} strokeWidth={2} />}
+            {shoe.id === selectedShoe?.id && <Check size={14} color={C.black} weight="regular" />}
           </Pressable>
         ))}
       </Pressable>

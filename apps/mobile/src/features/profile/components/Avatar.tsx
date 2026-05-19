@@ -23,5 +23,5 @@ export function Avatar({ name, color, size = 56 }: AvatarProps) {
 
 const ss = StyleSheet.create({
   avatar: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontFamily: 'Barlow_600SemiBold', color: '#fff' },
+  avatarText: { fontWeight: '600', color: '#fff' },
 });

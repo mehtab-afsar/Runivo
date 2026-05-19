@@ -5,21 +5,17 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, ChevronDown, Diamond } from 'lucide-react-native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { CaretLeft, CaretDown, Diamond } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 import * as Haptics from 'expo-haptics';
 import { GAME_CONFIG } from '@shared/services/config';
 import { RANK_COLORS } from '@shared/constants/territory';
 import { usePACEStore } from '../hooks/usePACEStore';
 import { RewardCard } from '../components/RewardCard';
-import { RedeemModal } from '../components/RedeemModal';
-import type { RewardTier } from '../types';
+import type { RootStackParamList } from '@navigation/AppNavigator';
 
-const TIER_LABELS: Record<RewardTier, string> = {
-  entry:   'Quick Wins · 50–75 PACE',
-  mid:     'Mid-Range · 120–150 PACE',
-  premium: 'Premium Drops · 300+ PACE',
-};
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const HOW_ROWS = [
   '+1 PACE per km',
@@ -32,14 +28,12 @@ export default function PACEStoreScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
-  const { paceBalance, paceWeeklyEarned, capLimit, weeklyPct, runnerRank,
-          rewards, selectedReward, isRedeemVisible, handleRedeem, closeRedeem } = usePACEStore();
+  const navigation = useNavigation<Nav>();
+  const { paceBalance, paceWeeklyEarned, capLimit, weeklyPct, runnerRank, rewards } = usePACEStore();
 
   const rankColor   = RANK_COLORS[runnerRank] ?? RANK_COLORS.pacer;
   const displayRank = runnerRank.charAt(0).toUpperCase() + runnerRank.slice(1);
 
-  // Collapsible "How do I earn PACE?"
   const [howOpen, setHowOpen] = useState(false);
   const howMaxH = useSharedValue(0);
   const chevronRotate = useSharedValue(0);
@@ -57,14 +51,14 @@ export default function PACEStoreScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
-  const TIERS: RewardTier[] = ['entry', 'mid', 'premium'];
+  const featuredReward = rewards[0];
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
       {/* Header bar */}
       <View style={s.headerBar}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={s.backBtn}>
-          <ChevronLeft size={20} color={C.black} strokeWidth={1.5} />
+          <CaretLeft size={20} color={C.black} weight="light" />
         </Pressable>
         <Text style={s.headerTitle}>PACE STORE</Text>
         <View style={s.backBtn} />
@@ -78,7 +72,7 @@ export default function PACEStoreScreen() {
             <Text style={s.balanceUnit}> PACE</Text>
           </View>
           <View style={[s.rankBadge, { backgroundColor: rankColor.bg }]}>
-            <Diamond size={10} color={rankColor.fg} strokeWidth={1.5} />
+            <Diamond size={10} color={rankColor.fg} weight="light" />
             <Text style={[s.rankBadgeText, { color: rankColor.fg }]}>{displayRank}</Text>
           </View>
         </View>
@@ -95,12 +89,26 @@ export default function PACEStoreScreen() {
             : <Text style={[s.weekHint, { color: C.amber }]}>Weekly cap reached — resets Monday 🎯</Text>}
         </View>
 
+        {/* Featured reward */}
+        {featuredReward && (
+          <View style={s.featuredSection}>
+            <Text style={s.sectionLabel}>FEATURED REWARD</Text>
+            <RewardCard
+              reward={featuredReward}
+              onPress={r => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                navigation.navigate('RewardDetail', { rewardId: r.id });
+              }}
+            />
+          </View>
+        )}
+
         {/* How do I earn PACE? collapsible */}
         <View style={s.howWrap}>
           <Pressable style={s.howHeader} onPress={toggleHow}>
             <Text style={s.howHeaderText}>How do I earn PACE?</Text>
             <Animated.View style={chevronStyle}>
-              <ChevronDown size={16} color={C.black} strokeWidth={1.5} />
+              <CaretDown size={16} color={C.black} weight="light" />
             </Animated.View>
           </Pressable>
           <Animated.View style={howAnimStyle}>
@@ -113,37 +121,7 @@ export default function PACEStoreScreen() {
             </View>
           </Animated.View>
         </View>
-
-        {/* Reward tiers */}
-        {TIERS.map(tier => {
-          const tierRewards = rewards.filter(r => r.tier === tier);
-          return (
-            <View key={tier} style={s.tierSection}>
-              <Text style={s.tierLabel}>{TIER_LABELS[tier].toUpperCase()}</Text>
-              <View style={s.tierCards}>
-                {tierRewards.map(reward => (
-                  <View
-                    key={reward.id}
-                    style={reward.status === 'coming_soon' ? s.comingSoonWrap : undefined}
-                  >
-                    <RewardCard
-                      reward={reward}
-                      paceBalance={paceBalance}
-                      onRedeem={r => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleRedeem(r); }}
-                    />
-                  </View>
-                ))}
-              </View>
-            </View>
-          );
-        })}
       </ScrollView>
-
-      <RedeemModal
-        reward={selectedReward}
-        visible={isRedeemVisible}
-        onClose={closeRedeem}
-      />
     </View>
   );
 }
@@ -153,28 +131,26 @@ function mkStyles(C: AppColors) {
     root:            { flex: 1, backgroundColor: C.bg },
     headerBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
     backBtn:         { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    headerTitle:     { fontFamily: 'Barlow_500Medium', fontSize: 12, letterSpacing: 2, color: C.t3 },
+    headerTitle:     { fontWeight: '500', fontSize: 12, letterSpacing: 2, color: C.t3 },
     hero:            { alignItems: 'center', paddingTop: 24, paddingBottom: 28 },
     balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
-    balanceNum:      { fontFamily: 'Barlow_700Bold', fontSize: 52, color: C.black, lineHeight: 56, letterSpacing: -2 },
-    balanceUnit:     { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t3, lineHeight: 52, marginBottom: 4 },
+    balanceNum:      { fontWeight: '700', fontSize: 52, color: C.black, lineHeight: 56, letterSpacing: -2 },
+    balanceUnit:     { fontSize: 18, color: C.t3, lineHeight: 52, marginBottom: 4 },
     rankBadge:       { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-    rankBadgeText:   { fontFamily: 'Barlow_500Medium', fontSize: 11, letterSpacing: 0.5 },
+    rankBadgeText:   { fontWeight: '500', fontSize: 11, letterSpacing: 0.5 },
     weekCard:        { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginHorizontal: 16, marginBottom: 12 },
-    weekLabel:       { fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+    weekLabel:       { fontWeight: '500', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
     progressBarBg:   { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
     progressBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
-    weekNumbers:     { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 4 },
-    weekHint:        { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t3 },
+    weekNumbers:     { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 4 },
+    weekHint:        { fontSize: 12, color: C.t3 },
+    featuredSection: { paddingHorizontal: 16, marginBottom: 12 },
+    sectionLabel:    { fontWeight: '500', fontSize: 11, color: C.t3, letterSpacing: 0.8, marginBottom: 12 },
     howWrap:         { marginHorizontal: 16, marginBottom: 4, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     howHeader:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-    howHeaderText:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+    howHeaderText:   { fontWeight: '500', fontSize: 13, color: C.black },
     howContent:      { paddingHorizontal: 14, paddingBottom: 14 },
     howRow:          { paddingVertical: 6, borderTopWidth: 0.5, borderTopColor: C.border },
-    howRowText:      { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t2 },
-    tierSection:     { marginTop: 20, paddingHorizontal: 16 },
-    tierLabel:       { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.t3, letterSpacing: 0.8, marginBottom: 12 },
-    tierCards:       { gap: 12 },
-    comingSoonWrap:  { opacity: 0.65 },
+    howRowText:      { fontSize: 13, color: C.t2 },
   });
 }

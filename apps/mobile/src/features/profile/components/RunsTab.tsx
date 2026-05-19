@@ -43,18 +43,18 @@ export function RunsTab({ runs }: Props) {
 
 const ss = StyleSheet.create({
   sectionTitle: {
-    fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black,
+    fontWeight: '600', fontSize: 12, color: C.black,
     letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12,
   },
   runRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.border,
   },
-  runDate: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, marginBottom: 2 },
+  runDate: { fontSize: 11, color: C.t2, marginBottom: 2 },
   runDist: { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: C.black },
   runPace: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
   runTime: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black, marginTop: 2 },
   empty: { alignItems: 'center', paddingVertical: 32 },
   emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-  emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+  emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
 });

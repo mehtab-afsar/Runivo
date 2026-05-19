@@ -2,12 +2,11 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { View, Text, Pressable, StyleSheet, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { Play, Pause, RotateCcw, ChevronLeft } from 'lucide-react-native';
+import { Play, Pause, ArrowCounterClockwise, CaretLeft } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, type AppColors } from '@theme';
 
-let MapLibreGL: typeof import('@maplibre/maplibre-react-native') | null = null;
-try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* Expo Go */ }
+import MapLibreGL from '@maplibre/maplibre-react-native';
 
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 
@@ -113,7 +112,7 @@ export default function RunReplayScreen() {
       {/* Stats HUD */}
       <View style={[ss.hud, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={12}>
-          <ChevronLeft size={18} color="#fff" strokeWidth={2} />
+          <CaretLeft size={18} color="#fff" weight="regular" />
         </Pressable>
         <View style={ss.hudStats}>
           <View style={ss.statItem}>
@@ -132,8 +131,7 @@ export default function RunReplayScreen() {
       </View>
 
       {/* Map */}
-      {MapLibreGL ? (
-        <MapLibreGL.MapView
+      <MapLibreGL.MapView
           style={ss.map}
           mapStyle={DARK_STYLE}
           logoEnabled={false}
@@ -182,12 +180,7 @@ export default function RunReplayScreen() {
               style={{ circleRadius: 6, circleColor: '#D93518', circleOpacity: 1 }}
             />
           </MapLibreGL.ShapeSource>
-        </MapLibreGL.MapView>
-      ) : (
-        <View style={[ss.map, ss.mapFallback]}>
-          <Text style={ss.fallbackText}>Map unavailable</Text>
-        </View>
-      )}
+      </MapLibreGL.MapView>
 
       {/* Controls */}
       <View style={[ss.controls, { paddingBottom: insets.bottom + 12 }]}>
@@ -206,12 +199,12 @@ export default function RunReplayScreen() {
         {/* Buttons */}
         <View style={ss.btnRow}>
           <Pressable style={ss.ctrlBtn} onPress={handleReset}>
-            <RotateCcw size={18} color="#fff" strokeWidth={2} />
+            <ArrowCounterClockwise size={18} color="#fff" weight="regular" />
           </Pressable>
           <Pressable style={[ss.ctrlBtn, ss.playBtn]} onPress={togglePlay}>
             {isPlaying
-              ? <Pause size={22} color="#fff" strokeWidth={2} fill="#fff" />
-              : <Play  size={22} color="#fff" strokeWidth={2} fill="#fff" />
+              ? <Pause size={22} color="#fff" weight="fill" />
+              : <Play  size={22} color="#fff" weight="fill" />
             }
           </Pressable>
           <Pressable
@@ -237,13 +230,13 @@ function mkStyles(_C: AppColors) {
     root:         { flex: 1, backgroundColor: '#0A0A0A' },
     map:          { flex: 1 },
     mapFallback:  { alignItems: 'center', justifyContent: 'center' },
-    fallbackText: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#6B7280' },
+    fallbackText: { fontSize: 13, color: '#6B7280' },
     hud:          { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 10, backgroundColor: 'rgba(0,0,0,0.6)' },
     backBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
     hudStats:     { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
     statItem:     { alignItems: 'center' },
     statValue:    { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: '#fff' },
-    statLabel:    { fontFamily: 'Barlow_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.8 },
+    statLabel:    { fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.8 },
     controls:     { backgroundColor: '#0F0F0F', paddingTop: 16, paddingHorizontal: 20 },
     scrubberWrap: { paddingVertical: 12 },
     scrubberTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, position: 'relative' },

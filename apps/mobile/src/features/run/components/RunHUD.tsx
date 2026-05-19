@@ -55,9 +55,9 @@ function mkStyles(C: AppColors) {
     distanceBlock:    { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 16 },
     distanceValue:    { fontFamily: FONT_LIGHT, fontSize: 72, color: C.white, letterSpacing: -2, lineHeight: 76 },
     distanceUnit:     { fontFamily: FONT_LIGHT, fontSize: 22, color: 'rgba(255,255,255,0.4)' },
-    secondaryStats:   { flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 },
+    secondaryStats:   { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 },
     secondaryStat:    { flex: 1, alignItems: 'center' },
-    secondaryStatMid: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+    secondaryStatMid: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
     secondaryValue:   { fontFamily: FONT_LIGHT, fontSize: 20, color: C.white, letterSpacing: -0.5 },
     secondaryLabel:   { fontFamily: FONT_SEMI, fontSize: 8, letterSpacing: 1, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
   });

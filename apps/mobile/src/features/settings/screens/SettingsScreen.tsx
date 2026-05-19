@@ -10,7 +10,7 @@ import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
 import { SegmentedControl, PillCycle } from '../components/SettingToggle';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, setSoundEnabled, setHapticEnabled, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -112,10 +112,10 @@ export default function SettingsScreen() {
         {/* ── Sound & Haptics ── */}
         <SettingSection title="Sound & Haptics">
           <SettingRow label="Sound effects">
-            <Switch value={settings.soundEnabled} onValueChange={v => updateSetting({ soundEnabled: v })} {...sw} />
+            <Switch value={settings.soundEnabled} onValueChange={v => { updateSetting({ soundEnabled: v }); setSoundEnabled(v); }} {...sw} />
           </SettingRow>
           <SettingRow label="Haptic feedback">
-            <Switch value={settings.hapticEnabled} onValueChange={v => updateSetting({ hapticEnabled: v })} {...sw} />
+            <Switch value={settings.hapticEnabled} onValueChange={v => { updateSetting({ hapticEnabled: v }); setHapticEnabled(v); }} {...sw} />
           </SettingRow>
         </SettingSection>
 
@@ -204,23 +204,23 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn:     { width: 32 },
-  backText:    { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+  backText:    { fontSize: 18, color: C.t2 },
   title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
   scroll:      { paddingBottom: 40 },
   linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
-  linkLabel:   { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black },
-  linkSub:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 1 },
-  linkArrow:   { fontFamily: 'Barlow_300Light', fontSize: 16, color: C.t3 },
-  versionText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3 },
+  linkLabel:   { fontSize: 14, color: C.black },
+  linkSub:     { fontSize: 11, color: C.t3, marginTop: 1 },
+  linkArrow:   { fontSize: 16, color: C.t3 },
+  versionText: { fontSize: 12, color: C.t3 },
   // Upgrade card
   proCard:     { marginHorizontal: 16, marginBottom: 16, borderRadius: 14, backgroundColor: '#D93518', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   proIconBox:  { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  proTitle:    { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
-  proSub:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
-  proArrow:    { fontFamily: 'Barlow_300Light', fontSize: 16, color: 'rgba(255,255,255,0.7)' },
+  proTitle:    { fontWeight: '600', fontSize: 14, color: C.white },
+  proSub:      { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
+  proArrow:    { fontSize: 16, color: 'rgba(255,255,255,0.7)' },
   // Sign out
   signOutWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
   signOutBtn:  { borderWidth: 0.5, borderColor: C.red, borderRadius: 8, paddingVertical: 13, alignItems: 'center' },
-  signOutLabel:{ fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.red, textTransform: 'uppercase', letterSpacing: 1 },
-  version:     { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textAlign: 'center', paddingBottom: 8 },
+  signOutLabel:{ fontWeight: '500', fontSize: 13, color: C.red, letterSpacing: 1 },
+  version:     { fontSize: 10, color: C.t3, textAlign: 'center', paddingBottom: 8 },
 }); }

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import { useTheme } from '@theme';
 
 const SCREEN_H = Dimensions.get('window').height;
@@ -23,7 +23,7 @@ const CAPABILITIES: Capability[] = [
   { emoji: '🗺',  name: 'Territory Strategy', desc: 'Which zones to defend or expand',      free: false, prompt: 'Plan my territory strategy for this week' },
   { emoji: '📅', name: 'Training Plan',      desc: 'Structured 4–8 week curriculum',       free: false, prompt: 'Create me a training plan' },
   { emoji: '💬', name: 'Ask Anything',       desc: 'Running coach on demand',              free: false, prompt: '' },
-  { emoji: '🥗', name: 'Nutrition Coach',    desc: '14-day food + run pattern analysis',   free: false, prompt: 'Analyse my nutrition this week' },
+  { emoji: '🥗', name: 'Nutrition Coach',    desc: '14-day food + run pattern analysis',   free: false, prompt: 'nutrition_coach' },
   { emoji: '🏁', name: 'Race Prep',          desc: 'Goal race → peaking plan',             free: false, prompt: 'Help me prepare for a race' },
   { emoji: '🛡',  name: 'Injury Prevention',  desc: 'Weekly load + decline monitoring',     free: true,  prompt: 'I have pain — what should I do?' },
 ];
@@ -71,7 +71,7 @@ export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
             What <Text style={{ color: C.black }}>Pace</Text><Text style={[ss.xRed, { color: C.red }]}>X</Text> can do
           </Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <X size={18} color={C.t3} strokeWidth={2} />
+            <X size={18} color={C.t3} weight="regular" />
           </Pressable>
         </View>
 
@@ -109,13 +109,13 @@ const ss = StyleSheet.create({
   sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 91, overflow: 'hidden' },
   handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(10,10,10,0.12)', alignSelf: 'center', marginTop: 12, marginBottom: 4 },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
-  headerTitle: { fontFamily: 'Barlow_600SemiBold', fontSize: 15 },
-  xRed:        { fontFamily: 'Barlow_700Bold' },
+  headerTitle: { fontWeight: '600', fontSize: 15 },
+  xRed:        { fontWeight: '700' },
   grid:        { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
   capCard:     { width: '47%', borderRadius: 12, borderWidth: 0.5, padding: 12, gap: 4 },
   capEmoji:    { fontSize: 22, marginBottom: 4 },
-  capName:     { fontFamily: 'Barlow_500Medium', fontSize: 12 },
-  capDesc:     { fontFamily: 'Barlow_300Light', fontSize: 10, lineHeight: 14 },
+  capName:     { fontWeight: '500', fontSize: 12 },
+  capDesc:     { fontSize: 10, lineHeight: 14 },
   pill:        { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
-  pillText:    { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 0.3 },
+  pillText:    { fontWeight: '500', fontSize: 9, letterSpacing: 0.3 },
 });

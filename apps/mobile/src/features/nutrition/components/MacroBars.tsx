@@ -48,9 +48,9 @@ export function MacroBars({
 
 const s = StyleSheet.create({
   row:   { flexDirection: 'row', gap: 12 },
-  label: { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5, textAlign: 'center' },
+  label: { fontSize: 9, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5, textAlign: 'center' },
   track: { height: 5, backgroundColor: '#E8E4DF', borderRadius: 3, overflow: 'hidden', marginBottom: 5 },
   fill:  { height: '100%', borderRadius: 3 },
-  value: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#0A0A0A', textAlign: 'center' },
-  goal:  { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD' },
+  value: { fontWeight: '600', fontSize: 11, color: '#0A0A0A', textAlign: 'center' },
+  goal:  { fontSize: 10, color: '#ADADAD' },
 });

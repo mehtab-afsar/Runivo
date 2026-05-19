@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Animated, Text, StyleSheet } from 'react-native';
-import { Flag } from 'lucide-react-native';
+import { Flag } from 'phosphor-react-native';
 import { Colors } from '@theme';
 
 const C = Colors;
@@ -28,7 +28,7 @@ export default function ClaimToast({ event, onDismiss }: ClaimToastProps) {
 
   return (
     <Animated.View style={[ss.toast, { opacity }]}>
-      <Flag size={14} color={C.white} strokeWidth={1.5} />
+      <Flag size={14} color={C.white} weight="light" />
       <Text style={ss.text}>Territory Claimed!</Text>
       {(event.paceEarned ?? 0) > 0
         ? <Text style={ss.xp}>+{event.paceEarned} PACE</Text>

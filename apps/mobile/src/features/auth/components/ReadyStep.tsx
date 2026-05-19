@@ -3,7 +3,7 @@
  */
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Check } from 'lucide-react-native';
+import { Check } from 'phosphor-react-native';
 import { D } from './onboardingStyles';
 import { GOAL_LABELS, EXP_LABELS } from '../types';
 import type { OnboardingData } from '../types';
@@ -52,7 +52,7 @@ export default function ReadyStep({ weeklyKmDisplay, primaryGoal, experienceLeve
   return (
     <View style={s.wrap}>
       <Animated.View style={[s.checkCircle, { opacity: checkOpacity, transform: [{ scale: checkScale }] }]}>
-        <Check size={22} color={D.t1} strokeWidth={2} />
+        <Check size={22} color={D.t1} weight="regular" />
       </Animated.View>
 
       <Text style={s.eyebrow}>You're in</Text>
@@ -84,11 +84,11 @@ const s = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   checkCircle: {
     width: 52, height: 52, borderRadius: 26,
-    borderWidth: 1, borderColor: D.div, backgroundColor: '#fff',
+    borderWidth: 0.5, borderColor: D.div, backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
   eyebrow: {
-    fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.red,
+    fontWeight: '500', fontSize: 9, color: D.red,
     textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 10,
   },
   title: {
@@ -96,19 +96,19 @@ const s = StyleSheet.create({
     color: D.t1, lineHeight: 40, textAlign: 'center', marginBottom: 10,
   },
   sub: {
-    fontFamily: 'DMSans_300Light', fontSize: 13, color: D.t2,
+    fontSize: 13, color: D.t2,
     textAlign: 'center', lineHeight: 19, marginBottom: 32,
   },
   summaryList: { width: '100%', marginBottom: 16 },
   summaryRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: D.div,
+    paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: D.div,
   },
-  summaryRowFirst: { borderTopWidth: 1, borderTopColor: D.div },
-  summaryLabel: { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t2 },
-  summaryVal:   { fontFamily: 'DMSans_500Medium', fontSize: 14, color: D.t1 },
+  summaryRowFirst: { borderTopWidth: 0.5, borderTopColor: D.div },
+  summaryLabel: { fontSize: 12, color: D.t2 },
+  summaryVal:   { fontWeight: '500', fontSize: 14, color: D.t1 },
   errText: {
-    fontFamily: 'DMSans_400Regular', fontSize: 10, color: D.red,
+    fontSize: 10, color: D.red,
     textAlign: 'center', marginTop: 8,
   },
 });

@@ -46,6 +46,6 @@ const ss = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: '#E8E4DF',
   },
   cellBorderRight: { borderRightWidth: 0.5, borderRightColor: '#E8E4DF' },
-  value: { fontFamily: 'Barlow_300Light', fontSize: 22, letterSpacing: -0.6, lineHeight: 24, marginBottom: 4 },
-  label: { fontFamily: 'Barlow_400Regular', fontSize: 9, letterSpacing: 0.8, color: '#ADADAD' },
+  value: { fontSize: 22, letterSpacing: -0.6, lineHeight: 24, marginBottom: 4 },
+  label: { fontSize: 9, letterSpacing: 0.8, color: '#ADADAD' },
 });

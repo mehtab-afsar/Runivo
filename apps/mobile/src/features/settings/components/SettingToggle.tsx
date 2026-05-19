@@ -39,8 +39,8 @@ const ss = StyleSheet.create({
   seg: { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 6, padding: 2, gap: 2 },
   segBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4, backgroundColor: 'transparent' },
   segBtnActive: { backgroundColor: C.black },
-  segLabel: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
-  segLabelActive: { fontFamily: 'Barlow_400Regular', color: '#fff' },
+  segLabel: { fontSize: 11, color: C.t3 },
+  segLabelActive: { color: '#fff' },
   pill: { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 },
-  pillText: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
+  pillText: { fontSize: 12, color: C.black },
 });

@@ -40,7 +40,7 @@ const ss = StyleSheet.create({
     borderColor: C.border,
     padding: 12,
   },
-  prLabel: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginBottom: 4 },
-  prValue: { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black },
-  emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+  prLabel: { fontSize: 10, color: C.t3, marginBottom: 4 },
+  prValue: { fontWeight: '600', fontSize: 18, color: C.black },
+  emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
 });

@@ -119,10 +119,10 @@ function mkStyles(C: AppColors) {
     progressHeader: { marginBottom: 20 },
     progressBarBg: { height: 4, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row', marginBottom: 6 },
     progressBarFill: { height: 4, backgroundColor: C.red },
-    progressText: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
+    progressText: { fontSize: 11, color: C.t2 },
 
     section: { marginBottom: 20 },
-    sectionLabel: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 10 },
+    sectionLabel: { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 10 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
     card: { width: '47%', backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', gap: 6 },
@@ -131,13 +131,13 @@ function mkStyles(C: AppColors) {
     cardIcon: { fontSize: 32 },
     cardIconLocked: { opacity: 0.35 },
 
-    cardTitle: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t2, textAlign: 'center' },
-    cardTitleEarned: { fontFamily: 'Barlow_600SemiBold', color: C.black },
-    cardDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, textAlign: 'center', lineHeight: 15 },
-    cardDate: { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#D97706', marginTop: 2 },
+    cardTitle: { fontSize: 13, color: C.t2, textAlign: 'center' },
+    cardTitleEarned: { fontWeight: '600', color: C.black },
+    cardDesc: { fontSize: 11, color: C.t3, textAlign: 'center', lineHeight: 15 },
+    cardDate: { fontSize: 10, color: '#D97706', marginTop: 2 },
 
     progressMini: { height: 3, width: '100%', backgroundColor: C.mid, borderRadius: 2, flexDirection: 'row', overflow: 'hidden', marginTop: 4 },
     progressMiniFill: { height: 3, backgroundColor: C.red },
-    progressMiniLabel: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
+    progressMiniLabel: { fontSize: 10, color: C.t3 },
   });
 }

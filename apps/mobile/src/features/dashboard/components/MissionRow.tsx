@@ -32,10 +32,10 @@ const ss = StyleSheet.create({
   iconBox:    { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   iconBoxDone:{ backgroundColor: 'rgba(26,107,64,0.3)' },
   emojiText:  { fontSize: 16, lineHeight: 20 },
-  title:      { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#fff', marginBottom: 8 },
+  title:      { fontSize: 13, color: '#fff', marginBottom: 8 },
   titleDone:  { color: 'rgba(255,255,255,0.35)', textDecorationLine: 'line-through' },
   barBg:      { height: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' },
   barFill:    { height: '100%', borderRadius: 1 },
-  xp:         { fontFamily: 'Barlow_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
+  xp:         { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
   xpDone:     { color: '#4ADE80' },
 });

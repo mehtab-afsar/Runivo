@@ -8,7 +8,7 @@ import { EntryRow } from '../components/EntryRow';
 import { LeaderboardFilters } from '../components/LeaderboardFilters';
 import type { LeaderboardEntry } from '../types';
 import { avatarColor } from '@shared/lib/avatarUtils';
-import { Award, Medal, ArrowLeft } from 'lucide-react-native';
+import { Seal, Medal, ArrowLeft } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -33,8 +33,8 @@ function Podium({ entries, unit, currentUserId: _currentUserId }: { entries: Lea
       {order.map((entry, i) => (
         <View key={entry.rank} style={[ps.slot, i === 1 && ps.slotCenter]}>
           {i === 1
-            ? <Award size={16} color={C.gold} strokeWidth={1.5} style={{ marginBottom: 4 }} />
-            : <Medal size={14} color={medalColors[i]} strokeWidth={1.5} style={{ marginBottom: 4 }} />
+            ? <Seal size={16} color={C.gold} weight="light" style={{ marginBottom: 4 }} />
+            : <Medal size={14} color={medalColors[i]} weight="light" style={{ marginBottom: 4 }} />
           }
           <View style={[ps.avatar, { width: avatarSizes[i], height: avatarSizes[i], borderRadius: avatarSizes[i] / 2, backgroundColor: avatarColor(entry.name), borderColor: medalColors[i] }]}>
             <Text style={[ps.avatarText, { fontSize: avatarSizes[i] * 0.45 }]}>{entry.name.slice(0, 1).toUpperCase()}</Text>
@@ -59,15 +59,15 @@ function mkPsStyles(C: AppColors) {
     slot:       { flex: 1, alignItems: 'center', gap: 3 },
     slotCenter: { flex: 1.2 },
     avatar:     { borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-    avatarText: { fontFamily: 'Barlow_600SemiBold', color: C.white },
-    name:       { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.black, textAlign: 'center' },
-    nameFirst:  { fontFamily: 'Barlow_600SemiBold', fontSize: 11 },
-    val:        { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, textAlign: 'center' },
+    avatarText: { fontWeight: '600', color: C.white },
+    name:       { fontSize: 10, color: C.black, textAlign: 'center' },
+    nameFirst:  { fontWeight: '600', fontSize: 11 },
+    val:        { fontSize: 9, color: C.t3, textAlign: 'center' },
     youBadge:   { backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 2 },
-    youText:    { fontFamily: 'Barlow_600SemiBold', fontSize: 8, color: C.red, letterSpacing: 0.5 },
+    youText:    { fontWeight: '600', fontSize: 8, color: C.red, letterSpacing: 0.5 },
     block:      { width: '100%', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     blockFirst: { shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: -3 }, elevation: 3 },
-    rankNum:    { fontFamily: 'Barlow_600SemiBold', fontSize: 11 },
+    rankNum:    { fontWeight: '600', fontSize: 11 },
   });
 }
 
@@ -89,7 +89,7 @@ export default function LeaderboardScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} strokeWidth={2} />
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <Text style={s.title}>Leaderboard</Text>
         <View style={{ width: 32 }} />
@@ -141,7 +141,7 @@ export default function LeaderboardScreen() {
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={s.playerName}>{playerEntry.name}</Text>
             <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 2, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)' }}>
-              <Text style={{ fontFamily: 'Barlow_500Medium', fontSize: 8, color: C.red, textTransform: 'uppercase' }}>You</Text>
+              <Text style={{ fontWeight: '500', fontSize: 8, color: C.red, textTransform: 'uppercase' }}>You</Text>
             </View>
           </View>
           <Text style={s.playerValue}>{fmtVal(playerEntry.value)}</Text>
@@ -160,13 +160,13 @@ function mkStyles(C: AppColors) {
     list:          { paddingBottom: 100 },
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
     emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+    emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center' },
     playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, padding: '10px 12px' as any, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)' },
-    playerRank:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.red, width: 24, textAlign: 'center' },
+    playerRank:    { fontSize: 13, color: C.red, width: 24, textAlign: 'center' },
     playerAvatar:  { width: 28, height: 28, borderRadius: 14, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center' },
-    playerAvatarText: { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.white },
-    playerName:    { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
-    playerLvl:     { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
-    playerValue:   { fontFamily: 'Barlow_300Light', fontSize: 14, color: C.black, letterSpacing: -0.3 },
+    playerAvatarText: { fontWeight: '500', fontSize: 10, color: C.white },
+    playerName:    { fontWeight: '500', fontSize: 12, color: C.black },
+    playerLvl:     { fontSize: 10, color: C.t3 },
+    playerValue:   { fontSize: 14, color: C.black, letterSpacing: -0.3 },
   });
 }

@@ -3,7 +3,7 @@ import {
   View, Text, Pressable, StyleSheet, Platform, Animated, Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Home, Rss, User, Play } from 'lucide-react-native';
+import { House as Home, Rss, User, Play, type Icon } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, type AppColors } from '@theme';
@@ -19,7 +19,7 @@ const TAB_ENABLED: Record<string, boolean> = {
 };
 
 type NonRunIcon = 'Home' | 'Rss' | 'PaceX' | 'User';
-const ICON_MAP: Record<Exclude<NonRunIcon, 'PaceX'>, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
+const ICON_MAP: Record<Exclude<NonRunIcon, 'PaceX'>, Icon> = {
   Home, Rss, User,
 };
 
@@ -89,9 +89,9 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               return (
                 <Pressable key={route.key} onPress={onPress} style={s.runOuter}>
                   <View style={[s.runCircle, focused && s.runCircleActive]}>
-                    <Play size={20} color="#fff" fill="#fff" strokeWidth={0} />
+                    <Play size={20} color="#fff" weight="fill" />
                   </View>
-                  <Text style={[s.label, { color: C.red, fontFamily: 'Barlow_500Medium' }]}>{meta.label}</Text>
+                  <Text style={[s.label, { color: C.red, fontWeight: '500' }]}>{meta.label}</Text>
                 </Pressable>
               );
             }
@@ -104,11 +104,11 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             return (
               <Pressable key={route.key} onPress={onPress} style={s.tab}>
                 {isPaceX || !IconComp
-                  ? <Text style={{ fontFamily: 'Barlow_700Bold', fontSize: 22, color, lineHeight: 26 }}>X</Text>
-                  : <IconComp size={22} color={color} strokeWidth={focused ? 2 : 1.5} />
+                  ? <Text style={{ fontWeight: '700', fontSize: 22, color, lineHeight: 26 }}>X</Text>
+                  : <IconComp size={22} color={color} weight={focused ? 'regular' : 'light'} />
                 }
                 {enabled ? (
-                  <Text style={[s.label, { color, fontFamily: focused ? 'Barlow_500Medium' : 'Barlow_400Regular' }]}>
+                  <Text style={[s.label, { color, fontWeight: focused ? '500' : undefined }]}>
                     {meta.label}
                   </Text>
                 ) : (
@@ -131,9 +131,9 @@ function mkStyles(C: AppColors) {
     topBorder:       { height: 0.5, backgroundColor: C.border },
     row:             { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 6 },
     tab:             { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 4 },
-    label:           { fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase' },
+    label:           { fontSize: 9, letterSpacing: 0.8 },
     soonBadge:       { backgroundColor: C.orange, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
-    soonText:        { fontSize: 8, fontFamily: 'Barlow_700Bold', color: '#fff', letterSpacing: 0.5 },
+    soonText:        { fontSize: 8, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
     runOuter:        { flex: 1, alignItems: 'center', gap: 5, paddingBottom: 4 },
     runCircle:       { width: 54, height: 54, borderRadius: 27, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: -20, shadowColor: C.red, shadowOpacity: 0.38, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
     runCircleActive: { shadowOpacity: 0.55, shadowRadius: 16 },

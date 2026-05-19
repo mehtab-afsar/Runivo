@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { X, Flame, Diamond, Play } from 'lucide-react-native';
+import { X, Fire, Diamond, Play } from 'phosphor-react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -22,11 +22,11 @@ import { getNutritionProfile } from '@shared/services/store';
 import { computeRunnerRank } from '@shared/services/claimEngine';
 import { GAME_CONFIG } from '@shared/services/config';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
-import { useTheme, Colors, type AppColors } from '@theme';
+import { useTheme, Colors, feedback, type AppColors } from '@theme';
+import AwardUnlockSheet from '../components/AwardUnlockSheet';
 import type { RunnerRank } from '@shared/types/game';
 
-let MapLibreGL: any = null;
-try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch {}
+import MapLibreGL from '@maplibre/maplibre-react-native';
 
 const FI = 'PlayfairDisplay_400Regular_Italic';
 const FS = 'Barlow_600SemiBold';
@@ -91,6 +91,7 @@ export default function RunSummaryScreen() {
   const [showSaveRoute, setShowSaveRoute]             = useState(false);
   const [weightKg, setWeightKg]                       = useState(70);
   const [hasNutritionProfile, setHasNutritionProfile] = useState(false);
+  const [showAward, setShowAward]                     = useState(false);
 
   useEffect(() => {
     getNutritionProfile().then(p => {
@@ -105,6 +106,7 @@ export default function RunSummaryScreen() {
   const territoryAnim = useRef(new Animated.Value(0)).current;
   const rankUpScale   = useRef(new Animated.Value(0.85)).current;
   const rankUpOpacity = useRef(new Animated.Value(0)).current;
+  const badgeScale    = useRef(new Animated.Value(0)).current;
 
   const paceEarned      = runData.paceEarned ?? 0;
   const paceTotalEarned = runData.paceTotalEarned ?? 0;
@@ -127,20 +129,29 @@ export default function RunSummaryScreen() {
     return () => clearInterval(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Territory slide-up + rank-up spring
+  // Territory slide-up + rank-up spring + awards
   useEffect(() => {
     if (runData.territory) {
       setTimeout(() => {
         Animated.timing(territoryAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
-      }, 600);
+        Animated.spring(badgeScale, { toValue: 1, damping: 12, stiffness: 200, useNativeDriver: true }).start();
+      }, 700);
     }
     if (rankedUp) {
       setTimeout(() => {
+        feedback.rankUp();
         Animated.parallel([
           Animated.spring(rankUpScale, { toValue: 1, damping: 14, stiffness: 120, useNativeDriver: true }),
           Animated.timing(rankUpOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
         ]).start();
       }, 900);
+    }
+    const newAwards = (runData as unknown as Record<string, unknown>).newAwards as string[] | undefined;
+    if (newAwards && newAwards.length > 0) {
+      setTimeout(() => {
+        setShowAward(true);
+        feedback.awardUnlock();
+      }, rankedUp ? 2800 : 900);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -186,7 +197,7 @@ export default function RunSummaryScreen() {
         style={[ss.close, { top: insets.top + 12 }]}
         hitSlop={12}
       >
-        <X size={14} strokeWidth={2.5} color={C.black} />
+        <X size={14} weight="bold" color={C.black} />
       </Pressable>
 
       <ScrollView
@@ -211,7 +222,7 @@ export default function RunSummaryScreen() {
                 pace: runData.pace,
               })}
             >
-              <Play size={11} color="#fff" fill="#fff" strokeWidth={2} />
+              <Play size={11} color="#fff" weight="fill" />
               <Text style={ss.replayBtnText}>Replay</Text>
             </Pressable>
           )}
@@ -274,9 +285,8 @@ export default function RunSummaryScreen() {
             }]}>
               <View style={ss.territoryCard}>
                 <Text style={ss.cardLabel}>TERRITORY CAPTURED</Text>
-                {MapLibreGL ? (
-                  <View style={ss.mapWrap}>
-                    <MapLibreGL.MapView
+                <View style={ss.mapWrap}>
+                  <MapLibreGL.MapView
                       style={{ flex: 1 }}
                       mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
                       logoEnabled={false}
@@ -303,16 +313,13 @@ export default function RunSummaryScreen() {
                       </MapLibreGL.ShapeSource>
                     </MapLibreGL.MapView>
                   </View>
-                ) : (
-                  <View style={ss.mapFallback}>
-                    <Text style={ss.mapFallbackText}>{formatArea(t.areaM2)} claimed</Text>
-                  </View>
-                )}
                 <View style={ss.territoryFooter}>
                   <Text style={ss.territoryArea}>{formatArea(t.areaM2)}</Text>
-                  <View style={[ss.tierBadge, { backgroundColor: tc.bg }]}>
-                    <Text style={[ss.tierTxt, { color: tc.fg }]}>{tc.label}</Text>
-                  </View>
+                  <Animated.View style={{ transform: [{ scale: badgeScale }] }}>
+                    <View style={[ss.tierBadge, { backgroundColor: tc.bg }]}>
+                      <Text style={[ss.tierTxt, { color: tc.fg }]}>{tc.label}</Text>
+                    </View>
+                  </Animated.View>
                 </View>
                 {t.isLoopFill && (
                   <View style={ss.loopRow}>
@@ -337,7 +344,7 @@ export default function RunSummaryScreen() {
             </Animated.View>
           )}
           <View style={ss.rankRow}>
-            <Diamond size={16} color={C.red} strokeWidth={1.5} />
+            <Diamond size={16} color={C.red} weight="light" />
             <Text style={ss.rankName}>{displayRank}</Text>
           </View>
           {currentRank !== 'sovereign' ? (
@@ -361,7 +368,7 @@ export default function RunSummaryScreen() {
         />
         {runData.distance >= 1 && (
           <View style={ss.fuel}>
-            <View style={ss.fuelIcon}><Flame size={16} color={C.orange} strokeWidth={1.5} /></View>
+            <View style={ss.fuelIcon}><Fire size={16} color={C.orange} weight="light" /></View>
             <View style={{ flex: 1 }}>
               <Text style={ss.fuelTitle}>~{calories} kcal (est.)</Text>
               <Text style={ss.fuelSub}>
@@ -444,6 +451,12 @@ export default function RunSummaryScreen() {
         sourceRunId={runId}
         onClose={() => setShowSaveRoute(false)}
       />
+
+      <AwardUnlockSheet
+        visible={showAward}
+        onClose={() => setShowAward(false)}
+        awards={((runData as unknown as Record<string, unknown>).newAwards as string[]) ?? []}
+      />
     </View>
   );
 }
@@ -483,7 +496,7 @@ function mkStyles(C: AppColors) {
     territoryFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
     territoryArea:   { fontFamily: FL, fontSize: 26, color: C.black, letterSpacing: -0.5 },
     tierBadge:       { borderRadius: 4, paddingHorizontal: 10, paddingVertical: 4 },
-    tierTxt:         { fontFamily: FM, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
+    tierTxt:         { fontFamily: FM, fontSize: 11, letterSpacing: 1 },
     loopRow:         { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
     loopDot:         { width: 6, height: 6, borderRadius: 3 },
     loopTxt:         { fontFamily: FL, fontSize: 12, color: C.t2 },
@@ -501,7 +514,7 @@ function mkStyles(C: AppColors) {
     // Route map + replay
     mapWrapOuter: { position: 'relative' },
     replayBtn:    { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-    replayBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#fff' },
+    replayBtnText: { fontWeight: '600', fontSize: 11, color: '#fff' },
 
     // Fuel card
     fuel:        { marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(249,115,22,0.2)' },

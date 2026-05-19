@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import type { StoredSavedRoute } from '@shared/services/store';
 import type { NearbyRoute } from '@shared/services/sync';
 import RouteCard from './RouteCard';
@@ -40,14 +40,14 @@ export default function RouteModal({
             <Text style={ss.sub}>Choose a route to follow</Text>
           </View>
           <Pressable style={ss.closeBtn} onPress={onClose}>
-            <X size={14} color={C.muted} strokeWidth={2} />
+            <X size={14} color={C.muted} weight="regular" />
           </Pressable>
         </View>
         <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={ss.list} showsVerticalScrollIndicator={false}>
           {selectedRouteName && (
             <Pressable style={[ss.clearRow]} onPress={() => { onClearRoute(); onClose(); }}>
               <View style={[ss.routeIcon, { backgroundColor: C.red }]}>
-                <X size={14} color="#fff" strokeWidth={2} />
+                <X size={14} color="#fff" weight="regular" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: FONT, fontSize: 12, color: C.red }}>Clear: {selectedRouteName}</Text>

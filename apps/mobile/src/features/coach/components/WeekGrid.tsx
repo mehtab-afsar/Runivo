@@ -78,8 +78,8 @@ function mkStyles(C: AppColors, compact: boolean) {
   const cellH = compact ? 52 : 62;
   return StyleSheet.create({
     row:          { flexDirection: 'row', gap: 4, justifyContent: 'space-between' },
-    cell:         { width: cellW, height: cellH, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1, gap: 4 },
-    dayLabel:     { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, letterSpacing: 0.3 },
-    sessionLabel: { fontFamily: 'Barlow_500Medium', fontSize: compact ? 9 : 10, textAlign: 'center' },
+    cell:         { width: cellW, height: cellH, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, gap: 4 },
+    dayLabel:     { fontSize: 9, color: C.t3, letterSpacing: 0.3 },
+    sessionLabel: { fontWeight: '500', fontSize: compact ? 9 : 10, textAlign: 'center' },
   });
 }

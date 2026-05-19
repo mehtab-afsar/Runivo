@@ -20,7 +20,7 @@ export function SettingSection({ title, children }: SettingSectionProps) {
 
 const ss = StyleSheet.create({
   header: {
-    fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3,
+    fontSize: 10, color: C.t3,
     textTransform: 'uppercase', letterSpacing: 2,
     paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8,
   },

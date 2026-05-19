@@ -8,8 +8,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import type { GPSPoint } from '../hooks/useActiveRun';
 import { kalmanSmooth } from '@shared/services/claimEngine';
 
-let MapLibreGL: typeof import('@maplibre/maplibre-react-native') | null = null;
-try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* simulator / Expo Go */ }
+import MapLibreGL from '@maplibre/maplibre-react-native';
 
 const _hour = new Date().getHours();
 const DARK_STYLE = (_hour >= 19 || _hour < 6)
@@ -20,9 +19,18 @@ interface Props {
   gpsPoints: GPSPoint[];
   isRunning: boolean;
   ghostRoutePoints?: { lat: number; lng: number }[];
+  closestIdx?: number;
 }
 
-export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoints }: Props) {
+function buildLineString(pts: { lat: number; lng: number }[]) {
+  return {
+    type: 'Feature' as const,
+    geometry: { type: 'LineString' as const, coordinates: pts.map(p => [p.lng, p.lat]) },
+    properties: {},
+  };
+}
+
+export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoints, closestIdx = 0 }: Props) {
   const cameraRef = useRef<any>(null);
   const latest = gpsPoints.length > 0 ? gpsPoints[gpsPoints.length - 1] : null;
 
@@ -65,24 +73,20 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gpsPoints[0]?.lat, gpsPoints[0]?.lng]);
 
-  // Ghost route (selected route overlay)
-  const ghostGeoJSON = useMemo((): GeoJSON.Feature<GeoJSON.LineString> | null => {
-    if (!ghostRoutePoints || ghostRoutePoints.length < 2) return null;
-    return {
-      type: 'Feature',
-      geometry: { type: 'LineString', coordinates: ghostRoutePoints.map(p => [p.lng, p.lat]) },
-      properties: {},
-    };
-  }, [ghostRoutePoints]);
+  // Ghost route GeoJSON slices — recomputed when points or progress index changes
+  const ghostCompletedGeoJSON = useMemo(() => {
+    if (!ghostRoutePoints || closestIdx < 1) return null;
+    const pts = ghostRoutePoints.slice(0, closestIdx + 1);
+    return pts.length >= 2 ? buildLineString(pts) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ghostRoutePoints, closestIdx]);
 
-  if (!MapLibreGL) {
-    return (
-      <View style={ss.fallback}>
-        <Text style={ss.fallbackText}>Map unavailable</Text>
-        {isRunning && <Text style={ss.fallbackSub}>{gpsPoints.length} GPS points recorded</Text>}
-      </View>
-    );
-  }
+  const ghostRemainingGeoJSON = useMemo(() => {
+    if (!ghostRoutePoints || ghostRoutePoints.length < 2) return null;
+    const pts = ghostRoutePoints.slice(closestIdx);
+    return pts.length >= 2 ? buildLineString(pts) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ghostRoutePoints, closestIdx]);
 
   return (
     <MapLibreGL.MapView
@@ -110,12 +114,22 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
         showsUserHeadingIndicator
       />
 
-      {/* Ghost route (selected route, dashed gray) */}
-      {ghostGeoJSON && (
-        <MapLibreGL.ShapeSource id="ghost-route" shape={ghostGeoJSON}>
+      {/* Ghost route — completed section (solid, muted) */}
+      {ghostCompletedGeoJSON && (
+        <MapLibreGL.ShapeSource id="ghost-completed" shape={ghostCompletedGeoJSON}>
           <MapLibreGL.LineLayer
-            id="ghost-line"
-            style={{ lineColor: '#9CA3AF', lineWidth: 2, lineOpacity: 0.45, lineDasharray: [4, 4], lineCap: 'round', lineJoin: 'round' }}
+            id="ghost-completed-line"
+            style={{ lineColor: '#9CA3AF', lineWidth: 2, lineOpacity: 0.18, lineCap: 'round', lineJoin: 'round' }}
+          />
+        </MapLibreGL.ShapeSource>
+      )}
+
+      {/* Ghost route — remaining section (dashed, visible) */}
+      {ghostRemainingGeoJSON && (
+        <MapLibreGL.ShapeSource id="ghost-remaining" shape={ghostRemainingGeoJSON}>
+          <MapLibreGL.LineLayer
+            id="ghost-remaining-line"
+            style={{ lineColor: '#9CA3AF', lineWidth: 2.5, lineOpacity: 0.55, lineDasharray: [4, 4], lineCap: 'butt' }}
           />
         </MapLibreGL.ShapeSource>
       )}
@@ -154,6 +168,6 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
 const ss = StyleSheet.create({
   map:          { flex: 1 },
   fallback:     { flex: 1, backgroundColor: '#1A1A2E', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  fallbackText: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#6B7280' },
-  fallbackSub:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: '#4B5563' },
+  fallbackText: { fontSize: 13, color: '#6B7280' },
+  fallbackSub:  { fontSize: 11, color: '#4B5563' },
 });

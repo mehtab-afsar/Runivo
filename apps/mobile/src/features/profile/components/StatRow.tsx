@@ -28,6 +28,6 @@ const ss = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
   },
-  value: { fontFamily: 'Barlow_300Light', fontSize: 28, color: C.black, letterSpacing: -1 },
-  label: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4 },
+  value: { fontSize: 28, color: C.black, letterSpacing: -1 },
+  label: { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4 },
 });

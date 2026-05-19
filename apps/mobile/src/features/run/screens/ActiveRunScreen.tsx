@@ -11,7 +11,7 @@ import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Play, X } from 'lucide-react-native';
+import { Play, X } from 'phosphor-react-native';
 import { useActiveRun }          from '../hooks/useActiveRun';
 import { postRunSync, createFeedPost } from '@shared/services/sync';
 import { getTerritoryPolygons } from '@shared/services/store';
@@ -24,7 +24,8 @@ import FinishConfirmSheet from '../components/FinishConfirmSheet';
 import BeatPacerChip      from '../components/BeatPacerChip';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
-import { useTheme, type AppColors } from '@theme';
+import { computeRouteProgress, type RouteProgress } from '../utils/routeNavigation';
+import { useTheme, feedback, type AppColors } from '@theme';
 import {
   estimateLiveArea,
   detectLoopClose,
@@ -62,6 +63,7 @@ export default function ActiveRunScreen() {
   const [speedWarning,  setSpeedWarning]  = useState(false);
   const [loopClosing,   setLoopClosing]   = useState(false);
   const [nearRival,     setNearRival]     = useState(false);
+  const [routeProgress, setRouteProgress] = useState<RouteProgress | null>(null);
   const rivalPolygonsRef = useRef<TerritoryPolygon[]>([]);
 
   // Load rival polygons once at run start — rivals don't change mid-run
@@ -91,7 +93,28 @@ export default function ActiveRunScreen() {
     const first = run.gpsPoints[0];
     setLoopClosing(detectLoopClose(last, first, run.distance * 1000));
     setNearRival(isNearRivalTerritory(last.lat, last.lng, rivalPolygonsRef.current));
+    // Ghost route progress
+    if (ghostRoutePoints && ghostRoutePoints.length >= 2) {
+      setRouteProgress(computeRouteProgress(last.lat, last.lng, ghostRoutePoints));
+    }
   }, [run.gpsPoints.length, run.isRunning]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isOffRoute = run.gpsLocked
+    && !!ghostRoutePoints?.length
+    && (routeProgress?.distanceToRouteM ?? 0) > 50;
+
+  const isNearRouteEnd = !!ghostRoutePoints?.length
+    && (routeProgress?.distanceRemainingM ?? 999) < 100
+    && (routeProgress?.distanceRemainingM ?? 999) > 0;
+
+  // GPS locked and rival nearby feedback
+  useEffect(() => {
+    if (run.gpsLocked) feedback.gpsLocked();
+  }, [run.gpsLocked]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (nearRival) feedback.rivalNearby();
+  }, [nearRival]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Pause card animation ───────────────────────────────────────────────────
   const pauseCardY = useSharedValue(400);
@@ -157,13 +180,13 @@ export default function ActiveRunScreen() {
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
       <View style={ss.header}>
-        <Pressable onPress={handleBack} style={ss.back} hitSlop={12}><X size={16} color="#9E9994" strokeWidth={2} /></Pressable>
+        <Pressable onPress={handleBack} style={ss.back} hitSlop={12}><X size={16} color="#9E9994" weight="regular" /></Pressable>
         <Text style={ss.title}>{!run.isRunning ? 'Ready to Run' : run.isPaused ? 'Paused' : 'Running'}</Text>
         <View style={{ width: 36 }} />
       </View>
 
       <View style={ss.map}>
-        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} />
+        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} closestIdx={routeProgress?.closestIdx ?? 0} />
         {run.isRunning && !run.gpsLocked && (
           <View style={ss.gpsAcquiring}>
             <ActivityIndicator size="small" color={C.red} />
@@ -198,6 +221,16 @@ export default function ActiveRunScreen() {
           <Text style={ss.bannerTxt}>Rival territory ahead</Text>
         </View>
       )}
+      {run.isRunning && isOffRoute && (
+        <View style={[ss.banner, ss.bannerAmber]}>
+          <Text style={ss.bannerTxt}>Off route — return to the dashed line</Text>
+        </View>
+      )}
+      {run.isRunning && isNearRouteEnd && (
+        <View style={[ss.banner, ss.bannerGreen]}>
+          <Text style={ss.bannerTxt}>Almost done! {Math.round(routeProgress!.distanceRemainingM)}m to go</Text>
+        </View>
+      )}
 
       <RunHUD
         distance={run.distance}
@@ -206,16 +239,26 @@ export default function ActiveRunScreen() {
         liveAreaM2={run.isRunning ? liveAreaM2 : undefined}
       />
 
+      {ghostRoutePoints && routeProgress && run.isRunning && (
+        <View style={ss.routeRemaining}>
+          <Text style={ss.routeRemainingTxt}>
+            {routeProgress.distanceRemainingM >= 1000
+              ? `${(routeProgress.distanceRemainingM / 1000).toFixed(1)} km left`
+              : `${Math.round(routeProgress.distanceRemainingM)} m left`}
+          </Text>
+        </View>
+      )}
+
       {run.isRunning && (
         <View style={ss.pacerSection}>
           <Text style={ss.pacerLabel}>BEAT PACER</Text>
-          <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} outOfRange={pacer.outOfRange} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
+          <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
         </View>
       )}
 
       <View style={[ss.controls, { paddingBottom: insets.bottom + 16 }]}>
         {!run.isRunning
-          ? <Pressable style={ss.startBtn} onPress={run.startRun}><Play size={28} color={C.white} strokeWidth={2} fill={C.white} /></Pressable>
+          ? <Pressable style={ss.startBtn} onPress={() => { feedback.runStart(); run.startRun(); }}><Play size={28} color={C.white} weight="fill" /></Pressable>
           : !run.isPaused
             ? <RunControls isPaused={false} onPause={run.pauseRun} onResume={run.resumeRun} onStop={handleFinish} />
             : <View style={{ height: 72 }} />
@@ -270,39 +313,42 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1, backgroundColor: C.bg },
     header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
     back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    title:       { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black, letterSpacing: 0.3 },
+    title:       { fontWeight: '600', fontSize: 13, color: C.black, letterSpacing: 0.3 },
     map:         { flex: 1, overflow: 'hidden' },
     gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
     gpsDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
-    gpsTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.white },
+    gpsTxt:      { fontWeight: '500', fontSize: 10, color: C.white },
     errBanner:   { backgroundColor: '#FEF0EE', padding: 10, alignItems: 'center' },
-    errTxt:      { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.red },
+    errTxt:      { fontWeight: '500', fontSize: 11, color: C.red },
     banner:      { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, paddingHorizontal: 16 },
     bannerRed:   { backgroundColor: '#FEF0EE' },
     bannerTeal:  { backgroundColor: '#E6F7F5' },
     bannerAmber:      { backgroundColor: '#FEF8E7' },
-    bannerTxt:        { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.black },
+    bannerGreen:      { backgroundColor: '#E6F5EC' },
+    bannerTxt:        { fontSize: 11, color: C.black },
+    routeRemaining:    { alignItems: 'center', paddingVertical: 4, backgroundColor: C.black },
+    routeRemainingTxt: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
     gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16 },
-    gpsAcquiringText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
-    gpsAcquiringSub:  { fontFamily: 'Barlow_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+    gpsAcquiringText: { fontWeight: '600', fontSize: 14, color: '#fff' },
+    gpsAcquiringSub:  { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
     pacerSection: { backgroundColor: C.black, alignItems: 'center', paddingTop: 8, paddingBottom: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
-    pacerLabel:   { fontFamily: 'DMSans_300Light', fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
+    pacerLabel:   { fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
     controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
     startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
     // Pause card
     pauseOverlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 10 },
     pauseCard:         { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, paddingHorizontal: 24, zIndex: 11, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 20 },
     pauseHandle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 20 },
-    pauseTitle:        { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1.4, color: C.t3, textAlign: 'center', marginBottom: 8 },
+    pauseTitle:        { fontWeight: '500', fontSize: 10, letterSpacing: 1.4, color: C.t3, textAlign: 'center', marginBottom: 8 },
     pauseTime:         { fontFamily: 'Barlow_300Light', fontSize: 52, color: C.black, textAlign: 'center', letterSpacing: -2, lineHeight: 56, marginBottom: 16 },
     pauseStats:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, marginBottom: 24 },
     pauseStat:         { alignItems: 'center', gap: 2 },
     pauseStatVal:      { fontFamily: 'Barlow_600SemiBold', fontSize: 22, color: C.black },
-    pauseStatLbl:      { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3, letterSpacing: 0.6 },
+    pauseStatLbl:      { fontSize: 10, color: C.t3, letterSpacing: 0.6 },
     pauseStatDivider:  { width: 1, height: 32, backgroundColor: C.border },
     resumeBtn:         { backgroundColor: C.black, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
-    resumeBtnTxt:      { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: '#fff' },
+    resumeBtnTxt:      { fontWeight: '600', fontSize: 16, color: '#fff' },
     pauseFinishBtn:    { paddingVertical: 12, alignItems: 'center' },
-    pauseFinishBtnTxt: { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.t3 },
+    pauseFinishBtnTxt: { fontSize: 14, color: C.t3 },
   });
 }

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { TrendingUp } from 'lucide-react-native';
+import { TrendUp } from 'phosphor-react-native';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useTheme, type AppColors } from '@theme';
 
@@ -25,14 +25,14 @@ export function LobbyCard({ room, onPress }: Props) {
   return (
     <Pressable style={s.card} onPress={onPress}>
       <View style={[s.roomIcon, { backgroundColor: room.color + '18' }]}>
-        <RoomIcon size={22} color={roomIconColor} strokeWidth={1.5} />
+        <RoomIcon size={22} color={roomIconColor} weight="light" />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={s.roomName}>{room.name}</Text>
         <Text style={s.roomDesc}>{room.description}</Text>
         {(room.messagesToday ?? 0) > 0 && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-            <TrendingUp size={10} color={C.red} strokeWidth={1.5} />
+            <TrendUp size={10} color={C.red} weight="light" />
             <Text style={s.activityText}>{room.messagesToday} messages today</Text>
           </View>
         )}
@@ -49,9 +49,9 @@ function mkStyles(C: AppColors) {
       borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
     },
     roomIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    roomName: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, marginBottom: 2 },
-    roomDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
-    activityText: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.red, marginTop: 4 },
-    chevron: { fontFamily: 'Barlow_300Light', fontSize: 22, color: C.t3, flexShrink: 0 },
+    roomName: { fontWeight: '600', fontSize: 14, color: C.black, marginBottom: 2 },
+    roomDesc: { fontSize: 11, color: C.t2 },
+    activityText: { fontSize: 10, color: C.red, marginTop: 4 },
+    chevron: { fontSize: 22, color: C.t3, flexShrink: 0 },
   });
 }

@@ -4,8 +4,7 @@ import * as Location from 'expo-location';
 import type { TerritoryPolygon } from '@shared/types/game';
 import { useTheme, type AppColors } from '@theme';
 
-let ML: any = null;
-try { ML = require('@maplibre/maplibre-react-native'); } catch {}
+import ML from '@maplibre/maplibre-react-native';
 
 const D_RED  = '#C8391A';
 const D_GRAY = '#CCCCCC';
@@ -68,29 +67,25 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
 
   return (
     <Pressable style={ss.container} onPress={onPress}>
-      {ML ? (
-        <ML.MapView
-          style={{ flex: 1 }}
-          styleURL="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-          zoomEnabled={false}
-          scrollEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          logoEnabled={false}
-          attributionEnabled={false}
-        >
-          <ML.Camera centerCoordinate={centroid} zoomLevel={14} animationDuration={0} />
-          <ML.UserLocation visible renderMode="native" />
-          {geojson.features.length > 0 && (
-            <ML.ShapeSource id="miniHexes" shape={geojson}>
-              <ML.FillLayer id="miniHexFill" style={{ fillColor: ['get', 'color'], fillOpacity: 0.3 }} />
-              <ML.LineLayer id="miniHexLine" style={{ lineColor: ['get', 'color'], lineWidth: 1, lineOpacity: 0.6 }} />
-            </ML.ShapeSource>
-          )}
-        </ML.MapView>
-      ) : (
-        <View style={ss.placeholder} />
-      )}
+      <ML.MapView
+        style={{ flex: 1 }}
+        mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+        zoomEnabled={false}
+        scrollEnabled={false}
+        rotateEnabled={false}
+        pitchEnabled={false}
+        logoEnabled={false}
+        attributionEnabled={false}
+      >
+        <ML.Camera centerCoordinate={centroid} zoomLevel={14} animationDuration={0} />
+        <ML.UserLocation visible renderMode="native" />
+        {geojson.features.length > 0 && (
+          <ML.ShapeSource id="miniHexes" shape={geojson}>
+            <ML.FillLayer id="miniHexFill" style={{ fillColor: ['get', 'color'], fillOpacity: 0.3 }} />
+            <ML.LineLayer id="miniHexLine" style={{ lineColor: ['get', 'color'], lineWidth: 1, lineOpacity: 0.6 }} />
+          </ML.ShapeSource>
+        )}
+      </ML.MapView>
 
       {territories.length === 0 && (
         <View style={ss.emptyOverlay}>
@@ -110,8 +105,8 @@ function mkStyles(C: AppColors) {
     container:    { height: MAP_H, borderRadius: 20, overflow: 'hidden', marginHorizontal: 22, marginBottom: 28, backgroundColor: C.surface },
     placeholder:  { flex: 1, backgroundColor: C.stone },
     overlay:      { position: 'absolute', bottom: 0, right: 0, left: 0, padding: 12, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end' },
-    ctaText:      { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#fff', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
+    ctaText:      { fontWeight: '500', fontSize: 11, color: '#fff', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
     emptyOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-    emptyText:    { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3, textAlign: 'center' },
+    emptyText:    { fontSize: 11, color: C.t3, textAlign: 'center' },
   });
 }

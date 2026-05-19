@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { Footprints, PersonStanding, Zap, Flame } from 'lucide-react-native';
+import { Footprints, Person, Lightning, Fire, type Icon } from 'phosphor-react-native';
 import type { OnboardingData } from '../types';
 import { EXP_OPTIONS, AGES, HEIGHTS, WEIGHTS } from '../types';
 import { D, shared } from './onboardingStyles';
@@ -84,9 +84,9 @@ function UnitToggle({ options, value, onChange }: {
 
 // ─── Icon map ─────────────────────────────────────────────────────────────────
 
-type IconComp = React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
+type IconComp = Icon;
 const ICONS: Record<OnboardingData['experienceLevel'], IconComp> = {
-  new: Footprints, casual: PersonStanding, regular: Zap, competitive: Flame,
+  new: Footprints, casual: Person, regular: Lightning, competitive: Fire,
 };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ export default function ProfileStep({ data, onChange }: Props) {
           >
             <Pressable style={s.row} onPress={() => onChange('experienceLevel', opt.key)}>
               <View style={[s.accent, sel && s.accentActive]} />
-              <Icon size={18} color={sel ? D.red : D.t3} strokeWidth={1.5} />
+              <Icon size={18} color={sel ? D.red : D.t3} weight="light" />
               <View style={{ flex: 1 }}>
                 <Text style={[s.label, sel && s.labelSel]}>{opt.label}</Text>
                 <Text style={s.sub}>{opt.sub}</Text>
@@ -200,32 +200,32 @@ export default function ProfileStep({ data, onChange }: Props) {
 
 const s = StyleSheet.create({
   rule:       { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  row:        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: D.div },
+  row:        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
   accent:     { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
   accentActive:{ backgroundColor: D.red },
-  label:      { fontFamily: 'DMSans_400Regular', fontSize: 15, color: D.t2, flex: 1 },
-  labelSel:   { fontFamily: 'DMSans_500Medium', color: D.t1 },
-  sub:        { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t3, marginTop: 2 },
+  label:      { fontSize: 15, color: D.t2, flex: 1 },
+  labelSel:   { fontWeight: '500', color: D.t1 },
+  sub:        { fontSize: 12, color: D.t3, marginTop: 2 },
   dot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
   divider:    { height: 1, backgroundColor: D.div, marginVertical: 24 },
   drumsRow:   { flexDirection: 'row', gap: 8, marginTop: 16 },
   unitRow:    { flexDirection: 'row', backgroundColor: D.div, borderRadius: 6, padding: 2 },
   unitBtn:    { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
   unitBtnSel: { backgroundColor: '#fff' },
-  unitLabel:  { fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3 },
+  unitLabel:  { fontWeight: '500', fontSize: 9, color: D.t3 },
   unitLabelSel:{ color: D.red },
 });
 
 const ds = StyleSheet.create({
   col:       { flex: 1 },
   colHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  colLabel:  { fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-  colUnit:   { fontFamily: 'DMSans_300Light', fontSize: 9, color: D.t3 },
+  colLabel:  { fontWeight: '500', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+  colUnit:   { fontSize: 9, color: D.t3 },
   drumWrap:  { backgroundColor: D.surf, borderRadius: 10, overflow: 'hidden', position: 'relative' },
   band:      { position: 'absolute', top: 1 * ITEM_H, left: 0, right: 0, height: ITEM_H, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, zIndex: 1 },
   item:      { alignItems: 'center', justifyContent: 'center' },
-  itemText:  { fontFamily: 'DMSans_300Light', fontSize: 15, color: D.t3 },
-  itemActive:{ fontFamily: 'DMSans_500Medium', fontSize: 18, color: D.t1 },
+  itemText:  { fontSize: 15, color: D.t3 },
+  itemActive:{ fontWeight: '500', fontSize: 18, color: D.t1 },
   fadeT:     { position: 'absolute', top: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: 'rgba(237,233,228,0.82)' },
   fadeB:     { position: 'absolute', bottom: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: 'rgba(237,233,228,0.82)' },
 });

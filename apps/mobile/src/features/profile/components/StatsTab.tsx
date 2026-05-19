@@ -257,7 +257,7 @@ export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories
 
 const ss = StyleSheet.create({
   section: {
-    fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.t3,
+    fontWeight: '500', fontSize: 9, color: C.t3,
     letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10, marginTop: 20,
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -271,8 +271,8 @@ const ss = StyleSheet.create({
   barKm: { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3, marginBottom: 2 },
   barTrack: { width: '100%', height: 80, justifyContent: 'flex-end', flexDirection: 'column' },
   barFill: { borderRadius: 3, width: '100%' },
-  barLabel: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 4 },
-  barLabelActive: { fontFamily: 'Barlow_500Medium', color: C.red },
+  barLabel: { fontSize: 9, color: C.t3, marginTop: 4 },
+  barLabelActive: { fontWeight: '500', color: C.red },
 
   // Pace zones
   zonesCard: {
@@ -280,8 +280,8 @@ const ss = StyleSheet.create({
   },
   zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   zoneLeft: { width: 72 },
-  zoneLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
-  zoneRange: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3 },
+  zoneLabel: { fontWeight: '500', fontSize: 12, color: C.black },
+  zoneRange: { fontSize: 9, color: C.t3 },
   zoneBarWrap: { flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, flexDirection: 'row', overflow: 'hidden' },
   zoneBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
   zoneTime: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
@@ -292,9 +292,9 @@ const ss = StyleSheet.create({
     flex: 1, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
     padding: 14, alignItems: 'center',
   },
-  predictVal: { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black, letterSpacing: -0.5 },
-  predictLabel: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.black, marginTop: 2 },
-  predictNote: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 1 },
+  predictVal: { fontWeight: '600', fontSize: 16, color: C.black, letterSpacing: -0.5 },
+  predictLabel: { fontWeight: '500', fontSize: 11, color: C.black, marginTop: 2 },
+  predictNote: { fontSize: 9, color: C.t3, marginTop: 1 },
   predictionsEmpty: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
-  predictionsEmptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+  predictionsEmptyText: { fontSize: 12, color: C.t2, textAlign: 'center' },
 });

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { Flame } from 'lucide-react-native';
+import { Fire } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -153,7 +153,7 @@ export function NutritionTab() {
                     backgroundColor: isToday ? C.red : dayKcal > 0 ? C.t3 : C.border,
                   }]} />
                 </View>
-                <Text style={[ss.barDay, isToday && { color: C.red, fontFamily: 'Barlow_600SemiBold' }]}>{DAY_LABELS[i]}</Text>
+                <Text style={[ss.barDay, isToday && { color: C.red, fontWeight: '600' }]}>{DAY_LABELS[i]}</Text>
                 <Text style={ss.barKcal}>{dayKcal > 0 ? dayKcal : '—'}</Text>
               </View>
             );
@@ -165,7 +165,7 @@ export function NutritionTab() {
       <View style={ss.statRow}>
         <View style={[ss.card, { flex: 1 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-            <Flame size={12} color="#EA580C" strokeWidth={1.5} />
+            <Fire size={12} color="#EA580C" weight="light" />
             <Text style={[ss.statCardLabel, { marginBottom: 0 }]}>Streak</Text>
           </View>
           <Text style={ss.statCardValue}>{streak}</Text>
@@ -202,28 +202,28 @@ function mkStyles(C: AppColors) {
       padding: 14, marginHorizontal: 0,
     },
     cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    cardLabel: { fontFamily: 'Barlow_500Medium', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
-    editLink: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.red },
+    cardLabel: { fontWeight: '500', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
+    editLink: { fontSize: 10, color: C.red },
     goalRow: { flexDirection: 'row', justifyContent: 'space-between' },
     goalCell: { flex: 1, alignItems: 'center' },
-    goalValue: { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
+    goalValue: { fontSize: 15, color: C.black, letterSpacing: -0.3 },
     goalUnit: { fontSize: 9, color: C.t3 },
-    goalCellLabel: { fontFamily: 'Barlow_400Regular', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6, color: C.t3, marginTop: 2 },
+    goalCellLabel: { fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6, color: C.t3, marginTop: 2 },
     barsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
     barCol: { flex: 1, alignItems: 'center', gap: 4 },
     barTrack: { width: '100%', justifyContent: 'flex-end', alignItems: 'center' },
     bar: { width: '55%', borderRadius: 3 },
-    barDay: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3 },
-    barKcal: { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3 },
+    barDay: { fontSize: 9, color: C.t3 },
+    barKcal: { fontSize: 8, color: C.t3 },
     statRow: { flexDirection: 'row', marginTop: 10 },
-    statCardLabel: { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3, marginBottom: 6 },
-    statCardValue: { fontFamily: 'Barlow_300Light', fontSize: 22, color: C.black, letterSpacing: -0.5, lineHeight: 26 },
-    statCardSub: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
+    statCardLabel: { fontWeight: '500', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3, marginBottom: 6 },
+    statCardValue: { fontSize: 22, color: C.black, letterSpacing: -0.5, lineHeight: 26 },
+    statCardSub: { fontSize: 9, color: C.t3, marginTop: 2 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     btn: { backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
-    btnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
+    btnText: { fontWeight: '600', fontSize: 11, color: '#fff', letterSpacing: 0.5 },
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 20 },
     emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 8 },
-    emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
+    emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
   });
 }

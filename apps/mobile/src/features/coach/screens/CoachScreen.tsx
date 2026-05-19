@@ -6,7 +6,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import { supabase } from '@shared/services/supabase';
 import { getTerritoryPolygons } from '@shared/services/store';
 import { GAME_CONFIG } from '@shared/services/config';
@@ -31,8 +31,8 @@ function PaceXLogo({ size = 22 }: { size?: number }) {
   const C = useTheme();
   return (
     <Text>
-      <Text style={{ fontFamily: 'Barlow_600SemiBold', fontSize: size, color: C.black }}>Pace</Text>
-      <Text style={{ fontFamily: 'Barlow_700Bold', fontSize: size + 1, color: C.red }}>X</Text>
+      <Text style={{ fontWeight: '600', fontSize: size, color: C.black }}>Pace</Text>
+      <Text style={{ fontWeight: '700', fontSize: size + 1, color: C.red }}>X</Text>
     </Text>
   );
 }
@@ -121,6 +121,11 @@ export default function CoachScreen() {
       coach.requestHabitAnalysis();
       return;
     }
+    if (message === 'nutrition_coach') {
+      setChatVisible(true);
+      coach.requestNutritionCoach();
+      return;
+    }
     openChatWithPrompt(message);
   }, [openChatWithPrompt, coach]);
 
@@ -134,7 +139,7 @@ export default function CoachScreen() {
           onPress={() => navigation.navigate('Dashboard' as never)}
           hitSlop={8}
         >
-          <X size={16} color={C.t2} strokeWidth={1.5} />
+          <X size={16} color={C.t2} weight="light" />
         </Pressable>
       </View>
 
@@ -256,16 +261,16 @@ function mkStyles(C: AppColors) {
     loader:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scrollContent:       { paddingBottom: 120 },
     weekSection:         { paddingHorizontal: 16, marginBottom: 14 },
-    sectionLabel:        { fontFamily: 'Barlow_300Light', fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10 },
+    sectionLabel:        { fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10 },
     ctaRow:              { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 16 },
     ctaBtn:              { flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     ctaBtnPrimary:       {},
-    ctaBtnPrimaryLabel:  { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: '#fff' },
+    ctaBtnPrimaryLabel:  { fontWeight: '600', fontSize: 13, color: '#fff' },
     ctaBtnSecondary:     { borderWidth: 0.5 },
-    ctaBtnSecondaryLabel:{ fontFamily: 'Barlow_500Medium', fontSize: 13 },
+    ctaBtnSecondaryLabel:{ fontWeight: '500', fontSize: 13 },
     pillsWrap:           { marginBottom: 16 },
     pillsScroll:         { paddingHorizontal: 16, gap: 8 },
     pill:                { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5 },
-    pillLabel:           { fontFamily: 'Barlow_400Regular', fontSize: 13 },
+    pillLabel:           { fontSize: 13 },
   });
 }

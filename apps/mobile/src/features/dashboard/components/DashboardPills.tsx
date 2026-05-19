@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
-import { Flame, Diamond } from 'lucide-react-native';
+import { Fire, Diamond } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, type AppColors } from '@theme';
 
@@ -26,7 +26,7 @@ export function DashboardPills({ runnerRank = 'pacer', paceWeeklyEarned, weeklyC
     >
       {/* Runner rank */}
       <Pressable onPress={tap} style={ss.pill}>
-        <Diamond size={11} color={C.red} strokeWidth={1.5} />
+        <Diamond size={11} color={C.red} weight="light" />
         <Text style={ss.pillV}>{rank}</Text>
       </Pressable>
 
@@ -41,7 +41,7 @@ export function DashboardPills({ runnerRank = 'pacer', paceWeeklyEarned, weeklyC
 
       {/* Streak — always shown */}
       <Pressable onPress={tap} style={ss.pill}>
-        <Flame size={13} color={streakDays > 0 ? C.red : C.t3} strokeWidth={1.5} />
+        <Fire size={13} color={streakDays > 0 ? C.red : C.t3} weight="light" />
         <Text style={ss.pillV}>{streakDays}</Text>
         <Text style={ss.pillL}>{streakDays === 1 ? 'day' : 'days'}</Text>
       </Pressable>
@@ -57,7 +57,7 @@ function mkStyles(C: AppColors) {
     paceRow:   { flexDirection: 'row', alignItems: 'center' },
     barBg:     { width: 90, height: 2, borderRadius: 1, backgroundColor: C.border, marginTop: 4 },
     barFill:   { height: '100%', borderRadius: 1, backgroundColor: C.red },
-    pillV:     { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
-    pillL:     { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
+    pillV:     { fontWeight: '500', fontSize: 12, color: C.black },
+    pillL:     { fontSize: 11, color: C.t3 },
   });
 }

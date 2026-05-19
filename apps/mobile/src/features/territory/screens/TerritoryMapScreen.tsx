@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { MapPin, Layers } from 'lucide-react-native';
+import { MapPin, Stack } from 'phosphor-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme, type AppColors } from '@theme';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -47,8 +47,7 @@ const MAP_STYLES = [
   { id: 'satellite', label: 'Satellite', color: '#1B5E20', url: SATELLITE_STYLE },
 ] as const;
 
-let ML: any = null;
-try { ML = require('@maplibre/maplibre-react-native'); } catch {}
+import ML from '@maplibre/maplibre-react-native';
 
 const ACCENT = '#D93518';
 
@@ -94,7 +93,7 @@ export default function TerritoryMapScreen() {
     setStyleIdx(prev => (prev + 1) % MAP_STYLES.length);
   };
 
-  const selectedFilter = selectedPolygon
+  const selectedFilter: any = selectedPolygon
     ? ['==', ['get', 'id'], selectedPolygon.id]
     : ['==', ['get', 'id'], ''];
 
@@ -122,32 +121,28 @@ export default function TerritoryMapScreen() {
 
   return (
     <View style={ss.container}>
-      {ML ? (
-        <ML.MapView
-          style={ss.map}
-          styleURL={MAP_STYLES[styleIdx].url}
-          onRegionDidChange={handleRegionChange}
-          logoEnabled={false}
-          attributionEnabled={false}
-        >
-          <ML.Camera
-            ref={cameraRef}
-            centerCoordinate={defaultCenter}
-            zoomLevel={13}
-            animationDuration={0}
-          />
-          <ML.UserLocation visible={true} />
-          {geoJSON.features.length > 0 && (
-            <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
-              <ML.FillLayer id="territory-fill" style={territoryFillStyle} />
-              <ML.LineLayer id="territory-line" style={territoryLineStyle} />
-              <ML.FillLayer id="territory-selected" style={selectedFillStyle} filter={selectedFilter} />
-            </ML.ShapeSource>
-          )}
-        </ML.MapView>
-      ) : (
-        <View style={ss.map} />
-      )}
+      <ML.MapView
+        style={ss.map}
+        mapStyle={MAP_STYLES[styleIdx].url}
+        onRegionDidChange={handleRegionChange}
+        logoEnabled={false}
+        attributionEnabled={false}
+      >
+        <ML.Camera
+          ref={cameraRef}
+          centerCoordinate={defaultCenter}
+          zoomLevel={13}
+          animationDuration={0}
+        />
+        <ML.UserLocation visible={true} />
+        {geoJSON.features.length > 0 && (
+          <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
+            <ML.FillLayer id="territory-fill" style={territoryFillStyle} />
+            <ML.LineLayer id="territory-line" style={territoryLineStyle} />
+            <ML.FillLayer id="territory-selected" style={selectedFillStyle} filter={selectedFilter} />
+          </ML.ShapeSource>
+        )}
+      </ML.MapView>
 
       <View style={[ss.topOverlay, { top: insets.top + 12 }]}>
         <TerritoryFilterChips
@@ -156,13 +151,13 @@ export default function TerritoryMapScreen() {
           onSelect={setActiveFilter}
         />
         <Pressable style={ss.styleBtn} onPress={cycleMapStyle}>
-          <Layers size={18} color="#fff" strokeWidth={1.5} />
+          <Stack size={18} color="#fff" weight="light" />
         </Pressable>
       </View>
 
       {isEmpty && (
         <View style={ss.emptyState}>
-          <MapPin size={48} color="rgba(255,255,255,0.5)" strokeWidth={1.5} />
+          <MapPin size={48} color="rgba(255,255,255,0.5)" weight="light" />
           <Text style={ss.emptyTitle}>No territories yet</Text>
           <Text style={ss.emptyBody}>Start a run to claim your first zone</Text>
           <Pressable style={ss.emptyBtn}
@@ -198,8 +193,8 @@ function mkStyles(_C: AppColors) {
     styleBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
     emptyState:   { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', gap: 12, padding: 40 },
     emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: '#fff', fontStyle: 'italic' },
-    emptyBody:    { fontFamily: 'Barlow_300Light', fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
+    emptyBody:    { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
     emptyBtn:     { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
-    emptyBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
+    emptyBtnText: { fontWeight: '600', fontSize: 14, color: '#fff' },
   });
 }

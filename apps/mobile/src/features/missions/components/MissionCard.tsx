@@ -1,20 +1,20 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { MapPin, Flag, Wind, Flame, Timer, Target, Check, Zap, Shield, Swords, type LucideIcon } from 'lucide-react-native';
+import { MapPin, Flag, Wind, Fire, Timer, Target, Check, Lightning, Shield, Sword, type Icon } from 'phosphor-react-native';
 import type { Mission } from '@shared/services/missions';
 import { DifficultyBadge } from './DifficultyBadge';
 import { useTheme, type AppColors } from '@theme';
 
-const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
-  run_distance:      { Icon: MapPin,  color: '#D93518' },
-  claim_territories: { Icon: Zap,    color: '#EAB308' },
-  capture_enemy:     { Icon: Flag,   color: '#9CA3AF' },
-  speed_run:         { Icon: Wind,   color: '#64748B' },
-  run_streak:        { Icon: Flame,  color: '#EA580C' },
-  defend_zone:  { Icon: Shield, color: '#059669' },
-  steal_rival:  { Icon: Swords, color: '#DC2626' },
-  complete_run: { Icon: Check,  color: '#059669' },
-  beat_pace:    { Icon: Timer,  color: '#D93518' },
+const TYPE_ICON: Record<string, { Icon: Icon; color: string }> = {
+  run_distance:      { Icon: MapPin,    color: '#D93518' },
+  claim_territories: { Icon: Lightning, color: '#EAB308' },
+  capture_enemy:     { Icon: Flag,      color: '#9CA3AF' },
+  speed_run:         { Icon: Wind,      color: '#64748B' },
+  run_streak:        { Icon: Fire,      color: '#EA580C' },
+  defend_zone:  { Icon: Shield,    color: '#059669' },
+  steal_rival:  { Icon: Sword,     color: '#DC2626' },
+  complete_run: { Icon: Check,     color: '#059669' },
+  beat_pace:    { Icon: Timer,     color: '#D93518' },
 };
 
 interface MissionCardProps {
@@ -34,7 +34,7 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
     <View style={[ss.card, mission.claimed && ss.cardClaimed]}>
       <View style={ss.cardRow}>
         <View style={ss.iconBox}>
-          <MissionIcon size={18} color={iconColor} strokeWidth={1.5} />
+          <MissionIcon size={18} color={iconColor} weight="light" />
         </View>
         <View style={{ flex: 1, marginLeft: 10 }}>
           <View style={ss.titleRow}>
@@ -68,7 +68,7 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
       )}
       {mission.claimed && (
         <View style={[ss.claimedBanner, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
-          <Check size={12} color={C.green} strokeWidth={2} />
+          <Check size={12} color={C.green} weight="regular" />
           <Text style={ss.claimedText}>Reward claimed</Text>
         </View>
       )}
@@ -82,16 +82,16 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   cardRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
   iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' },
-  missionTitle: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, flex: 1 },
-  missionDesc: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, lineHeight: 16 },
+  missionTitle: { fontWeight: '500', fontSize: 13, color: C.black, flex: 1 },
+  missionDesc: { fontSize: 11, color: C.t2, lineHeight: 16 },
   progressBg: { height: 3, backgroundColor: '#E8E4DF', borderRadius: 2, overflow: 'hidden', marginBottom: 8, flexDirection: 'row' },
   progressFill: { height: 3 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progressText: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
+  progressText: { fontSize: 11, color: C.t2 },
   rewardRow: { flexDirection: 'row', alignItems: 'center' },
-  rewardText: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.green },
+  rewardText: { fontSize: 11, color: C.green },
   claimBtn: { marginTop: 10, backgroundColor: C.black, borderRadius: 4, paddingVertical: 10, alignItems: 'center' },
-  claimBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
+  claimBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
   claimedBanner: { marginTop: 10, backgroundColor: C.greenLo, borderRadius: 6, paddingVertical: 8, alignItems: 'center' },
-  claimedText: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.green },
+  claimedText: { fontSize: 11, color: C.green },
 }); }

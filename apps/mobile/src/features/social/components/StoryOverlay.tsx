@@ -46,7 +46,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: '#fff',
   },
-  avatarText: { fontFamily: 'Barlow_700Bold', fontSize: 13, color: '#fff' },
-  userName: { flex: 1, fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: '#fff' },
-  time: { fontFamily: 'Barlow_300Light', fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  avatarText: { fontWeight: '700', fontSize: 13, color: '#fff' },
+  userName: { flex: 1, fontWeight: '600', fontSize: 13, color: '#fff' },
+  time: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
 });

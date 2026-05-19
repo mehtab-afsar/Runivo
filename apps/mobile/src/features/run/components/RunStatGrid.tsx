@@ -25,8 +25,8 @@ export default function RunStatGrid({ stats }: RunStatGridProps) {
           key={label}
           style={[
             ss.cell,
-            i % 2 === 0 && { borderRightWidth: 1, borderRightColor: C.mid },
-            i < stats.length - 2 && { borderBottomWidth: 1, borderBottomColor: C.mid },
+            i % 2 === 0 && { borderRightWidth: 0.5, borderRightColor: C.mid },
+            i < stats.length - 2 && { borderBottomWidth: 0.5, borderBottomColor: C.mid },
           ]}
         >
           <Text style={ss.value}>

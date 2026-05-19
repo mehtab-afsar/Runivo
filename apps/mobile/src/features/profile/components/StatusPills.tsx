@@ -60,7 +60,7 @@ function mkStyles(C: AppColors) {
       alignItems: 'center',
     },
     pillIcon: { fontSize: 16, marginBottom: 4 },
-    pillValue: { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black, letterSpacing: -0.5 },
-    pillLabel: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    pillValue: { fontWeight: '600', fontSize: 18, color: C.black, letterSpacing: -0.5 },
+    pillLabel: { fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }

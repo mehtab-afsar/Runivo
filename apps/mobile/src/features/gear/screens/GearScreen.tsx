@@ -6,7 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Plus } from 'lucide-react-native';
+import { ArrowLeft, Plus } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 import { useShoeTracker } from '@features/gear/hooks/useShoeTracker';
 import { ShoeCard } from '@features/gear/components/ShoeCard';
@@ -50,7 +50,7 @@ export default function GearScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={18} color={C.t2} strokeWidth={2} />
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <Text style={s.title}>Gear</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -60,7 +60,7 @@ export default function GearScreen() {
           </Pressable>
           */}
           <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn}>
-            <Plus size={16} color="#fff" strokeWidth={2.5} />
+            <Plus size={16} color="#fff" weight="bold" />
           </Pressable>
         </View>
       </View>
@@ -124,11 +124,11 @@ function mkStyles(C: AppColors) {
     list:          { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
     empty:         { alignItems: 'center', paddingVertical: 48 },
     emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', marginBottom: 16 },
+    emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center', marginBottom: 16 },
     emptyBtn:      { backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
-    emptyBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
-    sectionLabel:  { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
+    emptyBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 0.5 },
+    sectionLabel:  { fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
     toast:         { position: 'absolute', bottom: 36, left: 20, right: 20, backgroundColor: C.black, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16 },
-    toastText:     { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#fff', textAlign: 'center' },
+    toastText:     { fontSize: 13, color: '#fff', textAlign: 'center' },
   });
 }

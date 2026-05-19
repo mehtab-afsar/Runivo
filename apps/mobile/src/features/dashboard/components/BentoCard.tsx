@@ -1,7 +1,7 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Dimensions, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Calendar, Users, Trophy } from 'lucide-react-native';
+import { Calendar, Users, Trophy } from 'phosphor-react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { WeeklyRing } from './WeeklyRing';
 import { useTheme, type AppColors } from '@theme';
@@ -117,9 +117,9 @@ const ns = StyleSheet.create({
   ringWrap:{ position: 'relative', width: 148, height: 148, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   center:  { position: 'absolute', alignItems: 'center' },
   kcalRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  kcal:    { fontFamily: 'Barlow_300Light', fontSize: 34, color: '#fff', letterSpacing: -1.2, lineHeight: 36 },
-  kcalUnit:{ fontFamily: 'Barlow_300Light', fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 3 },
-  kcalSub: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 3 },
+  kcal:    { fontSize: 34, color: '#fff', letterSpacing: -1.2, lineHeight: 36 },
+  kcalUnit:{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 3 },
+  kcalSub: { fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 3 },
   dayDots: { flexDirection: 'row', gap: 4, paddingHorizontal: 18 },
   dot:     { flex: 1, height: 3, borderRadius: 2 },
 });
@@ -201,7 +201,7 @@ export function BentoCard({
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onNavigate(screen); }}
               style={ss.qa}
             >
-              <View style={ss.qaIcon}><Icon size={16} color="#0A0A0A" strokeWidth={1.5} /></View>
+              <View style={ss.qaIcon}><Icon size={16} color="#0A0A0A" weight="light" /></View>
               <Text style={ss.qaLabel}>{name}</Text>
             </Pressable>
           ))}
@@ -229,12 +229,12 @@ function mkStyles(C: AppColors) {
     dotActive: { backgroundColor: '#fff', width: 14 },
     qa:        { flex: 1, padding: 15, borderRadius: 14, backgroundColor: '#F0EDE8', borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
     qaIcon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    qaLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: '#0A0A0A', flex: 1 },
+    qaLabel:   { fontWeight: '500', fontSize: 13, color: '#0A0A0A', flex: 1 },
     startBtn:  { backgroundColor: '#0A0A0A', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
     startLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     startCircle:{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
     startPlay: { fontSize: 14, color: '#fff', marginLeft: 2 },
-    startHint: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: 1 },
-    startLabel:{ fontFamily: 'Barlow_500Medium', fontSize: 17, color: '#fff', lineHeight: 22 },
+    startHint: { fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: 1 },
+    startLabel:{ fontWeight: '500', fontSize: 17, color: '#fff', lineHeight: 22 },
   });
 }

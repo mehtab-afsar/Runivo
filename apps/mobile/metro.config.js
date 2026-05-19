@@ -80,6 +80,10 @@ config.resolver.extraNodeModules = {
   'h3-js': path.resolve(projectRoot, 'shims/h3-js.js'),
   // Force the full-featured npm buffer polyfill (supports utf-16le)
   'buffer': path.resolve(workspaceRoot, 'node_modules/buffer'),
+  // Pin MapLibre to a single copy — monorepo has two node_modules trees and Metro
+  // can resolve the package from both, causing "Tried to register two views with
+  // the same name MLRNCamera" which crashes the require() in every map component.
+  '@maplibre/maplibre-react-native': path.resolve(workspaceRoot, 'node_modules/@maplibre/maplibre-react-native'),
 };
 
 // Prefix-based alias resolution — handles @shared/*, @features/*, @navigation/*, @mobile/shared/*

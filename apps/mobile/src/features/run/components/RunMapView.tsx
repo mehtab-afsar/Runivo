@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Layers, X } from 'lucide-react-native';
+import { Stack, X } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
-let MapLibreGL: any = null;
-try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* native not available */ }
+import MapLibreGL from '@maplibre/maplibre-react-native';
 
 const FONT = 'Barlow_400Regular';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -58,28 +57,22 @@ export default function RunMapView({
 
   return (
     <Animated.View style={[ss.container, { bottom: sheetAnim }]}>
-      {MapLibreGL ? (
-        <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled={false}>
-          {lat !== null && lng !== null && (
-            <MapLibreGL.Camera
-              zoomLevel={15}
-              centerCoordinate={[lng, lat]}
-              animationMode="flyTo"
-              animationDuration={800}
-            />
-          )}
-          <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />
-        </MapLibreGL.MapView>
-      ) : (
-        <View style={[ss.map, ss.fallback]}>
-          <Text style={ss.fallbackText}>Map unavailable in simulator</Text>
-        </View>
-      )}
+      <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled={false}>
+        {lat !== null && lng !== null && (
+          <MapLibreGL.Camera
+            zoomLevel={15}
+            centerCoordinate={[lng, lat]}
+            animationMode="flyTo"
+            animationDuration={800}
+          />
+        )}
+        <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />
+      </MapLibreGL.MapView>
 
       <View style={[ss.header, { top: topInset + 8 }]}>
         {/* Close button */}
         <Pressable style={ss.closeBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onClose(); }} hitSlop={10}>
-          <X size={14} color={C.black} strokeWidth={2.5} />
+          <X size={14} color={C.black} weight="bold" />
         </Pressable>
 
         {/* GPS pill */}
@@ -92,7 +85,7 @@ export default function RunMapView({
 
         {/* Map style picker */}
         <Pressable style={ss.mapBtn} onPress={() => { setShowStylePicker(s => !s); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
-          <Layers size={14} color={C.black} strokeWidth={1.5} />
+          <Stack size={14} color={C.black} weight="light" />
         </Pressable>
       </View>
 

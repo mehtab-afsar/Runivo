@@ -51,10 +51,10 @@ const s = StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingVertical: 20,
-    borderTopWidth: 1, borderBottomWidth: 1, borderColor: D.div,
+    borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div,
     marginTop: 8,
   },
-  rowTitle: { fontFamily: 'DMSans_500Medium', fontSize: 14, color: D.t1, marginBottom: 3 },
-  rowSub:   { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t2, lineHeight: 17 },
-  note:     { fontFamily: 'DMSans_300Light', fontSize: 10, color: D.t3, textAlign: 'center', marginTop: 20 },
+  rowTitle: { fontWeight: '500', fontSize: 14, color: D.t1, marginBottom: 3 },
+  rowSub:   { fontSize: 12, color: D.t2, lineHeight: 17 },
+  note:     { fontSize: 10, color: D.t3, textAlign: 'center', marginTop: 20 },
 });

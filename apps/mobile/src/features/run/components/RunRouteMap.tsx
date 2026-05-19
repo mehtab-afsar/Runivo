@@ -3,11 +3,10 @@
  * Uses MapLibre React Native (already a dep). Falls back gracefully in simulator.
  */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Colors } from '@theme';
 
-let MapLibreGL: any = null;
-try { MapLibreGL = require('@maplibre/maplibre-react-native'); } catch { /* not available */ }
+import MapLibreGL from '@maplibre/maplibre-react-native';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
 const C = Colors;
@@ -30,14 +29,6 @@ export default function RunRouteMap({ route }: Props) {
     properties: {},
     geometry: { type: 'LineString' as const, coordinates: coords },
   };
-
-  if (!MapLibreGL) {
-    return (
-      <View style={ss.fallback}>
-        <Text style={ss.fallbackText}>Map unavailable in simulator</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={ss.wrap}>
@@ -88,7 +79,7 @@ const ss = StyleSheet.create({
   wrap:         { marginHorizontal: 16, marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 0.5, borderColor: C.border, height: 200 },
   map:          { flex: 1 },
   fallback:     { height: 200, backgroundColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center', borderRadius: 12, marginHorizontal: 16, marginBottom: 12 },
-  fallbackText: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#6B7280' },
+  fallbackText: { fontSize: 13, color: '#6B7280' },
   marker:       { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#fff' },
   markerGreen:  { backgroundColor: C.green },
   markerRed:    { backgroundColor: C.red },

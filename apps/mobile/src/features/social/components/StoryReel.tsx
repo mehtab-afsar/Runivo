@@ -42,6 +42,6 @@ const s = StyleSheet.create({
   item:    { alignItems: 'center', gap: 5, width: 58 },
   ring:    { width: 54, height: 54, borderRadius: 27, borderWidth: 2, padding: 2 },
   avatar:  { flex: 1, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  initial: { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: '#fff' },
-  name:    { fontFamily: 'Barlow_400Regular', fontSize: 10, color: '#6B6B6B', width: 58, textAlign: 'center' },
+  initial: { fontWeight: '600', fontSize: 18, color: '#fff' },
+  name:    { fontSize: 10, color: '#6B6B6B', width: 58, textAlign: 'center' },
 });

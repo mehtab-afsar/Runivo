@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Text, Animated, StyleSheet } from 'react-native';
-import { Coins } from 'lucide-react-native';
+import { Coins } from 'phosphor-react-native';
 
 interface Props {
   coins:     number;
@@ -20,7 +20,7 @@ export function DailyBonusCard({ coins, onCollect }: Props) {
 
   return (
     <Animated.View style={[ss.toast, { transform: [{ translateY }] }]}>
-      <Coins size={13} color="#9E6800" strokeWidth={1.5} />
+      <Coins size={13} color="#9E6800" weight="light" />
       <Text style={ss.text}>Daily bonus: +{coins} coins</Text>
     </Animated.View>
   );
@@ -34,5 +34,5 @@ const ss = StyleSheet.create({
     borderWidth: 0.5, borderColor: '#DDD9D4',
     shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 4 },
   },
-  text: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#0A0A0A' },
+  text: { fontWeight: '500', fontSize: 12, color: '#0A0A0A' },
 });

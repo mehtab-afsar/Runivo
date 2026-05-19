@@ -78,15 +78,15 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     empty: { alignItems: 'center', paddingVertical: 40 },
     emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+    emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
     summaryCard: {
       backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
       padding: 24, alignItems: 'center', marginBottom: 20,
     },
-    zonesCount: { fontFamily: 'Barlow_300Light', fontSize: 48, color: C.red, letterSpacing: -1 },
-    zonesLabel: { fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.t3, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 4 },
+    zonesCount: { fontSize: 48, color: C.red, letterSpacing: -1 },
+    zonesLabel: { fontWeight: '500', fontSize: 9, color: C.t3, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 4 },
     sectionLabel: {
-      fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.t3,
+      fontWeight: '500', fontSize: 9, color: C.t3,
       letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10,
     },
     listCard: {
@@ -95,8 +95,8 @@ function mkStyles(C: AppColors) {
     zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
     zoneRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.border },
     hexIcon: { fontSize: 20, color: C.red },
-    zoneName: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    zoneTier: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, textTransform: 'capitalize' },
+    zoneName: { fontWeight: '500', fontSize: 13, color: C.black },
+    zoneTier: { fontSize: 11, color: C.t3, textTransform: 'capitalize' },
     zoneTime: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
   });
 }

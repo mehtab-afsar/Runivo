@@ -53,6 +53,7 @@ import LoginScreen           from '@features/auth/screens/LoginScreen';
 import SignUpScreen          from '@features/auth/screens/SignUpScreen';
 import OnboardingScreen      from '@features/auth/screens/OnboardingScreen';
 import PACEStoreScreen       from '@features/store/screens/PACEStoreScreen';
+import RewardDetailScreen    from '@features/store/screens/RewardDetailScreen';
 import CoachPlanScreen      from '@features/coach/screens/CoachPlanScreen';
 import RunReplayScreen      from '@features/run/screens/RunReplayScreen';
 
@@ -122,8 +123,9 @@ export type RootStackParamList = {
   Followers: { userId: string };
   Following: { userId: string };
   AwardDetail: { awardId: string; unlockedAt: string | null };
-  PACEStore:  undefined;
-  CoachPlan:  undefined;
+  PACEStore:    undefined;
+  RewardDetail: { rewardId: string };
+  CoachPlan:    undefined;
   RunReplay: {
     runId: string;
     route: { lat: number; lng: number }[];
@@ -283,8 +285,9 @@ export function AppNavigator({
             <Stack.Screen name="Followers"       component={FollowersScreen}   />
             <Stack.Screen name="Following"       component={FollowingScreen}   />
             <Stack.Screen name="AwardDetail"     component={AwardDetailScreen} options={{ presentation: 'modal' }} />
-            <Stack.Screen name="PACEStore"       component={PACEStoreScreen}   options={{ headerShown: false, presentation: 'modal' }} />
-            <Stack.Screen name="CoachPlan"       component={CoachPlanScreen}   options={{ headerShown: false }} />
+            <Stack.Screen name="PACEStore"       component={PACEStoreScreen}    options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen name="RewardDetail"    component={RewardDetailScreen} options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen name="CoachPlan"       component={CoachPlanScreen}    options={{ headerShown: false }} />
             <Stack.Screen name="RunReplay"       component={RunReplayScreen}   options={{ headerShown: false }} />
           </>
         )}

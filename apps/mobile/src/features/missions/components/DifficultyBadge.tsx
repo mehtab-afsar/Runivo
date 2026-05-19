@@ -24,5 +24,5 @@ export function DifficultyBadge({ difficulty }: DifficultyBadgeProps) {
 
 const ss = StyleSheet.create({
   badge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  text: { fontFamily: 'Barlow_400Regular', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 },
+  text: { fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 },
 });

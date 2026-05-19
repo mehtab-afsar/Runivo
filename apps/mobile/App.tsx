@@ -1,6 +1,10 @@
 // Register background GPS task at app startup — must be the first import
 import './src/features/run/services/locationTask';
 
+// MapLibre requires an access token call even for non-Mapbox tile sources
+import { setAccessToken as maplibreSetAccessToken } from '@maplibre/maplibre-react-native';
+maplibreSetAccessToken('');
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -32,6 +36,8 @@ import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
 import { initSentry, captureException } from './src/shared/services/sentry';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { useSettings } from './src/features/settings/hooks/useSettings';
+import { preloadSounds, setSoundEnabled } from './src/theme/sounds';
+import { setHapticEnabled } from './src/theme/haptics';
 
 initSentry();
 
@@ -44,18 +50,21 @@ if (!__DEV__) {
   ErrorUtils.setGlobalHandler(handler);
 }
 
-// Initialize MapLibre before any map renders (required for non-Mapbox tile sources)
-try {
-  const ML = require('@maplibre/maplibre-react-native');
-  ML.setAccessToken(''); // empty string is required by maplibre-react-native v10 for non-Mapbox tile servers
-} catch { /* native module not linked in this build */ }
-
 // Keep splash visible until fonts and auth state are ready
 SplashScreen.preventAutoHideAsync();
 
 function Root() {
   const { user, loading } = useAuth();
   const { settings } = useSettings();
+
+  useEffect(() => {
+    preloadSounds().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setSoundEnabled(settings.soundEnabled ?? true);
+    setHapticEnabled(settings.hapticEnabled ?? true);
+  }, [settings.soundEnabled, settings.hapticEnabled]);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 

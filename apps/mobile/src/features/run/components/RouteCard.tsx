@@ -1,21 +1,21 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Activity, Flame, Waves, Mountain, Star, Target, TreePine, RefreshCw, Zap, Route as RouteIcon, Map, Trophy, type LucideIcon } from 'lucide-react-native';
+import { Pulse, Fire, Waves, Mountains, Star, Target, TreeEvergreen, ArrowClockwise, Lightning, PathIcon as RouteIcon, MapTrifold, Trophy, type Icon } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
-const ROUTE_ICON_MAP: Record<string, { Icon: LucideIcon; color: string }> = {
-  run:      { Icon: Activity,  color: '#D93518' },
-  flame:    { Icon: Flame,     color: '#EA580C' },
-  waves:    { Icon: Waves,     color: '#0EA5E9' },
-  mountain: { Icon: Mountain,  color: '#78716C' },
-  star:     { Icon: Star,      color: '#F59E0B' },
-  target:   { Icon: Target,    color: '#D93518' },
-  tree:     { Icon: TreePine,  color: '#15803D' },
-  loop:     { Icon: RefreshCw, color: '#7C3AED' },
-  zap:      { Icon: Zap,       color: '#EAB308' },
-  route:    { Icon: RouteIcon, color: '#6B6B6B' },
-  map:      { Icon: Map,       color: '#0284C7' },
-  trophy:   { Icon: Trophy,    color: '#D97706' },
+const ROUTE_ICON_MAP: Record<string, { Icon: Icon; color: string }> = {
+  run:      { Icon: Pulse,          color: '#D93518' },
+  flame:    { Icon: Fire,           color: '#EA580C' },
+  waves:    { Icon: Waves,          color: '#0EA5E9' },
+  mountain: { Icon: Mountains,      color: '#78716C' },
+  star:     { Icon: Star,           color: '#F59E0B' },
+  target:   { Icon: Target,         color: '#D93518' },
+  tree:     { Icon: TreeEvergreen,  color: '#15803D' },
+  loop:     { Icon: ArrowClockwise, color: '#7C3AED' },
+  zap:      { Icon: Lightning,      color: '#EAB308' },
+  route:    { Icon: RouteIcon,      color: '#6B6B6B' },
+  map:      { Icon: MapTrifold,     color: '#0284C7' },
+  trophy:   { Icon: Trophy,         color: '#D97706' },
 };
 
 const FONT_MED   = 'Barlow_500Medium';
@@ -54,7 +54,7 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
       onPress={() => onSelect(route)}
     >
       <View style={[ss.icon, highlighted && { backgroundColor: '#DBEAFE' }]}>
-        {(() => { const entry = ROUTE_ICON_MAP[route.emoji]; return entry ? <entry.Icon size={18} color={entry.color} strokeWidth={1.5} /> : <Activity size={18} color="#D93518" strokeWidth={1.5} />; })()}
+        {(() => { const entry = ROUTE_ICON_MAP[route.emoji]; return entry ? <entry.Icon size={18} color={entry.color} weight="light" /> : <Pulse size={18} color="#D93518" weight="light" />; })()}
       </View>
       <View style={ss.info}>
         <Text style={ss.name} numberOfLines={1}>{route.name}</Text>

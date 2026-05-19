@@ -68,11 +68,11 @@ export default function OnboardingProgress({ step, onBack }: Props) {
 
 const s = StyleSheet.create({
   header:              { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10 },
-  backText:            { fontFamily: 'DMSans_400Regular', fontSize: 13, color: D.t2 },
+  backText:            { fontSize: 13, color: D.t2 },
   chaptersRow:         { flexDirection: 'row', gap: 6, paddingHorizontal: 24, paddingBottom: 12 },
   chapterCol:          { flex: 1, alignItems: 'center' },
   trackBg:             { width: '100%', height: 2, backgroundColor: D.div, borderRadius: 1, overflow: 'hidden', marginBottom: 5 },
   trackFill:           { height: '100%', backgroundColor: D.red, borderRadius: 1 },
-  chapterLabel:        { fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+  chapterLabel:        { fontWeight: '500', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
   chapterLabelActive:  { color: D.red },
 });

@@ -5,24 +5,24 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { X, Activity, Flame, Waves, Mountain, Star, Target, TreePine, RefreshCw, Zap, Route as RouteIcon, Map, Trophy, type LucideIcon } from 'lucide-react-native';
+import { X, Pulse, Fire, Waves, Mountains, Star, Target, TreeEvergreen, ArrowClockwise, Lightning, PathIcon as RouteIcon, MapTrifold, Trophy, type Icon } from 'phosphor-react-native';
 import { saveSavedRoute, type StoredSavedRoute } from '@shared/services/store';
 import { pushSavedRoutes } from '@shared/services/sync';
 import { useTheme, type AppColors } from '@theme';
 
-const ICON_OPTIONS: { key: string; Icon: LucideIcon; color: string }[] = [
-  { key: 'run',     Icon: Activity,   color: '#D93518' },
-  { key: 'flame',   Icon: Flame,      color: '#EA580C' },
-  { key: 'waves',   Icon: Waves,      color: '#0EA5E9' },
-  { key: 'mountain',Icon: Mountain,   color: '#78716C' },
-  { key: 'star',    Icon: Star,       color: '#F59E0B' },
-  { key: 'target',  Icon: Target,     color: '#D93518' },
-  { key: 'tree',    Icon: TreePine,   color: '#15803D' },
-  { key: 'loop',    Icon: RefreshCw,  color: '#7C3AED' },
-  { key: 'zap',     Icon: Zap,        color: '#EAB308' },
-  { key: 'route',   Icon: RouteIcon,  color: '#6B6B6B' },
-  { key: 'map',     Icon: Map,        color: '#0284C7' },
-  { key: 'trophy',  Icon: Trophy,     color: '#D97706' },
+const ICON_OPTIONS: { key: string; Icon: Icon; color: string }[] = [
+  { key: 'run',     Icon: Pulse,          color: '#D93518' },
+  { key: 'flame',   Icon: Fire,           color: '#EA580C' },
+  { key: 'waves',   Icon: Waves,          color: '#0EA5E9' },
+  { key: 'mountain',Icon: Mountains,      color: '#78716C' },
+  { key: 'star',    Icon: Star,           color: '#F59E0B' },
+  { key: 'target',  Icon: Target,         color: '#D93518' },
+  { key: 'tree',    Icon: TreeEvergreen,  color: '#15803D' },
+  { key: 'loop',    Icon: ArrowClockwise, color: '#7C3AED' },
+  { key: 'zap',     Icon: Lightning,      color: '#EAB308' },
+  { key: 'route',   Icon: RouteIcon,      color: '#6B6B6B' },
+  { key: 'map',     Icon: MapTrifold,     color: '#0284C7' },
+  { key: 'trophy',  Icon: Trophy,         color: '#D97706' },
 ];
 interface SaveRouteSheetProps {
   visible: boolean;
@@ -79,13 +79,13 @@ export default function SaveRouteSheet({
         <View style={ss.header}>
           <Text style={ss.title}>Save Route</Text>
           <Pressable style={ss.closeBtn} onPress={onClose} hitSlop={8}>
-            <X size={14} strokeWidth={2} color={C.t2} />
+            <X size={14} weight="regular" color={C.t2} />
           </Pressable>
         </View>
 
         {/* Route info */}
         <View style={ss.infoRow}>
-          <View style={ss.infoIconWrap}>{ICON_OPTIONS.find(o => o.key === emoji) ? (() => { const { Icon, color } = ICON_OPTIONS.find(o => o.key === emoji)!; return <Icon size={22} color={color} strokeWidth={1.5} />; })() : null}</View>
+          <View style={ss.infoIconWrap}>{ICON_OPTIONS.find(o => o.key === emoji) ? (() => { const { Icon, color } = ICON_OPTIONS.find(o => o.key === emoji)!; return <Icon size={22} color={color} weight="light" />; })() : null}</View>
           <View>
             <Text style={ss.infoDistance}>{(distanceM / 1000).toFixed(2)} km</Text>
             {durationSec != null && (
@@ -118,7 +118,7 @@ export default function SaveRouteSheet({
                 style={[ss.emojiBtn, emoji === key && ss.emojiBtnActive]}
                 onPress={() => { setEmoji(key); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
               >
-                <Icon size={18} color={emoji === key ? color : C.t2} strokeWidth={1.5} />
+                <Icon size={18} color={emoji === key ? color : C.t2} weight="light" />
               </Pressable>
             ))}
           </View>
@@ -162,22 +162,22 @@ function mkStyles(C: AppColors) {
     sheet:         { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
     handle:        { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-    title:         { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
+    title:         { fontWeight: '600', fontSize: 16, color: C.black },
     closeBtn:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
     infoRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 12, padding: 12, marginBottom: 14 },
     infoIconWrap:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    infoDistance:  { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
+    infoDistance:  { fontWeight: '600', fontSize: 13, color: C.black },
     infoDuration:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-    input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },
-    sectionLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 8 },
+    input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },
+    sectionLabel:  { fontWeight: '500', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 8 },
     emojiRow:      { flexDirection: 'row', gap: 8 },
     emojiBtn:      { width: 42, height: 42, borderRadius: 10, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     emojiBtnActive:{ backgroundColor: '#FCE8EB', borderWidth: 2, borderColor: C.red },
     toggleRow:     { flexDirection: 'row', alignItems: 'center', borderWidth: 0.5, borderColor: C.border, borderRadius: 12, padding: 12, marginBottom: 16 },
-    toggleLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    toggleSub:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    toggleLabel:   { fontWeight: '500', fontSize: 13, color: C.black },
+    toggleSub:     { fontSize: 11, color: C.t3, marginTop: 2 },
     saveBtn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
     saveBtnDisabled:{ backgroundColor: C.border },
-    saveBtnText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
+    saveBtnText:   { fontWeight: '600', fontSize: 14, color: C.white },
   });
 }

@@ -36,6 +36,13 @@ export const Colors = {
   greenLo: '#EDF7F2',
   redLo:   '#FEF0EE',
   purple:  '#8B5CF6',
+
+  // Semantic aliases for component library
+  accent:              '#D93518',
+  accentMuted:         '#FEF0EE',
+  alwaysLight:         '#FFFFFF',
+  danger:              '#D93518',
+  backgroundSecondary: '#F0EDE8',
 } as const;
 
 export const DarkColors = {
@@ -76,6 +83,13 @@ export const DarkColors = {
   greenLo: '#0C2318',
   redLo:   '#2A0C06',
   purple:  '#8B5CF6',
+
+  // Semantic aliases for component library
+  accent:              '#D93518',
+  accentMuted:         '#2A0C06',
+  alwaysLight:         '#FFFFFF',
+  danger:              '#D93518',
+  backgroundSecondary: '#1A1816',
 } as const;
 
 export type AppColors = Record<keyof typeof Colors, string>;

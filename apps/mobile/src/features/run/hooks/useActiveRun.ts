@@ -7,8 +7,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { feedback } from '@theme';
 import { useGameEngine } from '@shared/hooks/useGameEngine';
 import {
   startBackgroundTracking,
@@ -127,6 +127,7 @@ export function useActiveRun(activityType: string = 'run') {
   const consecutiveGoodPointsRef = useRef(0);
   const prevAltitudeRef        = useRef<number | null>(null);
   const elevationGainRef       = useRef<number>(0);
+  const lastKmRef              = useRef<number>(0);
 
 
   // ── Cleanup on unmount ───────────────────────────────────────────────────────
@@ -299,6 +300,7 @@ export function useActiveRun(activityType: string = 'run') {
         }
         prevAltitudeRef.current = alt;
 
+        if (!isFinite(latitude) || !isFinite(longitude)) return;
         gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10, altitude: alt });
 
         // Throttle React state updates to max 1/sec
@@ -312,6 +314,14 @@ export function useActiveRun(activityType: string = 'run') {
           const elapsedSec = elapsedRef.current > 0 ? elapsedRef.current : 1;
           const pace = formatPace(newDistance / elapsedSec);
           paceRef.current = pace;
+
+          // Km milestone feedback
+          const currentKm = Math.floor(totalDistanceRef.current);
+          if (currentKm > lastKmRef.current) {
+            lastKmRef.current = currentKm;
+            feedback.kmTick();
+          }
+
           return {
             ...prev,
             distance:     Math.round(newDistance * 1000) / 1000,
@@ -328,7 +338,7 @@ export function useActiveRun(activityType: string = 'run') {
       console.warn('[useActiveRun] background tracking unavailable:', err)
     );
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    lastKmRef.current = 0;
   }, [gameEngine]);
 
   // ── Pause / Resume ──────────────────────────────────────────────────────────
@@ -336,7 +346,7 @@ export function useActiveRun(activityType: string = 'run') {
     isPausedRef.current = true;
     setState(prev => ({ ...prev, isPaused: true }));
     pauseStartRef.current = Date.now();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    feedback.runPause();
   }, []);
 
   const resumeRun = useCallback(() => {
@@ -345,7 +355,7 @@ export function useActiveRun(activityType: string = 'run') {
     lastPositionRef.current = null;
     isPausedRef.current = false;
     setState(prev => ({ ...prev, isPaused: false }));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    feedback.runStart();
   }, []);
 
   // ── Finish ──────────────────────────────────────────────────────────────────
@@ -381,7 +391,7 @@ export function useActiveRun(activityType: string = 'run') {
       }
     }
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    feedback.runComplete();
 
     // Use refs — not state — so finalElapsed/finalPace are always current
     const finalDistance = totalDistanceRef.current;

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Modal, SafeAreaView, View, Text, TextInput, Pressable,
   ScrollView, StyleSheet, Platform,
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
@@ -42,6 +42,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
   }, [defaultKcal]);
 
   const canAdd = name.trim().length > 0 && parseFloat(kcal) > 0;
+  const submittingRef = useRef(false);
 
   const applyQuickAdd = (q: typeof QUICK_ADDS[0]) => {
     setName(q.name);
@@ -56,7 +57,8 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
   };
 
   const handleAdd = () => {
-    if (!canAdd) return;
+    if (!canAdd || submittingRef.current) return;
+    submittingRef.current = true;
     onAdd({
       meal, name: name.trim(),
       kcal: parseFloat(kcal) || 0,
@@ -68,6 +70,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
       synced: false,
     });
     reset();
+    submittingRef.current = false;
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -77,7 +80,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
       <SafeAreaView style={s.root}>
         <View style={s.header}>
           <Pressable onPress={handleClose} style={s.closeBtn}>
-            <X size={16} color="#6B6B6B" strokeWidth={2} />
+            <X size={16} color="#6B6B6B" weight="regular" />
           </Pressable>
           <Text style={s.title}>Log Food</Text>
           <View style={{ width: 40 }} />
@@ -159,21 +162,21 @@ const s = StyleSheet.create({
   closeBtn:    { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
   title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: '#0A0A0A' },
   content:     { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
-  sectionLabel:{ fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
+  sectionLabel:{ fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
   mealRow:     { flexDirection: 'row', gap: 6, marginTop: 14, marginBottom: 4 },
   mealBtn:     { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 2 },
   mealBtnActive: { backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' },
-  mealLabel:   { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#6B6B6B' },
-  mealLabelActive: { color: '#fff', fontFamily: 'Barlow_400Regular' },
+  mealLabel:   { fontSize: 9, color: '#6B6B6B' },
+  mealLabelActive: { color: '#fff' },
   chips:       { flexGrow: 0 },
   chipsContent:{ flexDirection: 'row', gap: 6 },
   chip:        { backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2 },
-  chipName:    { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#0A0A0A' },
-  chipKcal:    { fontFamily: 'Barlow_300Light', fontSize: 9, color: '#ADADAD' },
-  fieldLabel:  { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 10, marginBottom: 4 },
-  input:       { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: '#0A0A0A' },
+  chipName:    { fontWeight: '500', fontSize: 11, color: '#0A0A0A' },
+  chipKcal:    { fontSize: 9, color: '#ADADAD' },
+  fieldLabel:  { fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 10, marginBottom: 4 },
+  input:       { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#0A0A0A' },
   row:         { flexDirection: 'row', gap: 8, marginTop: 4 },
   addBtn:      { backgroundColor: '#0A0A0A', borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   addBtnDisabled: { opacity: 0.4 },
-  addBtnLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
+  addBtnLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
 });

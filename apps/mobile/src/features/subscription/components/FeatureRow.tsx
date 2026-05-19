@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Check, X } from 'lucide-react-native';
+import { Check, X } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 interface FeatureRowProps {
@@ -17,8 +17,8 @@ export function FeatureRow({ name, sub, type = 'check' }: FeatureRowProps) {
     <View style={ss.row}>
       <View style={[ss.circle, isCheck ? ss.checkCircle : ss.xCircle]}>
         {isCheck
-          ? <Check size={10} color={C.green} strokeWidth={2} />
-          : <X     size={10} color={C.red}   strokeWidth={2} />
+          ? <Check size={10} color={C.green} weight="regular" />
+          : <X     size={10} color={C.red}   weight="regular" />
         }
       </View>
       <View style={{ flex: 1 }}>
@@ -34,9 +34,9 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   circle: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
   checkCircle: { backgroundColor: C.greenLo },
   xCircle: { backgroundColor: C.redLo },
-  mark: { fontFamily: 'Barlow_700Bold', fontSize: 10 },
+  mark: { fontWeight: '700', fontSize: 10 },
   checkMark: { color: C.green },
   xMark: { color: C.red },
-  name: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 1 },
-  sub: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
+  name: { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 1 },
+  sub: { fontSize: 11, color: C.t2 },
 }); }

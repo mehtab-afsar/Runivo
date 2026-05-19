@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Bell } from 'lucide-react-native';
+import { Bell } from 'phosphor-react-native';
 import { fmtRelativeTime } from '@mobile/shared/lib/formatters';
 import type { AppNotification } from '../types';
 import { NOTIF_CONFIG } from '../types';
@@ -21,7 +21,7 @@ export function NotifItem({ notif, onPress }: Props) {
     <Pressable style={[s.card, !notif.read && s.cardUnread]} onPress={onPress}>
       <View style={[s.iconWrap, { backgroundColor: cfg.bg }]}>
         {cfg.emoji === '__bell__'
-          ? <Bell size={20} color={cfg.fg} strokeWidth={1.5} />
+          ? <Bell size={20} color={cfg.fg} weight="light" />
           : <Text style={s.emoji}>{cfg.emoji}</Text>
         }
       </View>
@@ -40,8 +40,8 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   cardUnread: { borderLeftWidth: 2, borderLeftColor: C.red },
   iconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   emoji: { fontSize: 20 },
-  title: { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 2 },
-  body: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, lineHeight: 17, marginBottom: 4 },
-  time: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
+  title: { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 2 },
+  body: { fontSize: 12, color: C.t2, lineHeight: 17, marginBottom: 4 },
+  time: { fontSize: 10, color: C.t3 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.red, flexShrink: 0, marginLeft: 8 },
 }); }

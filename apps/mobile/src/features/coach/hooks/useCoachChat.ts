@@ -5,6 +5,7 @@ import {
   loadMessageHistory,
   requestTrainingPlan,
   requestHabitTracking,
+  requestNutritionAnalysis,
   fetchCachedTrainingPlan,
   type CoachMessage,
   type TrainingPlan,
@@ -96,6 +97,25 @@ export function useCoachChat() {
     }
   }, [sending]);
 
+  const requestNutritionCoach = useCallback(async () => {
+    if (sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+      const { content } = await requestNutritionAnalysis(session.access_token);
+      const aiMsg: CoachMessage = {
+        id: `opt-nutrition-${Date.now()}`, role: 'assistant', content, created_at: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (e: unknown) {
+      setError((e as Error)?.message ?? 'Failed to load nutrition analysis');
+    } finally {
+      setSending(false);
+    }
+  }, [sending]);
+
   const togglePlanOpen = useCallback(() => setPlanOpen(o => !o), []);
 
   const retryLastMessage = useCallback(() => {
@@ -115,6 +135,7 @@ export function useCoachChat() {
     retryLastMessage,
     generatePlan,
     requestHabitAnalysis,
+    requestNutritionCoach,
     setInputText,
     setGoalInput,
     togglePlanOpen,

@@ -46,6 +46,6 @@ const ss = StyleSheet.create({
   row:        { gap: 6, paddingRight: 8 },
   pill:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.50)' },
   pillActive: { backgroundColor: '#D93518' },
-  label:      { fontFamily: 'Barlow_400Regular', fontSize: 13, color: '#fff' },
-  labelActive:{ fontFamily: 'Barlow_500Medium',  fontSize: 13, color: '#fff' },
+  label:      { fontSize: 13, color: '#fff' },
+  labelActive:{ fontWeight: '500',  fontSize: 13, color: '#fff' },
 });

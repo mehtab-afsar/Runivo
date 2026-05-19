@@ -6,7 +6,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { supabase } from '@shared/services/supabase';
 import { avatarColor as getAvatarColor } from '@shared/lib/avatarUtils';
 import { RANK_COLORS } from '@shared/constants/territory';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -79,7 +79,7 @@ export default function FollowingScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} strokeWidth={2} />
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <Text style={s.title}>Following</Text>
         <View style={{ width: 32 }} />
@@ -147,19 +147,19 @@ function mkStyles(C: AppColors) {
     backBtn:      { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
     searchWrap:   { paddingHorizontal: 16, paddingBottom: 8 },
-    search:       { backgroundColor: C.stone, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.black, borderWidth: 0.5, borderColor: C.border },
+    search:       { backgroundColor: C.stone, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, color: C.black, borderWidth: 0.5, borderColor: C.border },
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:         { paddingHorizontal: 16, paddingBottom: 100 },
     row:          { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     avatar:       { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    avatarText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: '#fff' },
-    name:         { fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
-    handle:       { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+    avatarText:   { fontWeight: '600', fontSize: 16, color: '#fff' },
+    name:         { fontWeight: '500', fontSize: 14, color: C.black },
+    handle:       { fontSize: 11, color: C.t3 },
     rankBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    rankText:     { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 0.3 },
-    unfollowBtn:  { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: C.border },
-    unfollowText: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
+    rankText:     { fontWeight: '500', fontSize: 9, letterSpacing: 0.3 },
+    unfollowBtn:  { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 0.5, borderColor: C.border },
+    unfollowText: { fontSize: 12, color: C.t2 },
     empty:        { alignItems: 'center', paddingVertical: 40 },
-    emptyText:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2 },
+    emptyText:    { fontSize: 13, color: C.t2 },
   });
 }

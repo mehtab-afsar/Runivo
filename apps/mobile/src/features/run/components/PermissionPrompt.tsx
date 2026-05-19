@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { MapPin } from 'lucide-react-native';
+import { MapPin } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 const FONT = 'Barlow_400Regular';
@@ -17,7 +17,7 @@ export default function PermissionPrompt({ onRequest }: PermissionPromptProps) {
   return (
     <View style={ss.container}>
       <View style={ss.iconWrap}>
-        <MapPin size={32} color={C.red} strokeWidth={1.5} />
+        <MapPin size={32} color={C.red} weight="light" />
       </View>
       <Text style={ss.title}>Location Required</Text>
       <Text style={ss.body}>

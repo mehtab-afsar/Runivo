@@ -116,7 +116,7 @@ const ss = StyleSheet.create({
     marginBottom: 12,
   },
   eyebrow: {
-    fontFamily: 'Barlow_500Medium',
+    fontWeight: '500',
     fontSize: 10,
     color: 'rgba(255,255,255,0.5)',
     letterSpacing: 1.5,
@@ -130,19 +130,19 @@ const ss = StyleSheet.create({
     marginBottom: 8,
   },
   bigNumber: {
-    fontFamily: 'Barlow_600SemiBold',
+    fontWeight: '600',
     fontSize: 42,
     color: '#FFFFFF',
     letterSpacing: -1,
     lineHeight: 48,
   },
   bigUnit: {
-    fontFamily: 'Barlow_400Regular',
+    
     fontSize: 13,
     color: 'rgba(255,255,255,0.5)',
   },
   subline: {
-    fontFamily: 'Barlow_300Light',
+    
     fontSize: 12,
     color: 'rgba(255,255,255,0.6)',
     marginTop: 4,
@@ -160,7 +160,7 @@ const ss = StyleSheet.create({
     paddingVertical: 3,
   },
   badgeText: {
-    fontFamily: 'Barlow_500Medium',
+    fontWeight: '500',
     fontSize: 10,
     color: 'rgba(255,255,255,0.8)',
   },

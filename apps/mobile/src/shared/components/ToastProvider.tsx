@@ -8,7 +8,7 @@ import React, {
   useState, useRef, useCallback, useEffect, type ReactNode,
 } from 'react';
 import { Animated, Text, StyleSheet, Platform, View } from 'react-native';
-import { Check, X, AlertTriangle, Info } from 'lucide-react-native';
+import { Check, X, Warning as AlertTriangle, Info, type Icon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ToastContext,
@@ -24,7 +24,7 @@ const BG: Record<ToastType, string> = {
   info:    '#0A0A0A',
 };
 
-const ICON_COMPONENTS: Record<ToastType, React.FC<{ size: number; color: string; strokeWidth: number }>> = {
+const ICON_COMPONENTS: Record<ToastType, Icon> = {
   success: Check,
   error:   X,
   warning: AlertTriangle,
@@ -114,7 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             { opacity, transform: [{ translateY }] },
           ]}
         >
-          <View style={ss.iconWrap}>{React.createElement(ICON_COMPONENTS[current.type], { size: 14, color: '#FFFFFF', strokeWidth: 2 })}</View>
+          <View style={ss.iconWrap}>{React.createElement(ICON_COMPONENTS[current.type], { size: 14, color: '#FFFFFF', weight: 'regular' })}</View>
           <Text style={ss.message} numberOfLines={2}>{current.message}</Text>
         </Animated.View>
       )}
@@ -148,7 +148,7 @@ const ss = StyleSheet.create({
     justifyContent:  'center',
   },
   message: {
-    fontFamily: 'Barlow_500Medium',
+    fontWeight: '500',
     fontSize:   13,
     color:      '#FFFFFF',
     flex:       1,

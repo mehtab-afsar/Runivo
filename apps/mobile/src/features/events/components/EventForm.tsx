@@ -57,15 +57,15 @@ export function EventForm({ saving, error, canSubmit, title, setTitle, eventType
 }
 
 const s = StyleSheet.create({
-  label: { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
-  input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black },
+  label: { fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
+  input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.black },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   typeBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
   typeBtnActive: { backgroundColor: C.black, borderColor: C.black },
-  typeLabel: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
-  typeLabelActive: { color: '#fff', fontFamily: 'Barlow_500Medium' },
-  error: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.red, marginTop: 8 },
+  typeLabel: { fontSize: 12, color: C.t2 },
+  typeLabelActive: { color: '#fff', fontWeight: '500' },
+  error: { fontSize: 12, color: C.red, marginTop: 8 },
   submitBtn: { backgroundColor: C.black, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   submitBtnDisabled: { opacity: 0.4 },
-  submitLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
+  submitLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
 });

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Zap, Lightbulb, BedDouble } from 'lucide-react-native';
+import { Lightning, Lightbulb, Bed as BedDouble } from 'phosphor-react-native';
 import { usePostRunInsights } from '../hooks/usePostRunInsights';
 import { useTheme, type AppColors } from '@theme';
 
@@ -30,7 +30,7 @@ export default function PostRunInsightsCard({ runId, distance, pace }: PostRunIn
     <View style={ss.card}>
       <View style={ss.header}>
         <View style={ss.iconWrap}>
-          <Zap size={14} color={C.purple} strokeWidth={1.5} />
+          <Lightning size={14} color={C.purple} weight="light" />
         </View>
         <Text style={ss.title}>Run Insight</Text>
         {loading && <ActivityIndicator size="small" color={C.purple} style={{ marginLeft: 8 }} />}
@@ -41,10 +41,10 @@ export default function PostRunInsightsCard({ runId, distance, pace }: PostRunIn
           <Text style={ss.body}>{insights.praise}</Text>
           <Text style={[ss.body, ss.bodyMuted]}>{insights.analysis}</Text>
           {insights.suggestion && (
-            <Text style={[ss.body, ss.suggestion]}><Lightbulb size={11} color="#1A6B40" strokeWidth={1.5} /> {insights.suggestion}</Text>
+            <Text style={[ss.body, ss.suggestion]}><Lightbulb size={11} color="#1A6B40" weight="light" /> {insights.suggestion}</Text>
           )}
           {insights.recovery && (
-            <Text style={[ss.body, ss.bodyMuted]}><BedDouble size={11} color="#A39E98" strokeWidth={1.5} /> {insights.recovery}</Text>
+            <Text style={[ss.body, ss.bodyMuted]}><BedDouble size={11} color="#A39E98" weight="light" /> {insights.recovery}</Text>
           )}
         </>
       ) : !loading ? (

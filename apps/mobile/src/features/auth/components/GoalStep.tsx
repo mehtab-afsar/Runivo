@@ -1,13 +1,13 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
-import { Heart, Flame, Zap, Compass, Swords } from 'lucide-react-native';
+import { Heart, Fire, Lightning, Compass, Sword, type Icon } from 'phosphor-react-native';
 import type { OnboardingData } from '../types';
 import { GOAL_OPTIONS } from '../types';
 import { D, shared } from './onboardingStyles';
 
-type IconComp = React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
+type IconComp = Icon;
 const ICONS: Record<OnboardingData['primaryGoal'], IconComp> = {
-  get_fit: Heart, lose_weight: Flame, run_faster: Zap, explore: Compass, compete: Swords,
+  get_fit: Heart, lose_weight: Fire, run_faster: Lightning, explore: Compass, compete: Sword,
 };
 
 const GOAL_HINTS: Record<OnboardingData['primaryGoal'], string> = {
@@ -56,7 +56,7 @@ export default function GoalStep({ primaryGoal, onChange }: Props) {
           >
             <Pressable style={s.row} onPress={() => onChange(opt.key)}>
               <View style={[s.accent, sel && s.accentActive]} />
-              <Icon size={18} color={sel ? D.red : D.t3} strokeWidth={1.5} />
+              <Icon size={18} color={sel ? D.red : D.t3} weight="light" />
               <View style={{ flex: 1 }}>
                 <Text style={[s.label, sel && s.labelSel]}>{opt.label}</Text>
                 <Text style={s.sub}>{opt.sub}</Text>
@@ -76,13 +76,13 @@ export default function GoalStep({ primaryGoal, onChange }: Props) {
 
 const s = StyleSheet.create({
   rule:        { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  row:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: D.div },
+  row:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
   accent:      { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
   accentActive:{ backgroundColor: D.red },
-  label:       { fontFamily: 'DMSans_400Regular', fontSize: 15, color: D.t2 },
-  labelSel:    { fontFamily: 'DMSans_500Medium', color: D.t1 },
-  sub:         { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t3, marginTop: 2 },
+  label:       { fontSize: 15, color: D.t2 },
+  labelSel:    { fontWeight: '500', color: D.t1 },
+  sub:         { fontSize: 12, color: D.t3, marginTop: 2 },
   dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
   hint:        { marginTop: 20, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(200,57,26,0.05)', borderRadius: 8, borderLeftWidth: 2, borderLeftColor: D.red },
-  hintText:    { fontFamily: 'DMSans_300Light', fontSize: 13, color: D.t1, lineHeight: 19 },
+  hintText:    { fontSize: 13, color: D.t1, lineHeight: 19 },
 });

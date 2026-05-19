@@ -21,5 +21,5 @@ export function QuickPrompts({ prompts, onSelect }: Props) {
 const ss = StyleSheet.create({
   container: { paddingHorizontal: 16, gap: 8 },
   btn:       { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12 },
-  label:     { fontFamily: 'DMSans_400Regular', fontSize: 13, color: '#0A0A0A' },
+  label:     { fontSize: 13, color: '#0A0A0A' },
 });

@@ -56,14 +56,14 @@ export function CoachMessageCard({ type, content }: Props) {
 
 const ss = StyleSheet.create({
   card:        { backgroundColor: '#FFFFFF', borderRadius: 14, borderBottomLeftRadius: 4, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, maxWidth: '85%' },
-  headline:    { fontFamily: 'DMSans_500Medium', fontSize: 14, color: '#0A0A0A', marginBottom: 10 },
+  headline:    { fontWeight: '500', fontSize: 14, color: '#0A0A0A', marginBottom: 10 },
   insightRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },
   dot:         { width: 5, height: 5, borderRadius: 3, backgroundColor: '#7C3AED', marginTop: 6, flexShrink: 0 },
-  insightText: { fontFamily: 'DMSans_400Regular', fontSize: 13, color: '#0A0A0A', lineHeight: 20, flex: 1 },
+  insightText: { fontSize: 13, color: '#0A0A0A', lineHeight: 20, flex: 1 },
   statRow:     { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 4 },
-  statValue:   { fontFamily: 'DMSans_500Medium', fontSize: 18, color: '#0A0A0A' },
-  statLabel:   { fontFamily: 'DMSans_300Light', fontSize: 11, color: 'rgba(10,10,10,0.5)' },
+  statValue:   { fontWeight: '500', fontSize: 18, color: '#0A0A0A' },
+  statLabel:   { fontSize: 11, color: 'rgba(10,10,10,0.5)' },
   tipBox:      { marginTop: 10, backgroundColor: 'rgba(124,58,237,0.06)', borderRadius: 8, padding: 10 },
-  tipText:     { fontFamily: 'DMSans_400Regular', fontSize: 12, color: '#0A0A0A', lineHeight: 18 },
-  rawText:     { fontFamily: 'DMSans_400Regular', fontSize: 13, color: '#0A0A0A', lineHeight: 20 },
+  tipText:     { fontSize: 12, color: '#0A0A0A', lineHeight: 18 },
+  rawText:     { fontSize: 13, color: '#0A0A0A', lineHeight: 20 },
 });

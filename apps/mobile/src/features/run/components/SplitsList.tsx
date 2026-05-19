@@ -45,7 +45,7 @@ export default function SplitsList({ splits }: SplitsListProps) {
         const color = barColor(s.pace);
         const barWidth = 20 + ((s.pace - min) / paceRange) * 80;
         return (
-          <View key={i} style={[ss.row, i < splits.length - 1 && { borderBottomWidth: 1, borderBottomColor: C.mid }]}>
+          <View key={i} style={[ss.row, i < splits.length - 1 && { borderBottomWidth: 0.5, borderBottomColor: C.mid }]}>
             <Text style={ss.km}>{s.km}</Text>
             <View style={ss.barContainer}>
               <View style={[ss.bar, { width: `${barWidth}%`, backgroundColor: color }]} />
@@ -60,7 +60,7 @@ export default function SplitsList({ splits }: SplitsListProps) {
 
 const ss = StyleSheet.create({
   container:   { backgroundColor: C.white, borderRadius: 4, overflow: 'hidden' },
-  header:      { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.mid },
+  header:      { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
   headerCell:  { fontFamily: FONT_SEMI, fontSize: 9, letterSpacing: 1, color: C.t3, width: 32 },
   row:         { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
   km:          { fontFamily: FONT_MED, fontSize: 12, color: C.t2, width: 32 },

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, Ac
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { MessageCircle } from 'lucide-react-native';
+import { ChatCircle } from 'phosphor-react-native';
 import { useLobby } from '@features/clubs/hooks/useLobby';
 import { LobbyCard } from '@features/clubs/components/LobbyCard';
 import type { LobbyRoomDisplay } from '@features/clubs/components/LobbyCard';
@@ -24,7 +24,7 @@ const Banner = () => {
   const s = useMemo(() => mkStyles(C), [C]);
   return (
   <View style={s.banner}>
-    <MessageCircle size={18} color={C.red} strokeWidth={1.5} />
+    <ChatCircle size={18} color={C.red} weight="light" />
     <View style={{ flex: 1 }}>
       <Text style={s.bannerTitle}>Be respectful</Text>
       <Text style={s.bannerText}>Keep conversations positive. Toxic behaviour will result in a ban.</Text>
@@ -73,13 +73,13 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    back: { width: 32 }, backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+    back: { width: 32 }, backText: { fontSize: 18, color: C.t2 },
     title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    subtitle: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 1 },
+    subtitle: { fontSize: 11, color: C.t3, marginTop: 1 },
     list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     banner: { backgroundColor: C.redLo, borderRadius: 14, padding: 14, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 8 },
-    bannerTitle: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.red, marginBottom: 2 },
-    bannerText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
+    bannerTitle: { fontWeight: '600', fontSize: 13, color: C.red, marginBottom: 2 },
+    bannerText: { fontSize: 12, color: C.t2 },
   });
 }

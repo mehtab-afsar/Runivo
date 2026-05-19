@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
-  ActivityIndicator,
+  ActivityIndicator, Alert,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withDelay,
@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import HexMark from './HexMark';
 import type { SignUpState } from '../hooks/useSignUp';
+import { signInWithGoogle, signInWithApple } from '../services/socialAuth';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const D = {
@@ -71,10 +72,10 @@ function GoogleIcon() {
 // ── Apple icon ────────────────────────────────────────────────────────────────
 function AppleIcon() {
   return (
-    <Svg width={13} height={15} viewBox="0 0 814 1000">
+    <Svg width={14} height={14} viewBox="0 0 24 24">
       <Path
         fill={D.t1}
-        d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 523 26.3 355.7 26.3 262.7c0-125.1 40.8-191.4 122.8-254 76.2-58.4 177.5-75.8 275.1-75.8 106.3 0 198.5 37.9 267.2 37.9 26.5 0 109.3-37.9 207.9-37.9 74.1 0 157.2 19.8 214.8 74.1zM545.5 80.1c32.7-40.8 57.2-97.8 57.2-154.8 0-8.1-.6-16.3-2-23.3-54.1 2-117.8 35.6-157.1 80.1-30.1 34.2-60.2 91.2-60.2 149.4 0 8.7 1.4 17.4 2 20.7 3.9.6 10.5 1.4 17 1.4 49.2 0 108.2-32.1 143.1-73.5z"
+        d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.32.07 2.24.74 3.01.75.84-.15 1.64-.84 3.03-.91 1.81.1 3.17.9 3.95 2.35-3.44 2.08-2.64 6.89.88 8.25-.65 1.4-1.5 2.79-2.87 4.44zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
       />
     </Svg>
   );
@@ -95,6 +96,19 @@ export default function SignUpForm({
   onGoBack, onGoLogin,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
+
+  async function handleSocialSignIn(provider: 'google' | 'apple') {
+    setSocialLoading(provider);
+    try {
+      if (provider === 'google') await signInWithGoogle();
+      else await signInWithApple();
+    } catch {
+      Alert.alert('Sign in failed', 'Please try again.');
+    } finally {
+      setSocialLoading(null);
+    }
+  }
 
   // Staggered entrance — 70ms between groups
   const navAnim     = useEntrance(0);
@@ -245,12 +259,24 @@ export default function SignUpForm({
 
         {/* Social buttons */}
         <Animated.View style={[s.socialRow, socialAnim]}>
-          <Pressable style={s.socialBtn}>
-            <GoogleIcon />
+          <Pressable
+            style={s.socialBtn}
+            onPress={() => handleSocialSignIn('google')}
+            disabled={!!socialLoading}
+          >
+            {socialLoading === 'google'
+              ? <ActivityIndicator size="small" color={D.t1} />
+              : <GoogleIcon />}
             <Text style={s.socialText}>Google</Text>
           </Pressable>
-          <Pressable style={s.socialBtn}>
-            <AppleIcon />
+          <Pressable
+            style={s.socialBtn}
+            onPress={() => handleSocialSignIn('apple')}
+            disabled={!!socialLoading}
+          >
+            {socialLoading === 'apple'
+              ? <ActivityIndicator size="small" color={D.t1} />
+              : <AppleIcon />}
             <Text style={s.socialText}>Apple</Text>
           </Pressable>
         </Animated.View>
@@ -299,56 +325,56 @@ const s = StyleSheet.create({
 
   // Nav
   nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingBottom: 4 },
-  backText:{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: D.t2 },
+  backText:{ fontSize: 13, color: D.t2 },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoWord:{ fontFamily: 'DMSans_500Medium', fontSize: 14, color: D.t1, letterSpacing: -0.2 },
+  logoWord:{ fontWeight: '500', fontSize: 14, color: D.t1, letterSpacing: -0.2 },
 
   // Scroll / hero
   scroll:  { paddingHorizontal: 24 },
   hero:    { paddingTop: 52 },
-  eyebrow: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 14 },
+  eyebrow: { fontWeight: '500', fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 14 },
   h1:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 46, color: D.t1, lineHeight: 46, marginBottom: 14 },
-  subtext: { fontFamily: 'DMSans_300Light', fontSize: 14, color: D.t2, lineHeight: 21, maxWidth: 240 },
+  subtext: { fontSize: 14, color: D.t2, lineHeight: 21, maxWidth: 240 },
 
   // Divider
   rule:    { height: 1, backgroundColor: D.div, marginTop: 44, marginBottom: 0 },
 
   // Fields
-  field:   { borderBottomWidth: 1, paddingTop: 24, paddingBottom: 10 },
+  field:   { borderBottomWidth: 0.5, paddingTop: 24, paddingBottom: 10 },
   labelRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  label:   { fontFamily: 'DMSans_500Medium', fontSize: 10, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-  counter: { fontFamily: 'DMSans_500Medium', fontSize: 10, color: D.t3 },
+  label:   { fontWeight: '500', fontSize: 10, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+  counter: { fontWeight: '500', fontSize: 10, color: D.t3 },
   counterOver: { color: D.red },
   inputRow:{ flexDirection: 'row', alignItems: 'center' },
-  input:   { fontFamily: 'DMSans_300Light', fontSize: 16, color: D.t1, paddingVertical: 0, flex: 1 },
+  input:   { fontSize: 16, color: D.t1, paddingVertical: 0, flex: 1 },
   toggleBtn:{ paddingLeft: 12 },
-  toggleText: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: D.t2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  toggleText: { fontWeight: '500', fontSize: 11, color: D.t2, letterSpacing: 0.5 },
 
   // Errors
-  errText:       { fontFamily: 'DMSans_400Regular', fontSize: 11, color: D.red, marginTop: 10 },
+  errText:       { fontSize: 11, color: D.red, marginTop: 10 },
   emailExistsRow:{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
-  emailExistsBase: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: D.t2 },
-  emailExistsLink: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: D.t1, textDecorationLine: 'underline' },
-  rateLimitText: { fontFamily: 'DMSans_400Regular', fontSize: 11, color: '#C27F00', marginTop: 10 },
+  emailExistsBase: { fontSize: 12, color: D.t2 },
+  emailExistsLink: { fontWeight: '500', fontSize: 12, color: D.t1, textDecorationLine: 'underline' },
+  rateLimitText: { fontSize: 11, color: '#C27F00', marginTop: 10 },
 
   // OR divider
   orRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, marginBottom: 16 },
   orLine:  { flex: 1, height: 1, backgroundColor: D.div },
-  orLabel: { fontFamily: 'DMSans_400Regular', fontSize: 11, color: D.t3, textTransform: 'uppercase', letterSpacing: 0.5 },
+  orLabel: { fontSize: 11, color: D.t3, letterSpacing: 0.5 },
 
   // Social
   socialRow: { flexDirection: 'row', gap: 12 },
-  socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: D.div, borderRadius: 8, paddingVertical: 13 },
-  socialText:{ fontFamily: 'DMSans_400Regular', fontSize: 13, color: D.t1 },
+  socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 0.5, borderColor: D.div, borderRadius: 8, paddingVertical: 13 },
+  socialText:{ fontSize: 13, color: D.t1 },
 
   // CTA
   ctaWrap:    { marginTop: 20 },
   ctaBtn:     { backgroundColor: D.t1, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   ctaDisabled:{ backgroundColor: '#555' },
-  ctaLabel:   { fontFamily: 'DMSans_500Medium', fontSize: 13, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.8 },
+  ctaLabel:   { fontWeight: '500', fontSize: 13, color: '#fff', letterSpacing: 0.8 },
 
   // Sign in link
   signinRow:  { marginTop: 20, alignItems: 'center' },
-  signinText: { fontFamily: 'DMSans_300Light', fontSize: 13, color: D.t2 },
-  signinLink: { fontFamily: 'DMSans_500Medium', fontSize: 13, color: D.t1, textDecorationLine: 'underline' },
+  signinText: { fontSize: 13, color: D.t2 },
+  signinLink: { fontWeight: '500', fontSize: 13, color: D.t1, textDecorationLine: 'underline' },
 });

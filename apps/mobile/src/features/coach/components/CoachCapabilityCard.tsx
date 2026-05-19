@@ -29,6 +29,6 @@ const ss = StyleSheet.create({
   card:    { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 13, borderBottomWidth: 0.5 },
   pressed: { backgroundColor: 'rgba(10,10,10,0.03)' },
   icon:    { fontSize: 20, width: 30, textAlign: 'center' },
-  label:   { fontFamily: 'DMSans_500Medium', fontSize: 14 },
-  desc:    { fontFamily: 'DMSans_300Light', fontSize: 11, marginTop: 2 },
+  label:   { fontWeight: '500', fontSize: 14 },
+  desc:    { fontSize: 11, marginTop: 2 },
 });

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, Alert } from 'react-native';
-import { Footprints } from 'lucide-react-native';
+import { Footprints } from 'phosphor-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme, type AppColors } from '@theme';
 
@@ -45,7 +45,7 @@ export function PhotoPicker({ uri, onPick }: PhotoPickerProps) {
     <View style={s.row}>
       {uri
         ? <Image source={{ uri }} style={s.thumb} />
-        : <View style={s.placeholder}><Footprints size={28} color="#6B6B6B" strokeWidth={1.5} /></View>
+        : <View style={s.placeholder}><Footprints size={28} color="#6B6B6B" weight="light" /></View>
       }
       <View style={{ gap: 8, flex: 1 }}>
         <Pressable style={s.btn} onPress={takePhoto}>
@@ -71,5 +71,5 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     backgroundColor: C.white, borderRadius: 8, borderWidth: 0.5, borderColor: C.border,
     paddingVertical: 8, paddingHorizontal: 12,
   },
-  btnText: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black },
+  btnText: { fontSize: 12, color: C.black },
 }); }

@@ -30,6 +30,6 @@ const s = StyleSheet.create({
     alignItems: 'center', gap: 4,
   },
   btnActive: { backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' },
-  label: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#6B6B6B' },
-  labelActive: { color: '#fff', fontFamily: 'Barlow_500Medium' },
+  label: { fontSize: 11, color: '#6B6B6B' },
+  labelActive: { color: '#fff', fontWeight: '500' },
 });

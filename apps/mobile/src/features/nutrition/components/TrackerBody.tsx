@@ -51,5 +51,5 @@ export function TrackerBody({ profile, entries, consumed, pct, proteinConsumed, 
 const s = StyleSheet.create({
   card: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14 },
   logBtn: { backgroundColor: '#0A0A0A', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  logBtnLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
+  logBtnLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
 });

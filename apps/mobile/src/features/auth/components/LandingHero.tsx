@@ -20,7 +20,7 @@ export default function LandingHero() {
 const s = StyleSheet.create({
   wrap:     { alignItems: 'flex-start', paddingHorizontal: 28 },
   tagline:  {
-    fontFamily: 'Barlow_400Regular', fontSize: 9, color: '#ADADAD',
+    fontSize: 9, color: '#ADADAD',
     letterSpacing: 2.5, textTransform: 'uppercase', marginTop: 20, marginBottom: 14,
   },
   headline: {
@@ -29,6 +29,6 @@ const s = StyleSheet.create({
   },
   red:      { color: '#D93518' },
   subtitle: {
-    fontFamily: 'Barlow_300Light', fontSize: 13, color: '#6B6B6B', lineHeight: 20,
+    fontSize: 13, color: '#6B6B6B', lineHeight: 20,
   },
 });

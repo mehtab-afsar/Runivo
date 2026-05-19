@@ -29,7 +29,7 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   swatch: {
     width: 28, height: 28, borderRadius: 14,
-    borderWidth: 1, borderColor: 'transparent',
+    borderWidth: 0.5, borderColor: 'transparent',
   },
   swatchSelected: {
     borderWidth: 2, borderColor: '#0A0A0A',

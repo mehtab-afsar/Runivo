@@ -26,7 +26,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrap:  { alignItems: 'flex-end' },
     score: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 26, color: C.black, fontStyle: 'italic' },
-    label: { fontFamily: 'Barlow_500Medium', fontSize: 9, letterSpacing: 1.2, color: C.t3, marginTop: 2 },
-    rank:  { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.red, marginTop: 1 },
+    label: { fontWeight: '500', fontSize: 9, letterSpacing: 1.2, color: C.t3, marginTop: 2 },
+    rank:  { fontSize: 10, color: C.red, marginTop: 1 },
   });
 }

@@ -26,8 +26,8 @@ export function PaceAutoCard({ message, onReadMore }: Props) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card:     { backgroundColor: C.surface, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginHorizontal: 16, marginBottom: 16 },
-    label:    { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.purple, letterSpacing: 0.8, marginBottom: 8 },
-    body:     { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black, lineHeight: 20 },
-    readMore: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2, marginTop: 8 },
+    label:    { fontSize: 10, color: C.purple, letterSpacing: 0.8, marginBottom: 8 },
+    body:     { fontSize: 14, color: C.black, lineHeight: 20 },
+    readMore: { fontSize: 12, color: C.t2, marginTop: 8 },
   });
 }

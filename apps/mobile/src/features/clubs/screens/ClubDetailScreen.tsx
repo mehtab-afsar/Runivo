@@ -8,7 +8,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Users, Activity, ClipboardList, Check, X, Heart, Flame, Dumbbell, ThumbsUp, Smile, Laugh } from 'lucide-react-native';
+import { ArrowLeft, Users, Pulse, ClipboardText, Check, X, Heart, Fire, Barbell, ThumbsUp, Smiley, SmileyXEyes, type Icon } from 'phosphor-react-native';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
@@ -31,14 +31,14 @@ import { useTheme, type AppColors } from '@theme';
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
 
-type ReactionEntry = { id: string; Icon: React.ComponentType<{ size: number; color: string; strokeWidth: number }>; color: string; emoji: string };
+type ReactionEntry = { id: string; Icon: Icon; color: string; emoji: string };
 const REACTION_ENTRIES: ReactionEntry[] = [
   { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
-  { id: 'flame',    Icon: Flame,    color: '#EA580C', emoji: '🔥' },
-  { id: 'dumbbell', Icon: Dumbbell, color: '#7C3AED', emoji: '💪' },
+  { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
+  { id: 'dumbbell', Icon: Barbell,  color: '#7C3AED', emoji: '💪' },
   { id: 'thumbsup', Icon: ThumbsUp, color: '#2563EB', emoji: '👏' },
-  { id: 'smile',    Icon: Smile,    color: '#D97706', emoji: '🤣' },
-  { id: 'laugh',    Icon: Laugh,    color: '#059669', emoji: '😮' },
+  { id: 'smile',    Icon: Smiley,   color: '#D97706', emoji: '🤣' },
+  { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
 ];
 
 const BADGE_EMOJIS = [
@@ -85,14 +85,14 @@ function MemberRow({ member, rank, onPress }: { member: ClubMember; rank?: numbe
 function mkMrStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
-    rank:      { width: 28, textAlign: 'center', fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.t2 },
+    rank:      { width: 28, textAlign: 'center', fontWeight: '600', fontSize: 13, color: C.t2 },
     avatar:    { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    avatarText:{ fontFamily: 'Barlow_700Bold', fontSize: 12, color: C.white },
+    avatarText:{ fontWeight: '700', fontSize: 12, color: C.white },
     nameRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    name:      { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+    name:      { fontWeight: '500', fontSize: 13, color: C.black },
     adminBadge:{ backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-    adminText: { fontFamily: 'Barlow_600SemiBold', fontSize: 9, color: C.red, letterSpacing: 0.4 },
-    meta:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    adminText: { fontWeight: '600', fontSize: 9, color: C.red, letterSpacing: 0.4 },
+    meta:      { fontSize: 11, color: C.t3, marginTop: 2 },
     kmVal:     { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
     kmUnit:    { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
   });
@@ -132,10 +132,10 @@ function mkArStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.border },
     avatar:    { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
-    avatarText:{ fontFamily: 'Barlow_700Bold', fontSize: 11, color: C.white },
-    text:      { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2, lineHeight: 18 },
-    username:  { fontFamily: 'Barlow_600SemiBold', color: C.black },
-    time:      { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    avatarText:{ fontWeight: '700', fontSize: 11, color: C.white },
+    text:      { fontSize: 12, color: C.t2, lineHeight: 18 },
+    username:  { fontWeight: '600', color: C.black },
+    time:      { fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }
 
@@ -270,16 +270,16 @@ export default function ClubDetailScreen() {
       {/* Header */}
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={20} color={C.t2} strokeWidth={1.5} />
+          <ArrowLeft size={20} color={C.t2} weight="light" />
         </Pressable>
         <View style={s.headerCenter}>
-          <View style={s.emoji}><BadgeIcon size={26} color={badgeColor} strokeWidth={1.5} /></View>
+          <View style={s.emoji}><BadgeIcon size={26} color={badgeColor} weight="light" /></View>
           <View>
             <Text style={s.title} numberOfLines={1}>{clubName}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Users size={10} color={C.t3} strokeWidth={1.5} />
+              <Users size={10} color={C.t3} weight="light" />
               <Text style={s.subtitle}>{memberCount} · </Text>
-              <Activity size={10} color={C.t3} strokeWidth={1.5} />
+              <Pulse size={10} color={C.t3} weight="light" />
               <Text style={s.subtitle}>{totalKm.toFixed(0)} km</Text>
             </View>
           </View>
@@ -312,7 +312,7 @@ export default function ClubDetailScreen() {
             <View style={s.loader}><ActivityIndicator color={C.red} /></View>
           ) : messages.length === 0 ? (
             <View style={s.empty}>
-              <BadgeIcon size={40} color={badgeColor} strokeWidth={1.5} />
+              <BadgeIcon size={40} color={badgeColor} weight="light" />
               <Text style={s.emptyTitle}>No messages yet</Text>
               <Text style={s.emptyText}>Start the conversation with your club!</Text>
             </View>
@@ -406,7 +406,7 @@ export default function ClubDetailScreen() {
             }
             ListEmptyComponent={
               <View style={s.empty}>
-                <ClipboardList size={36} color={C.t3} strokeWidth={1.5} />
+                <ClipboardText size={36} color={C.t3} weight="light" />
                 <Text style={s.emptyTitle}>No activity yet</Text>
                 <Text style={s.emptyText}>Club runs and events will appear here.</Text>
               </View>
@@ -447,7 +447,7 @@ export default function ClubDetailScreen() {
           <Text style={[s.sectionLabel, { marginTop: 20 }]}>CLUB BADGE</Text>
           <View style={s.adminCard}>
             <View style={s.badgeRow}>
-              <View style={s.bigEmoji}><BadgeIcon size={40} color={badgeColor} strokeWidth={1.5} /></View>
+              <View style={s.bigEmoji}><BadgeIcon size={40} color={badgeColor} weight="light" /></View>
               <Pressable style={s.changeBtn} onPress={() => setShowEmojiPicker(true)}>
                 <Text style={s.changeBtnText}>Change Badge</Text>
               </Pressable>
@@ -473,10 +473,10 @@ export default function ClubDetailScreen() {
                   <Text style={s.reqTime}>{new Date(req.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
                 </View>
                 <Pressable style={s.approveBtn} onPress={() => handleApprove(req)}>
-                  <Check size={14} color={C.green} strokeWidth={2} />
+                  <Check size={14} color={C.green} weight="regular" />
                 </Pressable>
                 <Pressable style={s.rejectBtn} onPress={() => handleReject(req)}>
-                  <X size={14} color={C.red} strokeWidth={2} />
+                  <X size={14} color={C.red} weight="regular" />
                 </Pressable>
               </View>
             ))
@@ -501,7 +501,7 @@ export default function ClubDetailScreen() {
                     setReactingMsgId(null);
                   }}
                 >
-                  <entry.Icon size={22} color={entry.color} strokeWidth={1.5} />
+                  <entry.Icon size={22} color={entry.color} weight="light" />
                 </Pressable>
               ))}
             </View>
@@ -519,7 +519,7 @@ export default function ClubDetailScreen() {
                 const { icon: PickIcon, color: pickColor } = getEmojiIcon(emoji);
                 return (
                   <Pressable key={emoji} style={s.badgePickerBtn} onPress={() => handleBadgeSelect(emoji)}>
-                    <PickIcon size={22} color={pickColor} strokeWidth={1.5} />
+                    <PickIcon size={22} color={pickColor} weight="light" />
                   </Pressable>
                 );
               })}
@@ -536,50 +536,50 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1, backgroundColor: C.bg },
     header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:     { width: 32 },
-    backText:    { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+    backText:    { fontSize: 18, color: C.t2 },
     headerCenter:{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' },
     emoji:       { alignItems: 'center', justifyContent: 'center' },
     title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-    subtitle:    { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+    subtitle:    { fontSize: 11, color: C.t3 },
     // Tab bar
     tabScroll:   { flexGrow: 0, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     tabBar:      { flexDirection: 'row', paddingHorizontal: 4 },
     tabBtn:      { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
     tabBtnActive:{ borderBottomColor: C.red },
-    tabLabel:    { fontFamily: 'Barlow_400Regular', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
-    tabLabelActive: { fontFamily: 'Barlow_600SemiBold', color: C.red },
+    tabLabel:    { fontSize: 12, letterSpacing: 0.8, color: C.t3 },
+    tabLabelActive: { fontWeight: '600', color: C.red },
     // Common
     loader:      { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty:       { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
     emptyTitle:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-    emptyText:   { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center' },
+    emptyText:   { fontSize: 12, color: C.t2, textAlign: 'center' },
     listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
-    sectionLabel:{ fontFamily: 'Barlow_300Light', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: C.t3, marginBottom: 10 },
+    sectionLabel:{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: C.t3, marginBottom: 10 },
     // Admin
     adminContent:{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100, gap: 0 },
     adminCard:   { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 4 },
-    descInput:   { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.black, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
+    descInput:   { fontSize: 13, color: C.black, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
     saveBtn:     { marginTop: 10, backgroundColor: C.black, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
-    saveBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.white },
+    saveBtnText: { fontWeight: '600', fontSize: 12, color: C.white },
     badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
     bigEmoji:    { alignItems: 'center', justifyContent: 'center' },
     changeBtn:   { backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: C.border },
-    changeBtnText: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
-    noRequestsText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3, textAlign: 'center' },
+    changeBtnText: { fontWeight: '500', fontSize: 12, color: C.black },
+    noRequestsText: { fontSize: 12, color: C.t3, textAlign: 'center' },
     requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
     reqAvatar:   { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-    reqAvatarText: { fontFamily: 'Barlow_700Bold', fontSize: 12, color: C.white },
-    reqName:     { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    reqTime:     { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    reqAvatarText: { fontWeight: '700', fontSize: 12, color: C.white },
+    reqName:     { fontWeight: '500', fontSize: 13, color: C.black },
+    reqTime:     { fontSize: 10, color: C.t3, marginTop: 2 },
     approveBtn:  { width: 34, height: 34, borderRadius: 17, backgroundColor: '#EDF7F2', borderWidth: 0.5, borderColor: '#1A6B40', alignItems: 'center', justifyContent: 'center' },
-    approveBtnText: { fontFamily: 'Barlow_700Bold', fontSize: 13, color: C.green },
+    approveBtnText: { fontWeight: '700', fontSize: 13, color: C.green },
     rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FEF0EE', borderWidth: 0.5, borderColor: C.red, alignItems: 'center', justifyContent: 'center' },
-    rejectBtnText: { fontFamily: 'Barlow_700Bold', fontSize: 13, color: C.red },
+    rejectBtnText: { fontWeight: '700', fontSize: 13, color: C.red },
     // Reaction picker
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
     picker:      { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
-    pickerLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.t2, letterSpacing: 0.4 },
+    pickerLabel: { fontWeight: '600', fontSize: 12, color: C.t2, letterSpacing: 0.4 },
     emojiRow:    { flexDirection: 'row', gap: 8 },
     emojiBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center' },
     emojiChar:   { fontSize: 22 },

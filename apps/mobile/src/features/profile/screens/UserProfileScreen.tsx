@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIn
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { UserPlus, MessageSquare, Check, MapPin } from 'lucide-react-native';
+import { UserPlus, Chat, Check, MapPin } from 'phosphor-react-native';
 import { supabase } from '@shared/services/supabase';
 import { Avatar } from '../components/Avatar';
 import { avatarColor } from '@shared/lib/avatarUtils';
@@ -99,7 +99,7 @@ export default function UserProfileScreen() {
             {user?.bio ? <Text style={s.bio}>{user.bio}</Text> : null}
             {user?.location ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <MapPin size={11} color={C.t3} strokeWidth={1.5} />
+                <MapPin size={11} color={C.t3} weight="light" />
                 <Text style={s.location}>{user.location}</Text>
               </View>
             ) : null}
@@ -114,16 +114,16 @@ export default function UserProfileScreen() {
                   disabled={followLoading}
                 >
                   {isFollowing ? (
-                    <Check size={14} color={C.black} strokeWidth={2} />
+                    <Check size={14} color={C.black} weight="regular" />
                   ) : (
-                    <UserPlus size={14} color={C.white} strokeWidth={2} />
+                    <UserPlus size={14} color={C.white} weight="regular" />
                   )}
                   <Text style={[s.followBtnLabel, isFollowing && s.followingBtnLabel]}>
                     {isFollowing ? 'Following' : 'Follow'}
                   </Text>
                 </Pressable>
                 <Pressable style={[s.messageBtn, s.messageBtnDisabled]} disabled>
-                  <MessageSquare size={14} color={C.t3} strokeWidth={1.5} />
+                  <Chat size={14} color={C.t3} weight="light" />
                   <Text style={[s.messageBtnLabel, s.messageBtnLabelDisabled]}>Message</Text>
                 </Pressable>
               </View>
@@ -155,25 +155,25 @@ function mkStyles(C: AppColors) {
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
     backBtn:      { width: 32 },
-    backText:     { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.t2 },
+    backText:     { fontSize: 18, color: C.t2 },
     title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
     profileSection:{ alignItems: 'center', padding: 24, gap: 6 },
-    displayName:  { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, marginTop: 8 },
-    bio:          { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18, maxWidth: 280 },
-    location:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
-    level:        { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.red },
+    displayName:  { fontWeight: '600', fontSize: 20, color: C.black, marginTop: 8 },
+    bio:          { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18, maxWidth: 280 },
+    location:     { fontSize: 11, color: C.t3 },
+    level:        { fontSize: 11, color: C.red },
     actions:      { flexDirection: 'row', gap: 10, marginTop: 16 },
     followBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 18, paddingVertical: 10 },
     followingBtn: { backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
-    followBtnLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.white },
+    followBtnLabel:   { fontWeight: '500', fontSize: 13, color: C.white },
     followingBtnLabel:{ color: C.black },
     messageBtn:   { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.stone, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 18, paddingVertical: 10 },
     messageBtnDisabled: { opacity: 0.45 },
-    messageBtnLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
+    messageBtnLabel:  { fontWeight: '500', fontSize: 13, color: C.black },
     messageBtnLabelDisabled: { color: C.t3 },
     statsGrid:    { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     statCell:     { flex: 1, alignItems: 'center', paddingVertical: 16, borderRightWidth: 0.5, borderRightColor: C.border },
     statValue:    { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, letterSpacing: -0.5 },
-    statLabel:    { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    statLabel:    { fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }

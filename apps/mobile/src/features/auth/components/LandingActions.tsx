@@ -31,16 +31,16 @@ const s = StyleSheet.create({
     paddingVertical: 15, alignItems: 'center', marginBottom: 14,
   },
   btnPrimaryLabel: {
-    fontFamily: 'Barlow_500Medium', fontSize: 12,
+    fontWeight: '500', fontSize: 12,
     color: '#FFFFFF', letterSpacing: 1.2,
   },
   btnSecondary: { alignItems: 'center', paddingVertical: 6, marginBottom: 16 },
   btnSecondaryLabel: {
-    fontFamily: 'Barlow_400Regular', fontSize: 12,
+    fontSize: 12,
     color: '#6B6B6B', letterSpacing: 0.8,
   },
   footer: {
-    fontFamily: 'Barlow_300Light', fontSize: 10,
+    fontSize: 10,
     color: '#ADADAD', textAlign: 'center',
   },
 });

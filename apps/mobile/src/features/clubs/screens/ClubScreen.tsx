@@ -8,12 +8,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import {
-  MapPin, Globe, Flag, Activity, Users, X, Plus, Check,
-  Flame, Zap, Trophy, Shield, Navigation, Dumbbell, Target, Medal,
-  Rocket, Star, Swords, Waves, Mountain, Gem, Crown, Leaf,
-  Footprints, Bike, UserCheck, Lock, ArrowLeft, Award,
-  type LucideIcon,
-} from 'lucide-react-native';
+  MapPin, Globe, Flag, Pulse, Users, X, Plus, Check,
+  Fire, Lightning, Trophy, Shield, NavigationArrow, Barbell, Target, Medal,
+  Rocket, Star, Sword, Waves, Mountains, Diamond, Crown, Leaf,
+  Footprints, Bicycle, UserCheck, Lock, ArrowLeft, Seal,
+  type Icon,
+} from 'phosphor-react-native';
 import { useClubs } from '@features/clubs/hooks/useClubs';
 import { SearchBar } from '@features/clubs/components/SearchBar';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
@@ -44,30 +44,30 @@ const SCOPES: { value: RankingScope; label: string }[] = [
   { value: 'international', label: 'International' },
 ];
 
-const BADGE_OPTIONS: { emoji: string; Icon: LucideIcon; color: string; bg: string; label: string }[] = [
-  { emoji: '🏃',  Icon: Activity,   color: '#D93518', bg: '#FDE8E4', label: 'Runner'    },
-  { emoji: '🔥',  Icon: Flame,      color: '#EA580C', bg: '#FFEDD5', label: 'Fire'      },
-  { emoji: '⚡',  Icon: Zap,        color: '#CA8A04', bg: '#FEF9C3', label: 'Lightning' },
-  { emoji: '🏆',  Icon: Trophy,     color: '#D97706', bg: '#FEF3C7', label: 'Trophy'    },
-  { emoji: '🌍',  Icon: Globe,      color: '#0284C7', bg: '#E0F2FE', label: 'Global'    },
-  { emoji: '🛡️', Icon: Shield,     color: '#059669', bg: '#D1FAE5', label: 'Shield'    },
-  { emoji: '🧭',  Icon: Navigation, color: '#475569', bg: '#F1F5F9', label: 'Compass'   },
-  { emoji: '💪',  Icon: Dumbbell,   color: '#7C3AED', bg: '#EDE9FE', label: 'Strong'    },
-  { emoji: '🎯',  Icon: Target,     color: '#D93518', bg: '#FDE8E4', label: 'Target'    },
-  { emoji: '🏅',  Icon: Medal,      color: '#B45309', bg: '#FEF3C7', label: 'Medal'     },
-  { emoji: '🚀',  Icon: Rocket,     color: '#8B5CF6', bg: '#EDE9FE', label: 'Rocket'    },
-  { emoji: '🌟',  Icon: Star,       color: '#F59E0B', bg: '#FEF9C3', label: 'Star'      },
-  { emoji: '⚔️', Icon: Swords,     color: '#DC2626', bg: '#FEE2E2', label: 'Battle'    },
-  { emoji: '🌊',  Icon: Waves,      color: '#0EA5E9', bg: '#E0F2FE', label: 'Waves'     },
-  { emoji: '🏔️', Icon: Mountain,   color: '#78716C', bg: '#F5F5F4', label: 'Mountain'  },
-  { emoji: '💎',  Icon: Gem,        color: '#06B6D4', bg: '#CFFAFE', label: 'Diamond'   },
-  { emoji: '👑',  Icon: Crown,      color: '#D97706', bg: '#FEF3C7', label: 'Crown'     },
-  { emoji: '👟',  Icon: Footprints, color: '#6B7280', bg: '#F3F4F6', label: 'Stride'    },
-  { emoji: '🚴',  Icon: Bike,       color: '#0284C7', bg: '#E0F2FE', label: 'Cycle'     },
-  { emoji: '🌿',  Icon: Leaf,       color: '#15803D', bg: '#DCFCE7', label: 'Nature'    },
+const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; label: string }[] = [
+  { emoji: '🏃',  Icon: Pulse,          color: '#D93518', bg: '#FDE8E4', label: 'Runner'    },
+  { emoji: '🔥',  Icon: Fire,           color: '#EA580C', bg: '#FFEDD5', label: 'Fire'      },
+  { emoji: '⚡',  Icon: Lightning,      color: '#CA8A04', bg: '#FEF9C3', label: 'Lightning' },
+  { emoji: '🏆',  Icon: Trophy,         color: '#D97706', bg: '#FEF3C7', label: 'Trophy'    },
+  { emoji: '🌍',  Icon: Globe,          color: '#0284C7', bg: '#E0F2FE', label: 'Global'    },
+  { emoji: '🛡️', Icon: Shield,         color: '#059669', bg: '#D1FAE5', label: 'Shield'    },
+  { emoji: '🧭',  Icon: NavigationArrow,color: '#475569', bg: '#F1F5F9', label: 'Compass'   },
+  { emoji: '💪',  Icon: Barbell,        color: '#7C3AED', bg: '#EDE9FE', label: 'Strong'    },
+  { emoji: '🎯',  Icon: Target,         color: '#D93518', bg: '#FDE8E4', label: 'Target'    },
+  { emoji: '🏅',  Icon: Medal,          color: '#B45309', bg: '#FEF3C7', label: 'Medal'     },
+  { emoji: '🚀',  Icon: Rocket,         color: '#8B5CF6', bg: '#EDE9FE', label: 'Rocket'    },
+  { emoji: '🌟',  Icon: Star,           color: '#F59E0B', bg: '#FEF9C3', label: 'Star'      },
+  { emoji: '⚔️', Icon: Sword,          color: '#DC2626', bg: '#FEE2E2', label: 'Battle'    },
+  { emoji: '🌊',  Icon: Waves,          color: '#0EA5E9', bg: '#E0F2FE', label: 'Waves'     },
+  { emoji: '🏔️', Icon: Mountains,      color: '#78716C', bg: '#F5F5F4', label: 'Mountain'  },
+  { emoji: '💎',  Icon: Diamond,        color: '#06B6D4', bg: '#CFFAFE', label: 'Diamond'   },
+  { emoji: '👑',  Icon: Crown,          color: '#D97706', bg: '#FEF3C7', label: 'Crown'     },
+  { emoji: '👟',  Icon: Footprints,     color: '#6B7280', bg: '#F3F4F6', label: 'Stride'    },
+  { emoji: '🚴',  Icon: Bicycle,        color: '#0284C7', bg: '#E0F2FE', label: 'Cycle'     },
+  { emoji: '🌿',  Icon: Leaf,           color: '#15803D', bg: '#DCFCE7', label: 'Nature'    },
 ];
 
-const JOIN_POLICIES: { value: JoinPolicy; label: string; desc: string; Icon: LucideIcon; color: string }[] = [
+const JOIN_POLICIES: { value: JoinPolicy; label: string; desc: string; Icon: Icon; color: string }[] = [
   { value: 'open',    label: 'Open',     desc: 'Anyone can join',        Icon: Users,     color: '#059669' },
   { value: 'request', label: 'Request',  desc: 'Approve new members',    Icon: UserCheck, color: '#D97706' },
   { value: 'invite',  label: 'Invite',   desc: 'Invitation required',    Icon: Lock,      color: '#7C3AED' },
@@ -83,7 +83,7 @@ function RankingRow({ club, rank, onPress, isLast }: { club: Club; rank: number;
     <Pressable style={[r.row, !isLast && r.rowBorder]} onPress={onPress}>
       <Text style={r.rank}>{rank}</Text>
       <View style={[r.avatar, { backgroundColor: bg + '30' }]}>
-        <BadgeIcon size={18} color={badgeColor} strokeWidth={1.5} />
+        <BadgeIcon size={18} color={badgeColor} weight="light" />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={r.name} numberOfLines={1}>{club.name}</Text>
@@ -103,15 +103,15 @@ function mkRStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.white },
     rowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    rank:      { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3, width: 20, textAlign: 'center' },
+    rank:      { fontSize: 13, color: C.t3, width: 20, textAlign: 'center' },
     avatar:    { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    name:      { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    meta:      { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 1 },
+    name:      { fontWeight: '500', fontSize: 13, color: C.black },
+    meta:      { fontSize: 10, color: C.t3, marginTop: 1 },
     cols:      { flexDirection: 'row', alignItems: 'center', gap: 24 },
-    colVal:    { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.black, textAlign: 'right', width: 56 },
-    colUnit:   { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3 },
+    colVal:    { fontSize: 12, color: C.black, textAlign: 'right', width: 56 },
+    colUnit:   { fontSize: 9, color: C.t3 },
     tierBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-    tierText:  { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase' as const },
+    tierText:  { fontWeight: '500', fontSize: 9, textTransform: 'uppercase' as const },
   });
 }
 
@@ -158,7 +158,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
           <View style={cs.sheetHeader}>
             <Text style={cs.sheetTitle}>Create Club</Text>
             <Pressable style={cs.closeBtn} onPress={onClose}>
-              <X size={14} color={C.t2} strokeWidth={2} />
+              <X size={14} color={C.t2} weight="regular" />
             </Pressable>
           </View>
 
@@ -171,7 +171,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
               return (
                 <View style={cs.badgePreviewRow}>
                   <View style={[cs.badgePreview, { backgroundColor: selected.bg }]}>
-                    <SelIcon size={28} color={selected.color} strokeWidth={1.5} />
+                    <SelIcon size={28} color={selected.color} weight="light" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={cs.badgePreviewLabel}>{selected.label}</Text>
@@ -190,7 +190,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
                     style={[cs.badgeBtn, active && { backgroundColor: opt.bg, borderColor: opt.color }]}
                     onPress={() => setEmoji(opt.emoji)}
                   >
-                    <BIcon size={18} color={active ? opt.color : C.t3} strokeWidth={1.5} />
+                    <BIcon size={18} color={active ? opt.color : C.t3} weight="light" />
                     {active && <View style={[cs.badgeBtnDot, { backgroundColor: opt.color }]} />}
                   </Pressable>
                 );
@@ -216,7 +216,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
             </View>
 
             {/* Description */}
-            <Text style={cs.fieldLabel}>DESCRIPTION <Text style={{ color: C.t3, fontFamily: 'Barlow_300Light', textTransform: 'none', letterSpacing: 0 }}>(optional)</Text></Text>
+            <Text style={cs.fieldLabel}>DESCRIPTION <Text style={{ color: C.t3, textTransform: 'none', letterSpacing: 0 }}>(optional)</Text></Text>
             <TextInput
               style={[cs.input, cs.inputMulti]}
               value={desc}
@@ -242,13 +242,13 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
                     onPress={() => setPolicy(p.value)}
                   >
                     <View style={[cs.policyIconBox, { backgroundColor: active ? p.color : C.stone }]}>
-                      <PIco size={14} color={active ? '#fff' : p.color} strokeWidth={1.5} />
+                      <PIco size={14} color={active ? '#fff' : p.color} weight="light" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[cs.policyLabel, active && cs.policyLabelActive]}>{p.label}</Text>
                       <Text style={[cs.policyDesc, active && cs.policyDescActive]}>{p.desc}</Text>
                     </View>
-                    {active && <Check size={14} color={p.color} strokeWidth={2.5} />}
+                    {active && <Check size={14} color={p.color} weight="bold" />}
                   </Pressable>
                 );
               })}
@@ -284,40 +284,40 @@ function mkCsStyles(C: AppColors) {
     sheetHeader:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottomWidth: 0.5, borderBottomColor: C.border, paddingBottom: 14 },
     sheetTitle:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
     closeBtn:          { width: 30, height: 30, borderRadius: 15, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: C.border },
-    fieldLabel:        { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1.2, color: C.t3, marginTop: 16, marginBottom: 8 },
+    fieldLabel:        { fontWeight: '500', fontSize: 10, letterSpacing: 1.2, color: C.t3, marginTop: 16, marginBottom: 8 },
     // Badge preview row
     badgePreviewRow:   { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12, backgroundColor: C.surface, borderRadius: 14, padding: 12, borderWidth: 0.5, borderColor: C.border },
     badgePreview:      { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    badgePreviewLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
-    badgePreviewSub:   { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+    badgePreviewLabel: { fontWeight: '600', fontSize: 14, color: C.black },
+    badgePreviewSub:   { fontSize: 11, color: C.t3, marginTop: 2 },
     // Badge grid
     badgeGrid:         { paddingBottom: 4, gap: 8 },
-    badgeBtn:          { width: 44, height: 44, borderRadius: 12, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    badgeBtn:          { width: 44, height: 44, borderRadius: 12, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     badgeBtnDot:       { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2 },
     // Inputs
-    input:             { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black, backgroundColor: C.white },
+    input:             { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.black, backgroundColor: C.white },
     inputMulti:        { minHeight: 72, textAlignVertical: 'top', paddingTop: 12 },
     inputError:        { borderColor: C.red, backgroundColor: '#FEF0EE' },
     inputMeta:         { flexDirection: 'row', marginTop: 4 },
-    inputHint:         { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
-    inputHintError:    { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.red },
+    inputHint:         { fontSize: 10, color: C.t3 },
+    inputHintError:    { fontSize: 10, color: C.red },
     // Policy cards (vertical)
     policyCol:         { gap: 8, marginBottom: 4 },
     policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 0.5, borderColor: C.border, borderRadius: 14, padding: 14, backgroundColor: C.white },
     policyCardActive:  { borderColor: C.border, backgroundColor: C.surface },
     policyIconBox:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    policyLabel:       { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
+    policyLabel:       { fontWeight: '600', fontSize: 13, color: C.black },
     policyLabelActive: { color: C.black },
-    policyDesc:        { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 1 },
+    policyDesc:        { fontSize: 11, color: C.t3, marginTop: 1 },
     policyDescActive:  { color: C.t2 },
     // Footer
     footer:            { paddingTop: 16, gap: 8 },
     createBtn:         { paddingVertical: 16, borderRadius: 16, backgroundColor: C.black, alignItems: 'center' },
     createBtnDisabled: { backgroundColor: C.stone },
-    createBtnLabel:    { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white, letterSpacing: 0.3 },
+    createBtnLabel:    { fontWeight: '600', fontSize: 14, color: C.white, letterSpacing: 0.3 },
     createBtnLabelDisabled: { color: C.t3 },
     cancelBtn:         { paddingVertical: 14, borderRadius: 16, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
-    cancelBtnLabel:    { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.t2 },
+    cancelBtnLabel:    { fontWeight: '500', fontSize: 13, color: C.t2 },
   });
 }
 
@@ -355,7 +355,7 @@ export default function ClubScreen() {
           const SIcon = sc.value === 'local' ? MapPin : sc.value === 'national' ? Flag : Globe;
           return (
             <Pressable key={sc.value} style={[s.scopeBtn, active && s.scopeBtnActive]} onPress={() => { setRankScope(sc.value); setRankSearch(''); }}>
-              <SIcon size={10} color={active ? C.red : C.t3} strokeWidth={1.5} />
+              <SIcon size={10} color={active ? C.red : C.t3} weight="light" />
               <Text style={[s.scopeLabel, active && s.scopeLabelActive]}>{sc.label}</Text>
             </Pressable>
           );
@@ -371,7 +371,7 @@ export default function ClubScreen() {
   const PodiumSection = rankedClubs.length >= 3 && !filteredRanked ? (
     <View style={s.podiumCard}>
       <View style={s.podiumHeader}>
-        <MapPin size={12} color="rgba(255,255,255,0.4)" strokeWidth={1.5} />
+        <MapPin size={12} color="rgba(255,255,255,0.4)" weight="light" />
         <Text style={s.podiumHeading}>
           {rankScope === 'local' ? 'Top Clubs Locally' : rankScope === 'national' ? 'Top Clubs Nationally' : 'Top Clubs Worldwide'}
         </Text>
@@ -386,10 +386,10 @@ export default function ClubScreen() {
           const { icon: BIco, color: bColor } = getEmojiIcon(club.badge_emoji);
           return (
             <Pressable key={club.id} style={s.podiumSlot} onPress={() => goToDetail(club)}>
-              {idx === 1 && <Award size={16} color="#FCD34D" strokeWidth={1.5} style={{ marginBottom: 6 }} />}
+              {idx === 1 && <Seal size={16} color="#FCD34D" weight="light" style={{ marginBottom: 6 }} />}
               {idx !== 1 && <View style={{ height: 22 }} />}
               <View style={[s.podiumAvatar, { width: avatarSizes[idx], height: avatarSizes[idx], borderRadius: avatarSizes[idx] * 0.25, backgroundColor: bg + '40', borderWidth: idx === 1 ? 1.5 : 0, borderColor: '#FCD34D' }]}>
-                <BIco size={avatarSizes[idx] * 0.44} color={bColor} strokeWidth={1.5} />
+                <BIco size={avatarSizes[idx] * 0.44} color={bColor} weight="light" />
               </View>
               <Text style={[s.podiumName, { fontSize: idx === 1 ? 12 : 10 }]} numberOfLines={1}>{club.name}</Text>
               <Text style={s.podiumMeta}>{club.total_km.toFixed(0)} km</Text>
@@ -414,11 +414,11 @@ export default function ClubScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} strokeWidth={2} />
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <Text style={s.title}>Clubs</Text>
         <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)}>
-          <Plus size={16} color={C.white} strokeWidth={2.5} />
+          <Plus size={16} color={C.white} weight="bold" />
         </Pressable>
       </View>
 
@@ -445,7 +445,7 @@ export default function ClubScreen() {
             return (
               <Pressable style={s.myClubRow} onPress={() => goToDetail(item)}>
                 <View style={[s.myClubAvatar, { backgroundColor: bg + '30' }]}>
-                  <BIco size={22} color={bColor} strokeWidth={1.5} />
+                  <BIco size={22} color={bColor} weight="light" />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <View style={s.myClubTopRow}>
@@ -468,7 +468,7 @@ export default function ClubScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Users size={28} color={C.red} strokeWidth={1.5} style={{ marginBottom: 8 }} />
+              <Users size={28} color={C.red} weight="light" style={{ marginBottom: 8 }} />
               <Text style={s.emptyTitle}>No clubs yet</Text>
               <Text style={s.emptyText}>Switch to Rankings to join clubs, or tap + to create one.</Text>
               <Pressable style={s.emptyBtn} onPress={() => setShowCreate(true)}>
@@ -535,8 +535,8 @@ function mkStyles(C: AppColors) {
     tabBar:          { flexDirection: 'row', backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     tabBtn:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
     tabBtnActive:    { borderBottomColor: C.black },
-    tabLabel:        { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
-    tabLabelActive:  { fontFamily: 'Barlow_500Medium', color: C.black },
+    tabLabel:        { fontSize: 11, color: C.t3 },
+    tabLabelActive:  { fontWeight: '500', color: C.black },
     loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
     // My Clubs tab
     searchWrap:      { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
@@ -544,36 +544,36 @@ function mkStyles(C: AppColors) {
     myClubRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 13, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     myClubAvatar:    { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     myClubTopRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
-    myClubName:      { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black, flex: 1 },
-    myClubDate:      { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginLeft: 8, flexShrink: 0 },
-    myClubMeta:      { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3, marginBottom: 2 },
-    myClubPreview:   { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+    myClubName:      { fontWeight: '600', fontSize: 14, color: C.black, flex: 1 },
+    myClubDate:      { fontSize: 10, color: C.t3, marginLeft: 8, flexShrink: 0 },
+    myClubMeta:      { fontSize: 10, color: C.t3, marginBottom: 2 },
+    myClubPreview:   { fontSize: 11, color: C.t3 },
     empty:           { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 18 },
-    emptyTitle:      { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 4 },
-    emptyText:       { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, textAlign: 'center', marginBottom: 12 },
+    emptyTitle:      { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 4 },
+    emptyText:       { fontSize: 11, color: C.t3, textAlign: 'center', marginBottom: 12 },
     emptyBtn:        { backgroundColor: C.black, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 4 },
-    emptyBtnLabel:   { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.white, textTransform: 'uppercase', letterSpacing: 0.6 },
+    emptyBtnLabel:   { fontWeight: '500', fontSize: 11, color: C.white, letterSpacing: 0.6 },
     // Rankings tab
     rankList:        { paddingBottom: 100 },
     scopeRow:        { flexDirection: 'row', gap: 6, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 4, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     scopeBtn:        { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.bg, flexDirection: 'row', alignItems: 'center', gap: 4 },
     scopeBtnActive:  { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
-    scopeLabel:      { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3 },
-    scopeLabelActive:{ fontFamily: 'Barlow_500Medium', color: C.red },
+    scopeLabel:      { fontSize: 9, color: C.t3 },
+    scopeLabelActive:{ fontWeight: '500', color: C.red },
     rankSearchWrap:  { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
     // Dark podium
     podiumCard:      { marginHorizontal: 18, marginTop: 12, marginBottom: 0, backgroundColor: '#0A0A0A', borderRadius: 16, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' },
     podiumHeader:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },
-    podiumHeading:   { fontFamily: 'Barlow_500Medium', fontSize: 10, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 1.2 },
+    podiumHeading:   { fontWeight: '500', fontSize: 10, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 1.2 },
     podiumRow:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
     podiumSlot:      { flex: 1, alignItems: 'center' },
     podiumAvatar:    { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    podiumName:      { fontFamily: 'Barlow_600SemiBold', color: '#FFFFFF', textAlign: 'center', marginBottom: 2, paddingHorizontal: 4 },
-    podiumMeta:      { fontFamily: 'Barlow_300Light', fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 8 },
+    podiumName:      { fontWeight: '600', color: '#FFFFFF', textAlign: 'center', marginBottom: 2, paddingHorizontal: 4 },
+    podiumMeta:      { fontSize: 9, color: 'rgba(255,255,255,0.45)', marginBottom: 8 },
     podiumBlock:     { width: '100%', borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    podiumRank:      { fontFamily: 'Barlow_700Bold', fontSize: 18, color: '#FFFFFF' },
+    podiumRank:      { fontWeight: '700', fontSize: 18, color: '#FFFFFF' },
     // Table header
     tableHeader:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.stone, borderTopWidth: 0.5, borderTopColor: C.border, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    tableHeaderText: { fontFamily: 'Barlow_600SemiBold', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    tableHeaderText: { fontWeight: '600', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1 },
   });
 }

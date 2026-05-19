@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 interface Props {
@@ -23,7 +23,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search...' }: Props)
       />
       {value.length > 0 && (
         <Pressable onPress={() => onChange('')} style={s.clear}>
-          <X size={14} color={C.t3} strokeWidth={2} />
+          <X size={14} color={C.t3} weight="regular" />
         </Pressable>
       )}
     </View>
@@ -36,9 +36,9 @@ function mkStyles(C: AppColors) {
     input: {
       backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
       paddingHorizontal: 14, paddingVertical: 10, paddingRight: 36,
-      fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black,
+      fontSize: 14, color: C.black,
     },
     clear: { position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center' },
-    clearText: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t3 },
+    clearText: { fontSize: 13, color: C.t3 },
   });
 }

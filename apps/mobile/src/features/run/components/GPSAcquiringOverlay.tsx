@@ -77,16 +77,16 @@ const ss = StyleSheet.create({
     marginBottom: 16,
   },
   accText: {
-    fontFamily: 'Barlow_500Medium',
+    fontWeight: '500',
     fontSize: 14,
   },
   title: {
-    fontFamily: 'Barlow_500Medium',
+    fontWeight: '500',
     fontSize: 15,
     marginBottom: 4,
   },
   sub: {
-    fontFamily: 'Barlow_300Light',
+    
     fontSize: 12,
   },
 });

@@ -66,12 +66,12 @@ function mkStyles(C: AppColors) {
     brandCircle:  { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 16 },
     brandInitial: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 32 },
     claimHeading: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black, textAlign: 'center', marginBottom: 6 },
-    rewardTitle:  { fontFamily: 'Barlow_500Medium', fontSize: 15, color: C.black, textAlign: 'center', marginBottom: 8 },
-    rewardDesc:   { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+    rewardTitle:  { fontWeight: '500', fontSize: 15, color: C.black, textAlign: 'center', marginBottom: 8 },
+    rewardDesc:   { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
     divider:      { height: 0.5, backgroundColor: C.border, marginBottom: 20 },
-    launchRow:    { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t2, textAlign: 'center', marginBottom: 6 },
-    launchBody:   { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+    launchRow:    { fontSize: 13, color: C.t2, textAlign: 'center', marginBottom: 6 },
+    launchBody:   { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
     closeBtn:     { backgroundColor: C.black, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-    closeBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
+    closeBtnText: { fontWeight: '600', fontSize: 14, color: C.white },
   });
 }

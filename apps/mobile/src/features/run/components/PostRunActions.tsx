@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { Share2, Bookmark, Download } from 'lucide-react-native';
+import { ShareNetwork, Bookmark, Download } from 'phosphor-react-native';
 import { Colors } from '@theme';
 
 const C = Colors;
@@ -23,19 +23,19 @@ export default function PostRunActions({ onShare, onSave, onDone, canSave = true
           <Text style={ss.doneBtnText}>Done</Text>
         </Pressable>
         <Pressable style={ss.secondaryBtn} onPress={onShare}>
-          <Share2 size={14} strokeWidth={2} color={C.black} />
+          <ShareNetwork size={14} weight="regular" color={C.black} />
           <Text style={ss.secondaryBtnText}>Share</Text>
         </Pressable>
         {onSaveImage && (
           <Pressable style={ss.secondaryBtn} onPress={onSaveImage}>
-            <Download size={14} strokeWidth={2} color={C.black} />
+            <Download size={14} weight="regular" color={C.black} />
             <Text style={ss.secondaryBtnText}>Save</Text>
           </Pressable>
         )}
       </View>
       {canSave && (
         <Pressable style={ss.saveBtn} onPress={onSave}>
-          <Bookmark size={14} strokeWidth={2} color={C.black} />
+          <Bookmark size={14} weight="regular" color={C.black} />
           <Text style={ss.saveBtnText}>Save Route</Text>
         </Pressable>
       )}
@@ -48,8 +48,8 @@ const ss = StyleSheet.create({
   row:           { flexDirection: 'row', gap: 8 },
   doneBtn:       { flex: 1, paddingVertical: 14, backgroundColor: C.black, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
   doneBtnText:   { fontFamily: FONT_SEMI, fontSize: 13, color: C.white, letterSpacing: 0.3 },
-  secondaryBtn:  { flex: 1, paddingVertical: 14, backgroundColor: C.stone, borderRadius: 3, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 1, borderColor: C.border },
+  secondaryBtn:  { flex: 1, paddingVertical: 14, backgroundColor: C.stone, borderRadius: 3, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 0.5, borderColor: C.border },
   secondaryBtnText: { fontFamily: FONT_MED, fontSize: 13, color: C.black },
-  saveBtn:       { paddingVertical: 12, backgroundColor: C.stone, borderRadius: 3, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 1, borderColor: C.border },
+  saveBtn:       { paddingVertical: 12, backgroundColor: C.stone, borderRadius: 3, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 0.5, borderColor: C.border },
   saveBtnText:   { fontFamily: FONT_MED, fontSize: 13, color: C.black },
 });

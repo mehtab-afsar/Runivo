@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Footprints } from 'lucide-react-native';
+import { Footprints } from 'phosphor-react-native';
 import type { StoredRun, StoredShoe } from '@shared/services/store';
 import { useTheme, type AppColors } from '@theme';
 
@@ -44,7 +44,7 @@ export function GearTab({ shoes, runs = [], onAddShoe }: GearTabProps) {
           return (
             <View key={shoe.id} style={[ss.shoeCard, shoe.isRetired && ss.shoeRetired]}>
               <View style={ss.shoeEmoji}>
-                <Footprints size={22} color="#6B6B6B" strokeWidth={1.5} />
+                <Footprints size={22} color="#6B6B6B" weight="light" />
               </View>
               <View style={{ flex: 1 }}>
                 <View style={ss.shoeNameRow}>
@@ -72,24 +72,24 @@ export function GearTab({ shoes, runs = [], onAddShoe }: GearTabProps) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    sectionTitle:  { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: C.black, letterSpacing: 0.5, textTransform: 'uppercase' },
+    sectionTitle:  { fontWeight: '600', fontSize: 12, color: C.black, letterSpacing: 0.5 },
     gearHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    gearAddBtn:    { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.red },
+    gearAddBtn:    { fontWeight: '500', fontSize: 12, color: C.red },
     shoeCard:      { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     shoeRetired:   { opacity: 0.55 },
     shoeEmoji:     { width: 40, height: 40, borderRadius: 10, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     shoeNameRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
-    shoeName:      { fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
-    shoeBrand:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, marginBottom: 8 },
-    statusBadge:   { fontFamily: 'Barlow_500Medium', fontSize: 10 },
+    shoeName:      { fontWeight: '500', fontSize: 14, color: C.black },
+    shoeBrand:     { fontSize: 11, color: C.t2, marginBottom: 8 },
+    statusBadge:   { fontWeight: '500', fontSize: 10 },
     barTrack:      { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
     barFill:       { height: '100%', borderRadius: 3 },
     barLabels:     { flexDirection: 'row', justifyContent: 'space-between' },
-    barLabel:      { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3 },
+    barLabel:      { fontSize: 9, color: C.t3 },
     emptyState:    { alignItems: 'center', paddingVertical: 32 },
     emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+    emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
     emptyBtn:      { marginTop: 16, backgroundColor: C.black, paddingVertical: 11, paddingHorizontal: 24, borderRadius: 4 },
-    emptyBtnLabel: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff', textTransform: 'uppercase', letterSpacing: 1 },
+    emptyBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
   });
 }

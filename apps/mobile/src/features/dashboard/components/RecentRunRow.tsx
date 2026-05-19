@@ -43,10 +43,10 @@ export function RecentRunRow({ run, isLast, onPress }: Props) {
 const ss = StyleSheet.create({
   row:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20 },
   rowBorder: { borderBottomWidth: 0.5, borderBottomColor: '#E8E4DF' },
-  type:      { fontFamily: 'Barlow_500Medium', fontSize: 10, color: '#6B6B6B', letterSpacing: 0.6 },
-  date:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: '#ADADAD', marginTop: 2 },
+  type:      { fontWeight: '500', fontSize: 10, color: '#6B6B6B', letterSpacing: 0.6 },
+  date:      { fontSize: 11, color: '#ADADAD', marginTop: 2 },
   stats:     { flexDirection: 'row', gap: 16 },
   stat:      { alignItems: 'flex-end' },
   statValue: { fontFamily: 'Barlow_300Light', fontSize: 16, color: '#0A0A0A', letterSpacing: -0.3, lineHeight: 18 },
-  statLabel: { fontFamily: 'Barlow_400Regular', fontSize: 8, color: '#ADADAD', letterSpacing: 0.6, marginTop: 2 },
+  statLabel: { fontSize: 8, color: '#ADADAD', letterSpacing: 0.6, marginTop: 2 },
 });

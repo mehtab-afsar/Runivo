@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { fetchUnreadCount } from '@features/notifications/services/notificationsService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
-import { Bell, Zap, Activity, Flame } from 'lucide-react-native';
+import { Bell, Lightning, Pulse, Fire } from 'phosphor-react-native';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, type AppColors } from '@theme';
@@ -25,6 +25,24 @@ export default function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const dash       = useDashboard();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [tsDisplay, setTsDisplay]     = useState(0);
+  const hasAnimatedTs                 = useRef(false);
+
+  useEffect(() => {
+    if (dash.territoryScore > 0 && !hasAnimatedTs.current) {
+      hasAnimatedTs.current = true;
+      const target = dash.territoryScore;
+      const startTime = Date.now();
+      const id = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const t = Math.min(1, elapsed / 800);
+        const eased = 1 - Math.pow(1 - t, 3);
+        setTsDisplay(Math.round(eased * target));
+        if (t >= 1) clearInterval(id);
+      }, 16);
+      return () => clearInterval(id);
+    }
+  }, [dash.territoryScore]);
 
   useFocusEffect(
     useCallback(() => {
@@ -59,19 +77,19 @@ export default function DashboardScreen() {
           <View style={s.headerRight}>
             {/* Streak badge */}
             <View style={s.badge}>
-              <Flame size={11} color={streakDays > 0 ? C.red : C.t3} strokeWidth={1.5} />
+              <Fire size={11} color={streakDays > 0 ? C.red : C.t3} weight="light" />
               <Text style={s.badgeTxt}>{streakDays}</Text>
             </View>
 
             {/* Territory score badge */}
             <View style={s.badge}>
-              <Text style={s.badgeTxt}>{dash.territoryScore.toLocaleString()}</Text>
+              <Text style={s.badgeTxt}>{tsDisplay.toLocaleString()}</Text>
               <Text style={s.badgeSup}>TS</Text>
             </View>
 
             {/* Notifications bell */}
             <Pressable onPress={() => { go('Notifications'); setUnreadCount(0); }} style={s.bellBtn}>
-              <Bell size={14} color={C.black} strokeWidth={1.5} />
+              <Bell size={14} color={C.black} weight="light" />
               {unreadCount > 0 && (
                 <View style={s.bellBadge}>
                   <Text style={s.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -104,6 +122,8 @@ export default function DashboardScreen() {
         {/* PACE Store banner */}
         <PACEStoreBanner
           paceBalance={dash.player.paceBalance ?? 0}
+          weeklyEarned={dash.player.paceWeeklyEarned ?? 0}
+          weeklyCap={100}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('PACEStore'); }}
         />
 
@@ -130,7 +150,7 @@ export default function DashboardScreen() {
         <View style={s.section}>
           <View style={s.sectionHead}>
             <View style={s.sectionTitleRow}>
-              <Zap size={11} color={C.t3} strokeWidth={1.5} />
+              <Lightning size={11} color={C.t3} weight="light" />
               <Text style={s.sectionTitle}>  MISSIONS</Text>
             </View>
             <Pressable onPress={() => go('Missions')}><Text style={s.sectionAction}>Change →</Text></Pressable>
@@ -145,7 +165,7 @@ export default function DashboardScreen() {
         <View style={s.section}>
           <View style={s.sectionHead}>
             <View style={s.sectionTitleRow}>
-              <Activity size={11} color={C.t3} strokeWidth={1.5} />
+              <Pulse size={11} color={C.t3} weight="light" />
               <Text style={s.sectionTitle}>  RECENT RUNS</Text>
             </View>
             {dash.recentRuns.length > 0 && (
@@ -186,35 +206,35 @@ function mkStyles(C: AppColors) {
 
     // Header
     header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 20, marginBottom: 16 },
-    greeting:        { fontFamily: 'Barlow_400Regular', fontSize: 10, letterSpacing: 1, color: C.t3, marginBottom: 4 },
+    greeting:        { fontSize: 10, letterSpacing: 1, color: C.t3, marginBottom: 4 },
     username:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 26, color: C.black, lineHeight: 30, fontStyle: 'italic' },
     headerRight:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
     badge:           { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, borderRadius: 16 },
-    badgeTxt:        { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
-    badgeSup:        { fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.t3, letterSpacing: 0.4, marginTop: 2 },
+    badgeTxt:        { fontWeight: '600', fontSize: 13, color: C.black },
+    badgeSup:        { fontWeight: '500', fontSize: 9, color: C.t3, letterSpacing: 0.4, marginTop: 2 },
     bellBtn:         { width: 32, height: 32, borderRadius: 16, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     bellBadge:       { position: 'absolute', top: -3, right: -3, minWidth: 14, height: 14, borderRadius: 7, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.bg },
-    bellBadgeText:   { fontFamily: 'Barlow_700Bold', fontSize: 8, color: '#FFFFFF', lineHeight: 11 },
+    bellBadgeText:   { fontWeight: '700', fontSize: 8, color: '#FFFFFF', lineHeight: 11 },
 
     // Content
     section:         { paddingHorizontal: 22, marginBottom: 28 },
     sectionHead:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
-    sectionTitle:    { fontFamily: 'Barlow_500Medium', fontSize: 11, letterSpacing: 1, color: C.t3 },
-    sectionAction:   { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3 },
+    sectionTitle:    { fontWeight: '500', fontSize: 11, letterSpacing: 1, color: C.t3 },
+    sectionAction:   { fontSize: 11, color: C.t3 },
     missionCard:     { backgroundColor: C.black, borderRadius: 20, padding: 18 },
-    cardLabel:       { fontFamily: 'Barlow_500Medium', fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
+    cardLabel:       { fontWeight: '500', fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
     runsCard:        { backgroundColor: C.white, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     firstRunCard:    { padding: 24, alignItems: 'center', gap: 10 },
     firstRunTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, fontStyle: 'italic', textAlign: 'center' },
-    firstRunBody:    { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
+    firstRunBody:    { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
     firstRunBtn:     { marginTop: 4, backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28 },
-    firstRunBtnText: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
+    firstRunBtnText: { fontWeight: '600', fontSize: 14, color: '#fff' },
     syncChip:        { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', backgroundColor: C.red, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, gap: 4 },
     syncDot:         { fontSize: 8, color: '#FFFFFF', lineHeight: 12 },
-    syncText:        { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#FFFFFF', letterSpacing: 0.2 },
+    syncText:        { fontWeight: '500', fontSize: 11, color: '#FFFFFF', letterSpacing: 0.2 },
     staleStrip:      { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 22, marginBottom: 12, backgroundColor: C.amberBg, borderWidth: 0.5, borderColor: 'rgba(158,104,0,0.3)', borderRadius: 12, padding: 12 },
     staleAccent:     { width: 3, height: 24, backgroundColor: C.red, borderRadius: 2 },
-    staleText:       { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.amber, flex: 1 },
+    staleText:       { fontWeight: '500', fontSize: 12, color: C.amber, flex: 1 },
   });
 }

@@ -32,7 +32,7 @@ export const shared = StyleSheet.create({
   stepContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
 
   eyebrow: {
-    fontFamily: 'DMSans_500Medium', fontSize: 10, color: D.red,
+    fontWeight: '500', fontSize: 10, color: D.red,
     textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 14,
   },
   heroTitle: {
@@ -40,36 +40,36 @@ export const shared = StyleSheet.create({
     fontSize: 36, color: D.t1, lineHeight: 36, marginBottom: 14,
   },
   subtitle: {
-    fontFamily: 'DMSans_300Light', fontSize: 14, color: D.t2,
+    fontSize: 14, color: D.t2,
     lineHeight: 21, marginBottom: 28, maxWidth: 280,
   },
   fieldLabel: {
-    fontFamily: 'DMSans_500Medium', fontSize: 10, color: D.t3,
+    fontWeight: '500', fontSize: 10, color: D.t3,
     textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8,
   },
 
   // Option list row — used by UsernameStep + GoalStep
   optionRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: D.div,
+    paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div,
   },
   optionAccent: { width: 2, height: 36, borderRadius: 1, backgroundColor: 'transparent' },
   optionAccentActive: { backgroundColor: D.red },
-  optionLabel: { fontFamily: 'DMSans_400Regular', fontSize: 15, color: D.t2 },
-  optionLabelSel: { fontFamily: 'DMSans_500Medium', color: D.t1 },
-  optionSub: { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t3 },
+  optionLabel: { fontSize: 15, color: D.t2 },
+  optionLabelSel: { fontWeight: '500', color: D.t1 },
+  optionSub: { fontSize: 12, color: D.t3 },
   optionDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
 
   // Legacy — kept for PlanSelectionStep compat
   listRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: D.div,
+    paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: D.div,
   },
-  listLabel: { fontFamily: 'DMSans_400Regular', fontSize: 15, color: D.t2 },
-  listLabelSel: { fontFamily: 'DMSans_500Medium', color: D.t1 },
-  listSub: { fontFamily: 'DMSans_300Light', fontSize: 12, color: D.t3, marginTop: 2 },
+  listLabel: { fontSize: 15, color: D.t2 },
+  listLabelSel: { fontWeight: '500', color: D.t1 },
+  listSub: { fontSize: 12, color: D.t3, marginTop: 2 },
   radio: {
-    width: 18, height: 18, borderRadius: 9, borderWidth: 1,
+    width: 18, height: 18, borderRadius: 9, borderWidth: 0.5,
     borderColor: D.div, alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   radioSel: { borderColor: D.t1, backgroundColor: D.t1 },
@@ -78,6 +78,6 @@ export const shared = StyleSheet.create({
     flexDirection: 'row' as const, alignItems: 'center' as const, gap: 14,
     paddingHorizontal: 0, paddingVertical: 18,
     borderRadius: 0, borderWidth: 0,
-    borderBottomWidth: 1, borderBottomColor: D.div, marginBottom: 0,
+    borderBottomWidth: 0.5, borderBottomColor: D.div, marginBottom: 0,
   },
 });

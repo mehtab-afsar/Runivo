@@ -1,10 +1,10 @@
 import React from 'react';
 import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import {
-  Activity, Gauge, Zap, Footprints, Mountain, TreePine, Bike,
-  Timer, TrendingUp, Shuffle, Flame, Route as RouteIcon, Dumbbell,
-  Waves, Accessibility, Snowflake,
-} from 'lucide-react-native';
+  Pulse, Gauge, Lightning, Footprints, Mountains, TreeEvergreen, Bicycle,
+  Timer, TrendUp, Shuffle, Fire, PathIcon as RouteIcon, Barbell,
+  Waves, Wheelchair, Snowflake,
+} from 'phosphor-react-native';
 import type { ActivityType } from '../types';
 import { Colors } from '@theme';
 
@@ -13,26 +13,26 @@ const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 
-type IconComp = typeof Activity;
+type IconComp = typeof Pulse;
 const ACTIVITIES: { id: ActivityType; label: string; icon: IconComp; color: string; bg: string }[] = [
-  { id: 'run',           label: 'Run',        icon: Activity,     color: '#D93518', bg: '#FDE8E4' },
-  { id: 'jog',           label: 'Jog',        icon: Gauge,        color: '#D93518', bg: '#FDE8E4' },
-  { id: 'sprint',        label: 'Sprint',     icon: Zap,          color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'walk',          label: 'Walk',       icon: Footprints,   color: '#059669', bg: '#D1FAE5' },
-  { id: 'hike',          label: 'Hike',       icon: Mountain,     color: '#B45309', bg: '#FEF3C7' },
-  { id: 'trail_run',     label: 'Trail',      icon: TreePine,     color: '#15803D', bg: '#DCFCE7' },
-  { id: 'cycle',         label: 'Cycle',      icon: Bike,         color: '#0284C7', bg: '#E0F2FE' },
-  { id: 'interval',      label: 'Intervals',  icon: Timer,        color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'tempo',         label: 'Tempo',      icon: TrendingUp,   color: '#EA580C', bg: '#FFEDD5' },
-  { id: 'fartlek',       label: 'Fartlek',    icon: Shuffle,      color: '#2563EB', bg: '#DBEAFE' },
-  { id: 'race',          label: 'Race',       icon: Flame,        color: '#E11D48', bg: '#FFE4E6' },
-  { id: 'cross_country', label: 'XC',         icon: RouteIcon,    color: '#4338CA', bg: '#E0E7FF' },
-  { id: 'stair_climb',   label: 'Stairs',     icon: TrendingUp,   color: '#9333EA', bg: '#F3E8FF' },
-  { id: 'hiit',          label: 'HIIT',       icon: Flame,        color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'strength',      label: 'Strength',   icon: Dumbbell,     color: '#4B5563', bg: '#F3F4F6' },
-  { id: 'swim',          label: 'Swim',       icon: Waves,        color: '#0369A1', bg: '#E0F2FE' },
-  { id: 'wheelchair',    label: 'Wheelchair', icon: Accessibility, color: '#6D28D9', bg: '#EDE9FE' },
-  { id: 'ski',           label: 'Ski',        icon: Snowflake,    color: '#0EA5E9', bg: '#E0F2FE' },
+  { id: 'run',           label: 'Run',        icon: Pulse,         color: '#D93518', bg: '#FDE8E4' },
+  { id: 'jog',           label: 'Jog',        icon: Gauge,         color: '#D93518', bg: '#FDE8E4' },
+  { id: 'sprint',        label: 'Sprint',     icon: Lightning,     color: '#DC2626', bg: '#FEE2E2' },
+  { id: 'walk',          label: 'Walk',       icon: Footprints,    color: '#059669', bg: '#D1FAE5' },
+  { id: 'hike',          label: 'Hike',       icon: Mountains,     color: '#B45309', bg: '#FEF3C7' },
+  { id: 'trail_run',     label: 'Trail',      icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
+  { id: 'cycle',         label: 'Cycle',      icon: Bicycle,       color: '#0284C7', bg: '#E0F2FE' },
+  { id: 'interval',      label: 'Intervals',  icon: Timer,         color: '#7C3AED', bg: '#EDE9FE' },
+  { id: 'tempo',         label: 'Tempo',      icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
+  { id: 'fartlek',       label: 'Fartlek',    icon: Shuffle,       color: '#2563EB', bg: '#DBEAFE' },
+  { id: 'race',          label: 'Race',       icon: Fire,          color: '#E11D48', bg: '#FFE4E6' },
+  { id: 'cross_country', label: 'XC',         icon: RouteIcon,     color: '#4338CA', bg: '#E0E7FF' },
+  { id: 'stair_climb',   label: 'Stairs',     icon: TrendUp,       color: '#9333EA', bg: '#F3E8FF' },
+  { id: 'hiit',          label: 'HIIT',       icon: Fire,          color: '#DC2626', bg: '#FEE2E2' },
+  { id: 'strength',      label: 'Strength',   icon: Barbell,       color: '#4B5563', bg: '#F3F4F6' },
+  { id: 'swim',          label: 'Swim',       icon: Waves,         color: '#0369A1', bg: '#E0F2FE' },
+  { id: 'wheelchair',    label: 'Wheelchair', icon: Wheelchair,    color: '#6D28D9', bg: '#EDE9FE' },
+  { id: 'ski',           label: 'Ski',        icon: Snowflake,     color: '#0EA5E9', bg: '#E0F2FE' },
 ];
 
 interface ActivityModalProps {
@@ -68,7 +68,7 @@ export default function ActivityModal({ visible, selected, bottomInset, onSelect
                 onPress={() => onSelect(a.id)}
               >
                 <View style={[ss.iconBox, isSelected && { backgroundColor: a.color + '22' }]}>
-                  <Icon size={20} color={isSelected ? a.color : C.muted} strokeWidth={1.5} />
+                  <Icon size={20} color={isSelected ? a.color : C.muted} weight="light" />
                 </View>
                 <Text style={[ss.chipLabel, isSelected && { color: a.color, fontFamily: FONT_MED }]}>{a.label}</Text>
               </Pressable>

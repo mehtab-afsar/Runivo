@@ -4,7 +4,7 @@ import {
   Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
@@ -60,7 +60,7 @@ export function PaceChatModal({
                 <Text style={[s.x, { color: C.red }]}>X</Text>
               </Text>
               <Pressable style={[s.closeBtn, { backgroundColor: C.stone, borderColor: C.border }]} onPress={onClose} hitSlop={8}>
-                <X size={16} color={C.t2} strokeWidth={1.5} />
+                <X size={16} color={C.t2} weight="light" />
               </Pressable>
             </View>
 
@@ -118,14 +118,14 @@ function mkStyles(C: AppColors) {
     inner:       { flex: 1 },
     header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
     pace:        { fontFamily: 'Barlow_600SemiBold', fontSize: 20 },
-    x:           { fontFamily: 'Barlow_700Bold', fontSize: 21 },
+    x:           { fontWeight: '700', fontSize: 21 },
     closeBtn:    { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
     listContent: { paddingVertical: 12 },
-    autoLabel:   { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.t3, textAlign: 'center', marginTop: 16, marginBottom: 4 },
+    autoLabel:   { fontSize: 11, color: C.t3, textAlign: 'center', marginTop: 16, marginBottom: 4 },
     emptyWrap:   { flex: 1, alignItems: 'center', paddingTop: 48 },
-    emptyText:   { fontFamily: 'Barlow_300Light', fontSize: 14 },
+    emptyText:   { fontSize: 14 },
     errorBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(220,38,38,0.06)', borderTopWidth: 0.5, borderTopColor: 'rgba(220,38,38,0.18)', paddingHorizontal: 16, paddingVertical: 8 },
-    errorText:   { fontFamily: 'Barlow_400Regular', fontSize: 13, flex: 1 },
-    errorRetry:  { fontFamily: 'Barlow_500Medium', fontSize: 13, marginLeft: 12 },
+    errorText:   { fontSize: 13, flex: 1 },
+    errorRetry:  { fontWeight: '500', fontSize: 13, marginLeft: 12 },
   });
 }

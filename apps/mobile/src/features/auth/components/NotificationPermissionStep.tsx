@@ -1,14 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Shield, Flame, Zap, Heart } from 'lucide-react-native';
+import { Shield, Fire, Lightning, Heart, type Icon } from 'phosphor-react-native';
 import { D, shared } from './onboardingStyles';
 
-type IconComp = React.ComponentType<{ size: number; color: string; strokeWidth: number }>;
+type IconComp = Icon;
 
 const BENEFITS: Array<{ Icon: IconComp; text: string }> = [
   { Icon: Shield, text: 'Territory alerts when rivals attack your zones' },
-  { Icon: Flame,  text: 'Streak reminders to keep your run days on track' },
-  { Icon: Zap,    text: 'Mission resets every morning at 6 AM' },
+  { Icon: Fire,       text: 'Streak reminders to keep your run days on track' },
+  { Icon: Lightning,  text: 'Mission resets every morning at 6 AM' },
   { Icon: Heart,  text: 'Weekly training summary every Sunday' },
 ];
 
@@ -44,7 +44,7 @@ export default function NotificationPermissionStep() {
           >
             <View style={s.row}>
               <View style={s.accent} />
-              <Icon size={18} color={D.t3} strokeWidth={1.5} />
+              <Icon size={18} color={D.t3} weight="light" />
               <Text style={s.text}>{b.text}</Text>
             </View>
           </Animated.View>
@@ -58,8 +58,8 @@ export default function NotificationPermissionStep() {
 
 const s = StyleSheet.create({
   rule: { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  row:  { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: D.div },
+  row:  { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
   accent: { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
-  text: { fontFamily: 'DMSans_400Regular', fontSize: 14, color: D.t2, flex: 1, lineHeight: 20 },
-  note: { fontFamily: 'DMSans_300Light', fontSize: 10, color: D.t3, textAlign: 'center', marginTop: 24 },
+  text: { fontSize: 14, color: D.t2, flex: 1, lineHeight: 20 },
+  note: { fontSize: 10, color: D.t3, textAlign: 'center', marginTop: 24 },
 });

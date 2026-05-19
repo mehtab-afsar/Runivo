@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { TrendingUp, Navigation, Zap, Globe, Flag, MapPin } from 'lucide-react-native';
+import { TrendUp, NavigationArrow, Lightning, Globe, Flag, MapPin } from 'phosphor-react-native';
 import type { LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
 import { useTheme, type AppColors } from '@theme';
 
@@ -13,10 +13,10 @@ interface Props {
   onScopeChange: (s: LeaderboardScope) => void;
 }
 
-const METRIC_TABS: { value: LeaderboardTab; label: string; Icon: typeof TrendingUp }[] = [
-  { value: 'territory_score', label: 'Territory', Icon: Navigation },
-  { value: 'distance',        label: 'Distance',  Icon: TrendingUp },
-  { value: 'weekly_pace',     label: 'PACE',      Icon: Zap        },
+const METRIC_TABS: { value: LeaderboardTab; label: string; Icon: typeof TrendUp }[] = [
+  { value: 'territory_score', label: 'Territory', Icon: NavigationArrow },
+  { value: 'distance',        label: 'Distance',  Icon: TrendUp         },
+  { value: 'weekly_pace',     label: 'PACE',      Icon: Lightning       },
 ];
 
 const TIMEFRAMES: { value: LeaderboardTimeFrame; label: string }[] = [
@@ -48,7 +48,7 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
               style={[s.pill, active && s.pillActive]}
               onPress={() => onTabChange(t.value)}
             >
-              <Icon size={11} color={active ? C.red : C.t3} strokeWidth={1.5} />
+              <Icon size={11} color={active ? C.red : C.t3} weight="light" />
               <Text style={[s.pillLabel, active && s.pillLabelActive]}>{t.label}</Text>
             </Pressable>
           );
@@ -82,7 +82,7 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
               style={[s.pill, active && s.pillActive]}
               onPress={() => onScopeChange(sc.value)}
             >
-              <Icon size={11} color={active ? C.red : C.t3} strokeWidth={1.5} />
+              <Icon size={11} color={active ? C.red : C.t3} weight="light" />
               <Text style={[s.pillLabel, active && s.pillLabelActive]}>{sc.label}</Text>
             </Pressable>
           );
@@ -97,12 +97,12 @@ function mkStyles(C: AppColors) {
     row:             { flexDirection: 'row', paddingHorizontal: 16, gap: 6, marginBottom: 8 },
     pill:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, paddingHorizontal: 6, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.bg },
     pillActive:      { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
-    pillLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3 },
-    pillLabelActive: { fontFamily: 'Barlow_500Medium', color: C.red },
+    pillLabel:       { fontSize: 10, color: C.t3 },
+    pillLabelActive: { fontWeight: '500', color: C.red },
     tfRow:           { flexDirection: 'row', paddingHorizontal: 16, gap: 4, marginBottom: 8 },
     tfBtn:           { flex: 1, paddingVertical: 6, borderRadius: 4, alignItems: 'center' },
     tfBtnActive:     { backgroundColor: C.redLo },
-    tfLabel:         { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
-    tfLabelActive:   { fontFamily: 'Barlow_500Medium', color: C.red },
+    tfLabel:         { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
+    tfLabelActive:   { fontWeight: '500', color: C.red },
   });
 }

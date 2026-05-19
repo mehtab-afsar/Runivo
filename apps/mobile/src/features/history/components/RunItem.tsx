@@ -52,12 +52,12 @@ export function RunItem({ run, onPress }: Props) {
 const s = StyleSheet.create({
   card:        { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   topRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  activityBadge:{ fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.t2 },
-  date:        { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3 },
+  activityBadge:{ fontWeight: '500', fontSize: 11, color: C.t2 },
+  date:        { fontSize: 10, color: C.t3 },
   dist:        { fontFamily: 'Barlow_600SemiBold', fontSize: 22, color: C.black, letterSpacing: -0.5 },
   pills:       { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   pill:        { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 0.5, borderColor: C.border },
-  pillText:    { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t2 },
+  pillText:    { fontSize: 10, color: C.t2 },
   pillRed:     { backgroundColor: '#FDE8E4', borderColor: 'rgba(217,53,24,0.2)' },
   pillTextRed: { color: C.red },
 });

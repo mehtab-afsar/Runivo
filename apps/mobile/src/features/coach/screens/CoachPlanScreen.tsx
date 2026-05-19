@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Calendar, CheckCircle2, XCircle, Circle } from 'lucide-react-native';
+import { ArrowLeft, Calendar, CheckCircle, XCircle, CircleIcon as Circle } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, type AppColors } from '@theme';
 import { usePlanScreen, type SessionWithStatus } from '../hooks/usePlanScreen';
@@ -17,9 +17,9 @@ const SESSION_TYPE_COLORS: Record<string, string> = {
 };
 
 function StatusIcon({ status, C }: { status: SessionWithStatus['status']; C: AppColors }) {
-  if (status === 'completed') return <CheckCircle2 size={18} color={C.green} strokeWidth={1.8} />;
-  if (status === 'missed')   return <XCircle      size={18} color={C.red}   strokeWidth={1.8} />;
-  return <Circle size={18} color={C.t3} strokeWidth={1.5} />;
+  if (status === 'completed') return <CheckCircle size={18} color={C.green} weight="regular" />;
+  if (status === 'missed')   return <XCircle     size={18} color={C.red}   weight="regular" />;
+  return <Circle size={18} color={C.t3} weight="light" />;
 }
 
 function SessionRow({ session, C, s }: {
@@ -63,7 +63,7 @@ export default function CoachPlanScreen() {
       {/* Header */}
       <View style={[s.header, { paddingTop: Platform.OS === 'android' ? 12 : 0 }]}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} strokeWidth={2} />
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Training Plan</Text>
@@ -84,7 +84,7 @@ export default function CoachPlanScreen() {
         </View>
       ) : !plan ? (
         <View style={s.center}>
-          <Calendar size={36} color={C.t3} strokeWidth={1.5} />
+          <Calendar size={36} color={C.t3} weight="light" />
           <Text style={s.emptyTitle}>No active plan</Text>
           <Text style={s.emptyText}>
             Ask your AI Coach to build a personalised training plan and it will appear here.
@@ -138,31 +138,31 @@ function mkStyles(C: AppColors) {
     header:      { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:     { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
     title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    subtitle:    { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    subtitle:    { fontSize: 10, color: C.t3, marginTop: 2 },
     weekBadge:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)', marginTop: 2 },
-    weekBadgeText: { fontFamily: 'Barlow_600SemiBold', fontSize: 10, color: C.red },
+    weekBadgeText: { fontWeight: '600', fontSize: 10, color: C.red },
     center:      { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12 },
-    emptyTitle:  { fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
-    emptyText:   { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3, textAlign: 'center', lineHeight: 20 },
+    emptyTitle:  { fontWeight: '500', fontSize: 14, color: C.black },
+    emptyText:   { fontSize: 12, color: C.t3, textAlign: 'center', lineHeight: 20 },
     // Summary card
     summaryCard: { marginHorizontal: 18, marginTop: 16, marginBottom: 8, backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     summaryRow:  { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    summaryWeek: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: C.black },
+    summaryWeek: { fontWeight: '500', fontSize: 12, color: C.black },
     summaryStats:{ flexDirection: 'row', paddingVertical: 12 },
     stat:        { flex: 1, alignItems: 'center' },
-    statNum:     { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black },
-    statLabel:   { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    statNum:     { fontWeight: '600', fontSize: 20, color: C.black },
+    statLabel:   { fontSize: 10, color: C.t3, marginTop: 2 },
     statDiv:     { width: 0.5, backgroundColor: C.border },
     // Session rows
     row:         { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: C.white },
     rowToday:    { backgroundColor: 'rgba(217,53,24,0.03)' },
     dayCol:      { width: 34, alignItems: 'center', gap: 3 },
-    day:         { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.t3 },
+    day:         { fontWeight: '500', fontSize: 11, color: C.t3 },
     dayToday:    { color: C.red },
     todayDot:    { width: 4, height: 4, borderRadius: 2, backgroundColor: C.red },
     typePill:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, flexShrink: 0 },
-    typeText:    { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
-    desc:        { flex: 1, fontFamily: 'Barlow_300Light', fontSize: 12, color: C.black, lineHeight: 18 },
+    typeText:    { fontWeight: '500', fontSize: 9, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+    desc:        { flex: 1, fontSize: 12, color: C.black, lineHeight: 18 },
     separator:   { height: 0.5, backgroundColor: C.mid, marginLeft: 18 },
   });
 }

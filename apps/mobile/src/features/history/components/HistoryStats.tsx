@@ -31,6 +31,6 @@ export function HistoryStats({ runCount, totalKm, avgKm }: Props) {
 const s = StyleSheet.create({
   row: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 },
   cell: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 12, alignItems: 'center' },
-  value: { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black },
-  label: { fontFamily: 'Barlow_300Light', fontSize: 9, color: C.t3, marginTop: 2 },
+  value: { fontWeight: '600', fontSize: 18, color: C.black },
+  label: { fontSize: 9, color: C.t3, marginTop: 2 },
 });

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Bell } from 'lucide-react-native';
+import { Bell } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 interface Props {
@@ -15,7 +15,7 @@ export function ComingSoon({ feature, description }: Props) {
   return (
     <View style={s.container}>
       <View style={s.iconCircle}>
-        <Bell size={36} color={C.t3} strokeWidth={1.5} />
+        <Bell size={36} color={C.t3} weight="light" />
       </View>
 
       <Text style={s.title}>{feature}</Text>
@@ -53,7 +53,7 @@ function mkStyles(C: AppColors) {
     },
     title: {
       fontSize: 22,
-      fontFamily: 'Barlow_700Bold',
+      fontWeight: '700',
       color: C.t1,
       marginBottom: 10,
       textAlign: 'center',
@@ -67,13 +67,13 @@ function mkStyles(C: AppColors) {
     },
     badgeText: {
       fontSize: 11,
-      fontFamily: 'Barlow_700Bold',
+      fontWeight: '700',
       color: '#fff',
       letterSpacing: 1,
     },
     description: {
       fontSize: 15,
-      fontFamily: 'Barlow_400Regular',
+      
       color: C.t2,
       textAlign: 'center',
       marginBottom: 16,
@@ -81,7 +81,7 @@ function mkStyles(C: AppColors) {
     },
     hint: {
       fontSize: 13,
-      fontFamily: 'Barlow_400Regular',
+      
       color: C.t3,
       textAlign: 'center',
     },

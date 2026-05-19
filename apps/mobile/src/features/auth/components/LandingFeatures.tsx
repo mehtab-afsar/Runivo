@@ -61,7 +61,7 @@ const s = StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   phoneMockup: {
     width: 136, height: 256, borderRadius: 26,
-    backgroundColor: '#0F0F12', borderWidth: 1,
+    backgroundColor: '#0F0F12', borderWidth: 0.5,
     borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden',
     position: 'relative', alignItems: 'center',
   },

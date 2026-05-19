@@ -45,13 +45,13 @@ const s = StyleSheet.create({
   input: {
     flex: 1, backgroundColor: C.white, borderRadius: 24, borderWidth: 0.5,
     borderColor: C.border, paddingHorizontal: 16, paddingVertical: 8,
-    fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black,
+    fontSize: 14, color: C.black,
   },
   sendBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: C.mid,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   sendBtnActive: { backgroundColor: C.red },
-  sendIcon: { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.t3 },
+  sendIcon: { fontWeight: '600', fontSize: 16, color: C.t3 },
   sendIconActive: { color: '#fff' },
 });

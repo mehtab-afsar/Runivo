@@ -25,5 +25,5 @@ export function RankBadge({ rank }: Props) {
 const s = StyleSheet.create({
   badge: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   medal: { fontSize: 18 },
-  num: { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: '#6B6B6B' },
+  num: { fontWeight: '600', fontSize: 12, color: '#6B6B6B' },
 });

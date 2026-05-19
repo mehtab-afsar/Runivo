@@ -77,6 +77,15 @@ export async function requestTrainingPlan(goal: string, sessionToken: string): P
   return plan as TrainingPlan;
 }
 
+export async function requestNutritionAnalysis(sessionToken: string): Promise<{ content: string }> {
+  const { data, error } = await supabase.functions.invoke('ai-coach', {
+    body:    { feature: 'nutrition_insights' },
+    headers: { Authorization: `Bearer ${sessionToken}` },
+  });
+  if (error) throw error;
+  return parseReply(data);
+}
+
 export async function requestHabitTracking(sessionToken: string): Promise<{ content: string }> {
   const { data, error } = await supabase.functions.invoke('ai-coach', {
     body:    { feature: 'habit_tracking' },

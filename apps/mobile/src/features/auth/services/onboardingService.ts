@@ -1,5 +1,5 @@
 import { supabase } from '@shared/services/supabase';
-import { initializePlayer, getSettings, saveSettings } from '@shared/services/store';
+import { initializePlayer, getSettings, saveSettings, clearLocalUserData } from '@shared/services/store';
 import { saveProfile } from '@shared/services/profile';
 import { pushProfile } from '@shared/services/sync';
 import type { OnboardingData } from '../types';
@@ -10,6 +10,9 @@ export async function saveOnboardingData(
 ): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   const username = user?.user_metadata?.username || user?.user_metadata?.name || 'Runner';
+
+  // Wipe any stale local data from a previous account before initializing
+  clearLocalUserData();
   const player = await initializePlayer(username);
 
   const missionDifficulty =

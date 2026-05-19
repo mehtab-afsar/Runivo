@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { Pause, Play, Square } from 'lucide-react-native';
+import { Pause, Play, Square } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 const FONT = 'Barlow_400Regular';
@@ -22,13 +22,13 @@ export default function RunControls({ isPaused, onPause, onResume, onStop }: Run
         onPress={isPaused ? onResume : onPause}
       >
         {isPaused
-          ? <Play size={22} color={C.white} strokeWidth={2} />
-          : <Pause size={22} color={C.white} strokeWidth={2} />}
+          ? <Play size={22} color={C.white} weight="regular" />
+          : <Pause size={22} color={C.white} weight="regular" />}
         <Text style={ss.secondaryControlLabel}>{isPaused ? 'Resume' : 'Pause'}</Text>
       </Pressable>
 
       <Pressable style={ss.finishBtn} onPress={onStop}>
-        <Square size={22} color={C.white} strokeWidth={2} fill={C.white} />
+        <Square size={22} color={C.white} weight="regular" />
       </Pressable>
     </View>
   );

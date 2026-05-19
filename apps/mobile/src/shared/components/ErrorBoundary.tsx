@@ -34,8 +34,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F6F3', alignItems: 'center', justifyContent: 'center', padding: 32 },
-  title:     { fontFamily: 'Barlow_700Bold', fontSize: 22, color: '#0A0A0A', marginBottom: 12 },
-  message:   { fontFamily: 'Barlow_400Regular', fontSize: 15, color: '#6B6B6B', textAlign: 'center', marginBottom: 32 },
+  title:     { fontWeight: '700', fontSize: 22, color: '#0A0A0A', marginBottom: 12 },
+  message:   { fontSize: 15, color: '#6B6B6B', textAlign: 'center', marginBottom: 32 },
   btn:       { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
-  btnText:   { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: '#FFFFFF' },
+  btnText:   { fontWeight: '600', fontSize: 15, color: '#FFFFFF' },
 });

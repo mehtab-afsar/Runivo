@@ -25,6 +25,6 @@ export function SettingRow({ label, sub, children }: SettingRowProps) {
 const ss = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: C.border },
   labelWrap: { flex: 1, paddingRight: 12 },
-  rowLabel: { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black },
-  rowSub: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
+  rowLabel: { fontSize: 14, color: C.black },
+  rowSub: { fontSize: 11, color: C.t3, marginTop: 2 },
 });

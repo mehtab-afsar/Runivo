@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { AwardId } from '@shared/types/game';
-import { X } from 'lucide-react-native';
+import { X } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -33,7 +33,7 @@ export default function AwardDetailScreen() {
   return (
     <SafeAreaView style={s.root}>
       <Pressable style={s.closeBtn} onPress={() => navigation.goBack()} hitSlop={8}>
-        <X size={18} color={C.t2} strokeWidth={2} />
+        <X size={18} color={C.t2} weight="regular" />
       </Pressable>
 
       <View style={s.content}>
@@ -67,11 +67,11 @@ function mkStyles(C: AppColors) {
     title:           { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 28, color: C.black, textAlign: 'center', marginBottom: 12 },
     categoryBadge:   { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, marginBottom: 16 },
     categoryBadgeEarned: { backgroundColor: '#FFFBF2', borderColor: '#D97706' },
-    categoryText:    { fontFamily: 'Barlow_500Medium', fontSize: 10, color: C.t2, letterSpacing: 1, textTransform: 'uppercase' },
+    categoryText:    { fontWeight: '500', fontSize: 10, color: C.t2, letterSpacing: 1, textTransform: 'uppercase' },
     categoryTextEarned: { color: '#D97706' },
-    description:     { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.t2, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
-    date:            { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t3 },
-    locked:          { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t3, fontStyle: 'italic' },
-    errorText:       { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.t2, textAlign: 'center', marginTop: 100 },
+    description:     { fontSize: 15, color: C.t2, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
+    date:            { fontSize: 13, color: C.t3 },
+    locked:          { fontSize: 13, color: C.t3, fontStyle: 'italic' },
+    errorText:       { fontSize: 14, color: C.t2, textAlign: 'center', marginTop: 100 },
   });
 }

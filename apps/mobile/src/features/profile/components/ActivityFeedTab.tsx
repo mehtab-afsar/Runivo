@@ -101,7 +101,7 @@ function CalendarHeatmap({ runs, emptyColor, redColor }: { runs: StoredRun[]; em
       <View style={{ flexDirection: 'row', gap: GAP, marginBottom: 6 }}>
         {DOW_LABELS.map((label, i) => (
           <View key={i} style={{ width: CELL, alignItems: 'center' }}>
-            <Text style={{ fontFamily: 'Barlow_300Light', fontSize: 10, color: redColor + '80' }}>{label}</Text>
+            <Text style={{ fontSize: 10, color: redColor + '80' }}>{label}</Text>
           </View>
         ))}
       </View>
@@ -221,7 +221,7 @@ export function ActivityFeedTab({ runs, isOwn }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    sectionLabel:  { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black, marginBottom: 10 },
+    sectionLabel:  { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 10 },
     heatmapSection:{ marginBottom: 28 },
     heatmapCard:   { backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     card: {
@@ -231,18 +231,18 @@ function mkStyles(C: AppColors) {
     },
     sketchWrap:    { width: SKETCH_W, height: SKETCH_H, backgroundColor: C.stone, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
     info:          { flex: 1, gap: 3 },
-    dateText:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+    dateText:      { fontSize: 11, color: C.t3 },
     dist:          { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, letterSpacing: -0.5 },
     metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    metaText:      { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
-    metaDot:       { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t3 },
+    metaText:      { fontSize: 12, color: C.t2 },
+    metaDot:       { fontSize: 12, color: C.t3 },
     zonePill:      { alignSelf: 'flex-start', backgroundColor: 'rgba(217,53,24,0.08)', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginTop: 2 },
-    zonePillText:  { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.red },
-    arrow:         { fontFamily: 'Barlow_300Light', fontSize: 18, color: C.t3 },
+    zonePillText:  { fontWeight: '500', fontSize: 11, color: C.red },
+    arrow:         { fontSize: 18, color: C.t3 },
     showMore:      { backgroundColor: C.stone, borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 8 },
-    showMoreText:  { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.t2 },
+    showMoreText:  { fontWeight: '500', fontSize: 13, color: C.t2 },
     empty:         { alignItems: 'center', paddingVertical: 40 },
     emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, marginBottom: 6 },
-    emptyText:     { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 19 },
+    emptyText:     { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 19 },
   });
 }

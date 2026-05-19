@@ -53,7 +53,7 @@ function mkStyles(C: AppColors) {
     title:      { fontFamily: FONT_BOLD, fontSize: 18, color: C.black, textAlign: 'center', marginBottom: 8 },
     sub:        { fontFamily: FONT, fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24 },
     actions:    { flexDirection: 'row', gap: 12 },
-    cancel:     { flex: 1, paddingVertical: 14, borderRadius: 3, borderWidth: 1, borderColor: C.mid, alignItems: 'center' },
+    cancel:     { flex: 1, paddingVertical: 14, borderRadius: 3, borderWidth: 0.5, borderColor: C.mid, alignItems: 'center' },
     cancelText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.black },
     finish:     { flex: 1, paddingVertical: 14, borderRadius: 3, backgroundColor: C.red, alignItems: 'center' },
     finishText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.white },

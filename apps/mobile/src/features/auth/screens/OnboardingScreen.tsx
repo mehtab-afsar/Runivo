@@ -120,7 +120,7 @@ function LoadingOverlay({ visible, goal, level }: {
 const lo = StyleSheet.create({
   root:   { ...StyleSheet.absoluteFillObject, backgroundColor: D.bg, zIndex: 50, alignItems: 'center', justifyContent: 'center' },
   inner:  { paddingHorizontal: 40, alignItems: 'center' },
-  eyebrow:{ fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 20 },
+  eyebrow:{ fontWeight: '500', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 20 },
   quote:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: D.t1, textAlign: 'center', lineHeight: 30 },
 });
 
@@ -229,5 +229,5 @@ const ss = StyleSheet.create({
   footer:      { paddingHorizontal: 24, paddingTop: 12 },
   cta:         { backgroundColor: D.t1, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
   ctaDisabled: { opacity: 0.4 },
-  ctaLabel:    { fontFamily: 'DMSans_500Medium', fontSize: 13, color: '#fff', textTransform: 'uppercase', letterSpacing: 0.8 },
+  ctaLabel:    { fontWeight: '500', fontSize: 13, color: '#fff', letterSpacing: 0.8 },
 });

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Pressable, Text, StyleSheet, View } from 'react-native';
-import { Footprints } from 'lucide-react-native';
+import { Footprints } from 'phosphor-react-native';
 import type { StoredShoe } from '@shared/services/store';
 import { useTheme, type AppColors } from '@theme';
 
@@ -18,7 +18,7 @@ export default function ShoeChip({ shoe, totalKm, onPress }: ShoeChipProps) {
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Pressable style={ss.chip} onPress={onPress}>
-      <View style={ss.iconWrap}><Footprints size={14} color={C.muted} strokeWidth={1.5} /></View>
+      <View style={ss.iconWrap}><Footprints size={14} color={C.muted} weight="light" /></View>
       {shoe ? (
         <>
           <Text style={ss.name} numberOfLines={1}>

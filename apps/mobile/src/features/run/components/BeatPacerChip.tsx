@@ -1,21 +1,20 @@
 /**
  * BeatPacerChip — in-run HUD chip showing BPM + mute toggle + pulse dot.
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Text, Pressable, StyleSheet, Animated } from 'react-native';
-import { Volume2, VolumeX } from 'lucide-react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { SpeakerHigh as Volume2, SpeakerSlash as VolumeX } from 'phosphor-react-native';
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   bpm: number;
   enabled: boolean;
-  outOfRange?: boolean;
   onToggle: () => void;
 }
 
-export default function BeatPacerChip({ bpm, enabled, outOfRange, onToggle }: Props) {
+export default function BeatPacerChip({ bpm, enabled, onToggle }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -34,37 +33,27 @@ export default function BeatPacerChip({ bpm, enabled, outOfRange, onToggle }: Pr
     return () => loop.stop();
   }, [enabled, bpm, pulse]);
 
-  if (outOfRange) {
-    return (
-      <Pressable style={[ss.chip, ss.chipMuted]} onPress={onToggle} hitSlop={8}>
-        <VolumeX size={12} color={C.muted} strokeWidth={1.5} />
-        <Text style={ss.rangeText}>Pace out of range</Text>
-      </Pressable>
-    );
-  }
-
   return (
-    <Pressable style={ss.chip} onPress={onToggle} hitSlop={8}>
-      <Animated.View style={[ss.dot, { transform: [{ scale: pulse }] }, !enabled && ss.dotMuted]} />
-      <Text style={ss.bpm}>{bpm}</Text>
-      <Text style={ss.unit}>BPM</Text>
+    <Pressable style={[ss.chip, enabled && ss.chipEnabled]} onPress={onToggle} hitSlop={8}>
+      <Animated.View style={[ss.dot, { transform: [{ scale: pulse }] }, enabled && ss.dotEnabled]} />
+      <Text style={[ss.bpm, enabled && ss.bpmEnabled]}>{bpm}</Text>
+      <Text style={[ss.unit, enabled && ss.unitEnabled]}>BPM</Text>
       {enabled
-        ? <Volume2 size={12} color={C.black} strokeWidth={1.5} />
-        : <VolumeX size={12} color={C.muted} strokeWidth={1.5} />}
+        ? <Volume2 size={12} color="rgba(255,255,255,0.7)" weight="light" />
+        : <VolumeX size={12} color={C.muted} weight="light" />}
     </Pressable>
   );
 }
 
-const ss = StyleSheet.create({
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border,
-    borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12,
-  },
-  chipMuted: { opacity: 0.6 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red },
-  dotMuted: { backgroundColor: C.muted },
-  bpm: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
-  unit: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.muted, marginRight: 2 },
-  rangeText: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: C.muted },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    chip:        { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12 },
+    chipEnabled: { backgroundColor: C.red, borderColor: C.red },
+    dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
+    dotEnabled:  { backgroundColor: '#fff' },
+    bpm:         { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+    bpmEnabled:  { color: '#fff' },
+    unit:        { fontSize: 10, color: 'rgba(255,255,255,0.35)', marginRight: 2 },
+    unitEnabled: { color: 'rgba(255,255,255,0.7)' },
+  });
+}

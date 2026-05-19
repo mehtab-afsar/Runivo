@@ -37,9 +37,9 @@ export function TerritoryStatsBar({ stats, isLoadingRivals, bottomInset }: Props
 
 const ss = StyleSheet.create({
   container: { position: 'absolute', left: 16, right: 16, backgroundColor: 'rgba(0,0,0,0.70)', borderRadius: 12, padding: 12 },
-  row1:      { fontFamily: 'Barlow_500Medium', fontSize: 13, color: '#fff', marginBottom: 2 },
+  row1:      { fontWeight: '500', fontSize: 13, color: '#fff', marginBottom: 2 },
   row2:      { flexDirection: 'row', alignItems: 'center' },
-  tsLabel:   { fontFamily: 'Barlow_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.6)' },
-  tsVal:     { fontFamily: 'Barlow_500Medium', fontSize: 13, color: '#fff' },
-  stale:     { fontFamily: 'Barlow_500Medium', fontSize: 13, color: '#EF9F27' },
+  tsLabel:   { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+  tsVal:     { fontWeight: '500', fontSize: 13, color: '#fff' },
+  stale:     { fontWeight: '500', fontSize: 13, color: '#EF9F27' },
 });

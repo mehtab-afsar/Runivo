@@ -6,7 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Camera, RefreshCw, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Camera, ArrowClockwise, CheckCircle } from 'phosphor-react-native';
 import { analyseFootImage, ARCH_INFO, type FootScanResult } from '../services/footScanService';
 import { Colors } from '@theme';
 
@@ -57,7 +57,7 @@ export default function FootScanScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.back}>
-          <ArrowLeft size={18} color={C.black} strokeWidth={1.5} />
+          <ArrowLeft size={18} color={C.black} weight="light" />
         </Pressable>
         <Text style={s.title}>Foot Scan</Text>
         <View style={{ width: 36 }} />
@@ -70,7 +70,7 @@ export default function FootScanScreen() {
             <Text style={s.heading}>Analyse your arch type</Text>
             <Text style={s.body}>Place your foot flat on a light-coloured floor and take a photo from directly above. Keep the whole foot in frame.</Text>
             <Pressable style={s.primaryBtn} onPress={capture}>
-              <Camera size={18} color={C.white} strokeWidth={1.5} />
+              <Camera size={18} color={C.white} weight="light" />
               <Text style={s.primaryBtnText}>Open Camera</Text>
             </Pressable>
           </View>
@@ -88,7 +88,7 @@ export default function FootScanScreen() {
             {error && <Text style={s.errorText}>{error}</Text>}
             {step === 'preview' && (
               <Pressable style={s.secondaryBtn} onPress={reset}>
-                <RefreshCw size={16} color={C.black} strokeWidth={1.5} />
+                <ArrowClockwise size={16} color={C.black} weight="light" />
                 <Text style={s.secondaryBtnText}>Try again</Text>
               </Pressable>
             )}
@@ -100,7 +100,7 @@ export default function FootScanScreen() {
             {preview && <Image source={{ uri: preview }} style={s.preview} />}
             <View style={[s.resultCard, { backgroundColor: C.greenLo }]}>
               <View style={s.resultHeader}>
-                <CheckCircle size={20} color={C.green} strokeWidth={1.5} />
+                <CheckCircle size={20} color={C.green} weight="light" />
                 <Text style={[s.resultTitle, { color: C.green }]}>
                   {archInfo.emoji} {archInfo.label} · {result.confidence}% confidence
                 </Text>
@@ -112,7 +112,7 @@ export default function FootScanScreen() {
               <Text style={s.resultBody}>{result.shoeRecommendation}</Text>
             </View>
             <Pressable style={s.secondaryBtn} onPress={reset}>
-              <RefreshCw size={16} color={C.black} strokeWidth={1.5} />
+              <ArrowClockwise size={16} color={C.black} weight="light" />
               <Text style={s.secondaryBtnText}>Scan again</Text>
             </Pressable>
           </View>
@@ -126,23 +126,23 @@ const s = StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
   header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 8 },
   back:    { width: 36, height: 36, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  title:   { fontFamily: 'Barlow_600SemiBold', fontSize: 16, color: C.black },
+  title:   { fontWeight: '600', fontSize: 16, color: C.black },
   scroll:  { padding: 16, paddingTop: 8 },
   section: { alignItems: 'center', gap: 16 },
   emoji:   { fontSize: 56, marginTop: 24 },
-  heading: { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, textAlign: 'center' },
-  body:    { fontFamily: 'Barlow_300Light', fontSize: 14, color: C.mid, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
+  heading: { fontWeight: '600', fontSize: 20, color: C.black, textAlign: 'center' },
+  body:    { fontSize: 14, color: C.mid, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
   preview: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, marginVertical: 8 },
   analysingRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  analysingText:   { fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.mid },
-  errorText:       { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.red, textAlign: 'center' },
+  analysingText:   { fontSize: 14, color: C.mid },
+  errorText:       { fontSize: 13, color: C.red, textAlign: 'center' },
   primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.black, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
-  primaryBtnText:  { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
+  primaryBtnText:  { fontWeight: '600', fontSize: 14, color: C.white },
   secondaryBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
-  secondaryBtnText:{ fontFamily: 'Barlow_400Regular', fontSize: 14, color: C.black },
+  secondaryBtnText:{ fontSize: 14, color: C.black },
   resultCard:      { width: '100%', borderRadius: 12, padding: 16, gap: 8 },
   resultHeader:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  resultTitle:     { fontFamily: 'Barlow_600SemiBold', fontSize: 14, flex: 1 },
-  resultLabel:     { fontFamily: 'Barlow_600SemiBold', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
-  resultBody:      { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.black, lineHeight: 20 },
+  resultTitle:     { fontWeight: '600', fontSize: 14, flex: 1 },
+  resultLabel:     { fontWeight: '600', fontSize: 12, letterSpacing: 0.8 },
+  resultBody:      { fontSize: 13, color: C.black, lineHeight: 20 },
 });

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Animated, StyleSheet, TouchableOpacity, Switch, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Activity, Footprints, Bike, Mountain, TreePine, Timer, TrendingUp, Route as RouteIcon, Check, Play, Music2 } from 'lucide-react-native';
+import { Pulse, Footprints, Bicycle, Mountains, TreeEvergreen, Timer, TrendUp, PathIcon as RouteIcon, Check, Play, MusicNotes as Music2 } from 'phosphor-react-native';
 import type { ActivityType } from '../types';
 import { useTheme, type AppColors } from '@theme';
 
@@ -9,15 +9,15 @@ const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
 
-type IconComponent = typeof Activity;
+type IconComponent = typeof Pulse;
 const ACTIVITIES: { id: ActivityType; label: string; icon: IconComponent; color: string; bg: string }[] = [
-  { id: 'run',      label: 'Run',       icon: Activity,    color: '#D93518', bg: '#FDE8E4' },
-  { id: 'walk',     label: 'Walk',      icon: Footprints,  color: '#059669', bg: '#D1FAE5' },
-  { id: 'cycle',    label: 'Cycle',     icon: Bike,        color: '#0284C7', bg: '#E0F2FE' },
-  { id: 'hike',     label: 'Hike',      icon: Mountain,    color: '#B45309', bg: '#FEF3C7' },
-  { id: 'trail',    label: 'Trail',     icon: TreePine,    color: '#15803D', bg: '#DCFCE7' },
-  { id: 'interval', label: 'Intervals', icon: Timer,       color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'long_run', label: 'Long Run',  icon: TrendingUp,  color: '#EA580C', bg: '#FFEDD5' },
+  { id: 'run',      label: 'Run',       icon: Pulse,         color: '#D93518', bg: '#FDE8E4' },
+  { id: 'walk',     label: 'Walk',      icon: Footprints,    color: '#059669', bg: '#D1FAE5' },
+  { id: 'cycle',    label: 'Cycle',     icon: Bicycle,       color: '#0284C7', bg: '#E0F2FE' },
+  { id: 'hike',     label: 'Hike',      icon: Mountains,     color: '#B45309', bg: '#FEF3C7' },
+  { id: 'trail',    label: 'Trail',     icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
+  { id: 'interval', label: 'Intervals', icon: Timer,         color: '#7C3AED', bg: '#EDE9FE' },
+  { id: 'long_run', label: 'Long Run',  icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
 ];
 
 interface RunSetupSheetProps {
@@ -56,7 +56,7 @@ export default function RunSetupSheet({
       <View style={ss.selectorRow}>
         <TouchableOpacity style={[ss.selectorBtn, ss.selectorBtnBorder]} onPress={onActivityPress} activeOpacity={0.7}>
           <View style={[ss.selectorIcon, { backgroundColor: activity.bg }]}>
-            <ActivityIcon size={16} color={activity.color} strokeWidth={1.5} />
+            <ActivityIcon size={16} color={activity.color} weight="light" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={ss.selectorMeta}>Activity</Text>
@@ -67,8 +67,8 @@ export default function RunSetupSheet({
         <TouchableOpacity style={ss.selectorBtn} onPress={onRoutePress} activeOpacity={0.7}>
           <View style={[ss.selectorIcon, { backgroundColor: selectedRouteName ? C.black : C.stone }]}>
             {selectedRouteName
-              ? <Check size={14} color="#fff" strokeWidth={2.5} />
-              : <RouteIcon size={14} color={C.muted} strokeWidth={1.5} />}
+              ? <Check size={14} color="#fff" weight="bold" />
+              : <RouteIcon size={14} color={C.muted} weight="light" />}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={ss.selectorMeta}>Route</Text>
@@ -86,7 +86,7 @@ export default function RunSetupSheet({
           activeOpacity={0.7}
         >
           <View style={[ss.pacerIcon, { backgroundColor: pacerEnabled ? '#FDE8E4' : C.stone }]}>
-            <Music2 size={14} color={pacerEnabled ? C.red : C.muted} strokeWidth={1.5} />
+            <Music2 size={14} color={pacerEnabled ? C.red : C.muted} weight="light" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={ss.pacerTitle}>Beat Pacer</Text>
@@ -130,7 +130,7 @@ export default function RunSetupSheet({
       <View style={[ss.startWrap, { paddingBottom: Math.max(bottomInset, 16) }]}>
         <TouchableOpacity style={[ss.startBtn, !gpsReady && ss.startBtnDisabled]} onPress={onStartPress} disabled={!gpsReady} activeOpacity={0.85}>
           <View style={[ss.startDot, !gpsReady && ss.startDotDisabled]}>
-            <Play size={10} color="#fff" fill="#fff" strokeWidth={0} />
+            <Play size={10} color="#fff" weight="fill" />
           </View>
           <Text style={ss.startLabel}>{gpsReady ? 'START RUN' : 'WAITING FOR GPS'}</Text>
         </TouchableOpacity>

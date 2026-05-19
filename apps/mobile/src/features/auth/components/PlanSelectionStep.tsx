@@ -7,7 +7,7 @@ import {
   View, Text, StyleSheet, Pressable, ActivityIndicator,
   Animated, ScrollView,
 } from 'react-native';
-import { Check, Zap, Map, Brain, Shield, Footprints } from 'lucide-react-native';
+import { Check, Lightning, MapTrifold, Brain, Shield, Footprints } from 'phosphor-react-native';
 import { C } from './onboardingStyles';
 import {
   getAvailablePackages, purchaseProduct, restorePurchases,
@@ -15,8 +15,8 @@ import {
 } from '../../subscription/services/purchaseService';
 
 const PREMIUM_FEATURES = [
-  { icon: Map,       text: 'Unlimited territory claims' },
-  { icon: Zap,       text: 'Beat Pacer metronome' },
+  { icon: MapTrifold, text: 'Unlimited territory claims' },
+  { icon: Lightning,  text: 'Beat Pacer metronome' },
   { icon: Brain,     text: 'AI Coach — personalised plans' },
   { icon: Shield,    text: 'Territory fortify & defend' },
   { icon: Footprints,text: 'Foot scan & shoe recommendations' },
@@ -116,7 +116,7 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
           {purchasing
             ? <ActivityIndicator color="#fff" size="small" />
             : plan === 'premium'
-              ? <View style={s.checkBadge}><Check size={12} color={C.black} strokeWidth={2.5} /></View>
+              ? <View style={s.checkBadge}><Check size={12} color={C.black} weight="bold" /></View>
               : null
           }
         </View>
@@ -124,7 +124,7 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
         <View style={s.featureList}>
           {PREMIUM_FEATURES.map(({ icon: Icon, text }) => (
             <View key={text} style={s.featureRow}>
-              <Icon size={13} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
+              <Icon size={13} color="rgba(255,255,255,0.7)" weight="light" />
               <Text style={s.premiumFeatureText}>{text}</Text>
             </View>
           ))}
@@ -142,13 +142,13 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
             <Text style={s.freeLabel}>Free</Text>
             <Text style={s.freePrice}>$0 / forever</Text>
           </View>
-          {plan === 'free' && <View style={s.checkBadgeDark}><Check size={12} color={C.white} strokeWidth={2.5} /></View>}
+          {plan === 'free' && <View style={s.checkBadgeDark}><Check size={12} color={C.white} weight="bold" /></View>}
         </View>
         <View style={[s.divider, { backgroundColor: C.border }]} />
         <View style={s.featureList}>
           {FREE_FEATURES.map(({ text }) => (
             <View key={text} style={s.featureRow}>
-              <Check size={13} color={C.t2} strokeWidth={1.5} />
+              <Check size={13} color={C.t2} weight="light" />
               <Text style={s.freeFeatureText}>{text}</Text>
             </View>
           ))}
@@ -190,41 +190,41 @@ export default function PlanSelectionStep({ plan, onSelectPlan }: Props) {
 
 const s = StyleSheet.create({
   wrap:            { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32, alignItems: 'stretch' },
-  eyebrow:         { fontFamily: 'DMSans_300Light', fontSize: 8, color: C.t3, textTransform: 'uppercase', letterSpacing: 2, textAlign: 'center', marginBottom: 8 },
+  eyebrow:         { fontSize: 8, color: C.t3, textTransform: 'uppercase', letterSpacing: 2, textAlign: 'center', marginBottom: 8 },
   title:           { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black, textAlign: 'center', marginBottom: 6 },
-  sub:             { fontFamily: 'DMSans_300Light', fontSize: 11, color: C.t2, textAlign: 'center', marginBottom: 20 },
+  sub:             { fontSize: 11, color: C.t2, textAlign: 'center', marginBottom: 20 },
 
   card:            { borderRadius: 12, padding: 16, marginBottom: 12 },
   cardSelected:    { borderWidth: 1.5, borderColor: '#FFF' },
 
   premiumCard:     { backgroundColor: C.black },
   cardHeader:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  premiumLabel:    { fontFamily: 'DMSans_500Medium', fontSize: 13, color: '#FFFFFF', letterSpacing: 0.5, marginBottom: 2 },
-  premiumPrice:    { fontFamily: 'DMSans_300Light', fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+  premiumLabel:    { fontWeight: '500', fontSize: 13, color: '#FFFFFF', letterSpacing: 0.5, marginBottom: 2 },
+  premiumPrice:    { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
   checkBadge:      { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   divider:         { height: 0.5, backgroundColor: 'rgba(255,255,255,0.15)', marginBottom: 12 },
   featureList:     { gap: 8 },
   featureRow:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  premiumFeatureText: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: 'rgba(255,255,255,0.85)' },
-  errorText:       { fontFamily: 'DMSans_400Regular', fontSize: 10, color: '#F87171', marginTop: 10, textAlign: 'center' },
+  premiumFeatureText: { fontSize: 12, color: 'rgba(255,255,255,0.85)' },
+  errorText:       { fontSize: 10, color: '#F87171', marginTop: 10, textAlign: 'center' },
 
   freeCard:        { backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
-  freeCardSelected:{ borderColor: C.black, borderWidth: 1 },
-  freeLabel:       { fontFamily: 'DMSans_500Medium', fontSize: 13, color: C.black, letterSpacing: 0.5, marginBottom: 2 },
-  freePrice:       { fontFamily: 'DMSans_300Light', fontSize: 11, color: C.t2 },
+  freeCardSelected:{ borderColor: C.black, borderWidth: 0.5 },
+  freeLabel:       { fontWeight: '500', fontSize: 13, color: C.black, letterSpacing: 0.5, marginBottom: 2 },
+  freePrice:       { fontSize: 11, color: C.t2 },
   checkBadgeDark:  { width: 22, height: 22, borderRadius: 11, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center' },
-  freeFeatureText: { fontFamily: 'DMSans_400Regular', fontSize: 12, color: C.t2 },
+  freeFeatureText: { fontSize: 12, color: C.t2 },
 
-  restoreText:     { fontFamily: 'DMSans_300Light', fontSize: 10, color: C.t3, textAlign: 'center', textDecorationLine: 'underline' },
+  restoreText:     { fontSize: 10, color: C.t3, textAlign: 'center', textDecorationLine: 'underline' },
 
   overlay:         { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end', zIndex: 10 },
   overlayBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(17,17,16,0.88)' },
   sheet:           { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 48, alignItems: 'center' },
   handle:          { width: 36, height: 3, borderRadius: 2, backgroundColor: C.border, marginBottom: 20 },
   sheetTitle:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, marginBottom: 8, textAlign: 'center' },
-  sheetSub:        { fontFamily: 'DMSans_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 24 },
+  sheetSub:        { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 24 },
   sheetConfirm:    { width: '100%', paddingVertical: 14, borderRadius: 10, backgroundColor: C.black, alignItems: 'center', marginBottom: 10 },
-  sheetConfirmLabel:{ fontFamily: 'DMSans_500Medium', fontSize: 12, color: '#FFF', textTransform: 'uppercase', letterSpacing: 1 },
+  sheetConfirmLabel:{ fontWeight: '500', fontSize: 12, color: '#FFF', letterSpacing: 1 },
   sheetCancel:     { paddingVertical: 8 },
-  sheetCancelLabel:{ fontFamily: 'DMSans_300Light', fontSize: 11, color: C.t2 },
+  sheetCancelLabel:{ fontSize: 11, color: C.t2 },
 });

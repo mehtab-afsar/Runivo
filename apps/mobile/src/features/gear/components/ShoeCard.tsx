@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Footprints } from 'lucide-react-native';
+import { Footprints } from 'phosphor-react-native';
 import type { StoredShoe } from '@shared/services/store';
 import { ShoeProgressBar } from '@features/gear/components/ShoeProgressBar';
 
@@ -30,7 +30,7 @@ export function ShoeCard({ shoe, kmRun, onSetDefault, onRetire, onDelete }: Shoe
   return (
     <View style={[s.card, shoe.isRetired && s.retired]}>
       <View style={s.top}>
-        <View style={s.icon}><Footprints size={20} color="#6B6B6B" strokeWidth={1.5} /></View>
+        <View style={s.icon}><Footprints size={20} color="#6B6B6B" weight="light" /></View>
         <View style={{ flex: 1 }}>
           <View style={s.nameRow}>
             <Text style={s.name}>{shoe.nickname || `${shoe.brand} ${shoe.model}`}</Text>
@@ -86,24 +86,24 @@ const s = StyleSheet.create({
   top: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   icon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 },
-  name: { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#0A0A0A' },
+  name: { fontWeight: '600', fontSize: 14, color: '#0A0A0A' },
   defaultBadge: { backgroundColor: '#EDF7F2', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
-  defaultLabel: { fontFamily: 'Barlow_400Regular', fontSize: 9, color: '#1A6B40', textTransform: 'uppercase', letterSpacing: 0.5 },
-  model: { fontFamily: 'Barlow_300Light', fontSize: 11, color: '#6B6B6B', marginBottom: 1 },
+  defaultLabel: { fontSize: 9, color: '#1A6B40', textTransform: 'uppercase', letterSpacing: 0.5 },
+  model: { fontSize: 11, color: '#6B6B6B', marginBottom: 1 },
   categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  category: { fontFamily: 'Barlow_300Light', fontSize: 10, color: '#ADADAD' },
+  category: { fontSize: 10, color: '#ADADAD' },
   statusBadge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   badgeRed: { backgroundColor: '#FEF0EE' },
   badgeAmber: { backgroundColor: '#FDF6E8' },
-  statusLabel: { fontFamily: 'Barlow_500Medium', fontSize: 8, letterSpacing: 0.5 },
+  statusLabel: { fontWeight: '500', fontSize: 8, letterSpacing: 0.5 },
   mileageRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  mileage: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#6B6B6B' },
-  remaining: { fontFamily: 'Barlow_300Light', fontSize: 11, color: '#ADADAD' },
+  mileage: { fontSize: 11, color: '#6B6B6B' },
+  remaining: { fontSize: 11, color: '#ADADAD' },
   retiredBadge: { backgroundColor: '#F0EDE8', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 8, marginBottom: 4 },
-  retiredLabel: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 0.5 },
+  retiredLabel: { fontSize: 10, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 0.5 },
   actions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#F0EDE8', borderWidth: 0.5, borderColor: '#DDD9D4' },
   deleteBtn: { backgroundColor: '#FEF0EE', borderColor: '#D9351844' },
-  actionLabel: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#6B6B6B' },
-  deleteLabel: { fontFamily: 'Barlow_400Regular', fontSize: 11, color: '#D93518' },
+  actionLabel: { fontSize: 11, color: '#6B6B6B' },
+  deleteLabel: { fontSize: 11, color: '#D93518' },
 });

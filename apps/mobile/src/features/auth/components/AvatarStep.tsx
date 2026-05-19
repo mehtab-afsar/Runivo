@@ -152,17 +152,17 @@ export default function AvatarStep({ data, onChange }: Props) {
 
 const s = StyleSheet.create({
   sectionLabel: {
-    fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3,
+    fontWeight: '500', fontSize: 9, color: D.t3,
     textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, marginTop: 4,
   },
   optRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: D.div,
+    paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: D.div,
   },
   accent:     { width: 2, height: 28, borderRadius: 1, backgroundColor: 'transparent' },
   accentSel:  { backgroundColor: D.red },
-  optText:    { flex: 1, fontFamily: 'DMSans_400Regular', fontSize: 15, color: D.t2 },
-  optTextSel: { fontFamily: 'DMSans_500Medium', color: D.t1 },
+  optText:    { flex: 1, fontSize: 15, color: D.t2 },
+  optTextSel: { fontWeight: '500', color: D.t1 },
   dot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
 
   statsRow: { flexDirection: 'row', gap: 8, marginTop: 24 },
@@ -170,23 +170,23 @@ const s = StyleSheet.create({
   unitRow:      { flexDirection: 'row', backgroundColor: D.div, borderRadius: 6, padding: 2 },
   unitBtn:      { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
   unitBtnSel:   { backgroundColor: '#fff' },
-  unitLabel:    { fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3 },
+  unitLabel:    { fontWeight: '500', fontSize: 9, color: D.t3 },
   unitLabelSel: { color: D.red },
 });
 
 const ds = StyleSheet.create({
   col:       { flex: 1 },
   colHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  colLabel:  { fontFamily: 'DMSans_500Medium', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-  colUnit:   { fontFamily: 'DMSans_300Light', fontSize: 9, color: D.t3 },
+  colLabel:  { fontWeight: '500', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+  colUnit:   { fontSize: 9, color: D.t3 },
   drumWrap:  { backgroundColor: D.surf, borderRadius: 10, overflow: 'hidden', position: 'relative' },
   band: {
     position: 'absolute', top: 1 * ITEM_H, left: 0, right: 0, height: ITEM_H,
     borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, zIndex: 1,
   },
   item:      { alignItems: 'center', justifyContent: 'center' },
-  itemText:  { fontFamily: 'DMSans_300Light', fontSize: 15, color: D.t3 },
-  itemActive:{ fontFamily: 'DMSans_500Medium', fontSize: 18, color: D.t1 },
+  itemText:  { fontSize: 15, color: D.t3 },
+  itemActive:{ fontWeight: '500', fontSize: 18, color: D.t1 },
   fadeT: {
     position: 'absolute', top: 0, left: 0, right: 0, height: ITEM_H * 0.8,
     backgroundColor: 'rgba(237,233,228,0.82)',

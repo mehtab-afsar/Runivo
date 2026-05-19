@@ -55,7 +55,7 @@ const s = StyleSheet.create({
   navRight:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
   signInBtn:    { paddingHorizontal: 4, paddingVertical: 4 },
   signInText:   {
-    fontFamily: 'Barlow_400Regular', fontSize: 10,
+    fontSize: 10,
     color: '#6B6B6B', letterSpacing: 0.8,
   },
   getStartedBtn: {
@@ -63,7 +63,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 7,
   },
   getStartedText: {
-    fontFamily: 'Barlow_500Medium', fontSize: 10,
+    fontWeight: '500', fontSize: 10,
     color: '#FFFFFF', letterSpacing: 0.8,
   },
   content: { flex: 1, justifyContent: 'center' },

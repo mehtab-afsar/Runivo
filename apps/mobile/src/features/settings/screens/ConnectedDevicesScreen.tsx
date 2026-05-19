@@ -14,7 +14,7 @@ import {
   SafeAreaView, Platform, ActivityIndicator, Linking, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Heart, Activity, TrendingUp, Brain, Smartphone, Check, X } from 'lucide-react-native';
+import { Heart, Pulse, TrendUp, Brain, DeviceMobile, Check, X } from 'phosphor-react-native';
 import { supabase } from '@shared/services/supabase';
 import { useTheme, type AppColors } from '@theme';
 import {
@@ -194,7 +194,7 @@ function DeviceCard({
       {/* Row 1 — logo + name + pill */}
       <View style={ss.cardHeader}>
         <View style={[ss.logo, isConnected && ss.logoConnected]}>
-          {device.logo === '__heart__'       ? <Heart       size={20} color="#EF4444" strokeWidth={1.5} />
+          {device.logo === '__heart__'       ? <Heart       size={20} color="#EF4444" weight="light" />
           : device.logo === '__dot_purple__' ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#8B5CF6' }} />
           : device.logo === '__dot_dark__'   ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#374151' }} />
           : device.logo === '__dot_red__'    ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />
@@ -210,7 +210,7 @@ function DeviceCard({
             )}
             {isConnected && (
               <View style={[ss.connectedPill, { flexDirection: 'row', alignItems: 'center', gap: 3 }]}>
-                <Check size={9} color={C.green} strokeWidth={2} />
+                <Check size={9} color={C.green} weight="regular" />
                 <Text style={ss.connectedPillText}>Connected</Text>
               </View>
             )}
@@ -255,7 +255,7 @@ function DeviceCard({
               >
                 {busy
                   ? <ActivityIndicator size="small" color={C.red} />
-                  : <X size={14} color={C.red} strokeWidth={2} />
+                  : <X size={14} color={C.red} weight="regular" />
                 }
               </Pressable>
             </>
@@ -456,7 +456,7 @@ export default function ConnectedDevicesScreen() {
       >
         {/* Info banner */}
         <View style={ss.banner}>
-          <Smartphone size={15} color={C.purple} strokeWidth={1.5} style={{ marginTop: 1 }} />
+          <DeviceMobile size={15} color={C.purple} weight="light" style={{ marginTop: 1 }} />
           <Text style={ss.bannerText}>
             Connect your fitness devices to automatically import runs, heart rate, cadence and HRV. Existing Runivo runs are never duplicated.
           </Text>
@@ -499,12 +499,12 @@ export default function ConnectedDevicesScreen() {
           <Text style={ss.dataCardTitle}>DATA SYNCED FROM DEVICES</Text>
           {([
             { Icon: Heart,       color: '#EF4444', label: 'Heart rate',  desc: 'Avg & max HR per run' },
-            { Icon: Activity,    color: '#D93518', label: 'Cadence',     desc: 'Steps/min for gait analysis' },
-            { Icon: TrendingUp,  color: '#D93518', label: 'Elevation',   desc: 'Total climb per activity' },
+            { Icon: Pulse,       color: '#D93518', label: 'Cadence',     desc: 'Steps/min for gait analysis' },
+            { Icon: TrendUp,     color: '#D93518', label: 'Elevation',   desc: 'Total climb per activity' },
             { Icon: Brain,       color: '#5A3A8A', label: 'HRV',         desc: 'Recovery score for AI coach' },
           ] as const).map(({ Icon, color, label, desc }) => (
             <View key={label} style={ss.dataRow}>
-              <Icon size={13} color={color} strokeWidth={1.5} />
+              <Icon size={13} color={color} weight="light" />
               <Text style={ss.dataDesc}>
                 <Text style={ss.dataLabel}>{label}</Text>{' — '}{desc}
               </Text>
@@ -539,7 +539,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     paddingBottom: 12,
   },
   backBtn:  { width: 32 },
-  backText: { fontFamily: 'Barlow_400Regular', fontSize: 18, color: C.mid },
+  backText: { fontSize: 18, color: C.mid },
   title:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
   scroll:   { paddingHorizontal: 16, paddingBottom: 40 },
 
@@ -550,7 +550,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     borderRadius: 12, padding: 14, marginBottom: 16,
   },
   bannerEmoji: { fontSize: 15, marginTop: 1 },
-  bannerText:  { flex: 1, fontFamily: 'Barlow_300Light', fontSize: 12, color: C.purple, lineHeight: 18 },
+  bannerText:  { flex: 1, fontSize: 12, color: C.purple, lineHeight: 18 },
 
   card: {
     backgroundColor: C.white, borderRadius: 12,
@@ -570,19 +570,19 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   logoEmoji:      { fontSize: 20 },
 
   nameRow:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  deviceName:  { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-  deviceDesc:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.muted },
+  deviceName:  { fontWeight: '500', fontSize: 13, color: C.black },
+  deviceDesc:  { fontSize: 11, color: C.muted },
 
   iosPill:     { backgroundColor: '#F0F0F0', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  iosPillText: { fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
+  iosPillText: { fontWeight: '500', fontSize: 9, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   connectedPill:     { backgroundColor: C.greenLo, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  connectedPillText: { fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.green, textTransform: 'uppercase', letterSpacing: 0.6 },
+  connectedPillText: { fontWeight: '500', fontSize: 9, color: C.green, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   cardFooter:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  syncTime:      { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.green },
-  notConnected:  { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.muted },
-  unavailableText: { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.muted },
+  syncTime:      { fontSize: 10, color: C.green },
+  notConnected:  { fontSize: 10, color: C.muted },
+  unavailableText: { fontSize: 10, color: C.muted },
 
   btnRow:        { flexDirection: 'row', gap: 6 },
   iconBtn: {
@@ -590,21 +590,21 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  iconBtnText: { fontFamily: 'Barlow_400Regular', fontSize: 16, color: C.mid },
+  iconBtnText: { fontSize: 16, color: C.mid },
 
   disconnectBtn: {
     width: 32, height: 32, borderRadius: 8,
     backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.15)',
     alignItems: 'center', justifyContent: 'center',
   },
-  disconnectBtnText: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.red },
+  disconnectBtnText: { fontSize: 13, color: C.red },
 
   connectBtn: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8,
     backgroundColor: C.black,
   },
   connectBtnBusy: { backgroundColor: C.border },
-  connectBtnText: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: '#fff' },
+  connectBtnText: { fontWeight: '500', fontSize: 11, color: '#fff' },
 
   dataCard: {
     backgroundColor: C.white, borderRadius: 12,
@@ -612,17 +612,17 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     padding: 14, marginTop: 4,
   },
   dataCardTitle: {
-    fontFamily: 'Barlow_500Medium', fontSize: 10,
+    fontWeight: '500', fontSize: 10,
     textTransform: 'uppercase', letterSpacing: 0.8,
     color: C.muted, marginBottom: 8,
   },
   dataRow:   { flexDirection: 'row', gap: 8, marginBottom: 6 },
   dataEmoji: { fontSize: 13 },
-  dataLabel: { fontFamily: 'Barlow_500Medium', fontSize: 11, color: C.black },
-  dataDesc:  { flex: 1, fontFamily: 'Barlow_300Light', fontSize: 11, color: C.mid, lineHeight: 16 },
+  dataLabel: { fontWeight: '500', fontSize: 11, color: C.black },
+  dataDesc:  { flex: 1, fontSize: 11, color: C.mid, lineHeight: 16 },
 
   privacyNote: {
-    fontFamily: 'Barlow_300Light', fontSize: 10,
+    fontSize: 10,
     color: C.muted, textAlign: 'center', marginTop: 12,
   },
 
@@ -632,5 +632,5 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     backgroundColor: C.black, borderRadius: 20,
     paddingHorizontal: 18, paddingVertical: 8,
   },
-  toastText: { fontFamily: 'Barlow_500Medium', fontSize: 12, color: '#fff' },
+  toastText: { fontWeight: '500', fontSize: 12, color: '#fff' },
 }); }

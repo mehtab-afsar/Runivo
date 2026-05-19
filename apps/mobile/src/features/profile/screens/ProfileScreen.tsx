@@ -129,7 +129,7 @@ function mkStyles(C: AppColors) {
     tabsContent: { paddingHorizontal: 16 },
     tab: { paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
     tabActive: { borderBottomColor: C.black },
-    tabLabel: { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t3 },
-    tabLabelActive: { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: C.black },
+    tabLabel: { fontSize: 13, color: C.t3 },
+    tabLabelActive: { fontWeight: '600', fontSize: 13, color: C.black },
   });
 }

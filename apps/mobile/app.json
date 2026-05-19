@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F8F6F3"
+      "backgroundColor": "#0F0F0F"
     },
     "scheme": "runivo",
     "ios": {
@@ -25,7 +25,7 @@
       "package": "com.runivo.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#0A0A0A",
+        "backgroundColor": "#0F0F0F",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -42,7 +42,8 @@
       "expo-sqlite",
       "expo-secure-store",
       "expo-font",
-      "@kingstinct/react-native-healthkit"
+      "@kingstinct/react-native-healthkit",
+      "@maplibre/maplibre-react-native"
     ]
   }
 }

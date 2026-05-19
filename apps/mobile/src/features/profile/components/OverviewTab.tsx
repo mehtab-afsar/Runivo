@@ -150,35 +150,35 @@ export function OverviewTab({
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
-    sectionTitle:   { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    sectionAction:  { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.red },
+    sectionTitle:   { fontWeight: '500', fontSize: 13, color: C.black },
+    sectionAction:  { fontSize: 12, color: C.red },
 
     pinnedCard:     { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, marginBottom: 24, overflow: 'hidden' },
     pinnedMain:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
     pinnedDist:     { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, letterSpacing: -0.5 },
-    pinnedMeta:     { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, marginTop: 3 },
-    pinnedDate:     { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-    pinnedArrow:    { fontFamily: 'Barlow_300Light', fontSize: 20, color: C.t3 },
+    pinnedMeta:     { fontSize: 12, color: C.t2, marginTop: 3 },
+    pinnedDate:     { fontSize: 11, color: C.t3, marginTop: 2 },
+    pinnedArrow:    { fontSize: 20, color: C.t3 },
     unpinRow:       { borderTopWidth: 0.5, borderTopColor: C.border, paddingVertical: 11, alignItems: 'center' },
-    unpinText:      { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.t2 },
+    unpinText:      { fontSize: 12, color: C.t2 },
 
     pinnedEmpty:     { backgroundColor: C.stone, borderRadius: 14, padding: 20, marginBottom: 24, alignItems: 'center', gap: 6 },
-    pinnedEmptyTitle:{ fontFamily: 'Barlow_500Medium', fontSize: 14, color: C.black },
-    pinnedEmptyText: { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 17 },
+    pinnedEmptyTitle:{ fontWeight: '500', fontSize: 14, color: C.black },
+    pinnedEmptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 17 },
 
     awardsScroll:   { marginBottom: 24 },
     awardsContent:  { gap: 10, paddingBottom: 4 },
     awardChip:      { alignItems: 'center', gap: 6, width: 68 },
     awardIconWrap:  { width: 48, height: 48, borderRadius: 12, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     awardIcon:      { fontSize: 24 },
-    awardLabel:     { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t2, textAlign: 'center' },
+    awardLabel:     { fontSize: 10, color: C.t2, textAlign: 'center' },
 
     runCard:        { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, marginBottom: 8 },
     runLeft:        { gap: 3 },
     runDist:        { fontFamily: 'Barlow_600SemiBold', fontSize: 17, color: C.black, letterSpacing: -0.3 },
-    runMeta:        { fontFamily: 'Barlow_300Light', fontSize: 12, color: C.t2 },
+    runMeta:        { fontSize: 12, color: C.t2 },
     runRight:       { alignItems: 'flex-end', gap: 6 },
-    runDate:        { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
-    runArrow:       { fontFamily: 'Barlow_300Light', fontSize: 18, color: C.t3 },
+    runDate:        { fontSize: 11, color: C.t3 },
+    runArrow:       { fontSize: 18, color: C.t3 },
   });
 }

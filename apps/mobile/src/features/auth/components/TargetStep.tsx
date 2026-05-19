@@ -106,29 +106,29 @@ export default function TargetStep({
 const s = StyleSheet.create({
   // Days
   dayRow:          { flexDirection: 'row', gap: 5 },
-  dayTile:         { paddingVertical: 12, borderRadius: 8, alignItems: 'center', gap: 3, flex: 1, borderWidth: 1 },
+  dayTile:         { paddingVertical: 12, borderRadius: 8, alignItems: 'center', gap: 3, flex: 1, borderWidth: 0.5 },
   dayTileUnsel:    { borderColor: D.div, backgroundColor: 'transparent' },
   dayTileToday:    { borderColor: D.red, backgroundColor: 'rgba(200,57,26,0.05)' },
   dayTileSel:      { borderColor: D.t1, backgroundColor: D.t1 },
-  dayLetter:       { fontFamily: 'DMSans_400Regular', fontSize: 12, color: D.t3 },
-  dayLetterSel:    { color: '#fff', fontFamily: 'DMSans_500Medium' },
-  dayLetterSub:    { fontFamily: 'DMSans_300Light', fontSize: 8, color: D.div },
+  dayLetter:       { fontSize: 12, color: D.t3 },
+  dayLetterSel:    { color: '#fff', fontWeight: '500' },
+  dayLetterSub:    { fontSize: 8, color: D.div },
   dayLetterSubSel: { color: 'rgba(255,255,255,0.5)' },
 
   // Distance chips
   distGrid:        { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  distChip:        { flex: 1, padding: 14, borderRadius: 8, borderWidth: 1, alignItems: 'flex-start' },
+  distChip:        { flex: 1, padding: 14, borderRadius: 8, borderWidth: 0.5, alignItems: 'flex-start' },
   distChipUnsel:   { borderColor: D.div, backgroundColor: 'transparent' },
   distChipSel:     { borderColor: D.t1, backgroundColor: D.t1 },
-  distLabel:       { fontFamily: 'DMSans_300Light', fontSize: 15, color: D.t1, marginBottom: 2 },
+  distLabel:       { fontSize: 15, color: D.t1, marginBottom: 2 },
   distLabelSel:    { color: '#fff' },
-  distSub:         { fontFamily: 'DMSans_300Light', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+  distSub:         { fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
   distSubSel:      { color: 'rgba(255,255,255,0.6)' },
 
   // Summary
-  summaryCard:     { borderTopWidth: 1, borderBottomWidth: 1, borderColor: D.div, paddingVertical: 24 },
-  summaryEyebrow:  { fontFamily: 'DMSans_500Medium', fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
+  summaryCard:     { borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, paddingVertical: 24 },
+  summaryEyebrow:  { fontWeight: '500', fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
   summaryNum:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 52, color: D.t1, lineHeight: 52 },
-  summaryUnit:     { fontFamily: 'DMSans_300Light', fontSize: 14, color: D.t3 },
-  summarySub:      { fontFamily: 'DMSans_300Light', fontSize: 13, color: D.t3, marginTop: 6 },
+  summaryUnit:     { fontSize: 14, color: D.t3 },
+  summarySub:      { fontSize: 13, color: D.t3, marginTop: 6 },
 });

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight } from 'phosphor-react-native';
 import { useTheme, type AppColors } from '@theme';
 
 const PLAN_TEMPLATES = [
@@ -69,7 +69,7 @@ export function CoachWelcome({ goalInput, onGoalChange, onGenerate, planLoading,
           ) : (
             <>
               <Text style={s.genBtnLabel}>Generate plan</Text>
-              <ArrowRight size={14} color="#fff" strokeWidth={2} />
+              <ArrowRight size={14} color="#fff" weight="regular" />
             </>
           )}
         </Pressable>
@@ -84,7 +84,7 @@ export function CoachWelcome({ goalInput, onGoalChange, onGenerate, planLoading,
       {/* Quick chat */}
       <Pressable style={[s.chatBtn, { borderColor: C.border, backgroundColor: C.surface }]} onPress={onOpenChat}>
         <Text style={[s.chatBtnLabel, { color: C.t2 }]}>Ask me anything…</Text>
-        <ArrowRight size={14} color={C.t3} strokeWidth={1.5} />
+        <ArrowRight size={14} color={C.t3} weight="light" />
       </Pressable>
     </View>
   );
@@ -95,22 +95,22 @@ function mkStyles(C: AppColors) {
     wrap:         { paddingHorizontal: 20, paddingTop: 32, paddingBottom: 20, gap: 16 },
     wordmark:     { textAlign: 'center' },
     pace:         { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 36, color: C.black },
-    x:            { fontFamily: 'Barlow_700Bold', fontSize: 36, color: C.red },
-    tagline:      { fontFamily: 'Barlow_300Light', fontSize: 14, color: C.t2, textAlign: 'center' },
+    x:            { fontWeight: '700', fontSize: 36, color: C.red },
+    tagline:      { fontSize: 14, color: C.t2, textAlign: 'center' },
     card:         { backgroundColor: C.white, borderRadius: 14, padding: 18, gap: 12, borderWidth: 0.5, borderColor: C.border },
-    cardHint:     { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.t2, lineHeight: 18 },
-    input:        { fontFamily: 'Barlow_400Regular', fontSize: 14, borderWidth: 0.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.bg },
+    cardHint:     { fontSize: 13, color: C.t2, lineHeight: 18 },
+    input:        { fontSize: 14, borderWidth: 0.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.bg },
     templatesScroll:  { marginHorizontal: -2 },
     templatesContent: { paddingHorizontal: 2, gap: 6, flexDirection: 'row' },
     templateChip:     { borderRadius: 16, borderWidth: 0.5, paddingHorizontal: 10, paddingVertical: 6 },
-    templateText:     { fontFamily: 'Barlow_400Regular', fontSize: 12 },
+    templateText:     { fontSize: 12 },
     genBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10, paddingVertical: 12 },
     genBtnDisabled: { opacity: 0.45 },
-    genBtnLabel:  { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: '#fff' },
+    genBtnLabel:  { fontWeight: '600', fontSize: 14, color: '#fff' },
     dividerRow:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
     divider:      { flex: 1, height: 0.5 },
-    dividerText:  { fontFamily: 'Barlow_400Regular', fontSize: 11, letterSpacing: 0.5 },
+    dividerText:  { fontSize: 11, letterSpacing: 0.5 },
     chatBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, borderWidth: 0.5, paddingHorizontal: 14, paddingVertical: 12 },
-    chatBtnLabel: { fontFamily: 'Barlow_400Regular', fontSize: 14 },
+    chatBtnLabel: { fontSize: 14 },
   });
 }

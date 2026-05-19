@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, Ac
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Calendar, Clock, MapPin, Users, Share2, Bookmark, X, Check, Plus, ArrowLeft } from 'lucide-react-native';
+import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, Plus, ArrowLeft } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
@@ -53,7 +53,7 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
             )}
           </View>
           <Pressable style={ed.closeBtn} onPress={onClose}>
-            <X size={12} color={C.t2} strokeWidth={2} />
+            <X size={12} color={C.t2} weight="regular" />
           </Pressable>
         </View>
 
@@ -73,7 +73,7 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
           ].map(({ Icon, label, value }, i, arr) => (
             <View key={label} style={[ed.detailRow, i < arr.length - 1 && ed.detailRowBorder]}>
               <View style={ed.detailIconBox}>
-                <Icon size={13} color={C.t2} strokeWidth={1.5} />
+                <Icon size={13} color={C.t2} weight="light" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={ed.detailLabel}>{label.toUpperCase()}</Text>
@@ -99,20 +99,20 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
         {/* Footer */}
         <View style={ed.footer}>
           <Pressable style={ed.iconBtn} onPress={() => {}}>
-            <Share2 size={16} color={C.t2} strokeWidth={1.5} />
+            <ShareNetwork size={16} color={C.t2} weight="light" />
           </Pressable>
           <Pressable
             style={[ed.iconBtn, bookmarked && ed.iconBtnSaved]}
             onPress={() => setBookmarked(b => !b)}
           >
-            <Bookmark size={16} color={bookmarked ? C.red : C.t2} fill={bookmarked ? C.red : 'none'} strokeWidth={1.5} />
+            <Bookmark size={16} color={bookmarked ? C.red : C.t2} weight={bookmarked ? 'fill' : 'light'} />
           </Pressable>
           <Pressable
             style={[ed.joinBtn, joined && ed.joinBtnJoined]}
             onPress={() => { onJoin(); onClose(); }}
           >
             {joined
-              ? <><Check size={15} color={C.green} strokeWidth={2} /><Text style={[ed.joinLabel, ed.joinLabelJoined]}>Joined</Text></>
+              ? <><Check size={15} color={C.green} weight="regular" /><Text style={[ed.joinLabel, ed.joinLabelJoined]}>Joined</Text></>
               : <Text style={ed.joinLabel}>Join Event</Text>}
           </Pressable>
         </View>
@@ -128,29 +128,29 @@ function mkEdStyles(C: AppColors) {
     handle:          { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
     sheetHeader:     { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
     chips:           { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' },
-    categoryText:    { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    categoryText:    { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1 },
     distPill:        { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: C.redLo },
-    distPillText:    { fontFamily: 'Barlow_500Medium', fontSize: 9, color: C.red },
+    distPillText:    { fontWeight: '500', fontSize: 9, color: C.red },
     closeBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8 },
     eventTitle:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black, marginBottom: 8, lineHeight: 28 },
-    eventDesc:       { fontFamily: 'Barlow_300Light', fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
+    eventDesc:       { fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
     detailCard:      { backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
     detailRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 13 },
     detailRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
     detailIconBox:   { width: 30, height: 30, borderRadius: 8, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    detailLabel:     { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, letterSpacing: 0.8, marginBottom: 2 },
-    detailValue:     { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.black },
+    detailLabel:     { fontSize: 9, color: C.t3, letterSpacing: 0.8, marginBottom: 2 },
+    detailValue:     { fontSize: 13, color: C.black },
     organizerRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
     orgAvatar:       { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    orgAvatarText:   { fontFamily: 'Barlow_700Bold', fontSize: 11, color: '#FFFFFF' },
-    orgLabel:        { fontFamily: 'Barlow_400Regular', fontSize: 9, color: C.t3, letterSpacing: 0.8, marginBottom: 1 },
-    orgName:         { fontFamily: 'Barlow_400Regular', fontSize: 13, color: C.black },
+    orgAvatarText:   { fontWeight: '700', fontSize: 11, color: '#FFFFFF' },
+    orgLabel:        { fontSize: 9, color: C.t3, letterSpacing: 0.8, marginBottom: 1 },
+    orgName:         { fontSize: 13, color: C.black },
     footer:          { flexDirection: 'row', gap: 8, alignItems: 'center' },
     iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     iconBtnSaved:    { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
     joinBtn:         { flex: 1, height: 48, borderRadius: 14, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
     joinBtnJoined:   { backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: 'rgba(26,107,64,0.25)' },
-    joinLabel:       { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.white },
+    joinLabel:       { fontWeight: '600', fontSize: 14, color: C.white },
     joinLabelJoined: { color: C.green },
   });
 }
@@ -183,7 +183,7 @@ export default function EventsScreen() {
       {/* Header */}
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} strokeWidth={2} />
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Events</Text>
@@ -191,7 +191,7 @@ export default function EventsScreen() {
         </View>
         {canCreate ? (
           <Pressable onPress={() => navigation.navigate('CreateEvent')} style={s.createBtn}>
-            <Plus size={14} color={C.white} strokeWidth={2.5} />
+            <Plus size={14} color={C.white} weight="bold" />
           </Pressable>
         ) : (
           <View style={{ width: 32 }} />
@@ -238,7 +238,7 @@ export default function EventsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Calendar size={32} color={C.t3} strokeWidth={1.5} />
+              <Calendar size={32} color={C.t3} weight="light" />
               <Text style={s.emptyTitle}>
                 {activeTab === 'past' ? 'No past events' : activeTab === 'challenges' ? 'No challenges' : 'No upcoming events'}
               </Text>
@@ -254,7 +254,7 @@ export default function EventsScreen() {
           style={[s.fab, { bottom: insets.bottom + 80 }]}
           onPress={() => navigation.navigate('CreateEvent')}
         >
-          <Plus size={16} color={C.white} strokeWidth={2.5} />
+          <Plus size={16} color={C.white} weight="bold" />
         </Pressable>
       )}
 
@@ -276,20 +276,20 @@ function mkStyles(C: AppColors) {
     header:         { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
     title:          { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    subtitle:       { fontFamily: 'Barlow_300Light', fontSize: 10, color: C.t3, marginTop: 2 },
+    subtitle:       { fontSize: 10, color: C.t3, marginTop: 2 },
     createBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     // Segmented tabs
     tabContainer:   { backgroundColor: C.white, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     tabPill:        { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 20, padding: 3, gap: 2 },
     tab:            { flex: 1, paddingVertical: 6, borderRadius: 16, alignItems: 'center' },
     tabActive:      { backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
-    tabLabel:       { fontFamily: 'Barlow_400Regular', fontSize: 10, color: C.t3 },
-    tabLabelActive: { fontFamily: 'Barlow_500Medium', color: C.black },
+    tabLabel:       { fontSize: 10, color: C.t3 },
+    tabLabelActive: { fontWeight: '500', color: C.black },
     // List
     list:           { paddingBottom: 120 },
     empty:          { alignItems: 'center' as const, paddingVertical: 56, paddingHorizontal: 18, gap: 8 },
-    emptyTitle:     { fontFamily: 'Barlow_500Medium', fontSize: 13, color: C.black },
-    emptyText:      { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, textAlign: 'center' },
+    emptyTitle:     { fontWeight: '500', fontSize: 13, color: C.black },
+    emptyText:      { fontSize: 11, color: C.t3, textAlign: 'center' },
     // FAB
     fab:            { position: 'absolute', right: 14, width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
     paceCardAccent: { borderLeftWidth: 3, borderLeftColor: C.red },

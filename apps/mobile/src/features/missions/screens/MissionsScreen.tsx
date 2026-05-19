@@ -6,7 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { TrendingUp, Flame, Target, Check, Shield, Zap, type LucideIcon } from 'lucide-react-native';
+import { TrendUp, Fire, Target, Check, Shield, Lightning, type Icon } from 'phosphor-react-native';
 import {
   MISSION_TEMPLATES,
   generateBlueprint,
@@ -22,15 +22,15 @@ import { useTheme } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// Mission type → Lucide icon
-const TYPE_ICON: Record<string, { Icon: LucideIcon; color: string }> = {
-  run_distance:      { Icon: TrendingUp, color: '#D93518' },
-  claim_territories: { Icon: Zap,        color: '#EAB308' },
+// Mission type → icon
+const TYPE_ICON: Record<string, { Icon: Icon; color: string }> = {
+  run_distance:      { Icon: TrendUp,    color: '#D93518' },
+  claim_territories: { Icon: Lightning,  color: '#EAB308' },
   capture_enemy:     { Icon: Shield,     color: '#059669' },
-  speed_run:         { Icon: TrendingUp, color: '#D93518' },
-  run_streak:        { Icon: Flame,      color: '#EA580C' },
+  speed_run:         { Icon: TrendUp,    color: '#D93518' },
+  run_streak:        { Icon: Fire,       color: '#EA580C' },
   defend_zone:       { Icon: Shield,     color: '#059669' },
-  steal_rival:       { Icon: Zap,        color: '#DC2626' },
+  steal_rival:       { Icon: Lightning,  color: '#DC2626' },
 };
 
 // Difficulty styles on white card
@@ -240,7 +240,7 @@ export default function MissionsScreen() {
                         return (
                           <View key={i} style={ss.blueprintRow}>
                             <View style={ss.blueprintIconBox}>
-                              <BPIcon size={14} color={bpColor} strokeWidth={1.5} />
+                              <BPIcon size={14} color={bpColor} weight="light" />
                             </View>
                             <View style={ss.blueprintMeta}>
                               <Text style={ss.blueprintMissionTitle}>{m.title}</Text>
@@ -261,7 +261,7 @@ export default function MissionsScreen() {
                   style={({ pressed }) => [ss.applyBtn, pressed && { opacity: 0.85 }]}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Check size={12} color={T.black} strokeWidth={2} />
+                    <Check size={12} color={T.black} weight="regular" />
                     <Text style={ss.applyBtnText}>Apply Blueprint</Text>
                   </View>
                 </Pressable>
@@ -289,7 +289,7 @@ export default function MissionsScreen() {
               {/* Top row */}
               <View style={ss.cardTopRow}>
                 <View style={[ss.cardIconBox, isSelected && ss.cardIconBoxSelected]}>
-                  <CardIcon size={16} color={isSelected ? T.white : cardIconColor} strokeWidth={1.5} />
+                  <CardIcon size={16} color={isSelected ? T.white : cardIconColor} weight="light" />
                 </View>
                 <View style={ss.cardMeta}>
                   <Text style={ss.cardTitle}>{template.title}</Text>
@@ -306,7 +306,7 @@ export default function MissionsScreen() {
                 </View>
                 {isSelected && (
                   <View style={ss.checkCircle}>
-                    <Check size={11} color={T.white} strokeWidth={2} />
+                    <Check size={11} color={T.white} weight="regular" />
                   </View>
                 )}
               </View>
@@ -338,7 +338,7 @@ export default function MissionsScreen() {
             {[0, 1, 2].map(i => {
               const mission = selectedMissions[i];
               const filled  = !!mission;
-              const entry: { Icon: LucideIcon; color: string } = mission ? (TYPE_ICON[mission.type as MissionType] ?? { Icon: Target, color: '#D93518' }) : { Icon: Target, color: T.t3 };
+              const entry: { Icon: Icon; color: string } = mission ? (TYPE_ICON[mission.type as MissionType] ?? { Icon: Target, color: '#D93518' }) : { Icon: Target, color: T.t3 };
               const { Icon: SlotIcon } = entry;
               return (
                 <View
@@ -346,7 +346,7 @@ export default function MissionsScreen() {
                   style={[ss.slot, filled && ss.slotFilled, i > 0 && { marginLeft: -6 }]}
                 >
                   {filled
-                    ? <SlotIcon size={14} color={T.white} strokeWidth={1.5} />
+                    ? <SlotIcon size={14} color={T.white} weight="light" />
                     : <Text style={{ fontSize: 16, color: T.t3 }}>+</Text>
                   }
                 </View>
@@ -382,40 +382,40 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   // Header
   header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: T.white, borderBottomWidth: 0.5, borderBottomColor: T.border },
   backBtn:         { width: 30, height: 30, borderRadius: 15, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
-  backText:        { fontFamily: 'Barlow_400Regular', fontSize: 16, color: T.black, lineHeight: 18 },
+  backText:        { fontSize: 16, color: T.black, lineHeight: 18 },
   headerTitle:     { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: T.black },
-  dateLabel:       { fontFamily: 'Barlow_300Light', fontSize: 11, color: T.t3 },
+  dateLabel:       { fontSize: 11, color: T.t3 },
 
   // Tabs
   tabsContainer:   { backgroundColor: T.white, borderBottomWidth: 0.5, borderBottomColor: T.border },
   tabsScroll:      { paddingHorizontal: 16, paddingVertical: 10, gap: 6, flexDirection: 'row' },
   tab:             { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 2, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border },
   tabActive:       { backgroundColor: T.black, borderColor: T.black },
-  tabText:         { fontFamily: 'Barlow_500Medium', fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
+  tabText:         { fontWeight: '500', fontSize: 11, color: T.t3, letterSpacing: 0.6 },
   tabTextActive:   { color: T.white },
 
   // Blueprint
   blueprintOuter:  { backgroundColor: T.white, padding: 18, marginBottom: 1 },
-  blueprintEyebrow:{ fontFamily: 'Barlow_300Light', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: T.t3, marginBottom: 8 },
+  blueprintEyebrow:{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: T.t3, marginBottom: 8 },
   blueprintCard:   { backgroundColor: T.black, borderRadius: 12, padding: 16 },
-  blueprintKicker: { fontFamily: 'Barlow_300Light', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: 'rgba(255,255,255,0.45)', marginBottom: 6 },
+  blueprintKicker: { fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: 'rgba(255,255,255,0.45)', marginBottom: 6 },
   blueprintTitle:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 17, color: T.white, lineHeight: 22, marginBottom: 14 },
   blueprintRows:   { gap: 8, marginBottom: 14 },
   blueprintRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   blueprintIconBox:{ width: 28, height: 28, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   blueprintMeta:   { flex: 1 },
-  blueprintMissionTitle: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: T.white, lineHeight: 16 },
-  blueprintMissionXp:    { fontFamily: 'Barlow_300Light', fontSize: 10, color: 'rgba(255,255,255,0.5)' },
+  blueprintMissionTitle: { fontSize: 12, color: T.white, lineHeight: 16 },
+  blueprintMissionXp:    { fontSize: 10, color: 'rgba(255,255,255,0.5)' },
   blueprintSkeleton:     { height: 40, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)' },
   diffPill:        { borderRadius: 2, paddingHorizontal: 6, paddingVertical: 2 },
-  diffPillText:    { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6 },
+  diffPillText:    { fontWeight: '500', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6 },
   applyBtn:        { backgroundColor: T.white, borderRadius: 6, paddingVertical: 11, alignItems: 'center', justifyContent: 'center' },
-  applyBtnText:    { fontFamily: 'Barlow_500Medium', fontSize: 12, color: T.black, textTransform: 'uppercase', letterSpacing: 0.6 },
+  applyBtnText:    { fontWeight: '500', fontSize: 12, color: T.black, letterSpacing: 0.6 },
 
   // Section divider
   divider:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, backgroundColor: T.stone },
-  dividerLabel:    { fontFamily: 'Barlow_300Light', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: T.t3 },
-  dividerCount:    { fontFamily: 'Barlow_300Light', fontSize: 10, color: T.t3 },
+  dividerLabel:    { fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: T.t3 },
+  dividerCount:    { fontSize: 10, color: T.t3 },
 
   // Mission cards
   missionCard:     { backgroundColor: T.white, padding: 14, paddingHorizontal: 18 },
@@ -425,23 +425,23 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   cardIconBox:     { width: 36, height: 36, borderRadius: 8, backgroundColor: T.stone, borderWidth: 0.5, borderColor: T.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   cardIconBoxSelected: { backgroundColor: T.black, borderColor: T.black },
   cardMeta:        { flex: 1 },
-  cardTitle:       { fontFamily: 'Barlow_500Medium', fontSize: 13, color: T.black, marginBottom: 5, lineHeight: 16 },
+  cardTitle:       { fontWeight: '500', fontSize: 13, color: T.black, marginBottom: 5, lineHeight: 16 },
   badgeRow:        { flexDirection: 'row', gap: 5, flexWrap: 'wrap' },
   diffBadge:       { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 2 },
-  diffBadgeText:   { fontFamily: 'Barlow_500Medium', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6 },
+  diffBadgeText:   { fontWeight: '500', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6 },
   catBadge:        { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 2, backgroundColor: T.stone },
-  catBadgeText:    { fontFamily: 'Barlow_300Light', fontSize: 9, color: T.t3 },
+  catBadgeText:    { fontSize: 9, color: T.t3 },
   checkCircle:     { width: 20, height: 20, borderRadius: 10, backgroundColor: T.black, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
-  checkText:       { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: T.white },
-  cardDesc:        { fontFamily: 'Barlow_300Light', fontSize: 11, color: T.t2, lineHeight: 17, marginBottom: 10 },
+  checkText:       { fontWeight: '600', fontSize: 11, color: T.white },
+  cardDesc:        { fontSize: 11, color: T.t2, lineHeight: 17, marginBottom: 10 },
   rewardsRow:      { flexDirection: 'row', alignItems: 'baseline' },
-  rewardValue:     { fontFamily: 'Barlow_400Regular', fontSize: 12, color: T.black },
-  rewardUnit:      { fontFamily: 'Barlow_300Light', fontSize: 10, color: T.t3 },
+  rewardValue:     { fontSize: 12, color: T.black },
+  rewardUnit:      { fontSize: 10, color: T.t3 },
   rewardDivider:   { width: 1, height: 12, backgroundColor: T.mid, marginHorizontal: 10 },
 
   // Empty
   emptyWrap:       { padding: 48, alignItems: 'center' },
-  emptyText:       { fontFamily: 'Barlow_300Light', fontSize: 13, color: T.t3 },
+  emptyText:       { fontSize: 13, color: T.t3 },
 
   // Save bar
   saveBar: {
@@ -456,5 +456,5 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   slot:       { width: 32, height: 32, borderRadius: 8, borderWidth: 2, borderColor: T.white, backgroundColor: T.stone, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   slotFilled: { backgroundColor: T.black, zIndex: 3 },
   saveBtn:    { flex: 1, backgroundColor: T.black, borderRadius: 3, paddingVertical: 13, alignItems: 'center' },
-  saveBtnText:{ fontFamily: 'Barlow_500Medium', fontSize: 12, color: T.white, textTransform: 'uppercase', letterSpacing: 0.6 },
+  saveBtnText:{ fontWeight: '500', fontSize: 12, color: T.white, letterSpacing: 0.6 },
 }); }
