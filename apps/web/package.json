@@ -1,48 +1,28 @@
 {
-  "name": "@runivo/web",
+  "name": "web",
+  "version": "0.1.0",
   "private": true,
-  "version": "1.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist node_modules/.cache"
+    "dev": "next dev -p 3004",
+    "build": "next build",
+    "start": "next start -p 3004",
+    "lint": "next lint"
   },
   "dependencies": {
-    "@runivo/shared": "*",
-    "@supabase/supabase-js": "^2.98.0",
-    "framer-motion": "^12.23.22",
-    "h3-js": "^4.4.0",
-    "lucide-react": "^0.544.0",
-    "maplibre-gl": "^5.8.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-router-dom": "^6.20.1",
-    "tailwind-merge": "^2.0.0",
-    "clsx": "^2.1.1",
-    "howler": "^2.2.4",
-    "html-to-image": "^1.11.11",
-    "qrcode": "^1.5.4",
-    "tailwindcss-animate": "^1.0.7"
+    "next": "14.2.20",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.400.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
-    "@types/howler": "^2.2.12",
-    "@types/qrcode": "^1.5.5",
-    "@vitejs/plugin-react": "^4.1.1",
-    "autoprefixer": "^10.4.16",
-    "eslint": "^9.0.0",
-    "eslint-plugin-react-hooks": "^5.0.0",
-    "eslint-plugin-react-refresh": "^0.4.0",
-    "globals": "^15.0.0",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.5",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.0.0",
-    "vite": "^4.5.0"
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5.3.0",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
   }
 }

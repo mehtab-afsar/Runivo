@@ -92,6 +92,19 @@ function computeTierFromArea(m2: number): string {
   return 'domain';
 }
 
+// ── Haversine distance (metres) ───────────────────────────────────────────────
+
+function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6_371_000;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const aa = sinLat * sinLat
+    + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinLng * sinLng;
+  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -111,54 +124,51 @@ Deno.serve(async (req) => {
   if (authErr || !user) return new Response('Unauthorized', { status: 401 });
 
   const body = await req.json() as {
-    runId: string;
-    userId: string;
-    gpsPoints: Pt[];
-    activityType: string;
-    distanceKm: number;
+    runId:            string;
+    userId:           string;
+    gpsPoints:        Pt[];
+    activityType:     string;
+    distanceKm:       number;
+    durationSec?:     number;
+    clientPaceEarned?: number;
   };
 
   if (body.userId !== user.id) return new Response('Forbidden', { status: 403 });
 
-  const ring = buildPolygon(body.gpsPoints, body.activityType);
-  if (!ring) {
-    return new Response(JSON.stringify({
-      territoryGenerated: false,
-      newZonesClaimed: 0,
-      rivalZonesStolen: 0,
-      paceAdjustment: 0,
-      stolenFromUserIds: [],
-    }), { headers: { 'Content-Type': 'application/json' } });
+  // Anti-cheat: early exit guards
+  if (!body.gpsPoints || body.gpsPoints.length < 10) {
+    return new Response(JSON.stringify({ error: 'insufficient_gps' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+  }
+  const durationSec = body.durationSec ?? 0;
+  if (durationSec < 60) {
+    return new Response(JSON.stringify({ error: 'run_too_short' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   }
 
-  const wkt = polygonToWKT(ring);
+  // Server-side distance from accuracy-filtered GPS points
+  const filteredPts = filterPoints(body.gpsPoints);
+  let serverDistanceKm = 0;
+  for (let i = 1; i < filteredPts.length; i++) {
+    serverDistanceKm += haversineM(filteredPts[i - 1], filteredPts[i]) / 1000;
+  }
 
-  // Find rival territory_polygons that intersect the new polygon
-  const { data: rivals } = await supabase.rpc('find_intersecting_territories', {
-    p_wkt: wkt,
-    p_owner_id: user.id,
-  });
-
-  const rivalRows = (rivals ?? []) as {
-    id: string;
-    owner_id: string;
-    freshness: number;
-    area_m2: number;
-    intersection_area: number;
-  }[];
-
-  // Batch-fetch rival usernames before the steal loop
-  const rivalOwnerIds = [...new Set(rivalRows.map(r => r.owner_id))];
-  const { data: rivalProfiles } = rivalOwnerIds.length > 0
-    ? await supabase.from('profiles').select('id, username').in('id', rivalOwnerIds)
-    : { data: [] };
-  const rivalUsernameMap = new Map<string, string>(
-    ((rivalProfiles ?? []) as { id: string; username: string | null }[]).map(p => [p.id, p.username ?? 'Runner'])
-  );
-
+  // Fetch attacker profile (username + PACE cap data)
   const { data: attackerProfile } = await supabase
-    .from('profiles').select('username').eq('id', user.id).single();
-  const attackerUsername = (attackerProfile as { username: string | null } | null)?.username ?? 'A rival runner';
+    .from('profiles')
+    .select('username, pace_weekly_earned, streak_days')
+    .eq('id', user.id)
+    .single();
+
+  const attackerUsername  = (attackerProfile as { username: string | null } | null)?.username ?? 'A rival runner';
+  const weeklyEarned      = (attackerProfile as { pace_weekly_earned: number } | null)?.pace_weekly_earned ?? 0;
+  const streakDays        = (attackerProfile as { streak_days: number } | null)?.streak_days ?? 0;
+  const weeklyCap         = 100; // free tier cap; premium (150) not yet tracked on StoredPlayer
+
+  // Territory processing
+  const ring = buildPolygon(body.gpsPoints, body.activityType);
+
+  let stolenZones       = 0;
+  let newZonesClaimed   = 0;
+  const stolenFromUserIds: string[] = [];
 
   interface StealRecord {
     rivalOwnerId:   string;
@@ -168,69 +178,110 @@ Deno.serve(async (req) => {
   }
   const stealRecords: StealRecord[] = [];
 
-  let stolenZones = 0;
-  const stolenFromUserIds: string[] = [];
-  let newZonesClaimed = 0;
+  if (ring) {
+    const wkt = polygonToWKT(ring);
 
-  for (const rival of rivalRows) {
-    const overlapPct = rival.area_m2 > 0 ? rival.intersection_area / rival.area_m2 : 0;
-    const isFresh    = rival.freshness >= FRESHNESS_STALE_AT;
-    const qualifies  = isFresh ? overlapPct > STEAL_THRESHOLD : overlapPct > 0;
-
-    if (!qualifies) continue;
-
-    stealRecords.push({
-      rivalOwnerId:   rival.owner_id,
-      rivalOwnerName: rivalUsernameMap.get(rival.owner_id) ?? 'Runner',
-      stolenAreaM2:   rival.intersection_area,
-      tier:           computeTierFromArea(rival.intersection_area),
+    // Find rival territory_polygons that intersect the new polygon
+    const { data: rivals } = await supabase.rpc('find_intersecting_territories', {
+      p_wkt: wkt,
+      p_owner_id: user.id,
     });
 
-    // Clip the rival's polygon and insert the stolen portion for this user
-    await supabase.rpc('steal_territory_portion', {
-      p_rival_id:    rival.id,
-      p_new_wkt:     wkt,
-      p_new_owner:   user.id,
-      p_run_id:      body.runId,
-    });
+    const rivalRows = (rivals ?? []) as {
+      id: string;
+      owner_id: string;
+      freshness: number;
+      area_m2: number;
+      intersection_area: number;
+    }[];
 
-    stolenZones++;
-    if (!stolenFromUserIds.includes(rival.owner_id)) {
-      stolenFromUserIds.push(rival.owner_id);
+    // Batch-fetch rival usernames
+    const rivalOwnerIds = [...new Set(rivalRows.map(r => r.owner_id))];
+    const { data: rivalProfiles } = rivalOwnerIds.length > 0
+      ? await supabase.from('profiles').select('id, username').in('id', rivalOwnerIds)
+      : { data: [] };
+    const rivalUsernameMap = new Map<string, string>(
+      ((rivalProfiles ?? []) as { id: string; username: string | null }[]).map(p => [p.id, p.username ?? 'Runner'])
+    );
+
+    for (const rival of rivalRows) {
+      const overlapPct = rival.area_m2 > 0 ? rival.intersection_area / rival.area_m2 : 0;
+      const isFresh    = rival.freshness >= FRESHNESS_STALE_AT;
+      const qualifies  = isFresh ? overlapPct > STEAL_THRESHOLD : overlapPct > 0;
+
+      if (!qualifies) continue;
+
+      stealRecords.push({
+        rivalOwnerId:   rival.owner_id,
+        rivalOwnerName: rivalUsernameMap.get(rival.owner_id) ?? 'Runner',
+        stolenAreaM2:   rival.intersection_area,
+        tier:           computeTierFromArea(rival.intersection_area),
+      });
+
+      await supabase.rpc('steal_territory_portion', {
+        p_rival_id:    rival.id,
+        p_new_wkt:     wkt,
+        p_new_owner:   user.id,
+        p_run_id:      body.runId,
+      });
+
+      stolenZones++;
+      if (!stolenFromUserIds.includes(rival.owner_id)) {
+        stolenFromUserIds.push(rival.owner_id);
+      }
     }
-  }
 
-  // Insert unclaimed corridor area (ST_Difference against all intersecting rivals)
-  const { data: claimedNew } = await supabase.rpc('claim_unclaimed_area', {
-    p_wkt:      wkt,
-    p_owner_id: user.id,
-    p_run_id:   body.runId,
-  });
-  if (claimedNew) newZonesClaimed = 1;
+    const { data: claimedNew } = await supabase.rpc('claim_unclaimed_area', {
+      p_wkt:      wkt,
+      p_owner_id: user.id,
+      p_run_id:   body.runId,
+    });
+    if (claimedNew) newZonesClaimed = 1;
 
-  // Refresh freshness on own polygons touched by this run
-  await supabase.rpc('defend_own_territories', {
-    p_wkt:      wkt,
-    p_owner_id: user.id,
-  });
-
-  const paceAdjustment = newZonesClaimed * PACE_PER_NEW_ZONE + stolenZones * PACE_PER_STOLEN;
-
-  // Apply PACE adjustment to player profile
-  if (paceAdjustment > 0) {
-    await supabase.rpc('apply_pace_adjustment', {
-      p_user_id:   user.id,
-      p_pace_delta: paceAdjustment,
+    await supabase.rpc('defend_own_territories', {
+      p_wkt:      wkt,
+      p_owner_id: user.id,
     });
   }
 
-  // Generate feed battle cards — non-critical, must never break territory processing
+  // Server-authoritative PACE calculation
+  const distancePace  = Math.floor(serverDistanceKm);                              // 1 PACE/km
+  const zonePace      = newZonesClaimed * PACE_PER_NEW_ZONE + stolenZones * PACE_PER_STOLEN;
+  const streakBonus   = streakDays > 0 && streakDays % 7 === 0 ? 3 : 0;
+  const rawPace       = distancePace + zonePace + streakBonus;
+  const remainingCap  = Math.max(0, weeklyCap - weeklyEarned);
+  const serverPaceEarned = Math.min(rawPace, remainingCap);
+
+  // Discrepancy logging (non-critical, silently skipped if table absent)
+  const clientPaceEarned = body.clientPaceEarned ?? 0;
+  if (Math.abs(clientPaceEarned - serverPaceEarned) > 2) {
+    try {
+      await supabase.from('pace_discrepancy_log').insert({
+        user_id:         user.id,
+        run_id:          body.runId,
+        client_pace:     clientPaceEarned,
+        server_pace:     serverPaceEarned,
+        distance_km:     serverDistanceKm,
+        gps_point_count: filteredPts.length,
+        logged_at:       new Date().toISOString(),
+      });
+    } catch { /* non-critical */ }
+  }
+
+  // Apply authoritative PACE to player profile in DB
+  if (serverPaceEarned > 0) {
+    await supabase.rpc('apply_pace_adjustment', {
+      p_user_id:    user.id,
+      p_pace_delta: serverPaceEarned,
+    });
+  }
+
+  // Generate feed battle cards — non-critical
   if (stealRecords.length > 0) {
     try {
       const feedOps: Promise<unknown>[] = [];
 
       for (const steal of stealRecords) {
-        // Conquest card — visible to attacker's followers
         feedOps.push(supabase.from('feed_posts').insert({
           user_id:              body.userId,
           post_type:            'conquest',
@@ -247,7 +298,6 @@ Deno.serve(async (req) => {
           leveled_up:           false,
         }));
 
-        // Attack card — private to victim (user_id = victim so get_feed only shows to auth.uid())
         feedOps.push(supabase.from('feed_posts').insert({
           user_id:              steal.rivalOwnerId,
           post_type:            'attack',
@@ -264,7 +314,6 @@ Deno.serve(async (req) => {
           leveled_up:           false,
         }));
 
-        // Push notification to victim
         feedOps.push(supabase.functions.invoke('send-push-notification', {
           body: {
             userId: steal.rivalOwnerId,
@@ -280,10 +329,10 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify({
-    territoryGenerated: true,
+    territoryGenerated: ring !== null,
     newZonesClaimed,
     rivalZonesStolen: stolenZones,
-    paceAdjustment,
+    paceAdjustment: serverPaceEarned,
     stolenFromUserIds,
   }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 });

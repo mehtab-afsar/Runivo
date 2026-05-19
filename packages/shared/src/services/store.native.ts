@@ -596,3 +596,17 @@ export async function matchOrCreateRun(imported: {
   await saveRun(newRun);
   return { action: 'created', run: newRun };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Account reset — call on sign-out so the next user starts with a clean store
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function clearLocalUserData(): void {
+  _db.runSync('DELETE FROM player');
+  _db.runSync('DELETE FROM nutrition_profile');
+  _db.runSync('DELETE FROM nutrition_log');
+  _db.runSync('DELETE FROM pending_actions');
+  _db.runSync('DELETE FROM runs');
+  _db.runSync('DELETE FROM territories');
+  _db.runSync('DELETE FROM missions');
+}

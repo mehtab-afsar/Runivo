@@ -263,22 +263,32 @@ export async function pushUnsyncedRuns(): Promise<void> {
         if (session.session) {
           const { data: result } = await supabase.functions.invoke('process-run-territory', {
             body: {
-              runId:        run.id,
-              userId:       user.id,
-              gpsPoints:    run.gpsPoints,   // full original GPS trace (not simplified)
-              activityType: run.activityType,
-              distanceKm:   run.distanceMeters / 1000,
+              runId:            run.id,
+              userId:           user.id,
+              gpsPoints:        run.gpsPoints,   // full original GPS trace (not simplified)
+              activityType:     run.activityType,
+              distanceKm:       run.distanceMeters / 1000,
+              durationSec:      run.durationSec,
+              clientPaceEarned: run.xpEarned ?? 0,
             },
           });
-          if (result && typeof result.paceAdjustment === 'number' && result.paceAdjustment > 0) {
+          if (result && typeof result.paceAdjustment === 'number') {
             const player = await getPlayer();
             if (player) {
-              await savePlayer({
-                ...player,
-                paceBalance:      (player.paceBalance      ?? 0) + result.paceAdjustment,
-                paceTotalEarned:  (player.paceTotalEarned  ?? 0) + result.paceAdjustment,
-                paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + result.paceAdjustment,
-              });
+              // Delta reconciliation: server returns the authoritative total.
+              // Apply only the difference to avoid double-crediting the optimistic
+              // PACE already credited by useGameEngine at run end.
+              const clientCredited = run.xpEarned ?? 0;
+              const serverAuthoritative = result.paceAdjustment;
+              const delta = serverAuthoritative - clientCredited;
+              if (delta !== 0) {
+                await savePlayer({
+                  ...player,
+                  paceBalance:      Math.max(0, (player.paceBalance      ?? 0) + delta),
+                  paceTotalEarned:  Math.max(0, (player.paceTotalEarned  ?? 0) + delta),
+                  paceWeeklyEarned: Math.max(0, (player.paceWeeklyEarned ?? 0) + delta),
+                });
+              }
             }
           }
 

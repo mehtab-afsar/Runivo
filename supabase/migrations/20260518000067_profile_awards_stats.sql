@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS user_awards (
 );
 ALTER TABLE user_awards ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "awards_read_own" ON user_awards FOR SELECT
-  USING (user_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM profiles WHERE id = user_id AND is_public = true));
+  USING (true);
 CREATE POLICY "awards_insert_own" ON user_awards FOR INSERT
   WITH CHECK (user_id = auth.uid());
 

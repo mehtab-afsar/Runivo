@@ -743,3 +743,6 @@ export async function matchOrCreateRun(imported: {
   await saveRun(newRun);
   return { action: 'created', run: newRun };
 }
+
+// Web stub — no local SQLite to clear; Supabase session handles identity
+export function clearLocalUserData(): void {}

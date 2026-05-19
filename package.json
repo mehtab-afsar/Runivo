@@ -8,9 +8,9 @@
     "packages/shared"
   ],
   "scripts": {
-    "mobile": "npm run start --workspace=apps/mobile",
-    "ios": "npm run ios --workspace=apps/mobile",
-    "android": "npm run android --workspace=apps/mobile",
+    "mobile": "cd apps/mobile && expo start --clear",
+    "ios": "cd apps/mobile && expo run:ios",
+    "android": "cd apps/mobile && expo run:android",
     "web": "npm run dev --workspace=apps/web",
     "build": "cd apps/web && npx vite build",
     "typecheck": "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/mobile",

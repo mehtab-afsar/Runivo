@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { clearLocalUserData } from './store';
 import type { Session, User } from '@supabase/supabase-js';
 
 // ----------------------------------------------------------------
@@ -51,6 +52,7 @@ export async function signInWithProvider(provider: 'google' | 'apple', redirectT
 // Sign out
 // ----------------------------------------------------------------
 export async function signOut() {
+  clearLocalUserData();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
