@@ -12,6 +12,7 @@ import { ActivityFeedTab } from '../components/ActivityFeedTab';
 import { IntelligenceTab } from '../components/IntelligenceTab';
 import { TerritoryTab } from '../components/TerritoryTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
+import { AwardsTab } from '../components/AwardsTab';
 import type { ProfileTab } from '../types';
 import { useTheme, type AppColors } from '@theme';
 
@@ -22,6 +23,7 @@ const TABS: { key: ProfileTab; label: string }[] = [
   { key: 'activity',      label: 'Activity' },
   { key: 'territory',     label: 'Territory' },
   { key: 'intelligence',  label: 'Intelligence' },
+  { key: 'awards',        label: 'Awards' },
 ];
 
 export default function ProfileScreen() {
@@ -92,7 +94,7 @@ export default function ProfileScreen() {
               earnedAwards={earnedAwards}
               pinnedRunId={pinnedRunId}
               onViewAllActivity={() => setTab('activity')}
-              onViewAllAwards={() => setTab('activity')}
+              onViewAllAwards={() => setTab('awards')}
               onPinRun={pinRun}
             />
           )}
@@ -100,6 +102,16 @@ export default function ProfileScreen() {
           {tab === 'territory' && <TerritoryTab />}
           {tab === 'intelligence' && (
             <IntelligenceTab runs={runs} personalRecords={personalRecords} />
+          )}
+          {tab === 'awards' && (
+            <AwardsTab
+              earnedAwards={earnedAwards}
+              totalKm={totalKm}
+              streakDays={player?.streakDays ?? 0}
+              totalTerritoriesClaimed={player?.totalTerritoriesClaimed ?? 0}
+              paceTotalEarned={player?.paceTotalEarned ?? 0}
+              runs={runs}
+            />
           )}
         </View>
       </ScrollView>
