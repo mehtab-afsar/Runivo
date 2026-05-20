@@ -46,7 +46,9 @@ export default function DashboardScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchUnreadCount().then(setUnreadCount).catch(() => {});
+      fetchUnreadCount().then(setUnreadCount).catch(err => {
+        if (__DEV__) console.error('[Notifications] fetchUnreadCount:', err);
+      });
     }, []),
   );
 

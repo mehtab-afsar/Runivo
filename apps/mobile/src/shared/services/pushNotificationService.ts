@@ -5,8 +5,8 @@
  * Call `syncPushSubscriptionOnLoad()` once after the user is authenticated
  * (done in AppNavigator's isAuthenticated useEffect).
  *
- * The token is stored in the `push_subscriptions` table:
- *   push_subscriptions(user_id, token, platform, updated_at)
+ * The token is stored in the `expo_push_tokens` table:
+ *   expo_push_tokens(user_id, token, platform, updated_at)
  *
  * The `send-push-notification` Supabase edge function reads this table
  * to deliver Expo push notifications.
@@ -14,6 +14,7 @@
 
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '@shared/services/supabase';
 
@@ -52,7 +53,9 @@ async function getExpoPushToken(): Promise<string | null> {
     });
   }
 
-  const tokenData = await Notifications.getExpoPushTokenAsync();
+  const tokenData = await Notifications.getExpoPushTokenAsync({
+    projectId: Constants.expoConfig?.extra?.eas?.projectId,
+  });
   return tokenData.data;
 }
 

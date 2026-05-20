@@ -10,6 +10,8 @@ import { useNutritionContext } from '@features/nutrition/hooks/useNutritionConte
 import { useNutritionInsights } from '@features/nutrition/hooks/useNutritionInsights';
 import { TrackerBody } from '@features/nutrition/components/TrackerBody';
 import { AddFoodModal } from '@features/nutrition/components/AddFoodModal';
+import { fetchExistingProfile } from '@features/nutrition/services/nutritionSetupService';
+import { NutritionWelcomeFlow } from './NutritionWelcomeFlow';
 import { useTheme, type AppColors } from '@theme';
 
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
@@ -68,6 +70,15 @@ function WeeklyChart({ weekKcals, weekAvg, goal, weekDates, C }: {
 export default function CalorieTrackerScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
+
+  // Gate: show welcome flow until nutrition profile is set up
+  const [setupDone, setSetupDone] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetchExistingProfile()
+      .then(p => setSetupDone(!!p && (p.dailyGoalKcal ?? 0) > 0))
+      .catch(() => setSetupDone(false));
+  }, []);
+
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const burnKcalParam = (route.params as { burnKcal?: number } | undefined)?.burnKcal;
@@ -111,6 +122,17 @@ export default function CalorieTrackerScreen() {
     carbsConsumed,   carbsGoal:   profile?.carbsGoalG ?? 250,
     fatConsumed,     fatGoal:     profile?.fatGoalG ?? 65,
   });
+
+  if (setupDone === null) {
+    return (
+      <SafeAreaView style={s.root}>
+        <View style={s.center}><ActivityIndicator color={C.red} /></View>
+      </SafeAreaView>
+    );
+  }
+  if (!setupDone) {
+    return <NutritionWelcomeFlow onComplete={() => setSetupDone(true)} />;
+  }
 
   if (loading) {
     return (

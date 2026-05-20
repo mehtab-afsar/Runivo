@@ -123,16 +123,29 @@ serve(async (req) => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  let body: { user_id: string; title: string; body: string; action_url?: string };
+  let body: { user_id: string; title: string; body: string; action_url?: string; type?: string };
   try {
     body = await req.json();
   } catch {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  const { user_id, title, body: notifBody, action_url = '/' } = body;
+  const { user_id, title, body: notifBody, action_url = '/', type = '' } = body;
   if (!user_id || !title) {
     return new Response('Missing user_id or title', { status: 400 });
+  }
+
+  // Check master notification toggle
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('notifications_enabled')
+    .eq('id', user_id)
+    .single();
+
+  if (profile && profile.notifications_enabled === false) {
+    return new Response(JSON.stringify({ sent: 0, reason: 'disabled' }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   // Fetch both subscription types in parallel

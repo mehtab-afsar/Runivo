@@ -42,8 +42,14 @@
       "expo-sqlite",
       "expo-secure-store",
       "expo-font",
+      "expo-notifications",
       "@kingstinct/react-native-healthkit",
       "@maplibre/maplibre-react-native"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
   }
 }

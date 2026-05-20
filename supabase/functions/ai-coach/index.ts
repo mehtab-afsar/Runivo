@@ -2,14 +2,16 @@ import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Feature = 'weekly_brief' | 'post_run' | 'training_plan' | 'coach_chat' | 'nutrition_insights' | 'quick_prompts' | 'territory_strategy' | 'adapt_plan' | 'pace_intelligence' | 'habit_tracking';
+type Feature = 'weekly_brief' | 'post_run' | 'training_plan' | 'coach_chat' | 'nutrition_insights' | 'quick_prompts' | 'territory_strategy' | 'adapt_plan' | 'pace_intelligence' | 'habit_tracking' | 'food_scan';
 
 interface RequestBody {
-  feature: Feature;
-  runId?:  string;
-  message?: string;
-  goal?:   string;
-  planId?: string;
+  feature:       Feature;
+  runId?:        string;
+  message?:      string;
+  goal?:         string;
+  planId?:       string;
+  imageBase64?:  string;
+  mediaType?:    string;
 }
 
 interface WeeklyBriefPayload {
@@ -1528,6 +1530,39 @@ Deno.serve(async (req) => {
     const { feature, runId, message, goal } = body;
 
     if (!feature) return new Response('Missing feature', { status: 400, headers: CORS_HEADERS });
+
+    // food_scan is a lightweight vision call — handle before context build + cap check
+    if (feature === 'food_scan') {
+      const { imageBase64, mediaType = 'image/jpeg' } = body;
+      if (!imageBase64) return new Response('Missing imageBase64', { status: 400, headers: CORS_HEADERS });
+
+      const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
+      const msg = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif', data: imageBase64 },
+            },
+            {
+              type: 'text',
+              text: 'Identify this food and estimate its nutrition for one typical serving. Be concise. Respond ONLY with valid JSON, no markdown: {"name":"...","kcal":0,"proteinG":0,"carbsG":0,"fatG":0,"servingSize":"..."}',
+            },
+          ],
+        }],
+      });
+
+      const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) return new Response(JSON.stringify({ error: 'Could not identify food' }), { status: 422, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+
+      return new Response(JSON.stringify({ data: JSON.parse(match[0]) }), {
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Enforce per-user daily spend cap before touching Claude
     await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);

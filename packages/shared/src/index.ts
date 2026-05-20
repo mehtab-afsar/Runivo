@@ -16,6 +16,7 @@ export { calculatePersonalRecords, formatRecordValue, getRecordLabel } from './s
 export type { PersonalRecord as PersonalRecordEntry } from './services/personalRecords';
 export * from './services/diamonds';
 export * from './services/sync';
+export * from './services/nutrition';
 
 // Cross-platform hooks
 export * from './hooks/useAuth';

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, Re
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Bell } from 'phosphor-react-native';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotifItem } from '../components/NotifItem';
 import { routeNotificationUrl } from '../services/notificationHandler';
@@ -52,8 +53,9 @@ export default function NotificationsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
         ListEmptyComponent={
           <View style={s.empty}>
-            <Text style={s.emptyTitle}>You're all caught up</Text>
-            <Text style={s.emptyText}>No notifications yet. Start running to get activity here.</Text>
+            <Bell size={40} color={C.t3} weight="thin" />
+            <Text style={s.emptyTitle}>No notifications yet</Text>
+            <Text style={s.emptyText}>Territory steals, kudos, and streak milestones will appear here.</Text>
           </View>
         }
       />
