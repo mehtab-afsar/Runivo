@@ -128,7 +128,7 @@ export default function RunSetupSheet({
 
       {/* Start button */}
       <View style={[ss.startWrap, { paddingBottom: Math.max(bottomInset, 16) }]}>
-        <TouchableOpacity style={[ss.startBtn, !gpsReady && ss.startBtnDisabled]} onPress={onStartPress} disabled={!gpsReady} activeOpacity={0.85}>
+        <TouchableOpacity style={[ss.startBtn, !gpsReady && ss.startBtnDisabled]} onPress={onStartPress} disabled={!gpsReady} activeOpacity={0.85} testID="run-start-btn">
           <View style={[ss.startDot, !gpsReady && ss.startDotDisabled]}>
             <Play size={10} color="#fff" weight="fill" />
           </View>

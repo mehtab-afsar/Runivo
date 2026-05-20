@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -13,7 +13,7 @@ export default function LoginScreen() {
   const login = useLogin();
 
   return (
-    <SafeAreaView style={s.root}>
+    <View style={{ flex: 1, backgroundColor: '#F7F5F2' }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -24,10 +24,6 @@ export default function LoginScreen() {
           onGoSignUp={() => navigation.navigate('SignUp')}
         />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F8F6F3' },
-});

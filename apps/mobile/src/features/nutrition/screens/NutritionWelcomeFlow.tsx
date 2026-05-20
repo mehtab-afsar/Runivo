@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, Pressable, StyleSheet, ScrollView,
-  ActivityIndicator, Dimensions,
+  ActivityIndicator, Dimensions, TextInput, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -49,17 +49,9 @@ function StepSlide({ direction, children }: { direction: 'forward' | 'back'; chi
 
 // ─── Step 1: Welcome ─────────────────────────────────────────────────────────
 
-function WelcomeStep({
-  prefill, onContinue,
-}: { prefill: NutritionProfile | undefined; onContinue: () => void }) {
-  const C = useTheme();
+function WelcomeStep({ onContinue }: { onContinue: () => void }) {
+  const C  = useTheme();
   const ss = useMemo(() => mkWelcomeStyles(C), [C]);
-
-  const chips = [
-    prefill?.age      ? `${prefill.age} yrs`      : null,
-    prefill?.weightKg ? `${prefill.weightKg} kg`  : null,
-    prefill?.heightCm ? `${prefill.heightCm} cm`  : null,
-  ].filter(Boolean) as string[];
 
   return (
     <ScrollView contentContainerStyle={ss.screen} keyboardShouldPersistTaps="handled">
@@ -70,22 +62,23 @@ function WelcomeStep({
       <Text style={ss.headline}>Nutrition tracking,{'\n'}built for runners.</Text>
 
       <Text style={ss.body}>
-        We'll use your profile to calculate your daily calorie and macro targets.
-        You won't need to re-enter your details.
+        Tell us a bit about yourself so we can calculate your precise daily calorie and macro targets.
+        Takes about 30 seconds.
       </Text>
 
-      {chips.length > 0 && (
-        <View style={ss.statsCard}>
-          <Text style={ss.statsLabel}>FROM YOUR PROFILE</Text>
-          <View style={ss.chipsRow}>
-            {chips.map(s => (
-              <View key={s} style={ss.chip}>
-                <Text style={ss.chipText}>{s}</Text>
-              </View>
-            ))}
+      <View style={ss.featureList}>
+        {[
+          { icon: '🎯', text: 'Personalised calorie & macro targets' },
+          { icon: '📊', text: 'Track meals by type — breakfast, lunch, dinner, snacks' },
+          { icon: '📷', text: 'Scan barcodes or photos to log food instantly' },
+          { icon: '⚡', text: 'Run calories automatically deducted' },
+        ].map(f => (
+          <View key={f.icon} style={ss.featureRow}>
+            <Text style={ss.featureIcon}>{f.icon}</Text>
+            <Text style={ss.featureText}>{f.text}</Text>
           </View>
-        </View>
-      )}
+        ))}
+      </View>
 
       <View style={ss.ctaWrap}>
         <PrimaryButton label="Get started" onPress={onContinue} fullWidth />
@@ -96,41 +89,186 @@ function WelcomeStep({
 
 function mkWelcomeStyles(C: AppColors) {
   return StyleSheet.create({
-    screen:    { flexGrow: 1, padding: Spacing.lg, paddingTop: Spacing.xxl },
-    iconWrap:  {
+    screen:      { flexGrow: 1, padding: Spacing.lg, paddingTop: Spacing.xxl },
+    iconWrap:    {
       width: 72, height: 72, borderRadius: Spacing.radius.xl,
       backgroundColor: C.greenBg,
       alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xxl,
     },
-    icon:      { fontSize: 32 },
-    headline:  {
+    icon:        { fontSize: 32 },
+    headline:    {
       fontSize: FontSize.title1, fontWeight: FontWeight.semibold, color: C.black,
       lineHeight: FontSize.title1 * 1.2, marginBottom: Spacing.md,
     },
-    body:      {
+    body:        {
       fontSize: FontSize.callout, color: C.t2,
-      lineHeight: FontSize.callout * 1.55, marginBottom: Spacing.xxl,
+      lineHeight: FontSize.callout * 1.55, marginBottom: Spacing.xl,
     },
-    statsCard: {
-      backgroundColor: C.surface, borderRadius: Spacing.radius.lg,
-      borderWidth: 0.5, borderColor: C.border,
-      padding: Spacing.md, marginBottom: Spacing.xxl,
-    },
-    statsLabel: {
-      fontSize: FontSize.caption2, fontWeight: FontWeight.medium,
-      color: C.t3, letterSpacing: 0.07, marginBottom: Spacing.sm,
-    },
-    chipsRow:  { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
-    chip:      {
-      backgroundColor: C.backgroundSecondary, borderRadius: Spacing.radius.full,
-      paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs,
-    },
-    chipText:  { fontSize: FontSize.footnote, color: C.black, fontWeight: FontWeight.medium },
-    ctaWrap:   { marginTop: 'auto' as any, paddingTop: Spacing.xl },
+    featureList: { gap: Spacing.md, marginBottom: Spacing.xxl },
+    featureRow:  { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+    featureIcon: { fontSize: 18, width: 28, textAlign: 'center' },
+    featureText: { fontSize: FontSize.callout, color: C.black, flex: 1 },
+    ctaWrap:     { marginTop: 'auto' as any, paddingTop: Spacing.xl },
   });
 }
 
-// ─── Step 2: Goal ─────────────────────────────────────────────────────────────
+// ─── Step 2: Body Stats ───────────────────────────────────────────────────────
+
+interface BodyStatsStepProps {
+  weightKg: number;
+  heightCm: number;
+  age:      number;
+  sex:      'male' | 'female';
+  onChange: (patch: Partial<{ weightKg: number; heightCm: number; age: number; sex: 'male' | 'female' }>) => void;
+  onContinue: () => void;
+}
+
+function BodyStatsStep({ weightKg, heightCm, age, sex, onChange, onContinue }: BodyStatsStepProps) {
+  const C  = useTheme();
+  const ss = useMemo(() => mkBodyStatsStyles(C), [C]);
+
+  function Stepper({
+    label, value, unit, onInc, onDec, min, max,
+  }: { label: string; value: number; unit: string; onInc: () => void; onDec: () => void; min: number; max: number }) {
+    return (
+      <View style={ss.statRow}>
+        <Text style={ss.statLabel}>{label}</Text>
+        <View style={ss.stepperRow}>
+          <Pressable
+            style={[ss.stepBtn, value <= min && ss.stepBtnDisabled]}
+            onPress={() => { if (value > min) { Haptics.selectionAsync(); onDec(); } }}
+            hitSlop={8}
+          >
+            <Text style={[ss.stepBtnText, value <= min && ss.stepBtnTextDisabled]}>−</Text>
+          </Pressable>
+          <View style={ss.valueWrap}>
+            <Text style={ss.valueNum}>{value}</Text>
+            <Text style={ss.valueUnit}>{unit}</Text>
+          </View>
+          <Pressable
+            style={[ss.stepBtn, value >= max && ss.stepBtnDisabled]}
+            onPress={() => { if (value < max) { Haptics.selectionAsync(); onInc(); } }}
+            hitSlop={8}
+          >
+            <Text style={[ss.stepBtnText, value >= max && ss.stepBtnTextDisabled]}>+</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  const canContinue = weightKg > 0 && heightCm > 0 && age > 0;
+
+  return (
+    <ScrollView contentContainerStyle={ss.screen} keyboardShouldPersistTaps="handled">
+      <Text style={ss.eyebrow}>2 OF 6</Text>
+      <Text style={ss.headline}>Your body{'\n'}stats</Text>
+      <Text style={ss.body}>Used to calculate your precise calorie needs. You can update these anytime.</Text>
+
+      <View style={ss.card}>
+        <Stepper
+          label="Weight" value={weightKg} unit="kg"
+          onInc={() => onChange({ weightKg: weightKg + 1 })}
+          onDec={() => onChange({ weightKg: weightKg - 1 })}
+          min={30} max={250}
+        />
+        <View style={ss.divider} />
+        <Stepper
+          label="Height" value={heightCm} unit="cm"
+          onInc={() => onChange({ heightCm: heightCm + 1 })}
+          onDec={() => onChange({ heightCm: heightCm - 1 })}
+          min={100} max={250}
+        />
+        <View style={ss.divider} />
+        <Stepper
+          label="Age" value={age} unit="yrs"
+          onInc={() => onChange({ age: age + 1 })}
+          onDec={() => onChange({ age: age - 1 })}
+          min={10} max={100}
+        />
+        <View style={ss.divider} />
+        <View style={ss.statRow}>
+          <Text style={ss.statLabel}>Sex</Text>
+          <View style={ss.sexToggle}>
+            {(['male', 'female'] as const).map(s => (
+              <Pressable
+                key={s}
+                style={[ss.sexBtn, sex === s && ss.sexBtnActive]}
+                onPress={() => { Haptics.selectionAsync(); onChange({ sex: s }); }}
+              >
+                <Text style={[ss.sexBtnText, sex === s && ss.sexBtnTextActive]}>
+                  {s === 'male' ? 'Male' : 'Female'}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      <Text style={ss.privacy}>Your stats are stored privately and used only to personalise your targets.</Text>
+
+      <View style={ss.ctaWrap}>
+        <PrimaryButton label="Continue" onPress={onContinue} fullWidth disabled={!canContinue} />
+      </View>
+    </ScrollView>
+  );
+}
+
+function mkBodyStatsStyles(C: AppColors) {
+  return StyleSheet.create({
+    screen:           { flexGrow: 1, padding: Spacing.lg, paddingTop: Spacing.xl },
+    eyebrow:          {
+      fontSize: FontSize.caption2, fontWeight: FontWeight.medium,
+      color: C.t3, letterSpacing: 0.07, marginBottom: Spacing.md,
+    },
+    headline:         {
+      fontSize: FontSize.title1, fontWeight: FontWeight.semibold, color: C.black,
+      lineHeight: FontSize.title1 * 1.2, marginBottom: Spacing.sm,
+    },
+    body:             {
+      fontSize: FontSize.callout, color: C.t2,
+      lineHeight: FontSize.callout * 1.55, marginBottom: Spacing.xl,
+    },
+    card:             {
+      backgroundColor: C.white, borderRadius: Spacing.radius.lg,
+      borderWidth: 0.5, borderColor: C.border,
+      overflow: 'hidden', marginBottom: Spacing.md,
+    },
+    divider:          { height: 0.5, backgroundColor: C.border, marginHorizontal: Spacing.md },
+    statRow:          {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: Spacing.md, paddingVertical: 14,
+    },
+    statLabel:        { fontSize: FontSize.subhead, fontWeight: FontWeight.medium, color: C.black },
+    stepperRow:       { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+    stepBtn:          {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    stepBtnDisabled:  { opacity: 0.35 },
+    stepBtnText:      { fontSize: 20, lineHeight: 24, color: C.black, fontWeight: FontWeight.medium },
+    stepBtnTextDisabled: { color: C.t3 },
+    valueWrap:        { flexDirection: 'row', alignItems: 'baseline', gap: 3, minWidth: 72, justifyContent: 'center' },
+    valueNum:         { fontSize: FontSize.title3 ?? 20, fontWeight: FontWeight.semibold, color: C.black },
+    valueUnit:        { fontSize: FontSize.caption1, color: C.t2 },
+    sexToggle:        {
+      flexDirection: 'row', borderRadius: Spacing.radius.md,
+      borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
+    },
+    sexBtn:           {
+      paddingHorizontal: Spacing.lg, paddingVertical: 8,
+      backgroundColor: C.surface,
+    },
+    sexBtnActive:     { backgroundColor: C.black },
+    sexBtnText:       { fontSize: FontSize.subhead, color: C.t2, fontWeight: FontWeight.medium },
+    sexBtnTextActive: { color: C.white },
+    privacy:          { fontSize: FontSize.caption2, color: C.t3, textAlign: 'center', lineHeight: 16, marginBottom: Spacing.lg },
+    ctaWrap:          { marginTop: 'auto' as any, paddingTop: Spacing.sm },
+  });
+}
+
+// ─── Step 3: Goal ─────────────────────────────────────────────────────────────
 
 const GOAL_OPTIONS: { key: NutritionGoal; label: string; desc: string; icon: string }[] = [
   { key: 'lose',     label: 'Lose weight',  desc: 'Calorie deficit to reduce body fat',       icon: '↓' },
@@ -139,11 +277,11 @@ const GOAL_OPTIONS: { key: NutritionGoal; label: string; desc: string; icon: str
 ];
 
 function GoalStep({ onSelect }: { onSelect: (g: NutritionGoal) => void }) {
-  const C = useTheme();
+  const C  = useTheme();
   const ss = useMemo(() => mkOptionStyles(C), [C]);
   return (
     <View style={ss.screen}>
-      <Text style={ss.eyebrow}>2 OF 5</Text>
+      <Text style={ss.eyebrow}>3 OF 6</Text>
       <Text style={ss.headline}>What are you{'\n'}eating for?</Text>
       <View style={ss.options}>
         {GOAL_OPTIONS.map(opt => (
@@ -165,7 +303,7 @@ function GoalStep({ onSelect }: { onSelect: (g: NutritionGoal) => void }) {
   );
 }
 
-// ─── Step 3: Activity ─────────────────────────────────────────────────────────
+// ─── Step 4: Activity ─────────────────────────────────────────────────────────
 
 const ACTIVITY_OPTIONS: { key: ActivityLevel; label: string; desc: string; icon: string }[] = [
   { key: 'sedentary',   label: 'Mostly sitting',  desc: 'Desk job, minimal extra movement',     icon: '🪑' },
@@ -175,11 +313,11 @@ const ACTIVITY_OPTIONS: { key: ActivityLevel; label: string; desc: string; icon:
 ];
 
 function ActivityStep({ onSelect }: { onSelect: (a: ActivityLevel) => void }) {
-  const C = useTheme();
+  const C  = useTheme();
   const ss = useMemo(() => mkOptionStyles(C), [C]);
   return (
     <View style={ss.screen}>
-      <Text style={ss.eyebrow}>3 OF 5</Text>
+      <Text style={ss.eyebrow}>4 OF 6</Text>
       <Text style={ss.headline}>How active are{'\n'}you day-to-day?</Text>
       <View style={ss.options}>
         {ACTIVITY_OPTIONS.map(opt => (
@@ -201,7 +339,6 @@ function ActivityStep({ onSelect }: { onSelect: (a: ActivityLevel) => void }) {
   );
 }
 
-// Shared styles for GoalStep + ActivityStep
 function mkOptionStyles(C: AppColors) {
   return StyleSheet.create({
     screen:      { flex: 1, padding: Spacing.lg, paddingTop: Spacing.xl },
@@ -231,7 +368,7 @@ function mkOptionStyles(C: AppColors) {
   });
 }
 
-// ─── Step 4: Diet ─────────────────────────────────────────────────────────────
+// ─── Step 5: Diet ─────────────────────────────────────────────────────────────
 
 const DIET_OPTIONS: { key: DietType; label: string; icon: string }[] = [
   { key: 'everything',  label: 'Everything',  icon: '🍽' },
@@ -243,11 +380,11 @@ const DIET_OPTIONS: { key: DietType; label: string; icon: string }[] = [
 ];
 
 function DietStep({ onSelect }: { onSelect: (d: DietType) => void }) {
-  const C = useTheme();
+  const C  = useTheme();
   const ss = useMemo(() => mkDietStyles(C), [C]);
   return (
     <View style={ss.screen}>
-      <Text style={ss.eyebrow}>4 OF 5</Text>
+      <Text style={ss.eyebrow}>5 OF 6</Text>
       <Text style={ss.headline}>Any dietary{'\n'}preferences?</Text>
       <View style={ss.grid}>
         {DIET_OPTIONS.map(opt => (
@@ -288,28 +425,26 @@ function mkDietStyles(C: AppColors) {
   });
 }
 
-// ─── Step 5: Results ─────────────────────────────────────────────────────────
+// ─── Step 6: Results ─────────────────────────────────────────────────────────
 
 interface ResultsStepProps {
-  prefill:       NutritionProfile | undefined;
+  weightKg:      number;
+  heightCm:      number;
+  age:           number;
+  sex:           'male' | 'female';
   goal:          NutritionGoal;
   activityLevel: ActivityLevel;
   onStart:       () => void;
   saving:        boolean;
 }
 
-function ResultsStep({ prefill, goal, activityLevel, onStart, saving }: ResultsStepProps) {
+function ResultsStep({ weightKg, heightCm, age, sex, goal, activityLevel, onStart, saving }: ResultsStepProps) {
   const C  = useTheme();
   const ss = useMemo(() => mkResultsStyles(C), [C]);
 
   const targets = useMemo(() => computeNutritionTargets({
-    weightKg:      prefill?.weightKg ?? 70,
-    heightCm:      prefill?.heightCm ?? 170,
-    age:           prefill?.age      ?? 25,
-    sex:           prefill?.sex      ?? 'male',
-    goal,
-    activityLevel,
-  }), [prefill, goal, activityLevel]);
+    weightKg, heightCm, age, sex, goal, activityLevel,
+  }), [weightKg, heightCm, age, sex, goal, activityLevel]);
 
   const macros = [
     { label: 'Protein', value: targets.proteinG, unit: 'g', color: '#3B82F6' },
@@ -319,14 +454,14 @@ function ResultsStep({ prefill, goal, activityLevel, onStart, saving }: ResultsS
 
   return (
     <ScrollView contentContainerStyle={ss.screen} keyboardShouldPersistTaps="handled">
-      <Text style={ss.eyebrow}>5 OF 5</Text>
+      <Text style={ss.eyebrow}>6 OF 6</Text>
       <Text style={ss.headline}>Your daily targets</Text>
       <Text style={ss.body}>
         Calibrated for your body, goal, and activity level. Update anytime in settings.
       </Text>
 
       <View style={ss.kcalCard}>
-        <Text style={ss.kcalNum}>{targets.dailyKcal}</Text>
+        <Text style={ss.kcalNum}>{targets.dailyKcal.toLocaleString()}</Text>
         <Text style={ss.kcalUnit}>kcal / day</Text>
       </View>
 
@@ -336,6 +471,19 @@ function ResultsStep({ prefill, goal, activityLevel, onStart, saving }: ResultsS
             <View style={[ss.macroDot, { backgroundColor: m.color }]} />
             <Text style={ss.macroVal}>{m.value}<Text style={ss.macroUnit}>{m.unit}</Text></Text>
             <Text style={ss.macroLabel}>{m.label.toUpperCase()}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={ss.statsRow}>
+        {[
+          { label: 'Body weight', value: `${weightKg} kg` },
+          { label: 'Height', value: `${heightCm} cm` },
+          { label: 'Age', value: `${age} yrs` },
+        ].map(s => (
+          <View key={s.label} style={ss.statItem}>
+            <Text style={ss.statVal}>{s.value}</Text>
+            <Text style={ss.statLbl}>{s.label}</Text>
           </View>
         ))}
       </View>
@@ -380,9 +528,13 @@ function mkResultsStyles(C: AppColors) {
       padding: Spacing.md, alignItems: 'center', gap: Spacing.xs,
     },
     macroDot:  { width: 6, height: 6, borderRadius: 3 },
-    macroVal:  { fontSize: FontSize.title3 ?? 20, fontWeight: FontWeight.medium, color: C.black },
+    macroVal:  { fontSize: (FontSize.title3 ?? 20), fontWeight: FontWeight.medium, color: C.black },
     macroUnit: { fontSize: FontSize.footnote, color: C.t2, fontWeight: FontWeight.regular },
     macroLabel:{ fontSize: FontSize.caption2, color: C.t3, letterSpacing: 0.07 },
+    statsRow:  { flexDirection: 'row', marginBottom: Spacing.md, backgroundColor: C.surface, borderRadius: Spacing.radius.md, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    statItem:  { flex: 1, alignItems: 'center', paddingVertical: Spacing.md },
+    statVal:   { fontSize: FontSize.subhead, fontWeight: FontWeight.semibold, color: C.black },
+    statLbl:   { fontSize: FontSize.caption2, color: C.t3, marginTop: 2 },
     note:      {
       fontSize: FontSize.caption1, color: C.t3, textAlign: 'center',
       lineHeight: FontSize.caption1 * 1.5, marginBottom: Spacing.xxl,
@@ -400,35 +552,44 @@ interface NutritionWelcomeFlowProps {
 export function NutritionWelcomeFlow({ onComplete }: NutritionWelcomeFlowProps) {
   const C = useTheme();
 
-  const [step,          setStep]     = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [step,          setStep]     = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [direction,     setDirection] = useState<'forward' | 'back'>('forward');
   const [goal,          setGoal]     = useState<NutritionGoal>('maintain');
   const [activityLevel, setActivity] = useState<ActivityLevel>('moderate');
   const [diet,          setDiet]     = useState<DietType>('everything');
-  const [prefill,       setPrefill]  = useState<NutritionProfile | undefined>();
-  const [saving,        setSaving]   = useState(false);
 
+  // Body stats — start with sensible placeholders, override from prefill when loaded
+  const [weightKg, setWeightKg] = useState(70);
+  const [heightCm, setHeightCm] = useState(170);
+  const [age,      setAge]      = useState(25);
+  const [sex,      setSex]      = useState<'male' | 'female'>('male');
+
+  const [saving, setSaving] = useState(false);
+
+  // Prefill body stats from existing profile / onboarding if present
   useEffect(() => {
-    fetchExistingProfile().then(p => setPrefill(p ?? undefined)).catch(() => {});
+    fetchExistingProfile().then(p => {
+      if (!p) return;
+      if (p.weightKg) setWeightKg(p.weightKg);
+      if (p.heightCm) setHeightCm(p.heightCm);
+      if (p.age)      setAge(p.age);
+      if (p.sex)      setSex(p.sex as 'male' | 'female');
+    }).catch(() => {});
   }, []);
 
   async function handleComplete() {
     setSaving(true);
     try {
-      const wt = prefill?.weightKg ?? 70;
-      const ht = prefill?.heightCm ?? 170;
-      const ag = prefill?.age      ?? 25;
-      const sx = prefill?.sex      ?? 'male';
-      const targets = computeNutritionTargets({ weightKg: wt, heightCm: ht, age: ag, sex: sx, goal, activityLevel });
+      const targets = computeNutritionTargets({ weightKg, heightCm, age, sex, goal, activityLevel });
       await saveNutritionProfileService({
         id:            'profile',
         goal,
         activityLevel,
         diet,
-        sex:           sx,
-        weightKg:      wt,
-        heightCm:      ht,
-        age:           ag,
+        sex,
+        weightKg,
+        heightCm,
+        age,
         dailyGoalKcal: targets.dailyKcal,
         proteinGoalG:  targets.proteinG,
         carbsGoalG:    targets.carbsG,
@@ -441,7 +602,7 @@ export function NutritionWelcomeFlow({ onComplete }: NutritionWelcomeFlowProps) 
     }
   }
 
-  function advance(next: 1 | 2 | 3 | 4 | 5) {
+  function advance(next: 1 | 2 | 3 | 4 | 5 | 6) {
     setDirection('forward');
     setStep(next);
   }
@@ -457,7 +618,7 @@ export function NutritionWelcomeFlow({ onComplete }: NutritionWelcomeFlowProps) 
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Progress bar */}
       <View style={{ flexDirection: 'row', gap: 4, paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm }}>
-        {([1, 2, 3, 4, 5] as const).map(n => (
+        {([1, 2, 3, 4, 5, 6] as const).map(n => (
           <View
             key={n}
             style={{
@@ -481,30 +642,43 @@ export function NutritionWelcomeFlow({ onComplete }: NutritionWelcomeFlowProps) 
       <View style={{ flex: 1, overflow: 'hidden' }}>
         {step === 1 && (
           <StepSlide key={1} direction={direction}>
-            <WelcomeStep prefill={prefill} onContinue={() => advance(2)} />
+            <WelcomeStep onContinue={() => advance(2)} />
           </StepSlide>
         )}
         {step === 2 && (
           <StepSlide key={2} direction={direction}>
-            <GoalStep onSelect={g => { setGoal(g); advance(3); }} />
+            <BodyStatsStep
+              weightKg={weightKg} heightCm={heightCm} age={age} sex={sex}
+              onChange={patch => {
+                if (patch.weightKg !== undefined) setWeightKg(patch.weightKg);
+                if (patch.heightCm !== undefined) setHeightCm(patch.heightCm);
+                if (patch.age      !== undefined) setAge(patch.age);
+                if (patch.sex      !== undefined) setSex(patch.sex);
+              }}
+              onContinue={() => advance(3)}
+            />
           </StepSlide>
         )}
         {step === 3 && (
           <StepSlide key={3} direction={direction}>
-            <ActivityStep onSelect={a => { setActivity(a); advance(4); }} />
+            <GoalStep onSelect={g => { setGoal(g); advance(4); }} />
           </StepSlide>
         )}
         {step === 4 && (
           <StepSlide key={4} direction={direction}>
-            <DietStep onSelect={d => { setDiet(d); advance(5); }} />
+            <ActivityStep onSelect={a => { setActivity(a); advance(5); }} />
           </StepSlide>
         )}
         {step === 5 && (
           <StepSlide key={5} direction={direction}>
+            <DietStep onSelect={d => { setDiet(d); advance(6); }} />
+          </StepSlide>
+        )}
+        {step === 6 && (
+          <StepSlide key={6} direction={direction}>
             <ResultsStep
-              prefill={prefill}
-              goal={goal}
-              activityLevel={activityLevel}
+              weightKg={weightKg} heightCm={heightCm} age={age} sex={sex}
+              goal={goal} activityLevel={activityLevel}
               onStart={handleComplete}
               saving={saving}
             />

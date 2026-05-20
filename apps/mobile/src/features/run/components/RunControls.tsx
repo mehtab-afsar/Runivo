@@ -27,7 +27,7 @@ export default function RunControls({ isPaused, onPause, onResume, onStop }: Run
         <Text style={ss.secondaryControlLabel}>{isPaused ? 'Resume' : 'Pause'}</Text>
       </Pressable>
 
-      <Pressable style={ss.finishBtn} onPress={onStop}>
+      <Pressable style={ss.finishBtn} onPress={onStop} testID="run-finish-btn">
         <Square size={22} color={C.white} weight="regular" />
       </Pressable>
     </View>

@@ -102,7 +102,7 @@ export function useCalorieTracker() {
     useMemo(() => {
       const food = entries.filter(e => e.source !== 'run');
       const consumed = food.reduce((s, e) => s + e.kcal, 0);
-      const dailyGoal = profile?.dailyGoalKcal ?? 2000;
+      const dailyGoal = profile?.dailyGoalKcal ?? 0;
       return {
         consumed,
         remaining: Math.max(0, dailyGoal - consumed),

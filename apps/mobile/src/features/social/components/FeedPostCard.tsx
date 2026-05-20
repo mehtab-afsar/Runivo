@@ -137,7 +137,7 @@ export function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
 
       {/* Actions */}
       <View style={s.actions}>
-        <Pressable style={s.actionBtn} onPress={onKudos}>
+        <Pressable style={s.actionBtn} onPress={onKudos} testID="feed-like-btn">
           <Heart
             size={15}
             color={post.hasKudos ? C.red : C.t2}
@@ -147,7 +147,7 @@ export function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
             <Text style={s.actionCount}>{post.kudosCount}</Text>
           )}
         </Pressable>
-        <Pressable style={s.actionBtn} onPress={onComment}>
+        <Pressable style={s.actionBtn} onPress={onComment} testID="feed-comment-btn">
           <ChatCircle size={15} color={C.t2} weight="light" />
           {post.commentCount > 0 && (
             <Text style={s.actionCount}>{post.commentCount}</Text>

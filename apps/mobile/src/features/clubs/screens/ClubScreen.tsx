@@ -417,7 +417,7 @@ export default function ClubScreen() {
           <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <Text style={s.title}>Clubs</Text>
-        <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)}>
+        <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)} testID="clubs-create-btn">
           <Plus size={16} color={C.white} weight="bold" />
         </Pressable>
       </View>

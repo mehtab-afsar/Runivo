@@ -104,7 +104,7 @@ export default function CalorieTrackerScreen() {
     selectedEntries.filter(e => e.source !== 'run').reduce((s, e) => s + e.kcal, 0),
     [selectedEntries]);
   const selectedPct = useMemo(() =>
-    Math.min(selectedConsumed / Math.max(profile?.dailyGoalKcal ?? 2000, 1), 1),
+    Math.min(selectedConsumed / Math.max(profile?.dailyGoalKcal ?? 0, 1), 1),
     [selectedConsumed, profile]);
   const selectedProtein = useMemo(() => selectedEntries.reduce((s, e) => s + e.proteinG, 0), [selectedEntries]);
   const selectedCarbs   = useMemo(() => selectedEntries.reduce((s, e) => s + e.carbsG, 0),   [selectedEntries]);
@@ -118,9 +118,9 @@ export default function CalorieTrackerScreen() {
   }, [burnKcalParam]);
 
   const ctx = useNutritionContext({
-    proteinConsumed, proteinGoal: profile?.proteinGoalG ?? 150,
-    carbsConsumed,   carbsGoal:   profile?.carbsGoalG ?? 250,
-    fatConsumed,     fatGoal:     profile?.fatGoalG ?? 65,
+    proteinConsumed, proteinGoal: profile?.proteinGoalG ?? 0,
+    carbsConsumed,   carbsGoal:   profile?.carbsGoalG ?? 0,
+    fatConsumed,     fatGoal:     profile?.fatGoalG ?? 0,
   });
 
   if (setupDone === null) {
