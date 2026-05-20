@@ -5,7 +5,7 @@ import './src/features/run/services/locationTask';
 import { setAccessToken as maplibreSetAccessToken } from '@maplibre/maplibre-react-native';
 maplibreSetAccessToken('');
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -33,9 +33,10 @@ import { pushProfile } from '@shared/services/sync';
 import { supabase } from '@shared/services/supabase';
 import { ToastProvider } from './src/shared/components/ToastProvider';
 import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
+import { SplashView } from './src/shared/components/SplashView';
 import { initSentry, captureException } from './src/shared/services/sentry';
 import { ThemeProvider } from './src/theme/ThemeContext';
-import { useSettings } from './src/features/settings/hooks/useSettings';
+import { useSettings, SettingsProvider } from './src/features/settings/context/SettingsContext';
 import { preloadSounds, setSoundEnabled } from './src/theme/sounds';
 import { setHapticEnabled } from './src/theme/haptics';
 
@@ -50,10 +51,10 @@ if (!__DEV__) {
   ErrorUtils.setGlobalHandler(handler);
 }
 
-// Keep splash visible until fonts and auth state are ready
+// Keep native Expo splash visible until fonts are loaded
 SplashScreen.preventAutoHideAsync();
 
-function Root() {
+function Root({ fontsReady }: { fontsReady: boolean }) {
   const { user, loading } = useAuth();
   const { settings } = useSettings();
 
@@ -65,39 +66,30 @@ function Root() {
     setSoundEnabled(settings.soundEnabled ?? true);
     setHapticEnabled(settings.hapticEnabled ?? true);
   }, [settings.soundEnabled, settings.hapticEnabled]);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding]       = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [splashDone, setSplashDone]                 = useState(false);
 
-  // Check Supabase profiles table to determine if this specific user has completed
-  // onboarding. Local getPlayer() is NOT user-scoped (random UUID), so a leftover
-  // record from a prior session would incorrectly skip onboarding for new users.
   useEffect(() => {
     if (!user) { setCheckingOnboarding(false); return; }
     setCheckingOnboarding(true);
-    // Wrap in Promise.resolve so .catch()/.finally() are available (maybeSingle returns PromiseLike)
     Promise.resolve(
       supabase.from('profiles').select('onboarding_completed_at').eq('id', user.id).maybeSingle()
     )
       .then(async ({ data }) => {
         if (data !== null) {
-          // Supabase has a profile row for this user — trust it completely.
-          // Do NOT fall through to local getProfile(): local store is not user-scoped
-          // and returns stale data from prior accounts on the same device.
           setNeedsOnboarding(!data.onboarding_completed_at);
           return;
         }
-        // Supabase has no row at all (offline or trigger delay) — fall back to local store
         const localProfile = await getProfile().catch(() => undefined);
         if (localProfile?.onboardingCompletedAt) {
           setNeedsOnboarding(false);
-          // Re-attempt the sync in the background so Supabase catches up
           pushProfile().catch(() => {});
           return;
         }
         setNeedsOnboarding(true);
       })
       .catch(() =>
-        // Offline fallback — check local store; default to showing onboarding if unclear
         getPlayer()
           .then(player => setNeedsOnboarding(!player))
           .catch(() => setNeedsOnboarding(true))
@@ -105,20 +97,26 @@ function Root() {
       .finally(() => setCheckingOnboarding(false));
   }, [user?.id]);
 
-  const onLayoutRootView = useCallback(async () => {
-    if (!loading && !checkingOnboarding) {
-      await SplashScreen.hideAsync();
-    }
-  }, [loading, checkingOnboarding]);
+  // Native Expo splash stays while fonts load; custom SplashView takes over after
+  if (!fontsReady) return null;
 
-  if (loading || checkingOnboarding) return null;
+  const isDark    = settings.darkMode;
+  const authReady = !loading && !checkingOnboarding;
 
-  const isDark = settings.darkMode;
   return (
     <ThemeProvider isDark={isDark}>
-      <View style={[styles.root, { backgroundColor: isDark ? '#0D0D0D' : '#F8F6F3' }]} onLayout={onLayoutRootView}>
-        <AppNavigator isAuthenticated={user !== null} needsOnboarding={needsOnboarding} />
+      <View style={[styles.root, { backgroundColor: isDark ? '#0D0D0D' : '#F8F6F3' }]}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
+        {authReady && (
+          <AppNavigator isAuthenticated={user !== null} needsOnboarding={needsOnboarding} />
+        )}
+        {!splashDone && (
+          <SplashView
+            ready={authReady}
+            onLayout={() => SplashScreen.hideAsync().catch(() => {})}
+            onHidden={() => setSplashDone(true)}
+          />
+        )}
       </View>
     </ThemeProvider>
   );
@@ -137,14 +135,14 @@ export default function App() {
     DMSans_500Medium,
   });
 
-  if (!fontsLoaded && !fontError) return null;
-
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
           <ToastProvider>
-            <Root />
+            <SettingsProvider>
+              <Root fontsReady={fontsLoaded || !!fontError} />
+            </SettingsProvider>
           </ToastProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>

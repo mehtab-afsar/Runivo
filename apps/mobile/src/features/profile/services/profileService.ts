@@ -90,11 +90,14 @@ export async function updateProfile(
 
 export async function uploadAvatar(userId: string, uri: string): Promise<string | null> {
   try {
-    const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const cleanUri = uri.split('?')[0];
+    const rawExt = cleanUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const ext = rawExt === 'jpg' ? 'jpeg' : rawExt;
     const path = `${userId}/avatar.${ext}`;
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const { error } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: `image/${ext}` });
+    const arrayBuffer = await fetch(uri).then(r => r.arrayBuffer());
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(path, arrayBuffer, { upsert: true, contentType: `image/${ext}` });
     if (error) return null;
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
     return data.publicUrl;

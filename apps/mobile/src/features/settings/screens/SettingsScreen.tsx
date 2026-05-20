@@ -3,14 +3,18 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView,
   Platform, Switch, Alert, Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Crown } from 'phosphor-react-native';
 import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
 import { SegmentedControl, PillCycle } from '../components/SettingToggle';
 import { useTheme, setSoundEnabled, setHapticEnabled, type AppColors } from '@theme';
+import { useAuth } from '@shared/hooks/useAuth';
+import { supabase } from '@shared/services/supabase';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,6 +28,7 @@ export default function SettingsScreen() {
     clearHistory, deleteAccount,
   } = useSettings();
   const sw = { trackColor: { true: C.black, false: C.border }, thumbColor: C.white };
+  const { user } = useAuth();
 
   return (
     <SafeAreaView style={s.root}>
@@ -56,7 +61,14 @@ export default function SettingsScreen() {
               })}
             />
           </SettingRow>
-          <Pressable style={s.linkRow} onPress={() => Alert.alert('Change Password', 'A password reset link will be sent to your email.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Send', onPress: () => {} }])}>
+          <Pressable style={s.linkRow} onPress={() => {
+            const email = user?.email;
+            if (!email) return;
+            supabase.auth.resetPasswordForEmail(email).then(({ error }) => {
+              if (error) Alert.alert('Error', error.message);
+              else Alert.alert('Check your email', `A password reset link has been sent to ${email}.`);
+            });
+          }}>
             <Text style={s.linkLabel}>Change Password</Text>
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
@@ -172,19 +184,29 @@ export default function SettingsScreen() {
           </View>
         </SettingSection>
 
-        {/* ── Upgrade to Pro ── */}
-        <Pressable
-          style={s.proCard}
-          onPress={() => navigation.navigate('Subscription')}
-        >
-          <View style={s.proIconBox}>
-            <Text style={{ fontSize: 16 }}>⚡</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.proTitle}>Upgrade to Pro</Text>
-            <Text style={s.proSub}>Unlock unlimited zones & features</Text>
-          </View>
-          <Text style={s.proArrow}>→</Text>
+        {/* ── Premium card ── */}
+        <Pressable style={s.premiumCard} onPress={() => navigation.navigate('Subscription')}>
+          <LinearGradient colors={['#111111', '#1A0A06']} style={s.premiumGradient}>
+            <View style={s.premiumTopRow}>
+              <View style={s.premiumBrand}>
+                <Crown size={14} color="#F59E0B" weight="fill" />
+                <Text style={s.premiumBrandLabel}>RUNIVO PLUS</Text>
+              </View>
+              <View style={s.premiumBadge}><Text style={s.premiumBadgeTxt}>PLUS</Text></View>
+            </View>
+            <Text style={s.premiumTagline}>Dominate more territory.{'\n'}Run smarter.</Text>
+            {['Unlimited territory zones', 'AI Coach', 'Territory alerts'].map(f => (
+              <View key={f} style={s.premiumFeature}>
+                <Text style={s.premiumFeatureDot}>✦</Text>
+                <Text style={s.premiumFeatureTxt}>{f}</Text>
+              </View>
+            ))}
+            <View style={s.premiumDivider} />
+            <View style={s.premiumBottomRow}>
+              <Text style={s.premiumPrice}>From $4.99/mo after free trial</Text>
+              <View style={s.premiumCTA}><Text style={s.premiumCTATxt}>Upgrade →</Text></View>
+            </View>
+          </LinearGradient>
         </Pressable>
 
         {/* ── Sign Out ── */}
@@ -212,12 +234,23 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   linkSub:     { fontSize: 11, color: C.t3, marginTop: 1 },
   linkArrow:   { fontSize: 16, color: C.t3 },
   versionText: { fontSize: 12, color: C.t3 },
-  // Upgrade card
-  proCard:     { marginHorizontal: 16, marginBottom: 16, borderRadius: 14, backgroundColor: '#D93518', paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  proIconBox:  { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  proTitle:    { fontWeight: '600', fontSize: 14, color: C.white },
-  proSub:      { fontSize: 11, color: 'rgba(255,255,255,0.8)', marginTop: 1 },
-  proArrow:    { fontSize: 16, color: 'rgba(255,255,255,0.7)' },
+  // Premium card
+  premiumCard:       { marginHorizontal: 16, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },
+  premiumGradient:   { padding: 18 },
+  premiumTopRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  premiumBrand:      { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  premiumBrandLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#fff', letterSpacing: 1.5 },
+  premiumBadge:      { backgroundColor: '#F59E0B', borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
+  premiumBadgeTxt:   { fontFamily: 'Barlow_600SemiBold', fontSize: 9, color: '#000', letterSpacing: 1 },
+  premiumTagline:    { fontFamily: 'Barlow_300Light', fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 14, lineHeight: 20 },
+  premiumFeature:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  premiumFeatureDot: { fontSize: 10, color: '#F59E0B' },
+  premiumFeatureTxt: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: 'rgba(255,255,255,0.85)' },
+  premiumDivider:    { height: 0.5, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 14 },
+  premiumBottomRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  premiumPrice:      { fontFamily: 'Barlow_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  premiumCTA:        { backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  premiumCTATxt:     { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: '#000' },
   // Sign out
   signOutWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
   signOutBtn:  { borderWidth: 0.5, borderColor: C.red, borderRadius: 8, paddingVertical: 13, alignItems: 'center' },
