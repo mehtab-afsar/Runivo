@@ -35,10 +35,9 @@ export async function fetchRivalPolygons(
     .filter(row => {
       const coords = row.polygon_coords as [number, number][] | null;
       if (!coords?.length) return false;
-      const [lng, lat] = coords[0];
-      return (
+      return coords.some(([lng, lat]) =>
         lat >= bbox.minLat && lat <= bbox.maxLat &&
-        lng >= bbox.minLng && lng <= bbox.maxLng
+        lng >= bbox.minLng && lng <= bbox.maxLng,
       );
     })
     .map(row => ({

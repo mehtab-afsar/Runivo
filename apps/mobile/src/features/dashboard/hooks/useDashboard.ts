@@ -21,6 +21,7 @@ export function useDashboard() {
   const [calorieGoal, setCalorieGoal]           = useState(2000);
   const [hasRunToday, setHasRunToday] = useState(false);
   const [cityRank, setCityRank]       = useState<number | null>(null);
+  const [isPremium, setIsPremium]     = useState(false);
   const [refreshing, setRefreshing]   = useState(false);
   const [syncError, setSyncError]     = useState(false);
 
@@ -43,28 +44,40 @@ export function useDashboard() {
     const lastRun = runs[0];
     if (!lastRun?.gpsPoints?.length) return;
     const { lat, lng } = lastRun.gpsPoints[0];
-    const { data } = await supabase.rpc('get_city_rank', {
+    const { data, error } = await supabase.rpc('get_city_rank', {
       p_user_id: userId, p_lat: lat, p_lng: lng, p_radius_km: 10,
     });
+    if (error) console.warn('[dashboard] city rank:', error.message);
     if (typeof data === 'number') setCityRank(data);
+  }, []);
+
+  const fetchSubscriptionTier = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+    setIsPremium(!!data?.subscription_tier && data.subscription_tier !== 'free');
   }, []);
 
   useEffect(() => {
     if (!player?.id) return;
     const id = player.id;
+    fetchSubscriptionTier(id).catch(() => {});
     loadData(id)
       .then(runs => {
         setSyncError(false);
         fetchCityRank(id, runs).catch(() => {});
       })
       .catch(() => setSyncError(true));
-  }, [player?.id, loadData, fetchCityRank]);
+  }, [player?.id, loadData, fetchCityRank, fetchSubscriptionTier]);
 
   const refresh = useCallback(async () => {
     if (!player?.id) return;
     const id = player.id;
     setRefreshing(true);
     try {
+      fetchSubscriptionTier(id).catch(() => {});
       const runs = await loadData(id);
       setSyncError(false);
       fetchCityRank(id, runs).catch(() => {});
@@ -73,9 +86,9 @@ export function useDashboard() {
     } finally {
       setRefreshing(false);
     }
-  }, [player?.id, loadData, fetchCityRank]);
+  }, [player?.id, loadData, fetchCityRank, fetchSubscriptionTier]);
 
-  const weeklyCapLimit = GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
+  const weeklyCapLimit = isPremium ? GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM : GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
 
   const pacePct = useMemo(() => {
     const earned = player?.paceWeeklyEarned ?? 0;

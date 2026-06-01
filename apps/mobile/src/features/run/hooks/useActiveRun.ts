@@ -434,6 +434,8 @@ export function useActiveRun(activityType: string = 'run') {
     pauseRun,
     resumeRun,
     finishRun,
+    activeRunId:          runIdRef.current,
+    gpsCheckpointPrefix:  GPS_CHECKPOINT_PREFIX,
     player:               gameEngine.player,
     playerTerritoryCount: gameEngine.playerTerritoryCount,
   };

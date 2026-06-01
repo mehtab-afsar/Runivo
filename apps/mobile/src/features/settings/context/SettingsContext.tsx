@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { DEFAULT_SETTINGS } from '@shared/services/store';
+import { DEFAULT_SETTINGS, clearAllLocalData } from '@shared/services/store';
 import type { StoredSettings } from '@shared/services/store';
+import { Linking } from 'react-native';
 import { loadSettings, persistSettings, signOut as signOutService } from '../services/settingsService';
 
 interface SettingsContextValue {
@@ -38,7 +39,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const clearHistory = useCallback(() => {
     Alert.alert('Clear Run History', 'This will remove all local run data. This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Clear', style: 'destructive', onPress: () => Alert.alert('Cleared', 'Local run history has been cleared.') },
+      { text: 'Clear', style: 'destructive', onPress: () => {
+        clearAllLocalData().then(() => {
+          Alert.alert('Cleared', 'Local run history has been cleared.');
+        }).catch(() => {
+          Alert.alert('Error', 'Failed to clear history. Please try again.');
+        });
+      }},
     ]);
   }, []);
 
@@ -61,10 +68,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [settings.beatPacerPace, updateSetting]);
 
   const deleteAccount = useCallback(() => {
-    Alert.alert('Delete Account', 'This permanently deletes your account and all data. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => signOutService() },
-    ]);
+    Alert.alert(
+      'Delete Account',
+      'To permanently delete your account and all data, please contact support. We will process your request within 48 hours.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Contact Support', onPress: () => Linking.openURL('mailto:support@runivo.app?subject=Account%20Deletion%20Request') },
+      ],
+    );
   }, []);
 
   return (

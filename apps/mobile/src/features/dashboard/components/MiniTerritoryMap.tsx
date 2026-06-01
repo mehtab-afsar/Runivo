@@ -9,15 +9,13 @@ import ML from '@maplibre/maplibre-react-native';
 const D_RED  = '#C8391A';
 const D_GRAY = '#CCCCCC';
 const MAP_H  = 180;
-const LONDON: [number, number] = [-0.1278, 51.5074];
-
 interface Props {
   territories: TerritoryPolygon[];
   ownerId: string;
   onPress: () => void;
 }
 
-function computeCentroid(territories: TerritoryPolygon[]): [number, number] {
+function computeCentroid(territories: TerritoryPolygon[]): [number, number] | null {
   let lngSum = 0, latSum = 0, count = 0;
   for (const t of territories) {
     if (t.polygon.length > 0) {
@@ -26,7 +24,7 @@ function computeCentroid(territories: TerritoryPolygon[]): [number, number] {
       count++;
     }
   }
-  if (count === 0) return LONDON;
+  if (count === 0) return null;
   return [lngSum / count, latSum / count];
 }
 
@@ -44,7 +42,7 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
       .catch(() => {});
   }, []);
 
-  const centroid = useMemo(() => {
+  const centroid = useMemo<[number, number] | null>(() => {
     if (userCoord) return userCoord;
     return computeCentroid(owned);
   }, [owned, userCoord]);
@@ -77,7 +75,7 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
         logoEnabled={false}
         attributionEnabled={false}
       >
-        <ML.Camera centerCoordinate={centroid} zoomLevel={14} animationDuration={0} />
+        {centroid && <ML.Camera centerCoordinate={centroid} zoomLevel={14} animationDuration={0} />}
         <ML.UserLocation visible renderMode="native" />
         {geojson.features.length > 0 && (
           <ML.ShapeSource id="miniHexes" shape={geojson}>

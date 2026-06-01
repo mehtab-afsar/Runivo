@@ -14,8 +14,9 @@ export async function fetchLeaderboard(
       .select('id, username, runner_rank, territory_score, weekly_pace, weekly_km, weekly_territories, rank')
       .order('rank', { ascending: true })
       .limit(50);
-    const { data } = await query;
+    const { data, error } = await query;
 
+    if (error) { console.error('[leaderboard] weekly fetch:', error.message); return []; }
     if (!data) return [];
 
     const mapped: LeaderboardEntry[] = data.map(row => ({
@@ -43,15 +44,18 @@ export async function fetchLeaderboard(
     .from('profiles')
     .select('id, username, runner_rank, territory_score, pace_total_earned');
 
-  const profilesResp = await profilesQuery;
-  const scopedProfileIds = new Set((profilesResp.data ?? []).map((p: { id: string }) => p.id));
+  const { data: profileData, error: profErr } = await profilesQuery;
+  if (profErr) { console.error('[leaderboard] profiles fetch:', profErr.message); return []; }
+  const profilesResp = profileData ?? [];
+  const scopedProfileIds = new Set(profilesResp.map((p: { id: string }) => p.id));
 
-  const runsResp = await supabase
+  const { data: runsData, error: runsErr } = await supabase
     .from('runs')
     .select('user_id, distance_m, territories_claimed')
     .gte('started_at', cutoff);
-  const runs = (runsResp.data ?? []).filter(r => scopedProfileIds.has(r.user_id));
-  const profiles = profilesResp.data ?? [];
+  if (runsErr) { console.error('[leaderboard] runs fetch:', runsErr.message); }
+  const runs = (runsData ?? []).filter(r => scopedProfileIds.has(r.user_id));
+  const profiles = profilesResp;
 
   if (!profiles.length) return [];
 

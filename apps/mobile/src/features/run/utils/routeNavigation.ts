@@ -23,6 +23,9 @@ export function computeRouteProgress(
   runnerLng: number,
   routePoints: { lat: number; lng: number }[],
 ): RouteProgress {
+  if (routePoints.length < 2) {
+    return { closestIdx: 0, distanceToRouteM: 0, distanceRemainingM: 0 };
+  }
   const runner = { lat: runnerLat, lng: runnerLng };
 
   let closestIdx = 0;

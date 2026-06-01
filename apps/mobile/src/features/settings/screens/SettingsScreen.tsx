@@ -44,7 +44,7 @@ export default function SettingsScreen() {
 
         {/* ── Account ── */}
         <SettingSection title="Account">
-          <Pressable style={s.linkRow} onPress={() => (navigation as any).navigate('Profile')}>
+          <Pressable style={s.linkRow} onPress={() => navigation.navigate('Main', { screen: 'Profile' })}>
             <Text style={s.linkLabel}>Edit Profile</Text>
             <Text style={s.linkArrow}>→</Text>
           </Pressable>
@@ -150,10 +150,6 @@ export default function SettingsScreen() {
 
         {/* ── Data & Privacy ── */}
         <SettingSection title="Data & Privacy">
-          <Pressable style={s.linkRow} onPress={() => Alert.alert('Export Run Data', 'Export feature coming soon.')}>
-            <Text style={s.linkLabel}>Export My Data</Text>
-            <Text style={s.linkArrow}>→</Text>
-          </Pressable>
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/privacy')}>
             <Text style={s.linkLabel}>Privacy Policy</Text>
             <Text style={s.linkArrow}>→</Text>

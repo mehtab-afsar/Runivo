@@ -746,3 +746,13 @@ export async function matchOrCreateRun(imported: {
 
 // Web stub — no local SQLite to clear; Supabase session handles identity
 export function clearLocalUserData(): void {}
+
+export async function clearAllLocalData(): Promise<void> {
+  const db = await getDB();
+  await idbSafe(async () => {
+    const tx = db.transaction(['runs', 'territories'], 'readwrite');
+    await tx.objectStore('runs').clear();
+    await tx.objectStore('territories').clear();
+    await tx.done;
+  }, undefined, 'clearAllLocalData');
+}

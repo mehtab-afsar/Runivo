@@ -15,7 +15,9 @@ export function buildRunSummaryParams(result: Record<string, unknown> & {
     runData: {
       distance:           result.distance,
       duration:           result.elapsed,
-      pace:               typeof result.pace === 'string' ? parseFloat(result.pace.replace(':', '.')) || 0 : result.pace,
+      pace:               typeof result.pace === 'string'
+                          ? (() => { const [m, s] = result.pace.split(':').map(Number); return (m + s / 60) || 0; })()
+                          : result.pace,
       territoriesClaimed: result.territoriesClaimed,
       route:              result.gpsPoints?.map(p => ({ lat: p.lat, lng: p.lng })),
       actionType:         result.actionType as string || 'claim',

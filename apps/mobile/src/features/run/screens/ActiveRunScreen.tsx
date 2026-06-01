@@ -33,6 +33,7 @@ import {
 } from '@shared/services/claimEngine';
 import { GAME_CONFIG } from '@shared/services/config';
 import { useAuth } from '@shared/hooks/useAuth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TerritoryPolygon } from '@shared/types/game';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -173,9 +174,15 @@ export default function ActiveRunScreen() {
     if (!run.isRunning) { nav.goBack(); return; }
     Alert.alert('Cancel Run?', 'Your run will be lost.', [
       { text: 'Keep Running', style: 'cancel' },
-      { text: 'Cancel', style: 'destructive', onPress: () => nav.goBack() },
+      { text: 'Cancel', style: 'destructive', onPress: () => {
+        // Remove the crash-recovery checkpoint so the user isn't prompted to
+        // restore a cancelled run on next app launch.
+        const cpKey = `${run.gpsCheckpointPrefix}${run.activeRunId}`;
+        AsyncStorage.removeItem(cpKey).catch(() => {});
+        nav.goBack();
+      }},
     ]);
-  }, [run.isRunning, nav]);
+  }, [run.isRunning, run.activeRunId, run.gpsCheckpointPrefix, nav]);
 
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
