@@ -33,21 +33,22 @@ vi.mock('./supabase', () => ({
 // ── Store mock ────────────────────────────────────────────────────────────────
 
 vi.mock('./store', () => ({
-  getPlayer:           vi.fn().mockResolvedValue(null),
-  savePlayer:          vi.fn().mockResolvedValue(undefined),
-  getRuns:             vi.fn().mockResolvedValue([]),
-  getRunsSince:        vi.fn().mockResolvedValue([]),
-  saveRun:             vi.fn().mockResolvedValue(undefined),
-  getAllTerritories:   vi.fn().mockResolvedValue([]),
-  saveTerritories:     vi.fn().mockResolvedValue(undefined),
-  getPendingActions:   vi.fn().mockResolvedValue([]),
-  clearPendingAction:  vi.fn().mockResolvedValue(undefined),
-  getSavedRoutes:      vi.fn().mockResolvedValue([]),
-  saveSavedRoute:      vi.fn().mockResolvedValue(undefined),
-  getNutritionEntries: vi.fn().mockResolvedValue([]),
-  addNutritionEntry:   vi.fn().mockResolvedValue(1),
-  getDB:               vi.fn().mockResolvedValue({}),
-  localDateString:     vi.fn().mockReturnValue('2024-01-01'),
+  getPlayer:                    vi.fn().mockResolvedValue(null),
+  savePlayer:                   vi.fn().mockResolvedValue(undefined),
+  getRuns:                      vi.fn().mockResolvedValue([]),
+  getRunsSince:                 vi.fn().mockResolvedValue([]),
+  saveRun:                      vi.fn().mockResolvedValue(undefined),
+  getAllTerritories:             vi.fn().mockResolvedValue([]),
+  saveTerritories:              vi.fn().mockResolvedValue(undefined),
+  getPendingActions:            vi.fn().mockResolvedValue([]),
+  clearPendingAction:           vi.fn().mockResolvedValue(undefined),
+  getSavedRoutes:               vi.fn().mockResolvedValue([]),
+  saveSavedRoute:               vi.fn().mockResolvedValue(undefined),
+  getNutritionEntries:          vi.fn().mockResolvedValue([]),
+  getUnsyncedNutritionEntries:  vi.fn().mockResolvedValue([]),
+  addNutritionEntry:            vi.fn().mockResolvedValue(1),
+  getDB:                        vi.fn().mockResolvedValue({}),
+  localDateString:              vi.fn().mockReturnValue('2024-01-01'),
 }));
 
 // ── Import module under test (after mocks are set up) ────────────────────────
@@ -100,9 +101,10 @@ describe('sync — postRunSync ordering', () => {
     unsub();
     // postRunSync must always set status to 'syncing' first
     expect(captured[0]).toBe('syncing');
-    // Final status is 'idle' or 'error' depending on mock completeness;
-    // what matters is the call completed and set a terminal state
-    expect(['idle', 'error']).toContain(captured[captured.length - 1]);
+    // Final status is 'idle', 'error', or 'offline' depending on mock completeness
+    // and environment (Node has no navigator.onLine so offline is valid here).
+    // What matters is the call completed and set a terminal state.
+    expect(['idle', 'error', 'offline']).toContain(captured[captured.length - 1]);
   });
 
   it('sets status to error when an internal function throws', async () => {

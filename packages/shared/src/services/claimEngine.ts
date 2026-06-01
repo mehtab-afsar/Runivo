@@ -119,12 +119,20 @@ export function polygonAreaM2(ring: [number, number][]): number {
   const n = ring.length;
   if (n < 3) return 0;
   const LAT_M = GAME_CONFIG.METERS_PER_DEGREE_LAT;
+  // Use relative coordinates to avoid catastrophic cancellation when absolute
+  // lat/lng values (e.g. 51.5 * 111320 ≈ 5.7M) dwarf the polygon dimensions.
+  const refLng = ring[0][0];
+  const refLat = ring[0][1];
   let area = 0;
   for (let i = 0; i < n; i++) {
     const [lng1, lat1] = ring[i];
     const [lng2, lat2] = ring[(i + 1) % n];
-    const LNG_M = LAT_M * Math.cos(lat1 * Math.PI / 180);
-    area += (lng1 * LNG_M) * (lat2 * LAT_M) - (lng2 * LNG_M) * (lat1 * LAT_M);
+    const LNG_M = LAT_M * Math.cos(((lat1 + lat2) / 2) * Math.PI / 180);
+    const x1 = (lng1 - refLng) * LNG_M;
+    const y1 = (lat1 - refLat) * LAT_M;
+    const x2 = (lng2 - refLng) * LNG_M;
+    const y2 = (lat2 - refLat) * LAT_M;
+    area += x1 * y2 - x2 * y1;
   }
   return Math.abs(area) / 2;
 }
@@ -151,8 +159,10 @@ export function buildCorridorPolygon(
     const dlat = (next.lat - prev.lat) / LAT_M;
     const dlng = (next.lng - prev.lng) / LNG_M;
     const len  = Math.sqrt(dlat * dlat + dlng * dlng) || 1;
-    const px   = -dlng / len;  // perpendicular unit vector
-    const py   =  dlat / len;
+    // Perpendicular unit vector: tangent in (east, north) = (dlng, dlat),
+    // so left-perp (CCW 90°) in (east, north) = (-dlat, dlng).
+    const px   = -dlat / len;  // east (lng) component of perp
+    const py   =  dlng / len;  // north (lat) component of perp
     left.push( [segment[i].lng + px * dLng, segment[i].lat + py * dLat]);
     right.push([segment[i].lng - px * dLng, segment[i].lat - py * dLat]);
   }

@@ -135,8 +135,10 @@ describe('store — player (with data)', async () => {
   it('initializePlayer creates a player with the given username', async () => {
     const p = await initializePlayer('Bob');
     expect(p.username).toBe('Bob');
-    expect(p.level).toBe(1);
-    expect(p.coins).toBe(100);
+    // level/coins are legacy optional fields no longer set on init;
+    // check the current PACE-economy defaults instead.
+    expect(p.runnerRank).toBe('pacer');
+    expect(p.paceBalance).toBe(0);
   });
 });
 
@@ -238,12 +240,16 @@ describe('store — idbSafe quota error recovery', async () => {
     const origPut = db.put.bind(db);
     vi.spyOn(db, 'put').mockRejectedValueOnce(quota);
 
+    // In Node there is no `window`; provide a minimal EventTarget so store.ts
+    // can call window.dispatchEvent() on the QuotaExceededError path.
+    const mockTarget = new EventTarget();
     const eventSpy = vi.fn();
-    window.addEventListener('runivo:storage-full', eventSpy);
+    mockTarget.addEventListener('runivo:storage-full', eventSpy);
+    (globalThis as any).window = mockTarget;
 
     await expect(savePlayer(player)).resolves.not.toThrow();
 
-    window.removeEventListener('runivo:storage-full', eventSpy);
+    delete (globalThis as any).window;
     expect(eventSpy).toHaveBeenCalled();
 
     db.put = origPut;
