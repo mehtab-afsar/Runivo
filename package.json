@@ -12,7 +12,7 @@
     "ios": "cd apps/mobile && expo run:ios",
     "android": "cd apps/mobile && expo run:android",
     "web": "npm run dev --workspace=apps/web",
-    "build": "cd apps/web && npx vite build",
+    "build": "npm run build --workspace=apps/web",
     "typecheck": "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/mobile",
     "lint": "npx eslint apps/web/src --ext .ts,.tsx --max-warnings 0",
     "clean:mobile": "npm run clean --workspace=apps/mobile",

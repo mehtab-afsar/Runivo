@@ -1,3 +1,6 @@
+'use client';
+export const dynamic = 'force-dynamic';
+
 /**
  * Admin CMS — /admin
  *
@@ -27,8 +30,6 @@
  *         and profiles.subscription_tier = 'admin'
  *     ));
  */
-
-'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
