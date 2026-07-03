@@ -63,12 +63,12 @@ export default function PrivacyPage() {
 
             <h3 style={h3Style}>Account Information</h3>
             <p style={prose}>
-              When you create an account we collect your email address, username, and password (stored as a secure hash). Optional profile details such as city, profile photo, and bio are stored if you provide them.
+              When you create an account we collect your email address, username, and password (stored as a secure hash). Optional profile details such as city, profile photo, and bio are stored if you provide them. During onboarding we also collect your age, gender, height, weight, running experience level, weekly running frequency, primary goal, and preferred distance, to personalise your missions and weekly targets.
             </p>
 
             <h3 style={h3Style}>Usage Data</h3>
             <p style={prose}>
-              We collect standard analytics data (screen views, feature usage, crash reports) to improve the app. This data is aggregated and not linked to your identity. We use Sentry for crash reporting.
+              We collect standard analytics data (screen views, feature usage, crash reports) to improve the app. This data is aggregated and not linked to your identity. We use Sentry for crash reporting and PostHog for product analytics (e.g. tracking which features are used, such as completing onboarding or finishing a run) — neither ever receives your precise GPS coordinates.
             </p>
 
             <h2 style={h2Style}>2. How We Use Your Data</h2>
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
 
             <h2 style={h2Style}>3. Data Sharing</h2>
             <p style={prose}>
-              We do not sell your personal data. We share data only with: infrastructure providers (Supabase for database hosting, operating under data processing agreements); crash reporting services (Sentry); and, only with your explicit action, other Runivo users who can see your public profile, username, territory claims, and run stats you choose to share.
+              We do not sell your personal data. We share data only with: infrastructure providers (Supabase for database hosting, operating under data processing agreements); crash reporting services (Sentry); product analytics services (PostHog); and, only with your explicit action, other Runivo users who can see your public profile, username, territory claims, and run stats you choose to share.
             </p>
 
             <h2 style={h2Style}>4. Data Retention</h2>

@@ -7,6 +7,8 @@ import { UserPlus, Chat, Check, MapPin } from 'phosphor-react-native';
 import { supabase } from '@shared/services/supabase';
 import { Avatar } from '../components/Avatar';
 import { avatarColor } from '@shared/lib/avatarUtils';
+import { RunnerRankBadge } from '@mobile/shared/components/RunnerRankBadge';
+import type { RunnerRank } from '@shared/types/game';
 import { useTheme, type AppColors } from '@theme';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
@@ -21,7 +23,7 @@ interface UserData {
   total_runs?: number;
   total_distance_km?: number;
   territories_claimed?: number;
-  level?: number;
+  runner_rank?: RunnerRank;
 }
 
 export default function UserProfileScreen() {
@@ -41,7 +43,7 @@ export default function UserProfileScreen() {
     async function load() {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, bio, location, avatar_color, avatar_url, total_runs, total_distance_km, territories_claimed, level')
+        .select('display_name, bio, location, avatar_color, avatar_url, total_runs, total_distance_km, territories_claimed, runner_rank')
         .eq('id', userId)
         .single();
       setUser(data ?? null);
@@ -103,7 +105,11 @@ export default function UserProfileScreen() {
                 <Text style={s.location}>{user.location}</Text>
               </View>
             ) : null}
-            {user?.level ? <Text style={s.level}>Level {user.level}</Text> : null}
+            {user?.runner_rank ? (
+              <View style={{ marginTop: 2 }}>
+                <RunnerRankBadge rank={user.runner_rank} size="sm" />
+              </View>
+            ) : null}
 
             {/* Follow / Message actions */}
             {!isOwnProfile && (
@@ -161,9 +167,8 @@ function mkStyles(C: AppColors) {
     displayName:  { fontWeight: '600', fontSize: 20, color: C.black, marginTop: 8 },
     bio:          { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18, maxWidth: 280 },
     location:     { fontSize: 11, color: C.t3 },
-    level:        { fontSize: 11, color: C.red },
     actions:      { flexDirection: 'row', gap: 10, marginTop: 16 },
-    followBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 18, paddingVertical: 10 },
+    followBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 18, paddingVertical: 10 },
     followingBtn: { backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
     followBtnLabel:   { fontWeight: '500', fontSize: 13, color: C.white },
     followingBtnLabel:{ color: C.black },

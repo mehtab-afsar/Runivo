@@ -37,7 +37,7 @@ export default function RunControls({ isPaused, onPause, onResume, onStop }: Run
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     controls: {
-      backgroundColor: C.black,
+      backgroundColor: C.alwaysDark,
       flexDirection: 'row', alignItems: 'center',
       justifyContent: 'center', gap: 24,
       paddingTop: 20, paddingHorizontal: 24,

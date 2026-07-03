@@ -1,13 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useTheme, type AppColors } from '@theme';
 const FONT      = 'Barlow_400Regular';
 const FONT_SEMI = 'Barlow_600SemiBold';
-
-const TIER_STYLES: Record<string, { bg: string; color: string; label: string }> = {
-  bronze: { bg: '#FEF3C7', color: '#B45309', label: 'Bronze' },
-  silver: { bg: '#F3F4F6', color: '#4B5563', label: 'Silver' },
-  gold:   { bg: '#FEF9C3', color: '#854D0E', label: 'Gold' },
-};
 
 interface TerritoryChip {
   tier: 'bronze' | 'silver' | 'gold';
@@ -19,6 +14,14 @@ interface TerritoryChipsProps {
 }
 
 export default function TerritoryChips({ territories }: TerritoryChipsProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
+  const TIER_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+    bronze: { bg: C.surface, color: C.bronze, label: 'Bronze' },
+    silver: { bg: C.surface, color: C.silver, label: 'Silver' },
+    gold:   { bg: C.surface, color: C.gold,   label: 'Gold' },
+  };
+
   if (territories.length === 0) return null;
 
   return (
@@ -36,9 +39,11 @@ export default function TerritoryChips({ territories }: TerritoryChipsProps) {
   );
 }
 
-const ss = StyleSheet.create({
-  row:   { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
-  chip:  { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5, alignItems: 'center', gap: 2 },
-  count: { fontFamily: FONT_SEMI, fontSize: 16 },
-  label: { fontFamily: FONT, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:   { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
+    chip:  { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5, alignItems: 'center', gap: 2 },
+    count: { fontFamily: FONT_SEMI, fontSize: 16 },
+    label: { fontFamily: FONT, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+  });
+}

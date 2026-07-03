@@ -44,11 +44,14 @@ function DrumColumn({ values, value, onSelect, label, unit, toggleEl }: {
           contentContainerStyle={{ paddingVertical: 1 * ITEM_H }}
           style={{ height: VISIBLE * ITEM_H }}
         >
-          {values.map(v => {
+          {values.map((v, i) => {
             const sel = v === value;
             return (
               <Pressable
-                key={v}
+                // Not `v`: unit-converted values (e.g. cm→ft rounded to 1 decimal)
+                // collapse several distinct inputs onto the same displayed number —
+                // this list never reorders/inserts, so the static index is safe and unique.
+                key={i}
                 style={[ds.item, { height: ITEM_H }]}
                 onPress={() => onSelect(v)}
               >

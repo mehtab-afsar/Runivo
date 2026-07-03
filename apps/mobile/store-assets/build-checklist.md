@@ -16,11 +16,18 @@ Set these in EAS dashboard (eas.com) for the `production` channel:
 ```
 EXPO_PUBLIC_SUPABASE_URL         = https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY    = eyJhbGciOiJIUzI1NiIs...
-EXPO_PUBLIC_EAS_PROJECT_ID       = (from app.json after eas build:configure)
+EAS_PROJECT_ID                   = (from `eas init` — replaces app.config.ts's placeholder)
 EXPO_ACCOUNT_NAME                = runivo
-REVENUECAT_IOS_KEY               = appl_...
-REVENUECAT_ANDROID_KEY           = goog_...
+EXPO_PUBLIC_SENTRY_DSN           = (from your Sentry project settings)
+EXPO_PUBLIC_POSTHOG_API_KEY      = (from your PostHog project settings)
+EXPO_PUBLIC_POSTHOG_HOST         = https://us.i.posthog.com
 ```
+
+RevenueCat is NOT part of this launch — v1 ships free-tier-only. No
+`REVENUECAT_IOS_KEY`/`REVENUECAT_ANDROID_KEY` are required, and
+`react-native-purchases` isn't installed. Add these when RevenueCat is actually wired
+in a future pass — don't set them now, an unused key is a false signal that
+monetization is live.
 
 ## eas.json submit fields to fill in
 
@@ -71,5 +78,5 @@ eas submit --platform android --profile production
 After `eas build --profile preview`:
 1. In App Store Connect → TestFlight → Internal Testing
 2. Add internal testers (up to 100 with no review)
-3. Test: background location tracking, territory claim, push notifications, HealthKit, RevenueCat purchase
-4. Run at least one full run end-to-end before production submit
+3. Test: background location tracking, territory claim, push notifications, HealthKit, account deletion, Sentry error capture, PostHog event firing
+4. Run at least one full run end-to-end before production submit — see the real-device test script for the full checklist

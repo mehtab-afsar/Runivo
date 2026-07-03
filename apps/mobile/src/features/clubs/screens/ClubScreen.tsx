@@ -312,7 +312,7 @@ function mkCsStyles(C: AppColors) {
     policyDescActive:  { color: C.t2 },
     // Footer
     footer:            { paddingTop: 16, gap: 8 },
-    createBtn:         { paddingVertical: 16, borderRadius: 16, backgroundColor: C.black, alignItems: 'center' },
+    createBtn:         { paddingVertical: 16, borderRadius: 16, backgroundColor: C.alwaysDark, alignItems: 'center' },
     createBtnDisabled: { backgroundColor: C.stone },
     createBtnLabel:    { fontWeight: '600', fontSize: 14, color: C.white, letterSpacing: 0.3 },
     createBtnLabelDisabled: { color: C.t3 },
@@ -551,7 +551,7 @@ function mkStyles(C: AppColors) {
     empty:           { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 18 },
     emptyTitle:      { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 4 },
     emptyText:       { fontSize: 11, color: C.t3, textAlign: 'center', marginBottom: 12 },
-    emptyBtn:        { backgroundColor: C.black, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 4 },
+    emptyBtn:        { backgroundColor: C.alwaysDark, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 4 },
     emptyBtnLabel:   { fontWeight: '500', fontSize: 11, color: C.white, letterSpacing: 0.6 },
     // Rankings tab
     rankList:        { paddingBottom: 100 },

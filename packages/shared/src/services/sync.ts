@@ -67,7 +67,7 @@ import {
   type StoredRun,
   type StoredPlayer,
 } from './store';
-import type { TerritoryPolygon, TerritoryTier } from '../types/game';
+import type { TerritoryPolygon, TerritoryTier, RunnerRank } from '../types/game';
 import { getProfile } from './profile';
 
 /**
@@ -107,12 +107,28 @@ export async function pushProfile(): Promise<void> {
     total_territories_claimed: player.totalTerritoriesClaimed,
     streak_days: player.streakDays,
     last_run_date: player.lastRunDate,
-    // PACE economy fields
-    pace_balance:        player.paceBalance        ?? 0,
-    pace_total_earned:   player.paceTotalEarned    ?? 0,
-    pace_weekly_earned:  player.paceWeeklyEarned   ?? 0,
+    // CRITICAL PATH: pace_balance / pace_total_earned / pace_weekly_earned are NEVER
+    // pushed from the client. apply_pace_adjustment (20260515000059_territory_engine_rpcs.sql,
+    // called from process-run-territory after every run) is the only thing allowed to
+    // modify them server-side — it does an atomic increment. A client upsert of an
+    // absolute value here would silently overwrite that atomic increment with a
+    // client-reconstructed number — this was the actual mechanism behind the PACE
+    // balance corruption a prior session's pullProfile() fix and diagnose_pace_ledger()
+    // migration addressed. The client still computes and stores these locally (for the
+    // offline-friendly immediate post-run UI) and PULLS the server's authoritative value
+    // via pullProfile() — it must just never push them.
+    //
+    // pace_weekly_reset_at and runner_rank are NOT touched by apply_pace_adjustment —
+    // they're legitimately client-computed (checkAndResetWeeklyPace() / computeRunnerRank()
+    // in useGameEngine.ts) and safe to push as-is.
     pace_weekly_reset_at: player.paceWeeklyResetAt ?? new Date().toISOString(),
     runner_rank:         player.runnerRank         ?? 'pacer',
+    // City rank / rival proximity — only sent once a location has actually been
+    // captured (onboarding grant or post-run); never overwrites with an empty value.
+    ...(player.lastKnownLocation && {
+      last_known_location: `SRID=4326;POINT(${player.lastKnownLocation.lng} ${player.lastKnownLocation.lat})`,
+    }),
+    ...(player.country && { country: player.country }),
     // Onboarding prefs + biometrics
     ...(profile && {
       // Biometrics (migration 013)
@@ -179,6 +195,24 @@ export async function pullProfile(): Promise<void> {
       ...((data.unlocked_achievements as string[]) ?? []),
     ])),
     createdAt: new Date(data.created_at).getTime(),
+    // CRITICAL: savePlayer() fully replaces the local record (IndexedDB/SQLite put,
+    // not a partial merge) — any field left out here is silently wiped to undefined
+    // on every pull. The PACE/rank fields below ARE pushed by pushProfile() above,
+    // so they must be read back here or a login/postRunSync pull resets a player's
+    // real balance to 0. Fields never pushed to the server (territoryScore,
+    // largestTierAchieved, earnedAwardIds, pinnedRunId, lastKnownLocation) are kept
+    // from the existing local record — the server has no authoritative value for them.
+    paceBalance:        typeof data.pace_balance       === 'number' ? data.pace_balance       : (existing?.paceBalance       ?? 0),
+    paceTotalEarned:    typeof data.pace_total_earned  === 'number' ? data.pace_total_earned   : (existing?.paceTotalEarned   ?? 0),
+    paceWeeklyEarned:   typeof data.pace_weekly_earned === 'number' ? data.pace_weekly_earned  : (existing?.paceWeeklyEarned  ?? 0),
+    paceWeeklyResetAt:  data.pace_weekly_reset_at ?? existing?.paceWeeklyResetAt ?? new Date().toISOString(),
+    runnerRank:         (data.runner_rank as RunnerRank | undefined) ?? existing?.runnerRank ?? 'pacer',
+    territoryScore:     existing?.territoryScore ?? 0,
+    largestTierAchieved: existing?.largestTierAchieved,
+    earnedAwardIds:      existing?.earnedAwardIds,
+    pinnedRunId:         existing?.pinnedRunId,
+    country:            (typeof data.country === 'string' ? data.country : null) ?? existing?.country ?? null,
+    lastKnownLocation:   existing?.lastKnownLocation ?? null,
   } satisfies StoredPlayer);
 }
 

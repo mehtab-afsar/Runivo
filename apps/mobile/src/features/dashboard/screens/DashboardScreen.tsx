@@ -224,7 +224,9 @@ function mkStyles(C: AppColors) {
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
     sectionTitle:    { fontWeight: '500', fontSize: 11, letterSpacing: 1, color: C.t3 },
     sectionAction:   { fontSize: 11, color: C.t3 },
-    missionCard:     { backgroundColor: C.black, borderRadius: 20, padding: 18 },
+    // Fixed near-black bold card in both themes — not C.black, which is the "ink" token
+    // and inverts to near-white in dark mode (would strand the fixed-white text below).
+    missionCard:     { backgroundColor: C.alwaysDark, borderRadius: 20, padding: 18 },
     cardLabel:       { fontWeight: '500', fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
     runsCard:        { backgroundColor: C.white, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     firstRunCard:    { padding: 24, alignItems: 'center', gap: 10 },

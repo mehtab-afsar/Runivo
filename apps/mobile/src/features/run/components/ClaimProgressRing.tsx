@@ -1,8 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT_BOLD = 'Barlow_700Bold';
 const FONT_SEMI = 'Barlow_600SemiBold';
 
@@ -12,6 +11,8 @@ interface ClaimProgressRingProps {
 }
 
 export default function ClaimProgressRing({ progress, visible }: ClaimProgressRingProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -35,17 +36,19 @@ export default function ClaimProgressRing({ progress, visible }: ClaimProgressRi
   );
 }
 
-const ss = StyleSheet.create({
-  wrap:  {
-    position: 'absolute', bottom: 140, right: 16,
-    width: 64, height: 64, alignItems: 'center', justifyContent: 'center',
-  },
-  bg:    {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 32, borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  fill:  { alignItems: 'center', justifyContent: 'center' },
-  pct:   { fontFamily: FONT_BOLD, fontSize: 12, color: C.red },
-  label: { fontFamily: FONT_SEMI, fontSize: 6, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    wrap:  {
+      position: 'absolute', bottom: 140, right: 16,
+      width: 64, height: 64, alignItems: 'center', justifyContent: 'center',
+    },
+    bg:    {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: 32, borderWidth: 3,
+      borderColor: 'rgba(255,255,255,0.1)',
+    },
+    fill:  { alignItems: 'center', justifyContent: 'center' },
+    pct:   { fontFamily: FONT_BOLD, fontSize: 12, color: C.red },
+    label: { fontFamily: FONT_SEMI, fontSize: 6, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 },
+  });
+}

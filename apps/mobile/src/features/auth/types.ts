@@ -21,6 +21,9 @@ export interface OnboardingData {
   distanceUnit: 'km' | 'mi';
   notificationsEnabled: boolean;
   plan: 'premium' | 'free';
+  // Captured during the CityMapPreviewStep location-permission grant, if given.
+  lastKnownLocation?: { lat: number; lng: number } | null;
+  country?: string | null;
 }
 
 export const EXP_OPTIONS: { key: OnboardingData['experienceLevel']; label: string; sub: string }[] = [

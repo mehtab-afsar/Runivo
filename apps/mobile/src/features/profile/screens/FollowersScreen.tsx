@@ -176,7 +176,7 @@ function mkStyles(C: AppColors) {
     rankBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
     rankText:     { fontWeight: '500', fontSize: 9, letterSpacing: 0.3 },
     followBtn:    { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8, borderWidth: 0.5, borderColor: C.black },
-    followBtnActive: { backgroundColor: C.black, borderColor: C.black },
+    followBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
     followBtnText: { fontWeight: '500', fontSize: 12, color: C.black },
     followBtnTextActive: { color: C.white },
     empty:        { alignItems: 'center', paddingVertical: 40 },

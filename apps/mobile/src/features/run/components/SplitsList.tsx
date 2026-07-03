@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT       = 'Barlow_400Regular';
 const FONT_MED   = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -21,6 +20,9 @@ function formatPace(paceMinPerKm: number): string {
 }
 
 export default function SplitsList({ splits }: SplitsListProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
+
   if (splits.length === 0) return null;
 
   const avg = splits.reduce((s, x) => s + x.pace, 0) / splits.length;
@@ -58,14 +60,16 @@ export default function SplitsList({ splits }: SplitsListProps) {
   );
 }
 
-const ss = StyleSheet.create({
-  container:   { backgroundColor: C.white, borderRadius: 4, overflow: 'hidden' },
-  header:      { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-  headerCell:  { fontFamily: FONT_SEMI, fontSize: 9, letterSpacing: 1, color: C.t3, width: 32 },
-  row:         { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
-  km:          { fontFamily: FONT_MED, fontSize: 12, color: C.t2, width: 32 },
-  barContainer:{ flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, overflow: 'hidden', marginHorizontal: 8 },
-  bar:         { height: '100%', borderRadius: 3 },
-  pace:        { fontFamily: FONT_LIGHT, fontSize: 13, width: 56, textAlign: 'right' },
-  paceUnit:    { fontFamily: FONT, fontSize: 10, color: C.t3 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    container:   { backgroundColor: C.white, borderRadius: 4, overflow: 'hidden' },
+    header:      { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
+    headerCell:  { fontFamily: FONT_SEMI, fontSize: 9, letterSpacing: 1, color: C.t3, width: 32 },
+    row:         { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
+    km:          { fontFamily: FONT_MED, fontSize: 12, color: C.t2, width: 32 },
+    barContainer:{ flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, overflow: 'hidden', marginHorizontal: 8 },
+    bar:         { height: '100%', borderRadius: 3 },
+    pace:        { fontFamily: FONT_LIGHT, fontSize: 13, width: 56, textAlign: 'right' },
+    paceUnit:    { fontFamily: FONT, fontSize: 10, color: C.t3 },
+  });
+}

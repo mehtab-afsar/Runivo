@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface StatRowProps {
   label: string;
@@ -10,6 +8,8 @@ interface StatRowProps {
 }
 
 export function StatRow({ label, value }: StatRowProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.card}>
       <Text style={ss.value}>{value}</Text>
@@ -18,16 +18,18 @@ export function StatRow({ label, value }: StatRowProps) {
   );
 }
 
-const ss = StyleSheet.create({
-  card: {
-    width: '47%',
-    backgroundColor: C.white,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: C.border,
-    padding: 12,
-    alignItems: 'center',
-  },
-  value: { fontSize: 28, color: C.black, letterSpacing: -1 },
-  label: { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card: {
+      width: '47%',
+      backgroundColor: C.white,
+      borderRadius: 10,
+      borderWidth: 0.5,
+      borderColor: C.border,
+      padding: 12,
+      alignItems: 'center',
+    },
+    value: { fontSize: 28, color: C.black, letterSpacing: -1 },
+    label: { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4 },
+  });
+}

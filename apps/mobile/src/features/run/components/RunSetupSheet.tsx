@@ -165,7 +165,7 @@ function mkStyles(C: AppColors) {
     paceChipUnit:     { fontFamily: FONT, fontSize: 9, color: C.muted },
     paceChipUnitActive:{ color: 'rgba(255,255,255,0.7)' },
     startWrap:        { paddingHorizontal: 16, marginTop: 'auto' },
-    startBtn:         { backgroundColor: C.black, borderRadius: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+    startBtn:         { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
     startBtnDisabled: { backgroundColor: '#D1D5DB' },
     startDot:         { width: 34, height: 34, borderRadius: 17, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
     startDotDisabled: { backgroundColor: '#9CA3AF' },

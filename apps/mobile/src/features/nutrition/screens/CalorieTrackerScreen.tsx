@@ -373,7 +373,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   dateStripScroll: { flexGrow: 0, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
   dateStrip:    { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', gap: 4 },
   dateBtn:      { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, gap: 2 },
-  dateBtnActive:{ backgroundColor: C.black },
+  dateBtnActive:{ backgroundColor: C.alwaysDark },
   dateDayLabel: { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
   dateDayLabelActive: { color: C.white },
   dateDayNum:   { fontWeight: '600', fontSize: 14, color: C.black },
@@ -405,6 +405,6 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   aiIcon:       { fontSize: 20, lineHeight: 24 },
   aiTitle:      { fontWeight: '500', fontSize: 12, color: C.black, marginBottom: 2 },
   aiBody:       { fontSize: 12, color: C.t2, lineHeight: 17 },
-  coachBtn:     { backgroundColor: C.black, borderRadius: 10, padding: 14, alignItems: 'center' },
+  coachBtn:     { backgroundColor: C.alwaysDark, borderRadius: 10, padding: 14, alignItems: 'center' },
   coachBtnText: { fontWeight: '500', fontSize: 13, color: C.white },
 }); }

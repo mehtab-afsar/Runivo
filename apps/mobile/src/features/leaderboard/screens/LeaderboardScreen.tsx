@@ -163,7 +163,7 @@ function mkStyles(C: AppColors) {
     emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center' },
     playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, padding: '10px 12px' as any, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)' },
     playerRank:    { fontSize: 13, color: C.red, width: 24, textAlign: 'center' },
-    playerAvatar:  { width: 28, height: 28, borderRadius: 14, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center' },
+    playerAvatar:  { width: 28, height: 28, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
     playerAvatarText: { fontWeight: '500', fontSize: 10, color: C.white },
     playerName:    { fontWeight: '500', fontSize: 12, color: C.black },
     playerLvl:     { fontSize: 10, color: C.t3 },

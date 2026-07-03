@@ -220,7 +220,7 @@ function mkStyles(C: AppColors) {
     statCardValue: { fontSize: 22, color: C.black, letterSpacing: -0.5, lineHeight: 26 },
     statCardSub: { fontSize: 9, color: C.t3, marginTop: 2 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    btn: { backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
+    btn: { backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
     btnText: { fontWeight: '600', fontSize: 11, color: '#fff', letterSpacing: 0.5 },
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 20 },
     emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 8 },

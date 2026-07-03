@@ -472,7 +472,7 @@ function mkStyles(C: AppColors) {
     card:         { marginHorizontal: 16, marginBottom: 12 },
 
     // PACE card (dark bg)
-    paceCard:      { backgroundColor: C.black, borderRadius: 12, padding: 18 },
+    paceCard:      { backgroundColor: C.alwaysDark, borderRadius: 12, padding: 18 },
     paceLabel:     { fontFamily: FS, fontSize: 9, letterSpacing: 1.5, color: 'rgba(255,255,255,0.45)', marginBottom: 8 },
     paceBigRow:    { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
     paceBig:       { fontFamily: 'Barlow_700Bold', fontSize: 52, color: C.white, lineHeight: 56, letterSpacing: -1 },
@@ -521,7 +521,7 @@ function mkStyles(C: AppColors) {
     fuelIcon:    { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(249,115,22,0.12)', alignItems: 'center', justifyContent: 'center' },
     fuelTitle:   { fontFamily: FM, fontSize: 13, color: C.black },
     fuelSub:     { fontFamily: FL, fontSize: 11, color: C.t3, marginTop: 1 },
-    fuelBtn:     { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: C.black },
+    fuelBtn:     { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: C.alwaysDark },
     fuelBtnText: { fontFamily: FS, fontSize: 10, color: C.white, letterSpacing: 0.4 },
   });
 }

@@ -28,7 +28,7 @@ export function RunCTACard({ hasRunToday, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 22, marginBottom: 28, backgroundColor: C.black, borderRadius: 20, padding: 22 },
+    card:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 22, marginBottom: 28, backgroundColor: C.alwaysDark, borderRadius: 20, padding: 22 },
     left:     { flex: 1 },
     label:    { fontWeight: '500', fontSize: 9, letterSpacing: 1.5, color: 'rgba(255,255,255,0.4)', marginBottom: 6 },
     title:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 24, color: '#fff', fontStyle: 'italic' },

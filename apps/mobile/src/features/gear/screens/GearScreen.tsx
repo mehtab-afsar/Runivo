@@ -120,15 +120,15 @@ function mkStyles(C: AppColors) {
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:       { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     title:         { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    addBtn:        { width: 32, height: 32, borderRadius: 8, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center' },
+    addBtn:        { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
     list:          { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
     empty:         { alignItems: 'center', paddingVertical: 48 },
     emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
     emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center', marginBottom: 16 },
-    emptyBtn:      { backgroundColor: C.black, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
+    emptyBtn:      { backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
     emptyBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 0.5 },
     sectionLabel:  { fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
-    toast:         { position: 'absolute', bottom: 36, left: 20, right: 20, backgroundColor: C.black, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16 },
+    toast:         { position: 'absolute', bottom: 36, left: 20, right: 20, backgroundColor: C.alwaysDark, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16 },
     toastText:     { fontSize: 13, color: '#fff', textAlign: 'center' },
   });
 }

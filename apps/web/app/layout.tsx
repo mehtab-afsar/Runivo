@@ -1,6 +1,7 @@
 import './globals.css';
 import { DM_Serif_Display, DM_Sans } from 'next/font/google';
 import type { Metadata } from 'next';
+import { PostHogProvider } from './PostHogProvider';
 
 const serif = DM_Serif_Display({
   subsets: ['latin'],
@@ -37,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable}`}>
       <body style={{ fontFamily: 'var(--font-body)' }}>
-        {children}
+        <PostHogProvider>{children}</PostHogProvider>
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun, StoredPlayer } from '@shared/services/store';
+import { useTheme, type AppColors } from '@theme';
 
 interface HeroCardData {
   eyebrow: string;
@@ -85,6 +86,8 @@ interface Props {
 }
 
 export function HeroCard({ runs, player }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const card = useMemo(() => computeHeroCard(runs, player), [runs, player]);
 
   return (
@@ -108,60 +111,65 @@ export function HeroCard({ runs, player }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  card: {
-    backgroundColor: '#0F0F0F',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
-  },
-  eyebrow: {
-    fontWeight: '500',
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  numberRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 6,
-    marginBottom: 8,
-  },
-  bigNumber: {
-    fontWeight: '600',
-    fontSize: 42,
-    color: '#FFFFFF',
-    letterSpacing: -1,
-    lineHeight: 48,
-  },
-  bigUnit: {
-    
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.5)',
-  },
-  subline: {
-    
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 4,
-  },
-  badgesRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 12,
-    flexWrap: 'wrap',
-  },
-  badge: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  badgeText: {
-    fontWeight: '500',
-    fontSize: 10,
-    color: 'rgba(255,255,255,0.8)',
-  },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card: {
+      // Fixed near-black bold card in both themes — not C.black, which is the "ink"
+      // token and inverts to near-white in dark mode (would strand the fixed-white
+      // text/overlays below against a now-light background).
+      backgroundColor: C.alwaysDark,
+      borderRadius: 16,
+      padding: 20,
+      marginBottom: 12,
+    },
+    eyebrow: {
+      fontWeight: '500',
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.5)',
+      letterSpacing: 1.5,
+      textTransform: 'uppercase',
+      marginBottom: 8,
+    },
+    numberRow: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 6,
+      marginBottom: 8,
+    },
+    bigNumber: {
+      fontWeight: '600',
+      fontSize: 42,
+      color: '#FFFFFF',
+      letterSpacing: -1,
+      lineHeight: 48,
+    },
+    bigUnit: {
+
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.5)',
+    },
+    subline: {
+
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.6)',
+      marginTop: 4,
+    },
+    badgesRow: {
+      flexDirection: 'row',
+      gap: 6,
+      marginTop: 12,
+      flexWrap: 'wrap',
+    },
+    badge: {
+      backgroundColor: 'rgba(255,255,255,0.10)',
+      borderRadius: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    badgeText: {
+      fontWeight: '500',
+      fontSize: 10,
+      color: 'rgba(255,255,255,0.8)',
+    },
+  });
+}

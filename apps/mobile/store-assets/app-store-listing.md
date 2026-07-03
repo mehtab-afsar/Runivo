@@ -1,5 +1,10 @@
 # Runivo — App Store Listing
 
+> v1 launch scope only. AI Coach, Nutrition Tracker, Foot Scan, Shoe Tracker, Clubs &
+> Events are built but flagged off (`apps/mobile/src/config/features.ts`) and show
+> "Coming Soon" in the shipped build — do not mention them here until those flags flip
+> back on. Re-add their copy blocks below (they're preserved in git history) once live.
+
 ## App Name
 Runivo: Run. Claim. Dominate.
 
@@ -24,36 +29,27 @@ Every run you complete draws a corridor on the map and converts it into your ter
 **REAL-TIME RIVALRY**
 Other runners in your city are competing for the same map. Watch zones flip colours in real time. Get push notifications the moment an enemy enters your territory so you can plan your counter-run.
 
-**AI RUNNING COACH**
-Your personal coach analyses your runs, tracks weekly trends, and delivers targeted training advice. Get race predictions, pace guidance, and recovery tips — all powered by AI that knows your data.
-
-**SMART NUTRITION**
-Log meals, track calories, and let the AI adjust your targets based on how far you ran today. Calorie goals shift automatically on heavy training days so you always fuel correctly.
-
-**FOOT SCAN**
-Point your camera at your foot and get an instant AI analysis of your arch type — flat, neutral, or high — plus a personalised shoe recommendation.
-
-**SHOE TRACKER**
-Log your running shoes, track mileage on each pair, and get retirement reminders before they break down and cause injury.
-
-**CLUBS & LOBBIES**
-Create or join a running club, claim territory as a team, and chat in real-time during group runs. Coordinate attacks and defences together.
+**PACE ECONOMY & RUNNER RANK**
+Every kilometre and every zone you claim earns PACE. Build your PACE balance, climb from Pacer to Sovereign as your Runner Rank rises, and track your Territory Score against every other runner in your city.
 
 **MISSIONS & LEADERBOARDS**
-Daily and weekly missions give you targets beyond just running. Climb the global leaderboard or compete within your club.
+Daily and weekly missions give you targets beyond just running. Climb the global leaderboard or compete within your city.
 
-**HISTORY & ANALYTICS**
-Every run is saved with GPS route, pace splits, territory claims, and XP earned. Review your history and watch your empire grow over time.
+**SOCIAL FEED**
+Follow other runners, see their claims and conquests, and share your own runs and territory milestones.
+
+**HISTORY**
+Every run is saved with GPS route, pace splits, and territory claims. Review your history and watch your empire grow over time.
 
 ---
 
 ## Keywords (100 chars max, comma-separated)
-running,territory,GPS,map,game,fitness,tracker,rival,claim,coach,nutrition,shoe,club,leaderboard,run
+running,territory,GPS,map,game,fitness,tracker,rival,claim,leaderboard,run,rank,social
 
 ---
 
 ## Promotional Text (170 chars max — shown above description, can be updated without review)
-New: Foot Scan — point your camera at your foot for instant arch analysis and shoe recommendations.
+Claim your city, one run at a time. Earn PACE, climb the Runner Rank ladder, and defend your territory from rivals.
 
 ---
 
@@ -78,7 +74,6 @@ https://runivo.app/privacy
 
 ## Content Descriptions
 - Location: Always — required for background run tracking
-- Camera: Yes — shoe photos and foot scan
 - Health & Fitness: Yes — writes runs to Apple Health
 
 ---
@@ -91,22 +86,23 @@ Runivo tracks the user's GPS position continuously during an active run so that 
 **HealthKit:**
 The app writes completed run workouts (distance, duration, calories, start/end time) to Apple Health after each run, and optionally reads past workouts to pre-populate baseline stats. This is opt-in and explained in onboarding.
 
-**Camera:**
-Used for two features: (1) photographing running shoes to attach to the shoe log, and (2) scanning the user's foot to determine arch type. Images are processed locally or sent to a secure AI endpoint and are not stored beyond the session.
-
 **Test Account:**
-No account required for the review build — use Sign Up with any email address. The territory map populates with sample data on first launch.
+[Fill in before submission — see below.] A brand-new signup starts with zero territory by design (the Territory Map shows an explicit "Be the first to claim your city" empty state for new users) — there is no pre-seeded sample data on first launch. For a faster review, we recommend logging in with the demo account below, which already has run history, claimed territory, and a PACE balance:
+  - Email: [demo account email]
+  - Password: [demo account password]
+  - This account has [N] runs, [N] claimed territory zones, and a Runner Rank of [rank].
+To test live territory claiming yourself, a short walk (as little as ~100m) with location services enabled is enough to trigger GPS lock and claim a small zone — the core loop does not require a long run to demonstrate.
 
 ---
 
 ## Screenshots Required (iOS)
 
 ### iPhone 6.9" (iPhone 16 Pro Max) — 1320 × 2868 px
-1. Map screen showing claimed territories in red and enemy territories in blue
-2. Active run screen mid-run with GPS trail, timer, and territory claim animation
-3. Run Summary screen with XP, coins, and territory count
-4. Dashboard with player stats, streak, and quick-start buttons
-5. AI Coach chat with a training recommendation
+1. Territory Map — claimed zones (own) vs rival zones, freshness-colored
+2. Active Run screen mid-run with GPS trail, timer, and territory claim progress
+3. Run Summary screen with PACE earned, territory claimed, and Runner Rank
+4. Dashboard with Territory Score, Runner Rank, City Rank, and streak
+5. Leaderboard showing city rankings
 
 ### iPhone 6.7" (iPhone 15 Plus) — 1290 × 2796 px
 (Same 5 screenshots, resized)
@@ -119,7 +115,7 @@ No account required for the review build — use Sign Up with any email address.
 ## Android Play Store (Additional)
 
 **Short Description (80 chars):**
-Claim running territory. Rival runners. AI coach. GPS tracking.
+Claim running territory. Earn PACE. Rival runners. GPS tracking.
 
 **Full Description:**
 (Same as iOS description above)

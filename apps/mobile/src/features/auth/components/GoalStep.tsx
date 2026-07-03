@@ -14,7 +14,7 @@ const GOAL_HINTS: Record<OnboardingData['primaryGoal'], string> = {
   get_fit:     'Missions will build your endurance week over week.',
   lose_weight: 'Every run burns calories. Your map shows the proof.',
   run_faster:  'Pace targets and tempo missions will define your plan.',
-  explore:     'New hexagons = new routes. Your city is the gym.',
+  explore:     'New territory = new routes. Your city is the gym.',
   compete:     'Territory battles and leaderboard ranking await.',
 };
 

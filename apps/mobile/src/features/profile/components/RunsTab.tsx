@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun } from '@shared/services/store';
 import { fmtDist, fmtDuration } from '@mobile/shared/lib/formatters';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   runs: StoredRun[];
 }
 
 export function RunsTab({ runs }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
+
   if (runs.length === 0) {
     return (
       <View style={ss.empty}>
@@ -41,20 +42,22 @@ export function RunsTab({ runs }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  sectionTitle: {
-    fontWeight: '600', fontSize: 12, color: C.black,
-    letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12,
-  },
-  runRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.border,
-  },
-  runDate: { fontSize: 11, color: C.t2, marginBottom: 2 },
-  runDist: { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: C.black },
-  runPace: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
-  runTime: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black, marginTop: 2 },
-  empty: { alignItems: 'center', paddingVertical: 32 },
-  emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-  emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    sectionTitle: {
+      fontWeight: '600', fontSize: 12, color: C.black,
+      letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 12,
+    },
+    runRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.border,
+    },
+    runDate: { fontSize: 11, color: C.t2, marginBottom: 2 },
+    runDist: { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: C.black },
+    runPace: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2 },
+    runTime: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: C.black, marginTop: 2 },
+    empty: { alignItems: 'center', paddingVertical: 32 },
+    emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+  });
+}

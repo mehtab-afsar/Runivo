@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { signUp } from '../services/authService';
+import { track } from '@shared/services/analytics';
 
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
@@ -54,6 +55,7 @@ export function useSignUp(): SignUpState {
     setLoading(true); setError(''); setEmailExists(false);
     try {
       await signUp(email.trim(), pwd, username.trim());
+      track('signup');
       // App.tsx detects new user (no player record) → shows Onboarding automatically
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Sign up failed.';

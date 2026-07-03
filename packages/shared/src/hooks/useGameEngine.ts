@@ -187,18 +187,43 @@ export function useGameEngine() {
     }) => {
       if (!player) return;
 
+      // CRITICAL PATH: `player` is React state loaded once when this hook's component
+      // (ActiveRunScreen, via useActiveRun) mounted, at the START of this run. For a
+      // long run, or if a background sync from an earlier run's postRunSync() completes
+      // while this run is still in progress, that snapshot can be stale by the time we
+      // credit PACE below. Re-read fresh right before deriving anything from it — streak,
+      // totals, and especially the PACE fields — so a concurrent correction is never
+      // overwritten by this run's crediting. Falls back to the closure's `player` only if
+      // the record vanished between the guard above and here (should not happen).
+      const freshPlayer = (await getPlayer()) ?? player;
+
       // 1. Build territory polygon client-side
       const buildResult = buildTerritoryPolygon(runData.gpsPoints, runData.activityType);
 
       // 2. Save run to local store
       const today = localDateString();
       const yesterday = localDateString(new Date(Date.now() - GAME_CONFIG.MS_PER_DAY));
-      const oldStreak = player.streakDays;
+      const oldStreak = freshPlayer.streakDays;
+      // A session shorter than this didn't happen as far as streak/PACE is concerned —
+      // matches the "haven't run far enough" warning ActiveRunScreen already shows
+      // before letting the user end early. Without this gate, ending a run immediately
+      // still counted as "today's run": it bumped/initialized the streak AND earned the
+      // flat PACE_STREAK_BONUS purely from streakDays > 0, regardless of the player's
+      // real streak — a zero-effort farming exploit. A run that fails this check keeps
+      // whatever streak/lastRunDate the player already had; it just doesn't get credit.
+      const meetsMinimumEffort = !(
+        runData.distanceMeters < GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M &&
+        runData.durationSec    < GAME_CONFIG.MIN_MEANINGFUL_RUN_DURATION_S
+      );
       let newStreak = oldStreak;
-      if (player.lastRunDate === yesterday) {
-        newStreak += 1;
-      } else if (player.lastRunDate !== today) {
-        newStreak = 1;
+      let newLastRunDate = freshPlayer.lastRunDate;
+      if (meetsMinimumEffort) {
+        if (freshPlayer.lastRunDate === yesterday) {
+          newStreak += 1;
+        } else if (freshPlayer.lastRunDate !== today) {
+          newStreak = 1;
+        }
+        newLastRunDate = today;
       }
 
       const missionResult = await updateMissionsAfterRun({
@@ -235,8 +260,8 @@ export function useGameEngine() {
         territory = {
           id:             crypto.randomUUID(),
           runId:          runData.id,
-          ownerId:        player.id,
-          ownerName:      player.username,
+          ownerId:        freshPlayer.id,
+          ownerName:      freshPlayer.username,
           polygon:        buildResult.polygon,
           areaM2:         buildResult.areaM2,
           freshness:      100,
@@ -255,25 +280,28 @@ export function useGameEngine() {
         distanceKm,
         newZonesClaimed: buildResult ? 1 : 0,
         stolenZones:     0,
-        streakDays:      newStreak,
-        paceWeeklyEarned: player.paceWeeklyEarned ?? 0,
+        // 0 (not newStreak) when this run didn't meet the minimum — the player's real
+        // streak may still be > 0 from previous real runs, but THIS run doesn't get to
+        // claim the streak bonus on its coattails.
+        streakDays:      meetsMinimumEffort ? newStreak : 0,
+        paceWeeklyEarned: freshPlayer.paceWeeklyEarned ?? 0,
         isPremium:       false,
       });
 
-      // 5. Update player PACE fields
-      const newPaceTotalEarned = (player.paceTotalEarned ?? 0) + paceResult.paceEarned;
+      // 5. Update player PACE fields — base is freshPlayer, not the stale closure
+      const newPaceTotalEarned = (freshPlayer.paceTotalEarned ?? 0) + paceResult.paceEarned;
       const newRunnerRank: RunnerRank = computeRunnerRank(newPaceTotalEarned);
 
       const updatedPlayer: StoredPlayer = {
-        ...player,
-        totalDistanceKm:         player.totalDistanceKm + distanceKm,
-        totalRuns:               player.totalRuns + 1,
-        totalTerritoriesClaimed: player.totalTerritoriesClaimed + (buildResult ? 1 : 0),
+        ...freshPlayer,
+        totalDistanceKm:         freshPlayer.totalDistanceKm + distanceKm,
+        totalRuns:               freshPlayer.totalRuns + 1,
+        totalTerritoriesClaimed: freshPlayer.totalTerritoriesClaimed + (buildResult ? 1 : 0),
         streakDays:              newStreak,
-        lastRunDate:             today,
-        paceBalance:             (player.paceBalance ?? 0) + paceResult.paceEarned,
+        lastRunDate:             newLastRunDate,
+        paceBalance:             (freshPlayer.paceBalance ?? 0) + paceResult.paceEarned,
         paceTotalEarned:         newPaceTotalEarned,
-        paceWeeklyEarned:        (player.paceWeeklyEarned ?? 0) + paceResult.paceEarned,
+        paceWeeklyEarned:        (freshPlayer.paceWeeklyEarned ?? 0) + paceResult.paceEarned,
         runnerRank:              newRunnerRank,
       };
 
@@ -293,7 +321,7 @@ export function useGameEngine() {
       await savePlayer(updatedPlayer);
       setPlayer(updatedPlayer);
 
-      const polygons = await getTerritoryPolygons(player.id);
+      const polygons = await getTerritoryPolygons(updatedPlayer.id);
       setPlayerTerritoryCount(polygons.length);
 
       const rankOrder: RunnerRank[] = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'];

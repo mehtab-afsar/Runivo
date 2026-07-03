@@ -60,7 +60,7 @@ export function CoachWelcome({ goalInput, onGoalChange, onGenerate, planLoading,
           ))}
         </ScrollView>
         <Pressable
-          style={[s.genBtn, { backgroundColor: C.black }, (!goalInput.trim() || planLoading) && s.genBtnDisabled]}
+          style={[s.genBtn, { backgroundColor: C.alwaysDark }, (!goalInput.trim() || planLoading) && s.genBtnDisabled]}
           onPress={onGenerate}
           disabled={!goalInput.trim() || planLoading}
         >

@@ -601,7 +601,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
 
   connectBtn: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8,
-    backgroundColor: C.black,
+    backgroundColor: C.alwaysDark,
   },
   connectBtnBusy: { backgroundColor: C.border },
   connectBtnText: { fontWeight: '500', fontSize: 11, color: '#fff' },
@@ -629,7 +629,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   toast: {
     position: 'absolute', bottom: 40,
     alignSelf: 'center',
-    backgroundColor: C.black, borderRadius: 20,
+    backgroundColor: C.alwaysDark, borderRadius: 20,
     paddingHorizontal: 18, paddingVertical: 8,
   },
   toastText: { fontWeight: '500', fontSize: 12, color: '#fff' },

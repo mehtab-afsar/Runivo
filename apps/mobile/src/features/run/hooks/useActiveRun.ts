@@ -9,6 +9,7 @@ import * as Location from 'expo-location';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { feedback } from '@theme';
+import { track } from '@shared/services/analytics';
 import { useGameEngine } from '@shared/hooks/useGameEngine';
 import {
   startBackgroundTracking,
@@ -156,6 +157,10 @@ export function useActiveRun(activityType: string = 'run') {
     await Location.requestBackgroundPermissionsAsync().catch(() => {});
 
     await activateKeepAwakeAsync();
+
+    // CRITICAL PATH (useActiveRun): fire-and-forget funnel event, no GPS/lat-lng in
+    // properties — track() never throws, so this can't affect the run starting below.
+    track('run_started', { activityType });
 
     // App state handler: re-acquire keep-awake on foreground resume + drain bg buffer.
     // Stored in ref so it can be removed on finish/unmount without leaking.

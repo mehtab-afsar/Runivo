@@ -12,9 +12,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Play, X } from 'phosphor-react-native';
+import * as Location from 'expo-location';
 import { useActiveRun }          from '../hooks/useActiveRun';
 import { postRunSync, createFeedPost } from '@shared/services/sync';
-import { getTerritoryPolygons } from '@shared/services/store';
+import { getTerritoryPolygons, getPlayer, savePlayer } from '@shared/services/store';
+import { track } from '@shared/services/analytics';
 import { buildRunSummaryParams }  from '../services/runNavigationHelper';
 import { useToast }              from '@mobile/shared/hooks/useToast';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -132,14 +134,51 @@ export default function ActiveRunScreen() {
 
   const doFinish = useCallback(async () => {
     setShowConfirm(false);
+    // CRITICAL PATH (adjacent to finishRun/postRunSync): refresh the player's last
+    // known location + country from this run's GPS trace, for city-rank/leaderboard
+    // proximity. Local-first — savePlayer() writes locally before postRunSync() pushes
+    // it to the server below. Best-effort only: any failure here is swallowed and must
+    // never block or delay the run finishing or syncing.
     const result = await run.finishRun();
     if (!result) return;
+    try {
+      const lastPt = result.gpsPoints[result.gpsPoints.length - 1];
+      if (lastPt) {
+        const [address] = await Location.reverseGeocodeAsync({ latitude: lastPt.lat, longitude: lastPt.lng });
+        const player = await getPlayer();
+        if (player) {
+          await savePlayer({
+            ...player,
+            lastKnownLocation: { lat: lastPt.lat, lng: lastPt.lng },
+            country: address?.country ?? player.country ?? null,
+          });
+        }
+      }
+    } catch {
+      // non-critical — location/country refresh is best-effort
+    }
     const { ok } = await postRunSync();
     if (!ok) {
       showToast({ message: 'Sync failed — run saved locally, will retry when online', type: 'warning', duration: 6000 });
     }
     if (result.run) {
       const { id: runId, distanceMeters } = result.run;
+      // CRITICAL PATH (adjacent to finishRun/postRunSync): funnel events, fired after
+      // sync so they can't add latency to it. No GPS/lat-lng in properties — ever.
+      track('run_completed', {
+        distanceKm:   distanceMeters / 1000,
+        durationSec:  Math.round(run.elapsed),
+        activityType,
+      });
+      if (result.territory) {
+        track('territory_claimed', {
+          territoryTier:   result.territory.tier,
+          territoryAreaM2: result.territory.areaM2,
+        });
+      }
+      if ((result.paceEarned ?? 0) > 0) {
+        track('pace_earned', { paceEarned: result.paceEarned });
+      }
       createFeedPost(
         runId,
         distanceMeters / 1000,
@@ -160,7 +199,7 @@ export default function ActiveRunScreen() {
   }, [run, nav, showToast]);
 
   const handleFinish = useCallback(() => {
-    if (run.distance < 0.05 && run.elapsed < 30) {
+    if (run.distance * 1000 < GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M && run.elapsed < GAME_CONFIG.MIN_MEANINGFUL_RUN_DURATION_S) {
       Alert.alert('End Run?', "You haven't run far enough. End anyway?", [
         { text: 'Keep Running', style: 'cancel' },
         { text: 'End Run', style: 'destructive', onPress: doFinish },
@@ -333,14 +372,14 @@ function mkStyles(C: AppColors) {
     bannerAmber:      { backgroundColor: '#FEF8E7' },
     bannerGreen:      { backgroundColor: '#E6F5EC' },
     bannerTxt:        { fontSize: 11, color: C.black },
-    routeRemaining:    { alignItems: 'center', paddingVertical: 4, backgroundColor: C.black },
+    routeRemaining:    { alignItems: 'center', paddingVertical: 4, backgroundColor: C.alwaysDark },
     routeRemainingTxt: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
     gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16 },
     gpsAcquiringText: { fontWeight: '600', fontSize: 14, color: '#fff' },
     gpsAcquiringSub:  { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
-    pacerSection: { backgroundColor: C.black, alignItems: 'center', paddingTop: 8, paddingBottom: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
+    pacerSection: { backgroundColor: C.alwaysDark, alignItems: 'center', paddingTop: 8, paddingBottom: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
     pacerLabel:   { fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
-    controls:    { backgroundColor: C.black, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
+    controls:    { backgroundColor: C.alwaysDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
     startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
     // Pause card
     pauseOverlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 10 },
@@ -353,7 +392,7 @@ function mkStyles(C: AppColors) {
     pauseStatVal:      { fontFamily: 'Barlow_600SemiBold', fontSize: 22, color: C.black },
     pauseStatLbl:      { fontSize: 10, color: C.t3, letterSpacing: 0.6 },
     pauseStatDivider:  { width: 1, height: 32, backgroundColor: C.border },
-    resumeBtn:         { backgroundColor: C.black, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
+    resumeBtn:         { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
     resumeBtnTxt:      { fontWeight: '600', fontSize: 16, color: '#fff' },
     pauseFinishBtn:    { paddingVertical: 12, alignItems: 'center' },
     pauseFinishBtnTxt: { fontSize: 14, color: C.t3 },

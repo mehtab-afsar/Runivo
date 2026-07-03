@@ -130,7 +130,7 @@ function mkStyles(C: AppColors) {
     avatarEditBadge: {
       position: 'absolute', bottom: 0, right: 0,
       width: 22, height: 22, borderRadius: 11,
-      backgroundColor: C.black,
+      backgroundColor: C.alwaysDark,
       borderWidth: 2, borderColor: C.bg,
       alignItems: 'center', justifyContent: 'center',
     },

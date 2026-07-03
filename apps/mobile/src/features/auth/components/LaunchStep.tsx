@@ -14,7 +14,7 @@ interface Props {
 
 const GOAL_LINES: Record<OnboardingData['primaryGoal'], string> = {
   get_fit:     'Your territories are waiting. Go claim them.',
-  lose_weight: 'Every hexagon you claim is progress that lasts.',
+  lose_weight: 'Every zone you claim is progress that lasts.',
   run_faster:  'Speed is territory claimed per second.',
   explore:     "The best routes haven't been discovered yet — by you.",
   compete:     'Someone, somewhere, is already defending their turf.',

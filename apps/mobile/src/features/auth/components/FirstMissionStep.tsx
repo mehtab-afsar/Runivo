@@ -16,7 +16,7 @@ const MISSIONS: Record<OnboardingData['primaryGoal'], Mission[]> = {
   get_fit:     [{ title: 'Run 3 km', pace: 90, Icon: Footprints }, { title: 'Claim 5 territories', pace: 125, Icon: MapTrifold }, { title: '3-day streak', pace: 150, Icon: Fire }],
   lose_weight: [{ title: 'Burn 300 cal', pace: 90, Icon: Fire }, { title: 'Run 5 km this week', pace: 150, Icon: Footprints }, { title: 'Log a meal', pace: 50, Icon: Heart }],
   run_faster:  [{ title: 'Sub-6 min/km run', pace: 120, Icon: Lightning }, { title: 'Complete a tempo run', pace: 150, Icon: Clock }, { title: 'Beat your last pace', pace: 100, Icon: Sword }],
-  explore:     [{ title: 'Visit 3 new streets', pace: 90, Icon: Compass }, { title: 'Claim 10 hexagons', pace: 150, Icon: MapTrifold }, { title: 'Run a loop route', pace: 100, Icon: Footprints }],
+  explore:     [{ title: 'Visit 3 new streets', pace: 90, Icon: Compass }, { title: 'Claim 10 zones', pace: 150, Icon: MapTrifold }, { title: 'Run a loop route', pace: 100, Icon: Footprints }],
   compete:     [{ title: 'Capture an enemy zone', pace: 150, Icon: Sword }, { title: 'Reach top 10 local', pace: 200, Icon: Lightning }, { title: 'Defend your territory', pace: 120, Icon: Shield }],
 };
 

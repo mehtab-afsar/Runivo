@@ -55,7 +55,7 @@ function mkStyles(C: AppColors) {
     clubDesc: { fontSize: 11, color: C.t2, lineHeight: 15, marginBottom: 4 },
     statsRow: { flexDirection: 'row', alignItems: 'center' },
     stat: { fontSize: 11, color: C.t3 },
-    joinBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: C.black, flexShrink: 0 },
+    joinBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: C.alwaysDark, flexShrink: 0 },
     leaveBtn: { backgroundColor: C.stone },
     joinLabel: { fontWeight: '500', fontSize: 11, color: '#fff', letterSpacing: 0.5 },
     leaveLabelStyle: { color: C.t2 },

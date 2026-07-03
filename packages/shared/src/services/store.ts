@@ -178,6 +178,10 @@ export interface StoredPlayer {
   largestTierAchieved?: TerritoryTier;
   earnedAwardIds?: string[];
   pinnedRunId?: string;
+  // City rank / rival proximity (get_city_rank RPC) — set on onboarding location
+  // grant and after each run completion. Local write always precedes sync push.
+  lastKnownLocation?: { lat: number; lng: number } | null;
+  country?: string | null;
 }
 
 export interface StoredSavedRoute {

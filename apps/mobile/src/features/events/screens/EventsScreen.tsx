@@ -148,7 +148,7 @@ function mkEdStyles(C: AppColors) {
     footer:          { flexDirection: 'row', gap: 8, alignItems: 'center' },
     iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     iconBtnSaved:    { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
-    joinBtn:         { flex: 1, height: 48, borderRadius: 14, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+    joinBtn:         { flex: 1, height: 48, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
     joinBtnJoined:   { backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: 'rgba(26,107,64,0.25)' },
     joinLabel:       { fontWeight: '600', fontSize: 14, color: C.white },
     joinLabelJoined: { color: C.green },
@@ -277,7 +277,7 @@ function mkStyles(C: AppColors) {
     backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
     title:          { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
     subtitle:       { fontSize: 10, color: C.t3, marginTop: 2 },
-    createBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+    createBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     // Segmented tabs
     tabContainer:   { backgroundColor: C.white, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     tabPill:        { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 20, padding: 3, gap: 2 },

@@ -22,6 +22,12 @@ export const GAME_CONFIG = {
   PACE_WEEKLY_CAP_FREE: 100,
   PACE_WEEKLY_CAP_PREMIUM: 150,
 
+  // Minimum effort for a session to count as a real run — below this, no streak
+  // credit and no streak PACE bonus (prevents "start, immediately stop" farming).
+  // Matches the existing "haven't run far enough" warning threshold in ActiveRunScreen.
+  MIN_MEANINGFUL_RUN_DISTANCE_M: 50,
+  MIN_MEANINGFUL_RUN_DURATION_S: 30,
+
   // Territory Score
   TS_FRESHNESS_SCALE_MIN: 0.5,
   TS_FRESHNESS_SCALE_MAX: 1.0,

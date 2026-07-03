@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import {
   Pulse, Gauge, Lightning, Footprints, Mountains, TreeEvergreen, Bicycle,
@@ -6,9 +6,8 @@ import {
   Waves, Wheelchair, Snowflake,
 } from 'phosphor-react-native';
 import type { ActivityType } from '../types';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_LIGHT = 'Barlow_300Light';
@@ -44,6 +43,8 @@ interface ActivityModalProps {
 }
 
 export default function ActivityModal({ visible, selected, bottomInset, onSelect, onClose }: ActivityModalProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={ss.overlay} onPress={onClose} />
@@ -80,15 +81,17 @@ export default function ActivityModal({ visible, selected, bottomInset, onSelect
   );
 }
 
-const ss = StyleSheet.create({
-  overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
-  sheet:    { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
-  header:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
-  title:    { fontFamily: FONT_MED, fontSize: 17, color: C.black },
-  sub:      { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, marginTop: 2 },
-  closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  grid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, paddingBottom: 20 },
-  chip:     { width: '30%', alignItems: 'center', gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white },
-  iconBox:  { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  chipLabel:{ fontFamily: FONT, fontSize: 11, color: C.muted },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
+    sheet:    { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
+    header:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
+    title:    { fontFamily: FONT_MED, fontSize: 17, color: C.black },
+    sub:      { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, marginTop: 2 },
+    closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    grid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, paddingBottom: 20 },
+    chip:     { width: '30%', alignItems: 'center', gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white },
+    iconBox:  { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+    chipLabel:{ fontFamily: FONT, fontSize: 11, color: C.muted },
+  });
+}

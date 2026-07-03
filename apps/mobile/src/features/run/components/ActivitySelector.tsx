@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
 import type { ActivityType } from '../types';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 
@@ -34,6 +33,8 @@ interface ActivitySelectorProps {
 }
 
 export default function ActivitySelector({ selected, onSelect }: ActivitySelectorProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ss.row}>
       {ACTIVITIES.map(a => {
@@ -55,13 +56,15 @@ export default function ActivitySelector({ selected, onSelect }: ActivitySelecto
   );
 }
 
-const ss = StyleSheet.create({
-  row:   { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
-  chip:  {
-    alignItems: 'center', gap: 4, paddingVertical: 10, paddingHorizontal: 12,
-    borderRadius: 12, backgroundColor: C.white,
-    borderWidth: 0.5, borderColor: C.border,
-  },
-  emoji: { fontSize: 18 },
-  label: { fontFamily: FONT, fontSize: 11, color: C.muted },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:   { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
+    chip:  {
+      alignItems: 'center', gap: 4, paddingVertical: 10, paddingHorizontal: 12,
+      borderRadius: 12, backgroundColor: C.white,
+      borderWidth: 0.5, borderColor: C.border,
+    },
+    emoji: { fontSize: 18 },
+    label: { fontFamily: FONT, fontSize: 11, color: C.muted },
+  });
+}

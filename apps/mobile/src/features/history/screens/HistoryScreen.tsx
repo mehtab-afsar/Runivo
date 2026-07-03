@@ -103,7 +103,7 @@ function mkStyles(C: AppColors) {
     filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.white, flexGrow: 0 },
     filterContent:{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' },
     chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
-    chipActive:   { backgroundColor: C.black, borderColor: C.black },
+    chipActive:   { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
     chipText:     { fontSize: 11, color: C.t2 },
     chipTextActive:{ color: C.white, fontWeight: '500' },
     list:         { paddingHorizontal: 16, paddingBottom: 100, gap: 8, paddingTop: 8 },

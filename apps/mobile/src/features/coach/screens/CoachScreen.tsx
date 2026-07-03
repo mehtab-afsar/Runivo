@@ -182,7 +182,7 @@ export default function CoachScreen() {
           {/* CTA row */}
           <View style={s.ctaRow}>
             <Pressable
-              style={[s.ctaBtn, s.ctaBtnPrimary, { backgroundColor: C.black }]}
+              style={[s.ctaBtn, s.ctaBtnPrimary, { backgroundColor: C.alwaysDark }]}
               onPress={() => navigation.navigate('Run' as never)}
             >
               <Text style={s.ctaBtnPrimaryLabel}>Start today's run →</Text>

@@ -10,6 +10,8 @@ const PACE_PER_NEW_ZONE   = 5;
 const PACE_PER_STOLEN     = 10;
 const FRESHNESS_STALE_AT  = 40;
 const STEAL_THRESHOLD     = 0.30;
+const PACE_WEEKLY_CAP_FREE    = 100; // mirrors claimEngine.ts GAME_CONFIG.PACE_WEEKLY_CAP_FREE
+const PACE_WEEKLY_CAP_PREMIUM = 150; // mirrors claimEngine.ts GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM
 
 // ── Geometry helpers (mirrored from claimEngine.ts for Deno) ──────────────────
 
@@ -151,17 +153,20 @@ Deno.serve(async (req) => {
     serverDistanceKm += haversineM(filteredPts[i - 1], filteredPts[i]) / 1000;
   }
 
-  // Fetch attacker profile (username + PACE cap data)
+  // Fetch attacker profile (username + PACE cap data + subscription tier)
   const { data: attackerProfile } = await supabase
     .from('profiles')
-    .select('username, pace_weekly_earned, streak_days')
+    .select('username, pace_weekly_earned, streak_days, subscription_tier')
     .eq('id', user.id)
     .single();
 
   const attackerUsername  = (attackerProfile as { username: string | null } | null)?.username ?? 'A rival runner';
   const weeklyEarned      = (attackerProfile as { pace_weekly_earned: number } | null)?.pace_weekly_earned ?? 0;
   const streakDays        = (attackerProfile as { streak_days: number } | null)?.streak_days ?? 0;
-  const weeklyCap         = 100; // free tier cap; premium (150) not yet tracked on StoredPlayer
+  const subscriptionTier  = (attackerProfile as { subscription_tier: string | null } | null)?.subscription_tier ?? 'free';
+  // Server-authoritative cap — mirrors claimEngine.ts calculateRunPACE's isPremium branch.
+  // subscription_tier is set by the RevenueCat/Stripe webhooks (rc-webhook, stripe-webhook).
+  const weeklyCap         = subscriptionTier === 'premium' ? PACE_WEEKLY_CAP_PREMIUM : PACE_WEEKLY_CAP_FREE;
 
   // Territory processing
   const ring = buildPolygon(body.gpsPoints, body.activityType);

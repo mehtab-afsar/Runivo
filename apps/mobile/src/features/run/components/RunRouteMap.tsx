@@ -2,20 +2,22 @@
  * RunRouteMap — post-run static map showing the GPS trail as a red polyline.
  * Uses MapLibre React Native (already a dep). Falls back gracefully in simulator.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 
 const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-const C = Colors;
 
 interface Props {
   route: { lat: number; lng: number }[];
 }
 
 export default function RunRouteMap({ route }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
+
   if (!route || route.length < 2) return null;
 
   const coords: [number, number][] = route.map(p => [p.lng, p.lat]);
@@ -75,12 +77,14 @@ export default function RunRouteMap({ route }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  wrap:         { marginHorizontal: 16, marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 0.5, borderColor: C.border, height: 200 },
-  map:          { flex: 1 },
-  fallback:     { height: 200, backgroundColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center', borderRadius: 12, marginHorizontal: 16, marginBottom: 12 },
-  fallbackText: { fontSize: 13, color: '#6B7280' },
-  marker:       { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: '#fff' },
-  markerGreen:  { backgroundColor: C.green },
-  markerRed:    { backgroundColor: C.red },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    wrap:         { marginHorizontal: 16, marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 0.5, borderColor: C.border, height: 200 },
+    map:          { flex: 1 },
+    fallback:     { height: 200, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', borderRadius: 12, marginHorizontal: 16, marginBottom: 12 },
+    fallbackText: { fontSize: 13, color: C.t2 },
+    marker:       { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: C.white },
+    markerGreen:  { backgroundColor: C.green },
+    markerRed:    { backgroundColor: C.red },
+  });
+}

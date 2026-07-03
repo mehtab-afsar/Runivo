@@ -559,7 +559,7 @@ function mkStyles(C: AppColors) {
     adminContent:{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100, gap: 0 },
     adminCard:   { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 4 },
     descInput:   { fontSize: 13, color: C.black, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
-    saveBtn:     { marginTop: 10, backgroundColor: C.black, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
+    saveBtn:     { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
     saveBtnText: { fontWeight: '600', fontSize: 12, color: C.white },
     badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 16 },

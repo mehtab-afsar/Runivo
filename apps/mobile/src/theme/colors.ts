@@ -41,6 +41,11 @@ export const Colors = {
   accent:              '#D93518',
   accentMuted:         '#FEF0EE',
   alwaysLight:         '#FFFFFF',
+  // Bold-contrast cards (e.g. dashboard mission card, profile hero card) that are
+  // meant to stay near-black in both themes, with fixed-white text/overlays inside —
+  // NOT `black`/`t1`, which is the "ink" token and intentionally inverts to near-white
+  // in dark mode (correct for text, wrong for a card meant to stay visually bold-dark).
+  alwaysDark:          '#0A0A0A',
   danger:              '#D93518',
   backgroundSecondary: '#F0EDE8',
 } as const;
@@ -88,6 +93,7 @@ export const DarkColors = {
   accent:              '#D93518',
   accentMuted:         '#2A0C06',
   alwaysLight:         '#FFFFFF',
+  alwaysDark:          '#0A0A0A',
   danger:              '#D93518',
   backgroundSecondary: '#1A1816',
 } as const;

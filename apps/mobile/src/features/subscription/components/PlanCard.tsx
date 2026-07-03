@@ -29,7 +29,7 @@ export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardP
 
 const ss = StyleSheet.create({
   planBtn: { flex: 1, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', position: 'relative' },
-  planBtnActive: { backgroundColor: C.black, borderColor: C.black },
+  planBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
   planBadge: { position: 'absolute', top: -8, backgroundColor: C.red, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
   planBadgeText: { fontWeight: '700', fontSize: 8, color: '#fff', letterSpacing: 0.5 },
   planLabel: { fontSize: 11, color: C.t2, marginBottom: 6, marginTop: 6 },

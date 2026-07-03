@@ -221,7 +221,7 @@ function mkStyles(C: AppColors) {
     tabItem:        { flex: 1, paddingVertical: 12, alignItems: 'center' },
     tabLabel:       { fontSize: 13, color: C.t3 },
     tabLabelActive: { fontWeight: '500', color: C.black },
-    underline:      { position: 'absolute', bottom: 0, height: 1.5, backgroundColor: C.black },
+    underline:      { position: 'absolute', bottom: 0, height: 1.5, backgroundColor: C.alwaysDark },
     loader:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:           { paddingBottom: 100 },
     // Suggested runners
@@ -232,7 +232,7 @@ function mkStyles(C: AppColors) {
     runnerAvatarWrap: { position: 'relative' },
     runnerAvatar:     { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
     runnerAvatarText: { fontWeight: '600', fontSize: 15, color: C.white },
-    followDot:        { position: 'absolute', bottom: -1, right: -1, width: 18, height: 18, borderRadius: 9, backgroundColor: C.black, borderWidth: 1.5, borderColor: C.white, alignItems: 'center', justifyContent: 'center' },
+    followDot:        { position: 'absolute', bottom: -1, right: -1, width: 18, height: 18, borderRadius: 9, backgroundColor: C.alwaysDark, borderWidth: 1.5, borderColor: C.white, alignItems: 'center', justifyContent: 'center' },
     runnerName:       { fontSize: 11, color: C.black, textAlign: 'center' },
     runnerScore:      { fontSize: 10, color: C.t3, textAlign: 'center', marginTop: -2 },
     // Search modal

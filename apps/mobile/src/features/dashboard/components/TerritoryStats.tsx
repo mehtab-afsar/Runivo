@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   ownedCount: number;
@@ -9,15 +10,17 @@ interface Props {
 }
 
 export function TerritoryStats({ ownedCount, weakZones, avgFreshness, totalAreaM2 }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const areaLabel = totalAreaM2 >= 1000
     ? `${(totalAreaM2 / 1000).toFixed(1)}k m²`
     : `${Math.round(totalAreaM2)} m²`;
 
   const stats = [
-    { value: String(ownedCount),      label: 'ZONES OWNED',   color: '#0A0A0A' },
-    { value: `${avgFreshness}%`,       label: 'AVG FRESHNESS', color: '#0A0A0A' },
-    { value: areaLabel,                label: 'TOTAL AREA',    color: '#0A0A0A' },
-    { value: String(weakZones),        label: 'WEAK ZONES',    color: weakZones > 0 ? '#D93518' : '#0A0A0A' },
+    { value: String(ownedCount),      label: 'ZONES OWNED',   color: C.t1 },
+    { value: `${avgFreshness}%`,       label: 'AVG FRESHNESS', color: C.t1 },
+    { value: areaLabel,                label: 'TOTAL AREA',    color: C.t1 },
+    { value: String(weakZones),        label: 'WEAK ZONES',    color: weakZones > 0 ? C.red : C.t1 },
   ];
 
   return (
@@ -35,17 +38,19 @@ export function TerritoryStats({ ownedCount, weakZones, avgFreshness, totalAreaM
   );
 }
 
-const ss = StyleSheet.create({
-  grid: {
-    backgroundColor: '#FFFFFF', borderRadius: 20,
-    borderWidth: 0.5, borderColor: '#DDD9D4',
-    overflow: 'hidden', flexDirection: 'row', flexWrap: 'wrap',
-  },
-  cell: {
-    width: '50%', padding: 16, paddingHorizontal: 20,
-    borderBottomWidth: 0.5, borderBottomColor: '#E8E4DF',
-  },
-  cellBorderRight: { borderRightWidth: 0.5, borderRightColor: '#E8E4DF' },
-  value: { fontSize: 22, letterSpacing: -0.6, lineHeight: 24, marginBottom: 4 },
-  label: { fontSize: 9, letterSpacing: 0.8, color: '#ADADAD' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    grid: {
+      backgroundColor: C.white, borderRadius: 20,
+      borderWidth: 0.5, borderColor: C.border,
+      overflow: 'hidden', flexDirection: 'row', flexWrap: 'wrap',
+    },
+    cell: {
+      width: '50%', padding: 16, paddingHorizontal: 20,
+      borderBottomWidth: 0.5, borderBottomColor: C.mid,
+    },
+    cellBorderRight: { borderRightWidth: 0.5, borderRightColor: C.mid },
+    value: { fontSize: 22, letterSpacing: -0.6, lineHeight: 24, marginBottom: 4 },
+    label: { fontSize: 9, letterSpacing: 0.8, color: C.t3 },
+  });
+}

@@ -51,7 +51,7 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2 }: RunHUDPr
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:        { backgroundColor: C.black, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
+    container:        { backgroundColor: C.alwaysDark, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
     distanceBlock:    { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 16 },
     distanceValue:    { fontFamily: FONT_LIGHT, fontSize: 72, color: C.white, letterSpacing: -2, lineHeight: 76 },
     distanceUnit:     { fontFamily: FONT_LIGHT, fontSize: 22, color: 'rgba(255,255,255,0.4)' },

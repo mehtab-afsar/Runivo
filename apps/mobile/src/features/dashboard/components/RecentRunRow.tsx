@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { fmtDist, fmtDuration } from '@mobile/shared/lib/formatters';
 import type { StoredRun } from '@shared/services/store';
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   run:     StoredRun;
@@ -17,6 +18,8 @@ function relativeDate(ts: number): string {
 }
 
 export function RecentRunRow({ run, isLast, onPress }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Pressable
       style={[ss.row, !isLast && ss.rowBorder]}
@@ -40,13 +43,15 @@ export function RecentRunRow({ run, isLast, onPress }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  row:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20 },
-  rowBorder: { borderBottomWidth: 0.5, borderBottomColor: '#E8E4DF' },
-  type:      { fontWeight: '500', fontSize: 10, color: '#6B6B6B', letterSpacing: 0.6 },
-  date:      { fontSize: 11, color: '#ADADAD', marginTop: 2 },
-  stats:     { flexDirection: 'row', gap: 16 },
-  stat:      { alignItems: 'flex-end' },
-  statValue: { fontFamily: 'Barlow_300Light', fontSize: 16, color: '#0A0A0A', letterSpacing: -0.3, lineHeight: 18 },
-  statLabel: { fontSize: 8, color: '#ADADAD', letterSpacing: 0.6, marginTop: 2 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20 },
+    rowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
+    type:      { fontWeight: '500', fontSize: 10, color: C.t2, letterSpacing: 0.6 },
+    date:      { fontSize: 11, color: C.t3, marginTop: 2 },
+    stats:     { flexDirection: 'row', gap: 16 },
+    stat:      { alignItems: 'flex-end' },
+    statValue: { fontFamily: 'Barlow_300Light', fontSize: 16, color: C.t1, letterSpacing: -0.3, lineHeight: 18 },
+    statLabel: { fontSize: 8, color: C.t3, letterSpacing: 0.6, marginTop: 2 },
+  });
+}

@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   runCount: number;
@@ -11,6 +9,8 @@ interface Props {
 }
 
 export function HistoryStats({ runCount, totalKm, avgKm }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const items = [
     { value: String(runCount), label: 'Runs' },
     { value: totalKm.toFixed(1), label: 'Total km' },
@@ -28,9 +28,11 @@ export function HistoryStats({ runCount, totalKm, avgKm }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  row: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 },
-  cell: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 12, alignItems: 'center' },
-  value: { fontWeight: '600', fontSize: 18, color: C.black },
-  label: { fontSize: 9, color: C.t3, marginTop: 2 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 },
+    cell: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 12, alignItems: 'center' },
+    value: { fontWeight: '600', fontSize: 18, color: C.black },
+    label: { fontSize: 9, color: C.t3, marginTop: 2 },
+  });
+}

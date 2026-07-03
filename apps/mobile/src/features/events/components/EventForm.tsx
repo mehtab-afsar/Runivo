@@ -61,11 +61,11 @@ const s = StyleSheet.create({
   input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.black },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   typeBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
-  typeBtnActive: { backgroundColor: C.black, borderColor: C.black },
+  typeBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
   typeLabel: { fontSize: 12, color: C.t2 },
   typeLabelActive: { color: '#fff', fontWeight: '500' },
   error: { fontSize: 12, color: C.red, marginTop: 8 },
-  submitBtn: { backgroundColor: C.black, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  submitBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   submitBtnDisabled: { opacity: 0.4 },
   submitLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
 });

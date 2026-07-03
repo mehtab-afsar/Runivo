@@ -89,7 +89,7 @@ function mkStyles(C: AppColors) {
     emptyState:    { alignItems: 'center', paddingVertical: 32 },
     emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
     emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
-    emptyBtn:      { marginTop: 16, backgroundColor: C.black, paddingVertical: 11, paddingHorizontal: 24, borderRadius: 4 },
+    emptyBtn:      { marginTop: 16, backgroundColor: C.alwaysDark, paddingVertical: 11, paddingHorizontal: 24, borderRadius: 4 },
     emptyBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
   });
 }

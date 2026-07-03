@@ -1,9 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Animated, Text, StyleSheet } from 'react-native';
 import { Flag } from 'phosphor-react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT_SEMI = 'Barlow_600SemiBold';
 const FONT_BOLD = 'Barlow_700Bold';
 
@@ -13,6 +12,8 @@ interface ClaimToastProps {
 }
 
 export default function ClaimToast({ event, onDismiss }: ClaimToastProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -37,15 +38,17 @@ export default function ClaimToast({ event, onDismiss }: ClaimToastProps) {
   );
 }
 
-const ss = StyleSheet.create({
-  toast: {
-    position: 'absolute', top: '35%', alignSelf: 'center',
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: C.red, borderRadius: 24,
-    paddingHorizontal: 16, paddingVertical: 10, zIndex: 50,
-    shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
-  },
-  text: { fontFamily: FONT_SEMI, fontSize: 14, color: C.white },
-  xp:   { fontFamily: FONT_BOLD, fontSize: 13, color: 'rgba(255,255,255,0.8)' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    toast: {
+      position: 'absolute', top: '35%', alignSelf: 'center',
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: C.red, borderRadius: 24,
+      paddingHorizontal: 16, paddingVertical: 10, zIndex: 50,
+      shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
+    },
+    text: { fontFamily: FONT_SEMI, fontSize: 14, color: C.white },
+    xp:   { fontFamily: FONT_BOLD, fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  });
+}

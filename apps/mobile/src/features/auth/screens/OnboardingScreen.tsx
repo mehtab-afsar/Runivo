@@ -36,7 +36,7 @@ const GOAL_QUOTES: Record<string, string[]> = {
     "Every run is a border redrawn.",
   ],
   lose_weight: [
-    "Every hexagon is a calorie that never knew what hit it.",
+    "Every zone is a calorie that never knew what hit it.",
     "The best weight to lose? The distance between you and a territory.",
     "Running to something. Not from it.",
     "Your map is about to get a lot more colourful.",
@@ -44,7 +44,7 @@ const GOAL_QUOTES: Record<string, string[]> = {
   run_faster: [
     "Speed is territory claimed per second.",
     "Faster runners. Wider empires.",
-    "The clock is ticking. So are the hexagons.",
+    "The clock is ticking. So is your territory.",
     "Personal bests are made one conquest at a time.",
   ],
   explore: [
@@ -63,7 +63,7 @@ const GOAL_QUOTES: Record<string, string[]> = {
 
 const LEVEL_QUOTES: Record<string, string[]> = {
   new:         ["Every empire started with a single step.", "The world's greatest runners all had a first run."],
-  casual:      ["Casual pace. Serious territory.", "Consistency beats intensity. Every hexagon counts."],
+  casual:      ["Casual pace. Serious territory.", "Consistency beats intensity. Every zone counts."],
   regular:     ["You know the drill. Now own the streets.", "Routine runners build the biggest empires."],
   competitive: ["Elite mode: on.", "Your pace. Your rules. Your empire.", "The territory won't defend itself."],
 };
@@ -174,7 +174,14 @@ export default function OnboardingScreen() {
           onDistanceChange={v => ob.update('preferredDistance', v)}
         />
       );
-      case 4: return <CityMapPreviewStep />;
+      case 4: return (
+        <CityMapPreviewStep
+          onLocationCaptured={(loc, country) => {
+            ob.update('lastKnownLocation', loc);
+            ob.update('country', country);
+          }}
+        />
+      );
       case 5: return <FirstMissionStep primaryGoal={ob.data.primaryGoal} />;
       case 6: return <NotificationPermissionStep />;
       case 7: return (

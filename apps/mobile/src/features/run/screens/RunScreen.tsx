@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getSettings } from '@shared/services/store';
 import { postRunSync } from '@shared/services/sync';
+import { useTheme, type AppColors } from '@theme';
 
 import { useRunSetup } from '../hooks/useRunSetup';
 import { useBeatPacer } from '../hooks/useBeatPacer';
@@ -39,6 +40,8 @@ function gpsLabel(status: string, acc: number | null): string {
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function RunScreen() {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [mapStyle, setMapStyle] = useState(MAP_STYLE_URLS.Standard);
@@ -134,4 +137,6 @@ export default function RunScreen() {
   );
 }
 
-const ss = StyleSheet.create({ root: { flex: 1, backgroundColor: '#F7F6F4' } });
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({ root: { flex: 1, backgroundColor: C.bg } });
+}

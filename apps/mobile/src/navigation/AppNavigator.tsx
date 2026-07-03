@@ -224,7 +224,7 @@ export function AppNavigator({
     (async () => {
       const { data: { user } } = await (await import('@shared/services/supabase')).supabase.auth.getUser();
       configureRevenueCat(user?.id).catch(() => {});
-    })();
+    })().catch(() => {});
   }, [isAuthenticated]);
 
   return (
@@ -260,23 +260,23 @@ export function AppNavigator({
               options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="RunSummary"      component={RunSummaryScreen} />
-            <Stack.Screen name="Coach"           component={CoachScreen} />
+            <Stack.Screen name="Coach"           component={FEATURES.AI_COACH ? CoachScreen : () => <ComingSoon feature={FEATURE_LABELS.AI_COACH!} />} />
             <Stack.Screen name="Missions"        component={MissionsScreen} />
-            <Stack.Screen name="Events"          component={EventsScreen} />
-            <Stack.Screen name="CreateEvent"     component={CreateEventScreen} />
-            <Stack.Screen name="Club"            component={ClubScreen} />
-            <Stack.Screen name="ClubDetail"      component={ClubDetailScreen} />
-            <Stack.Screen name="Lobby"           component={LobbyScreen} />
-            <Stack.Screen name="LobbyChat"       component={LobbyChatScreen} />
+            <Stack.Screen name="Events"          component={FEATURES.EVENTS ? EventsScreen      : () => <ComingSoon feature={FEATURE_LABELS.EVENTS!} />} />
+            <Stack.Screen name="CreateEvent"     component={FEATURES.EVENTS ? CreateEventScreen : () => <ComingSoon feature={FEATURE_LABELS.EVENTS!} />} />
+            <Stack.Screen name="Club"            component={FEATURES.CLUBS ? ClubScreen       : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
+            <Stack.Screen name="ClubDetail"      component={FEATURES.CLUBS ? ClubDetailScreen : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
+            <Stack.Screen name="Lobby"           component={FEATURES.CLUBS ? LobbyScreen      : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
+            <Stack.Screen name="LobbyChat"       component={FEATURES.CLUBS ? LobbyChatScreen  : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
             <Stack.Screen name="Leaderboard"     component={LeaderboardScreen} />
-            <Stack.Screen name="CalorieTracker"  component={CalorieTrackerScreen} />
-            <Stack.Screen name="NutritionSetup"  component={NutritionSetupScreen} />
+            <Stack.Screen name="CalorieTracker"  component={FEATURES.NUTRITION_TRACKER ? CalorieTrackerScreen : () => <ComingSoon feature={FEATURE_LABELS.NUTRITION_TRACKER!} />} />
+            <Stack.Screen name="NutritionSetup"  component={FEATURES.NUTRITION_TRACKER ? NutritionSetupScreen : () => <ComingSoon feature={FEATURE_LABELS.NUTRITION_TRACKER!} />} />
             <Stack.Screen name="History"         component={HistoryScreen} />
             <Stack.Screen name="Settings"          component={SettingsScreen} />
             <Stack.Screen name="ConnectedDevices"  component={ConnectedDevicesScreen} />
-            <Stack.Screen name="Gear"            component={GearScreen} />
-            <Stack.Screen name="GearAdd"         component={GearAddScreen} />
-            <Stack.Screen name="FootScan"        component={FootScanScreen} />
+            <Stack.Screen name="Gear"            component={FEATURES.GEAR_TRACKING ? GearScreen    : () => <ComingSoon feature={FEATURE_LABELS.GEAR_TRACKING!} />} />
+            <Stack.Screen name="GearAdd"         component={FEATURES.GEAR_TRACKING ? GearAddScreen  : () => <ComingSoon feature={FEATURE_LABELS.GEAR_TRACKING!} />} />
+            <Stack.Screen name="FootScan"        component={FEATURES.GEAR_TRACKING ? FootScanScreen : () => <ComingSoon feature={FEATURE_LABELS.GEAR_TRACKING!} />} />
             <Stack.Screen name="TerritoryMap"     component={TerritoryMapScreen} />
             <Stack.Screen name="Notifications"   component={NotificationsScreen} />
             <Stack.Screen name="Subscription"    component={SubscriptionScreen} />
@@ -287,7 +287,7 @@ export function AppNavigator({
             <Stack.Screen name="AwardDetail"     component={AwardDetailScreen} options={{ presentation: 'modal' }} />
             <Stack.Screen name="PACEStore"       component={PACEStoreScreen}    options={{ headerShown: false, presentation: 'modal' }} />
             <Stack.Screen name="RewardDetail"    component={RewardDetailScreen} options={{ headerShown: false, presentation: 'modal' }} />
-            <Stack.Screen name="CoachPlan"       component={CoachPlanScreen}    options={{ headerShown: false }} />
+            <Stack.Screen name="CoachPlan"       component={FEATURES.AI_COACH ? CoachPlanScreen : () => <ComingSoon feature={FEATURE_LABELS.AI_COACH!} />} options={{ headerShown: false }} />
             <Stack.Screen name="RunReplay"       component={RunReplayScreen}   options={{ headerShown: false }} />
           </>
         )}

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { formatArea } from '@shared/constants/territory';
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   stats: {
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function TerritoryStatsBar({ stats, isLoadingRivals, bottomInset }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={[ss.container, { bottom: bottomInset + 8 }]}>
       <Text style={ss.row1}>
@@ -35,11 +38,13 @@ export function TerritoryStatsBar({ stats, isLoadingRivals, bottomInset }: Props
   );
 }
 
-const ss = StyleSheet.create({
-  container: { position: 'absolute', left: 16, right: 16, backgroundColor: 'rgba(0,0,0,0.70)', borderRadius: 12, padding: 12 },
-  row1:      { fontWeight: '500', fontSize: 13, color: '#fff', marginBottom: 2 },
-  row2:      { flexDirection: 'row', alignItems: 'center' },
-  tsLabel:   { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
-  tsVal:     { fontWeight: '500', fontSize: 13, color: '#fff' },
-  stale:     { fontWeight: '500', fontSize: 13, color: '#EF9F27' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    container: { position: 'absolute', left: 16, right: 16, backgroundColor: 'rgba(0,0,0,0.70)', borderRadius: 12, padding: 12 },
+    row1:      { fontWeight: '500', fontSize: 13, color: C.white, marginBottom: 2 },
+    row2:      { flexDirection: 'row', alignItems: 'center' },
+    tsLabel:   { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+    tsVal:     { fontWeight: '500', fontSize: 13, color: C.white },
+    stale:     { fontWeight: '500', fontSize: 13, color: '#EF9F27' },
+  });
+}

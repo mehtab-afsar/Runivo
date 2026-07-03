@@ -90,7 +90,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   progressText: { fontSize: 11, color: C.t2 },
   rewardRow: { flexDirection: 'row', alignItems: 'center' },
   rewardText: { fontSize: 11, color: C.green },
-  claimBtn: { marginTop: 10, backgroundColor: C.black, borderRadius: 4, paddingVertical: 10, alignItems: 'center' },
+  claimBtn: { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 4, paddingVertical: 10, alignItems: 'center' },
   claimBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
   claimedBanner: { marginTop: 10, backgroundColor: C.greenLo, borderRadius: 6, paddingVertical: 8, alignItems: 'center' },
   claimedText: { fontSize: 11, color: C.green },

@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
 import type { GoalType } from '../types';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
-const C = Colors;
 const FONT = 'Barlow_400Regular';
 const FONT_MED = 'Barlow_500Medium';
 const FONT_SEMI = 'Barlow_600SemiBold';
@@ -23,6 +22,8 @@ interface GoalSelectorProps {
 }
 
 export default function GoalSelector({ goalType, goalValue, onTypeChange, onValueChange }: GoalSelectorProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const activeGoal = GOAL_TYPES.find(g => g.id === goalType);
 
   return (
@@ -56,14 +57,16 @@ export default function GoalSelector({ goalType, goalValue, onTypeChange, onValu
   );
 }
 
-const ss = StyleSheet.create({
-  container:      { paddingHorizontal: 16 },
-  typeRow:        { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 8, padding: 3, gap: 3 },
-  typeBtn:        { flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center' },
-  typeBtnActive:  { backgroundColor: C.black },
-  typeLabel:      { fontFamily: FONT, fontSize: 11, color: C.muted },
-  typeLabelActive:{ fontFamily: FONT_MED, color: C.white },
-  valueRow:       { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 12 },
-  valueInput:     { fontFamily: FONT_SEMI, fontSize: 32, color: C.black, minWidth: 60 },
-  unit:           { fontFamily: FONT, fontSize: 13, color: C.muted },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    container:      { paddingHorizontal: 16 },
+    typeRow:        { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 8, padding: 3, gap: 3 },
+    typeBtn:        { flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center' },
+    typeBtnActive:  { backgroundColor: C.alwaysDark },
+    typeLabel:      { fontFamily: FONT, fontSize: 11, color: C.muted },
+    typeLabelActive:{ fontFamily: FONT_MED, color: C.white },
+    valueRow:       { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 12 },
+    valueInput:     { fontFamily: FONT_SEMI, fontSize: 32, color: C.black, minWidth: 60 },
+    unit:           { fontFamily: FONT, fontSize: 13, color: C.muted },
+  });
+}

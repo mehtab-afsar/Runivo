@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface PersonalRecord {
   label: string;
@@ -14,6 +12,9 @@ interface PersonalRecordsCardProps {
 }
 
 export function PersonalRecordsCard({ records }: PersonalRecordsCardProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
+
   if (records.length === 0) {
     return <Text style={ss.emptyText}>Run more to unlock personal records.</Text>;
   }
@@ -30,17 +31,19 @@ export function PersonalRecordsCard({ records }: PersonalRecordsCardProps) {
   );
 }
 
-const ss = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  card: {
-    width: '47%',
-    backgroundColor: C.white,
-    borderRadius: 10,
-    borderWidth: 0.5,
-    borderColor: C.border,
-    padding: 12,
-  },
-  prLabel: { fontSize: 10, color: C.t3, marginBottom: 4 },
-  prValue: { fontWeight: '600', fontSize: 18, color: C.black },
-  emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    card: {
+      width: '47%',
+      backgroundColor: C.white,
+      borderRadius: 10,
+      borderWidth: 0.5,
+      borderColor: C.border,
+      padding: 12,
+    },
+    prLabel: { fontSize: 10, color: C.t3, marginBottom: 4 },
+    prValue: { fontWeight: '600', fontSize: 18, color: C.black },
+    emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+  });
+}

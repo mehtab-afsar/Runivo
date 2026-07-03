@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
+import { track } from '@shared/services/analytics';
 import { D } from './onboardingStyles';
 
 import ML from '@maplibre/maplibre-react-native';
@@ -8,19 +9,36 @@ import ML from '@maplibre/maplibre-react-native';
 const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 const LONDON: [number, number] = [-0.1278, 51.5074];
 
-export default function CityMapPreviewStep() {
+interface Props {
+  onLocationCaptured?: (loc: { lat: number; lng: number }, country: string | null) => void;
+}
+
+export default function CityMapPreviewStep({ onLocationCaptured }: Props) {
   const [coord, setCoord] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { setCoord(LONDON); return; }
+      // No lat/lng in properties — just the grant event itself.
+      track('location_permission_granted');
+
       const last = await Location.getLastKnownPositionAsync();
-      if (last) { setCoord([last.coords.longitude, last.coords.latitude]); return; }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest });
-      setCoord([pos.coords.longitude, pos.coords.latitude]);
+      const pos  = last ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest });
+      const { latitude, longitude } = pos.coords;
+      setCoord([longitude, latitude]);
+
+      // Best-effort: report the real (permission-granted) position up so onboarding
+      // can persist it as the player's last known location for city-rank/leaderboard
+      // proximity. Never blocks the map preview itself.
+      try {
+        const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
+        onLocationCaptured?.({ lat: latitude, lng: longitude }, address?.country ?? null);
+      } catch {
+        onLocationCaptured?.({ lat: latitude, lng: longitude }, null);
+      }
     })().catch(() => setCoord(LONDON));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const center = coord ?? LONDON;
 

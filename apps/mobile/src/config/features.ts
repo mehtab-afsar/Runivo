@@ -6,17 +6,17 @@ export const FEATURES = {
 
   // Social
   SOCIAL_FEED: true,
-  CLUBS:       true,
-  EVENTS:      true,
+  CLUBS:       false,
+  EVENTS:      false,
 
   // Gamification
   DAILY_MISSIONS: true,
-  GEAR_TRACKING:  true,
+  GEAR_TRACKING:  false,
 
   // Intelligence
-  AI_COACH:          true,
-  NUTRITION_TRACKER: true,
-  CHAT:              true,
+  AI_COACH:          false,
+  NUTRITION_TRACKER: false,
+  CHAT:              false,
 } as const;
 
 export const FEATURE_LABELS: Partial<Record<keyof typeof FEATURES, string>> = {

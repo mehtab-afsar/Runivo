@@ -71,7 +71,7 @@ function mkStyles(C: AppColors) {
     divider:      { height: 0.5, backgroundColor: C.border, marginBottom: 20 },
     launchRow:    { fontSize: 13, color: C.t2, textAlign: 'center', marginBottom: 6 },
     launchBody:   { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-    closeBtn:     { backgroundColor: C.black, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+    closeBtn:     { backgroundColor: C.alwaysDark, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
     closeBtnText: { fontWeight: '600', fontSize: 14, color: C.white },
   });
 }

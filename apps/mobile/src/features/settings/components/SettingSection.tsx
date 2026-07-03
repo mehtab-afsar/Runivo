@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface SettingSectionProps {
   title: string;
@@ -10,6 +8,8 @@ interface SettingSectionProps {
 }
 
 export function SettingSection({ title, children }: SettingSectionProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <>
       <Text style={ss.header}>{title}</Text>
@@ -18,14 +18,16 @@ export function SettingSection({ title, children }: SettingSectionProps) {
   );
 }
 
-const ss = StyleSheet.create({
-  header: {
-    fontSize: 10, color: C.t3,
-    textTransform: 'uppercase', letterSpacing: 2,
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8,
-  },
-  section: {
-    marginHorizontal: 16, backgroundColor: C.white,
-    borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
-  },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    header: {
+      fontSize: 10, color: C.t3,
+      textTransform: 'uppercase', letterSpacing: 2,
+      paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8,
+    },
+    section: {
+      marginHorizontal: 16, backgroundColor: C.white,
+      borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
+    },
+  });
+}

@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   tab?: 'explore' | 'following';
 }
 
 export function EmptyFeed({ tab }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const title = tab === 'following' ? 'No one to follow yet.' : 'No posts yet.';
   const body = tab === 'following'
     ? 'Explore the feed to find runners.'
@@ -22,8 +22,10 @@ export function EmptyFeed({ tab }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  wrap: { alignItems: 'center', paddingVertical: 48 },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-  text: { fontSize: 12, color: C.t2, textAlign: 'center' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    wrap: { alignItems: 'center', paddingVertical: 48 },
+    title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
+    text: { fontSize: 12, color: C.t2, textAlign: 'center' },
+  });
+}

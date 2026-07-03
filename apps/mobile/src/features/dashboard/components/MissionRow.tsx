@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { Mission } from '@shared/services/missions';
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   mission: Mission;
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export function MissionRow({ mission: m, isLast }: Props) {
+  const C   = useTheme();
+  const ss  = useMemo(() => mkStyles(C), [C]);
   const bar = Math.min(m.current / Math.max(m.target, 1), 1);
 
   return (
@@ -18,7 +21,7 @@ export function MissionRow({ mission: m, isLast }: Props) {
       <View style={{ flex: 1 }}>
         <Text style={[ss.title, m.completed && ss.titleDone]}>{m.title}</Text>
         <View style={ss.barBg}>
-          <View style={[ss.barFill, { width: `${bar * 100}%`, backgroundColor: m.completed ? '#4ADE80' : '#D93518' }]} />
+          <View style={[ss.barFill, { width: `${bar * 100}%`, backgroundColor: m.completed ? C.green : C.red }]} />
         </View>
       </View>
       <Text style={[ss.xp, m.completed && ss.xpDone]}>+{m.rewards.pace} PACE</Text>
@@ -26,16 +29,18 @@ export function MissionRow({ mission: m, isLast }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  row:        { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingBottom: 14, marginBottom: 14 },
-  rowBorder:  { borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.08)' },
-  iconBox:    { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  iconBoxDone:{ backgroundColor: 'rgba(26,107,64,0.3)' },
-  emojiText:  { fontSize: 16, lineHeight: 20 },
-  title:      { fontSize: 13, color: '#fff', marginBottom: 8 },
-  titleDone:  { color: 'rgba(255,255,255,0.35)', textDecorationLine: 'line-through' },
-  barBg:      { height: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' },
-  barFill:    { height: '100%', borderRadius: 1 },
-  xp:         { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
-  xpDone:     { color: '#4ADE80' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:        { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingBottom: 14, marginBottom: 14 },
+    rowBorder:  { borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.08)' },
+    iconBox:    { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+    iconBoxDone:{ backgroundColor: 'rgba(26,107,64,0.3)' },
+    emojiText:  { fontSize: 16, lineHeight: 20 },
+    title:      { fontSize: 13, color: C.bg, marginBottom: 8 },
+    titleDone:  { color: 'rgba(255,255,255,0.35)', textDecorationLine: 'line-through' },
+    barBg:      { height: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' },
+    barFill:    { height: '100%', borderRadius: 1 },
+    xp:         { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
+    xpDone:     { color: C.green },
+  });
+}

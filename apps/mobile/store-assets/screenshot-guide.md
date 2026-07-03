@@ -8,10 +8,11 @@ Device size: 1320 × 2868 px @3x. Use Xcode Simulator or physical device.
 ## Setup Before Shooting
 
 1. Log in with a demo account that has:
-   - Level 8+ player
-   - 12+ territories claimed (mix of red own / blue enemy on map)
-   - 5-day streak
+   - Territory Score reflecting a meaningful footprint (several claimed zones)
+   - 12+ territories claimed (mix of own zones / rival zones on map)
+   - A 5-day+ run streak
    - 3 active missions
+   - A Runner Rank above the starting tier (e.g. Chaser or Hunter, not Pacer)
 
 2. Set the map to a dense urban area (e.g. London, NYC, Tokyo) to show territory density.
 
@@ -23,8 +24,8 @@ Device size: 1320 × 2868 px @3x. Use Xcode Simulator or physical device.
 **Screen:** TerritoryMap
 **State:**
 - Zoom level 14, user dot centred
-- 8+ red (owned) hexagons visible
-- 4+ blue (enemy) hexagons visible
+- 8+ own zones visible, colored by freshness (bright = recently defended, faded = stale)
+- 4+ rival zones visible in the rival color
 - Filter chips: "All" selected
 **Action:** None — static map
 **Caption overlay (add in design tool):** "Claim every street you run"
@@ -37,7 +38,7 @@ Device size: 1320 × 2868 px @3x. Use Xcode Simulator or physical device.
 - Run in progress, isRunning = true
 - Elapsed: 18:43
 - Distance: 3.2 km
-- GPS trail visible (red polyline)
+- GPS trail visible (route polyline)
 - ClaimProgressRing at ~70%
 - Territories claimed: 2
 **Action:** Capture mid-run
@@ -49,29 +50,28 @@ Device size: 1320 × 2868 px @3x. Use Xcode Simulator or physical device.
 **Screen:** RunSummaryScreen
 **State:**
 - runData: distance 5.1 km, duration 1680s, pace 5:28, territoriesClaimed 4
-- xpEarned: 340, coinsEarned: 12, leveledUp: false
-- Show the RewardsCard fully expanded
-**Caption overlay:** "XP, coins, and territory — every run counts"
+- paceEarned: 34, runnerRank shown with a rank-up indicator if applicable
+- Show the territory/PACE breakdown card fully expanded
+**Caption overlay:** "PACE, Runner Rank, and territory — every run counts"
 
 ---
 
 ## Shot 4 — Dashboard
 **Screen:** DashboardScreen (light mode)
 **State:**
-- Player: Level 8, 1240 XP, 5-day streak
+- Player: Runner Rank badge, Territory Score, City Rank populated
 - Today's stats: 5.1 km run shown
 - 3 missions visible in mission row
 **Caption overlay:** "Track your empire at a glance"
 
 ---
 
-## Shot 5 — AI Coach
-**Screen:** CoachScreen (light mode)
+## Shot 5 — Leaderboard
+**Screen:** LeaderboardScreen (light mode)
 **State:**
-- Show a coach message thread
-- Assistant message: "Your average pace improved by 12 seconds/km this week. I'd recommend a tempo run tomorrow — aim for 4:45/km over 4 km to push your lactate threshold."
-- User message above: "How did I do this week?"
-**Caption overlay:** "Your AI coach knows your data"
+- Show the demo account placed within the top of a city leaderboard
+- Territory Score / Runner Rank badges visible per entry
+**Caption overlay:** "Own your city's leaderboard"
 
 ---
 

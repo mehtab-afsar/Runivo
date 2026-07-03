@@ -1,7 +1,8 @@
 import { supabase } from '@shared/services/supabase';
-import { initializePlayer, getSettings, saveSettings, clearLocalUserData } from '@shared/services/store';
+import { initializePlayer, savePlayer, getSettings, saveSettings, clearLocalUserData } from '@shared/services/store';
 import { saveProfile } from '@shared/services/profile';
 import { pushProfile } from '@shared/services/sync';
+import { track } from '@shared/services/analytics';
 import type { OnboardingData } from '../types';
 
 export async function saveOnboardingData(
@@ -14,6 +15,17 @@ export async function saveOnboardingData(
   // Wipe any stale local data from a previous account before initializing
   clearLocalUserData();
   const player = await initializePlayer(username);
+
+  // Persist the location captured during CityMapPreviewStep's permission grant, if
+  // the user granted it — local save first (offline-first), pushed below via the
+  // existing pushProfile() call at the end of this function.
+  if (data.lastKnownLocation) {
+    await savePlayer({
+      ...player,
+      lastKnownLocation: data.lastKnownLocation,
+      country: data.country ?? null,
+    });
+  }
 
   const missionDifficulty =
     data.experienceLevel === 'new' ? 'easy' :
@@ -45,4 +57,5 @@ export async function saveOnboardingData(
   });
 
   await pushProfile().catch(() => {});
+  track('onboarding_complete', { primaryGoal: data.primaryGoal, experienceLevel: data.experienceLevel });
 }

@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import Animated, {
   useSharedValue, withTiming, withDelay, withSpring,
   useAnimatedProps, useAnimatedStyle, Easing,
 } from 'react-native-reanimated';
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   weeklyKm: number;
@@ -18,6 +19,8 @@ const CIRC = 2 * Math.PI * R;
 const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
 
 export function WeeklyRing({ weeklyKm, goalKm, runDays }: Props) {
+  const C   = useTheme();
+  const ss  = useMemo(() => mkStyles(C), [C]);
   const pct      = Math.min(weeklyKm / Math.max(goalKm, 1), 1);
   const todayIdx = (new Date().getDay() + 6) % 7;
 
@@ -70,7 +73,7 @@ export function WeeklyRing({ weeklyKm, goalKm, runDays }: Props) {
           {pct > 0 && (
             <AnimatedCircle
               cx={74} cy={74} r={R}
-              stroke="#D93518" strokeWidth={16} strokeOpacity={0.13}
+              stroke={C.red} strokeWidth={16} strokeOpacity={0.13}
               strokeLinecap="round" fill="none"
               strokeDasharray={CIRC}
               animatedProps={glowProps}
@@ -79,7 +82,7 @@ export function WeeklyRing({ weeklyKm, goalKm, runDays }: Props) {
           )}
           {/* Main arc */}
           <AnimatedCircle
-            cx={74} cy={74} r={R} stroke="#D93518" strokeWidth={5}
+            cx={74} cy={74} r={R} stroke={C.red} strokeWidth={5}
             strokeLinecap="round" fill="none"
             strokeDasharray={CIRC}
             animatedProps={arcProps}
@@ -101,9 +104,9 @@ export function WeeklyRing({ weeklyKm, goalKm, runDays }: Props) {
             key={i}
             style={[
               ss.dot,
-              i === todayIdx && active  ? { backgroundColor: '#D93518', height: 5 }
+              i === todayIdx && active  ? { backgroundColor: C.red, height: 5 }
               : i === todayIdx          ? { backgroundColor: 'rgba(217,53,24,0.35)', height: 5 }
-              : active                  ? { backgroundColor: '#FFFFFF', opacity: 0.7 }
+              : active                  ? { backgroundColor: C.white, opacity: 0.7 }
               :                           { backgroundColor: 'rgba(255,255,255,0.1)' },
               dotStyles[i],
             ]}
@@ -114,14 +117,16 @@ export function WeeklyRing({ weeklyKm, goalKm, runDays }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  content:  { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
-  ringWrap: { position: 'relative', width: 148, height: 148, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  center:   { position: 'absolute', alignItems: 'center' },
-  kmRow:    { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  km:       { fontFamily: 'Barlow_300Light', fontSize: 38, color: '#fff', letterSpacing: -1.5, lineHeight: 40 },
-  kmUnit:   { fontFamily: 'Barlow_300Light', fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
-  kmGoal:   { fontFamily: 'Barlow_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 },
-  dayDots:  { flexDirection: 'row', gap: 4, paddingHorizontal: 18 },
-  dot:      { flex: 1, height: 3, borderRadius: 2 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    content:  { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
+    ringWrap: { position: 'relative', width: 148, height: 148, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    center:   { position: 'absolute', alignItems: 'center' },
+    kmRow:    { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
+    km:       { fontFamily: 'Barlow_300Light', fontSize: 38, color: C.white, letterSpacing: -1.5, lineHeight: 40 },
+    kmUnit:   { fontFamily: 'Barlow_300Light', fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
+    kmGoal:   { fontFamily: 'Barlow_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 },
+    dayDots:  { flexDirection: 'row', gap: 4, paddingHorizontal: 18 },
+    dot:      { flex: 1, height: 3, borderRadius: 2 },
+  });
+}

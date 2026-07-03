@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { TerritoryFilter } from '../types';
+import { useTheme, type AppColors } from '@theme';
 
 interface Props {
   activeFilter: TerritoryFilter;
@@ -17,6 +18,8 @@ const FILTERS: { id: TerritoryFilter; label: (n: number) => string }[] = [
 ];
 
 export function TerritoryFilterChips({ activeFilter, staleCount, onSelect }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <ScrollView
       horizontal
@@ -42,10 +45,12 @@ export function TerritoryFilterChips({ activeFilter, staleCount, onSelect }: Pro
   );
 }
 
-const ss = StyleSheet.create({
-  row:        { gap: 6, paddingRight: 8 },
-  pill:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.50)' },
-  pillActive: { backgroundColor: '#D93518' },
-  label:      { fontSize: 13, color: '#fff' },
-  labelActive:{ fontWeight: '500',  fontSize: 13, color: '#fff' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:        { gap: 6, paddingRight: 8 },
+    pill:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.50)' },
+    pillActive: { backgroundColor: C.red },
+    label:      { fontSize: 13, color: C.white },
+    labelActive:{ fontWeight: '500',  fontSize: 13, color: C.white },
+  });
+}

@@ -260,7 +260,7 @@ function mkBodyStatsStyles(C: AppColors) {
       paddingHorizontal: Spacing.lg, paddingVertical: 8,
       backgroundColor: C.surface,
     },
-    sexBtnActive:     { backgroundColor: C.black },
+    sexBtnActive:     { backgroundColor: C.alwaysDark },
     sexBtnText:       { fontSize: FontSize.subhead, color: C.t2, fontWeight: FontWeight.medium },
     sexBtnTextActive: { color: C.white },
     privacy:          { fontSize: FontSize.caption2, color: C.t3, textAlign: 'center', lineHeight: 16, marginBottom: Spacing.lg },

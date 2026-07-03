@@ -140,6 +140,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     '@kingstinct/react-native-healthkit',
     '@maplibre/maplibre-react-native',
+    '@sentry/react-native',
+    'expo-updates',
   ],
   web: {
     favicon: './assets/favicon.png',

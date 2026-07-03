@@ -129,7 +129,7 @@ function mkStyles(C: AppColors) {
     avatarWrap: { alignSelf: 'center', marginBottom: 20, position: 'relative' },
     avatarPreview: { width: 72, height: 72, borderRadius: 36 },
     avatarPlaceholder: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
-    cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.black, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
+    cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
     inputLabel: {
       fontSize: 10, color: C.t3,
       textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6,
@@ -151,7 +151,7 @@ function mkStyles(C: AppColors) {
       borderWidth: 3, borderColor: C.white,
       shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
     },
-    saveBtn: { backgroundColor: C.black, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginBottom: 8 },
+    saveBtn: { backgroundColor: C.alwaysDark, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginBottom: 8 },
     saveBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
   });
 }

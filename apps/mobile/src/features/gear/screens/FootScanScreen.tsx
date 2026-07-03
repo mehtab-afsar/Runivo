@@ -136,7 +136,7 @@ const s = StyleSheet.create({
   analysingRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   analysingText:   { fontSize: 14, color: C.mid },
   errorText:       { fontSize: 13, color: C.red, textAlign: 'center' },
-  primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.black, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
+  primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.alwaysDark, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
   primaryBtnText:  { fontWeight: '600', fontSize: 14, color: C.white },
   secondaryBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
   secondaryBtnText:{ fontSize: 14, color: C.black },

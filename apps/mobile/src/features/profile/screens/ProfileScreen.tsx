@@ -15,16 +15,20 @@ import { EditProfileSheet } from '../components/EditProfileSheet';
 import { AwardsTab } from '../components/AwardsTab';
 import type { ProfileTab } from '../types';
 import { useTheme, type AppColors } from '@theme';
+import { FEATURES } from '../../../config/features';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const TABS: { key: ProfileTab; label: string }[] = [
+const ALL_TABS: { key: ProfileTab; label: string }[] = [
   { key: 'overview',      label: 'Overview' },
   { key: 'activity',      label: 'Activity' },
   { key: 'territory',     label: 'Territory' },
   { key: 'intelligence',  label: 'Intelligence' },
   { key: 'awards',        label: 'Awards' },
 ];
+
+// Intelligence is part of the AI Coach feature — hidden here too when that flag is off.
+const TABS = ALL_TABS.filter(t => t.key !== 'intelligence' || FEATURES.AI_COACH);
 
 export default function ProfileScreen() {
   const C = useTheme();
@@ -100,7 +104,7 @@ export default function ProfileScreen() {
           )}
           {tab === 'activity' && <ActivityFeedTab runs={runs} isOwn />}
           {tab === 'territory' && <TerritoryTab />}
-          {tab === 'intelligence' && (
+          {tab === 'intelligence' && FEATURES.AI_COACH && (
             <IntelligenceTab runs={runs} personalRecords={personalRecords} />
           )}
           {tab === 'awards' && (

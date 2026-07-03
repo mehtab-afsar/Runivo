@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { DEFAULT_SETTINGS, clearAllLocalData } from '@shared/services/store';
+import { DEFAULT_SETTINGS, clearAllLocalData, clearLocalUserData } from '@shared/services/store';
 import type { StoredSettings } from '@shared/services/store';
-import { Linking } from 'react-native';
+import { supabase } from '@shared/services/supabase';
+import { resetAnalytics } from '@shared/services/analytics';
 import { loadSettings, persistSettings, signOut as signOutService } from '../services/settingsService';
 
 interface SettingsContextValue {
@@ -67,16 +68,42 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     updateSetting({ beatPacerPace: opts[(idx + 1) % opts.length] });
   }, [settings.beatPacerPace, updateSetting]);
 
+  const performDeletion = useCallback(async () => {
+    const { error } = await supabase.functions.invoke('delete-account', {});
+    if (error) {
+      Alert.alert('Something went wrong', 'We couldn\'t delete your account. Please try again, or contact support if this keeps happening.');
+      return;
+    }
+    resetAnalytics();
+    clearLocalUserData();
+    await supabase.auth.signOut();
+    // No explicit navigation — App.tsx's useAuth()-driven re-render already routes
+    // to the auth stack once the session is null, same as normal sign-out.
+  }, []);
+
   const deleteAccount = useCallback(() => {
+    // RN's Alert has no text-input confirmation, so two sequential destructive
+    // confirms substitute for a "type DELETE to confirm" step.
     Alert.alert(
       'Delete Account',
-      'To permanently delete your account and all data, please contact support. We will process your request within 48 hours.',
+      'This permanently deletes your profile, run history, territory claims, and PACE balance. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Contact Support', onPress: () => Linking.openURL('mailto:support@runivo.app?subject=Account%20Deletion%20Request') },
+        {
+          text: 'Continue', style: 'destructive', onPress: () => {
+            Alert.alert(
+              'Are you absolutely sure?',
+              'Your account and all its data will be deleted immediately and permanently.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete My Account', style: 'destructive', onPress: () => { performDeletion(); } },
+              ],
+            );
+          },
+        },
       ],
     );
-  }, []);
+  }, [performDeletion]);
 
   return (
     <SettingsContext.Provider value={{

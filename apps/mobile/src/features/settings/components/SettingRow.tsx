@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 interface SettingRowProps {
   label: string;
@@ -11,6 +9,8 @@ interface SettingRowProps {
 }
 
 export function SettingRow({ label, sub, children }: SettingRowProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.row}>
       <View style={ss.labelWrap}>
@@ -22,9 +22,11 @@ export function SettingRow({ label, sub, children }: SettingRowProps) {
   );
 }
 
-const ss = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: C.border },
-  labelWrap: { flex: 1, paddingRight: 12 },
-  rowLabel: { fontSize: 14, color: C.black },
-  rowSub: { fontSize: 11, color: C.t3, marginTop: 2 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    labelWrap: { flex: 1, paddingRight: 12 },
+    rowLabel: { fontSize: 14, color: C.black },
+    rowSub: { fontSize: 11, color: C.t3, marginTop: 2 },
+  });
+}

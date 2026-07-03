@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { StoredRun } from '@shared/services/store';
 import { fmtDist, fmtDuration, fmtShortDate } from '@mobile/shared/lib/formatters';
-import { Colors } from '@theme';
-
-const C = Colors;
+import { useTheme, type AppColors } from '@theme';
 
 const ACTIVITY_LABELS: Record<string, { emoji: string; label: string }> = {
   run:       { emoji: '🏃', label: 'Run' },
@@ -24,6 +22,8 @@ interface Props {
 }
 
 export function RunItem({ run, onPress }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const activity = ACTIVITY_LABELS[run.activityType] ?? { emoji: '🏃', label: run.activityType };
   const claimedCount = run.territoriesClaimed.length;
 
@@ -49,15 +49,17 @@ export function RunItem({ run, onPress }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  card:        { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  topRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  activityBadge:{ fontWeight: '500', fontSize: 11, color: C.t2 },
-  date:        { fontSize: 10, color: C.t3 },
-  dist:        { fontFamily: 'Barlow_600SemiBold', fontSize: 22, color: C.black, letterSpacing: -0.5 },
-  pills:       { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  pill:        { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 0.5, borderColor: C.border },
-  pillText:    { fontSize: 10, color: C.t2 },
-  pillRed:     { backgroundColor: '#FDE8E4', borderColor: 'rgba(217,53,24,0.2)' },
-  pillTextRed: { color: C.red },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card:        { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    topRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    activityBadge:{ fontWeight: '500', fontSize: 11, color: C.t2 },
+    date:        { fontSize: 10, color: C.t3 },
+    dist:        { fontFamily: 'Barlow_600SemiBold', fontSize: 22, color: C.black, letterSpacing: -0.5 },
+    pills:       { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    pill:        { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 0.5, borderColor: C.border },
+    pillText:    { fontSize: 10, color: C.t2 },
+    pillRed:     { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.2)' },
+    pillTextRed: { color: C.red },
+  });
+}
