@@ -34,3 +34,7 @@ dist-ssr
 
 # Claude Code
 .claude/settings.local.json
+
+# Stray root-level native prebuild output (real project lives in apps/mobile)
+/ios
+/android
