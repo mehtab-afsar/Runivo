@@ -730,10 +730,14 @@ async function handlePostRun(
   runId: string,
   ctx: UserContext,
 ): Promise<PostRunPayload | null> {
+  // IDOR fix: scope to the caller's own run. The client is service-role (bypasses
+  // RLS), so without this owner filter any authenticated caller could request AI
+  // analysis of any run by id.
   const { data: run } = await supabase
     .from('runs')
     .select('distance_m, duration_sec, avg_pace, started_at')
     .eq('id', runId)
+    .eq('user_id', userId)
     .single();
 
   if (!run) throw new Error('Run not found');
@@ -1531,10 +1535,16 @@ Deno.serve(async (req) => {
 
     if (!feature) return new Response('Missing feature', { status: 400, headers: CORS_HEADERS });
 
-    // food_scan is a lightweight vision call — handle before context build + cap check
+    // food_scan is a vision call — handled before the shared context build, but it
+    // MUST still be behind the per-user daily spend cap (it was previously returning
+    // before the cap, so a user could spam uncapped vision requests) and its input
+    // must be bounded (a base64 image over ~7MB is rejected before it reaches Claude).
     if (feature === 'food_scan') {
       const { imageBase64, mediaType = 'image/jpeg' } = body;
       if (!imageBase64) return new Response('Missing imageBase64', { status: 400, headers: CORS_HEADERS });
+      if (imageBase64.length > 7_000_000) return new Response('Image too large', { status: 413, headers: CORS_HEADERS });
+
+      await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);
 
       const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
       const msg = await anthropic.messages.create({

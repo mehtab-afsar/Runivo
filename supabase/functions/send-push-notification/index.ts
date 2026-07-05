@@ -123,6 +123,19 @@ serve(async (req) => {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
+  // Server-to-server only. This function pushes to an ARBITRARY user_id from the
+  // request body, so it must never be callable by a normal client — otherwise anyone
+  // with the public anon key could push notifications to any user. It is only invoked
+  // by other edge functions (currently process-run-territory) through their
+  // service-role client, which sends the service-role key as the bearer. The platform
+  // gateway would otherwise let a valid anon/authenticated JWT through, so we narrow
+  // to the service-role key explicitly here.
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const authHeader = req.headers.get('Authorization') ?? '';
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
   let body: { user_id: string; title: string; body: string; action_url?: string; type?: string };
   try {
     body = await req.json();

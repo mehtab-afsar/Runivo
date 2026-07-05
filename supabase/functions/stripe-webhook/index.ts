@@ -40,8 +40,13 @@ serve(async (req) => {
       return new Response('Missing required metadata', { status: 400 });
     }
 
-    const validTiers = ['runner-plus', 'territory-lord', 'empire-builder'];
-    if (!validTiers.includes(tier)) {
+    // Any recognized paid tier maps to 'premium'. The subscription_tier column is
+    // constrained to ('free','premium') since migration 042 — writing the legacy
+    // three-tier strings violated that CHECK, so the UPDATE failed and paying users
+    // never actually became premium. Accept both the legacy metadata values and
+    // 'premium' for forward-compat, but always persist 'premium'.
+    const paidTiers = ['premium', 'runner-plus', 'territory-lord', 'empire-builder'];
+    if (!paidTiers.includes(tier)) {
       console.error('Invalid tier:', tier);
       return new Response('Invalid tier', { status: 400 });
     }
@@ -51,7 +56,7 @@ serve(async (req) => {
     const { error } = await supabase
       .from('profiles')
       .update({
-        subscription_tier: tier,
+        subscription_tier: 'premium',
         subscription_expires_at: expiresAt,
       })
       .eq('id', userId);

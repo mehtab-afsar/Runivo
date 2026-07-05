@@ -16,8 +16,8 @@
  *   RC_WEBHOOK_SECRET — if set, validates the Authorization header value
  *
  * Entitlement → tier mapping:
- *   runivo_plus  → 'runner-plus'
- *   (extend as new tiers are added in RevenueCat)
+ *   any active paid entitlement (runivo_plus / territory_lord / empire_builder)
+ *   → 'premium'  (subscription_tier is constrained to 'free'|'premium', migration 042)
  */
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
@@ -28,12 +28,8 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-// Map RevenueCat entitlement identifiers to Supabase subscription_tier values
-const ENTITLEMENT_TO_TIER: Record<string, string> = {
-  'runivo_plus':          'runner-plus',
-  'territory_lord':       'territory-lord',
-  'empire_builder':       'empire-builder',
-};
+// Entitlement identifiers that grant premium (any one is sufficient).
+const PAID_ENTITLEMENTS = ['runivo_plus', 'territory_lord', 'empire_builder'];
 
 type RCEvent = {
   type: string;
@@ -79,13 +75,11 @@ serve(async (req) => {
 
   const activeEntitlements = event.entitlement_ids ?? [];
 
-  // Priority order: empire-builder > territory-lord > runner-plus > free
-  if (activeEntitlements.includes('empire_builder')) {
-    newTier = 'empire-builder';
-  } else if (activeEntitlements.includes('territory_lord')) {
-    newTier = 'territory-lord';
-  } else if (activeEntitlements.includes('runivo_plus')) {
-    newTier = 'runner-plus';
+  // Any active paid entitlement maps to 'premium' (the column only allows
+  // 'free'|'premium' since migration 042; the old three-tier strings violated the
+  // CHECK constraint, so those UPDATEs failed and no one ever became premium).
+  if (activeEntitlements.some(e => PAID_ENTITLEMENTS.includes(e))) {
+    newTier = 'premium';
   } else if (
     eventType === 'CANCELLATION' ||
     eventType === 'EXPIRATION' ||

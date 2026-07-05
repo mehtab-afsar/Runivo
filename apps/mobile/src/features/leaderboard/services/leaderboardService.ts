@@ -49,20 +49,22 @@ export async function fetchLeaderboard(
   const profilesResp = profileData ?? [];
   const scopedProfileIds = new Set(profilesResp.map((p: { id: string }) => p.id));
 
-  const { data: runsData, error: runsErr } = await supabase
-    .from('runs')
-    .select('user_id, distance_m, territories_claimed')
-    .gte('started_at', cutoff);
-  if (runsErr) { console.error('[leaderboard] runs fetch:', runsErr.message); }
-  const runs = (runsData ?? []).filter(r => scopedProfileIds.has(r.user_id));
+  // Aggregate km per user via a SECURITY DEFINER RPC — the runs table is now
+  // owner-scoped (P0-2), so reading it cross-user here would return only our own
+  // rows. The RPC returns coordinate-free km totals, never gps_points.
+  const { data: kmData, error: runsErr } = await supabase
+    .rpc('get_run_km_by_user', { p_cutoff: cutoff });
+  if (runsErr) { console.error('[leaderboard] run km fetch:', runsErr.message); }
   const profiles = profilesResp;
 
   if (!profiles.length) return [];
 
   const kmTotals = new Map<string, number>();
 
-  for (const run of runs) {
-    kmTotals.set(run.user_id, (kmTotals.get(run.user_id) ?? 0) + run.distance_m / 1000);
+  for (const row of (kmData ?? []) as { user_id: string; total_km: number }[]) {
+    if (scopedProfileIds.has(row.user_id)) {
+      kmTotals.set(row.user_id, Number(row.total_km));
+    }
   }
 
   const mapped: LeaderboardEntry[] = profiles.map(p => {

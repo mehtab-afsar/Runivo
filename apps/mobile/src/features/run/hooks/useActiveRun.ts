@@ -168,9 +168,13 @@ export function useActiveRun(activityType: string = 'run') {
     appStateSubRef.current = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
       if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
         await activateKeepAwakeAsync();
-        // Drain GPS points collected while screen was off
+        // Drain GPS points collected while screen was off.
+        // CRITICAL PATH: skip the whole drain while paused — pause can only be toggled
+        // from the foreground UI, so a true isPausedRef here means the entire buffered
+        // background window was during a paused run. Counting it would inflate distance
+        // while paused (the live GPS callback already returns early when paused at :254).
         const bgPoints = drainBgGpsBuffer(runIdRef.current);
-        if (bgPoints.length > 0) {
+        if (bgPoints.length > 0 && !isPausedRef.current) {
           for (const pt of bgPoints) {
             const prev = lastPositionRef.current;
             if (prev) {
@@ -378,10 +382,13 @@ export function useActiveRun(activityType: string = 'run') {
     if (checkpointIntervalRef.current) { clearInterval(checkpointIntervalRef.current); checkpointIntervalRef.current = null; }
     deactivateKeepAwake();
 
-    // Stop background task and merge any remaining buffered points
+    // Stop background task and merge any remaining buffered points.
+    // CRITICAL PATH: same pause guard as the resume-drain — if the run was paused when
+    // finished, the buffered tail was accumulated during a paused/backgrounded window
+    // and must not be added to distance.
     await stopBackgroundTracking();
     const bgTail = drainBgGpsBuffer(runIdRef.current);
-    if (bgTail.length > 0) {
+    if (bgTail.length > 0 && !isPausedRef.current) {
       for (const pt of bgTail) {
         const prev = lastPositionRef.current;
         if (prev) {
