@@ -58,7 +58,8 @@ function mkStyles(C: AppColors) {
     secondaryStats:   { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 },
     secondaryStat:    { flex: 1, alignItems: 'center' },
     secondaryStatMid: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
-    secondaryValue:   { fontFamily: FONT_LIGHT, fontSize: 20, color: C.white, letterSpacing: -0.5 },
-    secondaryLabel:   { fontFamily: FONT_SEMI, fontSize: 8, letterSpacing: 1, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
+    // Sized for a one-handed glance mid-run (was 20 / 8px @ 35% — illegible while moving).
+    secondaryValue:   { fontFamily: FONT_LIGHT, fontSize: 28, color: C.white, letterSpacing: -0.5 },
+    secondaryLabel:   { fontFamily: FONT_SEMI, fontSize: 11, letterSpacing: 1, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
   });
 }

@@ -201,7 +201,7 @@ export function BentoCard({
               onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onNavigate(screen); }}
               style={ss.qa}
             >
-              <View style={ss.qaIcon}><Icon size={16} color="#0A0A0A" weight="light" /></View>
+              <View style={ss.qaIcon}><Icon size={16} color={C.alwaysDark} weight="light" /></View>
               <Text style={ss.qaLabel}>{name}</Text>
             </Pressable>
           ))}
@@ -222,15 +222,20 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     bento:     { paddingHorizontal: 16, marginBottom: 28 },
     bentoRow:  { flexDirection: 'row', gap: 10, marginBottom: 10 },
-    hero:      { flex: 1.15, height: 224, borderRadius: 16, backgroundColor: '#0A0A0A', overflow: 'hidden' },
+    // Intentionally-dark hero (holds white-on-dark ring/nutrition content) — fixed in
+    // both themes via the alwaysDark token.
+    hero:      { flex: 1.15, height: 224, borderRadius: 16, backgroundColor: C.alwaysDark, overflow: 'hidden' },
     slide:     { height: '100%', flex: 1 },
     dots:      { position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 4 },
     dot:       { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)' },
     dotActive: { backgroundColor: '#fff', width: 14 },
-    qa:        { flex: 1, padding: 15, borderRadius: 14, backgroundColor: '#F0EDE8', borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    qaIcon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    qaLabel:   { fontWeight: '500', fontSize: 13, color: '#0A0A0A', flex: 1 },
-    startBtn:  { backgroundColor: '#0A0A0A', borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
+    // Quick-action tiles are elevated surfaces that must invert with the theme —
+    // C.surface (light gray → dark gray), C.t1 label, white icon badge with a fixed
+    // dark glyph (set in JSX above).
+    qa:        { flex: 1, padding: 15, borderRadius: 14, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    qaIcon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    qaLabel:   { fontWeight: '500', fontSize: 13, color: C.t1, flex: 1 },
+    startBtn:  { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
     startLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     startCircle:{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
     startPlay: { fontSize: 14, color: '#fff', marginLeft: 2 },

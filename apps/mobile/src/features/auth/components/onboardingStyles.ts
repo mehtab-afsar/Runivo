@@ -1,5 +1,11 @@
 import { StyleSheet } from 'react-native';
 
+// INTENTIONAL: the auth / onboarding flow uses this fixed LIGHT palette and does not
+// follow the system dark-mode theme. It is a deliberate branded first-run experience
+// (uniformly light across all 13 auth screens/steps — not a dark-mode bug), consistent
+// with how many apps keep sign-up/onboarding on a fixed theme. Making onboarding
+// dark-mode-aware means migrating every auth component off this palette onto
+// useTheme()/mkStyles — a deliberate project, not a one-line fix.
 export const D = {
   bg:   '#F7F5F2',
   t1:   '#111110',

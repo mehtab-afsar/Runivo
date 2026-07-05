@@ -24,6 +24,7 @@ import RunHUD             from '../components/RunHUD';
 import RunControls        from '../components/RunControls';
 import FinishConfirmSheet from '../components/FinishConfirmSheet';
 import BeatPacerChip      from '../components/BeatPacerChip';
+import ClaimToast         from '../components/ClaimToast';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
 import { computeRouteProgress, type RouteProgress } from '../utils/routeNavigation';
@@ -67,6 +68,10 @@ export default function ActiveRunScreen() {
   const [loopClosing,   setLoopClosing]   = useState(false);
   const [nearRival,     setNearRival]     = useState(false);
   const [routeProgress, setRouteProgress] = useState<RouteProgress | null>(null);
+  // Live capture reward — a one-shot celebratory toast + haptic the moment a loop
+  // closes (the in-the-moment "you claimed a zone" payoff that was previously deferred
+  // entirely to the post-run summary).
+  const [claimEvent,    setClaimEvent]    = useState<{ type: string; paceEarned?: number } | null>(null);
   const rivalPolygonsRef = useRef<TerritoryPolygon[]>([]);
 
   // Load rival polygons once at run start — rivals don't change mid-run
@@ -118,6 +123,15 @@ export default function ActiveRunScreen() {
   useEffect(() => {
     if (nearRival) feedback.rivalNearby();
   }, [nearRival]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fire the capture reward once each time a loop closes (this effect only re-runs when
+  // loopClosing actually changes, so it won't spam while the runner lingers near start).
+  useEffect(() => {
+    if (loopClosing) {
+      feedback.zoneClaimed();
+      setClaimEvent({ type: 'claimed' });
+    }
+  }, [loopClosing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Pause card animation ───────────────────────────────────────────────────
   const pauseCardY = useSharedValue(400);
@@ -277,6 +291,9 @@ export default function ActiveRunScreen() {
           <Text style={ss.bannerTxt}>Almost done! {Math.round(routeProgress!.distanceRemainingM)}m to go</Text>
         </View>
       )}
+
+      {/* One-shot capture reward, center-screen, self-dismissing */}
+      <ClaimToast event={claimEvent} onDismiss={() => setClaimEvent(null)} />
 
       <RunHUD
         distance={run.distance}

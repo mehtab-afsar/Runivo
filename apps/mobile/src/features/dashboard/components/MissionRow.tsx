@@ -36,7 +36,9 @@ function mkStyles(C: AppColors) {
     iconBox:    { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     iconBoxDone:{ backgroundColor: 'rgba(26,107,64,0.3)' },
     emojiText:  { fontSize: 16, lineHeight: 20 },
-    title:      { fontSize: 13, color: C.bg, marginBottom: 8 },
+    // Sits on the always-dark mission card, so the title must be a fixed-light token —
+    // C.bg inverts to near-black in dark mode and vanishes against the card.
+    title:      { fontSize: 13, color: C.alwaysLight, marginBottom: 8 },
     titleDone:  { color: 'rgba(255,255,255,0.35)', textDecorationLine: 'line-through' },
     barBg:      { height: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' },
     barFill:    { height: '100%', borderRadius: 1 },
