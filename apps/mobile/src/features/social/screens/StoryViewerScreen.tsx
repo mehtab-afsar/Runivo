@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Colors } from '@theme';
 import { useStoryViewer } from '@features/social/hooks/useStoryViewer';
 import { StoryProgress } from '@features/social/components/StoryProgress';
 import { StoryOverlay } from '@features/social/components/StoryOverlay';
@@ -42,7 +43,7 @@ export default function StoryViewerScreen() {
       <StoryOverlay group={currentGroup} storyIndex={storyIdx} topOffset={insets.top} />
 
       <Pressable style={[s.closeBtn, { top: insets.top + 24 }]} onPress={close}>
-        <X size={16} color="#fff" weight="regular" />
+        <X size={16} color={Colors.alwaysLight} weight="regular" />
       </Pressable>
 
       <View style={s.tapRow}>
@@ -67,6 +68,6 @@ const s = StyleSheet.create({
   topGradient: { ...StyleSheet.absoluteFillObject, height: 160, backgroundColor: 'rgba(0,0,0,0.35)', bottom: undefined },
   progressRow: { position: 'absolute', left: 12, right: 12, zIndex: 10 },
   closeBtn:    { position: 'absolute', right: 16, zIndex: 15, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  closeIcon:   { color: '#fff', fontSize: 14 },
+  closeIcon:   { color: Colors.alwaysLight, fontSize: 14 },
   tapRow:      { ...StyleSheet.absoluteFillObject, flexDirection: 'row', zIndex: 5, top: 80 },
 });

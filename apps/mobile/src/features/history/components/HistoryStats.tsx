@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 interface Props {
   runCount: number;
@@ -30,9 +30,9 @@ export function HistoryStats({ runCount, totalKm, avgKm }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    row: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 },
+    row: { flexDirection: 'row', paddingHorizontal: Spacing.gutter, gap: 8, marginBottom: 8 },
     cell: { flex: 1, backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, padding: 12, alignItems: 'center' },
-    value: { fontWeight: '600', fontSize: 18, color: C.black },
-    label: { fontSize: 9, color: C.t3, marginTop: 2 },
+    value: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, fontVariant: ['tabular-nums'] },
+    label: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }

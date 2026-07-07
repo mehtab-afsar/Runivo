@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
+import { Fonts } from '@theme';
 
 interface Props {
   visible: boolean;
@@ -7,10 +8,6 @@ interface Props {
   toLevel: number;
   onDone: () => void;
 }
-
-const FI = 'PlayfairDisplay_400Regular_Italic';
-const FS = 'Barlow_600SemiBold';
-const FL = 'Barlow_300Light';
 
 export default function LevelUpOverlay({ visible, fromLevel, toLevel, onDone }: Props) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -59,20 +56,20 @@ const ss = StyleSheet.create({
     zIndex:          100,
   },
   label: {
-    fontFamily:    FS,
+    fontFamily:    Fonts.semiBold,
     fontSize:      12,
     letterSpacing: 3,
     color:         '#D93518',
     marginBottom:  12,
   },
   number: {
-    fontFamily: FI,
+    fontFamily: Fonts.display,
     fontSize:   96,
     lineHeight: 96,
     color:      '#FFFFFF',
   },
   sub: {
-    fontFamily: FL,
+    fontFamily: Fonts.light,
     fontSize:   16,
     color:      'rgba(255,255,255,0.55)',
     marginTop:  16,

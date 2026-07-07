@@ -2,13 +2,10 @@ import React, { useMemo } from 'react';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Stack, X } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
-
-const FONT = 'Barlow_400Regular';
-const FONT_LIGHT = 'Barlow_300Light';
 
 const TERRAIN_STYLE = JSON.stringify({
   version: 8,
@@ -112,17 +109,17 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   container:    { position: 'absolute', top: 0, left: 0, right: 0 },
   map:          { flex: 1, minHeight: 300 },
   fallback:     { backgroundColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center', height: 300 },
-  fallbackText: { fontFamily: FONT, fontSize: 14, color: '#6B7280' },
+  fallbackText: { fontFamily: Fonts.regular, fontSize: 14, color: '#6B7280' },
   header:       { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
   closeBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
   pill:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 0.5, borderColor: C.border },
   dot:          { width: 7, height: 7, borderRadius: 3.5 },
-  pillTxt:      { fontFamily: FONT, fontSize: 12, color: C.black },
+  pillTxt:      { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
   mapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
   picker:       { position: 'absolute', right: 16, top: 60, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, padding: 12, minWidth: 130, borderWidth: 0.5, borderColor: C.border, zIndex: 20 },
-  pickerLabel:  { fontFamily: FONT_LIGHT, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 },
+  pickerLabel:  { ...Type.overline, color: C.muted, marginBottom: 8 },
   pickerRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   preview:      { width: 28, height: 28, borderRadius: 6, borderWidth: 0.5, borderColor: C.border },
   previewActive:{ borderWidth: 2, borderColor: C.black },
-  previewLabel: { fontFamily: FONT, fontSize: 12, color: C.muted },
+  previewLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.muted },
 }); }

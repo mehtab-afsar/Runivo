@@ -6,7 +6,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import Svg, { Polyline, Rect } from 'react-native-svg';
 import type { StoredRun } from '@shared/services/store';
 import { fmtDist, fmtDuration } from '@mobile/shared/lib/formatters';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -101,7 +101,7 @@ function CalendarHeatmap({ runs, emptyColor, redColor }: { runs: StoredRun[]; em
       <View style={{ flexDirection: 'row', gap: GAP, marginBottom: 6 }}>
         {DOW_LABELS.map((label, i) => (
           <View key={i} style={{ width: CELL, alignItems: 'center' }}>
-            <Text style={{ fontSize: 10, color: redColor + '80' }}>{label}</Text>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 10, color: redColor + '80' }}>{label}</Text>
           </View>
         ))}
       </View>
@@ -221,7 +221,7 @@ export function ActivityFeedTab({ runs, isOwn }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    sectionLabel:  { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 10 },
+    sectionLabel:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 10 },
     heatmapSection:{ marginBottom: 28 },
     heatmapCard:   { backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     card: {
@@ -231,18 +231,18 @@ function mkStyles(C: AppColors) {
     },
     sketchWrap:    { width: SKETCH_W, height: SKETCH_H, backgroundColor: C.stone, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
     info:          { flex: 1, gap: 3 },
-    dateText:      { fontSize: 11, color: C.t3 },
-    dist:          { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, letterSpacing: -0.5 },
+    dateText:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+    dist:          { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, letterSpacing: -0.5 },
     metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    metaText:      { fontSize: 12, color: C.t2 },
-    metaDot:       { fontSize: 12, color: C.t3 },
+    metaText:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+    metaDot:       { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
     zonePill:      { alignSelf: 'flex-start', backgroundColor: 'rgba(217,53,24,0.08)', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginTop: 2 },
-    zonePillText:  { fontWeight: '500', fontSize: 11, color: C.red },
+    zonePillText:  { fontFamily: Fonts.medium, fontSize: 11, color: C.red },
     arrow:         { fontSize: 18, color: C.t3 },
     showMore:      { backgroundColor: C.stone, borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 8 },
-    showMoreText:  { fontWeight: '500', fontSize: 13, color: C.t2 },
+    showMoreText:  { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
     empty:         { alignItems: 'center', paddingVertical: 40 },
-    emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, marginBottom: 6 },
-    emptyText:     { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 19 },
+    emptyTitle:    { fontFamily: Fonts.display, fontSize: 20, color: C.black, marginBottom: 6 },
+    emptyText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 19 },
   });
 }

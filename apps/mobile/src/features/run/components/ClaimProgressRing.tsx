@@ -1,9 +1,6 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT_BOLD = 'Barlow_700Bold';
-const FONT_SEMI = 'Barlow_600SemiBold';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface ClaimProgressRingProps {
   progress: number; // 0-1
@@ -48,7 +45,7 @@ function mkStyles(C: AppColors) {
       borderColor: 'rgba(255,255,255,0.1)',
     },
     fill:  { alignItems: 'center', justifyContent: 'center' },
-    pct:   { fontFamily: FONT_BOLD, fontSize: 12, color: C.red },
-    label: { fontFamily: FONT_SEMI, fontSize: 6, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 },
+    pct:   { fontFamily: Fonts.bold, fontSize: 12, color: C.red, fontVariant: ['tabular-nums'] },
+    label: { fontFamily: Fonts.semiBold, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 },
   });
 }

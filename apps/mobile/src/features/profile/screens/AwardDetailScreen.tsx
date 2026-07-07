@@ -6,7 +6,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { AwardId } from '@shared/types/game';
 import { X } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = NativeStackScreenProps<RootStackParamList, 'AwardDetail'>['route'];
@@ -64,14 +64,14 @@ function mkStyles(C: AppColors) {
     content:         { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
     icon:            { fontSize: 72, marginBottom: 16 },
     iconLocked:      { opacity: 0.35 },
-    title:           { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 28, color: C.black, textAlign: 'center', marginBottom: 12 },
+    title:           { fontFamily: Fonts.display, fontSize: 28, color: C.black, textAlign: 'center', marginBottom: 12 },
     categoryBadge:   { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, marginBottom: 16 },
-    categoryBadgeEarned: { backgroundColor: '#FFFBF2', borderColor: '#D97706' },
-    categoryText:    { fontWeight: '500', fontSize: 10, color: C.t2, letterSpacing: 1, textTransform: 'uppercase' },
-    categoryTextEarned: { color: '#D97706' },
-    description:     { fontSize: 15, color: C.t2, textAlign: 'center', lineHeight: 22, marginBottom: 20 },
-    date:            { fontSize: 13, color: C.t3 },
-    locked:          { fontSize: 13, color: C.t3, fontStyle: 'italic' },
-    errorText:       { fontSize: 14, color: C.t2, textAlign: 'center', marginTop: 100 },
+    categoryBadgeEarned: { backgroundColor: C.amberBg, borderColor: C.gold },
+    categoryText:    { ...Type.overline, color: C.t2 },
+    categoryTextEarned: { color: C.gold },
+    description:     { ...Type.body, color: C.t2, textAlign: 'center', marginBottom: 20 },
+    date:            { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
+    locked:          { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, fontStyle: 'italic' },
+    errorText:       { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center', marginTop: 100 },
   });
 }

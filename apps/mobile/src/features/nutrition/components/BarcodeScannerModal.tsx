@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, Barcode } from 'phosphor-react-native';
+import { Colors, Fonts } from '@theme';
 import { lookupBarcode, type ScannedFood } from '@features/nutrition/services/foodScanService';
 
 interface BarcodeScannerModalProps {
@@ -48,7 +49,7 @@ export function BarcodeScannerModal({ visible, onResult, onClose }: BarcodeScann
     return (
       <Modal visible animationType="slide" onRequestClose={onClose}>
         <SafeAreaView style={s.root}>
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={Colors.alwaysLight} />
         </SafeAreaView>
       </Modal>
     );
@@ -63,7 +64,7 @@ export function BarcodeScannerModal({ visible, onResult, onClose }: BarcodeScann
             <Text style={s.permBtnLabel}>Allow Camera</Text>
           </Pressable>
           <Pressable onPress={onClose} style={s.closeTopBtn}>
-            <X size={20} color="#fff" weight="regular" />
+            <X size={20} color={Colors.alwaysLight} weight="regular" />
           </Pressable>
         </SafeAreaView>
       </Modal>
@@ -85,7 +86,7 @@ export function BarcodeScannerModal({ visible, onResult, onClose }: BarcodeScann
           {/* Top bar */}
           <View style={s.topBar}>
             <Pressable onPress={onClose} style={s.closeTopBtn}>
-              <X size={20} color="#fff" weight="regular" />
+              <X size={20} color={Colors.alwaysLight} weight="regular" />
             </Pressable>
             <Text style={s.topTitle}>Scan Barcode</Text>
             <View style={{ width: 40 }} />
@@ -100,7 +101,7 @@ export function BarcodeScannerModal({ visible, onResult, onClose }: BarcodeScann
               <View style={[s.corner, s.br]} />
               {looking && (
                 <View style={s.lookingOverlay}>
-                  <ActivityIndicator color="#fff" size="large" />
+                  <ActivityIndicator color={Colors.alwaysLight} size="large" />
                   <Text style={s.lookingText}>Looking up product…</Text>
                 </View>
               )}
@@ -132,7 +133,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 8,
   },
   closeTopBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  topTitle:    { color: '#fff', fontWeight: '600', fontSize: 16 },
+  topTitle:    { color: Colors.alwaysLight, fontFamily: Fonts.semiBold, fontSize: 16 },
 
   reticleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   reticle:     {
@@ -140,7 +141,7 @@ const s = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  corner:      { position: 'absolute', width: CORNER, height: CORNER, borderColor: '#fff' },
+  corner:      { position: 'absolute', width: CORNER, height: CORNER, borderColor: Colors.alwaysLight },
   tl:          { top: 0, left: 0,  borderTopWidth: THICK, borderLeftWidth: THICK  },
   tr:          { top: 0, right: 0, borderTopWidth: THICK, borderRightWidth: THICK },
   bl:          { bottom: 0, left: 0,  borderBottomWidth: THICK, borderLeftWidth: THICK  },
@@ -157,19 +158,19 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center', justifyContent: 'center', gap: 10,
   },
-  lookingText:    { color: '#fff', fontSize: 13, fontWeight: '500' },
+  lookingText:    { color: Colors.alwaysLight, fontFamily: Fonts.medium, fontSize: 13 },
 
   bottomHint:     {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 8, paddingBottom: 24,
   },
-  hintText:       { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
+  hintText:       { color: 'rgba(255,255,255,0.6)', fontFamily: Fonts.regular, fontSize: 13 },
 
   // permission screen
-  permText:    { color: '#fff', fontSize: 15, textAlign: 'center', margin: 32 },
+  permText:    { color: Colors.alwaysLight, fontFamily: Fonts.regular, fontSize: 15, textAlign: 'center', margin: 32 },
   permBtn:     {
     backgroundColor: '#D93518', borderRadius: 10, paddingVertical: 14,
     paddingHorizontal: 28, alignSelf: 'center',
   },
-  permBtnLabel: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  permBtnLabel: { color: Colors.alwaysLight, fontFamily: Fonts.semiBold, fontSize: 15 },
 });

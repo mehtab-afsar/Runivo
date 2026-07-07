@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { Type, Fonts } from '@theme';
 
 interface CalorieRingProps {
   consumed: number;
@@ -71,11 +72,11 @@ const s = StyleSheet.create({
   wrap:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
   ringWrap:{ position: 'relative', alignItems: 'center', justifyContent: 'center' },
   center:  { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
-  kcal:    { fontWeight: '700', fontSize: 18, lineHeight: 20 },
-  eaten:   { fontSize: 8, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1 },
+  kcal:    { fontFamily: Fonts.bold, fontSize: 18, lineHeight: 20, fontVariant: ['tabular-nums'] },
+  eaten:   { ...Type.overline, color: '#ADADAD' },
   stats:   { flex: 1, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   stat:    { alignItems: 'center', gap: 2 },
-  statVal: { fontFamily: 'Barlow_600SemiBold', fontSize: 15, color: '#0A0A0A' },
-  statLabel:{ fontSize: 9, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statVal: { fontFamily: Fonts.semiBold, fontSize: 15, color: '#0A0A0A', fontVariant: ['tabular-nums'] },
+  statLabel:{ fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 0.5 },
   divider: { width: 0.5, height: 28, backgroundColor: '#E8E4DF' },
 });

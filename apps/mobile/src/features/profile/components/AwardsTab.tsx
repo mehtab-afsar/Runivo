@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun } from '@shared/services/store';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { AwardCategory, AwardId } from '@shared/types/game';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 const CATEGORIES: { key: AwardCategory; label: string }[] = [
   { key: 'territory', label: 'Territory' },
@@ -119,25 +119,25 @@ function mkStyles(C: AppColors) {
     progressHeader: { marginBottom: 20 },
     progressBarBg: { height: 4, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row', marginBottom: 6 },
     progressBarFill: { height: 4, backgroundColor: C.red },
-    progressText: { fontSize: 11, color: C.t2 },
+    progressText: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
 
     section: { marginBottom: 20 },
-    sectionLabel: { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 10 },
+    sectionLabel: { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 10 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
     card: { width: '47%', backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', gap: 6 },
-    cardEarned: { borderColor: '#D97706', backgroundColor: '#FFFBF2' },
+    cardEarned: { borderColor: C.gold, backgroundColor: C.amberBg },
 
     cardIcon: { fontSize: 32 },
     cardIconLocked: { opacity: 0.35 },
 
-    cardTitle: { fontSize: 13, color: C.t2, textAlign: 'center' },
-    cardTitleEarned: { fontWeight: '600', color: C.black },
-    cardDesc: { fontSize: 11, color: C.t3, textAlign: 'center', lineHeight: 15 },
-    cardDate: { fontSize: 10, color: '#D97706', marginTop: 2 },
+    cardTitle: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
+    cardTitleEarned: { fontFamily: Fonts.semiBold, color: C.black },
+    cardDesc: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', lineHeight: 15 },
+    cardDate: { fontFamily: Fonts.regular, fontSize: 10, color: C.gold, marginTop: 2 },
 
     progressMini: { height: 3, width: '100%', backgroundColor: C.mid, borderRadius: 2, flexDirection: 'row', overflow: 'hidden', marginTop: 4 },
     progressMiniFill: { height: 3, backgroundColor: C.red },
-    progressMiniLabel: { fontSize: 10, color: C.t3 },
+    progressMiniLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
   });
 }

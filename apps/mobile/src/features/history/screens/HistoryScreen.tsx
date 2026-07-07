@@ -6,7 +6,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useRunHistory } from '../hooks/useRunHistory';
 import { RunItem } from '../components/RunItem';
 import { HistoryStats } from '../components/HistoryStats';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -98,19 +98,19 @@ function mkStyles(C: AppColors) {
     root:         { flex: 1, backgroundColor: C.bg },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:      { width: 32 },
-    backText:     { fontSize: 18, color: C.t2 },
-    title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+    backText:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+    title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
     filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.white, flexGrow: 0 },
-    filterContent:{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row' },
+    filterContent:{ paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 8, flexDirection: 'row' },
     chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
     chipActive:   { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-    chipText:     { fontSize: 11, color: C.t2 },
-    chipTextActive:{ color: C.white, fontWeight: '500' },
-    list:         { paddingHorizontal: 16, paddingBottom: 100, gap: 8, paddingTop: 8 },
+    chipText:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
+    chipTextActive:{ color: C.alwaysLight, fontFamily: Fonts.medium },
+    list:         { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 8, paddingTop: 8 },
     empty:        { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 32, gap: 8 },
-    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, textAlign: 'center' },
-    emptyText:    { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
+    emptyTitle:   { fontFamily: Fonts.display, fontSize: 20, color: C.black, textAlign: 'center' },
+    emptyText:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
     emptyBtn:     { marginTop: 8, backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28 },
-    emptyBtnText: { fontWeight: '600', fontSize: 14, color: '#fff' },
+    emptyBtnText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
   });
 }

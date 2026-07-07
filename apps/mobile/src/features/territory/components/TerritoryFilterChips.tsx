@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { TerritoryFilter } from '../types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   activeFilter: TerritoryFilter;
@@ -50,7 +50,7 @@ function mkStyles(C: AppColors) {
     row:        { gap: 6, paddingRight: 8 },
     pill:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.50)' },
     pillActive: { backgroundColor: C.red },
-    label:      { fontSize: 13, color: C.white },
-    labelActive:{ fontWeight: '500',  fontSize: 13, color: C.white },
+    label:      { fontFamily: Fonts.regular, fontSize: 13, color: C.alwaysLight },
+    labelActive:{ fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
   });
 }

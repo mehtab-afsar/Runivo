@@ -3,16 +3,16 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, Ac
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Calendar, CheckCircle, XCircle, CircleIcon as Circle } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Colors, Fonts, type AppColors } from '@theme';
 import { usePlanScreen, type SessionWithStatus } from '../hooks/usePlanScreen';
 
 const SESSION_TYPE_COLORS: Record<string, string> = {
-  'Easy Run':    '#1A6B40',
-  'Tempo':       '#9E6800',
+  'Easy Run':    Colors.green,
+  'Tempo':       Colors.amber,
   'Long Run':    '#1E4D8C',
-  'Intervals':   '#6B2D8C',
+  'Intervals':   Colors.purple,
   'Cross-train': '#5F5E5A',
-  'Race':        '#D93518',
+  'Race':        Colors.red,
   'Rest':        '#AAAAAA',
 };
 
@@ -137,32 +137,32 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1, backgroundColor: C.bg },
     header:      { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:     { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
-    title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    subtitle:    { fontSize: 10, color: C.t3, marginTop: 2 },
+    title:       { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    subtitle:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
     weekBadge:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)', marginTop: 2 },
-    weekBadgeText: { fontWeight: '600', fontSize: 10, color: C.red },
+    weekBadgeText: { fontFamily: Fonts.semiBold, fontSize: 10, color: C.red, fontVariant: ['tabular-nums'] },
     center:      { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12 },
-    emptyTitle:  { fontWeight: '500', fontSize: 14, color: C.black },
-    emptyText:   { fontSize: 12, color: C.t3, textAlign: 'center', lineHeight: 20 },
+    emptyTitle:  { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
+    emptyText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center', lineHeight: 20 },
     // Summary card
     summaryCard: { marginHorizontal: 18, marginTop: 16, marginBottom: 8, backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     summaryRow:  { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    summaryWeek: { fontWeight: '500', fontSize: 12, color: C.black },
+    summaryWeek: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
     summaryStats:{ flexDirection: 'row', paddingVertical: 12 },
     stat:        { flex: 1, alignItems: 'center' },
-    statNum:     { fontWeight: '600', fontSize: 20, color: C.black },
-    statLabel:   { fontSize: 10, color: C.t3, marginTop: 2 },
+    statNum:     { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, fontVariant: ['tabular-nums'] },
+    statLabel:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
     statDiv:     { width: 0.5, backgroundColor: C.border },
     // Session rows
     row:         { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: C.white },
     rowToday:    { backgroundColor: 'rgba(217,53,24,0.03)' },
     dayCol:      { width: 34, alignItems: 'center', gap: 3 },
-    day:         { fontWeight: '500', fontSize: 11, color: C.t3 },
+    day:         { fontFamily: Fonts.medium, fontSize: 11, color: C.t3 },
     dayToday:    { color: C.red },
     todayDot:    { width: 4, height: 4, borderRadius: 2, backgroundColor: C.red },
     typePill:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, flexShrink: 0 },
-    typeText:    { fontWeight: '500', fontSize: 9, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
-    desc:        { flex: 1, fontSize: 12, color: C.black, lineHeight: 18 },
+    typeText:    { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+    desc:        { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: C.black, lineHeight: 18 },
     separator:   { height: 0.5, backgroundColor: C.mid, marginLeft: 18 },
   });
 }

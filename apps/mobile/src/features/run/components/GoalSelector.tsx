@@ -1,11 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
 import type { GoalType } from '../types';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT = 'Barlow_400Regular';
-const FONT_MED = 'Barlow_500Medium';
-const FONT_SEMI = 'Barlow_600SemiBold';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 const GOAL_TYPES: { id: GoalType; label: string; unit?: string }[] = [
   { id: 'open',     label: 'Open' },
@@ -63,10 +59,10 @@ function mkStyles(C: AppColors) {
     typeRow:        { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 8, padding: 3, gap: 3 },
     typeBtn:        { flex: 1, paddingVertical: 9, borderRadius: 6, alignItems: 'center' },
     typeBtnActive:  { backgroundColor: C.alwaysDark },
-    typeLabel:      { fontFamily: FONT, fontSize: 11, color: C.muted },
-    typeLabelActive:{ fontFamily: FONT_MED, color: C.white },
+    typeLabel:      { fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
+    typeLabelActive:{ fontFamily: Fonts.medium, color: C.alwaysLight },
     valueRow:       { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 12 },
-    valueInput:     { fontFamily: FONT_SEMI, fontSize: 32, color: C.black, minWidth: 60 },
-    unit:           { fontFamily: FONT, fontSize: 13, color: C.muted },
+    valueInput:     { fontFamily: Fonts.semiBold, fontSize: 32, color: C.black, minWidth: 60, fontVariant: ['tabular-nums'] },
+    unit:           { fontFamily: Fonts.regular, fontSize: 13, color: C.muted },
   });
 }

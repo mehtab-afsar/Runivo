@@ -6,7 +6,7 @@ import Animated, {
   useAnimatedStyle, Easing,
 } from 'react-native-reanimated';
 import { Hexagon, CaretRight, Sparkle } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 
 interface Props {
   paceBalance: number;
@@ -39,12 +39,14 @@ export function PACEStoreBanner({ paceBalance, weeklyEarned, weeklyCap, onPress 
 
   return (
     <Pressable
-      style={ss.wrap}
+      style={({ pressed }) => [ss.wrap, pressed && ss.pressed]}
       onPress={onPress}
       android_ripple={{ color: 'rgba(255,255,255,0.15)' }}
     >
+      {/* On-brand bold-dark card (was an off-palette purple/magenta gradient) —
+          fixed dark in both themes; gold is reserved for the PACE currency itself. */}
       <LinearGradient
-        colors={['#1E0845', '#4F1D96', '#7C3AED', '#C026D3']}
+        colors={['#201D19', '#0A0A0A']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={ss.grad}
@@ -53,8 +55,8 @@ export function PACEStoreBanner({ paceBalance, weeklyEarned, weeklyCap, onPress 
 
         <View style={ss.topRow}>
           <View style={ss.labelRow}>
-            <Sparkle size={11} color="rgba(255,255,255,0.7)" weight="light" />
-            <Text style={ss.eyebrow}>PACE STORE</Text>
+            <Sparkle size={11} color="rgba(255,255,255,0.55)" weight="light" />
+            <Text style={ss.eyebrow}>PACE Store</Text>
           </View>
           <View style={ss.badge}>
             <Text style={ss.badgeTxt}>NEW DROPS</Text>
@@ -62,9 +64,9 @@ export function PACEStoreBanner({ paceBalance, weeklyEarned, weeklyCap, onPress 
         </View>
 
         <View style={ss.main}>
-          {/* Hollow gold hexagon — no animation */}
+          {/* Hollow gold hexagon — the PACE currency mark */}
           <View style={ss.gemWrap}>
-            <Hexagon size={40} color="#FDE68A" weight="light" />
+            <Hexagon size={40} color={C.gold} weight="light" />
           </View>
 
           <View style={ss.textBlock}>
@@ -91,27 +93,28 @@ export function PACEStoreBanner({ paceBalance, weeklyEarned, weeklyCap, onPress 
   );
 }
 
-function mkStyles(_C: AppColors) {
+function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    wrap:      { marginHorizontal: 22, marginBottom: 16, borderRadius: 20, overflow: 'hidden', shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 16, elevation: 10 },
+    wrap:      { marginHorizontal: Spacing.gutter, marginBottom: 16, borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 8 },
+    pressed:   { opacity: 0.9, transform: [{ scale: 0.99 }] },
     grad:      { paddingHorizontal: 16, paddingVertical: 12, borderRadius: 20 },
     shimmer:   { position: 'absolute', top: 0, bottom: 0, width: 80, backgroundColor: 'rgba(255,255,255,0.08)', transform: [{ skewX: '-20deg' }] },
     topRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
     labelRow:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    eyebrow:   { fontWeight: '500', fontSize: 10, letterSpacing: 1.6, color: 'rgba(255,255,255,0.7)' },
-    badge:     { backgroundColor: '#FDE68A', borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
-    badgeTxt:  { fontWeight: '700', fontSize: 8, color: '#78350F', letterSpacing: 0.8 },
+    eyebrow:   { ...Type.overline, color: 'rgba(255,255,255,0.55)' },
+    badge:     { backgroundColor: C.gold, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
+    badgeTxt:  { fontFamily: Fonts.bold, fontSize: 10, color: C.alwaysDark, letterSpacing: 0.8 },
     main:      { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
     gemWrap:   { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
     textBlock: { flex: 1 },
-    balanceNum:{ fontWeight: '700', fontSize: 26, color: '#fff', letterSpacing: -0.8, lineHeight: 28 },
-    balanceSub:{ fontWeight: '500', fontSize: 10, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
-    subtext:   { fontSize: 10, color: 'rgba(255,255,255,0.55)', marginTop: 3 },
+    balanceNum:{ ...Type.metricMd, fontSize: 30, color: C.alwaysLight, lineHeight: 32 },
+    balanceSub:{ ...Type.labelSm, color: 'rgba(255,255,255,0.6)', marginTop: 1 },
+    subtext:   { ...Type.caption, color: 'rgba(255,255,255,0.55)', marginTop: 3 },
     weeklyWrap:  { marginBottom: 10 },
     weeklyTrack: { height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', overflow: 'hidden', marginBottom: 5 },
-    weeklyFill:  { height: 4, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 2 },
-    weeklyLabel: { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+    weeklyFill:  { height: 4, backgroundColor: C.gold, borderRadius: 2 },
+    weeklyLabel: { ...Type.caption, color: 'rgba(255,255,255,0.6)', fontVariant: ['tabular-nums'] },
     ctaRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.12)', paddingTop: 10 },
-    ctaTxt:    { fontWeight: '600', fontSize: 13, color: 'rgba(255,255,255,0.9)', letterSpacing: 0.2 },
+    ctaTxt:    { ...Type.label, fontFamily: Fonts.semiBold, color: 'rgba(255,255,255,0.9)', letterSpacing: 0.2 },
   });
 }

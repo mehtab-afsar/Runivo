@@ -1,9 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT_LIGHT = 'Barlow_300Light';
-const FONT_SEMI  = 'Barlow_600SemiBold';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 interface RunHUDProps {
   distance: number;
@@ -53,13 +50,13 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     container:        { backgroundColor: C.alwaysDark, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
     distanceBlock:    { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 16 },
-    distanceValue:    { fontFamily: FONT_LIGHT, fontSize: 72, color: C.white, letterSpacing: -2, lineHeight: 76 },
-    distanceUnit:     { fontFamily: FONT_LIGHT, fontSize: 22, color: 'rgba(255,255,255,0.4)' },
+    distanceValue:    { ...Type.metricXL, color: C.alwaysLight, letterSpacing: -2, lineHeight: 76 },
+    distanceUnit:     { fontFamily: Fonts.light, fontSize: 22, color: 'rgba(255,255,255,0.4)' },
     secondaryStats:   { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 },
     secondaryStat:    { flex: 1, alignItems: 'center' },
     secondaryStatMid: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
     // Sized for a one-handed glance mid-run (was 20 / 8px @ 35% — illegible while moving).
-    secondaryValue:   { fontFamily: FONT_LIGHT, fontSize: 28, color: C.white, letterSpacing: -0.5 },
-    secondaryLabel:   { fontFamily: FONT_SEMI, fontSize: 11, letterSpacing: 1, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+    secondaryValue:   { ...Type.metricMd, color: C.alwaysLight },
+    secondaryLabel:   { fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 1, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
   });
 }

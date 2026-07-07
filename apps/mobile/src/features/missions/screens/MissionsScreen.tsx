@@ -18,27 +18,27 @@ import { setDailyMissions, getTodaysMissions } from '@shared/services/missionSto
 import { getProfile } from '@shared/services/profile';
 import type { PlayerProfile } from '@shared/services/profile';
 
-import { useTheme } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 // Mission type → icon
-const TYPE_ICON: Record<string, { Icon: Icon; color: string }> = {
-  run_distance:      { Icon: TrendUp,    color: '#D93518' },
-  claim_territories: { Icon: Lightning,  color: '#EAB308' },
-  capture_enemy:     { Icon: Shield,     color: '#059669' },
-  speed_run:         { Icon: TrendUp,    color: '#D93518' },
-  run_streak:        { Icon: Fire,       color: '#EA580C' },
-  defend_zone:       { Icon: Shield,     color: '#059669' },
-  steal_rival:       { Icon: Lightning,  color: '#DC2626' },
-};
+const mkTypeIcon = (C: AppColors): Record<string, { Icon: Icon; color: string }> => ({
+  run_distance:      { Icon: TrendUp,    color: C.red },
+  claim_territories: { Icon: Lightning,  color: C.gold },
+  capture_enemy:     { Icon: Shield,     color: C.green },
+  speed_run:         { Icon: TrendUp,    color: C.red },
+  run_streak:        { Icon: Fire,       color: C.orange },
+  defend_zone:       { Icon: Shield,     color: C.green },
+  steal_rival:       { Icon: Lightning,  color: C.red },
+});
 
 // Difficulty styles on white card
-const DIFF_CARD = {
-  easy:   { bg: '#EDF7F2', fg: '#1A6B40' },
-  medium: { bg: '#FDF6E8', fg: '#9E6800' },
-  hard:   { bg: '#FEF0EE', fg: '#D93518' },
-} as const;
+const mkDiffCard = (C: AppColors) => ({
+  easy:   { bg: C.greenBg, fg: C.green },
+  medium: { bg: C.amberBg, fg: C.amber },
+  hard:   { bg: C.redLo,   fg: C.red   },
+} as const);
 
 // Difficulty styles on black (blueprint card)
 const DIFF_BP = {
@@ -86,10 +86,14 @@ export default function MissionsScreen() {
     surface: C.bg,
     black:   C.black,
     white:   C.white,
+    alwaysDark:  C.alwaysDark,
+    alwaysLight: C.alwaysLight,
     t2:      C.t2,
     t3:      C.t3,
   } as const;
   const ss = useMemo(() => mkStyles(T), [C]);
+  const TYPE_ICON = useMemo(() => mkTypeIcon(C), [C]);
+  const DIFF_CARD = useMemo(() => mkDiffCard(C), [C]);
   const navigation = useNavigation<Nav>();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -235,7 +239,7 @@ export default function MissionsScreen() {
                 <View style={ss.blueprintRows}>
                   {blueprintMissions.length > 0
                     ? blueprintMissions.slice(0, 3).map((m, i) => {
-                        const { Icon: BPIcon, color: bpColor } = TYPE_ICON[m.type as MissionType] ?? { Icon: Target, color: '#D93518' };
+                        const { Icon: BPIcon, color: bpColor } = TYPE_ICON[m.type as MissionType] ?? { Icon: Target, color: C.red };
                         const dStyle = DIFF_BP[m.difficulty];
                         return (
                           <View key={i} style={ss.blueprintRow}>
@@ -261,7 +265,7 @@ export default function MissionsScreen() {
                   style={({ pressed }) => [ss.applyBtn, pressed && { opacity: 0.85 }]}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Check size={12} color={T.black} weight="regular" />
+                    <Check size={12} color={T.alwaysDark} weight="regular" />
                     <Text style={ss.applyBtnText}>Apply Blueprint</Text>
                   </View>
                 </Pressable>
@@ -278,7 +282,7 @@ export default function MissionsScreen() {
         renderItem={({ item: template }) => {
           const isSelected  = selected.has(template.title);
           const isDisabled  = !isSelected && selected.size >= 3;
-          const { Icon: CardIcon, color: cardIconColor } = TYPE_ICON[template.type as MissionType] ?? { Icon: Target, color: '#D93518' };
+          const { Icon: CardIcon, color: cardIconColor } = TYPE_ICON[template.type as MissionType] ?? { Icon: Target, color: C.red };
           const diffStyle   = DIFF_CARD[template.difficulty];
           const catLabel    = template.goalCategory ? CAT_LABELS[template.goalCategory] : null;
           return (
@@ -289,7 +293,7 @@ export default function MissionsScreen() {
               {/* Top row */}
               <View style={ss.cardTopRow}>
                 <View style={[ss.cardIconBox, isSelected && ss.cardIconBoxSelected]}>
-                  <CardIcon size={16} color={isSelected ? T.white : cardIconColor} weight="light" />
+                  <CardIcon size={16} color={isSelected ? T.alwaysLight : cardIconColor} weight="light" />
                 </View>
                 <View style={ss.cardMeta}>
                   <Text style={ss.cardTitle}>{template.title}</Text>
@@ -306,7 +310,7 @@ export default function MissionsScreen() {
                 </View>
                 {isSelected && (
                   <View style={ss.checkCircle}>
-                    <Check size={11} color={T.white} weight="regular" />
+                    <Check size={11} color={T.alwaysLight} weight="regular" />
                   </View>
                 )}
               </View>
@@ -338,7 +342,7 @@ export default function MissionsScreen() {
             {[0, 1, 2].map(i => {
               const mission = selectedMissions[i];
               const filled  = !!mission;
-              const entry: { Icon: Icon; color: string } = mission ? (TYPE_ICON[mission.type as MissionType] ?? { Icon: Target, color: '#D93518' }) : { Icon: Target, color: T.t3 };
+              const entry: { Icon: Icon; color: string } = mission ? (TYPE_ICON[mission.type as MissionType] ?? { Icon: Target, color: C.red }) : { Icon: Target, color: T.t3 };
               const { Icon: SlotIcon } = entry;
               return (
                 <View
@@ -346,8 +350,8 @@ export default function MissionsScreen() {
                   style={[ss.slot, filled && ss.slotFilled, i > 0 && { marginLeft: -6 }]}
                 >
                   {filled
-                    ? <SlotIcon size={14} color={T.white} weight="light" />
-                    : <Text style={{ fontSize: 16, color: T.t3 }}>+</Text>
+                    ? <SlotIcon size={14} color={T.alwaysLight} weight="light" />
+                    : <Text style={{ fontFamily: Fonts.regular, fontSize: 16, color: T.t3 }}>+</Text>
                   }
                 </View>
               );
@@ -374,7 +378,7 @@ export default function MissionsScreen() {
   );
 }
 
-type TTokens = { pageBg: string; stone: string; mid: string; border: string; surface: string; black: string; white: string; t2: string; t3: string };
+type TTokens = { pageBg: string; stone: string; mid: string; border: string; surface: string; black: string; white: string; alwaysDark: string; alwaysLight: string; t2: string; t3: string };
 function mkStyles(T: TTokens) { return StyleSheet.create({
   root:            { flex: 1, backgroundColor: T.pageBg },
   loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -382,40 +386,40 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   // Header
   header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: T.white, borderBottomWidth: 0.5, borderBottomColor: T.border },
   backBtn:         { width: 30, height: 30, borderRadius: 15, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
-  backText:        { fontSize: 16, color: T.black, lineHeight: 18 },
-  headerTitle:     { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: T.black },
-  dateLabel:       { fontSize: 11, color: T.t3 },
+  backText:        { fontFamily: Fonts.regular, fontSize: 16, color: T.black, lineHeight: 18 },
+  headerTitle:     { fontFamily: Fonts.display, fontSize: 22, color: T.black },
+  dateLabel:       { fontFamily: Fonts.regular, fontSize: 11, color: T.t3 },
 
   // Tabs
   tabsContainer:   { backgroundColor: T.white, borderBottomWidth: 0.5, borderBottomColor: T.border },
-  tabsScroll:      { paddingHorizontal: 16, paddingVertical: 10, gap: 6, flexDirection: 'row' },
+  tabsScroll:      { paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 6, flexDirection: 'row' },
   tab:             { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 2, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border },
-  tabActive:       { backgroundColor: T.black, borderColor: T.black },
-  tabText:         { fontWeight: '500', fontSize: 11, color: T.t3, letterSpacing: 0.6 },
-  tabTextActive:   { color: T.white },
+  tabActive:       { backgroundColor: T.alwaysDark, borderColor: T.alwaysDark },
+  tabText:         { fontFamily: Fonts.medium, fontSize: 11, color: T.t3, letterSpacing: 0.6 },
+  tabTextActive:   { color: T.alwaysLight },
 
   // Blueprint
   blueprintOuter:  { backgroundColor: T.white, padding: 18, marginBottom: 1 },
-  blueprintEyebrow:{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: T.t3, marginBottom: 8 },
-  blueprintCard:   { backgroundColor: T.black, borderRadius: 12, padding: 16 },
-  blueprintKicker: { fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: 'rgba(255,255,255,0.45)', marginBottom: 6 },
-  blueprintTitle:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 17, color: T.white, lineHeight: 22, marginBottom: 14 },
+  blueprintEyebrow:{ ...Type.overline, letterSpacing: 1.8, color: T.t3, marginBottom: 8 },
+  blueprintCard:   { backgroundColor: T.alwaysDark, borderRadius: 12, padding: 16 },
+  blueprintKicker: { ...Type.overline, letterSpacing: 1.8, color: 'rgba(255,255,255,0.45)', marginBottom: 6 },
+  blueprintTitle:  { fontFamily: Fonts.display, fontSize: 17, color: T.alwaysLight, lineHeight: 22, marginBottom: 14 },
   blueprintRows:   { gap: 8, marginBottom: 14 },
   blueprintRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   blueprintIconBox:{ width: 28, height: 28, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
   blueprintMeta:   { flex: 1 },
-  blueprintMissionTitle: { fontSize: 12, color: T.white, lineHeight: 16 },
-  blueprintMissionXp:    { fontSize: 10, color: 'rgba(255,255,255,0.5)' },
+  blueprintMissionTitle: { fontFamily: Fonts.regular, fontSize: 12, color: T.alwaysLight, lineHeight: 16 },
+  blueprintMissionXp:    { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.5)' },
   blueprintSkeleton:     { height: 40, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)' },
   diffPill:        { borderRadius: 2, paddingHorizontal: 6, paddingVertical: 2 },
-  diffPillText:    { fontWeight: '500', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6 },
-  applyBtn:        { backgroundColor: T.white, borderRadius: 6, paddingVertical: 11, alignItems: 'center', justifyContent: 'center' },
-  applyBtnText:    { fontWeight: '500', fontSize: 12, color: T.black, letterSpacing: 0.6 },
+  diffPillText:    { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+  applyBtn:        { backgroundColor: T.alwaysLight, borderRadius: 6, paddingVertical: 11, alignItems: 'center', justifyContent: 'center' },
+  applyBtnText:    { fontFamily: Fonts.medium, fontSize: 12, color: T.alwaysDark, letterSpacing: 0.6 },
 
   // Section divider
   divider:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, backgroundColor: T.stone },
-  dividerLabel:    { fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: T.t3 },
-  dividerCount:    { fontSize: 10, color: T.t3 },
+  dividerLabel:    { ...Type.overline, letterSpacing: 1.8, color: T.t3 },
+  dividerCount:    { fontFamily: Fonts.regular, fontSize: 10, color: T.t3, fontVariant: ['tabular-nums'] },
 
   // Mission cards
   missionCard:     { backgroundColor: T.white, padding: 14, paddingHorizontal: 18 },
@@ -423,25 +427,25 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   missionCardDisabled: { opacity: 0.4 },
   cardTopRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
   cardIconBox:     { width: 36, height: 36, borderRadius: 8, backgroundColor: T.stone, borderWidth: 0.5, borderColor: T.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  cardIconBoxSelected: { backgroundColor: T.black, borderColor: T.black },
+  cardIconBoxSelected: { backgroundColor: T.alwaysDark, borderColor: T.alwaysDark },
   cardMeta:        { flex: 1 },
-  cardTitle:       { fontWeight: '500', fontSize: 13, color: T.black, marginBottom: 5, lineHeight: 16 },
+  cardTitle:       { fontFamily: Fonts.medium, fontSize: 13, color: T.black, marginBottom: 5, lineHeight: 16 },
   badgeRow:        { flexDirection: 'row', gap: 5, flexWrap: 'wrap' },
   diffBadge:       { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 2 },
-  diffBadgeText:   { fontWeight: '500', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6 },
+  diffBadgeText:   { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
   catBadge:        { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 2, backgroundColor: T.stone },
-  catBadgeText:    { fontSize: 9, color: T.t3 },
-  checkCircle:     { width: 20, height: 20, borderRadius: 10, backgroundColor: T.black, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
-  checkText:       { fontWeight: '600', fontSize: 11, color: T.white },
-  cardDesc:        { fontSize: 11, color: T.t2, lineHeight: 17, marginBottom: 10 },
+  catBadgeText:    { fontFamily: Fonts.regular, fontSize: 10, color: T.t3 },
+  checkCircle:     { width: 20, height: 20, borderRadius: 10, backgroundColor: T.alwaysDark, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
+  checkText:       { fontFamily: Fonts.semiBold, fontSize: 11, color: T.alwaysLight },
+  cardDesc:        { fontFamily: Fonts.regular, fontSize: 11, color: T.t2, lineHeight: 17, marginBottom: 10 },
   rewardsRow:      { flexDirection: 'row', alignItems: 'baseline' },
-  rewardValue:     { fontSize: 12, color: T.black },
-  rewardUnit:      { fontSize: 10, color: T.t3 },
+  rewardValue:     { fontFamily: Fonts.regular, fontSize: 12, color: T.black },
+  rewardUnit:      { fontFamily: Fonts.regular, fontSize: 10, color: T.t3 },
   rewardDivider:   { width: 1, height: 12, backgroundColor: T.mid, marginHorizontal: 10 },
 
   // Empty
   emptyWrap:       { padding: 48, alignItems: 'center' },
-  emptyText:       { fontSize: 13, color: T.t3 },
+  emptyText:       { fontFamily: Fonts.regular, fontSize: 13, color: T.t3 },
 
   // Save bar
   saveBar: {
@@ -454,7 +458,7 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   },
   slotRow:    { flexDirection: 'row', alignItems: 'center' },
   slot:       { width: 32, height: 32, borderRadius: 8, borderWidth: 2, borderColor: T.white, backgroundColor: T.stone, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
-  slotFilled: { backgroundColor: T.black, zIndex: 3 },
-  saveBtn:    { flex: 1, backgroundColor: T.black, borderRadius: 3, paddingVertical: 13, alignItems: 'center' },
-  saveBtnText:{ fontWeight: '500', fontSize: 12, color: T.white, letterSpacing: 0.6 },
+  slotFilled: { backgroundColor: T.alwaysDark, zIndex: 3 },
+  saveBtn:    { flex: 1, backgroundColor: T.alwaysDark, borderRadius: 3, paddingVertical: 13, alignItems: 'center' },
+  saveBtnText:{ fontFamily: Fonts.medium, fontSize: 12, color: T.alwaysLight, letterSpacing: 0.6 },
 }); }

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Pulse, Fire, Waves, Mountains, Star, Target, TreeEvergreen, ArrowClockwise, Lightning, PathIcon as RouteIcon, MapTrifold, Trophy, type Icon } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 const ROUTE_ICON_MAP: Record<string, { Icon: Icon; color: string }> = {
   run:      { Icon: Pulse,          color: '#D93518' },
@@ -18,8 +18,6 @@ const ROUTE_ICON_MAP: Record<string, { Icon: Icon; color: string }> = {
   trophy:   { Icon: Trophy,         color: '#D97706' },
 };
 
-const FONT_MED   = 'Barlow_500Medium';
-const FONT_LIGHT = 'Barlow_300Light';
 
 export interface RouteItem {
   id: string;
@@ -54,7 +52,7 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
       onPress={() => onSelect(route)}
     >
       <View style={[ss.icon, highlighted && { backgroundColor: '#DBEAFE' }]}>
-        {(() => { const entry = ROUTE_ICON_MAP[route.emoji]; return entry ? <entry.Icon size={18} color={entry.color} weight="light" /> : <Pulse size={18} color="#D93518" weight="light" />; })()}
+        {(() => { const entry = ROUTE_ICON_MAP[route.emoji]; return entry ? <entry.Icon size={18} color={entry.color} weight="light" /> : <Pulse size={18} color={C.red} weight="light" />; })()}
       </View>
       <View style={ss.info}>
         <Text style={ss.name} numberOfLines={1}>{route.name}</Text>
@@ -70,7 +68,7 @@ function mkStyles(C: AppColors) {
     icon:  { width: 40, height: 40, borderRadius: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     emoji: { fontSize: 18 },
     info:  { flex: 1 },
-    name:  { fontFamily: FONT_MED, fontSize: 13, color: C.black },
-    meta:  { fontFamily: FONT_LIGHT, fontSize: 11, color: C.muted, marginTop: 1 },
+    name:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    meta:  { fontFamily: Fonts.light, fontSize: 11, color: C.muted, marginTop: 1 },
   });
 }

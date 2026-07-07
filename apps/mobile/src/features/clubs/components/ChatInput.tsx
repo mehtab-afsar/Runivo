@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TextInput, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { Colors } from '@theme';
+import { Colors, Fonts } from '@theme';
 
 const C = Colors;
 
@@ -45,13 +45,13 @@ const s = StyleSheet.create({
   input: {
     flex: 1, backgroundColor: C.white, borderRadius: 24, borderWidth: 0.5,
     borderColor: C.border, paddingHorizontal: 16, paddingVertical: 8,
-    fontSize: 14, color: C.black,
+    fontFamily: Fonts.regular, fontSize: 14, color: C.black,
   },
   sendBtn: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: C.mid,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   sendBtnActive: { backgroundColor: C.red },
-  sendIcon: { fontWeight: '600', fontSize: 16, color: C.t3 },
-  sendIconActive: { color: '#fff' },
+  sendIcon: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t3 },
+  sendIconActive: { color: C.white },
 });

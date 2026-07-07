@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { Play, Pause, ArrowCounterClockwise, CaretLeft } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 
@@ -112,7 +112,7 @@ export default function RunReplayScreen() {
       {/* Stats HUD */}
       <View style={[ss.hud, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={12}>
-          <CaretLeft size={18} color="#fff" weight="regular" />
+          <CaretLeft size={18} color={C.alwaysLight} weight="regular" />
         </Pressable>
         <View style={ss.hudStats}>
           <View style={ss.statItem}>
@@ -199,12 +199,12 @@ export default function RunReplayScreen() {
         {/* Buttons */}
         <View style={ss.btnRow}>
           <Pressable style={ss.ctrlBtn} onPress={handleReset}>
-            <ArrowCounterClockwise size={18} color="#fff" weight="regular" />
+            <ArrowCounterClockwise size={18} color={C.alwaysLight} weight="regular" />
           </Pressable>
           <Pressable style={[ss.ctrlBtn, ss.playBtn]} onPress={togglePlay}>
             {isPlaying
-              ? <Pause size={22} color="#fff" weight="fill" />
-              : <Play  size={22} color="#fff" weight="fill" />
+              ? <Pause size={22} color={C.alwaysLight} weight="fill" />
+              : <Play  size={22} color={C.alwaysLight} weight="fill" />
             }
           </Pressable>
           <Pressable
@@ -225,27 +225,27 @@ export default function RunReplayScreen() {
   );
 }
 
-function mkStyles(_C: AppColors) {
+function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    root:         { flex: 1, backgroundColor: '#0A0A0A' },
+    root:         { flex: 1, backgroundColor: C.alwaysDark },
     map:          { flex: 1 },
     mapFallback:  { alignItems: 'center', justifyContent: 'center' },
-    fallbackText: { fontSize: 13, color: '#6B7280' },
+    fallbackText: { fontFamily: Fonts.regular, fontSize: 13, color: '#6B7280' },
     hud:          { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingBottom: 10, backgroundColor: 'rgba(0,0,0,0.6)' },
     backBtn:      { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
     hudStats:     { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
     statItem:     { alignItems: 'center' },
-    statValue:    { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: '#fff' },
-    statLabel:    { fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.8 },
+    statValue:    { fontFamily: Fonts.semiBold, fontSize: 18, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
+    statLabel:    { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.8 },
     controls:     { backgroundColor: '#0F0F0F', paddingTop: 16, paddingHorizontal: 20 },
     scrubberWrap: { paddingVertical: 12 },
     scrubberTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, position: 'relative' },
-    scrubberFill:  { position: 'absolute', left: 0, top: 0, height: 4, backgroundColor: '#D93518', borderRadius: 2 },
-    scrubberThumb: { position: 'absolute', top: -7, marginLeft: -9, width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
+    scrubberFill:  { position: 'absolute', left: 0, top: 0, height: 4, backgroundColor: C.red, borderRadius: 2 },
+    scrubberThumb: { position: 'absolute', top: -7, marginLeft: -9, width: 18, height: 18, borderRadius: 9, backgroundColor: C.white, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
     btnRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 4 },
     ctrlBtn:      { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-    ctrlBtnActive: { backgroundColor: '#D93518' },
-    playBtn:      { width: 56, height: 56, borderRadius: 28, backgroundColor: '#D93518' },
-    speedTxt:     { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: '#fff' },
+    ctrlBtnActive: { backgroundColor: C.red },
+    playBtn:      { width: 56, height: 56, borderRadius: 28, backgroundColor: C.red },
+    speedTxt:     { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight },
   });
 }

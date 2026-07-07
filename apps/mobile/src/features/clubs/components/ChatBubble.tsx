@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
-import { Colors } from '@theme';
+import { Colors, Fonts } from '@theme';
 
 const C = Colors;
 
@@ -63,24 +63,24 @@ const s = StyleSheet.create({
   wrap:            { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 16, paddingVertical: 3 },
   wrapMe:          { flexDirection: 'row-reverse' },
   avatar:          { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  avatarText:      { fontWeight: '700', fontSize: 11, color: '#fff' },
+  avatarText:      { fontFamily: Fonts.bold, fontSize: 11, color: C.white },
   content:         { maxWidth: '72%', alignItems: 'flex-start' },
   contentMe:       { alignItems: 'flex-end' },
   nameRow:         { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3, paddingLeft: 2 },
-  senderName:      { fontWeight: '600', fontSize: 11, color: C.t2 },
+  senderName:      { fontFamily: Fonts.semiBold, fontSize: 11, color: C.t2 },
   levelBadge:      { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
-  levelText:       { fontSize: 9 },
+  levelText:       { fontFamily: Fonts.regular, fontSize: 10 },
   bubble:          { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
   bubbleMe:        { backgroundColor: C.red, borderBottomRightRadius: 4 },
   bubbleThem:      { backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, borderBottomLeftRadius: 4 },
-  msgText:         { fontSize: 14, color: C.black, lineHeight: 20 },
-  msgTextMe:       { color: '#fff' },
+  msgText:         { fontFamily: Fonts.regular, fontSize: 14, color: C.black, lineHeight: 20 },
+  msgTextMe:       { color: C.white },
   reactionRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4, paddingLeft: 2 },
   reactionRowMe:   { paddingLeft: 0, paddingRight: 2, justifyContent: 'flex-end' },
-  reactionBadge:   { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12, backgroundColor: '#F0EDE8', borderWidth: 0.5, borderColor: C.border },
+  reactionBadge:   { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border },
   reactionBadgeMe: { backgroundColor: 'rgba(217,53,24,0.12)', borderColor: 'rgba(217,53,24,0.3)' },
   reactionEmoji:   { fontSize: 12 },
-  reactionCount:   { fontSize: 10, color: C.t2 },
-  time:            { fontSize: 10, color: C.t3, marginTop: 3, paddingLeft: 2 },
+  reactionCount:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
+  time:            { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 3, paddingLeft: 2 },
   timeMe:          { paddingLeft: 0, paddingRight: 2 },
 });

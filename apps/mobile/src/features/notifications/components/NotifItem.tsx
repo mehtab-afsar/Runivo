@@ -4,9 +4,7 @@ import { Bell } from 'phosphor-react-native';
 import { fmtRelativeTime } from '@mobile/shared/lib/formatters';
 import type { AppNotification } from '../types';
 import { NOTIF_CONFIG } from '../types';
-import { useTheme, type AppColors } from '@theme';
-
-const DEFAULT_CONFIG = { emoji: '__bell__', bg: '#F0EDE8', fg: '#6B6B6B' };
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   notif: AppNotification;
@@ -16,7 +14,7 @@ interface Props {
 export function NotifItem({ notif, onPress }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
-  const cfg = NOTIF_CONFIG[notif.type] ?? DEFAULT_CONFIG;
+  const cfg = NOTIF_CONFIG[notif.type] ?? { emoji: '__bell__', bg: C.surface, fg: C.t2 };
   return (
     <Pressable style={[s.card, !notif.read && s.cardUnread]} onPress={onPress}>
       <View style={[s.iconWrap, { backgroundColor: cfg.bg }]}>
@@ -40,8 +38,8 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   cardUnread: { borderLeftWidth: 2, borderLeftColor: C.red },
   iconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   emoji: { fontSize: 20 },
-  title: { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 2 },
-  body: { fontSize: 12, color: C.t2, lineHeight: 17, marginBottom: 4 },
-  time: { fontSize: 10, color: C.t3 },
+  title: { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 2 },
+  body: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, lineHeight: 17, marginBottom: 4 },
+  time: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.red, flexShrink: 0, marginLeft: 8 },
 }); }

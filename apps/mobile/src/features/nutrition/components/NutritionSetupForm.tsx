@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, type KeyboardTypeOptions } from 'react-native';
 import { Fire, Scales as Scale, Barbell, ForkKnife as UtensilsCrossed, Leaf, Fish, Moon } from 'phosphor-react-native';
+import { Colors, Type, Fonts } from '@theme';
 import { GoalOption } from './GoalOption';
 import { ActivityLevelPicker } from './ActivityLevelPicker';
 
@@ -86,32 +87,32 @@ export function NutritionSetupForm({ saving, goal, setGoal, activityLevel, setAc
       </View>
 
       <Pressable style={s.saveBtn} onPress={onSave} disabled={saving}>
-        {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.saveLabel}>Save & Start Tracking</Text>}
+        {saving ? <ActivityIndicator size="small" color={Colors.alwaysLight} /> : <Text style={s.saveLabel}>Save & Start Tracking</Text>}
       </Pressable>
     </>
   );
 }
 
 const s = StyleSheet.create({
-  label: { fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 16, marginBottom: 8 },
+  label: { ...Type.overline, color: '#ADADAD', marginTop: 16, marginBottom: 8 },
   row: { flexDirection: 'row', gap: 8 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: '#FFFFFF', borderRadius: 20, borderWidth: 0.5, borderColor: '#DDD9D4' },
-  chipOn: { backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' },
-  chipLabel: { fontSize: 12, color: '#6B6B6B' },
-  chipLabelOn: { color: '#fff', fontWeight: '500' },
-  opt: { paddingVertical: 14, borderRadius: 10, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 4 },
-  optOn: { backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' },
-  optLabel: { fontSize: 11, color: '#6B6B6B' },
-  optLabelOn: { color: '#fff', fontWeight: '500' },
-  fieldLabel: { fontSize: 10, color: '#ADADAD', marginBottom: 4 },
-  numInput: { backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 10, paddingVertical: 10, fontSize: 16, color: '#0A0A0A', textAlign: 'center' },
-  preview: { backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, marginTop: 16 },
-  previewTitle: { fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: Colors.white, borderRadius: 20, borderWidth: 0.5, borderColor: '#DDD9D4' },
+  chipOn: { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
+  chipLabel: { fontFamily: Fonts.regular, fontSize: 12, color: '#6B6B6B' },
+  chipLabelOn: { color: Colors.alwaysLight, fontFamily: Fonts.medium },
+  opt: { paddingVertical: 14, borderRadius: 10, backgroundColor: Colors.white, borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 4 },
+  optOn: { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
+  optLabel: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B' },
+  optLabelOn: { color: Colors.alwaysLight, fontFamily: Fonts.medium },
+  fieldLabel: { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD', marginBottom: 4 },
+  numInput: { backgroundColor: Colors.white, borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 10, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 16, color: '#0A0A0A', textAlign: 'center' },
+  preview: { backgroundColor: Colors.white, borderRadius: 12, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, marginTop: 16 },
+  previewTitle: { ...Type.overline, color: '#ADADAD', marginBottom: 12 },
   previewRow: { flexDirection: 'row', gap: 8 },
   previewStat: { flex: 1, alignItems: 'center' },
-  previewVal: { fontWeight: '700', fontSize: 16, color: '#0A0A0A' },
-  previewUnit: { fontSize: 10, color: '#ADADAD', marginTop: 1 },
-  saveBtn: { backgroundColor: '#0A0A0A', borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
-  saveLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
+  previewVal: { fontFamily: Fonts.bold, fontSize: 16, color: '#0A0A0A', fontVariant: ['tabular-nums'] },
+  previewUnit: { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD', marginTop: 1 },
+  saveBtn: { backgroundColor: Colors.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  saveLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.alwaysLight, letterSpacing: 1 },
 });

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { CoachFloatingInput } from './CoachFloatingInput';
@@ -117,15 +117,15 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1 },
     inner:       { flex: 1 },
     header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
-    pace:        { fontFamily: 'Barlow_600SemiBold', fontSize: 20 },
-    x:           { fontWeight: '700', fontSize: 21 },
+    pace:        { fontFamily: Fonts.semiBold, fontSize: 20 },
+    x:           { fontFamily: Fonts.bold, fontSize: 21 },
     closeBtn:    { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
     listContent: { paddingVertical: 12 },
-    autoLabel:   { fontSize: 11, color: C.t3, textAlign: 'center', marginTop: 16, marginBottom: 4 },
+    autoLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', marginTop: 16, marginBottom: 4 },
     emptyWrap:   { flex: 1, alignItems: 'center', paddingTop: 48 },
-    emptyText:   { fontSize: 14 },
+    emptyText:   { fontFamily: Fonts.regular, fontSize: 14 },
     errorBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(220,38,38,0.06)', borderTopWidth: 0.5, borderTopColor: 'rgba(220,38,38,0.18)', paddingHorizontal: 16, paddingVertical: 8 },
-    errorText:   { fontSize: 13, flex: 1 },
-    errorRetry:  { fontWeight: '500', fontSize: 13, marginLeft: 12 },
+    errorText:   { fontFamily: Fonts.regular, fontSize: 13, flex: 1 },
+    errorRetry:  { fontFamily: Fonts.medium, fontSize: 13, marginLeft: 12 },
   });
 }

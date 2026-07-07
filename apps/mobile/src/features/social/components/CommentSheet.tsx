@@ -4,7 +4,7 @@ import {
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { PaperPlaneTilt, X } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { getComments, addComment } from '../services/feedService';
 import type { Comment } from '../types';
 
@@ -156,19 +156,19 @@ function mkStyles(C: AppColors) {
     sheet:        { backgroundColor: C.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '75%', paddingBottom: 24 },
     handle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
     titleRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
-    title:        { fontWeight: '600', fontSize: 15, color: C.black },
+    title:        { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black },
     center:       { height: 120, alignItems: 'center', justifyContent: 'center' },
     list:         { paddingHorizontal: 16, paddingBottom: 8, flexGrow: 1 },
-    empty:        { fontSize: 13, color: C.t3, textAlign: 'center', marginTop: 32 },
+    empty:        { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, textAlign: 'center', marginTop: 32 },
     commentRow:   { flexDirection: 'row', gap: 10, paddingVertical: 8 },
     avatar:       { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    avatarInitial:{ fontWeight: '600', fontSize: 12, color: '#fff' },
+    avatarInitial:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.white },
     commentBody:  { flex: 1 },
     commentTop:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-    commentUser:  { fontWeight: '500', fontSize: 13, color: C.black },
-    commentTime:  { fontSize: 11, color: C.t3 },
-    commentText:  { fontSize: 13, color: C.black, lineHeight: 18 },
+    commentUser:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    commentTime:  { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+    commentText:  { fontFamily: Fonts.regular, fontSize: 13, color: C.black, lineHeight: 18 },
     inputRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 10, borderTopWidth: 0.5, borderTopColor: C.border },
-    input:        { flex: 1, fontSize: 14, color: C.black, paddingVertical: 8, maxHeight: 80 },
+    input:        { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.black, paddingVertical: 8, maxHeight: 80 },
   });
 }

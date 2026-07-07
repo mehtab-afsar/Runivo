@@ -7,7 +7,7 @@ import { supabase } from '@shared/services/supabase';
 import { avatarColor as getAvatarColor } from '@shared/lib/avatarUtils';
 import { RANK_COLORS } from '@shared/constants/territory';
 import { ArrowLeft } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = NativeStackScreenProps<RootStackParamList, 'Following'>['route'];
@@ -145,21 +145,21 @@ function mkStyles(C: AppColors) {
     root:         { flex: 1, backgroundColor: C.bg },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:      { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    searchWrap:   { paddingHorizontal: 16, paddingBottom: 8 },
-    search:       { backgroundColor: C.stone, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 13, color: C.black, borderWidth: 0.5, borderColor: C.border },
+    title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    searchWrap:   { paddingHorizontal: Spacing.gutter, paddingBottom: 8 },
+    search:       { backgroundColor: C.stone, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 13, color: C.black, borderWidth: 0.5, borderColor: C.border },
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    list:         { paddingHorizontal: 16, paddingBottom: 100 },
+    list:         { paddingHorizontal: Spacing.gutter, paddingBottom: 100 },
     row:          { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     avatar:       { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    avatarText:   { fontWeight: '600', fontSize: 16, color: '#fff' },
-    name:         { fontWeight: '500', fontSize: 14, color: C.black },
-    handle:       { fontSize: 11, color: C.t3 },
+    avatarText:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.alwaysLight },
+    name:         { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
+    handle:       { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     rankBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    rankText:     { fontWeight: '500', fontSize: 9, letterSpacing: 0.3 },
+    rankText:     { fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.3 },
     unfollowBtn:  { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 0.5, borderColor: C.border },
-    unfollowText: { fontSize: 12, color: C.t2 },
+    unfollowText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
     empty:        { alignItems: 'center', paddingVertical: 40 },
-    emptyText:    { fontSize: 13, color: C.t2 },
+    emptyText:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
   });
 }

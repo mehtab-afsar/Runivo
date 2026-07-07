@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Bell } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   feature: string;
@@ -53,7 +53,7 @@ function mkStyles(C: AppColors) {
     },
     title: {
       fontSize: 22,
-      fontWeight: '700',
+      fontFamily: Fonts.bold,
       color: C.t1,
       marginBottom: 10,
       textAlign: 'center',
@@ -67,13 +67,13 @@ function mkStyles(C: AppColors) {
     },
     badgeText: {
       fontSize: 11,
-      fontWeight: '700',
-      color: '#fff',
+      fontFamily: Fonts.bold,
+      color: C.white,
       letterSpacing: 1,
     },
     description: {
       fontSize: 15,
-      
+      fontFamily: Fonts.regular,
       color: C.t2,
       textAlign: 'center',
       marginBottom: 16,
@@ -81,7 +81,7 @@ function mkStyles(C: AppColors) {
     },
     hint: {
       fontSize: 13,
-      
+      fontFamily: Fonts.regular,
       color: C.t3,
       textAlign: 'center',
     },

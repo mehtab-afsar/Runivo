@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, type AppColors } from '@theme';
 
 interface StatRowProps {
   label: string;
@@ -29,7 +29,7 @@ function mkStyles(C: AppColors) {
       padding: 12,
       alignItems: 'center',
     },
-    value: { fontSize: 28, color: C.black, letterSpacing: -1 },
-    label: { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 4 },
+    value: { ...Type.metricMd, color: C.black, letterSpacing: -1 },
+    label: { ...Type.overline, color: C.t3, marginTop: 4 },
   });
 }

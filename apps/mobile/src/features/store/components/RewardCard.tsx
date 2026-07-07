@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Diamond } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import type { Reward } from '../types';
 
 interface Props {
@@ -58,16 +58,16 @@ function mkStyles(C: AppColors) {
     cardPremium:    { borderLeftWidth: 3, borderLeftColor: C.red },
     topRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     brandCircle:    { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-    brandInitial:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22 },
+    brandInitial:   { fontFamily: Fonts.display, fontSize: 22 },
     valueBadge:     { backgroundColor: C.redLo, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-    valueBadgeText: { fontWeight: '500', fontSize: 11, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5 },
-    title:          { fontWeight: '600', fontSize: 15, color: C.black, marginBottom: 6 },
-    description:    { fontSize: 13, color: C.t2, lineHeight: 19, marginBottom: 12 },
+    valueBadgeText: { fontFamily: Fonts.medium, fontSize: 11, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5 },
+    title:          { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black, marginBottom: 6 },
+    description:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 19, marginBottom: 12 },
     costRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    expiresLabel:   { fontSize: 11, color: C.t3 },
+    expiresLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     costPill:       { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    costText:       { fontWeight: '500', fontSize: 13, color: C.black },
+    costText:       { fontFamily: Fonts.medium, fontSize: 13, color: C.black, fontVariant: ['tabular-nums'] },
     viewLink:     { alignSelf: 'flex-start' },
-    viewLinkText: { fontWeight: '500', fontSize: 12, color: C.red },
+    viewLinkText: { fontFamily: Fonts.medium, fontSize: 12, color: C.red },
   });
 }

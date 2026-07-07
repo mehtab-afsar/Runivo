@@ -28,7 +28,7 @@ import ClaimToast         from '../components/ClaimToast';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
 import { computeRouteProgress, type RouteProgress } from '../utils/routeNavigation';
-import { useTheme, feedback, type AppColors } from '@theme';
+import { useTheme, feedback, Type, Fonts, type AppColors } from '@theme';
 import {
   estimateLiveArea,
   detectLoopClose,
@@ -240,7 +240,7 @@ export default function ActiveRunScreen() {
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
       <View style={ss.header}>
-        <Pressable onPress={handleBack} style={ss.back} hitSlop={12}><X size={16} color="#9E9994" weight="regular" /></Pressable>
+        <Pressable onPress={handleBack} style={ss.back} hitSlop={12}><X size={16} color={C.t2} weight="regular" /></Pressable>
         <Text style={ss.title}>{!run.isRunning ? 'Ready to Run' : run.isPaused ? 'Paused' : 'Running'}</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -371,47 +371,50 @@ export default function ActiveRunScreen() {
   );
 }
 
+// Style-layer-only token sweep (fonts → Fonts/Type, hex → theme tokens); no logic changed.
+// The pastel status banners now use theme tokens so they invert correctly in dark mode
+// (previously hardcoded light pastels stranded the inverting C.black text).
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:        { flex: 1, backgroundColor: C.bg },
     header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
     back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    title:       { fontWeight: '600', fontSize: 13, color: C.black, letterSpacing: 0.3 },
+    title:       { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, letterSpacing: 0.3 },
     map:         { flex: 1, overflow: 'hidden' },
     gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
     gpsDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
-    gpsTxt:      { fontWeight: '500', fontSize: 10, color: C.white },
-    errBanner:   { backgroundColor: '#FEF0EE', padding: 10, alignItems: 'center' },
-    errTxt:      { fontWeight: '500', fontSize: 11, color: C.red },
+    gpsTxt:      { fontFamily: Fonts.medium, fontSize: 10, color: C.white },
+    errBanner:   { backgroundColor: C.redLo, padding: 10, alignItems: 'center' },
+    errTxt:      { ...Type.labelSm, color: C.red },
     banner:      { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, paddingHorizontal: 16 },
-    bannerRed:   { backgroundColor: '#FEF0EE' },
-    bannerTeal:  { backgroundColor: '#E6F7F5' },
-    bannerAmber:      { backgroundColor: '#FEF8E7' },
-    bannerGreen:      { backgroundColor: '#E6F5EC' },
-    bannerTxt:        { fontSize: 11, color: C.black },
+    bannerRed:   { backgroundColor: C.redLo },
+    bannerTeal:  { backgroundColor: C.greenBg },
+    bannerAmber:      { backgroundColor: C.amberBg },
+    bannerGreen:      { backgroundColor: C.greenBg },
+    bannerTxt:        { ...Type.caption, color: C.t1 },
     routeRemaining:    { alignItems: 'center', paddingVertical: 4, backgroundColor: C.alwaysDark },
-    routeRemainingTxt: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+    routeRemainingTxt: { ...Type.caption, color: 'rgba(255,255,255,0.55)' },
     gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16 },
-    gpsAcquiringText: { fontWeight: '600', fontSize: 14, color: '#fff' },
-    gpsAcquiringSub:  { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+    gpsAcquiringText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
+    gpsAcquiringSub:  { ...Type.caption, color: 'rgba(255,255,255,0.6)' },
     pacerSection: { backgroundColor: C.alwaysDark, alignItems: 'center', paddingTop: 8, paddingBottom: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
-    pacerLabel:   { fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 },
+    pacerLabel:   { ...Type.overline, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
     controls:    { backgroundColor: C.alwaysDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
     startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
     // Pause card
     pauseOverlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 10 },
     pauseCard:         { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, paddingHorizontal: 24, zIndex: 11, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 20 },
     pauseHandle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 20 },
-    pauseTitle:        { fontWeight: '500', fontSize: 10, letterSpacing: 1.4, color: C.t3, textAlign: 'center', marginBottom: 8 },
-    pauseTime:         { fontFamily: 'Barlow_300Light', fontSize: 52, color: C.black, textAlign: 'center', letterSpacing: -2, lineHeight: 56, marginBottom: 16 },
+    pauseTitle:        { ...Type.overline, letterSpacing: 1.4, color: C.t3, textAlign: 'center', marginBottom: 8 },
+    pauseTime:         { fontFamily: Fonts.light, fontSize: 52, color: C.t1, textAlign: 'center', letterSpacing: -2, lineHeight: 56, marginBottom: 16, fontVariant: ['tabular-nums'] },
     pauseStats:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, marginBottom: 24 },
     pauseStat:         { alignItems: 'center', gap: 2 },
-    pauseStatVal:      { fontFamily: 'Barlow_600SemiBold', fontSize: 22, color: C.black },
-    pauseStatLbl:      { fontSize: 10, color: C.t3, letterSpacing: 0.6 },
+    pauseStatVal:      { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1, fontVariant: ['tabular-nums'] },
+    pauseStatLbl:      { ...Type.overline, color: C.t3, letterSpacing: 0.6 },
     pauseStatDivider:  { width: 1, height: 32, backgroundColor: C.border },
     resumeBtn:         { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
-    resumeBtnTxt:      { fontWeight: '600', fontSize: 16, color: '#fff' },
+    resumeBtnTxt:      { ...Type.button, fontSize: 16, color: C.alwaysLight },
     pauseFinishBtn:    { paddingVertical: 12, alignItems: 'center' },
-    pauseFinishBtnTxt: { fontSize: 14, color: C.t3 },
+    pauseFinishBtnTxt: { ...Type.bodySm, fontSize: 14, color: C.t3 },
   });
 }

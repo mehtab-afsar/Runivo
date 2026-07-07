@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, Text, StyleSheet } from 'react-native';
+import { Colors, Fonts } from '@theme';
 
 interface GoalOptionProps {
   goal: string;
@@ -26,10 +27,10 @@ export function GoalOption({ goal, label, emoji, iconNode, selected, onSelect }:
 const s = StyleSheet.create({
   btn: {
     flex: 1, paddingVertical: 14, borderRadius: 10,
-    backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: '#DDD9D4',
+    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: '#DDD9D4',
     alignItems: 'center', gap: 4,
   },
-  btnActive: { backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' },
-  label: { fontSize: 11, color: '#6B6B6B' },
-  labelActive: { color: '#fff', fontWeight: '500' },
+  btnActive: { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
+  label: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B' },
+  labelActive: { color: Colors.alwaysLight, fontFamily: Fonts.medium },
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Colors, Fonts } from '@theme';
 
 interface AvatarProps {
   name: string;
@@ -23,5 +24,6 @@ export function Avatar({ name, color, size = 56 }: AvatarProps) {
 
 const ss = StyleSheet.create({
   avatar: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontWeight: '600', color: '#fff' },
+  // White initials on a fixed saturated avatar color — same in both themes.
+  avatarText: { fontFamily: Fonts.semiBold, color: Colors.alwaysLight },
 });

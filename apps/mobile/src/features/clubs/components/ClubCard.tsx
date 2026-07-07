@@ -4,7 +4,7 @@ import { Users, Pulse } from 'phosphor-react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import type { Club } from '@features/clubs/types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   club: Club;
@@ -51,13 +51,13 @@ function mkStyles(C: AppColors) {
       borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
     },
     badge: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    clubName: { fontWeight: '600', fontSize: 14, color: C.black, marginBottom: 2 },
-    clubDesc: { fontSize: 11, color: C.t2, lineHeight: 15, marginBottom: 4 },
+    clubName: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, marginBottom: 2 },
+    clubDesc: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, lineHeight: 15, marginBottom: 4 },
     statsRow: { flexDirection: 'row', alignItems: 'center' },
-    stat: { fontSize: 11, color: C.t3 },
+    stat: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     joinBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: C.alwaysDark, flexShrink: 0 },
     leaveBtn: { backgroundColor: C.stone },
-    joinLabel: { fontWeight: '500', fontSize: 11, color: '#fff', letterSpacing: 0.5 },
+    joinLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.5 },
     leaveLabelStyle: { color: C.t2 },
   });
 }

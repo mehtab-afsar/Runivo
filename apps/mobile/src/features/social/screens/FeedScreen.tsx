@@ -16,7 +16,7 @@ import { StoryReel } from '@features/social/components/StoryReel';
 import { fetchStories, type StoryGroup } from '@features/social/services/storyService';
 import { supabase } from '@shared/services/supabase';
 import { avatarColor } from '@shared/lib/avatarUtils';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import type { FeedPost } from '@features/social/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -219,25 +219,25 @@ function mkStyles(C: AppColors) {
     header:         { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 20, paddingBottom: 0, paddingTop: Platform.OS === 'android' ? 12 : 0 },
     tabs:           { flex: 1, flexDirection: 'row', position: 'relative' },
     tabItem:        { flex: 1, paddingVertical: 12, alignItems: 'center' },
-    tabLabel:       { fontSize: 13, color: C.t3 },
-    tabLabelActive: { fontWeight: '500', color: C.black },
+    tabLabel:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
+    tabLabelActive: { fontFamily: Fonts.medium, color: C.black },
     underline:      { position: 'absolute', bottom: 0, height: 1.5, backgroundColor: C.alwaysDark },
     loader:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:           { paddingBottom: 100 },
     // Suggested runners
     suggestedSection: { backgroundColor: C.bg, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    suggestedLabel:   { fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: C.t3, paddingHorizontal: 20, marginBottom: 14 },
+    suggestedLabel:   { ...Type.overline, color: C.t3, paddingHorizontal: Spacing.gutter, marginBottom: 14 },
     suggestedScroll:  { paddingHorizontal: 20, gap: 10 },
     runnerCard:       { alignItems: 'center', gap: 5, minWidth: 68 },
     runnerAvatarWrap: { position: 'relative' },
     runnerAvatar:     { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-    runnerAvatarText: { fontWeight: '600', fontSize: 15, color: C.white },
+    runnerAvatarText: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.white },
     followDot:        { position: 'absolute', bottom: -1, right: -1, width: 18, height: 18, borderRadius: 9, backgroundColor: C.alwaysDark, borderWidth: 1.5, borderColor: C.white, alignItems: 'center', justifyContent: 'center' },
-    runnerName:       { fontSize: 11, color: C.black, textAlign: 'center' },
-    runnerScore:      { fontSize: 10, color: C.t3, textAlign: 'center', marginTop: -2 },
+    runnerName:       { fontFamily: Fonts.regular, fontSize: 11, color: C.black, textAlign: 'center' },
+    runnerScore:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', marginTop: -2 },
     // Search modal
     searchModal:  { flex: 1, backgroundColor: C.bg },
-    searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    searchInput:  { flex: 1, fontSize: 14, color: C.black, height: 36, backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 12 },
+    searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    searchInput:  { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.black, height: 36, backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 12 },
   });
 }

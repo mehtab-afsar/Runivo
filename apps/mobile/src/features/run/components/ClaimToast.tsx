@@ -1,10 +1,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { Animated, Text, StyleSheet } from 'react-native';
 import { Flag } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT_SEMI = 'Barlow_600SemiBold';
-const FONT_BOLD = 'Barlow_700Bold';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface ClaimToastProps {
   event: { type: string; paceEarned?: number } | null;
@@ -48,7 +45,7 @@ function mkStyles(C: AppColors) {
       shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.4, shadowRadius: 8, elevation: 8,
     },
-    text: { fontFamily: FONT_SEMI, fontSize: 14, color: C.white },
-    xp:   { fontFamily: FONT_BOLD, fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+    text: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
+    xp:   { fontFamily: Fonts.bold, fontSize: 13, color: 'rgba(255,255,255,0.8)', fontVariant: ['tabular-nums'] },
   });
 }

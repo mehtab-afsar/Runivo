@@ -6,7 +6,7 @@ import { avatarColor } from '@shared/lib/avatarUtils';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import { TIER_CONFIG } from '@shared/constants/territory';
 import type { FeedPost } from '@features/social/types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -120,7 +120,7 @@ export function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
         <View style={s.badges}>
           {post.paceEarned > 0 && (
             <View style={s.badgePace}>
-              <Sparkle size={9} color="#1A6B40" weight="regular" />
+              <Sparkle size={9} color={C.green} weight="regular" />
               <Text style={s.badgePaceText}>+{post.paceEarned} PACE</Text>
             </View>
           )}
@@ -164,20 +164,20 @@ function mkStyles(C: AppColors) {
     card:         { backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     header:       { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
     avatar:       { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    avatarText:   { fontWeight: '600', fontSize: 14, color: '#fff' },
+    avatarText:   { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
     userInfo:     { flex: 1, marginLeft: 10 },
-    username:     { fontWeight: '500', fontSize: 13, color: C.black },
-    subtitle:     { fontSize: 11, color: C.t3, marginTop: 2 },
+    username:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    subtitle:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     statsRow:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 2 },
-    statVal:      { fontFamily: 'Barlow_300Light', fontSize: 15, color: C.black, letterSpacing: -0.3 },
-    statSep:      { fontSize: 13, color: C.t3 },
+    statVal:      { fontFamily: Fonts.light, fontSize: 15, color: C.black, letterSpacing: -0.3 },
+    statSep:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
     badges:       { flexDirection: 'row', gap: 5, paddingHorizontal: 16, paddingBottom: 10, flexWrap: 'wrap' },
-    badgePace:    { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#EDF7F2', borderRadius: 2, paddingHorizontal: 7, paddingVertical: 3 },
-    badgePaceText:{ fontWeight: '500', fontSize: 10, color: '#1A6B40', letterSpacing: 0.4 },
+    badgePace:    { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.greenBg, borderRadius: 2, paddingHorizontal: 7, paddingVertical: 3 },
+    badgePaceText:{ fontFamily: Fonts.medium, fontSize: 10, color: C.green, letterSpacing: 0.4 },
     badgeTier:    { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 3 },
-    badgeTierText:{ fontWeight: '500', fontSize: 10, letterSpacing: 0.4 },
+    badgeTierText:{ fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.4 },
     actions:      { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4 },
     actionBtn:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    actionCount:  { fontSize: 12, color: C.t2 },
+    actionCount:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, fontVariant: ['tabular-nums'] },
   });
 }

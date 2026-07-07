@@ -9,7 +9,7 @@ import { Avatar } from '../components/Avatar';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { RunnerRankBadge } from '@mobile/shared/components/RunnerRankBadge';
 import type { RunnerRank } from '@shared/types/game';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'UserProfile'>;
@@ -122,7 +122,7 @@ export default function UserProfileScreen() {
                   {isFollowing ? (
                     <Check size={14} color={C.black} weight="regular" />
                   ) : (
-                    <UserPlus size={14} color={C.white} weight="regular" />
+                    <UserPlus size={14} color={C.alwaysLight} weight="regular" />
                   )}
                   <Text style={[s.followBtnLabel, isFollowing && s.followingBtnLabel]}>
                     {isFollowing ? 'Following' : 'Follow'}
@@ -162,23 +162,23 @@ function mkStyles(C: AppColors) {
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
     backBtn:      { width: 32 },
     backText:     { fontSize: 18, color: C.t2 },
-    title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+    title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
     profileSection:{ alignItems: 'center', padding: 24, gap: 6 },
-    displayName:  { fontWeight: '600', fontSize: 20, color: C.black, marginTop: 8 },
-    bio:          { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18, maxWidth: 280 },
-    location:     { fontSize: 11, color: C.t3 },
+    displayName:  { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, marginTop: 8 },
+    bio:          { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18, maxWidth: 280 },
+    location:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     actions:      { flexDirection: 'row', gap: 10, marginTop: 16 },
     followBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 18, paddingVertical: 10 },
     followingBtn: { backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
-    followBtnLabel:   { fontWeight: '500', fontSize: 13, color: C.white },
+    followBtnLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
     followingBtnLabel:{ color: C.black },
     messageBtn:   { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.stone, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 18, paddingVertical: 10 },
     messageBtnDisabled: { opacity: 0.45 },
-    messageBtnLabel:  { fontWeight: '500', fontSize: 13, color: C.black },
+    messageBtnLabel:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
     messageBtnLabelDisabled: { color: C.t3 },
     statsGrid:    { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     statCell:     { flex: 1, alignItems: 'center', paddingVertical: 16, borderRightWidth: 0.5, borderRightColor: C.border },
-    statValue:    { fontFamily: 'Barlow_600SemiBold', fontSize: 20, color: C.black, letterSpacing: -0.5 },
-    statLabel:    { fontSize: 10, color: C.t3, marginTop: 2 },
+    statValue:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, letterSpacing: -0.5 },
+    statLabel:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }

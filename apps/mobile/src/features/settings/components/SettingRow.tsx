@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface SettingRowProps {
   label: string;
@@ -26,7 +26,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: C.border },
     labelWrap: { flex: 1, paddingRight: 12 },
-    rowLabel: { fontSize: 14, color: C.black },
-    rowSub: { fontSize: 11, color: C.t3, marginTop: 2 },
+    rowLabel: { fontFamily: Fonts.regular, fontSize: 14, color: C.black },
+    rowSub: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
   });
 }

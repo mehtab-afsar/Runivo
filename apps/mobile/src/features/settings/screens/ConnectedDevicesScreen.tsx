@@ -16,7 +16,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Heart, Pulse, TrendUp, Brain, DeviceMobile, Check, X } from 'phosphor-react-native';
 import { supabase } from '@shared/services/supabase';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import {
   readRecentWorkouts,
 } from '../../../shared/services/healthService';
@@ -194,10 +194,10 @@ function DeviceCard({
       {/* Row 1 — logo + name + pill */}
       <View style={ss.cardHeader}>
         <View style={[ss.logo, isConnected && ss.logoConnected]}>
-          {device.logo === '__heart__'       ? <Heart       size={20} color="#EF4444" weight="light" />
-          : device.logo === '__dot_purple__' ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#8B5CF6' }} />
+          {device.logo === '__heart__'       ? <Heart       size={20} color={C.red} weight="light" />
+          : device.logo === '__dot_purple__' ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.purple }} />
           : device.logo === '__dot_dark__'   ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#374151' }} />
-          : device.logo === '__dot_red__'    ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444' }} />
+          : device.logo === '__dot_red__'    ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.red }} />
           : <Text style={ss.logoEmoji}>{device.logo}</Text>}
         </View>
         <View style={{ flex: 1 }}>
@@ -267,7 +267,7 @@ function DeviceCard({
               disabled={busy}
             >
               {busy
-                ? <ActivityIndicator size="small" color="#fff" />
+                ? <ActivityIndicator size="small" color={C.alwaysLight} />
                 : <Text style={ss.connectBtnText}>Connect</Text>
               }
             </Pressable>
@@ -498,10 +498,10 @@ export default function ConnectedDevicesScreen() {
         <View style={ss.dataCard}>
           <Text style={ss.dataCardTitle}>DATA SYNCED FROM DEVICES</Text>
           {([
-            { Icon: Heart,       color: '#EF4444', label: 'Heart rate',  desc: 'Avg & max HR per run' },
-            { Icon: Pulse,       color: '#D93518', label: 'Cadence',     desc: 'Steps/min for gait analysis' },
-            { Icon: TrendUp,     color: '#D93518', label: 'Elevation',   desc: 'Total climb per activity' },
-            { Icon: Brain,       color: '#5A3A8A', label: 'HRV',         desc: 'Recovery score for AI coach' },
+            { Icon: Heart,       color: C.red,    label: 'Heart rate',  desc: 'Avg & max HR per run' },
+            { Icon: Pulse,       color: C.red,    label: 'Cadence',     desc: 'Steps/min for gait analysis' },
+            { Icon: TrendUp,     color: C.red,    label: 'Elevation',   desc: 'Total climb per activity' },
+            { Icon: Brain,       color: C.purple, label: 'HRV',         desc: 'Recovery score for AI coach' },
           ] as const).map(({ Icon, color, label, desc }) => (
             <View key={label} style={ss.dataRow}>
               <Icon size={13} color={color} weight="light" />
@@ -539,9 +539,9 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     paddingBottom: 12,
   },
   backBtn:  { width: 32 },
-  backText: { fontSize: 18, color: C.mid },
-  title:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-  scroll:   { paddingHorizontal: 16, paddingBottom: 40 },
+  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.mid },
+  title:    { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+  scroll:   { paddingHorizontal: Spacing.gutter, paddingBottom: 40 },
 
   banner: {
     flexDirection: 'row', gap: 10, alignItems: 'flex-start',
@@ -550,7 +550,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     borderRadius: 12, padding: 14, marginBottom: 16,
   },
   bannerEmoji: { fontSize: 15, marginTop: 1 },
-  bannerText:  { flex: 1, fontSize: 12, color: C.purple, lineHeight: 18 },
+  bannerText:  { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: C.purple, lineHeight: 18 },
 
   card: {
     backgroundColor: C.white, borderRadius: 12,
@@ -570,19 +570,19 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   logoEmoji:      { fontSize: 20 },
 
   nameRow:     { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
-  deviceName:  { fontWeight: '500', fontSize: 13, color: C.black },
-  deviceDesc:  { fontSize: 11, color: C.muted },
+  deviceName:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+  deviceDesc:  { fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
 
   iosPill:     { backgroundColor: '#F0F0F0', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  iosPillText: { fontWeight: '500', fontSize: 9, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
+  iosPillText: { fontFamily: Fonts.medium, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   connectedPill:     { backgroundColor: C.greenLo, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  connectedPillText: { fontWeight: '500', fontSize: 9, color: C.green, textTransform: 'uppercase', letterSpacing: 0.6 },
+  connectedPillText: { fontFamily: Fonts.medium, fontSize: 10, color: C.green, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   cardFooter:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  syncTime:      { fontSize: 10, color: C.green },
-  notConnected:  { fontSize: 10, color: C.muted },
-  unavailableText: { fontSize: 10, color: C.muted },
+  syncTime:      { fontFamily: Fonts.regular, fontSize: 10, color: C.green },
+  notConnected:  { fontFamily: Fonts.regular, fontSize: 10, color: C.muted },
+  unavailableText: { fontFamily: Fonts.regular, fontSize: 10, color: C.muted },
 
   btnRow:        { flexDirection: 'row', gap: 6 },
   iconBtn: {
@@ -590,21 +590,21 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  iconBtnText: { fontSize: 16, color: C.mid },
+  iconBtnText: { fontFamily: Fonts.regular, fontSize: 16, color: C.mid },
 
   disconnectBtn: {
     width: 32, height: 32, borderRadius: 8,
     backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.15)',
     alignItems: 'center', justifyContent: 'center',
   },
-  disconnectBtnText: { fontSize: 13, color: C.red },
+  disconnectBtnText: { fontFamily: Fonts.regular, fontSize: 13, color: C.red },
 
   connectBtn: {
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8,
     backgroundColor: C.alwaysDark,
   },
   connectBtnBusy: { backgroundColor: C.border },
-  connectBtnText: { fontWeight: '500', fontSize: 11, color: '#fff' },
+  connectBtnText: { fontFamily: Fonts.medium, fontSize: 11, color: C.alwaysLight },
 
   dataCard: {
     backgroundColor: C.white, borderRadius: 12,
@@ -612,17 +612,16 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     padding: 14, marginTop: 4,
   },
   dataCardTitle: {
-    fontWeight: '500', fontSize: 10,
-    textTransform: 'uppercase', letterSpacing: 0.8,
+    ...Type.overline,
     color: C.muted, marginBottom: 8,
   },
   dataRow:   { flexDirection: 'row', gap: 8, marginBottom: 6 },
   dataEmoji: { fontSize: 13 },
-  dataLabel: { fontWeight: '500', fontSize: 11, color: C.black },
-  dataDesc:  { flex: 1, fontSize: 11, color: C.mid, lineHeight: 16 },
+  dataLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.black },
+  dataDesc:  { flex: 1, fontFamily: Fonts.regular, fontSize: 11, color: C.mid, lineHeight: 16 },
 
   privacyNote: {
-    fontSize: 10,
+    fontFamily: Fonts.regular, fontSize: 10,
     color: C.muted, textAlign: 'center', marginTop: 12,
   },
 
@@ -632,5 +631,5 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     backgroundColor: C.alwaysDark, borderRadius: 20,
     paddingHorizontal: 18, paddingVertical: 8,
   },
-  toastText: { fontWeight: '500', fontSize: 12, color: '#fff' },
+  toastText: { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight },
 }); }

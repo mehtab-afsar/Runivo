@@ -4,7 +4,7 @@ import { Diamond } from 'phosphor-react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { RANK_COLORS } from '@shared/constants/territory';
 import type { LeaderboardEntry } from '../types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   entry: LeaderboardEntry;
@@ -64,15 +64,15 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid, backgroundColor: C.white },
     rowMe:     { backgroundColor: C.redLo },
-    rank:      { fontSize: 12, color: C.t3, width: 20, textAlign: 'center' },
+    rank:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, width: 20, textAlign: 'center', fontVariant: ['tabular-nums'] },
     avatar:    { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: C.border },
-    avatarText:{ fontWeight: '500', fontSize: 9, color: '#FFFFFF' },
+    avatarText:{ fontFamily: Fonts.medium, fontSize: 10, color: C.white },
     nameWrap:  { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
-    name:      { fontSize: 12, color: C.black },
+    name:      { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
     youBadge:  { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 2, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)' },
-    youText:   { fontWeight: '500', fontSize: 8, color: C.red, textTransform: 'uppercase' },
+    youText:   { fontFamily: Fonts.medium, fontSize: 10, color: C.red, textTransform: 'uppercase' },
     rankBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-    rankText:  { fontWeight: '500', fontSize: 9, textTransform: 'uppercase' },
-    value:     { fontSize: 13, color: C.black, letterSpacing: -0.3 },
+    rankText:  { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase' },
+    value:     { fontFamily: Fonts.regular, fontSize: 13, color: C.black, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
   });
 }

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { Mission } from '@shared/services/missions';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, type AppColors } from '@theme';
 
 interface Props {
   mission: Mission;
@@ -38,11 +38,11 @@ function mkStyles(C: AppColors) {
     emojiText:  { fontSize: 16, lineHeight: 20 },
     // Sits on the always-dark mission card, so the title must be a fixed-light token —
     // C.bg inverts to near-black in dark mode and vanishes against the card.
-    title:      { fontSize: 13, color: C.alwaysLight, marginBottom: 8 },
+    title:      { ...Type.bodySm, color: C.alwaysLight, marginBottom: 8 },
     titleDone:  { color: 'rgba(255,255,255,0.35)', textDecorationLine: 'line-through' },
     barBg:      { height: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' },
     barFill:    { height: '100%', borderRadius: 1 },
-    xp:         { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 2 },
+    xp:         { ...Type.labelSm, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
     xpDone:     { color: C.green },
   });
 }

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface SegmentedProps {
   options: string[];
@@ -42,9 +42,9 @@ function mkStyles(C: AppColors) {
     seg: { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 6, padding: 2, gap: 2 },
     segBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 4, backgroundColor: 'transparent' },
     segBtnActive: { backgroundColor: C.alwaysDark },
-    segLabel: { fontSize: 11, color: C.t3 },
-    segLabelActive: { color: C.white },
+    segLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+    segLabelActive: { color: C.alwaysLight },
     pill: { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 },
-    pillText: { fontSize: 12, color: C.black },
+    pillText: { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
   });
 }

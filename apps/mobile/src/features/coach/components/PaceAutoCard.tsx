@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import type { CoachMessage } from '../services/coachService';
 
 interface Props {
@@ -25,9 +25,9 @@ export function PaceAutoCard({ message, onReadMore }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:     { backgroundColor: C.surface, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginHorizontal: 16, marginBottom: 16 },
-    label:    { fontSize: 10, color: C.purple, letterSpacing: 0.8, marginBottom: 8 },
-    body:     { fontSize: 14, color: C.black, lineHeight: 20 },
-    readMore: { fontSize: 12, color: C.t2, marginTop: 8 },
+    card:     { backgroundColor: C.surface, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginHorizontal: Spacing.gutter, marginBottom: 16 },
+    label:    { ...Type.overline, color: C.purple, marginBottom: 8 },
+    body:     { fontFamily: Fonts.regular, fontSize: 14, color: C.black, lineHeight: 20 },
+    readMore: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 8 },
   });
 }

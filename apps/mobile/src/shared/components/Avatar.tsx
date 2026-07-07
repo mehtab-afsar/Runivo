@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { Gear } from 'phosphor-react-native';
-import { useTheme } from '@theme';
+import { useTheme, Fonts } from '@theme';
 
 
 interface AvatarProps {
@@ -52,7 +52,7 @@ export function Avatar({ uri, name, size = 44, onPress, showEditOverlay, style }
 
 const styles = StyleSheet.create({
   circle:  { alignItems: 'center', justifyContent: 'center' },
-  initial: { fontWeight: '600' },
+  initial: { fontFamily: Fonts.semiBold },
   overlay: {
     position: 'absolute', bottom: 0, right: 0,
     alignItems: 'center', justifyContent: 'center',

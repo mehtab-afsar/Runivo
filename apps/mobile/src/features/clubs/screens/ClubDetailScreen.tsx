@@ -26,7 +26,7 @@ import {
 import type { ClubMember, ActivityItem, JoinRequest } from '@features/clubs/types';
 import { supabase } from '@shared/services/supabase';
 import { avatarColor } from '@shared/lib/avatarUtils';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Colors, Fonts, Type, type AppColors } from '@theme';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
@@ -35,9 +35,9 @@ type ReactionEntry = { id: string; Icon: Icon; color: string; emoji: string };
 const REACTION_ENTRIES: ReactionEntry[] = [
   { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
   { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
-  { id: 'dumbbell', Icon: Barbell,  color: '#7C3AED', emoji: '💪' },
+  { id: 'dumbbell', Icon: Barbell,  color: Colors.purple, emoji: '💪' },
   { id: 'thumbsup', Icon: ThumbsUp, color: '#2563EB', emoji: '👏' },
-  { id: 'smile',    Icon: Smiley,   color: '#D97706', emoji: '🤣' },
+  { id: 'smile',    Icon: Smiley,   color: Colors.gold, emoji: '🤣' },
   { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
 ];
 
@@ -85,16 +85,16 @@ function MemberRow({ member, rank, onPress }: { member: ClubMember; rank?: numbe
 function mkMrStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
-    rank:      { width: 28, textAlign: 'center', fontWeight: '600', fontSize: 13, color: C.t2 },
+    rank:      { width: 28, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 13, color: C.t2 },
     avatar:    { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    avatarText:{ fontWeight: '700', fontSize: 12, color: C.white },
+    avatarText:{ fontFamily: Fonts.bold, fontSize: 12, color: C.white },
     nameRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    name:      { fontWeight: '500', fontSize: 13, color: C.black },
+    name:      { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
     adminBadge:{ backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-    adminText: { fontWeight: '600', fontSize: 9, color: C.red, letterSpacing: 0.4 },
-    meta:      { fontSize: 11, color: C.t3, marginTop: 2 },
-    kmVal:     { fontFamily: 'Barlow_600SemiBold', fontSize: 14, color: C.black },
-    kmUnit:    { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3 },
+    adminText: { fontFamily: Fonts.semiBold, fontSize: 10, color: C.red, letterSpacing: 0.4 },
+    meta:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
+    kmVal:     { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, fontVariant: ['tabular-nums'] },
+    kmUnit:    { fontFamily: Fonts.light, fontSize: 11, color: C.t3 },
   });
 }
 
@@ -132,10 +132,10 @@ function mkArStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.border },
     avatar:    { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
-    avatarText:{ fontWeight: '700', fontSize: 11, color: C.white },
-    text:      { fontSize: 12, color: C.t2, lineHeight: 18 },
-    username:  { fontWeight: '600', color: C.black },
-    time:      { fontSize: 10, color: C.t3, marginTop: 2 },
+    avatarText:{ fontFamily: Fonts.bold, fontSize: 11, color: C.white },
+    text:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, lineHeight: 18 },
+    username:  { fontFamily: Fonts.semiBold, color: C.black },
+    time:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }
 
@@ -536,52 +536,52 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1, backgroundColor: C.bg },
     header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:     { width: 32 },
-    backText:    { fontSize: 18, color: C.t2 },
+    backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     headerCenter:{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' },
     emoji:       { alignItems: 'center', justifyContent: 'center' },
-    title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-    subtitle:    { fontSize: 11, color: C.t3 },
+    title:       { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+    subtitle:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     // Tab bar
     tabScroll:   { flexGrow: 0, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     tabBar:      { flexDirection: 'row', paddingHorizontal: 4 },
     tabBtn:      { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
     tabBtnActive:{ borderBottomColor: C.red },
-    tabLabel:    { fontSize: 12, letterSpacing: 0.8, color: C.t3 },
-    tabLabelActive: { fontWeight: '600', color: C.red },
+    tabLabel:    { fontFamily: Fonts.regular, fontSize: 12, letterSpacing: 0.8, color: C.t3 },
+    tabLabelActive: { fontFamily: Fonts.semiBold, color: C.red },
     // Common
     loader:      { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty:       { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
-    emptyTitle:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-    emptyText:   { fontSize: 12, color: C.t2, textAlign: 'center' },
+    emptyTitle:  { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+    emptyText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
     listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
-    sectionLabel:{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1.8, color: C.t3, marginBottom: 10 },
+    sectionLabel:{ ...Type.overline, color: C.t3, marginBottom: 10 },
     // Admin
     adminContent:{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100, gap: 0 },
     adminCard:   { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 4 },
-    descInput:   { fontSize: 13, color: C.black, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
+    descInput:   { fontFamily: Fonts.regular, fontSize: 13, color: C.black, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
     saveBtn:     { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
-    saveBtnText: { fontWeight: '600', fontSize: 12, color: C.white },
+    saveBtnText: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.alwaysLight },
     badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
     bigEmoji:    { alignItems: 'center', justifyContent: 'center' },
     changeBtn:   { backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: C.border },
-    changeBtnText: { fontWeight: '500', fontSize: 12, color: C.black },
-    noRequestsText: { fontSize: 12, color: C.t3, textAlign: 'center' },
+    changeBtnText: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
+    noRequestsText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center' },
     requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
     reqAvatar:   { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-    reqAvatarText: { fontWeight: '700', fontSize: 12, color: C.white },
-    reqName:     { fontWeight: '500', fontSize: 13, color: C.black },
-    reqTime:     { fontSize: 10, color: C.t3, marginTop: 2 },
-    approveBtn:  { width: 34, height: 34, borderRadius: 17, backgroundColor: '#EDF7F2', borderWidth: 0.5, borderColor: '#1A6B40', alignItems: 'center', justifyContent: 'center' },
-    approveBtnText: { fontWeight: '700', fontSize: 13, color: C.green },
-    rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FEF0EE', borderWidth: 0.5, borderColor: C.red, alignItems: 'center', justifyContent: 'center' },
-    rejectBtnText: { fontWeight: '700', fontSize: 13, color: C.red },
+    reqAvatarText: { fontFamily: Fonts.bold, fontSize: 12, color: C.white },
+    reqName:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    reqTime:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+    approveBtn:  { width: 34, height: 34, borderRadius: 17, backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: C.green, alignItems: 'center', justifyContent: 'center' },
+    approveBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.green },
+    rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: C.red, alignItems: 'center', justifyContent: 'center' },
+    rejectBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.red },
     // Reaction picker
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
     picker:      { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
-    pickerLabel: { fontWeight: '600', fontSize: 12, color: C.t2, letterSpacing: 0.4 },
+    pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, letterSpacing: 0.4 },
     emojiRow:    { flexDirection: 'row', gap: 8 },
-    emojiBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center' },
+    emojiBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
     emojiChar:   { fontSize: 22 },
     // Badge picker
     badgePickerSheet: { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },

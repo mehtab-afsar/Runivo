@@ -4,7 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Colors, Fonts, type AppColors } from '@theme';
 import { Heart, Fire, Barbell, ThumbsUp, Smiley, SmileyXEyes, Globe, Pulse, Trophy, Moon, type Icon } from 'phosphor-react-native';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
@@ -19,9 +19,9 @@ type ReactionEntry = { id: string; Icon: Icon; color: string; emoji: string };
 const REACTION_ENTRIES: ReactionEntry[] = [
   { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
   { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
-  { id: 'dumbbell', Icon: Barbell,  color: '#7C3AED', emoji: '💪' },
+  { id: 'dumbbell', Icon: Barbell,  color: Colors.purple, emoji: '💪' },
   { id: 'thumbsup', Icon: ThumbsUp, color: '#2563EB', emoji: '👏' },
-  { id: 'smile',    Icon: Smiley,   color: '#D97706', emoji: '🤣' },
+  { id: 'smile',    Icon: Smiley,   color: Colors.gold, emoji: '🤣' },
   { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
 ];
 
@@ -31,7 +31,7 @@ const LOBBY_ROOMS: LobbyRoomEntry[] = [
   { id: 'training', name: 'Training Talk',     description: 'Plans, tips, and workout advice',     Icon: Pulse,    iconColor: '#1A6B40', color: '#1A6B40' },
   { id: 'races',    name: 'Race Reports',      description: 'Share your race results and stories', Icon: Trophy,   iconColor: '#9E6800', color: '#9E6800' },
   { id: 'speed',    name: 'Speed & Intervals', description: 'Track work, tempo runs, PRs',         Icon: Pulse,    iconColor: '#D93518', color: '#D93518' },
-  { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        Icon: Moon,     iconColor: '#6B2D8C', color: '#6B2D8C' },
+  { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        Icon: Moon,     iconColor: Colors.purple, color: Colors.purple },
 ];
 
 export default function LobbyChatScreen() {
@@ -117,19 +117,19 @@ export default function LobbyChatScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     header:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
-    back:         { width: 32 }, backText: { fontSize: 18, color: C.t2 },
+    back:         { width: 32 }, backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     roomIcon:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    roomName:     { fontWeight: '600', fontSize: 14, color: C.black },
-    roomDesc:     { fontSize: 11, color: C.t3 },
+    roomName:     { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black },
+    roomDesc:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     loader:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty:        { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
-    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-    emptyText:    { fontSize: 12, color: C.t2, textAlign: 'center' },
+    emptyTitle:   { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+    emptyText:    { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
     overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
     picker:       { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
-    pickerLabel:  { fontWeight: '600', fontSize: 12, color: C.t2, letterSpacing: 0.4 },
+    pickerLabel:  { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, letterSpacing: 0.4 },
     emojiRow:     { flexDirection: 'row', gap: 8 },
-    emojiBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center' },
+    emojiBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
     emoji:        { fontSize: 22 },
   });
 }

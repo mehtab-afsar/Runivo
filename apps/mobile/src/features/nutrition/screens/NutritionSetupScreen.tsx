@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Platform, 
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { Fonts } from '@theme';
 import { useNutritionSetup } from '@features/nutrition/hooks/useNutritionSetup';
 import { NutritionSetupForm } from '@features/nutrition/components/NutritionSetupForm';
 
@@ -53,7 +54,7 @@ export default function NutritionSetupScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#EDEAE5' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-  back: { width: 32 }, backText: { fontSize: 18, color: '#6B6B6B' },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: '#0A0A0A' },
+  back: { width: 32 }, backText: { fontFamily: Fonts.regular, fontSize: 18, color: '#6B6B6B' },
+  title: { fontFamily: Fonts.display, fontSize: 20, color: '#0A0A0A' },
   content: { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
 });

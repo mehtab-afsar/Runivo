@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, type AppColors } from '@theme';
 
 type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -27,6 +27,6 @@ export function DifficultyBadge({ difficulty }: DifficultyBadgeProps) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     badge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-    text: { fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 },
+    text: { ...Type.overline },
   });
 }

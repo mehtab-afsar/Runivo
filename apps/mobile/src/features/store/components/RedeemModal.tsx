@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable } from 'react-native';
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import type { Reward } from '../types';
 
 interface Props {
@@ -64,14 +64,14 @@ function mkStyles(C: AppColors) {
     sheetWrap:    { paddingHorizontal: 24 },
     card:         { backgroundColor: C.white, borderRadius: 20, padding: 24 },
     brandCircle:  { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 16 },
-    brandInitial: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 32 },
-    claimHeading: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black, textAlign: 'center', marginBottom: 6 },
-    rewardTitle:  { fontWeight: '500', fontSize: 15, color: C.black, textAlign: 'center', marginBottom: 8 },
-    rewardDesc:   { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+    brandInitial: { fontFamily: Fonts.display, fontSize: 32 },
+    claimHeading: { fontFamily: Fonts.display, fontSize: 22, color: C.black, textAlign: 'center', marginBottom: 6 },
+    rewardTitle:  { fontFamily: Fonts.medium, fontSize: 15, color: C.black, textAlign: 'center', marginBottom: 8 },
+    rewardDesc:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
     divider:      { height: 0.5, backgroundColor: C.border, marginBottom: 20 },
-    launchRow:    { fontSize: 13, color: C.t2, textAlign: 'center', marginBottom: 6 },
-    launchBody:   { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+    launchRow:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', marginBottom: 6 },
+    launchBody:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
     closeBtn:     { backgroundColor: C.alwaysDark, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-    closeBtnText: { fontWeight: '600', fontSize: 14, color: C.white },
+    closeBtnText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
   });
 }

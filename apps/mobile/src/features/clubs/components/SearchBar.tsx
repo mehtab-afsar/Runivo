@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, TextInput, Pressable, StyleSheet } from 'react-native';
 import { X } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   value: string;
@@ -36,9 +36,9 @@ function mkStyles(C: AppColors) {
     input: {
       backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
       paddingHorizontal: 14, paddingVertical: 10, paddingRight: 36,
-      fontSize: 14, color: C.black,
+      fontFamily: Fonts.regular, fontSize: 14, color: C.black,
     },
     clear: { position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center' },
-    clearText: { fontSize: 13, color: C.t3 },
+    clearText: { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
   });
 }

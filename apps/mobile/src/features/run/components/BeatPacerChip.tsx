@@ -4,7 +4,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { SpeakerHigh as Volume2, SpeakerSlash as VolumeX } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   bpm: number;
@@ -50,10 +50,10 @@ function mkStyles(C: AppColors) {
     chip:        { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 20, paddingVertical: 6, paddingHorizontal: 12 },
     chipEnabled: { backgroundColor: C.red, borderColor: C.red },
     dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.35)' },
-    dotEnabled:  { backgroundColor: '#fff' },
-    bpm:         { fontFamily: 'Barlow_600SemiBold', fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-    bpmEnabled:  { color: '#fff' },
-    unit:        { fontSize: 10, color: 'rgba(255,255,255,0.35)', marginRight: 2 },
+    dotEnabled:  { backgroundColor: C.white },
+    bpm:         { fontFamily: Fonts.semiBold, fontSize: 13, color: 'rgba(255,255,255,0.6)', fontVariant: ['tabular-nums'] },
+    bpmEnabled:  { color: C.white },
+    unit:        { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.55)', marginRight: 2 },
     unitEnabled: { color: 'rgba(255,255,255,0.7)' },
   });
 }

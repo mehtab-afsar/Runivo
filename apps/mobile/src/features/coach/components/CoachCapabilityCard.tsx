@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
-import { useTheme } from '@theme';
+import { useTheme, Fonts } from '@theme';
 
 interface Props {
   label:       string;
@@ -29,6 +29,6 @@ const ss = StyleSheet.create({
   card:    { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 13, borderBottomWidth: 0.5 },
   pressed: { backgroundColor: 'rgba(10,10,10,0.03)' },
   icon:    { fontSize: 20, width: 30, textAlign: 'center' },
-  label:   { fontWeight: '500', fontSize: 14 },
-  desc:    { fontSize: 11, marginTop: 2 },
+  label:   { fontFamily: Fonts.medium, fontSize: 14 },
+  desc:    { fontFamily: Fonts.regular, fontSize: 11, marginTop: 2 },
 });

@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
 import type { TerritoryPolygon } from '@shared/types/game';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Spacing, type AppColors } from '@theme';
 
 import ML from '@maplibre/maplibre-react-native';
 
@@ -100,11 +100,11 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:    { height: MAP_H, borderRadius: 20, overflow: 'hidden', marginHorizontal: 22, marginBottom: 28, backgroundColor: C.surface },
+    container:    { height: MAP_H, borderRadius: 20, overflow: 'hidden', marginHorizontal: Spacing.gutter, marginBottom: 28, backgroundColor: C.surface },
     placeholder:  { flex: 1, backgroundColor: C.stone },
     overlay:      { position: 'absolute', bottom: 0, right: 0, left: 0, padding: 12, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end' },
-    ctaText:      { fontWeight: '500', fontSize: 11, color: '#fff', backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
+    ctaText:      { ...Type.labelSm, color: C.alwaysLight, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
     emptyOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-    emptyText:    { fontSize: 11, color: C.t3, textAlign: 'center' },
+    emptyText:    { ...Type.caption, color: C.t3, textAlign: 'center' },
   });
 }

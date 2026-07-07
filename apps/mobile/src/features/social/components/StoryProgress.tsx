@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Colors } from '@theme';
 
 interface Props {
   count: number;
@@ -28,5 +29,5 @@ const s = StyleSheet.create({
     flex: 1, height: 2.5, borderRadius: 2,
     backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden',
   },
-  fill: { height: '100%', backgroundColor: '#fff' },
+  fill: { height: '100%', backgroundColor: Colors.alwaysLight },
 });

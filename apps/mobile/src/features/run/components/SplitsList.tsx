@@ -1,11 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT       = 'Barlow_400Regular';
-const FONT_MED   = 'Barlow_500Medium';
-const FONT_LIGHT = 'Barlow_300Light';
-const FONT_SEMI  = 'Barlow_600SemiBold';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 export interface Split { km: number; pace: number }
 
@@ -64,12 +59,12 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     container:   { backgroundColor: C.white, borderRadius: 4, overflow: 'hidden' },
     header:      { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    headerCell:  { fontFamily: FONT_SEMI, fontSize: 9, letterSpacing: 1, color: C.t3, width: 32 },
+    headerCell:  { ...Type.overline, color: C.t3, width: 32 },
     row:         { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
-    km:          { fontFamily: FONT_MED, fontSize: 12, color: C.t2, width: 32 },
+    km:          { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, width: 32, fontVariant: ['tabular-nums'] },
     barContainer:{ flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, overflow: 'hidden', marginHorizontal: 8 },
     bar:         { height: '100%', borderRadius: 3 },
-    pace:        { fontFamily: FONT_LIGHT, fontSize: 13, width: 56, textAlign: 'right' },
-    paceUnit:    { fontFamily: FONT, fontSize: 10, color: C.t3 },
+    pace:        { fontFamily: Fonts.light, fontSize: 13, width: 56, textAlign: 'right', fontVariant: ['tabular-nums'] },
+    paceUnit:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
   });
 }

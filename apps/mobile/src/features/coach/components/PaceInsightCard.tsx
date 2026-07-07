@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 interface Props {
   headline: string;
@@ -41,17 +41,17 @@ export function PaceInsightCard({ headline, body, consistencyScore, paceWeeklyEa
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:      { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 12, overflow: 'hidden', marginHorizontal: 16, marginBottom: 14 },
+    card:      { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 12, overflow: 'hidden', marginHorizontal: Spacing.gutter, marginBottom: 14 },
     accentBar: { width: 3, backgroundColor: C.red },
     content:   { flex: 1, padding: 14, gap: 6 },
     topRow:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-    headline:  { fontWeight: '600', fontSize: 15, color: C.black, flex: 1 },
+    headline:  { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black, flex: 1 },
     csWrap:    { alignItems: 'center', flexShrink: 0 },
-    csNum:     { fontWeight: '600', fontSize: 22, color: C.black, lineHeight: 24 },
-    csLabel:   { fontSize: 9, color: C.t3, letterSpacing: 0.6 },
-    body:      { fontSize: 13, color: C.t2, lineHeight: 18 },
+    csNum:     { fontFamily: Fonts.semiBold, fontSize: 22, color: C.black, lineHeight: 24, fontVariant: ['tabular-nums'] },
+    csLabel:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.6 },
+    body:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 18 },
     paceRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-    paceLabel: { fontSize: 10, color: C.t3, letterSpacing: 0.4 },
+    paceLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.4, fontVariant: ['tabular-nums'] },
     barTrack:  { flex: 1, height: 3, backgroundColor: C.mid, borderRadius: 2, flexDirection: 'row', overflow: 'hidden' },
     barFill:   { backgroundColor: C.red, borderRadius: 2 },
   });

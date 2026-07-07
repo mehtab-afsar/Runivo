@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun } from '@shared/services/store';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   streakDays: number;
@@ -60,7 +60,7 @@ function mkStyles(C: AppColors) {
       alignItems: 'center',
     },
     pillIcon: { fontSize: 16, marginBottom: 4 },
-    pillValue: { fontWeight: '600', fontSize: 18, color: C.black, letterSpacing: -0.5 },
-    pillLabel: { fontSize: 10, color: C.t3, marginTop: 2 },
+    pillValue: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+    pillLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
   });
 }

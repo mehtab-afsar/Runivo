@@ -7,7 +7,7 @@ import { Bell } from 'phosphor-react-native';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotifItem } from '../components/NotifItem';
 import { routeNotificationUrl } from '../services/notificationHandler';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -67,11 +67,11 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 40 },
-  backText: { fontSize: 18, color: C.t2 },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black },
-  markAll: { fontSize: 11, color: C.red, textAlign: 'right' },
-  list: { paddingHorizontal: 16, paddingBottom: 100, gap: 6 },
+  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+  title: { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+  markAll: { fontFamily: Fonts.medium, fontSize: 11, color: C.red, textAlign: 'right' },
+  list: { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 6 },
   empty: { alignItems: 'center' as const, paddingVertical: 48 },
-  emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-  emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', paddingHorizontal: 24 },
+  emptyTitle: { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+  emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', paddingHorizontal: 24 },
 }); }

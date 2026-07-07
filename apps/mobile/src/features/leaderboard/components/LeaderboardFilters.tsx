@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { TrendUp, NavigationArrow, Lightning, Globe, Flag, MapPin } from 'phosphor-react-native';
 import type { LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 
 interface Props {
   tab: LeaderboardTab;
@@ -94,15 +94,15 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    row:             { flexDirection: 'row', paddingHorizontal: 16, gap: 6, marginBottom: 8 },
+    row:             { flexDirection: 'row', paddingHorizontal: Spacing.gutter, gap: 6, marginBottom: 8 },
     pill:            { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 7, paddingHorizontal: 6, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.bg },
     pillActive:      { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
-    pillLabel:       { fontSize: 10, color: C.t3 },
-    pillLabelActive: { fontWeight: '500', color: C.red },
-    tfRow:           { flexDirection: 'row', paddingHorizontal: 16, gap: 4, marginBottom: 8 },
+    pillLabel:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    pillLabelActive: { fontFamily: Fonts.medium, color: C.red },
+    tfRow:           { flexDirection: 'row', paddingHorizontal: Spacing.gutter, gap: 4, marginBottom: 8 },
     tfBtn:           { flex: 1, paddingVertical: 6, borderRadius: 4, alignItems: 'center' },
     tfBtnActive:     { backgroundColor: C.redLo },
-    tfLabel:         { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
-    tfLabelActive:   { fontWeight: '500', color: C.red },
+    tfLabel:         { ...Type.overline, color: C.t3 },
+    tfLabelActive:   { color: C.red },
   });
 }

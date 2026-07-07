@@ -6,11 +6,7 @@ import {
   Waves, Wheelchair, Snowflake,
 } from 'phosphor-react-native';
 import type { ActivityType } from '../types';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT = 'Barlow_400Regular';
-const FONT_MED = 'Barlow_500Medium';
-const FONT_LIGHT = 'Barlow_300Light';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 type IconComp = typeof Pulse;
 const ACTIVITIES: { id: ActivityType; label: string; icon: IconComp; color: string; bg: string }[] = [
@@ -55,7 +51,7 @@ export default function ActivityModal({ visible, selected, bottomInset, onSelect
             <Text style={ss.sub}>Select your workout type</Text>
           </View>
           <Pressable style={ss.closeBtn} onPress={onClose}>
-            <Text style={{ color: C.muted, fontSize: 16 }}>✕</Text>
+            <Text style={{ fontFamily: Fonts.regular, color: C.muted, fontSize: 16 }}>✕</Text>
           </Pressable>
         </View>
         <ScrollView contentContainerStyle={ss.grid} showsVerticalScrollIndicator={false}>
@@ -71,7 +67,7 @@ export default function ActivityModal({ visible, selected, bottomInset, onSelect
                 <View style={[ss.iconBox, isSelected && { backgroundColor: a.color + '22' }]}>
                   <Icon size={20} color={isSelected ? a.color : C.muted} weight="light" />
                 </View>
-                <Text style={[ss.chipLabel, isSelected && { color: a.color, fontFamily: FONT_MED }]}>{a.label}</Text>
+                <Text style={[ss.chipLabel, isSelected && { color: a.color, fontFamily: Fonts.medium }]}>{a.label}</Text>
               </Pressable>
             );
           })}
@@ -86,12 +82,12 @@ function mkStyles(C: AppColors) {
     overlay:  { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
     sheet:    { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
     header:   { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
-    title:    { fontFamily: FONT_MED, fontSize: 17, color: C.black },
-    sub:      { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, marginTop: 2 },
+    title:    { fontFamily: Fonts.medium, fontSize: 17, color: C.black },
+    sub:      { fontFamily: Fonts.light, fontSize: 12, color: C.muted, marginTop: 2 },
     closeBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     grid:     { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, paddingBottom: 20 },
     chip:     { width: '30%', alignItems: 'center', gap: 6, paddingVertical: 12, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white },
     iconBox:  { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    chipLabel:{ fontFamily: FONT, fontSize: 11, color: C.muted },
+    chipLabel:{ fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
   });
 }

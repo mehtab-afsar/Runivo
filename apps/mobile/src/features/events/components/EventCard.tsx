@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Calendar, MapPin, Users, Bookmark } from 'phosphor-react-native';
 import type { RunEvent } from '../types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 interface Props {
   event: RunEvent;
@@ -73,14 +73,14 @@ function mkStyles(C: AppColors) {
     row:           { backgroundColor: C.white, paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     topRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
     pills:         { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-    categoryText:  { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    categoryText:  { ...Type.overline, color: C.t3 },
     distPill:      { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: C.redLo },
-    distPillText:  { fontWeight: '500', fontSize: 9, color: C.red },
+    distPillText:  { fontFamily: Fonts.medium, fontSize: 10, color: C.red },
     joinedPill:    { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: C.greenBg },
-    joinedPillText:{ fontWeight: '500', fontSize: 9, color: C.green },
-    title:         { fontWeight: '500', fontSize: 15, color: C.black, marginBottom: 10, lineHeight: 20 },
+    joinedPillText:{ fontFamily: Fonts.medium, fontSize: 10, color: C.green },
+    title:         { fontFamily: Fonts.medium, fontSize: 15, color: C.black, marginBottom: 10, lineHeight: 20 },
     metaRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 14, rowGap: 4 },
     metaItem:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    metaText:      { fontSize: 10, color: C.t2 },
+    metaText:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
   });
 }

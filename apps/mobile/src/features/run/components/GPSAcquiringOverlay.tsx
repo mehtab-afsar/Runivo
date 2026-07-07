@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
-import { useTheme } from '@theme';
+import { useTheme, Fonts } from '@theme';
 
 interface Props {
   accuracy: number | null;
@@ -77,16 +77,17 @@ const ss = StyleSheet.create({
     marginBottom: 16,
   },
   accText: {
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
     fontSize: 14,
+    fontVariant: ['tabular-nums'],
   },
   title: {
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
     fontSize: 15,
     marginBottom: 4,
   },
   sub: {
-    
+    fontFamily: Fonts.regular,
     fontSize: 12,
   },
 });

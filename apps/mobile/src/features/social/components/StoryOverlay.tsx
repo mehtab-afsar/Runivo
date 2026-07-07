@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
+import { Colors, Fonts } from '@theme';
 import type { StoryGroup } from '@features/social/services/storyService';
 
 function timeAgo(iso: string) {
@@ -44,9 +45,9 @@ const s = StyleSheet.create({
   avatar: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#fff',
+    borderWidth: 2, borderColor: Colors.alwaysLight,
   },
-  avatarText: { fontWeight: '700', fontSize: 13, color: '#fff' },
-  userName: { flex: 1, fontWeight: '600', fontSize: 13, color: '#fff' },
-  time: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  avatarText: { fontFamily: Fonts.bold, fontSize: 13, color: Colors.alwaysLight },
+  userName: { flex: 1, fontFamily: Fonts.semiBold, fontSize: 13, color: Colors.alwaysLight },
+  time: { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.7)' },
 });

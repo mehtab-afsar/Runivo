@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Type, Fonts } from '@theme';
 
 interface MacroBarsProps {
   proteinConsumed: number;
@@ -48,9 +49,9 @@ export function MacroBars({
 
 const s = StyleSheet.create({
   row:   { flexDirection: 'row', gap: 12 },
-  label: { fontSize: 9, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 5, textAlign: 'center' },
+  label: { ...Type.overline, color: '#ADADAD', marginBottom: 5, textAlign: 'center' },
   track: { height: 5, backgroundColor: '#E8E4DF', borderRadius: 3, overflow: 'hidden', marginBottom: 5 },
   fill:  { height: '100%', borderRadius: 3 },
-  value: { fontWeight: '600', fontSize: 11, color: '#0A0A0A', textAlign: 'center' },
-  goal:  { fontSize: 10, color: '#ADADAD' },
+  value: { fontFamily: Fonts.semiBold, fontSize: 11, color: '#0A0A0A', textAlign: 'center', fontVariant: ['tabular-nums'] },
+  goal:  { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD' },
 });

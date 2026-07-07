@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, Modal, Animated, Easing, StyleSheet } from 'react-native';
-import { useTheme } from '@theme';
+import { useTheme, Fonts } from '@theme';
 
 interface Props {
   visible: boolean;
@@ -124,8 +124,8 @@ const ss = StyleSheet.create({
   particleContainer: { position: 'absolute', top: '40%', left: '50%', width: 0, height: 0 },
   particle:          { position: 'absolute', width: 6, height: 6, borderRadius: 3 },
   icon:              { fontSize: 56, marginBottom: 16 },
-  title:             { fontWeight: '600', fontSize: 20, marginBottom: 8 },
-  sub:               { fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  title:             { fontFamily: Fonts.semiBold, fontSize: 20, marginBottom: 8 },
+  sub:               { fontFamily: Fonts.regular, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   btn:               { borderRadius: 12, paddingVertical: 13, paddingHorizontal: 40 },
-  btnTxt:            { fontWeight: '600', fontSize: 15, color: '#FFFFFF' },
+  btnTxt:            { fontFamily: Fonts.semiBold, fontSize: 15, color: '#FFFFFF' },
 });

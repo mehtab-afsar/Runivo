@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CaretLeft, CaretDown, Diamond } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import * as Haptics from 'expo-haptics';
 import { GAME_CONFIG } from '@shared/services/config';
 import { RANK_COLORS } from '@shared/constants/territory';
@@ -129,28 +129,28 @@ export default function PACEStoreScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:            { flex: 1, backgroundColor: C.bg },
-    headerBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+    headerBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingVertical: 12 },
     backBtn:         { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    headerTitle:     { fontWeight: '500', fontSize: 12, letterSpacing: 2, color: C.t3 },
+    headerTitle:     { fontFamily: Fonts.medium, fontSize: 12, letterSpacing: 2, color: C.t3 },
     hero:            { alignItems: 'center', paddingTop: 24, paddingBottom: 28 },
     balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
-    balanceNum:      { fontWeight: '700', fontSize: 52, color: C.black, lineHeight: 56, letterSpacing: -2 },
-    balanceUnit:     { fontSize: 18, color: C.t3, lineHeight: 52, marginBottom: 4 },
+    balanceNum:      { fontFamily: Fonts.bold, fontSize: 52, color: C.black, lineHeight: 56, letterSpacing: -2, fontVariant: ['tabular-nums'] },
+    balanceUnit:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t3, lineHeight: 52, marginBottom: 4 },
     rankBadge:       { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-    rankBadgeText:   { fontWeight: '500', fontSize: 11, letterSpacing: 0.5 },
-    weekCard:        { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginHorizontal: 16, marginBottom: 12 },
-    weekLabel:       { fontWeight: '500', fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 },
+    rankBadgeText:   { fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 0.5 },
+    weekCard:        { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginHorizontal: Spacing.gutter, marginBottom: 12 },
+    weekLabel:       { ...Type.overline, color: C.t3, marginBottom: 8 },
     progressBarBg:   { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
     progressBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
-    weekNumbers:     { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 4 },
-    weekHint:        { fontSize: 12, color: C.t3 },
-    featuredSection: { paddingHorizontal: 16, marginBottom: 12 },
-    sectionLabel:    { fontWeight: '500', fontSize: 11, color: C.t3, letterSpacing: 0.8, marginBottom: 12 },
-    howWrap:         { marginHorizontal: 16, marginBottom: 4, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    weekNumbers:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 4, fontVariant: ['tabular-nums'] },
+    weekHint:        { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
+    featuredSection: { paddingHorizontal: Spacing.gutter, marginBottom: 12 },
+    sectionLabel:    { fontFamily: Fonts.medium, fontSize: 11, color: C.t3, letterSpacing: 0.8, marginBottom: 12 },
+    howWrap:         { marginHorizontal: Spacing.gutter, marginBottom: 4, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     howHeader:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-    howHeaderText:   { fontWeight: '500', fontSize: 13, color: C.black },
+    howHeaderText:   { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
     howContent:      { paddingHorizontal: 14, paddingBottom: 14 },
     howRow:          { paddingVertical: 6, borderTopWidth: 0.5, borderTopColor: C.border },
-    howRowText:      { fontSize: 13, color: C.t2 },
+    howRowText:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
   });
 }

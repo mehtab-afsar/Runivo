@@ -5,7 +5,7 @@ import Animated, {
   useSharedValue, withTiming, withDelay, withSpring,
   useAnimatedProps, useAnimatedStyle, Easing,
 } from 'react-native-reanimated';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   weeklyKm: number;
@@ -123,9 +123,9 @@ function mkStyles(C: AppColors) {
     ringWrap: { position: 'relative', width: 148, height: 148, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     center:   { position: 'absolute', alignItems: 'center' },
     kmRow:    { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-    km:       { fontFamily: 'Barlow_300Light', fontSize: 38, color: C.white, letterSpacing: -1.5, lineHeight: 40 },
-    kmUnit:   { fontFamily: 'Barlow_300Light', fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
-    kmGoal:   { fontFamily: 'Barlow_400Regular', fontSize: 10, color: 'rgba(255,255,255,0.25)', marginTop: 3 },
+    km:       { fontFamily: Fonts.light, fontSize: 38, color: C.white, letterSpacing: -1.5, lineHeight: 40, fontVariant: ['tabular-nums'] },
+    kmUnit:   { fontFamily: Fonts.light, fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
+    kmGoal:   { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
     dayDots:  { flexDirection: 'row', gap: 4, paddingHorizontal: 18 },
     dot:      { flex: 1, height: 3, borderRadius: 2 },
   });

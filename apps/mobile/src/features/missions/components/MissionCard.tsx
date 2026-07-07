@@ -3,19 +3,19 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MapPin, Flag, Wind, Fire, Timer, Target, Check, Lightning, Shield, Sword, type Icon } from 'phosphor-react-native';
 import type { Mission } from '@shared/services/missions';
 import { DifficultyBadge } from './DifficultyBadge';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
-const TYPE_ICON: Record<string, { Icon: Icon; color: string }> = {
-  run_distance:      { Icon: MapPin,    color: '#D93518' },
-  claim_territories: { Icon: Lightning, color: '#EAB308' },
+const mkTypeIcon = (C: AppColors): Record<string, { Icon: Icon; color: string }> => ({
+  run_distance:      { Icon: MapPin,    color: C.red },
+  claim_territories: { Icon: Lightning, color: C.gold },
   capture_enemy:     { Icon: Flag,      color: '#9CA3AF' },
   speed_run:         { Icon: Wind,      color: '#64748B' },
-  run_streak:        { Icon: Fire,      color: '#EA580C' },
-  defend_zone:  { Icon: Shield,    color: '#059669' },
-  steal_rival:  { Icon: Sword,     color: '#DC2626' },
-  complete_run: { Icon: Check,     color: '#059669' },
-  beat_pace:    { Icon: Timer,     color: '#D93518' },
-};
+  run_streak:        { Icon: Fire,      color: C.orange },
+  defend_zone:  { Icon: Shield,    color: C.green },
+  steal_rival:  { Icon: Sword,     color: C.red },
+  complete_run: { Icon: Check,     color: C.green },
+  beat_pace:    { Icon: Timer,     color: C.red },
+});
 
 interface MissionCardProps {
   mission: Mission;
@@ -27,7 +27,7 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
   const ss = useMemo(() => mkStyles(C), [C]);
   const pct = Math.min(1, mission.current / mission.target);
   const diff = (mission.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard';
-  const typeIcon = TYPE_ICON[mission.type] ?? { Icon: Target, color: '#D93518' };
+  const typeIcon = mkTypeIcon(C)[mission.type] ?? { Icon: Target, color: C.red };
   const { Icon: MissionIcon, color: iconColor } = typeIcon;
 
   return (
@@ -82,16 +82,16 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   cardRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
   iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' },
-  missionTitle: { fontWeight: '500', fontSize: 13, color: C.black, flex: 1 },
-  missionDesc: { fontSize: 11, color: C.t2, lineHeight: 16 },
-  progressBg: { height: 3, backgroundColor: '#E8E4DF', borderRadius: 2, overflow: 'hidden', marginBottom: 8, flexDirection: 'row' },
+  missionTitle: { fontFamily: Fonts.medium, fontSize: 13, color: C.black, flex: 1 },
+  missionDesc: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, lineHeight: 16 },
+  progressBg: { height: 3, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', marginBottom: 8, flexDirection: 'row' },
   progressFill: { height: 3 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progressText: { fontSize: 11, color: C.t2 },
+  progressText: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, fontVariant: ['tabular-nums'] },
   rewardRow: { flexDirection: 'row', alignItems: 'center' },
-  rewardText: { fontSize: 11, color: C.green },
+  rewardText: { fontFamily: Fonts.regular, fontSize: 11, color: C.green },
   claimBtn: { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 4, paddingVertical: 10, alignItems: 'center' },
-  claimBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
+  claimBtnLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight, letterSpacing: 1 },
   claimedBanner: { marginTop: 10, backgroundColor: C.greenLo, borderRadius: 6, paddingVertical: 8, alignItems: 'center' },
-  claimedText: { fontSize: 11, color: C.green },
+  claimedText: { fontFamily: Fonts.regular, fontSize: 11, color: C.green },
 }); }

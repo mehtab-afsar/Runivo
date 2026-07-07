@@ -14,7 +14,7 @@ import { TerritoryTab } from '../components/TerritoryTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import { AwardsTab } from '../components/AwardsTab';
 import type { ProfileTab } from '../types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { FEATURES } from '../../../config/features';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -140,12 +140,12 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     center: { alignItems: 'center', justifyContent: 'center' },
-    content: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 40 },
+    content: { paddingHorizontal: Spacing.gutter, paddingTop: 20, paddingBottom: 40 },
     tabsScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
-    tabsContent: { paddingHorizontal: 16 },
+    tabsContent: { paddingHorizontal: Spacing.gutter },
     tab: { paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
     tabActive: { borderBottomColor: C.black },
-    tabLabel: { fontSize: 13, color: C.t3 },
-    tabLabelActive: { fontWeight: '600', fontSize: 13, color: C.black },
+    tabLabel: { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
+    tabLabelActive: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.black },
   });
 }

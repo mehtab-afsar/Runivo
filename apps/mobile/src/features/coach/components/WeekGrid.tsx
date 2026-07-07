@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import type { SessionWithStatus } from '../hooks/usePlanScreen';
 
 const DAY_ORDER   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -79,7 +79,7 @@ function mkStyles(C: AppColors, compact: boolean) {
   return StyleSheet.create({
     row:          { flexDirection: 'row', gap: 4, justifyContent: 'space-between' },
     cell:         { width: cellW, height: cellH, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, gap: 4 },
-    dayLabel:     { fontSize: 9, color: C.t3, letterSpacing: 0.3 },
-    sessionLabel: { fontWeight: '500', fontSize: compact ? 9 : 10, textAlign: 'center' },
+    dayLabel:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.3 },
+    sessionLabel: { fontFamily: Fonts.medium, fontSize: 10, textAlign: 'center' },
   });
 }

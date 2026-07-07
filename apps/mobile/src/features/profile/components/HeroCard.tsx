@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun, StoredPlayer } from '@shared/services/store';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 interface HeroCardData {
   eyebrow: string;
@@ -123,11 +123,8 @@ function mkStyles(C: AppColors) {
       marginBottom: 12,
     },
     eyebrow: {
-      fontWeight: '500',
-      fontSize: 10,
-      color: 'rgba(255,255,255,0.5)',
-      letterSpacing: 1.5,
-      textTransform: 'uppercase',
+      ...Type.overline,
+      color: 'rgba(255,255,255,0.55)',
       marginBottom: 8,
     },
     numberRow: {
@@ -137,19 +134,20 @@ function mkStyles(C: AppColors) {
       marginBottom: 8,
     },
     bigNumber: {
-      fontWeight: '600',
+      fontFamily: Fonts.semiBold,
       fontSize: 42,
-      color: '#FFFFFF',
+      color: C.alwaysLight,
       letterSpacing: -1,
       lineHeight: 48,
+      fontVariant: ['tabular-nums'],
     },
     bigUnit: {
-
+      fontFamily: Fonts.regular,
       fontSize: 13,
       color: 'rgba(255,255,255,0.5)',
     },
     subline: {
-
+      fontFamily: Fonts.regular,
       fontSize: 12,
       color: 'rgba(255,255,255,0.6)',
       marginTop: 4,
@@ -167,7 +165,7 @@ function mkStyles(C: AppColors) {
       paddingVertical: 3,
     },
     badgeText: {
-      fontWeight: '500',
+      fontFamily: Fonts.medium,
       fontSize: 10,
       color: 'rgba(255,255,255,0.8)',
     },

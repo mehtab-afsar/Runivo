@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { RANK_COLORS } from '@shared/constants/territory';
+import { Fonts } from '@theme';
 import type { RunnerRank } from '@shared/types/game';
 
 
@@ -19,7 +20,7 @@ const RANK_LABELS: Record<RunnerRank, string> = {
 };
 
 const SIZE = {
-  xs: { fontSize: 9,  paddingH: 6,  paddingV: 2, radius: 4 },
+  xs: { fontSize: 10, paddingH: 6,  paddingV: 2, radius: 4 },
   sm: { fontSize: 10, paddingH: 8,  paddingV: 3, radius: 5 },
   md: { fontSize: 11, paddingH: 10, paddingV: 4, radius: 6 },
   lg: { fontSize: 12, paddingH: 12, paddingV: 5, radius: 7 },
@@ -46,5 +47,5 @@ export function RunnerRankBadge({ rank, size = 'sm', showLabel = true }: RunnerR
 
 const styles = StyleSheet.create({
   badge: { alignSelf: 'flex-start' },
-  label: { fontWeight: '600', letterSpacing: 0.4 },
+  label: { fontFamily: Fonts.semiBold, letterSpacing: 0.4 },
 });

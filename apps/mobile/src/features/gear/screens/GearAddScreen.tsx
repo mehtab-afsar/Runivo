@@ -9,7 +9,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useGearAdd } from '@features/gear/hooks/useGearAdd';
 import { PhotoPicker } from '@features/gear/components/PhotoPicker';
 import { CATEGORIES } from '@features/gear/types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -67,7 +67,7 @@ export default function GearAddScreen() {
           {error ? <Text style={ga.error}>{error}</Text> : null}
 
           <Pressable style={[ga.saveBtn, !isValid && ga.saveBtnDisabled]} onPress={handleSave} disabled={!isValid || submitting}>
-            {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={ga.saveLabel}>Add Shoe</Text>}
+            {submitting ? <ActivityIndicator size="small" color={C.alwaysLight} /> : <Text style={ga.saveLabel}>Add Shoe</Text>}
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -79,19 +79,19 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 32 },
-  backText: { fontSize: 18, color: C.t2 },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+  title: { fontFamily: Fonts.display, fontSize: 20, color: C.black },
   content: { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
-  label: { fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
-  input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.black },
+  label: { ...Type.overline, color: C.t3, marginTop: 14, marginBottom: 6 },
+  input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black },
   catGrid: { flexDirection: 'row', gap: 8 },
   catBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', gap: 4 },
   catBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-  catLabel: { fontSize: 11, color: C.t2 },
-  catLabelActive: { color: '#fff', fontWeight: '500' },
-  hint: { fontSize: 10, color: C.t3, marginTop: 4 },
-  error: { fontSize: 12, color: C.red, marginTop: 8 },
+  catLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
+  catLabelActive: { color: C.alwaysLight, fontFamily: Fonts.medium },
+  hint: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4 },
+  error: { fontFamily: Fonts.regular, fontSize: 12, color: C.red, marginTop: 8 },
   saveBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   saveBtnDisabled: { opacity: 0.4 },
-  saveLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
+  saveLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
 }); }

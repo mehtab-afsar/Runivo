@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { View, TextInput, Pressable, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SquaresFour as LayoutGrid, ArrowUp } from 'phosphor-react-native';
+import { Colors, Fonts } from '@theme';
 
 interface Props {
   value:              string;
@@ -31,7 +32,7 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
     <Animated.View style={[ss.outer, { paddingBottom: Math.max(insets.bottom, 8) + 4, transform: [{ translateY: slideY }], opacity }]}>
       <View style={ss.pill}>
         <Pressable style={ss.zapBtn} onPress={onOpenCapabilities} hitSlop={8}>
-          <LayoutGrid size={16} color="#7C3AED" weight="light" />
+          <LayoutGrid size={16} color={Colors.purple} weight="light" />
         </Pressable>
         <TextInput
           style={ss.input}
@@ -50,7 +51,7 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
           disabled={!canSend}
           hitSlop={8}
         >
-          <ArrowUp size={16} color={canSend ? '#fff' : 'rgba(10,10,10,0.22)'} weight="bold" />
+          <ArrowUp size={16} color={canSend ? Colors.alwaysLight : 'rgba(10,10,10,0.22)'} weight="bold" />
         </Pressable>
       </View>
     </Animated.View>
@@ -59,9 +60,9 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
 
 const ss = StyleSheet.create({
   outer:        { paddingHorizontal: 16, paddingTop: 10, backgroundColor: 'transparent' },
-  pill:         { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#FFFFFF', borderRadius: 28, paddingHorizontal: 8, paddingVertical: 8, gap: 6, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: -2 }, elevation: 8 },
+  pill:         { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: Colors.white, borderRadius: 28, paddingHorizontal: 8, paddingVertical: 8, gap: 6, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: -2 }, elevation: 8 },
   zapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(124,58,237,0.08)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  input:        { flex: 1, fontSize: 14, color: '#0A0A0A', maxHeight: 120, paddingVertical: 8, paddingHorizontal: 4 },
+  input:        { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: Colors.alwaysDark, maxHeight: 120, paddingVertical: 8, paddingHorizontal: 4 },
   sendBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(10,10,10,0.08)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  sendBtnActive:{ backgroundColor: '#0A0A0A' },
+  sendBtnActive:{ backgroundColor: Colors.alwaysDark },
 });

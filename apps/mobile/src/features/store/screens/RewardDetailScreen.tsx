@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { CaretLeft } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { getPlayer } from '@shared/services/store';
 import { HARDCODED_REWARDS } from '../rewards';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -93,22 +93,22 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:               { flex: 1, backgroundColor: C.bg },
     backBtn:            { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: 8, marginTop: 4 },
-    content:            { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
+    content:            { flex: 1, paddingHorizontal: Spacing.gutter, paddingTop: 20 },
     brandCircle:        { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-    brandInitial:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 28 },
-    brand:              { fontSize: 12, color: C.t3, marginBottom: 4, letterSpacing: 0.8 },
-    title:              { fontWeight: '600', fontSize: 22, color: C.black, lineHeight: 28, marginBottom: 10 },
-    description:        { fontSize: 14, color: C.t2, lineHeight: 21, marginBottom: 4 },
+    brandInitial:       { fontFamily: Fonts.display, fontSize: 28 },
+    brand:              { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, marginBottom: 4, letterSpacing: 0.8 },
+    title:              { fontFamily: Fonts.semiBold, fontSize: 22, color: C.black, lineHeight: 28, marginBottom: 10 },
+    description:        { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, lineHeight: 21, marginBottom: 4 },
     divider:            { height: 0.5, backgroundColor: C.border, marginVertical: 20 },
     breakdown:          { gap: 14 },
     breakdownRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     breakdownRowLast:   {},
-    breakdownLabel:     { fontSize: 14, color: C.t2 },
-    breakdownValue:     { fontWeight: '600', fontSize: 14, color: C.black },
+    breakdownLabel:     { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    breakdownValue:     { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, fontVariant: ['tabular-nums'] },
     breakdownNegative:  { color: C.red },
     claimBtn:           { backgroundColor: C.red, borderRadius: 14, height: 48, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     claimBtnDisabled:   { opacity: 0.5 },
-    claimBtnText:       { fontWeight: '600', fontSize: 15, color: '#fff' },
-    comingSoon:         { fontSize: 12, color: C.t3, textAlign: 'center' },
+    claimBtnText:       { fontFamily: Fonts.semiBold, fontSize: 15, color: C.white },
+    comingSoon:         { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center' },
   });
 }

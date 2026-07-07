@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Check, X } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface FeatureRowProps {
   name: string;
@@ -34,9 +34,9 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   circle: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
   checkCircle: { backgroundColor: C.greenLo },
   xCircle: { backgroundColor: C.redLo },
-  mark: { fontWeight: '700', fontSize: 10 },
+  mark: { fontFamily: Fonts.bold, fontSize: 10 },
   checkMark: { color: C.green },
   xMark: { color: C.red },
-  name: { fontWeight: '500', fontSize: 13, color: C.black, marginBottom: 1 },
-  sub: { fontSize: 11, color: C.t2 },
+  name: { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 1 },
+  sub: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
 }); }

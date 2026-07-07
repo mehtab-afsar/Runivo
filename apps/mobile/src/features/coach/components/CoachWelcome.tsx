@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { ArrowRight } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 const PLAN_TEMPLATES = [
   'Run a 5K in 4 weeks',
@@ -65,11 +65,11 @@ export function CoachWelcome({ goalInput, onGoalChange, onGenerate, planLoading,
           disabled={!goalInput.trim() || planLoading}
         >
           {planLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
+            <ActivityIndicator color={C.alwaysLight} size="small" />
           ) : (
             <>
               <Text style={s.genBtnLabel}>Generate plan</Text>
-              <ArrowRight size={14} color="#fff" weight="regular" />
+              <ArrowRight size={14} color={C.alwaysLight} weight="regular" />
             </>
           )}
         </Pressable>
@@ -94,23 +94,23 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrap:         { paddingHorizontal: 20, paddingTop: 32, paddingBottom: 20, gap: 16 },
     wordmark:     { textAlign: 'center' },
-    pace:         { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 36, color: C.black },
-    x:            { fontWeight: '700', fontSize: 36, color: C.red },
-    tagline:      { fontSize: 14, color: C.t2, textAlign: 'center' },
+    pace:         { fontFamily: Fonts.display, fontSize: 36, color: C.black },
+    x:            { fontFamily: Fonts.bold, fontSize: 36, color: C.red },
+    tagline:      { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center' },
     card:         { backgroundColor: C.white, borderRadius: 14, padding: 18, gap: 12, borderWidth: 0.5, borderColor: C.border },
-    cardHint:     { fontSize: 13, color: C.t2, lineHeight: 18 },
-    input:        { fontSize: 14, borderWidth: 0.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.bg },
+    cardHint:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 18 },
+    input:        { fontFamily: Fonts.regular, fontSize: 14, borderWidth: 0.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.bg },
     templatesScroll:  { marginHorizontal: -2 },
     templatesContent: { paddingHorizontal: 2, gap: 6, flexDirection: 'row' },
     templateChip:     { borderRadius: 16, borderWidth: 0.5, paddingHorizontal: 10, paddingVertical: 6 },
-    templateText:     { fontSize: 12 },
+    templateText:     { fontFamily: Fonts.regular, fontSize: 12 },
     genBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 10, paddingVertical: 12 },
     genBtnDisabled: { opacity: 0.45 },
-    genBtnLabel:  { fontWeight: '600', fontSize: 14, color: '#fff' },
+    genBtnLabel:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
     dividerRow:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
     divider:      { flex: 1, height: 0.5 },
-    dividerText:  { fontSize: 11, letterSpacing: 0.5 },
+    dividerText:  { fontFamily: Fonts.regular, fontSize: 11, letterSpacing: 0.5 },
     chatBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 10, borderWidth: 0.5, paddingHorizontal: 14, paddingVertical: 12 },
-    chatBtnLabel: { fontSize: 14 },
+    chatBtnLabel: { fontFamily: Fonts.regular, fontSize: 14 },
   });
 }

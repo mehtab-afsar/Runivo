@@ -7,6 +7,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { GPSPoint } from '../hooks/useActiveRun';
 import { kalmanSmooth } from '@shared/services/claimEngine';
+import { Fonts } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 
@@ -168,6 +169,6 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
 const ss = StyleSheet.create({
   map:          { flex: 1 },
   fallback:     { flex: 1, backgroundColor: '#1A1A2E', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  fallbackText: { fontSize: 13, color: '#6B7280' },
-  fallbackSub:  { fontSize: 11, color: '#4B5563' },
+  fallbackText: { fontFamily: Fonts.regular, fontSize: 13, color: '#6B7280' },
+  fallbackSub:  { fontFamily: Fonts.regular, fontSize: 11, color: '#4B5563' },
 });

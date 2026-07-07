@@ -22,16 +22,12 @@ import { getNutritionProfile } from '@shared/services/store';
 import { computeRunnerRank } from '@shared/services/claimEngine';
 import { GAME_CONFIG } from '@shared/services/config';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
-import { useTheme, Colors, feedback, type AppColors } from '@theme';
+import { useTheme, Colors, feedback, Type, Fonts, Spacing, type AppColors } from '@theme';
 import AwardUnlockSheet from '../components/AwardUnlockSheet';
 import type { RunnerRank } from '@shared/types/game';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 
-const FI = 'PlayfairDisplay_400Regular_Italic';
-const FS = 'Barlow_600SemiBold';
-const FL = 'Barlow_300Light';
-const FM = 'Barlow_500Medium';
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RunSummary'>;
 
@@ -222,7 +218,7 @@ export default function RunSummaryScreen() {
                 pace: runData.pace,
               })}
             >
-              <Play size={11} color="#fff" weight="fill" />
+              <Play size={11} color={C.alwaysLight} weight="fill" />
               <Text style={ss.replayBtnText}>Replay</Text>
             </Pressable>
           )}
@@ -465,63 +461,63 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
     close:        { position: 'absolute', right: 16, zIndex: 20, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
-    titleSection: { paddingHorizontal: 16, paddingTop: 52, paddingBottom: 20 },
-    type:         { fontFamily: FS, fontSize: 10, letterSpacing: 1.4, color: C.t3, marginBottom: 4 },
-    heading:      { fontFamily: FI, fontSize: 28, lineHeight: 32, marginBottom: 6 },
-    date:         { fontFamily: FL, fontSize: 12, color: C.t3 },
-    card:         { marginHorizontal: 16, marginBottom: 12 },
+    titleSection: { paddingHorizontal: Spacing.gutter, paddingTop: 52, paddingBottom: 20 },
+    type:         { ...Type.overline, letterSpacing: 1.4, color: C.t3, marginBottom: 4 },
+    heading:      { fontFamily: Fonts.display, fontSize: 28, lineHeight: 32, marginBottom: 6 },
+    date:         { fontFamily: Fonts.light, fontSize: 12, color: C.t3 },
+    card:         { marginHorizontal: Spacing.gutter, marginBottom: 12 },
 
     // PACE card (dark bg)
     paceCard:      { backgroundColor: C.alwaysDark, borderRadius: 12, padding: 18 },
-    paceLabel:     { fontFamily: FS, fontSize: 9, letterSpacing: 1.5, color: 'rgba(255,255,255,0.45)', marginBottom: 8 },
+    paceLabel:     { ...Type.overline, letterSpacing: 1.5, color: 'rgba(255,255,255,0.45)', marginBottom: 8 },
     paceBigRow:    { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
-    paceBig:       { fontFamily: 'Barlow_700Bold', fontSize: 52, color: C.white, lineHeight: 56, letterSpacing: -1 },
-    paceSuffix:    { fontFamily: FL, fontSize: 20, color: 'rgba(255,255,255,0.45)', paddingBottom: 8 },
-    paceZero:      { fontFamily: FL, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 20 },
-    expandHint:    { fontFamily: FS, fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: 1, marginTop: 10, textTransform: 'uppercase' },
+    paceBig:       { fontFamily: Fonts.bold, fontSize: 52, color: C.alwaysLight, lineHeight: 56, letterSpacing: -1, fontVariant: ['tabular-nums'] },
+    paceSuffix:    { fontFamily: Fonts.light, fontSize: 20, color: 'rgba(255,255,255,0.45)', paddingBottom: 8 },
+    paceZero:      { fontFamily: Fonts.light, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 20 },
+    expandHint:    { ...Type.overline, letterSpacing: 1, color: 'rgba(255,255,255,0.55)', marginTop: 10 },
     breakdownRows: { paddingTop: 12, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.1)', marginTop: 12 },
     bdRow:         { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
-    bdLabel:       { fontFamily: FL, fontSize: 13, color: 'rgba(255,255,255,0.55)' },
-    bdValue:       { fontFamily: FM, fontSize: 13, color: C.white },
-    capRow:        { fontFamily: FL, fontSize: 11, color: '#EF9F27', marginTop: 6 },
+    bdLabel:       { fontFamily: Fonts.light, fontSize: 13, color: 'rgba(255,255,255,0.55)' },
+    bdValue:       { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
+    capRow:        { fontFamily: Fonts.light, fontSize: 11, color: '#EF9F27', marginTop: 6 },
 
     // Light-bg card label (territory + rank sections)
-    cardLabel:     { fontFamily: FS, fontSize: 9, letterSpacing: 1.5, color: C.t3, marginBottom: 10, textTransform: 'uppercase' },
+    cardLabel:     { ...Type.overline, letterSpacing: 1.5, color: C.t3, marginBottom: 10 },
 
     // Territory card
     territoryCard:   { borderRadius: 12, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white, padding: 14 },
     mapWrap:         { height: 160, borderRadius: 8, overflow: 'hidden' },
     mapFallback:     { height: 160, backgroundColor: C.surface, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-    mapFallbackText: { fontFamily: FM, fontSize: 14, color: C.t2 },
+    mapFallbackText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t2 },
     territoryFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-    territoryArea:   { fontFamily: FL, fontSize: 26, color: C.black, letterSpacing: -0.5 },
+    territoryArea:   { fontFamily: Fonts.light, fontSize: 26, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
     tierBadge:       { borderRadius: 4, paddingHorizontal: 10, paddingVertical: 4 },
-    tierTxt:         { fontFamily: FM, fontSize: 11, letterSpacing: 1 },
+    tierTxt:         { fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1 },
     loopRow:         { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
     loopDot:         { width: 6, height: 6, borderRadius: 3 },
-    loopTxt:         { fontFamily: FL, fontSize: 12, color: C.t2 },
+    loopTxt:         { fontFamily: Fonts.light, fontSize: 12, color: C.t2 },
 
     // Rank card
     rankCard:      { borderRadius: 12, padding: 16, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white },
     rankUpBanner:  { backgroundColor: C.red, borderRadius: 6, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 8 },
-    rankUpText:    { fontFamily: FM, fontSize: 13, color: '#FFFFFF' },
+    rankUpText:    { fontFamily: Fonts.medium, fontSize: 13, color: C.white },
     rankRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 10 },
-    rankName:      { fontFamily: FI, fontSize: 24, color: C.black },
+    rankName:      { fontFamily: Fonts.display, fontSize: 24, color: C.black },
     progressOuter: { height: 6, borderRadius: 3, backgroundColor: C.border, marginBottom: 6 },
     progressInner: { height: 6, borderRadius: 3, backgroundColor: C.red },
-    rankSub:       { fontFamily: FL, fontSize: 12, color: C.t3 },
+    rankSub:       { fontFamily: Fonts.light, fontSize: 12, color: C.t3 },
 
     // Route map + replay
     mapWrapOuter: { position: 'relative' },
     replayBtn:    { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-    replayBtnText: { fontWeight: '600', fontSize: 11, color: '#fff' },
+    replayBtnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight },
 
     // Fuel card
-    fuel:        { marginHorizontal: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(249,115,22,0.2)' },
+    fuel:        { marginHorizontal: Spacing.gutter, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(249,115,22,0.2)' },
     fuelIcon:    { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(249,115,22,0.12)', alignItems: 'center', justifyContent: 'center' },
-    fuelTitle:   { fontFamily: FM, fontSize: 13, color: C.black },
-    fuelSub:     { fontFamily: FL, fontSize: 11, color: C.t3, marginTop: 1 },
+    fuelTitle:   { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    fuelSub:     { fontFamily: Fonts.light, fontSize: 11, color: C.t3, marginTop: 1 },
     fuelBtn:     { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: C.alwaysDark },
-    fuelBtnText: { fontFamily: FS, fontSize: 10, color: C.white, letterSpacing: 0.4 },
+    fuelBtnText: { fontFamily: Fonts.semiBold, fontSize: 10, color: C.alwaysLight, letterSpacing: 0.4 },
   });
 }

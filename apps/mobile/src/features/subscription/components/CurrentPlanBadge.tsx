@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Check } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface CurrentPlanBadgeProps {
   tier: string;
@@ -26,6 +26,6 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     backgroundColor: C.greenLo, borderRadius: 14, borderWidth: 0.5,
     borderColor: C.green + '44', padding: 20, alignItems: 'center', marginBottom: 8,
   },
-  title: { fontWeight: '600', fontSize: 16, color: C.green, marginBottom: 4 },
-  sub: { fontSize: 13, color: C.green },
+  title: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.green, marginBottom: 4 },
+  sub: { fontFamily: Fonts.regular, fontSize: 13, color: C.green },
 }); }

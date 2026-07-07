@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { Diamond } from 'phosphor-react-native';
-import { useTheme } from '@theme';
+import { useTheme, Fonts } from '@theme';
 import { FontSize } from '@theme';
 
 interface PACEPillProps {
@@ -35,5 +35,5 @@ export function PACEPill({ amount, prefix = '', size = 'md', style }: PACEPillPr
 
 const styles = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, alignSelf: 'flex-start' },
-  text: { fontWeight: '600' },
+  text: { fontFamily: Fonts.semiBold, fontVariant: ['tabular-nums'] },
 });

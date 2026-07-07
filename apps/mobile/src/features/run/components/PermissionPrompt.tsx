@@ -1,11 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { MapPin } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT = 'Barlow_400Regular';
-const FONT_MED = 'Barlow_500Medium';
-const FONT_SEMI = 'Barlow_600SemiBold';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 interface PermissionPromptProps {
   onRequest: () => void;
@@ -35,9 +31,9 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 32, backgroundColor: C.bg,
   },
-  iconWrap:  { width: 72, height: 72, borderRadius: 36, backgroundColor: '#FDE8E4', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  title:     { fontFamily: FONT_SEMI, fontSize: 20, color: C.black, marginBottom: 12, textAlign: 'center' },
-  body:      { fontFamily: FONT, fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
+  iconWrap:  { width: 72, height: 72, borderRadius: 36, backgroundColor: C.accentMuted, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  title:     { ...Type.title, color: C.black, marginBottom: 12, textAlign: 'center' },
+  body:      { fontFamily: Fonts.regular, fontSize: 14, color: C.muted, textAlign: 'center', lineHeight: 20, marginBottom: 28 },
   btn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 28 },
-  btnLabel:  { fontFamily: FONT_MED, fontSize: 14, color: C.white, letterSpacing: 0.3 },
+  btnLabel:  { fontFamily: Fonts.medium, fontSize: 14, color: C.white, letterSpacing: 0.3 },
 }); }

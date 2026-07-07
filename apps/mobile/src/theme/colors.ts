@@ -66,8 +66,9 @@ export const DarkColors = {
   t2:      '#9E9894',
   t3:      '#5A5550',
 
-  // Brand / interactive
-  red:     '#D93518',
+  // Brand / interactive — the light-mode vermilion (#D93518) reads muddy on near-black;
+  // dark mode gets a hotter variant so the accent keeps its energy and passes contrast.
+  red:     '#FF5326',
   white:   '#FFFFFF',
 
   // Semantic
@@ -90,11 +91,11 @@ export const DarkColors = {
   purple:  '#8B5CF6',
 
   // Semantic aliases for component library
-  accent:              '#D93518',
+  accent:              '#FF5326',
   accentMuted:         '#2A0C06',
   alwaysLight:         '#FFFFFF',
   alwaysDark:          '#0A0A0A',
-  danger:              '#D93518',
+  danger:              '#FF5326',
   backgroundSecondary: '#1A1816',
 } as const;
 

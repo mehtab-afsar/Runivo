@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
 import type { RunEvent } from '../types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type EventTab = 'upcoming' | 'challenges' | 'past';
@@ -128,29 +128,29 @@ function mkEdStyles(C: AppColors) {
     handle:          { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
     sheetHeader:     { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 },
     chips:           { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' },
-    categoryText:    { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    categoryText:    { ...Type.overline, color: C.t3 },
     distPill:        { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: C.redLo },
-    distPillText:    { fontWeight: '500', fontSize: 9, color: C.red },
+    distPillText:    { fontFamily: Fonts.medium, fontSize: 10, color: C.red },
     closeBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8 },
-    eventTitle:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: C.black, marginBottom: 8, lineHeight: 28 },
-    eventDesc:       { fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
+    eventTitle:      { ...Type.displaySm, color: C.black, marginBottom: 8 },
+    eventDesc:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
     detailCard:      { backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
     detailRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 13 },
     detailRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
     detailIconBox:   { width: 30, height: 30, borderRadius: 8, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    detailLabel:     { fontSize: 9, color: C.t3, letterSpacing: 0.8, marginBottom: 2 },
-    detailValue:     { fontSize: 13, color: C.black },
+    detailLabel:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.8, marginBottom: 2 },
+    detailValue:     { fontFamily: Fonts.regular, fontSize: 13, color: C.black },
     organizerRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
     orgAvatar:       { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    orgAvatarText:   { fontWeight: '700', fontSize: 11, color: '#FFFFFF' },
-    orgLabel:        { fontSize: 9, color: C.t3, letterSpacing: 0.8, marginBottom: 1 },
-    orgName:         { fontSize: 13, color: C.black },
+    orgAvatarText:   { fontFamily: Fonts.bold, fontSize: 11, color: C.white },
+    orgLabel:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.8, marginBottom: 1 },
+    orgName:         { fontFamily: Fonts.regular, fontSize: 13, color: C.black },
     footer:          { flexDirection: 'row', gap: 8, alignItems: 'center' },
     iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     iconBtnSaved:    { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
     joinBtn:         { flex: 1, height: 48, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
     joinBtnJoined:   { backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: 'rgba(26,107,64,0.25)' },
-    joinLabel:       { fontWeight: '600', fontSize: 14, color: C.white },
+    joinLabel:       { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
     joinLabelJoined: { color: C.green },
   });
 }
@@ -275,21 +275,21 @@ function mkStyles(C: AppColors) {
     root:           { flex: 1, backgroundColor: C.bg },
     header:         { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
-    title:          { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    subtitle:       { fontSize: 10, color: C.t3, marginTop: 2 },
+    title:          { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    subtitle:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
     createBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     // Segmented tabs
     tabContainer:   { backgroundColor: C.white, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     tabPill:        { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 20, padding: 3, gap: 2 },
     tab:            { flex: 1, paddingVertical: 6, borderRadius: 16, alignItems: 'center' },
     tabActive:      { backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
-    tabLabel:       { fontSize: 10, color: C.t3 },
-    tabLabelActive: { fontWeight: '500', color: C.black },
+    tabLabel:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    tabLabelActive: { fontFamily: Fonts.medium, color: C.black },
     // List
     list:           { paddingBottom: 120 },
     empty:          { alignItems: 'center' as const, paddingVertical: 56, paddingHorizontal: 18, gap: 8 },
-    emptyTitle:     { fontWeight: '500', fontSize: 13, color: C.black },
-    emptyText:      { fontSize: 11, color: C.t3, textAlign: 'center' },
+    emptyTitle:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    emptyText:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center' },
     // FAB
     fab:            { position: 'absolute', right: 14, width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
     paceCardAccent: { borderLeftWidth: 3, borderLeftColor: C.red },

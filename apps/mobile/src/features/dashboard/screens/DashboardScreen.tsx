@@ -8,7 +8,8 @@ import * as Haptics from 'expo-haptics';
 import { Bell, Lightning, Pulse, Fire } from 'phosphor-react-native';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
+import { SectionHeader } from '../../../shared/components/SectionHeader';
 import { useDashboard } from '../hooks/useDashboard';
 import { MiniTerritoryMap } from '../components/MiniTerritoryMap';
 import { MissionRow } from '../components/MissionRow';
@@ -105,7 +106,7 @@ export default function DashboardScreen() {
         {dash.syncError && (
           <Pressable style={s.syncChip} onPress={() => dash.refresh()}>
             {dash.refreshing
-              ? <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+              ? <ActivityIndicator size="small" color={C.alwaysLight} style={{ marginRight: 6 }} />
               : <Text style={s.syncDot}>●</Text>}
             <Text style={s.syncText}>{dash.refreshing ? 'Syncing…' : 'Sync failed · Retry'}</Text>
           </Pressable>
@@ -150,13 +151,12 @@ export default function DashboardScreen() {
 
         {/* Missions */}
         <View style={s.section}>
-          <View style={s.sectionHead}>
-            <View style={s.sectionTitleRow}>
-              <Lightning size={11} color={C.t3} weight="light" />
-              <Text style={s.sectionTitle}>  MISSIONS</Text>
-            </View>
-            <Pressable onPress={() => go('Missions')}><Text style={s.sectionAction}>Change →</Text></Pressable>
-          </View>
+          <SectionHeader
+            title="Missions"
+            icon={<Lightning size={11} color={C.t3} weight="light" />}
+            action={{ label: 'Change →', onPress: () => go('Missions') }}
+            style={s.sectionHead}
+          />
           <View style={s.missionCard}>
             <Text style={s.cardLabel}>TODAY'S CHALLENGE</Text>
             {dash.missions.map((m, i) => <MissionRow key={m.id} mission={m} isLast={i === dash.missions.length - 1} />)}
@@ -165,15 +165,12 @@ export default function DashboardScreen() {
 
         {/* Recent runs */}
         <View style={s.section}>
-          <View style={s.sectionHead}>
-            <View style={s.sectionTitleRow}>
-              <Pulse size={11} color={C.t3} weight="light" />
-              <Text style={s.sectionTitle}>  RECENT RUNS</Text>
-            </View>
-            {dash.recentRuns.length > 0 && (
-              <Pressable onPress={() => go('History')}><Text style={s.sectionAction}>See all →</Text></Pressable>
-            )}
-          </View>
+          <SectionHeader
+            title="Recent runs"
+            icon={<Pulse size={11} color={C.t3} weight="light" />}
+            action={dash.recentRuns.length > 0 ? { label: 'See all →', onPress: () => go('History') } : undefined}
+            style={s.sectionHead}
+          />
           <View style={s.runsCard}>
             {dash.recentRuns.length > 0
               ? dash.recentRuns.map((r, i) => (
@@ -201,44 +198,43 @@ export default function DashboardScreen() {
   );
 }
 
+// Type-scale rules: no bare fontWeight (system-font leak next to Barlow), no text
+// below the 10px overline floor except the 9px bell count badge.
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     fill:            { flex: 1 },
-    loadText:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, fontStyle: 'italic' },
+    loadText:        { ...Type.displaySm, color: C.t1 },
 
     // Header
-    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 20, marginBottom: 16 },
-    greeting:        { fontSize: 10, letterSpacing: 1, color: C.t3, marginBottom: 4 },
-    username:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 26, color: C.black, lineHeight: 30, fontStyle: 'italic' },
+    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingTop: 20, marginBottom: 16 },
+    greeting:        { ...Type.overline, color: C.t3, marginBottom: 4 },
+    username:        { fontFamily: Fonts.display, fontSize: 26, color: C.t1, lineHeight: 30 },
     headerRight:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
     badge:           { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, borderRadius: 16 },
-    badgeTxt:        { fontWeight: '600', fontSize: 13, color: C.black },
-    badgeSup:        { fontWeight: '500', fontSize: 9, color: C.t3, letterSpacing: 0.4, marginTop: 2 },
+    badgeTxt:        { ...Type.metricSm, fontSize: 13, color: C.t1 },
+    badgeSup:        { fontFamily: Fonts.medium, fontSize: 10, color: C.t3, letterSpacing: 0.4, marginTop: 2 },
     bellBtn:         { width: 32, height: 32, borderRadius: 16, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     bellBadge:       { position: 'absolute', top: -3, right: -3, minWidth: 14, height: 14, borderRadius: 7, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.bg },
-    bellBadgeText:   { fontWeight: '700', fontSize: 8, color: '#FFFFFF', lineHeight: 11 },
+    bellBadgeText:   { fontFamily: Fonts.bold, fontSize: 9, color: C.alwaysLight, lineHeight: 11 },
 
     // Content
-    section:         { paddingHorizontal: 22, marginBottom: 28 },
-    sectionHead:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    sectionTitleRow: { flexDirection: 'row', alignItems: 'center' },
-    sectionTitle:    { fontWeight: '500', fontSize: 11, letterSpacing: 1, color: C.t3 },
-    sectionAction:   { fontSize: 11, color: C.t3 },
+    section:         { paddingHorizontal: Spacing.gutter, marginBottom: 28 },
+    sectionHead:     { marginBottom: 12 },
     // Fixed near-black bold card in both themes — not C.black, which is the "ink" token
     // and inverts to near-white in dark mode (would strand the fixed-white text below).
     missionCard:     { backgroundColor: C.alwaysDark, borderRadius: 20, padding: 18 },
-    cardLabel:       { fontWeight: '500', fontSize: 10, letterSpacing: 1.2, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
+    cardLabel:       { ...Type.overline, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
     runsCard:        { backgroundColor: C.white, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     firstRunCard:    { padding: 24, alignItems: 'center', gap: 10 },
-    firstRunTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black, fontStyle: 'italic', textAlign: 'center' },
-    firstRunBody:    { fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
-    firstRunBtn:     { marginTop: 4, backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28 },
-    firstRunBtnText: { fontWeight: '600', fontSize: 14, color: '#fff' },
+    firstRunTitle:   { ...Type.displaySm, fontSize: 20, color: C.t1, textAlign: 'center' },
+    firstRunBody:    { ...Type.bodySm, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
+    firstRunBtn:     { marginTop: 4, backgroundColor: C.red, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28 },
+    firstRunBtnText: { ...Type.button, fontSize: 14, color: C.alwaysLight },
     syncChip:        { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', backgroundColor: C.red, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, gap: 4 },
-    syncDot:         { fontSize: 8, color: '#FFFFFF', lineHeight: 12 },
-    syncText:        { fontWeight: '500', fontSize: 11, color: '#FFFFFF', letterSpacing: 0.2 },
-    staleStrip:      { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 22, marginBottom: 12, backgroundColor: C.amberBg, borderWidth: 0.5, borderColor: 'rgba(158,104,0,0.3)', borderRadius: 12, padding: 12 },
+    syncDot:         { fontSize: 8, color: C.alwaysLight, lineHeight: 12 },
+    syncText:        { ...Type.labelSm, color: C.alwaysLight, letterSpacing: 0.2 },
+    staleStrip:      { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: Spacing.gutter, marginBottom: 12, backgroundColor: C.amberBg, borderWidth: 0.5, borderColor: 'rgba(158,104,0,0.3)', borderRadius: 12, padding: 12 },
     staleAccent:     { width: 3, height: 24, backgroundColor: C.red, borderRadius: 2 },
-    staleText:       { fontWeight: '500', fontSize: 12, color: C.amber, flex: 1 },
+    staleText:       { ...Type.label, fontSize: 12, color: C.amber, flex: 1 },
   });
 }

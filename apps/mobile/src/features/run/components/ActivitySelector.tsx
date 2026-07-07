@@ -1,10 +1,7 @@
 import React, { useMemo } from 'react';
 import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
 import type { ActivityType } from '../types';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT = 'Barlow_400Regular';
-const FONT_MED = 'Barlow_500Medium';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 const ACTIVITIES: { id: ActivityType; label: string; emoji: string; color: string; bg: string }[] = [
   { id: 'run',           label: 'Run',        emoji: '🏃', color: '#D93518', bg: '#FDE8E4' },
@@ -46,7 +43,7 @@ export default function ActivitySelector({ selected, onSelect }: ActivitySelecto
             onPress={() => onSelect(a.id)}
           >
             <Text style={ss.emoji}>{a.emoji}</Text>
-            <Text style={[ss.label, isSelected && { color: a.color, fontFamily: FONT_MED }]}>
+            <Text style={[ss.label, isSelected && { color: a.color, fontFamily: Fonts.medium }]}>
               {a.label}
             </Text>
           </Pressable>
@@ -65,6 +62,6 @@ function mkStyles(C: AppColors) {
       borderWidth: 0.5, borderColor: C.border,
     },
     emoji: { fontSize: 18 },
-    label: { fontFamily: FONT, fontSize: 11, color: C.muted },
+    label: { fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
   });
 }

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import type { StoryGroup } from '@features/social/services/storyService';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   groups:   StoryGroup[];
@@ -46,7 +46,7 @@ function mkStyles(C: AppColors) {
     item:    { alignItems: 'center', gap: 5, width: 58 },
     ring:    { width: 54, height: 54, borderRadius: 27, borderWidth: 2, padding: 2 },
     avatar:  { flex: 1, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-    initial: { fontWeight: '600', fontSize: 18, color: C.white },
-    name:    { fontSize: 10, color: C.t2, width: 58, textAlign: 'center' },
+    initial: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.white },
+    name:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t2, width: 58, textAlign: 'center' },
   });
 }

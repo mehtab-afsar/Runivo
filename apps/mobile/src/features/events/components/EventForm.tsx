@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { EVENT_TYPES } from '../hooks/useCreateEvent';
-import { Colors } from '@theme';
+import { Colors, Fonts, Type } from '@theme';
 
 const C = Colors;
 
@@ -50,22 +50,22 @@ export function EventForm({ saving, error, canSubmit, title, setTitle, eventType
       {error ? <Text style={s.error}>{error}</Text> : null}
 
       <Pressable style={[s.submitBtn, !canSubmit && s.submitBtnDisabled]} onPress={onSubmit} disabled={!canSubmit || saving}>
-        {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.submitLabel}>Create Event</Text>}
+        {saving ? <ActivityIndicator size="small" color={C.alwaysLight} /> : <Text style={s.submitLabel}>Create Event</Text>}
       </Pressable>
     </>
   );
 }
 
 const s = StyleSheet.create({
-  label: { fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
-  input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.black },
+  label: { ...Type.overline, color: C.t3, marginTop: 14, marginBottom: 6 },
+  input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   typeBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
   typeBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-  typeLabel: { fontSize: 12, color: C.t2 },
-  typeLabelActive: { color: '#fff', fontWeight: '500' },
-  error: { fontSize: 12, color: C.red, marginTop: 8 },
+  typeLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+  typeLabelActive: { color: C.alwaysLight, fontFamily: Fonts.medium },
+  error: { fontFamily: Fonts.regular, fontSize: 12, color: C.red, marginTop: 8 },
   submitBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   submitBtnDisabled: { opacity: 0.4 },
-  submitLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
+  submitLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
 });

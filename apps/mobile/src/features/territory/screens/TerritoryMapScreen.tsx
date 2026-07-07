@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { MapPin, Stack } from 'phosphor-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTerritoryMap } from '../hooks/useTerritoryMap';
 import { TerritoryFilterChips } from '../components/TerritoryFilterChips';
@@ -151,7 +151,7 @@ export default function TerritoryMapScreen() {
           onSelect={setActiveFilter}
         />
         <Pressable style={ss.styleBtn} onPress={cycleMapStyle}>
-          <Stack size={18} color="#fff" weight="light" />
+          <Stack size={18} color={C.alwaysLight} weight="light" />
         </Pressable>
       </View>
 
@@ -184,17 +184,16 @@ export default function TerritoryMapScreen() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function mkStyles(_C: AppColors) {
+function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:    { flex: 1, backgroundColor: '#000' },
+    container:    { flex: 1, backgroundColor: C.alwaysDark },
     map:          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
     topOverlay:   { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
     styleBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
     emptyState:   { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', gap: 12, padding: 40 },
-    emptyTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: '#fff', fontStyle: 'italic' },
-    emptyBody:    { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
-    emptyBtn:     { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
-    emptyBtnText: { fontWeight: '600', fontSize: 14, color: '#fff' },
+    emptyTitle:   { fontFamily: Fonts.display, fontSize: 22, color: C.alwaysLight },
+    emptyBody:    { fontFamily: Fonts.regular, fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
+    emptyBtn:     { backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
+    emptyBtnText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
   });
 }

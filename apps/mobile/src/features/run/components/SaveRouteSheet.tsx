@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { X, Pulse, Fire, Waves, Mountains, Star, Target, TreeEvergreen, ArrowClockwise, Lightning, PathIcon as RouteIcon, MapTrifold, Trophy, type Icon } from 'phosphor-react-native';
 import { saveSavedRoute, type StoredSavedRoute } from '@shared/services/store';
 import { pushSavedRoutes } from '@shared/services/sync';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 const ICON_OPTIONS: { key: string; Icon: Icon; color: string }[] = [
   { key: 'run',     Icon: Pulse,          color: '#D93518' },
@@ -162,22 +162,22 @@ function mkStyles(C: AppColors) {
     sheet:         { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
     handle:        { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
-    title:         { fontWeight: '600', fontSize: 16, color: C.black },
+    title:         { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black },
     closeBtn:      { width: 28, height: 28, borderRadius: 14, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
     infoRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 12, padding: 12, marginBottom: 14 },
     infoIconWrap:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    infoDistance:  { fontWeight: '600', fontSize: 13, color: C.black },
-    infoDuration:  { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t3, marginTop: 2 },
-    input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },
-    sectionLabel:  { fontWeight: '500', fontSize: 10, color: C.t3, letterSpacing: 1, marginBottom: 8 },
+    infoDistance:  { fontFamily: Fonts.semiBold, fontSize: 13, color: C.black, fontVariant: ['tabular-nums'] },
+    infoDuration:  { fontFamily: Fonts.light, fontSize: 11, color: C.t3, marginTop: 2 },
+    input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },
+    sectionLabel:  { ...Type.overline, color: C.t3, marginBottom: 8 },
     emojiRow:      { flexDirection: 'row', gap: 8 },
     emojiBtn:      { width: 42, height: 42, borderRadius: 10, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    emojiBtnActive:{ backgroundColor: '#FCE8EB', borderWidth: 2, borderColor: C.red },
+    emojiBtnActive:{ backgroundColor: C.accentMuted, borderWidth: 2, borderColor: C.red },
     toggleRow:     { flexDirection: 'row', alignItems: 'center', borderWidth: 0.5, borderColor: C.border, borderRadius: 12, padding: 12, marginBottom: 16 },
-    toggleLabel:   { fontWeight: '500', fontSize: 13, color: C.black },
-    toggleSub:     { fontSize: 11, color: C.t3, marginTop: 2 },
+    toggleLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    toggleSub:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     saveBtn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
     saveBtnDisabled:{ backgroundColor: C.border },
-    saveBtnText:   { fontWeight: '600', fontSize: 14, color: C.white },
+    saveBtnText:   { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
   });
 }

@@ -7,7 +7,7 @@ import { ChatCircle } from 'phosphor-react-native';
 import { useLobby } from '@features/clubs/hooks/useLobby';
 import { LobbyCard } from '@features/clubs/components/LobbyCard';
 import type { LobbyRoomDisplay } from '@features/clubs/components/LobbyCard';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Colors, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -16,7 +16,7 @@ const LOBBY_ROOMS: LobbyRoomDisplay[] = [
   { id: 'training', name: 'Training Talk',     description: 'Plans, tips, and workout advice',     emoji: '🏃', color: '#1A6B40' },
   { id: 'races',    name: 'Race Reports',      description: 'Share your race results and stories', emoji: '🏆', color: '#9E6800' },
   { id: 'speed',    name: 'Speed & Intervals', description: 'Track work, tempo runs, PRs',         emoji: '⚡', color: '#D93518' },
-  { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        emoji: '🌙', color: '#6B2D8C' },
+  { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        emoji: '🌙', color: Colors.purple },
 ];
 
 const Banner = () => {
@@ -73,13 +73,13 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    back: { width: 32 }, backText: { fontSize: 18, color: C.t2 },
-    title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
-    subtitle: { fontSize: 11, color: C.t3, marginTop: 1 },
-    list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
+    back: { width: 32 }, backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+    title: { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    subtitle: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
+    list: { paddingHorizontal: Spacing.gutter, paddingTop: 8, paddingBottom: 100, gap: 10 },
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     banner: { backgroundColor: C.redLo, borderRadius: 14, padding: 14, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 8 },
-    bannerTitle: { fontWeight: '600', fontSize: 13, color: C.red, marginBottom: 2 },
-    bannerText: { fontSize: 12, color: C.t2 },
+    bannerTitle: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.red, marginBottom: 2 },
+    bannerText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
   });
 }

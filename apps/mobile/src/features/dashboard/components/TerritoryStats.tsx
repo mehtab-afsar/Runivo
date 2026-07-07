@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 interface Props {
   ownedCount: number;
@@ -50,7 +50,7 @@ function mkStyles(C: AppColors) {
       borderBottomWidth: 0.5, borderBottomColor: C.mid,
     },
     cellBorderRight: { borderRightWidth: 0.5, borderRightColor: C.mid },
-    value: { fontSize: 22, letterSpacing: -0.6, lineHeight: 24, marginBottom: 4 },
-    label: { fontSize: 9, letterSpacing: 0.8, color: C.t3 },
+    value: { fontFamily: Fonts.light, fontSize: 22, letterSpacing: -0.6, lineHeight: 24, marginBottom: 4, fontVariant: ['tabular-nums'] },
+    label: { ...Type.overline, color: C.t3 },
   });
 }

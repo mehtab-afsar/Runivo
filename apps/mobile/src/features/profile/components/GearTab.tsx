@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Footprints } from 'phosphor-react-native';
 import type { StoredRun, StoredShoe } from '@shared/services/store';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface GearTabProps {
   shoes: StoredShoe[];
@@ -37,14 +37,14 @@ export function GearTab({ shoes, runs = [], onAddShoe }: GearTabProps) {
             .reduce((sum, r) => sum + r.distanceMeters / 1000, 0);
           const maxKm = shoe.maxKm ?? 800;
           const pct = Math.min(usedKm / maxKm, 1);
-          const barColor = pct >= 0.85 ? '#D93518' : pct >= 0.6 ? '#9E6800' : '#1A6B40';
+          const barColor = pct >= 0.85 ? C.red : pct >= 0.6 ? C.amber : C.green;
           const statusLabel = shoe.isRetired ? 'Retired' : pct >= 0.85 ? 'Replace soon' : pct >= 0.6 ? 'Moderate wear' : 'Good';
-          const statusColor = shoe.isRetired ? C.t3 : pct >= 0.85 ? '#D93518' : pct >= 0.6 ? '#9E6800' : '#1A6B40';
+          const statusColor = shoe.isRetired ? C.t3 : pct >= 0.85 ? C.red : pct >= 0.6 ? C.amber : C.green;
 
           return (
             <View key={shoe.id} style={[ss.shoeCard, shoe.isRetired && ss.shoeRetired]}>
               <View style={ss.shoeEmoji}>
-                <Footprints size={22} color="#6B6B6B" weight="light" />
+                <Footprints size={22} color={C.t2} weight="light" />
               </View>
               <View style={{ flex: 1 }}>
                 <View style={ss.shoeNameRow}>
@@ -72,24 +72,24 @@ export function GearTab({ shoes, runs = [], onAddShoe }: GearTabProps) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    sectionTitle:  { fontWeight: '600', fontSize: 12, color: C.black, letterSpacing: 0.5 },
+    sectionTitle:  { fontFamily: Fonts.semiBold, fontSize: 12, color: C.black, letterSpacing: 0.5 },
     gearHeader:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    gearAddBtn:    { fontWeight: '500', fontSize: 12, color: C.red },
+    gearAddBtn:    { fontFamily: Fonts.medium, fontSize: 12, color: C.red },
     shoeCard:      { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     shoeRetired:   { opacity: 0.55 },
     shoeEmoji:     { width: 40, height: 40, borderRadius: 10, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     shoeNameRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
-    shoeName:      { fontWeight: '500', fontSize: 14, color: C.black },
-    shoeBrand:     { fontSize: 11, color: C.t2, marginBottom: 8 },
-    statusBadge:   { fontWeight: '500', fontSize: 10 },
+    shoeName:      { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
+    shoeBrand:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, marginBottom: 8 },
+    statusBadge:   { fontFamily: Fonts.medium, fontSize: 10 },
     barTrack:      { height: 5, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 4 },
     barFill:       { height: '100%', borderRadius: 3 },
     barLabels:     { flexDirection: 'row', justifyContent: 'space-between' },
-    barLabel:      { fontSize: 9, color: C.t3 },
+    barLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
     emptyState:    { alignItems: 'center', paddingVertical: 32 },
-    emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+    emptyTitle:    { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
     emptyBtn:      { marginTop: 16, backgroundColor: C.alwaysDark, paddingVertical: 11, paddingHorizontal: 24, borderRadius: 4 },
-    emptyBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
+    emptyBtnLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight, letterSpacing: 1 },
   });
 }

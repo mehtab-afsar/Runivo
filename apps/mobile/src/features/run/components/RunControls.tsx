@@ -1,9 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { Pause, Play, Square } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT = 'Barlow_400Regular';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface RunControlsProps {
   isPaused: boolean;
@@ -22,8 +20,8 @@ export default function RunControls({ isPaused, onPause, onResume, onStop }: Run
         onPress={isPaused ? onResume : onPause}
       >
         {isPaused
-          ? <Play size={22} color={C.white} weight="regular" />
-          : <Pause size={22} color={C.white} weight="regular" />}
+          ? <Play size={22} color={C.alwaysLight} weight="regular" />
+          : <Pause size={22} color={C.alwaysLight} weight="regular" />}
         <Text style={ss.secondaryControlLabel}>{isPaused ? 'Resume' : 'Pause'}</Text>
       </Pressable>
 
@@ -52,6 +50,6 @@ function mkStyles(C: AppColors) {
       alignItems: 'center', gap: 4, padding: 12,
       borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)',
     },
-    secondaryControlLabel: { fontFamily: FONT, fontSize: 10, color: 'rgba(255,255,255,0.5)' },
+    secondaryControlLabel: { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.5)' },
   });
 }

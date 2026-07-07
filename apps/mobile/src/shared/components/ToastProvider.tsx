@@ -10,6 +10,7 @@ import React, {
 import { Animated, Text, StyleSheet, Platform, View } from 'react-native';
 import { Check, X, Warning as AlertTriangle, Info, type Icon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors, Fonts } from '@theme';
 import {
   ToastContext,
   type ToastOptions,
@@ -18,10 +19,10 @@ import {
 
 // ─── Colours per toast type ──────────────────────────────────────────────────
 const BG: Record<ToastType, string> = {
-  success: '#1A6B40',
+  success: Colors.green,
   error:   '#C0392B',
-  warning: '#9E6800',
-  info:    '#0A0A0A',
+  warning: Colors.amber,
+  info:    Colors.alwaysDark,
 };
 
 const ICON_COMPONENTS: Record<ToastType, Icon> = {
@@ -114,7 +115,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             { opacity, transform: [{ translateY }] },
           ]}
         >
-          <View style={ss.iconWrap}>{React.createElement(ICON_COMPONENTS[current.type], { size: 14, color: '#FFFFFF', weight: 'regular' })}</View>
+          <View style={ss.iconWrap}>{React.createElement(ICON_COMPONENTS[current.type], { size: 14, color: Colors.alwaysLight, weight: 'regular' })}</View>
           <Text style={ss.message} numberOfLines={2}>{current.message}</Text>
         </Animated.View>
       )}
@@ -148,9 +149,9 @@ const ss = StyleSheet.create({
     justifyContent:  'center',
   },
   message: {
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
     fontSize:   13,
-    color:      '#FFFFFF',
+    color:      Colors.alwaysLight,
     flex:       1,
     lineHeight: 18,
   },

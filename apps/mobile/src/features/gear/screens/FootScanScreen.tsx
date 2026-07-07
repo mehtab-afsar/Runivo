@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Camera, ArrowClockwise, CheckCircle } from 'phosphor-react-native';
 import { analyseFootImage, ARCH_INFO, type FootScanResult } from '../services/footScanService';
-import { Colors } from '@theme';
+import { Colors, Fonts } from '@theme';
 
 type Step = 'instructions' | 'preview' | 'analysing' | 'result';
 
@@ -126,23 +126,23 @@ const s = StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
   header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 8 },
   back:    { width: 36, height: 36, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  title:   { fontWeight: '600', fontSize: 16, color: C.black },
+  title:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black },
   scroll:  { padding: 16, paddingTop: 8 },
   section: { alignItems: 'center', gap: 16 },
   emoji:   { fontSize: 56, marginTop: 24 },
-  heading: { fontWeight: '600', fontSize: 20, color: C.black, textAlign: 'center' },
-  body:    { fontSize: 14, color: C.mid, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
+  heading: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, textAlign: 'center' },
+  body:    { fontFamily: Fonts.regular, fontSize: 14, color: C.mid, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
   preview: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, marginVertical: 8 },
   analysingRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  analysingText:   { fontSize: 14, color: C.mid },
-  errorText:       { fontSize: 13, color: C.red, textAlign: 'center' },
+  analysingText:   { fontFamily: Fonts.regular, fontSize: 14, color: C.mid },
+  errorText:       { fontFamily: Fonts.regular, fontSize: 13, color: C.red, textAlign: 'center' },
   primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.alwaysDark, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
-  primaryBtnText:  { fontWeight: '600', fontSize: 14, color: C.white },
+  primaryBtnText:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
   secondaryBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
-  secondaryBtnText:{ fontSize: 14, color: C.black },
+  secondaryBtnText:{ fontFamily: Fonts.regular, fontSize: 14, color: C.black },
   resultCard:      { width: '100%', borderRadius: 12, padding: 16, gap: 8 },
   resultHeader:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  resultTitle:     { fontWeight: '600', fontSize: 14, flex: 1 },
-  resultLabel:     { fontWeight: '600', fontSize: 12, letterSpacing: 0.8 },
-  resultBody:      { fontSize: 13, color: C.black, lineHeight: 20 },
+  resultTitle:     { fontFamily: Fonts.semiBold, fontSize: 14, flex: 1 },
+  resultLabel:     { fontFamily: Fonts.semiBold, fontSize: 12, letterSpacing: 0.8 },
+  resultBody:      { fontFamily: Fonts.regular, fontSize: 13, color: C.black, lineHeight: 20 },
 });

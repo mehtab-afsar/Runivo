@@ -6,7 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getNutritionProfile, getNutritionEntriesRange, type NutritionProfile, type NutritionEntry } from '@shared/services/store';
 import { todayKey } from '../../nutrition/services/nutritionService';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -153,7 +153,7 @@ export function NutritionTab() {
                     backgroundColor: isToday ? C.red : dayKcal > 0 ? C.t3 : C.border,
                   }]} />
                 </View>
-                <Text style={[ss.barDay, isToday && { color: C.red, fontWeight: '600' }]}>{DAY_LABELS[i]}</Text>
+                <Text style={[ss.barDay, isToday && { color: C.red, fontFamily: Fonts.semiBold }]}>{DAY_LABELS[i]}</Text>
                 <Text style={ss.barKcal}>{dayKcal > 0 ? dayKcal : '—'}</Text>
               </View>
             );
@@ -165,7 +165,7 @@ export function NutritionTab() {
       <View style={ss.statRow}>
         <View style={[ss.card, { flex: 1 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-            <Fire size={12} color="#EA580C" weight="light" />
+            <Fire size={12} color={C.orange} weight="light" />
             <Text style={[ss.statCardLabel, { marginBottom: 0 }]}>Streak</Text>
           </View>
           <Text style={ss.statCardValue}>{streak}</Text>
@@ -197,33 +197,33 @@ function mkStyles(C: AppColors) {
     root: { paddingBottom: 8 },
     center: { alignItems: 'center', paddingVertical: 32 },
     card: {
-      backgroundColor: '#F8F6F3', borderRadius: 14,
-      borderWidth: 0.5, borderColor: '#DDD9D4',
+      backgroundColor: C.bg, borderRadius: 14,
+      borderWidth: 0.5, borderColor: C.border,
       padding: 14, marginHorizontal: 0,
     },
     cardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    cardLabel: { fontWeight: '500', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
-    editLink: { fontSize: 10, color: C.red },
+    cardLabel: { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3 },
+    editLink: { fontFamily: Fonts.regular, fontSize: 10, color: C.red },
     goalRow: { flexDirection: 'row', justifyContent: 'space-between' },
     goalCell: { flex: 1, alignItems: 'center' },
-    goalValue: { fontSize: 15, color: C.black, letterSpacing: -0.3 },
-    goalUnit: { fontSize: 9, color: C.t3 },
-    goalCellLabel: { fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.6, color: C.t3, marginTop: 2 },
+    goalValue: { fontFamily: Fonts.regular, fontSize: 15, color: C.black, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
+    goalUnit: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    goalCellLabel: { fontFamily: Fonts.regular, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, color: C.t3, marginTop: 2 },
     barsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
     barCol: { flex: 1, alignItems: 'center', gap: 4 },
     barTrack: { width: '100%', justifyContent: 'flex-end', alignItems: 'center' },
     bar: { width: '55%', borderRadius: 3 },
-    barDay: { fontSize: 9, color: C.t3 },
-    barKcal: { fontSize: 8, color: C.t3 },
+    barDay: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    barKcal: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, fontVariant: ['tabular-nums'] },
     statRow: { flexDirection: 'row', marginTop: 10 },
-    statCardLabel: { fontWeight: '500', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3, marginBottom: 6 },
-    statCardValue: { fontSize: 22, color: C.black, letterSpacing: -0.5, lineHeight: 26 },
-    statCardSub: { fontSize: 9, color: C.t3, marginTop: 2 },
+    statCardLabel: { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, color: C.t3, marginBottom: 6 },
+    statCardValue: { fontFamily: Fonts.regular, fontSize: 22, color: C.black, letterSpacing: -0.5, lineHeight: 26, fontVariant: ['tabular-nums'] },
+    statCardSub: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     btn: { backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
-    btnText: { fontWeight: '600', fontSize: 11, color: '#fff', letterSpacing: 0.5 },
+    btnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.5 },
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 20 },
-    emptyTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 8 },
-    emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
+    emptyTitle: { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 8 },
+    emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
   });
 }

@@ -1,8 +1,6 @@
 import React, { useMemo } from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
-const FONT      = 'Barlow_400Regular';
-const FONT_SEMI = 'Barlow_600SemiBold';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface TerritoryChip {
   tier: 'bronze' | 'silver' | 'gold';
@@ -43,7 +41,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row:   { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 4 },
     chip:  { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5, alignItems: 'center', gap: 2 },
-    count: { fontFamily: FONT_SEMI, fontSize: 16 },
-    label: { fontFamily: FONT, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
+    count: { fontFamily: Fonts.semiBold, fontSize: 16, fontVariant: ['tabular-nums'] },
+    label: { fontFamily: Fonts.regular, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
   });
 }

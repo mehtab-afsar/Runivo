@@ -11,7 +11,7 @@ import { supabase } from '@shared/services/supabase';
 import { getTerritoryPolygons } from '@shared/services/store';
 import { GAME_CONFIG } from '@shared/services/config';
 import type { TerritoryPolygon } from '@shared/types/game';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import { useCoachNav } from '@navigation/CoachNavContext';
 import { useCoachChat } from '../hooks/useCoachChat';
 import { usePlanScreen } from '../hooks/usePlanScreen';
@@ -31,8 +31,8 @@ function PaceXLogo({ size = 22 }: { size?: number }) {
   const C = useTheme();
   return (
     <Text>
-      <Text style={{ fontWeight: '600', fontSize: size, color: C.black }}>Pace</Text>
-      <Text style={{ fontWeight: '700', fontSize: size + 1, color: C.red }}>X</Text>
+      <Text style={{ fontFamily: Fonts.semiBold, fontSize: size, color: C.black }}>Pace</Text>
+      <Text style={{ fontFamily: Fonts.bold, fontSize: size + 1, color: C.red }}>X</Text>
     </Text>
   );
 }
@@ -260,17 +260,17 @@ function mkStyles(C: AppColors) {
     closeBtn:            { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
     loader:              { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scrollContent:       { paddingBottom: 120 },
-    weekSection:         { paddingHorizontal: 16, marginBottom: 14 },
-    sectionLabel:        { fontSize: 9, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10 },
-    ctaRow:              { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 16 },
+    weekSection:         { paddingHorizontal: Spacing.gutter, marginBottom: 14 },
+    sectionLabel:        { ...Type.overline, letterSpacing: 1.6, marginBottom: 10 },
+    ctaRow:              { flexDirection: 'row', gap: 10, paddingHorizontal: Spacing.gutter, marginBottom: 16 },
     ctaBtn:              { flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
     ctaBtnPrimary:       {},
-    ctaBtnPrimaryLabel:  { fontWeight: '600', fontSize: 13, color: '#fff' },
+    ctaBtnPrimaryLabel:  { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight },
     ctaBtnSecondary:     { borderWidth: 0.5 },
-    ctaBtnSecondaryLabel:{ fontWeight: '500', fontSize: 13 },
+    ctaBtnSecondaryLabel:{ fontFamily: Fonts.medium, fontSize: 13 },
     pillsWrap:           { marginBottom: 16 },
-    pillsScroll:         { paddingHorizontal: 16, gap: 8 },
+    pillsScroll:         { paddingHorizontal: Spacing.gutter, gap: 8 },
     pill:                { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 0.5 },
-    pillLabel:           { fontSize: 13 },
+    pillLabel:           { fontFamily: Fonts.regular, fontSize: 13 },
   });
 }

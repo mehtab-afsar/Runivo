@@ -5,11 +5,11 @@ import { X } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TerritoryDetails } from '../types';
 import type { TerritoryTier } from '@shared/types/game';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 function freshnessColor(f: number, C: AppColors): string {
   if (f >= 70) return C.red;
-  if (f >= 40) return '#EAB308';
+  if (f >= 40) return C.gold;
   return '#EF9F27';
 }
 
@@ -80,14 +80,14 @@ function mkStyles(C: AppColors) {
     closeBtn:  { position: 'absolute', top: 16, right: 16 },
     tierRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
     tierBadge: { backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-    tierText:  { fontWeight: '600', fontSize: 11, color: C.red, letterSpacing: 0.5 },
-    parkLabel: { fontSize: 11, color: '#4CAF50' },
-    ownerName: { fontWeight: '600', fontSize: 16, color: C.black, marginBottom: 2 },
-    meta:      { fontSize: 13, color: C.t2, marginBottom: 2 },
-    claimed:   { fontSize: 12, color: C.t3, marginBottom: 10 },
+    tierText:  { fontFamily: Fonts.semiBold, fontSize: 11, color: C.red, letterSpacing: 0.5 },
+    parkLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.green },
+    ownerName: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, marginBottom: 2 },
+    meta:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginBottom: 2 },
+    claimed:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, marginBottom: 10 },
     trackBg:   { width: '100%', height: 6, borderRadius: 3, backgroundColor: C.surface, overflow: 'hidden', marginBottom: 14 },
     trackFill: { height: '100%', borderRadius: 3 },
     defendBtn: { backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, alignItems: 'center' },
-    defendText:{ fontWeight: '600', fontSize: 15, color: C.white },
+    defendText:{ fontFamily: Fonts.semiBold, fontSize: 15, color: C.white },
   });
 }

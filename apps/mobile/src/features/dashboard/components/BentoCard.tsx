@@ -4,10 +4,10 @@ import * as Haptics from 'expo-haptics';
 import { Calendar, Users, Trophy } from 'phosphor-react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { WeeklyRing } from './WeeklyRing';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 const { width: SW } = Dimensions.get('window');
-const HERO_W = (SW - 32 - 10) * (1.15 / 2.15);
+const HERO_W = (SW - Spacing.gutter * 2 - 10) * (1.15 / 2.15);
 
 const QUICK_ACTIONS = [
   { icon: Calendar, name: 'Events',      screen: 'Events' },
@@ -53,10 +53,10 @@ function NutritionTile({
       <View style={ns.ringWrap}>
         <Svg width={148} height={148}>
           <Defs>
+            {/* Brand ramp: gold → hot vermilion (was off-palette amber/red/violet) */}
             <LinearGradient id="nutGrad" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0"   stopColor="#F59E0B" />
-              <Stop offset="0.5" stopColor="#EF4444" />
-              <Stop offset="1"   stopColor="#8B5CF6" />
+              <Stop offset="0" stopColor="#E8B400" />
+              <Stop offset="1" stopColor="#FF5326" />
             </LinearGradient>
           </Defs>
           {/* Track */}
@@ -65,7 +65,7 @@ function NutritionTile({
           {pct > 0 && (
             <Circle
               cx={74} cy={74} r={R_NUT}
-              stroke="#EF4444" strokeWidth={16} strokeOpacity={0.12}
+              stroke="#FF5326" strokeWidth={16} strokeOpacity={0.12}
               strokeLinecap="round" fill="none"
               strokeDasharray={CIRC}
               strokeDashoffset={offset}
@@ -100,9 +100,9 @@ function NutritionTile({
             style={[
               ns.dot,
               i === todayIdx
-                ? { backgroundColor: active ? '#EF4444' : 'rgba(255,255,255,0.22)', height: 5 }
+                ? { backgroundColor: active ? '#FF5326' : 'rgba(255,255,255,0.22)', height: 5 }
                 : active
-                  ? { backgroundColor: '#F59E0B', opacity: 0.8 }
+                  ? { backgroundColor: '#E8B400', opacity: 0.8 }
                   : { backgroundColor: 'rgba(255,255,255,0.1)' },
             ]}
           />
@@ -117,9 +117,9 @@ const ns = StyleSheet.create({
   ringWrap:{ position: 'relative', width: 148, height: 148, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   center:  { position: 'absolute', alignItems: 'center' },
   kcalRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  kcal:    { fontSize: 34, color: '#fff', letterSpacing: -1.2, lineHeight: 36 },
-  kcalUnit:{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 3 },
-  kcalSub: { fontSize: 10, color: 'rgba(255,255,255,0.28)', marginTop: 3 },
+  kcal:    { fontFamily: Fonts.light, fontSize: 34, color: '#fff', letterSpacing: -1.2, lineHeight: 36, fontVariant: ['tabular-nums'] },
+  kcalUnit:{ fontFamily: Fonts.light, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 3 },
+  kcalSub: { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
   dayDots: { flexDirection: 'row', gap: 4, paddingHorizontal: 18 },
   dot:     { flex: 1, height: 3, borderRadius: 2 },
 });
@@ -171,9 +171,9 @@ export function BentoCard({
               <WeeklyRing weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays} />
             </View>
 
-            {/* Slide 1 — Nutrition: dark wine background, distinct from slide 0 */}
+            {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark */}
             <Pressable
-              style={[ss.slide, { width: HERO_W, backgroundColor: '#120814' }]}
+              style={[ss.slide, { width: HERO_W, backgroundColor: '#1A120C' }]}
               onPress={onNutritionPress}
             >
               <NutritionTile
@@ -220,7 +220,7 @@ export function BentoCard({
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    bento:     { paddingHorizontal: 16, marginBottom: 28 },
+    bento:     { paddingHorizontal: Spacing.gutter, marginBottom: 28 },
     bentoRow:  { flexDirection: 'row', gap: 10, marginBottom: 10 },
     // Intentionally-dark hero (holds white-on-dark ring/nutrition content) — fixed in
     // both themes via the alwaysDark token.
@@ -234,12 +234,12 @@ function mkStyles(C: AppColors) {
     // dark glyph (set in JSX above).
     qa:        { flex: 1, padding: 15, borderRadius: 14, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
     qaIcon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    qaLabel:   { fontWeight: '500', fontSize: 13, color: C.t1, flex: 1 },
+    qaLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, flex: 1 },
     startBtn:  { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
     startLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     startCircle:{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
     startPlay: { fontSize: 14, color: '#fff', marginLeft: 2 },
-    startHint: { fontSize: 9, color: 'rgba(255,255,255,0.38)', letterSpacing: 1 },
-    startLabel:{ fontWeight: '500', fontSize: 17, color: '#fff', lineHeight: 22 },
+    startHint: { fontFamily: Fonts.medium, fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 },
+    startLabel:{ fontFamily: Fonts.medium, fontSize: 17, color: '#fff', lineHeight: 22 },
   });
 }

@@ -11,7 +11,7 @@ import Animated, {
 import { CaretLeft, CaretRight } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, type AppColors } from '@theme';
-import { FontSize, FontWeight, Spacing } from '@theme';
+import { FontSize, Type, Fonts, Spacing } from '@theme';
 import type { NutritionProfile } from '@shared/services/store';
 import {
   fetchExistingProfile,
@@ -97,17 +97,17 @@ function mkWelcomeStyles(C: AppColors) {
     },
     icon:        { fontSize: 32 },
     headline:    {
-      fontSize: FontSize.title1, fontWeight: FontWeight.semibold, color: C.black,
+      fontFamily: Fonts.semiBold, fontSize: FontSize.title1, color: C.black,
       lineHeight: FontSize.title1 * 1.2, marginBottom: Spacing.md,
     },
     body:        {
-      fontSize: FontSize.callout, color: C.t2,
+      fontFamily: Fonts.regular, fontSize: FontSize.callout, color: C.t2,
       lineHeight: FontSize.callout * 1.55, marginBottom: Spacing.xl,
     },
     featureList: { gap: Spacing.md, marginBottom: Spacing.xxl },
     featureRow:  { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     featureIcon: { fontSize: 18, width: 28, textAlign: 'center' },
-    featureText: { fontSize: FontSize.callout, color: C.black, flex: 1 },
+    featureText: { fontFamily: Fonts.regular, fontSize: FontSize.callout, color: C.black, flex: 1 },
     ctaWrap:     { marginTop: 'auto' as any, paddingTop: Spacing.xl },
   });
 }
@@ -217,16 +217,13 @@ function BodyStatsStep({ weightKg, heightCm, age, sex, onChange, onContinue }: B
 function mkBodyStatsStyles(C: AppColors) {
   return StyleSheet.create({
     screen:           { flexGrow: 1, padding: Spacing.lg, paddingTop: Spacing.xl },
-    eyebrow:          {
-      fontSize: FontSize.caption2, fontWeight: FontWeight.medium,
-      color: C.t3, letterSpacing: 0.07, marginBottom: Spacing.md,
-    },
+    eyebrow:          { ...Type.overline, color: C.t3, marginBottom: Spacing.md },
     headline:         {
-      fontSize: FontSize.title1, fontWeight: FontWeight.semibold, color: C.black,
+      fontFamily: Fonts.semiBold, fontSize: FontSize.title1, color: C.black,
       lineHeight: FontSize.title1 * 1.2, marginBottom: Spacing.sm,
     },
     body:             {
-      fontSize: FontSize.callout, color: C.t2,
+      fontFamily: Fonts.regular, fontSize: FontSize.callout, color: C.t2,
       lineHeight: FontSize.callout * 1.55, marginBottom: Spacing.xl,
     },
     card:             {
@@ -239,7 +236,7 @@ function mkBodyStatsStyles(C: AppColors) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: Spacing.md, paddingVertical: 14,
     },
-    statLabel:        { fontSize: FontSize.subhead, fontWeight: FontWeight.medium, color: C.black },
+    statLabel:        { fontFamily: Fonts.medium, fontSize: FontSize.subhead, color: C.black },
     stepperRow:       { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
     stepBtn:          {
       width: 36, height: 36, borderRadius: 18,
@@ -247,11 +244,11 @@ function mkBodyStatsStyles(C: AppColors) {
       alignItems: 'center', justifyContent: 'center',
     },
     stepBtnDisabled:  { opacity: 0.35 },
-    stepBtnText:      { fontSize: 20, lineHeight: 24, color: C.black, fontWeight: FontWeight.medium },
+    stepBtnText:      { fontFamily: Fonts.medium, fontSize: 20, lineHeight: 24, color: C.black },
     stepBtnTextDisabled: { color: C.t3 },
     valueWrap:        { flexDirection: 'row', alignItems: 'baseline', gap: 3, minWidth: 72, justifyContent: 'center' },
-    valueNum:         { fontSize: FontSize.title3 ?? 20, fontWeight: FontWeight.semibold, color: C.black },
-    valueUnit:        { fontSize: FontSize.caption1, color: C.t2 },
+    valueNum:         { fontFamily: Fonts.semiBold, fontSize: FontSize.title3 ?? 20, color: C.black, fontVariant: ['tabular-nums'] },
+    valueUnit:        { fontFamily: Fonts.regular, fontSize: FontSize.caption1, color: C.t2 },
     sexToggle:        {
       flexDirection: 'row', borderRadius: Spacing.radius.md,
       borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
@@ -261,9 +258,9 @@ function mkBodyStatsStyles(C: AppColors) {
       backgroundColor: C.surface,
     },
     sexBtnActive:     { backgroundColor: C.alwaysDark },
-    sexBtnText:       { fontSize: FontSize.subhead, color: C.t2, fontWeight: FontWeight.medium },
-    sexBtnTextActive: { color: C.white },
-    privacy:          { fontSize: FontSize.caption2, color: C.t3, textAlign: 'center', lineHeight: 16, marginBottom: Spacing.lg },
+    sexBtnText:       { fontFamily: Fonts.medium, fontSize: FontSize.subhead, color: C.t2 },
+    sexBtnTextActive: { color: C.alwaysLight },
+    privacy:          { fontFamily: Fonts.regular, fontSize: FontSize.caption2, color: C.t3, textAlign: 'center', lineHeight: 16, marginBottom: Spacing.lg },
     ctaWrap:          { marginTop: 'auto' as any, paddingTop: Spacing.sm },
   });
 }
@@ -342,12 +339,9 @@ function ActivityStep({ onSelect }: { onSelect: (a: ActivityLevel) => void }) {
 function mkOptionStyles(C: AppColors) {
   return StyleSheet.create({
     screen:      { flex: 1, padding: Spacing.lg, paddingTop: Spacing.xl },
-    eyebrow:     {
-      fontSize: FontSize.caption2, fontWeight: FontWeight.medium,
-      color: C.t3, letterSpacing: 0.07, marginBottom: Spacing.md,
-    },
+    eyebrow:     { ...Type.overline, color: C.t3, marginBottom: Spacing.md },
     headline:    {
-      fontSize: FontSize.title1, fontWeight: FontWeight.semibold, color: C.black,
+      fontFamily: Fonts.semiBold, fontSize: FontSize.title1, color: C.black,
       lineHeight: FontSize.title1 * 1.2, marginBottom: Spacing.xxl,
     },
     options:     { gap: Spacing.sm },
@@ -363,8 +357,8 @@ function mkOptionStyles(C: AppColors) {
     },
     optIconText: { fontSize: 18 },
     optBody:     { flex: 1 },
-    optLabel:    { fontSize: FontSize.subhead, fontWeight: FontWeight.medium, color: C.black },
-    optDesc:     { fontSize: FontSize.caption1, color: C.t2, marginTop: 2 },
+    optLabel:    { fontFamily: Fonts.medium, fontSize: FontSize.subhead, color: C.black },
+    optDesc:     { fontFamily: Fonts.regular, fontSize: FontSize.caption1, color: C.t2, marginTop: 2 },
   });
 }
 
@@ -405,12 +399,9 @@ function DietStep({ onSelect }: { onSelect: (d: DietType) => void }) {
 function mkDietStyles(C: AppColors) {
   return StyleSheet.create({
     screen:    { flex: 1, padding: Spacing.lg, paddingTop: Spacing.xl },
-    eyebrow:   {
-      fontSize: FontSize.caption2, fontWeight: FontWeight.medium,
-      color: C.t3, letterSpacing: 0.07, marginBottom: Spacing.md,
-    },
+    eyebrow:   { ...Type.overline, color: C.t3, marginBottom: Spacing.md },
     headline:  {
-      fontSize: FontSize.title1, fontWeight: FontWeight.semibold, color: C.black,
+      fontFamily: Fonts.semiBold, fontSize: FontSize.title1, color: C.black,
       lineHeight: FontSize.title1 * 1.2, marginBottom: Spacing.xxl,
     },
     grid:      { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
@@ -421,7 +412,7 @@ function mkDietStyles(C: AppColors) {
       padding: Spacing.md, alignItems: 'center', gap: Spacing.xs,
     },
     chipIcon:  { fontSize: 28 },
-    chipLabel: { fontSize: FontSize.footnote, fontWeight: FontWeight.medium, color: C.black },
+    chipLabel: { fontFamily: Fonts.medium, fontSize: FontSize.footnote, color: C.black },
   });
 }
 
@@ -502,16 +493,13 @@ function ResultsStep({ weightKg, heightCm, age, sex, goal, activityLevel, onStar
 function mkResultsStyles(C: AppColors) {
   return StyleSheet.create({
     screen:    { flexGrow: 1, padding: Spacing.lg, paddingTop: Spacing.xl },
-    eyebrow:   {
-      fontSize: FontSize.caption2, fontWeight: FontWeight.medium,
-      color: C.t3, letterSpacing: 0.07, marginBottom: Spacing.md,
-    },
+    eyebrow:   { ...Type.overline, color: C.t3, marginBottom: Spacing.md },
     headline:  {
-      fontSize: FontSize.title2, fontWeight: FontWeight.semibold, color: C.black,
+      fontFamily: Fonts.semiBold, fontSize: FontSize.title2, color: C.black,
       marginBottom: Spacing.sm,
     },
     body:      {
-      fontSize: FontSize.callout, color: C.t2,
+      fontFamily: Fonts.regular, fontSize: FontSize.callout, color: C.t2,
       lineHeight: FontSize.callout * 1.55, marginBottom: Spacing.xl,
     },
     kcalCard:  {
@@ -519,8 +507,8 @@ function mkResultsStyles(C: AppColors) {
       borderWidth: 0.5, borderColor: C.border,
       padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.md,
     },
-    kcalNum:   { fontSize: 48, fontWeight: FontWeight.semibold, color: C.black, lineHeight: 52 },
-    kcalUnit:  { fontSize: FontSize.subhead, color: C.t2, marginTop: 4 },
+    kcalNum:   { fontFamily: Fonts.semiBold, fontSize: 48, color: C.black, lineHeight: 52, fontVariant: ['tabular-nums'] },
+    kcalUnit:  { fontFamily: Fonts.regular, fontSize: FontSize.subhead, color: C.t2, marginTop: 4 },
     macroRow:  { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
     macroCard: {
       flex: 1, backgroundColor: C.surface,
@@ -528,15 +516,15 @@ function mkResultsStyles(C: AppColors) {
       padding: Spacing.md, alignItems: 'center', gap: Spacing.xs,
     },
     macroDot:  { width: 6, height: 6, borderRadius: 3 },
-    macroVal:  { fontSize: (FontSize.title3 ?? 20), fontWeight: FontWeight.medium, color: C.black },
-    macroUnit: { fontSize: FontSize.footnote, color: C.t2, fontWeight: FontWeight.regular },
-    macroLabel:{ fontSize: FontSize.caption2, color: C.t3, letterSpacing: 0.07 },
+    macroVal:  { fontFamily: Fonts.medium, fontSize: (FontSize.title3 ?? 20), color: C.black, fontVariant: ['tabular-nums'] },
+    macroUnit: { fontFamily: Fonts.regular, fontSize: FontSize.footnote, color: C.t2 },
+    macroLabel:{ fontFamily: Fonts.regular, fontSize: FontSize.caption2, color: C.t3, letterSpacing: 0.07 },
     statsRow:  { flexDirection: 'row', marginBottom: Spacing.md, backgroundColor: C.surface, borderRadius: Spacing.radius.md, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     statItem:  { flex: 1, alignItems: 'center', paddingVertical: Spacing.md },
-    statVal:   { fontSize: FontSize.subhead, fontWeight: FontWeight.semibold, color: C.black },
-    statLbl:   { fontSize: FontSize.caption2, color: C.t3, marginTop: 2 },
+    statVal:   { fontFamily: Fonts.semiBold, fontSize: FontSize.subhead, color: C.black },
+    statLbl:   { fontFamily: Fonts.regular, fontSize: FontSize.caption2, color: C.t3, marginTop: 2 },
     note:      {
-      fontSize: FontSize.caption1, color: C.t3, textAlign: 'center',
+      fontFamily: Fonts.regular, fontSize: FontSize.caption1, color: C.t3, textAlign: 'center',
       lineHeight: FontSize.caption1 * 1.5, marginBottom: Spacing.xxl,
     },
     ctaWrap:   { marginTop: 'auto' as any, paddingTop: Spacing.md },

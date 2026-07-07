@@ -12,7 +12,7 @@ import { TrackerBody } from '@features/nutrition/components/TrackerBody';
 import { AddFoodModal } from '@features/nutrition/components/AddFoodModal';
 import { fetchExistingProfile } from '@features/nutrition/services/nutritionSetupService';
 import { NutritionWelcomeFlow } from './NutritionWelcomeFlow';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
@@ -224,7 +224,7 @@ export default function CalorieTrackerScreen() {
             {/* Run burn chip */}
             {runBurnKcal > 0 && (
               <View style={s.burnChip}>
-                <Lightning size={12} color="#7A3800" weight="light" />
+                <Lightning size={12} color={C.orange} weight="light" />
                 <Text style={s.burnText}>Run activity · +{runBurnKcal} kcal burned today</Text>
               </View>
             )}
@@ -297,8 +297,8 @@ export default function CalorieTrackerScreen() {
             {(aiLoading || aiInsights) && (
               <View style={s.aiCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <Sparkle size={12} color="#5A3A8A" weight="light" />
-                  <Text style={[s.cardTitle, { color: '#5A3A8A', marginBottom: 0 }]}>RUNIVO INTELLIGENCE</Text>
+                  <Sparkle size={12} color={C.purple} weight="light" />
+                  <Text style={[s.cardTitle, { color: C.purple, marginBottom: 0 }]}>RUNIVO INTELLIGENCE</Text>
                 </View>
                 {aiLoading && !aiInsights ? (
                   <ActivityIndicator color={C.red} style={{ marginVertical: 8 }} />
@@ -334,20 +334,20 @@ export default function CalorieTrackerScreen() {
 function mkWcStyles(C: AppColors) { return StyleSheet.create({
   card:       { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   cardHead:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  cardTitle:  { fontWeight: '500', fontSize: 10, letterSpacing: 1, color: C.t3 },
-  avg:        { fontSize: 11, color: C.t2 },
+  cardTitle:  { ...Type.overline, color: C.t3 },
+  avg:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
   chartWrap:  { height: 90 },
   bars:       { flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
   barCol:     { flex: 1, alignItems: 'center', gap: 4 },
   barTrack:   { height: CHART_H, width: '100%', position: 'relative', justifyContent: 'flex-end' },
   bar:        { width: '100%', borderRadius: 2, minHeight: 2 },
   goalLine:   { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(173,173,173,0.4)' },
-  dayLabel:   { fontSize: 9, color: C.t3, textTransform: 'uppercase' },
-  dayLabelActive: { color: C.red, fontWeight: '600' },
+  dayLabel:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textTransform: 'uppercase' },
+  dayLabelActive: { color: C.red, fontFamily: Fonts.semiBold },
   legend:     { flexDirection: 'row', gap: 12, marginTop: 8 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot:  { width: 6, height: 6, borderRadius: 3 },
-  legendText: { fontSize: 9, color: C.t3 },
+  legendText: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
 }); }
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
@@ -355,56 +355,56 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorState:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   errorEmoji:   { fontSize: 40, marginBottom: 12 },
-  errorTitle:   { fontWeight: '700', fontSize: 18, color: '#0A0A0A', marginBottom: 8 },
-  errorMsg:     { fontSize: 14, color: '#6B6B6B', textAlign: 'center', marginBottom: 24 },
-  retryBtn:     { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
-  retryLabel:   { fontWeight: '600', fontSize: 15, color: '#FFFFFF' },
+  errorTitle:   { fontFamily: Fonts.bold, fontSize: 18, color: C.t1, marginBottom: 8 },
+  errorMsg:     { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center', marginBottom: 24 },
+  retryBtn:     { backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
+  retryLabel:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.white },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
   back:         { width: 32 },
-  backText:     { fontSize: 18, color: C.t2 },
-  title:        { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+  backText:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+  title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
   settingsBtn:  { width: 32, alignItems: 'flex-end' },
-  settingsLabel:{ fontSize: 16, color: C.t2 },
+  settingsLabel:{ fontFamily: Fonts.regular, fontSize: 16, color: C.t2 },
   tabBar:       { flexDirection: 'row', backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
   tabBtn:       { flex: 1, paddingVertical: 9, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabBtnActive: { borderBottomColor: C.red },
-  tabLabel:     { fontSize: 11, letterSpacing: 0.8, color: C.t3 },
-  tabLabelActive:{ fontWeight: '600', color: C.red },
+  tabLabel:     { fontFamily: Fonts.regular, fontSize: 11, letterSpacing: 0.8, color: C.t3 },
+  tabLabelActive:{ fontFamily: Fonts.semiBold, color: C.red },
   dateStripScroll: { flexGrow: 0, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
   dateStrip:    { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', gap: 4 },
   dateBtn:      { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, gap: 2 },
   dateBtnActive:{ backgroundColor: C.alwaysDark },
-  dateDayLabel: { fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
-  dateDayLabelActive: { color: C.white },
-  dateDayNum:   { fontWeight: '600', fontSize: 14, color: C.black },
-  dateDayNumActive: { color: C.white },
+  dateDayLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
+  dateDayLabelActive: { color: C.alwaysLight },
+  dateDayNum:   { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black },
+  dateDayNumActive: { color: C.alwaysLight },
   dateDot:      { width: 4, height: 4, borderRadius: 2, backgroundColor: C.red },
-  dateDotActive:{ backgroundColor: C.white },
-  content:      { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100, gap: 10 },
-  contextBanner:{ marginHorizontal: 16, marginTop: 4, padding: 12, backgroundColor: C.greenBg, borderRadius: 10, borderWidth: 0.5, borderColor: '#B7E1CC' },
-  contextText:  { fontSize: 12, color: C.green, lineHeight: 18 },
+  dateDotActive:{ backgroundColor: C.alwaysLight },
+  content:      { paddingHorizontal: Spacing.gutter, paddingTop: 12, paddingBottom: 100, gap: 10 },
+  contextBanner:{ marginHorizontal: Spacing.gutter, marginTop: 4, padding: 12, backgroundColor: C.greenBg, borderRadius: 10, borderWidth: 0.5, borderColor: '#B7E1CC' },
+  contextText:  { fontFamily: Fonts.regular, fontSize: 12, color: C.green, lineHeight: 18 },
   burnChip:     { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, backgroundColor: C.orangeBg, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(194,90,0,0.20)' },
-  burnText:     { fontWeight: '500', fontSize: 11, color: '#7A3800' },
+  burnText:     { fontFamily: Fonts.medium, fontSize: 11, color: C.orange },
   macroCard:    { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, gap: 12 },
-  cardTitle:    { fontWeight: '500', fontSize: 10, letterSpacing: 1, color: C.t3, marginBottom: 4 },
+  cardTitle:    { ...Type.overline, color: C.t3, marginBottom: 4 },
   macroRow:     { gap: 4 },
   macroMeta:    { flexDirection: 'row', justifyContent: 'space-between' },
-  macroLabel:   { fontSize: 12, color: C.black },
-  macroValue:   { fontWeight: '600', fontSize: 12, color: C.black },
-  macroGoal:    { fontSize: 11, color: C.t3 },
-  macroTrack:   { height: 4, backgroundColor: '#E8E4DF', borderRadius: 2, overflow: 'hidden' },
+  macroLabel:   { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
+  macroValue:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.black, fontVariant: ['tabular-nums'] },
+  macroGoal:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+  macroTrack:   { height: 4, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden' },
   macroFill:    { height: '100%', borderRadius: 2 },
   statsCard:    { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   statsRow:     { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   statItem:     { flex: 1, alignItems: 'center' },
   statDivider:  { width: 0.5, height: 32, backgroundColor: C.border },
-  statValue:    { fontFamily: 'Barlow_600SemiBold', fontSize: 18, color: C.black },
-  statLabel:    { fontSize: 10, color: C.t3, marginTop: 2 },
+  statValue:    { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, fontVariant: ['tabular-nums'] },
+  statLabel:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
   aiCard:       { backgroundColor: '#F2EEF9', borderRadius: 14, borderWidth: 0.5, borderColor: 'rgba(90,58,138,0.15)', padding: 14, gap: 10 },
   aiRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   aiIcon:       { fontSize: 20, lineHeight: 24 },
-  aiTitle:      { fontWeight: '500', fontSize: 12, color: C.black, marginBottom: 2 },
-  aiBody:       { fontSize: 12, color: C.t2, lineHeight: 17 },
+  aiTitle:      { fontFamily: Fonts.medium, fontSize: 12, color: C.black, marginBottom: 2 },
+  aiBody:       { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, lineHeight: 17 },
   coachBtn:     { backgroundColor: C.alwaysDark, borderRadius: 10, padding: 14, alignItems: 'center' },
-  coachBtnText: { fontWeight: '500', fontSize: 13, color: C.white },
+  coachBtnText: { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
 }); }

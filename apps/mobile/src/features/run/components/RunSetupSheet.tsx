@@ -3,11 +3,7 @@ import { View, Text, Animated, StyleSheet, TouchableOpacity, Switch, ScrollView 
 import * as Haptics from 'expo-haptics';
 import { Pulse, Footprints, Bicycle, Mountains, TreeEvergreen, Timer, TrendUp, PathIcon as RouteIcon, Check, Play, MusicNotes as Music2 } from 'phosphor-react-native';
 import type { ActivityType } from '../types';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT       = 'Barlow_400Regular';
-const FONT_MED   = 'Barlow_500Medium';
-const FONT_LIGHT = 'Barlow_300Light';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 type IconComponent = typeof Pulse;
 const ACTIVITIES: { id: ActivityType; label: string; icon: IconComponent; color: string; bg: string }[] = [
@@ -67,7 +63,7 @@ export default function RunSetupSheet({
         <TouchableOpacity style={ss.selectorBtn} onPress={onRoutePress} activeOpacity={0.7}>
           <View style={[ss.selectorIcon, { backgroundColor: selectedRouteName ? C.black : C.stone }]}>
             {selectedRouteName
-              ? <Check size={14} color="#fff" weight="bold" />
+              ? <Check size={14} color={C.white} weight="bold" />
               : <RouteIcon size={14} color={C.muted} weight="light" />}
           </View>
           <View style={{ flex: 1 }}>
@@ -85,7 +81,7 @@ export default function RunSetupSheet({
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onPacerToggle(); }}
           activeOpacity={0.7}
         >
-          <View style={[ss.pacerIcon, { backgroundColor: pacerEnabled ? '#FDE8E4' : C.stone }]}>
+          <View style={[ss.pacerIcon, { backgroundColor: pacerEnabled ? C.accentMuted : C.stone }]}>
             <Music2 size={14} color={pacerEnabled ? C.red : C.muted} weight="light" />
           </View>
           <View style={{ flex: 1 }}>
@@ -130,7 +126,7 @@ export default function RunSetupSheet({
       <View style={[ss.startWrap, { paddingBottom: Math.max(bottomInset, 16) }]}>
         <TouchableOpacity style={[ss.startBtn, !gpsReady && ss.startBtnDisabled]} onPress={onStartPress} disabled={!gpsReady} activeOpacity={0.85} testID="run-start-btn">
           <View style={[ss.startDot, !gpsReady && ss.startDotDisabled]}>
-            <Play size={10} color="#fff" weight="fill" />
+            <Play size={10} color={C.white} weight="fill" />
           </View>
           <Text style={ss.startLabel}>{gpsReady ? 'START RUN' : 'WAITING FOR GPS'}</Text>
         </TouchableOpacity>
@@ -148,27 +144,27 @@ function mkStyles(C: AppColors) {
     selectorBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12 },
     selectorBtnBorder:{ borderRightWidth: 0.5, borderRightColor: C.border },
     selectorIcon:     { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    selectorMeta:     { fontFamily: FONT, fontSize: 8, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 },
-    selectorVal:      { fontFamily: FONT_MED, fontSize: 12, color: C.black, marginTop: 1 },
-    chevron:          { fontFamily: FONT_LIGHT, fontSize: 16, color: C.t3 },
+    selectorMeta:     { ...Type.overline, color: C.muted },
+    selectorVal:      { fontFamily: Fonts.medium, fontSize: 12, color: C.black, marginTop: 1 },
+    chevron:          { fontFamily: Fonts.light, fontSize: 16, color: C.t3 },
     pacerCard:        { marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     pacerRow:         { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 14 },
     pacerIcon:        { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    pacerTitle:       { fontFamily: FONT_MED, fontSize: 12, color: C.black },
-    pacerSub:         { fontFamily: FONT_LIGHT, fontSize: 10, color: C.muted, marginTop: 1 },
+    pacerTitle:       { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
+    pacerSub:         { fontFamily: Fonts.light, fontSize: 10, color: C.muted, marginTop: 1 },
     paceScroll:       { borderTopWidth: 0.5, borderTopColor: C.border },
     paceScrollContent:{ flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingVertical: 10 },
     paceChip:         { flexDirection: 'row', alignItems: 'baseline', gap: 1, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
     paceChipActive:   { backgroundColor: C.red, borderColor: C.red },
-    paceChipTxt:      { fontFamily: FONT_MED, fontSize: 14, color: C.black },
-    paceChipTxtActive:{ color: '#fff' },
-    paceChipUnit:     { fontFamily: FONT, fontSize: 9, color: C.muted },
+    paceChipTxt:      { fontFamily: Fonts.medium, fontSize: 14, color: C.black, fontVariant: ['tabular-nums'] },
+    paceChipTxtActive:{ color: C.white },
+    paceChipUnit:     { fontFamily: Fonts.regular, fontSize: 10, color: C.muted },
     paceChipUnitActive:{ color: 'rgba(255,255,255,0.7)' },
     startWrap:        { paddingHorizontal: 16, marginTop: 'auto' },
     startBtn:         { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
     startBtnDisabled: { backgroundColor: '#D1D5DB' },
     startDot:         { width: 34, height: 34, borderRadius: 17, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
     startDotDisabled: { backgroundColor: '#9CA3AF' },
-    startLabel:       { fontFamily: FONT_MED, fontSize: 14, color: '#fff', letterSpacing: 1.5 },
+    startLabel:       { fontFamily: Fonts.medium, fontSize: 14, color: C.alwaysLight, letterSpacing: 1.5 },
   });
 }

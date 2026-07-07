@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { ViewStyle } from 'react-native';
-import { useTheme } from '@theme';
+import { useTheme, Fonts } from '@theme';
 import { FontSize, Spacing } from '@theme';
 
 interface RunStatRowProps {
@@ -44,6 +44,6 @@ const styles = StyleSheet.create({
   row:       { flexDirection: 'row', gap: Spacing.lg },
   statItem:  { alignItems: 'flex-start' },
   separator: { paddingLeft: Spacing.lg },
-  value:     { fontWeight: '600', marginBottom: 2 },
-  label:     { fontWeight: '500' },
+  value:     { fontFamily: Fonts.semiBold, marginBottom: 2, fontVariant: ['tabular-nums'] },
+  label:     { fontFamily: Fonts.medium },
 });

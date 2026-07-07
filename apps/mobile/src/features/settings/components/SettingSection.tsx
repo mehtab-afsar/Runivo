@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Spacing, type AppColors } from '@theme';
 
 interface SettingSectionProps {
   title: string;
@@ -21,12 +21,11 @@ export function SettingSection({ title, children }: SettingSectionProps) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     header: {
-      fontSize: 10, color: C.t3,
-      textTransform: 'uppercase', letterSpacing: 2,
-      paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8,
+      ...Type.overline, color: C.t3,
+      paddingHorizontal: Spacing.gutter, paddingTop: 20, paddingBottom: 8,
     },
     section: {
-      marginHorizontal: 16, backgroundColor: C.white,
+      marginHorizontal: Spacing.gutter, backgroundColor: C.white,
       borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
     },
   });

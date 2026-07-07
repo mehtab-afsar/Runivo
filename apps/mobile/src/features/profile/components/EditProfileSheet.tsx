@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, Image, ScrollView } from 'react-native';
 import { MapPin, InstagramLogo, Camera, Pulse } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
@@ -125,17 +125,14 @@ function mkStyles(C: AppColors) {
       backgroundColor: C.white, borderTopLeftRadius: 16, borderTopRightRadius: 16,
       padding: 24, paddingBottom: Platform.OS === 'ios' ? 36 : 24, maxHeight: '85%',
     },
-    sheetTitle: { fontWeight: '600', fontSize: 16, color: C.black, marginBottom: 20 },
+    sheetTitle: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, marginBottom: 20 },
     avatarWrap: { alignSelf: 'center', marginBottom: 20, position: 'relative' },
     avatarPreview: { width: 72, height: 72, borderRadius: 36 },
     avatarPlaceholder: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
     cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
-    inputLabel: {
-      fontSize: 10, color: C.t3,
-      textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 6,
-    },
+    inputLabel: { ...Type.overline, color: C.t3, marginBottom: 6 },
     input: {
-      fontSize: 14, color: C.black,
+      fontFamily: Fonts.regular, fontSize: 14, color: C.black,
       borderWidth: 0.5, borderColor: C.border, borderRadius: 8,
       paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
     },
@@ -144,7 +141,7 @@ function mkStyles(C: AppColors) {
       borderWidth: 0.5, borderColor: C.border, borderRadius: 8,
       paddingHorizontal: 12, paddingVertical: 10, marginBottom: 16,
     },
-    iconInputText: { flex: 1, fontSize: 14, color: C.black },
+    iconInputText: { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.black },
     swatchRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
     swatch: { width: 32, height: 32, borderRadius: 16 },
     swatchSel: {
@@ -152,6 +149,6 @@ function mkStyles(C: AppColors) {
       shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
     },
     saveBtn: { backgroundColor: C.alwaysDark, borderRadius: 4, paddingVertical: 13, alignItems: 'center', marginBottom: 8 },
-    saveBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 1 },
+    saveBtnLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight, letterSpacing: 1 },
   });
 }

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface PersonalRecord {
   label: string;
@@ -42,8 +42,8 @@ function mkStyles(C: AppColors) {
       borderColor: C.border,
       padding: 12,
     },
-    prLabel: { fontSize: 10, color: C.t3, marginBottom: 4 },
-    prValue: { fontWeight: '600', fontSize: 18, color: C.black },
-    emptyText: { fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
+    prLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginBottom: 4 },
+    prValue: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
+    emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
   });
 }

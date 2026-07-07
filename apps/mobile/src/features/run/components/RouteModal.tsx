@@ -4,11 +4,7 @@ import { X } from 'phosphor-react-native';
 import type { StoredSavedRoute } from '@shared/services/store';
 import type { NearbyRoute } from '@shared/services/sync';
 import RouteCard from './RouteCard';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT = 'Barlow_400Regular';
-const FONT_MED = 'Barlow_500Medium';
-const FONT_LIGHT = 'Barlow_300Light';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 interface RouteModalProps {
   visible: boolean;
@@ -47,11 +43,11 @@ export default function RouteModal({
           {selectedRouteName && (
             <Pressable style={[ss.clearRow]} onPress={() => { onClearRoute(); onClose(); }}>
               <View style={[ss.routeIcon, { backgroundColor: C.red }]}>
-                <X size={14} color="#fff" weight="regular" />
+                <X size={14} color={C.white} weight="regular" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: FONT, fontSize: 12, color: C.red }}>Clear: {selectedRouteName}</Text>
-                <Text style={{ fontFamily: FONT_LIGHT, fontSize: 11, color: C.red, opacity: 0.7 }}>Tap to remove route</Text>
+                <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: C.red }}>Clear: {selectedRouteName}</Text>
+                <Text style={{ fontFamily: Fonts.light, fontSize: 11, color: C.red, opacity: 0.7 }}>Tap to remove route</Text>
               </View>
             </Pressable>
           )}
@@ -70,7 +66,7 @@ export default function RouteModal({
           <View style={ss.nearbyHeader}>
             <Text style={ss.section}>Nearby</Text>
             <Pressable onPress={onFindNearby} disabled={nearbyLoading || !gpsReady}>
-              <Text style={{ fontFamily: FONT, fontSize: 12, color: nearbyLoading || !gpsReady ? C.t3 : C.black }}>
+              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: nearbyLoading || !gpsReady ? C.t3 : C.black }}>
                 {nearbyLoading ? 'Searching...' : 'Find Routes'}
               </Text>
             </Pressable>
@@ -96,14 +92,14 @@ function mkStyles(C: AppColors) {
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
     sheet:       { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
     header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
-    title:       { fontFamily: FONT_MED, fontSize: 17, color: C.black },
-    sub:         { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, marginTop: 2 },
+    title:       { fontFamily: Fonts.medium, fontSize: 17, color: C.black },
+    sub:         { fontFamily: Fonts.light, fontSize: 12, color: C.muted, marginTop: 2 },
     closeBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     list:        { paddingHorizontal: 20, paddingBottom: 16, gap: 8 },
-    clearRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FDE8E4', borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
+    clearRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.accentMuted, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
     routeIcon:   { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    section:     { fontFamily: FONT_LIGHT, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 2 },
-    empty:       { fontFamily: FONT_LIGHT, fontSize: 12, color: C.muted, paddingTop: 4, paddingBottom: 8 },
+    section:     { ...Type.overline, color: C.t3, marginBottom: 2 },
+    empty:       { fontFamily: Fonts.light, fontSize: 12, color: C.muted, paddingTop: 4, paddingBottom: 8 },
     nearbyHeader:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   });
 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Colors, Fonts } from '@theme';
 import { captureException } from '../services/sentry';
 
 interface Props { children: React.ReactNode }
@@ -34,8 +35,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F6F3', alignItems: 'center', justifyContent: 'center', padding: 32 },
-  title:     { fontWeight: '700', fontSize: 22, color: '#0A0A0A', marginBottom: 12 },
-  message:   { fontSize: 15, color: '#6B6B6B', textAlign: 'center', marginBottom: 32 },
+  title:     { fontFamily: Fonts.bold, fontSize: 22, color: '#0A0A0A', marginBottom: 12 },
+  message:   { fontFamily: Fonts.regular, fontSize: 15, color: '#6B6B6B', textAlign: 'center', marginBottom: 32 },
   btn:       { backgroundColor: '#D93518', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
-  btnText:   { fontWeight: '600', fontSize: 15, color: '#FFFFFF' },
+  btnText:   { fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.alwaysLight },
 });

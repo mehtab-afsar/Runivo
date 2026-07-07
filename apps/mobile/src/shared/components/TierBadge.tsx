@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TIER_CONFIG } from '@shared/constants/territory';
+import { Fonts } from '@theme';
 import type { TerritoryTier } from '@shared/types/game';
 
 
@@ -10,7 +11,7 @@ interface TierBadgeProps {
 }
 
 const SIZE = {
-  xs: { fontSize: 9,  paddingH: 5,  paddingV: 2, radius: 4 },
+  xs: { fontSize: 10, paddingH: 5,  paddingV: 2, radius: 4 },
   sm: { fontSize: 10, paddingH: 7,  paddingV: 3, radius: 5 },
   md: { fontSize: 11, paddingH: 10, paddingV: 4, radius: 6 },
 } as const;
@@ -34,5 +35,5 @@ export function TierBadge({ tier, size = 'sm' }: TierBadgeProps) {
 
 const styles = StyleSheet.create({
   badge: { alignSelf: 'flex-start' },
-  label: { fontWeight: '600', letterSpacing: 0.4 },
+  label: { fontFamily: Fonts.semiBold, letterSpacing: 0.4 },
 });

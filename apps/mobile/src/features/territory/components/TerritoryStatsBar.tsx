@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { formatArea } from '@shared/constants/territory';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   stats: {
@@ -41,10 +41,10 @@ export function TerritoryStatsBar({ stats, isLoadingRivals, bottomInset }: Props
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     container: { position: 'absolute', left: 16, right: 16, backgroundColor: 'rgba(0,0,0,0.70)', borderRadius: 12, padding: 12 },
-    row1:      { fontWeight: '500', fontSize: 13, color: C.white, marginBottom: 2 },
+    row1:      { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, marginBottom: 2, fontVariant: ['tabular-nums'] },
     row2:      { flexDirection: 'row', alignItems: 'center' },
-    tsLabel:   { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
-    tsVal:     { fontWeight: '500', fontSize: 13, color: C.white },
-    stale:     { fontWeight: '500', fontSize: 13, color: '#EF9F27' },
+    tsLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+    tsVal:     { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
+    stale:     { fontFamily: Fonts.medium, fontSize: 13, color: '#EF9F27' },
   });
 }

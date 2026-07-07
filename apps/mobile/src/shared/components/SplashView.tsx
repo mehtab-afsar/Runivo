@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
+import { Colors, Fonts } from '@theme';
 
 const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
 
@@ -95,9 +96,9 @@ const s = StyleSheet.create({
     zIndex: 9999,
   },
   wordmark: {
-    fontFamily: 'PlayfairDisplay_400Regular_Italic',
+    fontFamily: Fonts.display,
     fontSize: 28,
-    color: '#FFFFFF',
+    color: Colors.alwaysLight,
     letterSpacing: 6,
     marginTop: 24,
   },

@@ -5,7 +5,7 @@ import { StatRow } from './StatRow';
 import type { PersonalRecord } from '../hooks/useProfile';
 import type { StoredRun } from '@shared/services/store';
 import type { ProfileStats } from '@shared/types/game';
-import { Colors, useTheme } from '@theme';
+import { Colors, useTheme, Type, Fonts } from '@theme';
 
 const C = Colors;
 
@@ -198,7 +198,7 @@ function PeriodSelector({ value, onChange }: {
           }}
         >
           <Text style={{
-            fontFamily: value === p.key ? 'Barlow_500Medium' : 'Barlow_400Regular',
+            fontFamily: value === p.key ? Fonts.medium : Fonts.regular,
             fontSize: 11, color: value === p.key ? C.white : C.t2,
           }}>
             {p.label}
@@ -256,10 +256,7 @@ export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories
 }
 
 const ss = StyleSheet.create({
-  section: {
-    fontWeight: '500', fontSize: 9, color: C.t3,
-    letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10, marginTop: 20,
-  },
+  section: { ...Type.overline, color: C.t3, marginBottom: 10, marginTop: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
   // Weekly chart
@@ -268,11 +265,11 @@ const ss = StyleSheet.create({
   },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 80 + 32 },
   barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: 80 + 32 },
-  barKm: { fontFamily: 'Barlow_300Light', fontSize: 8, color: C.t3, marginBottom: 2 },
+  barKm: { fontFamily: Fonts.light, fontSize: 10, color: C.t3, marginBottom: 2 },
   barTrack: { width: '100%', height: 80, justifyContent: 'flex-end', flexDirection: 'column' },
   barFill: { borderRadius: 3, width: '100%' },
-  barLabel: { fontSize: 9, color: C.t3, marginTop: 4 },
-  barLabelActive: { fontWeight: '500', color: C.red },
+  barLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4 },
+  barLabelActive: { fontFamily: Fonts.medium, color: C.red },
 
   // Pace zones
   zonesCard: {
@@ -280,11 +277,11 @@ const ss = StyleSheet.create({
   },
   zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   zoneLeft: { width: 72 },
-  zoneLabel: { fontWeight: '500', fontSize: 12, color: C.black },
-  zoneRange: { fontSize: 9, color: C.t3 },
+  zoneLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
+  zoneRange: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
   zoneBarWrap: { flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, flexDirection: 'row', overflow: 'hidden' },
   zoneBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
-  zoneTime: { fontFamily: 'Barlow_300Light', fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
+  zoneTime: { fontFamily: Fonts.light, fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
 
   // Race predictions
   predictionsGrid: { flexDirection: 'row', gap: 8 },
@@ -292,9 +289,9 @@ const ss = StyleSheet.create({
     flex: 1, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
     padding: 14, alignItems: 'center',
   },
-  predictVal: { fontWeight: '600', fontSize: 16, color: C.black, letterSpacing: -0.5 },
-  predictLabel: { fontWeight: '500', fontSize: 11, color: C.black, marginTop: 2 },
-  predictNote: { fontSize: 9, color: C.t3, marginTop: 1 },
+  predictVal: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  predictLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
+  predictNote: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
   predictionsEmpty: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
-  predictionsEmptyText: { fontSize: 12, color: C.t2, textAlign: 'center' },
+  predictionsEmptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
 });

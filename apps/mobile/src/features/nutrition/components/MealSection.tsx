@@ -3,6 +3,7 @@ import { View, Text, Pressable, Alert, StyleSheet } from 'react-native';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
+import { Colors, Fonts } from '@theme';
 
 interface MealSectionProps {
   meal: Meal;
@@ -59,23 +60,23 @@ export function MealSection({ meal, entries, expanded, onToggle, onDelete, onAdd
 
 const s = StyleSheet.create({
   section: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 0.5,
+    backgroundColor: Colors.white, borderRadius: 14, borderWidth: 0.5,
     borderColor: '#DDD9D4', overflow: 'hidden',
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
-  title: { fontWeight: '500', fontSize: 13, color: '#0A0A0A', flex: 1 },
-  kcal: { fontSize: 11, color: '#6B6B6B' },
+  title: { fontFamily: Fonts.medium, fontSize: 13, color: '#0A0A0A', flex: 1 },
+  kcal: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B', fontVariant: ['tabular-nums'] },
   chevron: { fontSize: 10, color: '#ADADAD' },
   entry: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
     borderTopWidth: 0.5, borderTopColor: '#DDD9D4',
   },
-  entryName: { fontSize: 12, color: '#0A0A0A', marginBottom: 1 },
-  entryMacros: { fontSize: 10, color: '#ADADAD' },
-  entryKcal: { fontWeight: '500', fontSize: 13, color: '#0A0A0A' },
+  entryName: { fontFamily: Fonts.regular, fontSize: 12, color: '#0A0A0A', marginBottom: 1 },
+  entryMacros: { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD' },
+  entryKcal: { fontFamily: Fonts.medium, fontSize: 13, color: '#0A0A0A', fontVariant: ['tabular-nums'] },
   addBtn: {
     borderTopWidth: 0.5, borderTopColor: '#DDD9D4',
     paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center',
   },
-  addLabel: { fontSize: 12, color: '#D93518' },
+  addLabel: { fontFamily: Fonts.regular, fontSize: 12, color: '#D93518' },
 });

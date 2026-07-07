@@ -9,7 +9,7 @@ import { LeaderboardFilters } from '../components/LeaderboardFilters';
 import type { LeaderboardEntry } from '../types';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { Seal, Medal, ArrowLeft } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -44,8 +44,8 @@ function Podium({ entries, unit, currentUserId: _currentUserId }: { entries: Lea
             <View style={ps.youBadge}><Text style={ps.youText}>YOU</Text></View>
           )}
           <Text style={ps.val}>{fmtVal(entry.value)}</Text>
-          <View style={[ps.block, { height: heights[i], backgroundColor: i === 1 ? C.black : C.stone }, i === 1 && ps.blockFirst]}>
-            <Text style={[ps.rankNum, { color: i === 1 ? C.white : C.t2 }]}>#{ranks[i]}</Text>
+          <View style={[ps.block, { height: heights[i], backgroundColor: i === 1 ? C.alwaysDark : C.stone }, i === 1 && ps.blockFirst]}>
+            <Text style={[ps.rankNum, { color: i === 1 ? C.alwaysLight : C.t2 }]}>#{ranks[i]}</Text>
           </View>
         </View>
       ))}
@@ -59,15 +59,15 @@ function mkPsStyles(C: AppColors) {
     slot:       { flex: 1, alignItems: 'center', gap: 3 },
     slotCenter: { flex: 1.2 },
     avatar:     { borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-    avatarText: { fontWeight: '600', color: C.white },
-    name:       { fontSize: 10, color: C.black, textAlign: 'center' },
-    nameFirst:  { fontWeight: '600', fontSize: 11 },
-    val:        { fontSize: 9, color: C.t3, textAlign: 'center' },
+    avatarText: { fontFamily: Fonts.semiBold, color: C.white },
+    name:       { fontFamily: Fonts.regular, fontSize: 10, color: C.black, textAlign: 'center' },
+    nameFirst:  { fontFamily: Fonts.semiBold, fontSize: 11 },
+    val:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', fontVariant: ['tabular-nums'] },
     youBadge:   { backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 2 },
-    youText:    { fontWeight: '600', fontSize: 8, color: C.red, letterSpacing: 0.5 },
+    youText:    { fontFamily: Fonts.semiBold, fontSize: 10, color: C.red, letterSpacing: 0.5 },
     block:      { width: '100%', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     blockFirst: { shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: -3 }, elevation: 3 },
-    rankNum:    { fontWeight: '600', fontSize: 11 },
+    rankNum:    { fontFamily: Fonts.semiBold, fontSize: 11 },
   });
 }
 
@@ -141,7 +141,7 @@ export default function LeaderboardScreen() {
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Text style={s.playerName}>{playerEntry.name}</Text>
             <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 2, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)' }}>
-              <Text style={{ fontWeight: '500', fontSize: 8, color: C.red, textTransform: 'uppercase' }}>You</Text>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 10, color: C.red, textTransform: 'uppercase' }}>You</Text>
             </View>
           </View>
           <Text style={s.playerValue}>{fmtVal(playerEntry.value)}</Text>
@@ -156,17 +156,17 @@ function mkStyles(C: AppColors) {
     root: { flex: 1, backgroundColor: C.bg },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 24, color: C.black },
+    title: { fontFamily: Fonts.display, fontSize: 24, color: C.black },
     list:          { paddingBottom: 100 },
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
-    emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center' },
-    playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, padding: '10px 12px' as any, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)' },
-    playerRank:    { fontSize: 13, color: C.red, width: 24, textAlign: 'center' },
+    emptyTitle:    { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
+    playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)' },
+    playerRank:    { fontFamily: Fonts.regular, fontSize: 13, color: C.red, width: 24, textAlign: 'center', fontVariant: ['tabular-nums'] },
     playerAvatar:  { width: 28, height: 28, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
-    playerAvatarText: { fontWeight: '500', fontSize: 10, color: C.white },
-    playerName:    { fontWeight: '500', fontSize: 12, color: C.black },
-    playerLvl:     { fontSize: 10, color: C.t3 },
-    playerValue:   { fontSize: 14, color: C.black, letterSpacing: -0.3 },
+    playerAvatarText: { fontFamily: Fonts.medium, fontSize: 10, color: C.alwaysLight },
+    playerName:    { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
+    playerLvl:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    playerValue:   { fontFamily: Fonts.regular, fontSize: 14, color: C.black, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
   });
 }

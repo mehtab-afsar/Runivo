@@ -12,7 +12,7 @@ import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
 import { SegmentedControl, PillCycle } from '../components/SettingToggle';
-import { useTheme, setSoundEnabled, setHapticEnabled, type AppColors } from '@theme';
+import { useTheme, setSoundEnabled, setHapticEnabled, Fonts, Spacing, type AppColors } from '@theme';
 import { useAuth } from '@shared/hooks/useAuth';
 import { supabase } from '@shared/services/supabase';
 
@@ -185,7 +185,7 @@ export default function SettingsScreen() {
           <LinearGradient colors={['#111111', '#1A0A06']} style={s.premiumGradient}>
             <View style={s.premiumTopRow}>
               <View style={s.premiumBrand}>
-                <Crown size={14} color="#F59E0B" weight="fill" />
+                <Crown size={14} color={C.gold} weight="fill" />
                 <Text style={s.premiumBrandLabel}>RUNIVO PLUS</Text>
               </View>
               <View style={s.premiumBadge}><Text style={s.premiumBadgeTxt}>PLUS</Text></View>
@@ -222,34 +222,34 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn:     { width: 32 },
-  backText:    { fontSize: 18, color: C.t2 },
-  title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+  backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+  title:       { fontFamily: Fonts.display, fontSize: 20, color: C.black },
   scroll:      { paddingBottom: 40 },
   linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
-  linkLabel:   { fontSize: 14, color: C.black },
-  linkSub:     { fontSize: 11, color: C.t3, marginTop: 1 },
-  linkArrow:   { fontSize: 16, color: C.t3 },
-  versionText: { fontSize: 12, color: C.t3 },
+  linkLabel:   { fontFamily: Fonts.regular, fontSize: 14, color: C.black },
+  linkSub:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
+  linkArrow:   { fontFamily: Fonts.regular, fontSize: 16, color: C.t3 },
+  versionText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
   // Premium card
-  premiumCard:       { marginHorizontal: 16, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },
+  premiumCard:       { marginHorizontal: Spacing.gutter, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },
   premiumGradient:   { padding: 18 },
   premiumTopRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   premiumBrand:      { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  premiumBrandLabel: { fontFamily: 'Barlow_600SemiBold', fontSize: 11, color: '#fff', letterSpacing: 1.5 },
-  premiumBadge:      { backgroundColor: '#F59E0B', borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
-  premiumBadgeTxt:   { fontFamily: 'Barlow_600SemiBold', fontSize: 9, color: '#000', letterSpacing: 1 },
-  premiumTagline:    { fontFamily: 'Barlow_300Light', fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 14, lineHeight: 20 },
+  premiumBrandLabel: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight, letterSpacing: 1.5 },
+  premiumBadge:      { backgroundColor: C.gold, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
+  premiumBadgeTxt:   { fontFamily: Fonts.semiBold, fontSize: 10, color: C.alwaysDark, letterSpacing: 1 },
+  premiumTagline:    { fontFamily: Fonts.light, fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 14, lineHeight: 20 },
   premiumFeature:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  premiumFeatureDot: { fontSize: 10, color: '#F59E0B' },
-  premiumFeatureTxt: { fontFamily: 'Barlow_400Regular', fontSize: 12, color: 'rgba(255,255,255,0.85)' },
+  premiumFeatureDot: { fontFamily: Fonts.regular, fontSize: 10, color: C.gold },
+  premiumFeatureTxt: { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.85)' },
   premiumDivider:    { height: 0.5, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 14 },
   premiumBottomRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  premiumPrice:      { fontFamily: 'Barlow_400Regular', fontSize: 11, color: 'rgba(255,255,255,0.5)' },
-  premiumCTA:        { backgroundColor: '#F59E0B', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-  premiumCTATxt:     { fontFamily: 'Barlow_600SemiBold', fontSize: 12, color: '#000' },
+  premiumPrice:      { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  premiumCTA:        { backgroundColor: C.gold, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
+  premiumCTATxt:     { fontFamily: Fonts.semiBold, fontSize: 12, color: C.alwaysDark },
   // Sign out
-  signOutWrap: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8 },
+  signOutWrap: { paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 8 },
   signOutBtn:  { borderWidth: 0.5, borderColor: C.red, borderRadius: 8, paddingVertical: 13, alignItems: 'center' },
-  signOutLabel:{ fontWeight: '500', fontSize: 13, color: C.red, letterSpacing: 1 },
-  version:     { fontSize: 10, color: C.t3, textAlign: 'center', paddingBottom: 8 },
+  signOutLabel:{ fontFamily: Fonts.medium, fontSize: 13, color: C.red, letterSpacing: 1 },
+  version:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', paddingBottom: 8 },
 }); }

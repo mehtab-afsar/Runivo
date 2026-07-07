@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, TextInput, ActivityIndicator, StyleSheet } from 'react-native';
+import { Colors, Fonts } from '@theme';
 import type { TrainingPlan } from '../services/coachService';
 
 interface Props {
@@ -32,7 +33,7 @@ export function TrainingPlanAccordion({ plan, open, onToggle, goalInput, onGoalC
             />
             <Pressable style={[ss.genBtn, loading && ss.genBtnDisabled]} onPress={onGenerate} disabled={loading}>
               {loading
-                ? <ActivityIndicator size="small" color="#fff" />
+                ? <ActivityIndicator size="small" color={Colors.alwaysLight} />
                 : <Text style={ss.genLabel}>Generate</Text>}
             </Pressable>
           </View>
@@ -58,18 +59,18 @@ export function TrainingPlanAccordion({ plan, open, onToggle, goalInput, onGoalC
 const ss = StyleSheet.create({
   container:      { borderTopWidth: 0.5, borderTopColor: '#DDD9D4', marginTop: 4 },
   header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-  title:          { fontWeight: '500', fontSize: 13, color: '#0A0A0A' },
-  chevron:        { fontSize: 11, color: '#ADADAD' },
+  title:          { fontFamily: Fonts.medium, fontSize: 13, color: '#0A0A0A' },
+  chevron:        { fontFamily: Fonts.regular, fontSize: 11, color: '#ADADAD' },
   body:           { paddingHorizontal: 16, paddingBottom: 12 },
   inputRow:       { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  input:          { flex: 1, backgroundColor: '#F8F6F3', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: '#0A0A0A' },
+  input:          { flex: 1, backgroundColor: '#F8F6F3', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 12, paddingVertical: 8, fontFamily: Fonts.regular, fontSize: 13, color: '#0A0A0A' },
   genBtn:         { backgroundColor: '#D93518', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   genBtnDisabled: { opacity: 0.5 },
-  genLabel:       { fontWeight: '600', fontSize: 12, color: '#fff' },
+  genLabel:       { fontFamily: Fonts.semiBold, fontSize: 12, color: Colors.alwaysLight },
   week:           { marginBottom: 12 },
-  weekTitle:      { fontWeight: '600', fontSize: 12, color: '#0A0A0A', marginBottom: 4 },
-  weekSummary:    { fontSize: 11, color: '#6B6B6B', marginBottom: 6, lineHeight: 16 },
+  weekTitle:      { fontFamily: Fonts.semiBold, fontSize: 12, color: '#0A0A0A', marginBottom: 4 },
+  weekSummary:    { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B', marginBottom: 6, lineHeight: 16 },
   dayRow:         { flexDirection: 'row', gap: 8, marginBottom: 4 },
-  dayLabel:       { fontWeight: '500', fontSize: 11, color: '#0A0A0A', width: 30 },
-  dayWorkout:     { fontSize: 11, color: '#6B6B6B', flex: 1 },
+  dayLabel:       { fontFamily: Fonts.medium, fontSize: 11, color: '#0A0A0A', width: 30 },
+  dayWorkout:     { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B', flex: 1 },
 });

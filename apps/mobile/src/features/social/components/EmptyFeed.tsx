@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   tab?: 'explore' | 'following';
@@ -25,7 +25,7 @@ export function EmptyFeed({ tab }: Props) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrap: { alignItems: 'center', paddingVertical: 48 },
-    title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    text: { fontSize: 12, color: C.t2, textAlign: 'center' },
+    title: { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+    text: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }

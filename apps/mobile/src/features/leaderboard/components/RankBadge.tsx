@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props { rank: number }
 
@@ -28,6 +28,6 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     badge: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     medal: { fontSize: 18 },
-    num: { fontWeight: '600', fontSize: 12, color: C.t2 },
+    num: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2 },
   });
 }

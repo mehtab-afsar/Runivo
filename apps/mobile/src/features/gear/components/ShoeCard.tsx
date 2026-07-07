@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Footprints } from 'phosphor-react-native';
+import { Colors, Fonts } from '@theme';
 import type { StoredShoe } from '@shared/services/store';
 import { ShoeProgressBar } from '@features/gear/components/ShoeProgressBar';
 
@@ -81,29 +82,29 @@ export function ShoeCard({ shoe, kmRun, onSetDefault, onRetire, onDelete }: Shoe
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14 },
+  card: { backgroundColor: Colors.white, borderRadius: 14, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14 },
   retired: { opacity: 0.6 },
   top: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   icon: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#F0EDE8', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 },
-  name: { fontWeight: '600', fontSize: 14, color: '#0A0A0A' },
+  name: { fontFamily: Fonts.semiBold, fontSize: 14, color: '#0A0A0A' },
   defaultBadge: { backgroundColor: '#EDF7F2', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
-  defaultLabel: { fontSize: 9, color: '#1A6B40', textTransform: 'uppercase', letterSpacing: 0.5 },
-  model: { fontSize: 11, color: '#6B6B6B', marginBottom: 1 },
+  defaultLabel: { fontFamily: Fonts.regular, fontSize: 10, color: '#1A6B40', textTransform: 'uppercase', letterSpacing: 0.5 },
+  model: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B', marginBottom: 1 },
   categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  category: { fontSize: 10, color: '#ADADAD' },
+  category: { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD' },
   statusBadge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   badgeRed: { backgroundColor: '#FEF0EE' },
   badgeAmber: { backgroundColor: '#FDF6E8' },
-  statusLabel: { fontWeight: '500', fontSize: 8, letterSpacing: 0.5 },
+  statusLabel: { fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.5 },
   mileageRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  mileage: { fontSize: 11, color: '#6B6B6B' },
-  remaining: { fontSize: 11, color: '#ADADAD' },
+  mileage: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B', fontVariant: ['tabular-nums'] },
+  remaining: { fontFamily: Fonts.regular, fontSize: 11, color: '#ADADAD', fontVariant: ['tabular-nums'] },
   retiredBadge: { backgroundColor: '#F0EDE8', borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 8, marginBottom: 4 },
-  retiredLabel: { fontSize: 10, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 0.5 },
+  retiredLabel: { fontFamily: Fonts.regular, fontSize: 10, color: '#6B6B6B', textTransform: 'uppercase', letterSpacing: 0.5 },
   actions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: '#F0EDE8', borderWidth: 0.5, borderColor: '#DDD9D4' },
   deleteBtn: { backgroundColor: '#FEF0EE', borderColor: '#D9351844' },
-  actionLabel: { fontSize: 11, color: '#6B6B6B' },
-  deleteLabel: { fontSize: 11, color: '#D93518' },
+  actionLabel: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B' },
+  deleteLabel: { fontFamily: Fonts.regular, fontSize: 11, color: '#D93518' },
 });

@@ -12,7 +12,7 @@ import { PlanCard } from '../components/PlanCard';
 import { CurrentPlanBadge } from '../components/CurrentPlanBadge';
 import { FeatureRow } from '../components/FeatureRow';
 import { PLANS, FEATURES, FREE_LIMITS } from '../types';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -38,7 +38,7 @@ export default function SubscriptionScreen() {
 
       <ScrollView contentContainerStyle={su.content} showsVerticalScrollIndicator={false}>
         <View style={su.hero}>
-          <View style={su.heroEmoji}><Flag size={48} color="#D93518" weight="light" /></View>
+          <View style={su.heroEmoji}><Flag size={48} color={C.red} weight="light" /></View>
           <Text style={su.heroTitle}>Runivo Plus</Text>
           <Text style={su.heroSub}>Dominate more territory. Run smarter.</Text>
         </View>
@@ -53,7 +53,7 @@ export default function SubscriptionScreen() {
               ))}
             </View>
             <Pressable style={[su.subscribeBtn, purchasing && { opacity: 0.6 }]} onPress={() => purchasePlan(activePlan.id, activePlan.rcProductId)} disabled={purchasing}>
-              {purchasing ? <ActivityIndicator size="small" color="#fff" /> : (
+              {purchasing ? <ActivityIndicator size="small" color={C.white} /> : (
                 <>
                   <Text style={su.subscribeBtnLabel}>Start Free Trial</Text>
                   <Text style={su.subscribeBtnSub}>7 days free, then {trialPrice}</Text>
@@ -82,19 +82,19 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 32 },
-  backText: { fontSize: 18, color: C.t2 },
-  title: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+  title: { fontFamily: Fonts.display, fontSize: 20, color: C.black },
   content: { paddingHorizontal: 20, paddingBottom: 60, gap: 6 },
   hero: { alignItems: 'center', paddingVertical: 24 },
   heroEmoji: { marginBottom: 8, alignItems: 'center', justifyContent: 'center' },
-  heroTitle: { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 28, color: C.black, marginBottom: 6 },
-  heroSub: { fontSize: 14, color: C.t2, textAlign: 'center' },
+  heroTitle: { fontFamily: Fonts.display, fontSize: 28, color: C.black, marginBottom: 6 },
+  heroSub: { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center' },
   planRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
   subscribeBtn: { backgroundColor: C.red, borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 4 },
-  subscribeBtnLabel: { fontWeight: '700', fontSize: 16, color: '#fff', letterSpacing: 1 },
-  subscribeBtnSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  subscribeBtnLabel: { fontFamily: Fonts.bold, fontSize: 16, color: C.white, letterSpacing: 1 },
+  subscribeBtnSub: { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   restoreBtn: { alignItems: 'center', paddingVertical: 10 },
-  restoreText: { fontSize: 12, color: C.t2 },
-  sectionLabel: { fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 16, marginBottom: 8 },
-  legal: { fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 16, marginTop: 16 },
+  restoreText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+  sectionLabel: { ...Type.overline, color: C.t3, letterSpacing: 1.5, marginTop: 16, marginBottom: 8 },
+  legal: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 16, marginTop: 16 },
 }); }

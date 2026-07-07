@@ -1,10 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
-
-const FONT      = 'Barlow_400Regular';
-const FONT_SEMI = 'Barlow_600SemiBold';
-const FONT_BOLD = 'Barlow_700Bold';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 function fmt(s: number): string {
   const h = Math.floor(s / 3600);
@@ -50,12 +46,12 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     overlay:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', zIndex: 100 },
     sheet:      { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24 },
-    title:      { fontFamily: FONT_BOLD, fontSize: 18, color: C.black, textAlign: 'center', marginBottom: 8 },
-    sub:        { fontFamily: FONT, fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24 },
+    title:      { fontFamily: Fonts.bold, fontSize: 18, color: C.black, textAlign: 'center', marginBottom: 8 },
+    sub:        { fontFamily: Fonts.regular, fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24, fontVariant: ['tabular-nums'] },
     actions:    { flexDirection: 'row', gap: 12 },
     cancel:     { flex: 1, paddingVertical: 14, borderRadius: 3, borderWidth: 0.5, borderColor: C.mid, alignItems: 'center' },
-    cancelText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.black },
+    cancelText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black },
     finish:     { flex: 1, paddingVertical: 14, borderRadius: 3, backgroundColor: C.red, alignItems: 'center' },
-    finishText: { fontFamily: FONT_SEMI, fontSize: 14, color: C.white },
+    finishText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
   });
 }

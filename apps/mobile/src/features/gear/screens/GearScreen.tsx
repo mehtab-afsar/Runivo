@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { ArrowLeft, Plus } from 'phosphor-react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import { useShoeTracker } from '@features/gear/hooks/useShoeTracker';
 import { ShoeCard } from '@features/gear/components/ShoeCard';
 import type { StoredShoe } from '@shared/services/store';
@@ -60,7 +60,7 @@ export default function GearScreen() {
           </Pressable>
           */}
           <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn}>
-            <Plus size={16} color="#fff" weight="bold" />
+            <Plus size={16} color={C.alwaysLight} weight="bold" />
           </Pressable>
         </View>
       </View>
@@ -119,16 +119,16 @@ function mkStyles(C: AppColors) {
     root:          { flex: 1, backgroundColor: C.stone },
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:       { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:         { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 20, color: C.black },
+    title:         { fontFamily: Fonts.display, fontSize: 20, color: C.black },
     addBtn:        { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
-    list:          { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100, gap: 10 },
+    list:          { paddingHorizontal: Spacing.gutter, paddingTop: 8, paddingBottom: 100, gap: 10 },
     empty:         { alignItems: 'center', paddingVertical: 48 },
-    emptyTitle:    { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText:     { fontSize: 12, color: C.t2, textAlign: 'center', marginBottom: 16 },
+    emptyTitle:    { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', marginBottom: 16 },
     emptyBtn:      { backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
-    emptyBtnLabel: { fontWeight: '500', fontSize: 12, color: '#fff', letterSpacing: 0.5 },
-    sectionLabel:  { fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
+    emptyBtnLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight, letterSpacing: 0.5 },
+    sectionLabel:  { ...Type.overline, color: C.t3, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
     toast:         { position: 'absolute', bottom: 36, left: 20, right: 20, backgroundColor: C.alwaysDark, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16 },
-    toastText:     { fontSize: 13, color: '#fff', textAlign: 'center' },
+    toastText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.alwaysLight, textAlign: 'center' },
   });
 }

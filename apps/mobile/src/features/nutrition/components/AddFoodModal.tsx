@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { X, Barcode, Camera, CheckCircle } from 'phosphor-react-native';
+import { Colors, Type, Fonts } from '@theme';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
@@ -277,7 +278,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: '#DDD9D4',
   },
   closeBtn:    { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  title:       { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 18, color: '#0A0A0A' },
+  title:       { fontFamily: Fonts.display, fontSize: 18, color: '#0A0A0A' },
   scanBtns:    { flexDirection: 'row', gap: 4 },
   scanBtn:     { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 
@@ -286,34 +287,34 @@ const s = StyleSheet.create({
     backgroundColor: '#EDF7F2', borderBottomWidth: 0.5, borderBottomColor: '#C8E8D6',
     paddingHorizontal: 20, paddingVertical: 8,
   },
-  bannerText:  { flex: 1, fontSize: 12, color: '#1A6B40' },
-  bannerName:  { fontWeight: '600' },
+  bannerText:  { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: '#1A6B40' },
+  bannerName:  { fontFamily: Fonts.semiBold },
 
   scanCTA:     {
     flexDirection: 'row', marginTop: 14,
-    backgroundColor: '#FFFFFF', borderRadius: 10,
+    backgroundColor: Colors.white, borderRadius: 10,
     borderWidth: 0.5, borderColor: '#DDD9D4', overflow: 'hidden',
   },
   scanCTABtn:  { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
-  scanCTALabel:{ fontSize: 13, fontWeight: '500', color: '#D93518' },
+  scanCTALabel:{ fontFamily: Fonts.medium, fontSize: 13, color: '#D93518' },
   scanDivider: { width: 0.5, backgroundColor: '#DDD9D4' },
 
   content:     { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
-  sectionLabel:{ fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 14, marginBottom: 6 },
+  sectionLabel:{ ...Type.overline, color: '#ADADAD', marginTop: 14, marginBottom: 6 },
   mealRow:     { flexDirection: 'row', gap: 6, marginTop: 14, marginBottom: 4 },
-  mealBtn:     { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 2 },
-  mealBtnActive:  { backgroundColor: '#0A0A0A', borderColor: '#0A0A0A' },
-  mealLabel:      { fontSize: 9, color: '#6B6B6B' },
-  mealLabelActive:{ color: '#fff' },
+  mealBtn:     { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: Colors.white, borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 2 },
+  mealBtnActive:  { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
+  mealLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: '#6B6B6B' },
+  mealLabelActive:{ color: Colors.alwaysLight },
   chips:       { flexGrow: 0 },
   chipsContent:{ flexDirection: 'row', gap: 6 },
-  chip:        { backgroundColor: '#FFFFFF', borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2 },
-  chipName:    { fontWeight: '500', fontSize: 11, color: '#0A0A0A' },
-  chipKcal:    { fontSize: 9, color: '#ADADAD' },
-  fieldLabel:  { fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 1.5, marginTop: 10, marginBottom: 4 },
-  input:       { backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#0A0A0A' },
+  chip:        { backgroundColor: Colors.white, borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2 },
+  chipName:    { fontFamily: Fonts.medium, fontSize: 11, color: '#0A0A0A' },
+  chipKcal:    { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD' },
+  fieldLabel:  { ...Type.overline, color: '#ADADAD', marginTop: 10, marginBottom: 4 },
+  input:       { backgroundColor: Colors.white, borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: '#0A0A0A' },
   row:         { flexDirection: 'row', gap: 8, marginTop: 4 },
-  addBtn:      { backgroundColor: '#0A0A0A', borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  addBtn:      { backgroundColor: Colors.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   addBtnDisabled: { opacity: 0.4 },
-  addBtnLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
+  addBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.alwaysLight, letterSpacing: 1 },
 });

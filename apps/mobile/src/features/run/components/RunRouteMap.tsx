@@ -4,7 +4,7 @@
  */
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 
@@ -79,10 +79,10 @@ export default function RunRouteMap({ route }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    wrap:         { marginHorizontal: 16, marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 0.5, borderColor: C.border, height: 200 },
+    wrap:         { marginHorizontal: Spacing.gutter, marginBottom: 12, borderRadius: 12, overflow: 'hidden', borderWidth: 0.5, borderColor: C.border, height: 200 },
     map:          { flex: 1 },
-    fallback:     { height: 200, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', borderRadius: 12, marginHorizontal: 16, marginBottom: 12 },
-    fallbackText: { fontSize: 13, color: C.t2 },
+    fallback:     { height: 200, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', borderRadius: 12, marginHorizontal: Spacing.gutter, marginBottom: 12 },
+    fallbackText: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     marker:       { width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: C.white },
     markerGreen:  { backgroundColor: C.green },
     markerRed:    { backgroundColor: C.red },

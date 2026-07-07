@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { House as Home, Rss, User, Play, type Icon } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { FEATURES } from '../config/features';
 import { useCoachNav } from './CoachNavContext';
 
@@ -89,9 +89,9 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               return (
                 <Pressable key={route.key} onPress={onPress} style={s.runOuter}>
                   <View style={[s.runCircle, focused && s.runCircleActive]}>
-                    <Play size={20} color="#fff" weight="fill" />
+                    <Play size={20} color={C.alwaysLight} weight="fill" />
                   </View>
-                  <Text style={[s.label, { color: C.red, fontWeight: '500' }]}>{meta.label}</Text>
+                  <Text style={[s.label, s.labelActive, { color: C.red }]}>{meta.label}</Text>
                 </Pressable>
               );
             }
@@ -104,11 +104,11 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             return (
               <Pressable key={route.key} onPress={onPress} style={s.tab}>
                 {isPaceX || !IconComp
-                  ? <Text style={{ fontWeight: '700', fontSize: 22, color, lineHeight: 26 }}>X</Text>
+                  ? <Text style={{ fontFamily: Fonts.bold, fontSize: 22, color, lineHeight: 26 }}>X</Text>
                   : <IconComp size={22} color={color} weight={focused ? 'regular' : 'light'} />
                 }
                 {enabled ? (
-                  <Text style={[s.label, { color, fontWeight: focused ? '500' : undefined }]}>
+                  <Text style={[s.label, focused && s.labelActive, { color }]}>
                     {meta.label}
                   </Text>
                 ) : (
@@ -131,12 +131,13 @@ function mkStyles(C: AppColors) {
     topBorder:       { height: 0.5, backgroundColor: C.border },
     row:             { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 6 },
     tab:             { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 4 },
-    label:           { fontSize: 9, letterSpacing: 0.8 },
+    // 10px tracked-uppercase floor — 9px system font was both illegible and an SF leak.
+    label:           { fontFamily: Fonts.regular, fontSize: 10, letterSpacing: 1 },
+    labelActive:     { fontFamily: Fonts.medium },
     soonBadge:       { backgroundColor: C.orange, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
-    soonText:        { fontSize: 8, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
+    soonText:        { fontFamily: Fonts.bold, fontSize: 10, color: C.alwaysLight, letterSpacing: 0.5 },
     runOuter:        { flex: 1, alignItems: 'center', gap: 5, paddingBottom: 4 },
-    runCircle:       { width: 54, height: 54, borderRadius: 27, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: -20, shadowColor: C.red, shadowOpacity: 0.38, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+    runCircle:       { width: 54, height: 54, borderRadius: 27, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: -20, shadowColor: C.red, shadowOpacity: 0.38, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
     runCircleActive: { shadowOpacity: 0.55, shadowRadius: 16 },
-    runPlay:         { fontSize: 18, color: '#fff', marginLeft: 2 },
   });
 }

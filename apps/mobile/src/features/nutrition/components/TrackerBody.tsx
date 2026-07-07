@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
+import { Colors, Fonts } from '@theme';
 import { CalorieRing } from './CalorieRing';
 import { MacroBars } from './MacroBars';
 import { MealSection } from './MealSection';
@@ -49,7 +50,7 @@ export function TrackerBody({ profile, entries, consumed, pct, proteinConsumed, 
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14 },
-  logBtn: { backgroundColor: '#0A0A0A', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  logBtnLabel: { fontWeight: '600', fontSize: 14, color: '#fff', letterSpacing: 1 },
+  card: { backgroundColor: Colors.white, borderRadius: 14, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14 },
+  logBtn: { backgroundColor: Colors.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  logBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.alwaysLight, letterSpacing: 1 },
 });
