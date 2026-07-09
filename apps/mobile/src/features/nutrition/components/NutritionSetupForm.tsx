@@ -1,27 +1,31 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, type KeyboardTypeOptions } from 'react-native';
 import { Fire, Scales as Scale, Barbell, ForkKnife as UtensilsCrossed, Leaf, Fish, Moon } from 'phosphor-react-native';
-import { Colors, Type, Fonts } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { GoalOption } from './GoalOption';
 import { ActivityLevelPicker } from './ActivityLevelPicker';
 
-const GOALS = [
-  { value: 'lose',     label: 'Lose weight', iconNode: <Fire    size={18} color="#EA580C" weight="light" /> },
-  { value: 'maintain', label: 'Maintain',    iconNode: <Scale   size={18} color="#6B6B6B" weight="light" /> },
-  { value: 'gain',     label: 'Gain muscle', iconNode: <Barbell size={18} color="#7C3AED" weight="light" /> },
-] as const;
+function mkGoals(C: AppColors) {
+  return [
+    { value: 'lose',     label: 'Lose weight', iconNode: <Fire    size={18} color={C.orange} weight="light" /> },
+    { value: 'maintain', label: 'Maintain',    iconNode: <Scale   size={18} color={C.t2}     weight="light" /> },
+    { value: 'gain',     label: 'Gain muscle', iconNode: <Barbell size={18} color={C.purple} weight="light" /> },
+  ] as const;
+}
 
-const DIETS = [
-  { value: 'everything',  label: 'Everything',  iconNode: <UtensilsCrossed size={14} color="#6B6B6B" weight="light" /> },
-  { value: 'vegetarian',  label: 'Vegetarian',  iconNode: <Leaf  size={14} color="#16A34A" weight="light" /> },
-  { value: 'vegan',       label: 'Vegan',       iconNode: <Leaf  size={14} color="#16A34A" weight="light" /> },
-  { value: 'pescatarian', label: 'Pescatarian', iconNode: <Fish  size={14} color="#0284C7" weight="light" /> },
-  { value: 'keto',        label: 'Keto',        iconNode: <Fire  size={14} color="#EA580C" weight="light" /> },
-  { value: 'halal',       label: 'Halal',       iconNode: <Moon  size={14} color="#6B2D8C" weight="light" /> },
-] as const;
+function mkDiets(C: AppColors) {
+  return [
+    { value: 'everything',  label: 'Everything',  iconNode: <UtensilsCrossed size={14} color={C.t2}     weight="light" /> },
+    { value: 'vegetarian',  label: 'Vegetarian',  iconNode: <Leaf  size={14} color={C.green}  weight="light" /> },
+    { value: 'vegan',       label: 'Vegan',       iconNode: <Leaf  size={14} color={C.green}  weight="light" /> },
+    { value: 'pescatarian', label: 'Pescatarian', iconNode: <Fish  size={14} color={C.blue}   weight="light" /> },
+    { value: 'keto',        label: 'Keto',        iconNode: <Fire  size={14} color={C.orange} weight="light" /> },
+    { value: 'halal',       label: 'Halal',       iconNode: <Moon  size={14} color={C.purple} weight="light" /> },
+  ] as const;
+}
 
-type GoalValue = typeof GOALS[number]['value'];
-type DietValue = typeof DIETS[number]['value'];
+type GoalValue = ReturnType<typeof mkGoals>[number]['value'];
+type DietValue = ReturnType<typeof mkDiets>[number]['value'];
 
 interface Props {
   saving: boolean;
@@ -36,6 +40,10 @@ interface Props {
 }
 
 export function NutritionSetupForm({ saving, goal, setGoal, activityLevel, setActivity, diet, setDiet, sex, setSex, ageStr, weightStr, heightStr, updateField, dailyKcal, macros, onSave }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
+  const GOALS = useMemo(() => mkGoals(C), [C]);
+  const DIETS = useMemo(() => mkDiets(C), [C]);
   return (
     <>
       <Text style={s.label}>Goal</Text>
@@ -87,32 +95,32 @@ export function NutritionSetupForm({ saving, goal, setGoal, activityLevel, setAc
       </View>
 
       <Pressable style={s.saveBtn} onPress={onSave} disabled={saving}>
-        {saving ? <ActivityIndicator size="small" color={Colors.alwaysLight} /> : <Text style={s.saveLabel}>Save & Start Tracking</Text>}
+        {saving ? <ActivityIndicator size="small" color={C.alwaysLight} /> : <Text style={s.saveLabel}>Save & Start Tracking</Text>}
       </Pressable>
     </>
   );
 }
 
-const s = StyleSheet.create({
-  label: { ...Type.overline, color: '#ADADAD', marginTop: 16, marginBottom: 8 },
+function mkStyles(C: AppColors) { return StyleSheet.create({
+  label: { ...Type.overline, color: C.t3, marginTop: 16, marginBottom: 8 },
   row: { flexDirection: 'row', gap: 8 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: Colors.white, borderRadius: 20, borderWidth: 0.5, borderColor: '#DDD9D4' },
-  chipOn: { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
-  chipLabel: { fontFamily: Fonts.regular, fontSize: 12, color: '#6B6B6B' },
-  chipLabelOn: { color: Colors.alwaysLight, fontFamily: Fonts.medium },
-  opt: { paddingVertical: 14, borderRadius: 10, backgroundColor: Colors.white, borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 4 },
-  optOn: { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
-  optLabel: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B' },
-  optLabelOn: { color: Colors.alwaysLight, fontFamily: Fonts.medium },
-  fieldLabel: { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD', marginBottom: 4 },
-  numInput: { backgroundColor: Colors.white, borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 10, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 16, color: '#0A0A0A', textAlign: 'center' },
-  preview: { backgroundColor: Colors.white, borderRadius: 12, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, marginTop: 16 },
-  previewTitle: { ...Type.overline, color: '#ADADAD', marginBottom: 12 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: C.card, borderRadius: 20, borderWidth: 0.5, borderColor: C.border },
+  chipOn: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+  chipLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+  chipLabelOn: { color: C.alwaysLight, fontFamily: Fonts.medium },
+  opt: { paddingVertical: 14, borderRadius: 10, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', gap: 4 },
+  optOn: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+  optLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
+  optLabelOn: { color: C.alwaysLight, fontFamily: Fonts.medium },
+  fieldLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginBottom: 4 },
+  numInput: { backgroundColor: C.card, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 10, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 16, color: C.t1, textAlign: 'center' },
+  preview: { backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginTop: 16 },
+  previewTitle: { ...Type.overline, color: C.t3, marginBottom: 12 },
   previewRow: { flexDirection: 'row', gap: 8 },
   previewStat: { flex: 1, alignItems: 'center' },
-  previewVal: { fontFamily: Fonts.bold, fontSize: 16, color: '#0A0A0A', fontVariant: ['tabular-nums'] },
-  previewUnit: { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD', marginTop: 1 },
-  saveBtn: { backgroundColor: Colors.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
-  saveLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.alwaysLight, letterSpacing: 1 },
-});
+  previewVal: { fontFamily: Fonts.bold, fontSize: 16, color: C.t1, fontVariant: ['tabular-nums'] },
+  previewUnit: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
+  saveBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  saveLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
+}); }

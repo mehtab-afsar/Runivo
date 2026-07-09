@@ -54,7 +54,7 @@ export function RewardCard({ reward, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:           { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16 },
+    card:           { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     cardPremium:    { borderLeftWidth: 3, borderLeftColor: C.red },
     topRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     brandCircle:    { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },

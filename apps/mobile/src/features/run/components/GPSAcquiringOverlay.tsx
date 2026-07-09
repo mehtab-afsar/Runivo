@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, Animated, StyleSheet } from 'react-native';
-import { useTheme, Fonts } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   accuracy: number | null;
@@ -12,8 +12,20 @@ function ringColor(acc: number | null): string {
   return '#22C55E';                                // green
 }
 
+// Build a translucent scrim from the theme's bg so the overlay dims the map
+// correctly in both light and dark mode (a hardcoded light scrim would leave
+// the inverting title/sub text illegible in dark mode).
+function scrimFromBg(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 export function GPSAcquiringOverlay({ accuracy }: Props) {
   const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const pulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -52,10 +64,11 @@ export function GPSAcquiringOverlay({ accuracy }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(247,246,244,0.88)',
+    backgroundColor: scrimFromBg(C.bg, 0.88),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -90,4 +103,5 @@ const ss = StyleSheet.create({
     fontFamily: Fonts.regular,
     fontSize: 12,
   },
-});
+  });
+}

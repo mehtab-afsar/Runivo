@@ -52,7 +52,7 @@ function mkStyles(C: AppColors) {
     row: { flexDirection: 'row', gap: 8, marginBottom: 24 },
     pill: {
       flex: 1,
-      backgroundColor: C.white,
+      backgroundColor: C.card,
       borderRadius: 12,
       borderWidth: 0.5,
       borderColor: C.border,

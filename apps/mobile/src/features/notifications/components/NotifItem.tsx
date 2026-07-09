@@ -34,7 +34,7 @@ export function NotifItem({ notif, onPress }: Props) {
 }
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
-  card: { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center' },
+  card: { backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center' },
   cardUnread: { borderLeftWidth: 2, borderLeftColor: C.red },
   iconWrap: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   emoji: { fontSize: 20 },

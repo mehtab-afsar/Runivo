@@ -176,7 +176,7 @@ function mkStyles(C: AppColors) {
     messageBtnDisabled: { opacity: 0.45 },
     messageBtnLabel:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
     messageBtnLabelDisabled: { color: C.t3 },
-    statsGrid:    { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    statsGrid:    { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     statCell:     { flex: 1, alignItems: 'center', paddingVertical: 16, borderRightWidth: 0.5, borderRightColor: C.border },
     statValue:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, letterSpacing: -0.5 },
     statLabel:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },

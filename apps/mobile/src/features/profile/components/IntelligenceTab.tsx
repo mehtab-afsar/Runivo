@@ -87,7 +87,7 @@ function WeeklyChart({ weeklyKm, C }: { weeklyKm: number[]; C: AppColors }) {
 
 function mkChartStyles(C: AppColors) {
   return StyleSheet.create({
-    chartCard: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16 },
+    chartCard: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 112 },
     barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: 112 },
     barKm: { fontFamily: Fonts.light, fontSize: 10, color: C.t3, marginBottom: 2 },
@@ -137,7 +137,7 @@ function PaceZones({ runs, C }: { runs: StoredRun[]; C: AppColors }) {
 
 function mkZonesStyles(C: AppColors) {
   return StyleSheet.create({
-    zonesCard:    { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, gap: 12 },
+    zonesCard:    { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, gap: 12 },
     zoneRow:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
     zoneLeft:     { width: 72 },
     zoneLabel:    { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
@@ -187,11 +187,11 @@ function RacePredictions({ personalRecords, C }: { personalRecords: PersonalReco
 function mkRaceStyles(C: AppColors) {
   return StyleSheet.create({
     grid:  { flexDirection: 'row', gap: 8 },
-    card:  { flex: 1, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center' },
+    card:  { flex: 1, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center' },
     val:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
     label: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
     note:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
-    empty: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
+    empty: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
     emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }
@@ -241,7 +241,7 @@ function ConsistencyTrendChart({ history, C }: { history: WeeklyConsistency[]; C
 
 function mkConsistencyStyles(C: AppColors) {
   return StyleSheet.create({
-    card:          { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16 },
+    card:          { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     bars:          { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 80, marginBottom: 12 },
     barCol:        { flex: 1, alignItems: 'center', height: 80 },
     barTrack:      { width: '100%', flex: 1, flexDirection: 'column' },
@@ -342,12 +342,12 @@ export function IntelligenceTab({ runs, personalRecords }: Props) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     trendLabel:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginBottom: 8 },
-    insightCard:    { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, marginBottom: 10 },
+    insightCard:    { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, marginBottom: 10 },
     insightIcon:    { fontSize: 20 },
     insightHeadline:{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, marginTop: 8 },
     insightBody:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 19, marginTop: 6 },
     insightRec:     { fontFamily: Fonts.regular, fontSize: 12, color: C.red, fontStyle: 'italic', marginTop: 8 },
-    insightEmpty:   { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
+    insightEmpty:   { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
     insightEmptyText:{ fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }

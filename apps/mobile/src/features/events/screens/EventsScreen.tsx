@@ -134,7 +134,7 @@ function mkEdStyles(C: AppColors) {
     closeBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8 },
     eventTitle:      { ...Type.displaySm, color: C.black, marginBottom: 8 },
     eventDesc:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
-    detailCard:      { backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
+    detailCard:      { backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
     detailRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 13 },
     detailRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
     detailIconBox:   { width: 30, height: 30, borderRadius: 8, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -146,7 +146,7 @@ function mkEdStyles(C: AppColors) {
     orgLabel:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.8, marginBottom: 1 },
     orgName:         { fontFamily: Fonts.regular, fontSize: 13, color: C.black },
     footer:          { flexDirection: 'row', gap: 8, alignItems: 'center' },
-    iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     iconBtnSaved:    { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
     joinBtn:         { flex: 1, height: 48, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
     joinBtnJoined:   { backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: 'rgba(26,107,64,0.25)' },
@@ -273,16 +273,16 @@ export default function EventsScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:           { flex: 1, backgroundColor: C.bg },
-    header:         { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    header:         { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
     title:          { fontFamily: Fonts.display, fontSize: 20, color: C.black },
     subtitle:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
     createBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     // Segmented tabs
-    tabContainer:   { backgroundColor: C.white, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    tabContainer:   { backgroundColor: C.card, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     tabPill:        { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 20, padding: 3, gap: 2 },
     tab:            { flex: 1, paddingVertical: 6, borderRadius: 16, alignItems: 'center' },
-    tabActive:      { backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
+    tabActive:      { backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border },
     tabLabel:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
     tabLabelActive: { fontFamily: Fonts.medium, color: C.black },
     // List

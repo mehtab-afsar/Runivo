@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Modal, SafeAreaView, View, Text, TextInput, Pressable,
   ScrollView, StyleSheet, Platform, Alert, ActivityIndicator,
@@ -6,7 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { X, Barcode, Camera, CheckCircle } from 'phosphor-react-native';
-import { Colors, Type, Fonts } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
@@ -31,6 +31,8 @@ interface AddFoodModalProps {
 }
 
 export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose }: AddFoodModalProps) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const [name,    setName]    = useState('');
   const [kcal,    setKcal]    = useState('');
   const [protein, setProtein] = useState('');
@@ -133,7 +135,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
           {/* Header */}
           <View style={s.header}>
             <Pressable onPress={handleClose} style={s.closeBtn}>
-              <X size={16} color="#6B6B6B" weight="regular" />
+              <X size={16} color={C.t2} weight="regular" />
             </Pressable>
             <Text style={s.title}>Log Food</Text>
             <View style={s.scanBtns}>
@@ -142,7 +144,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
                 onPress={() => setShowBarcodeScanner(true)}
                 hitSlop={8}
               >
-                <Barcode size={20} color="#0A0A0A" weight="regular" />
+                <Barcode size={20} color={C.t1} weight="regular" />
               </Pressable>
               <Pressable
                 style={s.scanBtn}
@@ -151,8 +153,8 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
                 hitSlop={8}
               >
                 {photoScanning
-                  ? <ActivityIndicator size="small" color="#D93518" />
-                  : <Camera size={20} color="#0A0A0A" weight="regular" />
+                  ? <ActivityIndicator size="small" color={C.red} />
+                  : <Camera size={20} color={C.t1} weight="regular" />
                 }
               </Pressable>
             </View>
@@ -161,12 +163,12 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
           {/* Scan result banner */}
           {scanBanner && (
             <View style={s.banner}>
-              <CheckCircle size={14} color="#1A6B40" weight="fill" />
+              <CheckCircle size={14} color={C.green} weight="fill" />
               <Text style={s.bannerText} numberOfLines={1}>
                 Found: <Text style={s.bannerName}>{scanBanner}</Text>
               </Text>
               <Pressable onPress={() => setScanBanner(null)} hitSlop={8}>
-                <X size={12} color="#6B6B6B" weight="regular" />
+                <X size={12} color={C.t2} weight="regular" />
               </Pressable>
             </View>
           )}
@@ -190,14 +192,14 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
             {!name && (
               <View style={s.scanCTA}>
                 <Pressable style={s.scanCTABtn} onPress={() => setShowBarcodeScanner(true)}>
-                  <Barcode size={16} color="#D93518" weight="regular" />
+                  <Barcode size={16} color={C.red} weight="regular" />
                   <Text style={s.scanCTALabel}>Scan barcode</Text>
                 </Pressable>
                 <View style={s.scanDivider} />
                 <Pressable style={s.scanCTABtn} onPress={handlePhotoScan} disabled={photoScanning}>
                   {photoScanning
-                    ? <ActivityIndicator size="small" color="#D93518" />
-                    : <Camera size={16} color="#D93518" weight="regular" />
+                    ? <ActivityIndicator size="small" color={C.red} />
+                    : <Camera size={16} color={C.red} weight="regular" />
                   }
                   <Text style={s.scanCTALabel}>AI photo scan</Text>
                 </Pressable>
@@ -219,14 +221,14 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
             <Text style={s.fieldLabel}>Food name *</Text>
             <TextInput
               style={s.input} value={name} onChangeText={v => { setName(v); if (scanBanner) setScanBanner(null); }}
-              placeholder="e.g. Chicken breast" placeholderTextColor="#ADADAD"
+              placeholder="e.g. Chicken breast" placeholderTextColor={C.t3}
             />
 
             {/* Calories */}
             <Text style={s.fieldLabel}>Calories *</Text>
             <TextInput
               style={s.input} value={kcal} onChangeText={setKcal}
-              placeholder="300" placeholderTextColor="#ADADAD"
+              placeholder="300" placeholderTextColor={C.t3}
               keyboardType="decimal-pad"
             />
 
@@ -234,15 +236,15 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
             <View style={s.row}>
               <View style={{ flex: 1 }}>
                 <Text style={s.fieldLabel}>Protein (g)</Text>
-                <TextInput style={s.input} value={protein} onChangeText={setProtein} placeholder="25" placeholderTextColor="#ADADAD" keyboardType="decimal-pad" />
+                <TextInput style={s.input} value={protein} onChangeText={setProtein} placeholder="25" placeholderTextColor={C.t3} keyboardType="decimal-pad" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.fieldLabel}>Carbs (g)</Text>
-                <TextInput style={s.input} value={carbs} onChangeText={setCarbs} placeholder="30" placeholderTextColor="#ADADAD" keyboardType="decimal-pad" />
+                <TextInput style={s.input} value={carbs} onChangeText={setCarbs} placeholder="30" placeholderTextColor={C.t3} keyboardType="decimal-pad" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.fieldLabel}>Fat (g)</Text>
-                <TextInput style={s.input} value={fat} onChangeText={setFat} placeholder="10" placeholderTextColor="#ADADAD" keyboardType="decimal-pad" />
+                <TextInput style={s.input} value={fat} onChangeText={setFat} placeholder="10" placeholderTextColor={C.t3} keyboardType="decimal-pad" />
               </View>
             </View>
 
@@ -250,7 +252,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
             <Text style={s.fieldLabel}>Serving size</Text>
             <TextInput
               style={s.input} value={serving} onChangeText={setServing}
-              placeholder="e.g. 1 cup, 100g" placeholderTextColor="#ADADAD"
+              placeholder="e.g. 1 cup, 100g" placeholderTextColor={C.t3}
             />
 
             <Pressable style={[s.addBtn, !canAdd && s.addBtnDisabled]} onPress={handleAdd} disabled={!canAdd}>
@@ -270,51 +272,51 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
   );
 }
 
-const s = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: '#EDEAE5' },
+function mkStyles(C: AppColors) { return StyleSheet.create({
+  root:   { flex: 1, backgroundColor: C.stone },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#DDD9D4',
+    borderBottomWidth: 0.5, borderBottomColor: C.border,
   },
   closeBtn:    { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  title:       { fontFamily: Fonts.display, fontSize: 18, color: '#0A0A0A' },
+  title:       { fontFamily: Fonts.display, fontSize: 18, color: C.t1 },
   scanBtns:    { flexDirection: 'row', gap: 4 },
   scanBtn:     { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 
   banner:      {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#EDF7F2', borderBottomWidth: 0.5, borderBottomColor: '#C8E8D6',
+    backgroundColor: C.greenBg, borderBottomWidth: 0.5, borderBottomColor: C.green,
     paddingHorizontal: 20, paddingVertical: 8,
   },
-  bannerText:  { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: '#1A6B40' },
+  bannerText:  { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: C.green },
   bannerName:  { fontFamily: Fonts.semiBold },
 
   scanCTA:     {
     flexDirection: 'row', marginTop: 14,
-    backgroundColor: Colors.white, borderRadius: 10,
-    borderWidth: 0.5, borderColor: '#DDD9D4', overflow: 'hidden',
+    backgroundColor: C.card, borderRadius: 10,
+    borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
   },
   scanCTABtn:  { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12 },
-  scanCTALabel:{ fontFamily: Fonts.medium, fontSize: 13, color: '#D93518' },
-  scanDivider: { width: 0.5, backgroundColor: '#DDD9D4' },
+  scanCTALabel:{ fontFamily: Fonts.medium, fontSize: 13, color: C.red },
+  scanDivider: { width: 0.5, backgroundColor: C.border },
 
   content:     { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
-  sectionLabel:{ ...Type.overline, color: '#ADADAD', marginTop: 14, marginBottom: 6 },
+  sectionLabel:{ ...Type.overline, color: C.t3, marginTop: 14, marginBottom: 6 },
   mealRow:     { flexDirection: 'row', gap: 6, marginTop: 14, marginBottom: 4 },
-  mealBtn:     { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: Colors.white, borderWidth: 0.5, borderColor: '#DDD9D4', alignItems: 'center', gap: 2 },
-  mealBtnActive:  { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
-  mealLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: '#6B6B6B' },
-  mealLabelActive:{ color: Colors.alwaysLight },
+  mealBtn:     { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', gap: 2 },
+  mealBtnActive:  { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+  mealLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
+  mealLabelActive:{ color: C.alwaysLight },
   chips:       { flexGrow: 0 },
   chipsContent:{ flexDirection: 'row', gap: 6 },
-  chip:        { backgroundColor: Colors.white, borderRadius: 8, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2 },
-  chipName:    { fontFamily: Fonts.medium, fontSize: 11, color: '#0A0A0A' },
-  chipKcal:    { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD' },
-  fieldLabel:  { ...Type.overline, color: '#ADADAD', marginTop: 10, marginBottom: 4 },
-  input:       { backgroundColor: Colors.white, borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: '#0A0A0A' },
+  chip:        { backgroundColor: C.card, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2 },
+  chipName:    { fontFamily: Fonts.medium, fontSize: 11, color: C.t1 },
+  chipKcal:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+  fieldLabel:  { ...Type.overline, color: C.t3, marginTop: 10, marginBottom: 4 },
+  input:       { backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
   row:         { flexDirection: 'row', gap: 8, marginTop: 4 },
-  addBtn:      { backgroundColor: Colors.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
+  addBtn:      { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   addBtnDisabled: { opacity: 0.4 },
-  addBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.alwaysLight, letterSpacing: 1 },
-});
+  addBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
+}); }

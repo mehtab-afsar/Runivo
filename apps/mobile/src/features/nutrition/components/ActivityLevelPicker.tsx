@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Television as Tv, Pulse, Trophy, Check, type Icon } from 'phosphor-react-native';
-import { Colors, Fonts } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
 
-const OPTIONS: { value: ActivityLevel; label: string; Icon: Icon; iconColor: string }[] = [
-  { value: 'sedentary',   label: 'Sedentary',         Icon: Tv,     iconColor: '#ADADAD' },
-  { value: 'light',       label: 'Lightly active',    Icon: Pulse,  iconColor: '#6B6B6B' },
-  { value: 'moderate',    label: 'Moderately active', Icon: Pulse,  iconColor: '#1A6B40' },
-  { value: 'active',      label: 'Very active',       Icon: Pulse,  iconColor: '#D93518' },
-  { value: 'very_active', label: 'Athlete',           Icon: Trophy, iconColor: '#D97706' },
-];
+function mkOptions(C: AppColors): { value: ActivityLevel; label: string; Icon: Icon; iconColor: string }[] {
+  return [
+    { value: 'sedentary',   label: 'Sedentary',         Icon: Tv,     iconColor: C.t3 },
+    { value: 'light',       label: 'Lightly active',    Icon: Pulse,  iconColor: C.t2 },
+    { value: 'moderate',    label: 'Moderately active', Icon: Pulse,  iconColor: C.green },
+    { value: 'active',      label: 'Very active',       Icon: Pulse,  iconColor: C.red },
+    { value: 'very_active', label: 'Athlete',           Icon: Trophy, iconColor: C.amber },
+  ];
+}
 
 interface ActivityLevelPickerProps {
   selected: string;
@@ -19,6 +21,9 @@ interface ActivityLevelPickerProps {
 }
 
 export function ActivityLevelPicker({ selected, onSelect }: ActivityLevelPickerProps) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
+  const OPTIONS = useMemo(() => mkOptions(C), [C]);
   return (
     <View style={s.col}>
       {OPTIONS.map(opt => (
@@ -28,25 +33,25 @@ export function ActivityLevelPicker({ selected, onSelect }: ActivityLevelPickerP
           onPress={() => onSelect(opt.value)}
         >
           <View style={{ width: 28, alignItems: 'center' }}>
-            <opt.Icon size={18} color={selected === opt.value ? Colors.alwaysLight : opt.iconColor} weight="light" />
+            <opt.Icon size={18} color={selected === opt.value ? C.alwaysLight : opt.iconColor} weight="light" />
           </View>
           <Text style={[s.label, selected === opt.value && s.labelActive]}>{opt.label}</Text>
-          {selected === opt.value && <Check size={14} color="#1A6B40" weight="regular" />}
+          {selected === opt.value && <Check size={14} color={C.green} weight="regular" />}
         </Pressable>
       ))}
     </View>
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   col: { gap: 6 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 12, paddingHorizontal: 14,
-    backgroundColor: Colors.white, borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4',
+    backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
   },
-  rowActive: { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
-  label: { fontFamily: Fonts.regular, fontSize: 13, color: '#0A0A0A', flex: 1 },
-  labelActive: { color: Colors.alwaysLight },
-  check: { fontFamily: Fonts.semiBold, fontSize: 14, color: '#1A6B40' },
-});
+  rowActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+  label: { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, flex: 1 },
+  labelActive: { color: C.alwaysLight },
+  check: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.green },
+}); }

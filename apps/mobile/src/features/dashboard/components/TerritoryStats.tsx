@@ -41,7 +41,7 @@ export function TerritoryStats({ ownedCount, weakZones, avgFreshness, totalAreaM
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     grid: {
-      backgroundColor: C.white, borderRadius: 20,
+      backgroundColor: C.card, borderRadius: 20,
       borderWidth: 0.5, borderColor: C.border,
       overflow: 'hidden', flexDirection: 'row', flexWrap: 'wrap',
     },

@@ -125,7 +125,7 @@ function mkStyles(C: AppColors) {
     sectionLabel: { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 10 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
-    card: { width: '47%', backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', gap: 6 },
+    card: { width: '47%', backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', gap: 6 },
     cardEarned: { borderColor: C.gold, backgroundColor: C.amberBg },
 
     cardIcon: { fontSize: 32 },

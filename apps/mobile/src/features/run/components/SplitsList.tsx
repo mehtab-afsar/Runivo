@@ -57,7 +57,7 @@ export default function SplitsList({ splits }: SplitsListProps) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:   { backgroundColor: C.white, borderRadius: 4, overflow: 'hidden' },
+    container:   { backgroundColor: C.card, borderRadius: 4, overflow: 'hidden' },
     header:      { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     headerCell:  { ...Type.overline, color: C.t3, width: 32 },
     row:         { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },

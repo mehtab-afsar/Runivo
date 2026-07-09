@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, Alert, StyleSheet } from 'react-native';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
-import { Colors, Fonts } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface MealSectionProps {
   meal: Meal;
@@ -15,6 +15,8 @@ interface MealSectionProps {
 }
 
 export function MealSection({ meal, entries, expanded, onToggle, onDelete, onAdd }: MealSectionProps) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const meta = MEALS.find(m => m.value === meal)!;
   const mealKcal = entries.reduce((s, e) => s + e.kcal, 0);
 
@@ -58,25 +60,25 @@ export function MealSection({ meal, entries, expanded, onToggle, onDelete, onAdd
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   section: {
-    backgroundColor: Colors.white, borderRadius: 14, borderWidth: 0.5,
-    borderColor: '#DDD9D4', overflow: 'hidden',
+    backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5,
+    borderColor: C.border, overflow: 'hidden',
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
-  title: { fontFamily: Fonts.medium, fontSize: 13, color: '#0A0A0A', flex: 1 },
-  kcal: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B', fontVariant: ['tabular-nums'] },
-  chevron: { fontSize: 10, color: '#ADADAD' },
+  title: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, flex: 1 },
+  kcal: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, fontVariant: ['tabular-nums'] },
+  chevron: { fontSize: 10, color: C.t3 },
   entry: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
-    borderTopWidth: 0.5, borderTopColor: '#DDD9D4',
+    borderTopWidth: 0.5, borderTopColor: C.border,
   },
-  entryName: { fontFamily: Fonts.regular, fontSize: 12, color: '#0A0A0A', marginBottom: 1 },
-  entryMacros: { fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD' },
-  entryKcal: { fontFamily: Fonts.medium, fontSize: 13, color: '#0A0A0A', fontVariant: ['tabular-nums'] },
+  entryName: { fontFamily: Fonts.regular, fontSize: 12, color: C.t1, marginBottom: 1 },
+  entryMacros: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+  entryKcal: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, fontVariant: ['tabular-nums'] },
   addBtn: {
-    borderTopWidth: 0.5, borderTopColor: '#DDD9D4',
+    borderTopWidth: 0.5, borderTopColor: C.border,
     paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center',
   },
-  addLabel: { fontFamily: Fonts.regular, fontSize: 12, color: '#D93518' },
-});
+  addLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.red },
+}); }

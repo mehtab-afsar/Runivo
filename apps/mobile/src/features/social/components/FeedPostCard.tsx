@@ -29,6 +29,9 @@ const MAP_H = 110;
 const PAD   = 16;
 
 function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
+  const C  = useTheme();
+  const rm = useMemo(() => mkRmStyles(C), [C]);
+
   const lats  = points.map(p => p.lat);
   const lngs  = points.map(p => p.lng);
   const minLat = Math.min(...lats), maxLat = Math.max(...lats);
@@ -50,8 +53,8 @@ function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
       <Svg width="100%" height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid meet">
         <Defs>
           <LinearGradient id="fadeBottom" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0.6" stopColor="#F0EDE8" stopOpacity="0" />
-            <Stop offset="1"   stopColor="#F0EDE8" stopOpacity="1" />
+            <Stop offset="0.6" stopColor={C.surface} stopOpacity="0" />
+            <Stop offset="1"   stopColor={C.surface} stopOpacity="1" />
           </LinearGradient>
         </Defs>
         <Polyline points={poly} fill="none" stroke="#D93518" strokeWidth="6"   strokeOpacity="0.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -64,9 +67,11 @@ function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
   );
 }
 
-const rm = StyleSheet.create({
-  wrap: { backgroundColor: '#F0EDE8', overflow: 'hidden', borderTopWidth: 0.5, borderTopColor: '#E8E4DF' },
-});
+function mkRmStyles(C: AppColors) {
+  return StyleSheet.create({
+    wrap: { backgroundColor: C.surface, overflow: 'hidden', borderTopWidth: 0.5, borderTopColor: C.border },
+  });
+}
 
 interface Props {
   post: FeedPost;
@@ -161,7 +166,7 @@ export function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:         { backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    card:         { backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     header:       { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
     avatar:       { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
     avatarText:   { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },

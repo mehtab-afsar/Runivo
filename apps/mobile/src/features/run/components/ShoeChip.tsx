@@ -37,7 +37,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     chip:   {
       flexDirection: 'row', alignItems: 'center', gap: 8,
-      padding: 10, backgroundColor: C.white,
+      padding: 10, backgroundColor: C.card,
       borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
       marginHorizontal: Spacing.gutter,
     },

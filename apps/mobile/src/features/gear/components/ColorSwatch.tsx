@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
+import { useTheme, type AppColors } from '@theme';
 
 interface ColorSwatchProps {
   selected: string | null;
@@ -8,6 +9,8 @@ interface ColorSwatchProps {
 }
 
 export function ColorSwatch({ selected, colors, onSelect }: ColorSwatchProps) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={s.row}>
       {colors.map(color => (
@@ -25,13 +28,13 @@ export function ColorSwatch({ selected, colors, onSelect }: ColorSwatchProps) {
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   swatch: {
     width: 28, height: 28, borderRadius: 14,
     borderWidth: 0.5, borderColor: 'transparent',
   },
   swatchSelected: {
-    borderWidth: 2, borderColor: '#0A0A0A',
+    borderWidth: 2, borderColor: C.t1,
   },
-});
+}); }

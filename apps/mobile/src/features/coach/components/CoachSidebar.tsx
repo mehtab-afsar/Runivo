@@ -1,8 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
-import { useTheme, Colors, Fonts } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 const SCREEN_H = Dimensions.get('window').height;
 const SHEET_H  = SCREEN_H * 0.88;
@@ -36,6 +36,7 @@ interface Props {
 
 export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
   const C       = useTheme();
+  const ss      = useMemo(() => mkStyles(C), [C]);
   const insets  = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SHEET_H)).current;
   const backdropOp = useRef(new Animated.Value(0)).current;
@@ -104,10 +105,11 @@ export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
   backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 90 },
-  sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: Colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 91, overflow: 'hidden' },
-  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(10,10,10,0.12)', alignSelf: 'center', marginTop: 12, marginBottom: 4 },
+  sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 91, overflow: 'hidden' },
+  handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
   headerTitle: { fontFamily: Fonts.semiBold, fontSize: 15 },
   xRed:        { fontFamily: Fonts.bold },
@@ -118,4 +120,5 @@ const ss = StyleSheet.create({
   capDesc:     { fontFamily: Fonts.regular, fontSize: 10, lineHeight: 14 },
   pill:        { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
   pillText:    { fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.3 },
-});
+  });
+}

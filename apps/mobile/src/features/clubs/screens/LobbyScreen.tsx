@@ -7,17 +7,19 @@ import { ChatCircle } from 'phosphor-react-native';
 import { useLobby } from '@features/clubs/hooks/useLobby';
 import { LobbyCard } from '@features/clubs/components/LobbyCard';
 import type { LobbyRoomDisplay } from '@features/clubs/components/LobbyCard';
-import { useTheme, Colors, Fonts, Spacing, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const LOBBY_ROOMS: LobbyRoomDisplay[] = [
-  { id: 'global',   name: 'Global Runners',   description: 'Connect with runners worldwide',      emoji: '🌍', color: '#1E4D8C' },
-  { id: 'training', name: 'Training Talk',     description: 'Plans, tips, and workout advice',     emoji: '🏃', color: '#1A6B40' },
-  { id: 'races',    name: 'Race Reports',      description: 'Share your race results and stories', emoji: '🏆', color: '#9E6800' },
-  { id: 'speed',    name: 'Speed & Intervals', description: 'Track work, tempo runs, PRs',         emoji: '⚡', color: '#D93518' },
-  { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        emoji: '🌙', color: Colors.purple },
-];
+function mkLobbyRooms(C: AppColors): LobbyRoomDisplay[] {
+  return [
+    { id: 'global',   name: 'Global Runners',   description: 'Connect with runners worldwide',      emoji: '🌍', color: C.blue },
+    { id: 'training', name: 'Training Talk',     description: 'Plans, tips, and workout advice',     emoji: '🏃', color: C.green },
+    { id: 'races',    name: 'Race Reports',      description: 'Share your race results and stories', emoji: '🏆', color: C.amber },
+    { id: 'speed',    name: 'Speed & Intervals', description: 'Track work, tempo runs, PRs',         emoji: '⚡', color: C.red },
+    { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        emoji: '🌙', color: C.purple },
+  ];
+}
 
 const Banner = () => {
   const C = useTheme();
@@ -39,6 +41,7 @@ export default function LobbyScreen() {
   const navigation = useNavigation<Nav>();
   const { rooms, loading } = useLobby();
   const activityById = Object.fromEntries(rooms.map(r => [r.id, r.messagesToday]));
+  const lobbyRooms = useMemo(() => mkLobbyRooms(C), [C]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -54,7 +57,7 @@ export default function LobbyScreen() {
         <View style={s.loader}><ActivityIndicator color={C.red} /></View>
       ) : (
         <FlatList
-          data={LOBBY_ROOMS} keyExtractor={r => r.id}
+          data={lobbyRooms} keyExtractor={r => r.id}
           renderItem={({ item }) => (
             <LobbyCard
               room={{ ...item, messagesToday: activityById[item.id] ?? 0 }}

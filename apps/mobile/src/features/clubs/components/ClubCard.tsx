@@ -47,7 +47,7 @@ export function ClubCard({ club, onJoin, onLeave, onPress }: Props) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card: {
-      backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5,
+      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5,
       borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12,
     },
     badge: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

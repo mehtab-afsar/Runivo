@@ -223,10 +223,10 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     sectionLabel:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 10 },
     heatmapSection:{ marginBottom: 28 },
-    heatmapCard:   { backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 16 },
+    heatmapCard:   { backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     card: {
       flexDirection: 'row', alignItems: 'center', gap: 14,
-      backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border,
+      backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border,
       padding: 16, marginBottom: 10,
     },
     sketchWrap:    { width: SKETCH_W, height: SKETCH_H, backgroundColor: C.stone, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },

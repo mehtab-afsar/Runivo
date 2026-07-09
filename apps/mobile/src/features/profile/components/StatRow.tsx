@@ -22,7 +22,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card: {
       width: '47%',
-      backgroundColor: C.white,
+      backgroundColor: C.card,
       borderRadius: 10,
       borderWidth: 0.5,
       borderColor: C.border,

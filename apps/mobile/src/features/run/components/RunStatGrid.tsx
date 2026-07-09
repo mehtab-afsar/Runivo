@@ -39,7 +39,7 @@ export default function RunStatGrid({ stats }: RunStatGridProps) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    grid:  { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: C.white, borderRadius: 4, overflow: 'hidden' },
+    grid:  { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: C.card, borderRadius: 4, overflow: 'hidden' },
     cell:  { width: '50%', paddingVertical: 14, paddingHorizontal: 12, alignItems: 'center' },
     value: { fontFamily: Fonts.light, fontSize: 24, letterSpacing: -0.5, color: C.black, lineHeight: 28, fontVariant: ['tabular-nums'] },
     unit:  { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },

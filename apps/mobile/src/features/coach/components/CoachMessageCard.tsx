@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '@theme';
+import { Fonts, useTheme, type AppColors } from '@theme';
 
 interface InsightStat {
   label: string;
@@ -21,6 +21,9 @@ interface Props {
 }
 
 export function CoachMessageCard({ type, content }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
+
   if (type === 'insight') {
     let data: InsightData = {};
     try { data = JSON.parse(content); } catch { /* fall through to raw text */ }
@@ -55,16 +58,18 @@ export function CoachMessageCard({ type, content }: Props) {
   return <Text style={ss.rawText}>{content}</Text>;
 }
 
-const ss = StyleSheet.create({
-  card:        { backgroundColor: Colors.white, borderRadius: 14, borderBottomLeftRadius: 4, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14, maxWidth: '85%' },
-  headline:    { fontFamily: Fonts.medium, fontSize: 14, color: Colors.alwaysDark, marginBottom: 10 },
-  insightRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },
-  dot:         { width: 5, height: 5, borderRadius: 3, backgroundColor: Colors.purple, marginTop: 6, flexShrink: 0 },
-  insightText: { fontFamily: Fonts.regular, fontSize: 13, color: Colors.alwaysDark, lineHeight: 20, flex: 1 },
-  statRow:     { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 4 },
-  statValue:   { fontFamily: Fonts.medium, fontSize: 18, color: Colors.alwaysDark, fontVariant: ['tabular-nums'] },
-  statLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(10,10,10,0.5)' },
-  tipBox:      { marginTop: 10, backgroundColor: 'rgba(124,58,237,0.06)', borderRadius: 8, padding: 10 },
-  tipText:     { fontFamily: Fonts.regular, fontSize: 12, color: Colors.alwaysDark, lineHeight: 18 },
-  rawText:     { fontFamily: Fonts.regular, fontSize: 13, color: Colors.alwaysDark, lineHeight: 20 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card:        { backgroundColor: C.card, borderRadius: 14, borderBottomLeftRadius: 4, borderWidth: 0.5, borderColor: C.border, padding: 14, maxWidth: '85%' },
+    headline:    { fontFamily: Fonts.medium, fontSize: 14, color: C.t1, marginBottom: 10 },
+    insightRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },
+    dot:         { width: 5, height: 5, borderRadius: 3, backgroundColor: C.purple, marginTop: 6, flexShrink: 0 },
+    insightText: { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, lineHeight: 20, flex: 1 },
+    statRow:     { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 4 },
+    statValue:   { fontFamily: Fonts.medium, fontSize: 18, color: C.t1, fontVariant: ['tabular-nums'] },
+    statLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
+    tipBox:      { marginTop: 10, backgroundColor: 'rgba(124,58,237,0.06)', borderRadius: 8, padding: 10 },
+    tipText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t1, lineHeight: 18 },
+    rawText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, lineHeight: 20 },
+  });
+}

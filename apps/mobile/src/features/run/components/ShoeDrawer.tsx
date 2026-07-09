@@ -34,7 +34,7 @@ export default function ShoeDrawer({ shoes, selectedShoe, bottomInset, onSelect,
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end', zIndex: 300 },
-    drawer:  { backgroundColor: C.white, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16 },
+    drawer:  { backgroundColor: C.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16 },
     title:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, letterSpacing: 0.8, marginBottom: 12 },
     row:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     dot:     { width: 24, height: 24, borderRadius: 6 },

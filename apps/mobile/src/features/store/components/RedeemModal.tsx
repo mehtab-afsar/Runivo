@@ -62,7 +62,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     backdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)' },
     sheetWrap:    { paddingHorizontal: 24 },
-    card:         { backgroundColor: C.white, borderRadius: 20, padding: 24 },
+    card:         { backgroundColor: C.card, borderRadius: 20, padding: 24 },
     brandCircle:  { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 16 },
     brandInitial: { fontFamily: Fonts.display, fontSize: 32 },
     claimHeading: { fontFamily: Fonts.display, fontSize: 22, color: C.black, textAlign: 'center', marginBottom: 6 },

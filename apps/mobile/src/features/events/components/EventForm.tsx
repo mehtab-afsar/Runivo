@@ -1,9 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { EVENT_TYPES } from '../hooks/useCreateEvent';
-import { Colors, Fonts, Type } from '@theme';
-
-const C = Colors;
+import { Fonts, Type, useTheme, type AppColors } from '@theme';
 
 interface Props {
   saving: boolean; error: string; canSubmit: boolean;
@@ -18,6 +16,8 @@ interface Props {
 }
 
 export function EventForm({ saving, error, canSubmit, title, setTitle, eventType, setEventType, date, setDate, time, setTime, location, setLocation, distanceKm, setDistanceKm, description, setDescription, onSubmit }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   return (
     <>
       <Text style={s.label}>Event Title</Text>
@@ -56,11 +56,12 @@ export function EventForm({ saving, error, canSubmit, title, setTitle, eventType
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
   label: { ...Type.overline, color: C.t3, marginTop: 14, marginBottom: 6 },
-  input: { backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black },
+  input: { backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  typeBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border },
+  typeBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border },
   typeBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
   typeLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
   typeLabelActive: { color: C.alwaysLight, fontFamily: Fonts.medium },
@@ -68,4 +69,5 @@ const s = StyleSheet.create({
   submitBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   submitBtnDisabled: { opacity: 0.4 },
   submitLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
-});
+  });
+}

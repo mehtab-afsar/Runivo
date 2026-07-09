@@ -1,8 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, TextInput, Pressable, StyleSheet, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SquaresFour as LayoutGrid, ArrowUp } from 'phosphor-react-native';
-import { Colors, Fonts } from '@theme';
+import { Fonts, useTheme, type AppColors } from '@theme';
 
 interface Props {
   value:              string;
@@ -13,6 +13,8 @@ interface Props {
 }
 
 export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpenCapabilities }: Props) {
+  const C        = useTheme();
+  const ss       = useMemo(() => mkStyles(C), [C]);
   const insets   = useSafeAreaInsets();
   const slideY   = useRef(new Animated.Value(60)).current;
   const opacity  = useRef(new Animated.Value(0)).current;
@@ -32,14 +34,14 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
     <Animated.View style={[ss.outer, { paddingBottom: Math.max(insets.bottom, 8) + 4, transform: [{ translateY: slideY }], opacity }]}>
       <View style={ss.pill}>
         <Pressable style={ss.zapBtn} onPress={onOpenCapabilities} hitSlop={8}>
-          <LayoutGrid size={16} color={Colors.purple} weight="light" />
+          <LayoutGrid size={16} color={C.purple} weight="light" />
         </Pressable>
         <TextInput
           style={ss.input}
           value={value}
           onChangeText={onChangeText}
           placeholder="Ask your coach..."
-          placeholderTextColor="rgba(10,10,10,0.32)"
+          placeholderTextColor={C.t3}
           multiline
           blurOnSubmit
           onSubmitEditing={onSend}
@@ -51,18 +53,20 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
           disabled={!canSend}
           hitSlop={8}
         >
-          <ArrowUp size={16} color={canSend ? Colors.alwaysLight : 'rgba(10,10,10,0.22)'} weight="bold" />
+          <ArrowUp size={16} color={canSend ? C.alwaysLight : C.t3} weight="bold" />
         </Pressable>
       </View>
     </Animated.View>
   );
 }
 
-const ss = StyleSheet.create({
-  outer:        { paddingHorizontal: 16, paddingTop: 10, backgroundColor: 'transparent' },
-  pill:         { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: Colors.white, borderRadius: 28, paddingHorizontal: 8, paddingVertical: 8, gap: 6, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: -2 }, elevation: 8 },
-  zapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(124,58,237,0.08)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  input:        { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: Colors.alwaysDark, maxHeight: 120, paddingVertical: 8, paddingHorizontal: 4 },
-  sendBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(10,10,10,0.08)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  sendBtnActive:{ backgroundColor: Colors.alwaysDark },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    outer:        { paddingHorizontal: 16, paddingTop: 10, backgroundColor: 'transparent' },
+    pill:         { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: C.card, borderRadius: 28, paddingHorizontal: 8, paddingVertical: 8, gap: 6, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 16, shadowOffset: { width: 0, height: -2 }, elevation: 8 },
+    zapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(124,58,237,0.08)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    input:        { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.t1, maxHeight: 120, paddingVertical: 8, paddingHorizontal: 4 },
+    sendBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    sendBtnActive:{ backgroundColor: C.alwaysDark },
+  });
+}

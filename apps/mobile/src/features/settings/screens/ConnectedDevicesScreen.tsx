@@ -539,13 +539,13 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     paddingBottom: 12,
   },
   backBtn:  { width: 32 },
-  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.mid },
+  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
   title:    { fontFamily: Fonts.display, fontSize: 20, color: C.black },
   scroll:   { paddingHorizontal: Spacing.gutter, paddingBottom: 40 },
 
   banner: {
     flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-    backgroundColor: '#F3EEFF',
+    backgroundColor: C.purpleBg,
     borderWidth: 0.5, borderColor: 'rgba(90,58,138,0.2)',
     borderRadius: 12, padding: 14, marginBottom: 16,
   },
@@ -553,7 +553,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   bannerText:  { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: C.purple, lineHeight: 18 },
 
   card: {
-    backgroundColor: C.white, borderRadius: 12,
+    backgroundColor: C.card, borderRadius: 12,
     borderWidth: 0.5, borderColor: C.border,
     padding: 14, marginBottom: 10,
   },
@@ -573,7 +573,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   deviceName:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
   deviceDesc:  { fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
 
-  iosPill:     { backgroundColor: '#F0F0F0', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
+  iosPill:     { backgroundColor: C.mid, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
   iosPillText: { fontFamily: Fonts.medium, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
 
   connectedPill:     { backgroundColor: C.greenLo, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
@@ -590,7 +590,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  iconBtnText: { fontFamily: Fonts.regular, fontSize: 16, color: C.mid },
+  iconBtnText: { fontFamily: Fonts.regular, fontSize: 16, color: C.t2 },
 
   disconnectBtn: {
     width: 32, height: 32, borderRadius: 8,
@@ -607,7 +607,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   connectBtnText: { fontFamily: Fonts.medium, fontSize: 11, color: C.alwaysLight },
 
   dataCard: {
-    backgroundColor: C.white, borderRadius: 12,
+    backgroundColor: C.card, borderRadius: 12,
     borderWidth: 0.5, borderColor: C.border,
     padding: 14, marginTop: 4,
   },
@@ -618,7 +618,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   dataRow:   { flexDirection: 'row', gap: 8, marginBottom: 6 },
   dataEmoji: { fontSize: 13 },
   dataLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.black },
-  dataDesc:  { flex: 1, fontFamily: Fonts.regular, fontSize: 11, color: C.mid, lineHeight: 16 },
+  dataDesc:  { flex: 1, fontFamily: Fonts.regular, fontSize: 11, color: C.t2, lineHeight: 16 },
 
   privacyNote: {
     fontFamily: Fonts.regular, fontSize: 10,

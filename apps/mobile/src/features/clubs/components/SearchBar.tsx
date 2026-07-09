@@ -34,7 +34,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrap: { position: 'relative' },
     input: {
-      backgroundColor: C.white, borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
+      backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
       paddingHorizontal: 14, paddingVertical: 10, paddingRight: 36,
       fontFamily: Fonts.regular, fontSize: 14, color: C.black,
     },

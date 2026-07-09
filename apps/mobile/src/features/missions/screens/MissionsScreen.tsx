@@ -86,6 +86,7 @@ export default function MissionsScreen() {
     surface: C.bg,
     black:   C.black,
     white:   C.white,
+    card:    C.card,
     alwaysDark:  C.alwaysDark,
     alwaysLight: C.alwaysLight,
     t2:      C.t2,
@@ -378,20 +379,20 @@ export default function MissionsScreen() {
   );
 }
 
-type TTokens = { pageBg: string; stone: string; mid: string; border: string; surface: string; black: string; white: string; alwaysDark: string; alwaysLight: string; t2: string; t3: string };
+type TTokens = { pageBg: string; stone: string; mid: string; border: string; surface: string; black: string; white: string; card: string; alwaysDark: string; alwaysLight: string; t2: string; t3: string };
 function mkStyles(T: TTokens) { return StyleSheet.create({
   root:            { flex: 1, backgroundColor: T.pageBg },
   loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   // Header
-  header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: T.white, borderBottomWidth: 0.5, borderBottomColor: T.border },
+  header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: T.card, borderBottomWidth: 0.5, borderBottomColor: T.border },
   backBtn:         { width: 30, height: 30, borderRadius: 15, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
   backText:        { fontFamily: Fonts.regular, fontSize: 16, color: T.black, lineHeight: 18 },
   headerTitle:     { fontFamily: Fonts.display, fontSize: 22, color: T.black },
   dateLabel:       { fontFamily: Fonts.regular, fontSize: 11, color: T.t3 },
 
   // Tabs
-  tabsContainer:   { backgroundColor: T.white, borderBottomWidth: 0.5, borderBottomColor: T.border },
+  tabsContainer:   { backgroundColor: T.card, borderBottomWidth: 0.5, borderBottomColor: T.border },
   tabsScroll:      { paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 6, flexDirection: 'row' },
   tab:             { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 2, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border },
   tabActive:       { backgroundColor: T.alwaysDark, borderColor: T.alwaysDark },
@@ -399,7 +400,7 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   tabTextActive:   { color: T.alwaysLight },
 
   // Blueprint
-  blueprintOuter:  { backgroundColor: T.white, padding: 18, marginBottom: 1 },
+  blueprintOuter:  { backgroundColor: T.card, padding: 18, marginBottom: 1 },
   blueprintEyebrow:{ ...Type.overline, letterSpacing: 1.8, color: T.t3, marginBottom: 8 },
   blueprintCard:   { backgroundColor: T.alwaysDark, borderRadius: 12, padding: 16 },
   blueprintKicker: { ...Type.overline, letterSpacing: 1.8, color: 'rgba(255,255,255,0.45)', marginBottom: 6 },
@@ -422,7 +423,7 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   dividerCount:    { fontFamily: Fonts.regular, fontSize: 10, color: T.t3, fontVariant: ['tabular-nums'] },
 
   // Mission cards
-  missionCard:     { backgroundColor: T.white, padding: 14, paddingHorizontal: 18 },
+  missionCard:     { backgroundColor: T.card, padding: 14, paddingHorizontal: 18 },
   missionCardSelected: { backgroundColor: T.surface },
   missionCardDisabled: { opacity: 0.4 },
   cardTopRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
@@ -450,14 +451,14 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   // Save bar
   saveBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: T.white,
+    backgroundColor: T.card,
     borderTopWidth: 0.5, borderTopColor: T.border,
     paddingHorizontal: 20, paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 28 : 16,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   slotRow:    { flexDirection: 'row', alignItems: 'center' },
-  slot:       { width: 32, height: 32, borderRadius: 8, borderWidth: 2, borderColor: T.white, backgroundColor: T.stone, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
+  slot:       { width: 32, height: 32, borderRadius: 8, borderWidth: 2, borderColor: T.card, backgroundColor: T.stone, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   slotFilled: { backgroundColor: T.alwaysDark, zIndex: 3 },
   saveBtn:    { flex: 1, backgroundColor: T.alwaysDark, borderRadius: 3, paddingVertical: 13, alignItems: 'center' },
   saveBtnText:{ fontFamily: Fonts.medium, fontSize: 12, color: T.alwaysLight, letterSpacing: 0.6 },

@@ -221,7 +221,7 @@ function mkStyles(C: AppColors) {
     tabItem:        { flex: 1, paddingVertical: 12, alignItems: 'center' },
     tabLabel:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
     tabLabelActive: { fontFamily: Fonts.medium, color: C.black },
-    underline:      { position: 'absolute', bottom: 0, height: 1.5, backgroundColor: C.alwaysDark },
+    underline:      { position: 'absolute', bottom: 0, height: 1.5, backgroundColor: C.black },
     loader:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:           { paddingBottom: 100 },
     // Suggested runners

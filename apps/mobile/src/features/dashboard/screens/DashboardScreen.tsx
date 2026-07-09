@@ -205,15 +205,15 @@ function mkStyles(C: AppColors) {
     fill:            { flex: 1 },
     loadText:        { ...Type.displaySm, color: C.t1 },
 
-    // Header
-    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingTop: 20, marginBottom: 16 },
-    greeting:        { ...Type.overline, color: C.t3, marginBottom: 4 },
-    username:        { fontFamily: Fonts.display, fontSize: 26, color: C.t1, lineHeight: 30 },
+    // Header — editorial greeting with breathing room
+    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingTop: 24, marginBottom: 22 },
+    greeting:        { ...Type.overline, color: C.t3, marginBottom: 5 },
+    username:        { fontFamily: Fonts.display, fontSize: 30, color: C.t1, lineHeight: 34 },
     headerRight:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    badge:           { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, borderRadius: 16 },
+    badge:           { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 10, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, borderRadius: 16 },
     badgeTxt:        { ...Type.metricSm, fontSize: 13, color: C.t1 },
     badgeSup:        { fontFamily: Fonts.medium, fontSize: 10, color: C.t3, letterSpacing: 0.4, marginTop: 2 },
-    bellBtn:         { width: 32, height: 32, borderRadius: 16, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    bellBtn:         { width: 32, height: 32, borderRadius: 16, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     bellBadge:       { position: 'absolute', top: -3, right: -3, minWidth: 14, height: 14, borderRadius: 7, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.bg },
     bellBadgeText:   { fontFamily: Fonts.bold, fontSize: 9, color: C.alwaysLight, lineHeight: 11 },
 
@@ -224,7 +224,7 @@ function mkStyles(C: AppColors) {
     // and inverts to near-white in dark mode (would strand the fixed-white text below).
     missionCard:     { backgroundColor: C.alwaysDark, borderRadius: 20, padding: 18 },
     cardLabel:       { ...Type.overline, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
-    runsCard:        { backgroundColor: C.white, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    runsCard:        { backgroundColor: C.card, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     firstRunCard:    { padding: 24, alignItems: 'center', gap: 10 },
     firstRunTitle:   { ...Type.displaySm, fontSize: 20, color: C.t1, textAlign: 'center' },
     firstRunBody:    { ...Type.bodySm, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },

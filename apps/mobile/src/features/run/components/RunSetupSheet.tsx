@@ -61,7 +61,7 @@ export default function RunSetupSheet({
           <Text style={ss.chevron}>›</Text>
         </TouchableOpacity>
         <TouchableOpacity style={ss.selectorBtn} onPress={onRoutePress} activeOpacity={0.7}>
-          <View style={[ss.selectorIcon, { backgroundColor: selectedRouteName ? C.black : C.stone }]}>
+          <View style={[ss.selectorIcon, { backgroundColor: selectedRouteName ? C.alwaysDark : C.stone }]}>
             {selectedRouteName
               ? <Check size={14} color={C.white} weight="bold" />
               : <RouteIcon size={14} color={C.muted} weight="light" />}
@@ -140,14 +140,14 @@ function mkStyles(C: AppColors) {
     sheet:            { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 0.5, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 8 },
     handleWrap:       { alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
     handle:           { width: 36, height: 3, borderRadius: 9, backgroundColor: C.border },
-    selectorRow:      { flexDirection: 'row', marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    selectorRow:      { flexDirection: 'row', marginHorizontal: 16, marginBottom: 10, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     selectorBtn:      { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12 },
     selectorBtnBorder:{ borderRightWidth: 0.5, borderRightColor: C.border },
     selectorIcon:     { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     selectorMeta:     { ...Type.overline, color: C.muted },
     selectorVal:      { fontFamily: Fonts.medium, fontSize: 12, color: C.black, marginTop: 1 },
     chevron:          { fontFamily: Fonts.light, fontSize: 16, color: C.t3 },
-    pacerCard:        { marginHorizontal: 16, marginBottom: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    pacerCard:        { marginHorizontal: 16, marginBottom: 10, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     pacerRow:         { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 14 },
     pacerIcon:        { width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     pacerTitle:       { fontFamily: Fonts.medium, fontSize: 12, color: C.black },

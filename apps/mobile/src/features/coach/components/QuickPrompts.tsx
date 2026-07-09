@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '@theme';
+import { Fonts, useTheme, type AppColors } from '@theme';
 
 interface Props {
   prompts:  string[];
@@ -8,6 +8,8 @@ interface Props {
 }
 
 export function QuickPrompts({ prompts, onSelect }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.container}>
       {prompts.map(p => (
@@ -19,8 +21,10 @@ export function QuickPrompts({ prompts, onSelect }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  container: { paddingHorizontal: 16, gap: 8 },
-  btn:       { backgroundColor: Colors.white, borderRadius: 10, borderWidth: 0.5, borderColor: '#DDD9D4', paddingHorizontal: 14, paddingVertical: 12 },
-  label:     { fontFamily: Fonts.regular, fontSize: 13, color: Colors.alwaysDark },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    container: { paddingHorizontal: 16, gap: 8 },
+    btn:       { backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12 },
+    label:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t1 },
+  });
+}

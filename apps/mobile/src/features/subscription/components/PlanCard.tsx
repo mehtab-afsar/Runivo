@@ -1,9 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { Plan } from '../types';
-import { Colors, Fonts } from '@theme';
-
-const C = Colors;
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface PlanCardProps {
   plan: Plan;
@@ -13,6 +11,8 @@ interface PlanCardProps {
 }
 
 export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardProps) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Pressable style={[ss.planBtn, isSelected && ss.planBtnActive]} onPress={onSelect}>
       {plan.badge && (
@@ -27,15 +27,17 @@ export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardP
   );
 }
 
-const ss = StyleSheet.create({
-  planBtn: { flex: 1, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', position: 'relative' },
-  planBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-  planBadge: { position: 'absolute', top: -8, backgroundColor: C.red, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  planBadgeText: { fontFamily: Fonts.bold, fontSize: 10, color: C.alwaysLight, letterSpacing: 0.5 },
-  planLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, marginBottom: 6, marginTop: 6 },
-  planLabelActive: { color: '#ffffff99' },
-  planPrice: { fontFamily: Fonts.bold, fontSize: 22, color: C.black },
-  planPriceActive: { color: C.alwaysLight },
-  planPeriod: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
-  planPeriodActive: { color: '#ffffff66' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    planBtn: { flex: 1, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', position: 'relative' },
+    planBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+    planBadge: { position: 'absolute', top: -8, backgroundColor: C.red, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+    planBadgeText: { fontFamily: Fonts.bold, fontSize: 10, color: C.alwaysLight, letterSpacing: 0.5 },
+    planLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, marginBottom: 6, marginTop: 6 },
+    planLabelActive: { color: '#ffffff99' },
+    planPrice: { fontFamily: Fonts.bold, fontSize: 22, color: C.black },
+    planPriceActive: { color: C.alwaysLight },
+    planPeriod: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+    planPeriodActive: { color: '#ffffff66' },
+  });
+}

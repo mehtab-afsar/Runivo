@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, Pressable, Image, ScrollView, ActivityIndicator,
   StyleSheet, SafeAreaView, Alert,
@@ -8,13 +8,13 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Camera, ArrowClockwise, CheckCircle } from 'phosphor-react-native';
 import { analyseFootImage, ARCH_INFO, type FootScanResult } from '../services/footScanService';
-import { Colors, Fonts } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Step = 'instructions' | 'preview' | 'analysing' | 'result';
 
-const C = Colors;
-
 export default function FootScanScreen() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation();
   const [step, setStep]     = useState<Step>('instructions');
   const [preview, setPreview] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export default function FootScanScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.back}>
-          <ArrowLeft size={18} color={C.black} weight="light" />
+          <ArrowLeft size={18} color={C.t1} weight="light" />
         </Pressable>
         <Text style={s.title}>Foot Scan</Text>
         <View style={{ width: 36 }} />
@@ -70,7 +70,7 @@ export default function FootScanScreen() {
             <Text style={s.heading}>Analyse your arch type</Text>
             <Text style={s.body}>Place your foot flat on a light-coloured floor and take a photo from directly above. Keep the whole foot in frame.</Text>
             <Pressable style={s.primaryBtn} onPress={capture}>
-              <Camera size={18} color={C.white} weight="light" />
+              <Camera size={18} color={C.alwaysLight} weight="light" />
               <Text style={s.primaryBtnText}>Open Camera</Text>
             </Pressable>
           </View>
@@ -88,7 +88,7 @@ export default function FootScanScreen() {
             {error && <Text style={s.errorText}>{error}</Text>}
             {step === 'preview' && (
               <Pressable style={s.secondaryBtn} onPress={reset}>
-                <ArrowClockwise size={16} color={C.black} weight="light" />
+                <ArrowClockwise size={16} color={C.t1} weight="light" />
                 <Text style={s.secondaryBtnText}>Try again</Text>
               </Pressable>
             )}
@@ -107,12 +107,12 @@ export default function FootScanScreen() {
               </View>
               <Text style={s.resultBody}>{result.explanation}</Text>
             </View>
-            <View style={[s.resultCard, { backgroundColor: '#F3EEFF' }]}>
+            <View style={[s.resultCard, { backgroundColor: C.purpleBg }]}>
               <Text style={[s.resultLabel, { color: C.purple }]}>Shoe recommendation</Text>
               <Text style={s.resultBody}>{result.shoeRecommendation}</Text>
             </View>
             <Pressable style={s.secondaryBtn} onPress={reset}>
-              <ArrowClockwise size={16} color={C.black} weight="light" />
+              <ArrowClockwise size={16} color={C.t1} weight="light" />
               <Text style={s.secondaryBtnText}>Scan again</Text>
             </Pressable>
           </View>
@@ -122,27 +122,27 @@ export default function FootScanScreen() {
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   root:    { flex: 1, backgroundColor: C.bg },
   header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 8 },
-  back:    { width: 36, height: 36, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  title:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black },
+  back:    { width: 36, height: 36, borderRadius: 8, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  title:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
   scroll:  { padding: 16, paddingTop: 8 },
   section: { alignItems: 'center', gap: 16 },
   emoji:   { fontSize: 56, marginTop: 24 },
-  heading: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, textAlign: 'center' },
-  body:    { fontFamily: Fonts.regular, fontSize: 14, color: C.mid, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
+  heading: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1, textAlign: 'center' },
+  body:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
   preview: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, marginVertical: 8 },
   analysingRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  analysingText:   { fontFamily: Fonts.regular, fontSize: 14, color: C.mid },
+  analysingText:   { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
   errorText:       { fontFamily: Fonts.regular, fontSize: 13, color: C.red, textAlign: 'center' },
   primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.alwaysDark, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
-  primaryBtnText:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
-  secondaryBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
-  secondaryBtnText:{ fontFamily: Fonts.regular, fontSize: 14, color: C.black },
+  primaryBtnText:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
+  secondaryBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
+  secondaryBtnText:{ fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
   resultCard:      { width: '100%', borderRadius: 12, padding: 16, gap: 8 },
   resultHeader:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   resultTitle:     { fontFamily: Fonts.semiBold, fontSize: 14, flex: 1 },
   resultLabel:     { fontFamily: Fonts.semiBold, fontSize: 12, letterSpacing: 0.8 },
-  resultBody:      { fontFamily: Fonts.regular, fontSize: 13, color: C.black, lineHeight: 20 },
-});
+  resultBody:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, lineHeight: 20 },
+}); }

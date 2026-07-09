@@ -3,18 +3,20 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, Ac
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Calendar, CheckCircle, XCircle, CircleIcon as Circle } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme, Colors, Fonts, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { usePlanScreen, type SessionWithStatus } from '../hooks/usePlanScreen';
 
-const SESSION_TYPE_COLORS: Record<string, string> = {
-  'Easy Run':    Colors.green,
-  'Tempo':       Colors.amber,
-  'Long Run':    '#1E4D8C',
-  'Intervals':   Colors.purple,
-  'Cross-train': '#5F5E5A',
-  'Race':        Colors.red,
-  'Rest':        '#AAAAAA',
-};
+function mkSessionTypeColors(C: AppColors): Record<string, string> {
+  return {
+    'Easy Run':    C.green,
+    'Tempo':       C.amber,
+    'Long Run':    C.blue,
+    'Intervals':   C.purple,
+    'Cross-train': '#5F5E5A',
+    'Race':        C.red,
+    'Rest':        '#AAAAAA',
+  };
+}
 
 function StatusIcon({ status, C }: { status: SessionWithStatus['status']; C: AppColors }) {
   if (status === 'completed') return <CheckCircle size={18} color={C.green} weight="regular" />;
@@ -27,7 +29,7 @@ function SessionRow({ session, C, s }: {
   C: AppColors;
   s: ReturnType<typeof mkStyles>;
 }) {
-  const typeColor = SESSION_TYPE_COLORS[session.type] ?? C.t2;
+  const typeColor = mkSessionTypeColors(C)[session.type] ?? C.t2;
   const isToday   = session.sessionDate === new Date().toLocaleDateString('en-CA');
 
   return (
@@ -135,7 +137,7 @@ export default function CoachPlanScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:        { flex: 1, backgroundColor: C.bg },
-    header:      { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingBottom: 12, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    header:      { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingBottom: 12, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:     { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
     title:       { fontFamily: Fonts.display, fontSize: 20, color: C.black },
     subtitle:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
@@ -145,7 +147,7 @@ function mkStyles(C: AppColors) {
     emptyTitle:  { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
     emptyText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center', lineHeight: 20 },
     // Summary card
-    summaryCard: { marginHorizontal: 18, marginTop: 16, marginBottom: 8, backgroundColor: C.white, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    summaryCard: { marginHorizontal: 18, marginTop: 16, marginBottom: 8, backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     summaryRow:  { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     summaryWeek: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
     summaryStats:{ flexDirection: 'row', paddingVertical: 12 },
@@ -154,7 +156,7 @@ function mkStyles(C: AppColors) {
     statLabel:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
     statDiv:     { width: 0.5, backgroundColor: C.border },
     // Session rows
-    row:         { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: C.white },
+    row:         { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: C.card },
     rowToday:    { backgroundColor: 'rgba(217,53,24,0.03)' },
     dayCol:      { width: 34, alignItems: 'center', gap: 3 },
     day:         { fontFamily: Fonts.medium, fontSize: 11, color: C.t3 },

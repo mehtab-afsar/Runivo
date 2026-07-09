@@ -62,7 +62,7 @@ export function EntryRow({ entry, unit, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid, backgroundColor: C.white },
+    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid, backgroundColor: C.card },
     rowMe:     { backgroundColor: C.redLo },
     rank:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, width: 20, textAlign: 'center', fontVariant: ['tabular-nums'] },
     avatar:    { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: C.border },

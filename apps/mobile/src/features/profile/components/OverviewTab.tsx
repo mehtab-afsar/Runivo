@@ -153,7 +153,7 @@ function mkStyles(C: AppColors) {
     sectionTitle:   { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
     sectionAction:  { fontFamily: Fonts.regular, fontSize: 12, color: C.red },
 
-    pinnedCard:     { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, marginBottom: 24, overflow: 'hidden' },
+    pinnedCard:     { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, marginBottom: 24, overflow: 'hidden' },
     pinnedMain:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
     pinnedDist:     { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, letterSpacing: -0.5 },
     pinnedMeta:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 3 },
@@ -169,11 +169,11 @@ function mkStyles(C: AppColors) {
     awardsScroll:   { marginBottom: 24 },
     awardsContent:  { gap: 10, paddingBottom: 4 },
     awardChip:      { alignItems: 'center', gap: 6, width: 68 },
-    awardIconWrap:  { width: 48, height: 48, borderRadius: 12, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    awardIconWrap:  { width: 48, height: 48, borderRadius: 12, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     awardIcon:      { fontSize: 24 },
     awardLabel:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t2, textAlign: 'center' },
 
-    runCard:        { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, marginBottom: 8 },
+    runCard:        { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, marginBottom: 8 },
     runLeft:        { gap: 3 },
     runDist:        { fontFamily: Fonts.semiBold, fontSize: 17, color: C.black, letterSpacing: -0.3 },
     runMeta:        { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },

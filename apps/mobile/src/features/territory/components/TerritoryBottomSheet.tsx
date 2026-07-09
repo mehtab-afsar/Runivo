@@ -75,7 +75,7 @@ export function TerritoryBottomSheet({ polygon, onClose, onDefend }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    sheet:     { position: 'absolute', left: 16, right: 16, backgroundColor: C.white, borderRadius: 16, padding: 16, zIndex: 40, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
+    sheet:     { position: 'absolute', left: 16, right: 16, backgroundColor: C.card, borderRadius: 16, padding: 16, zIndex: 40, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, shadowOffset: { width: 0, height: -4 }, elevation: 12 },
     handle:    { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 12 },
     closeBtn:  { position: 'absolute', top: 16, right: 16 },
     tierRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },

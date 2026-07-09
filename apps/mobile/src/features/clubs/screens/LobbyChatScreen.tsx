@@ -4,7 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useTheme, Colors, Fonts, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { Heart, Fire, Barbell, ThumbsUp, Smiley, SmileyXEyes, Globe, Pulse, Trophy, Moon, type Icon } from 'phosphor-react-native';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
@@ -16,30 +16,36 @@ type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'LobbyChat'>;
 
 type ReactionEntry = { id: string; Icon: Icon; color: string; emoji: string };
-const REACTION_ENTRIES: ReactionEntry[] = [
-  { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
-  { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
-  { id: 'dumbbell', Icon: Barbell,  color: Colors.purple, emoji: '💪' },
-  { id: 'thumbsup', Icon: ThumbsUp, color: '#2563EB', emoji: '👏' },
-  { id: 'smile',    Icon: Smiley,   color: Colors.gold, emoji: '🤣' },
-  { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
-];
+function mkReactionEntries(C: AppColors): ReactionEntry[] {
+  return [
+    { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
+    { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
+    { id: 'dumbbell', Icon: Barbell,  color: C.purple, emoji: '💪' },
+    { id: 'thumbsup', Icon: ThumbsUp, color: C.blue, emoji: '👏' },
+    { id: 'smile',    Icon: Smiley,   color: C.gold, emoji: '🤣' },
+    { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
+  ];
+}
 
 type LobbyRoomEntry = { id: string; name: string; description: string; Icon: Icon; iconColor: string; color: string };
-const LOBBY_ROOMS: LobbyRoomEntry[] = [
-  { id: 'global',   name: 'Global Runners',   description: 'Connect with runners worldwide',      Icon: Globe,    iconColor: '#1E4D8C', color: '#1E4D8C' },
-  { id: 'training', name: 'Training Talk',     description: 'Plans, tips, and workout advice',     Icon: Pulse,    iconColor: '#1A6B40', color: '#1A6B40' },
-  { id: 'races',    name: 'Race Reports',      description: 'Share your race results and stories', Icon: Trophy,   iconColor: '#9E6800', color: '#9E6800' },
-  { id: 'speed',    name: 'Speed & Intervals', description: 'Track work, tempo runs, PRs',         Icon: Pulse,    iconColor: '#D93518', color: '#D93518' },
-  { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        Icon: Moon,     iconColor: Colors.purple, color: Colors.purple },
-];
+function mkLobbyRooms(C: AppColors): LobbyRoomEntry[] {
+  return [
+    { id: 'global',   name: 'Global Runners',   description: 'Connect with runners worldwide',      Icon: Globe,    iconColor: C.blue, color: C.blue },
+    { id: 'training', name: 'Training Talk',     description: 'Plans, tips, and workout advice',     Icon: Pulse,    iconColor: C.green, color: C.green },
+    { id: 'races',    name: 'Race Reports',      description: 'Share your race results and stories', Icon: Trophy,   iconColor: C.amber, color: C.amber },
+    { id: 'speed',    name: 'Speed & Intervals', description: 'Track work, tempo runs, PRs',         Icon: Pulse,    iconColor: C.red, color: C.red },
+    { id: 'night',    name: 'Night Runners',     description: 'For those who run after dark',        Icon: Moon,     iconColor: C.purple, color: C.purple },
+  ];
+}
 
 export default function LobbyChatScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const { lobbyId } = useRoute<Route>().params;
-  const room = LOBBY_ROOMS.find(r => r.id === lobbyId) ?? LOBBY_ROOMS[0];
+  const lobbyRooms = useMemo(() => mkLobbyRooms(C), [C]);
+  const reactionEntries = useMemo(() => mkReactionEntries(C), [C]);
+  const room = lobbyRooms.find(r => r.id === lobbyId) ?? lobbyRooms[0];
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [reactingMsgId, setReactingMsgId] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
@@ -92,7 +98,7 @@ export default function LobbyChatScreen() {
           <View style={s.picker}>
             <Text style={s.pickerLabel}>React</Text>
             <View style={s.emojiRow}>
-              {REACTION_ENTRIES.map(entry => (
+              {reactionEntries.map(entry => (
                 <Pressable
                   key={entry.id}
                   style={s.emojiBtn}
@@ -126,7 +132,7 @@ function mkStyles(C: AppColors) {
     emptyTitle:   { fontFamily: Fonts.display, fontSize: 18, color: C.black },
     emptyText:    { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
     overlay:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-    picker:       { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
+    picker:       { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
     pickerLabel:  { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, letterSpacing: 0.4 },
     emojiRow:     { flexDirection: 'row', gap: 8 },
     emojiBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },

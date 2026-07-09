@@ -80,14 +80,14 @@ function mkStyles(C: AppColors) {
     emptyTitle: { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
     emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
     summaryCard: {
-      backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
+      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
       padding: 24, alignItems: 'center', marginBottom: 20,
     },
     zonesCount: { ...Type.metricLg, fontSize: 48, color: C.red, letterSpacing: -1 },
     zonesLabel: { ...Type.overline, color: C.t3, marginTop: 4 },
     sectionLabel: { ...Type.overline, color: C.t3, marginBottom: 10 },
     listCard: {
-      backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
+      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
     },
     zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
     zoneRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.border },

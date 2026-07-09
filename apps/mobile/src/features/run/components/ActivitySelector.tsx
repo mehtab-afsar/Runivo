@@ -58,7 +58,7 @@ function mkStyles(C: AppColors) {
     row:   { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 8 },
     chip:  {
       alignItems: 'center', gap: 4, paddingVertical: 10, paddingHorizontal: 12,
-      borderRadius: 12, backgroundColor: C.white,
+      borderRadius: 12, backgroundColor: C.card,
       borderWidth: 0.5, borderColor: C.border,
     },
     emoji: { fontSize: 18 },

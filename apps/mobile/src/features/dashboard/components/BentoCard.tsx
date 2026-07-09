@@ -233,7 +233,7 @@ function mkStyles(C: AppColors) {
     // C.surface (light gray → dark gray), C.t1 label, white icon badge with a fixed
     // dark glyph (set in JSX above).
     qa:        { flex: 1, padding: 15, borderRadius: 14, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    qaIcon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    qaIcon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysLight, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     qaLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, flex: 1 },
     startBtn:  { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
     startLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },

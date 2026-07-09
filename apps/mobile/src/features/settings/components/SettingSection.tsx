@@ -25,7 +25,7 @@ function mkStyles(C: AppColors) {
       paddingHorizontal: Spacing.gutter, paddingTop: 20, paddingBottom: 8,
     },
     section: {
-      marginHorizontal: Spacing.gutter, backgroundColor: C.white,
+      marginHorizontal: Spacing.gutter, backgroundColor: C.card,
       borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
     },
   });

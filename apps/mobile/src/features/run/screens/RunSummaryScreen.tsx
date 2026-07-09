@@ -3,20 +3,20 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { X, Fire, Diamond, Play } from 'phosphor-react-native';
+import { X, Fire, Diamond } from 'phosphor-react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useRunSummary } from '../hooks/useRunSummary';
 import RunStatGrid          from '../components/RunStatGrid';
+import RunSummaryHero       from '../components/RunSummaryHero';
 import SplitsList           from '../components/SplitsList';
 import PostRunInsightsCard  from '../components/PostRunInsightsCard';
 import ShoeChip             from '../components/ShoeChip';
 import ShoeDrawer           from '../components/ShoeDrawer';
 import PostRunActions       from '../components/PostRunActions';
 import SaveRouteSheet       from '../components/SaveRouteSheet';
-import RunRouteMap          from '../components/RunRouteMap';
 import { buildStoryDataUrl } from '../services/storyCardGenerator';
 import { getNutritionProfile } from '@shared/services/store';
 import { computeRunnerRank } from '@shared/services/claimEngine';
@@ -172,14 +172,15 @@ export default function RunSummaryScreen() {
     : runData.actionType === 'defend'  ? 'Defence Run'
     : runData.actionType === 'fortify' ? 'Fortify Run' : 'Training Run';
   const dateLbl = new Date(runData.startTime ?? Date.now()).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  // Headline stats (distance/time/pace/PACE) live in the hero; the grid carries the
+  // secondary detail set so the two giant numbers aren't duplicated inches apart.
   const gridStats = [
-    { label: 'Distance', value: runData.distance.toFixed(2), unit: 'km' },
-    { label: 'Time',     value: fmt(runData.duration) },
     { label: 'Avg Pace', value: pace(runData.pace), unit: '/km' },
     { label: 'Claimed',  value: String(runData.success ? (runData.territoriesClaimed || 0) : 0) },
     ...(runData.elevationGainM && runData.elevationGainM > 0
       ? [{ label: 'Elevation', value: `↑ ${runData.elevationGainM}`, unit: 'm' }]
       : []),
+    ...(runData.distance >= 1 ? [{ label: 'Calories', value: `~${calories}`, unit: 'kcal' }] : []),
   ];
 
   // Runner rank progress
@@ -193,37 +194,34 @@ export default function RunSummaryScreen() {
         style={[ss.close, { top: insets.top + 12 }]}
         hitSlop={12}
       >
-        <X size={14} weight="bold" color={C.black} />
+        <X size={14} weight="bold" color={C.alwaysLight} />
       </Pressable>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
       >
-        <View style={ss.titleSection}>
-          <Text style={ss.type}>{actionLbl.toUpperCase()}</Text>
-          <Text style={[ss.heading, { color: runData.success ? C.black : C.red }]}>{heading}</Text>
-          <Text style={ss.date}>{dateLbl}</Text>
-        </View>
-
-        <View style={ss.mapWrapOuter}>
-          <RunRouteMap route={runData.route ?? []} />
-          {(runData.route?.length ?? 0) >= 10 && (
-            <Pressable
-              style={ss.replayBtn}
-              onPress={() => navigation.navigate('RunReplay', {
+        <RunSummaryHero
+          topInset={insets.top}
+          eyebrow={actionLbl.toUpperCase()}
+          heading={heading}
+          dateLabel={dateLbl}
+          success={!!runData.success}
+          distanceKm={runData.distance.toFixed(2)}
+          timeLabel={fmt(runData.duration)}
+          paceLabel={pace(runData.pace)}
+          paceEarned={paceEarned}
+          route={runData.route ?? []}
+          onReplay={(runData.route?.length ?? 0) >= 10
+            ? () => navigation.navigate('RunReplay', {
                 runId,
                 route: runData.route!,
                 durationSec: runData.duration,
                 pace: runData.pace,
-              })}
-            >
-              <Play size={11} color={C.alwaysLight} weight="fill" />
-              <Text style={ss.replayBtnText}>Replay</Text>
-            </Pressable>
-          )}
-        </View>
-        <View style={ss.card}><RunStatGrid stats={gridStats} /></View>
+              })
+            : undefined}
+        />
+        <View style={[ss.card, ss.gridCard]}><RunStatGrid stats={gridStats} /></View>
 
         {/* ── Section A: PACE Earned ─────────────────────────────────────── */}
         {paceEarned === 0 && (
@@ -460,12 +458,11 @@ export default function RunSummaryScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
-    close:        { position: 'absolute', right: 16, zIndex: 20, width: 30, height: 30, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
-    titleSection: { paddingHorizontal: Spacing.gutter, paddingTop: 52, paddingBottom: 20 },
-    type:         { ...Type.overline, letterSpacing: 1.4, color: C.t3, marginBottom: 4 },
-    heading:      { fontFamily: Fonts.display, fontSize: 28, lineHeight: 32, marginBottom: 6 },
-    date:         { fontFamily: Fonts.light, fontSize: 12, color: C.t3 },
+    // Close sits over the dark hero — dark translucent chip with a white glyph.
+    close:        { position: 'absolute', right: Spacing.gutter, zIndex: 20, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
     card:         { marginHorizontal: Spacing.gutter, marginBottom: 12 },
+    // Lift the stat grid off the hero and give it the card treatment.
+    gridCard:     { marginTop: 16, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
 
     // PACE card (dark bg)
     paceCard:      { backgroundColor: C.alwaysDark, borderRadius: 12, padding: 18 },
@@ -485,7 +482,7 @@ function mkStyles(C: AppColors) {
     cardLabel:     { ...Type.overline, letterSpacing: 1.5, color: C.t3, marginBottom: 10 },
 
     // Territory card
-    territoryCard:   { borderRadius: 12, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white, padding: 14 },
+    territoryCard:   { borderRadius: 12, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.card, padding: 14 },
     mapWrap:         { height: 160, borderRadius: 8, overflow: 'hidden' },
     mapFallback:     { height: 160, backgroundColor: C.surface, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
     mapFallbackText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t2 },
@@ -498,7 +495,7 @@ function mkStyles(C: AppColors) {
     loopTxt:         { fontFamily: Fonts.light, fontSize: 12, color: C.t2 },
 
     // Rank card
-    rankCard:      { borderRadius: 12, padding: 16, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.white },
+    rankCard:      { borderRadius: 12, padding: 16, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.card },
     rankUpBanner:  { backgroundColor: C.red, borderRadius: 6, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 8 },
     rankUpText:    { fontFamily: Fonts.medium, fontSize: 13, color: C.white },
     rankRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 10 },
@@ -506,11 +503,6 @@ function mkStyles(C: AppColors) {
     progressOuter: { height: 6, borderRadius: 3, backgroundColor: C.border, marginBottom: 6 },
     progressInner: { height: 6, borderRadius: 3, backgroundColor: C.red },
     rankSub:       { fontFamily: Fonts.light, fontSize: 12, color: C.t3 },
-
-    // Route map + replay
-    mapWrapOuter: { position: 'relative' },
-    replayBtn:    { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-    replayBtnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight },
 
     // Fuel card
     fuel:        { marginHorizontal: Spacing.gutter, marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, backgroundColor: 'rgba(249,115,22,0.06)', borderRadius: 10, borderWidth: 0.5, borderColor: 'rgba(249,115,22,0.2)' },

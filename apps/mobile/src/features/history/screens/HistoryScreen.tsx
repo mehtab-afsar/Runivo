@@ -100,7 +100,7 @@ function mkStyles(C: AppColors) {
     backBtn:      { width: 32 },
     backText:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
-    filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.white, flexGrow: 0 },
+    filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.card, flexGrow: 0 },
     filterContent:{ paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 8, flexDirection: 'row' },
     chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
     chipActive:   { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },

@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "024aa932-e299-4d0c-bc08-bacb7617274a"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.mehtabafsar.runivo",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.mehtabafsar.runivo"
+    }
+  }
+}

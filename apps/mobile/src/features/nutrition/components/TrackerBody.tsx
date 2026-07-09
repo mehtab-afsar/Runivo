@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { CalorieRing } from './CalorieRing';
 import { MacroBars } from './MacroBars';
 import { MealSection } from './MealSection';
@@ -21,6 +21,8 @@ interface Props {
 }
 
 export function TrackerBody({ profile, entries, consumed, pct, proteinConsumed, carbsConsumed, fatConsumed, expandedMeal, setExpandedMeal, deleteEntry, openAdd, onLogFood }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   return (
     <>
       <View style={s.card}>
@@ -49,8 +51,8 @@ export function TrackerBody({ profile, entries, consumed, pct, proteinConsumed, 
   );
 }
 
-const s = StyleSheet.create({
-  card: { backgroundColor: Colors.white, borderRadius: 14, borderWidth: 0.5, borderColor: '#DDD9D4', padding: 14 },
-  logBtn: { backgroundColor: Colors.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  logBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: Colors.alwaysLight, letterSpacing: 1 },
-});
+function mkStyles(C: AppColors) { return StyleSheet.create({
+  card: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
+  logBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  logBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
+}); }

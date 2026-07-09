@@ -48,10 +48,10 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
 
   return (
     <Pressable
-      style={[ss.row, highlighted && { backgroundColor: '#EFF6FF' }]}
+      style={[ss.row, highlighted && { backgroundColor: C.blueBg }]}
       onPress={() => onSelect(route)}
     >
-      <View style={[ss.icon, highlighted && { backgroundColor: '#DBEAFE' }]}>
+      <View style={[ss.icon, highlighted && { backgroundColor: C.blueBg }]}>
         {(() => { const entry = ROUTE_ICON_MAP[route.emoji]; return entry ? <entry.Icon size={18} color={entry.color} weight="light" /> : <Pulse size={18} color={C.red} weight="light" />; })()}
       </View>
       <View style={ss.info}>
@@ -65,7 +65,7 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row:   { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
-    icon:  { width: 40, height: 40, borderRadius: 10, backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    icon:  { width: 40, height: 40, borderRadius: 10, backgroundColor: C.alwaysLight, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     emoji: { fontSize: 18 },
     info:  { flex: 1 },
     name:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },

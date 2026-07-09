@@ -26,20 +26,22 @@ import {
 import type { ClubMember, ActivityItem, JoinRequest } from '@features/clubs/types';
 import { supabase } from '@shared/services/supabase';
 import { avatarColor } from '@shared/lib/avatarUtils';
-import { useTheme, Colors, Fonts, Type, type AppColors } from '@theme';
+import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
 
 type ReactionEntry = { id: string; Icon: Icon; color: string; emoji: string };
-const REACTION_ENTRIES: ReactionEntry[] = [
-  { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
-  { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
-  { id: 'dumbbell', Icon: Barbell,  color: Colors.purple, emoji: '💪' },
-  { id: 'thumbsup', Icon: ThumbsUp, color: '#2563EB', emoji: '👏' },
-  { id: 'smile',    Icon: Smiley,   color: Colors.gold, emoji: '🤣' },
-  { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
-];
+function mkReactionEntries(C: AppColors): ReactionEntry[] {
+  return [
+    { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
+    { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
+    { id: 'dumbbell', Icon: Barbell,  color: C.purple, emoji: '💪' },
+    { id: 'thumbsup', Icon: ThumbsUp, color: C.blue, emoji: '👏' },
+    { id: 'smile',    Icon: Smiley,   color: C.gold, emoji: '🤣' },
+    { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
+  ];
+}
 
 const BADGE_EMOJIS = [
   '🏃','⚡','🔥','💪','🏆','🌍','🦅','🐺','🦁','🌟',
@@ -84,7 +86,7 @@ function MemberRow({ member, rank, onPress }: { member: ClubMember; rank?: numbe
 
 function mkMrStyles(C: AppColors) {
   return StyleSheet.create({
-    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
+    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
     rank:      { width: 28, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 13, color: C.t2 },
     avatar:    { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     avatarText:{ fontFamily: Fonts.bold, fontSize: 12, color: C.white },
@@ -150,6 +152,7 @@ export default function ClubDetailScreen() {
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | null>(null);
   const [reactingMsgId, setReactingMsgId] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
+  const reactionEntries = useMemo(() => mkReactionEntries(C), [C]);
 
   // Members tab
   const [members, setMembers] = useState<ClubMember[]>([]);
@@ -490,7 +493,7 @@ export default function ClubDetailScreen() {
           <View style={s.picker}>
             <Text style={s.pickerLabel}>React</Text>
             <View style={s.emojiRow}>
-              {REACTION_ENTRIES.map(entry => (
+              {reactionEntries.map(entry => (
                 <Pressable
                   key={entry.id}
                   style={s.emojiBtn}
@@ -542,7 +545,7 @@ function mkStyles(C: AppColors) {
     title:       { fontFamily: Fonts.display, fontSize: 18, color: C.black },
     subtitle:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     // Tab bar
-    tabScroll:   { flexGrow: 0, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    tabScroll:   { flexGrow: 0, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     tabBar:      { flexDirection: 'row', paddingHorizontal: 4 },
     tabBtn:      { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
     tabBtnActive:{ borderBottomColor: C.red },
@@ -557,7 +560,7 @@ function mkStyles(C: AppColors) {
     sectionLabel:{ ...Type.overline, color: C.t3, marginBottom: 10 },
     // Admin
     adminContent:{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100, gap: 0 },
-    adminCard:   { backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 4 },
+    adminCard:   { backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 4 },
     descInput:   { fontFamily: Fonts.regular, fontSize: 13, color: C.black, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
     saveBtn:     { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
@@ -567,7 +570,7 @@ function mkStyles(C: AppColors) {
     changeBtn:   { backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: C.border },
     changeBtnText: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
     noRequestsText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center' },
-    requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.white, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
+    requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
     reqAvatar:   { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
     reqAvatarText: { fontFamily: Fonts.bold, fontSize: 12, color: C.white },
     reqName:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
@@ -578,13 +581,13 @@ function mkStyles(C: AppColors) {
     rejectBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.red },
     // Reaction picker
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-    picker:      { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
+    picker:      { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
     pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, letterSpacing: 0.4 },
     emojiRow:    { flexDirection: 'row', gap: 8 },
     emojiBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
     emojiChar:   { fontSize: 22 },
     // Badge picker
-    badgePickerSheet: { backgroundColor: C.white, borderRadius: 20, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
+    badgePickerSheet: { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
     badgeGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
     badgePickerBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
   });

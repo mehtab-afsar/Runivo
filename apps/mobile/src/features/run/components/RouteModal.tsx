@@ -90,7 +90,7 @@ export default function RouteModal({
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
-    sheet:       { backgroundColor: C.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
+    sheet:       { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
     header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
     title:       { fontFamily: Fonts.medium, fontSize: 17, color: C.black },
     sub:         { fontFamily: Fonts.light, fontSize: 12, color: C.muted, marginTop: 2 },

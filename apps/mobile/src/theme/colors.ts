@@ -18,6 +18,12 @@ export const Colors = {
   red:     '#D93518',
   white:   '#FFFFFF',
 
+  // Elevated card surface — white on the warm paper in light mode, a warm raised
+  // tone above `bg` in dark mode. Use this (NOT `white`) for any card/row/input
+  // surface that holds ink text, so it inverts correctly. `white` stays #FFFFFF in
+  // both themes and is only for chips/text/icons that must remain white on dark.
+  card:    '#FFFFFF',
+
   // Semantic
   green:   '#1A6B40',
   greenBg: '#EDF7F2',
@@ -36,6 +42,15 @@ export const Colors = {
   greenLo: '#EDF7F2',
   redLo:   '#FEF0EE',
   purple:  '#8B5CF6',
+
+  // Cool accent — data-viz (protein macro, device links, "nearby route" highlights).
+  // Was ~6 different off-palette blues; unified here.
+  blue:    '#2563EB',
+  blueBg:  '#EAF1FE',
+
+  // Purple-tinted info panels (e.g. paired-device details, gear recommendations) —
+  // pairs with the fixed `purple` accent.
+  purpleBg: '#F3EEFF',
 
   // Semantic aliases for component library
   accent:              '#D93518',
@@ -71,6 +86,9 @@ export const DarkColors = {
   red:     '#FF5326',
   white:   '#FFFFFF',
 
+  // Elevated card surface — warm raised tone above the #0D0D0D bg (see light-mode note).
+  card:    '#181512',
+
   // Semantic
   green:   '#22A85A',
   greenBg: '#0C2318',
@@ -89,6 +107,12 @@ export const DarkColors = {
   greenLo: '#0C2318',
   redLo:   '#2A0C06',
   purple:  '#8B5CF6',
+
+  // Cool accent (brighter on dark so it keeps contrast)
+  blue:    '#4B8DF0',
+  blueBg:  '#0E1A2E',
+
+  purpleBg: '#1D1730',
 
   // Semantic aliases for component library
   accent:              '#FF5326',

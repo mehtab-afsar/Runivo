@@ -227,7 +227,7 @@ function mkBodyStatsStyles(C: AppColors) {
       lineHeight: FontSize.callout * 1.55, marginBottom: Spacing.xl,
     },
     card:             {
-      backgroundColor: C.white, borderRadius: Spacing.radius.lg,
+      backgroundColor: C.card, borderRadius: Spacing.radius.lg,
       borderWidth: 0.5, borderColor: C.border,
       overflow: 'hidden', marginBottom: Spacing.md,
     },
@@ -438,9 +438,9 @@ function ResultsStep({ weightKg, heightCm, age, sex, goal, activityLevel, onStar
   }), [weightKg, heightCm, age, sex, goal, activityLevel]);
 
   const macros = [
-    { label: 'Protein', value: targets.proteinG, unit: 'g', color: '#3B82F6' },
-    { label: 'Carbs',   value: targets.carbsG,   unit: 'g', color: '#10B981' },
-    { label: 'Fat',     value: targets.fatG,      unit: 'g', color: '#F59E0B' },
+    { label: 'Protein', value: targets.proteinG, unit: 'g', color: C.blue },
+    { label: 'Carbs',   value: targets.carbsG,   unit: 'g', color: C.amber },
+    { label: 'Fat',     value: targets.fatG,      unit: 'g', color: C.green },
   ];
 
   return (

@@ -51,7 +51,7 @@ export function RunItem({ run, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:        { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    card:        { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
     topRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     activityBadge:{ fontFamily: Fonts.medium, fontSize: 11, color: C.t2 },
     date:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },

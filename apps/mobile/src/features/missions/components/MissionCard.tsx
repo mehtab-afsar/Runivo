@@ -77,7 +77,7 @@ export function MissionCard({ mission, onClaim }: MissionCardProps) {
 }
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
-  card: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
+  card: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   cardClaimed: { opacity: 0.7 },
   cardRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
   iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

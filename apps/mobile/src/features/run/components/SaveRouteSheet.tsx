@@ -159,7 +159,7 @@ export default function SaveRouteSheet({
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     backdrop:      { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
-    sheet:         { backgroundColor: C.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
+    sheet:         { backgroundColor: C.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingTop: 12 },
     handle:        { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 14 },
     header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
     title:         { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black },
@@ -168,7 +168,7 @@ function mkStyles(C: AppColors) {
     infoIconWrap:  { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     infoDistance:  { fontFamily: Fonts.semiBold, fontSize: 13, color: C.black, fontVariant: ['tabular-nums'] },
     infoDuration:  { fontFamily: Fonts.light, fontSize: 11, color: C.t3, marginTop: 2 },
-    input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.white },
+    input:         { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black, marginBottom: 14, backgroundColor: C.card },
     sectionLabel:  { ...Type.overline, color: C.t3, marginBottom: 8 },
     emojiRow:      { flexDirection: 'row', gap: 8 },
     emojiBtn:      { width: 42, height: 42, borderRadius: 10, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },

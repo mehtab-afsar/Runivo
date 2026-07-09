@@ -122,7 +122,7 @@ function mkStyles(C: AppColors) {
       backgroundColor: 'rgba(10,10,10,0.4)', justifyContent: 'flex-end',
     },
     sheet: {
-      backgroundColor: C.white, borderTopLeftRadius: 16, borderTopRightRadius: 16,
+      backgroundColor: C.card, borderTopLeftRadius: 16, borderTopRightRadius: 16,
       padding: 24, paddingBottom: Platform.OS === 'ios' ? 36 : 24, maxHeight: '85%',
     },
     sheetTitle: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, marginBottom: 20 },

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface GoalOptionProps {
   goal: string;
@@ -13,6 +13,8 @@ interface GoalOptionProps {
 }
 
 export function GoalOption({ goal, label, emoji, iconNode, selected, onSelect }: GoalOptionProps) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   return (
     <Pressable
       style={[s.btn, selected && s.btnActive]}
@@ -24,13 +26,13 @@ export function GoalOption({ goal, label, emoji, iconNode, selected, onSelect }:
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   btn: {
     flex: 1, paddingVertical: 14, borderRadius: 10,
-    backgroundColor: Colors.white, borderWidth: 0.5, borderColor: '#DDD9D4',
+    backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border,
     alignItems: 'center', gap: 4,
   },
-  btnActive: { backgroundColor: Colors.alwaysDark, borderColor: Colors.alwaysDark },
-  label: { fontFamily: Fonts.regular, fontSize: 11, color: '#6B6B6B' },
-  labelActive: { color: Colors.alwaysLight, fontFamily: Fonts.medium },
-});
+  btnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+  label: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
+  labelActive: { color: C.alwaysLight, fontFamily: Fonts.medium },
+}); }

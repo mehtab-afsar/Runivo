@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { Type, Fonts } from '@theme';
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 interface CalorieRingProps {
   consumed: number;
@@ -10,17 +10,17 @@ interface CalorieRingProps {
   size?: number;
 }
 
-const TRACK_COLOR = '#E8E4DF';
-
-function arcColor(pct: number): string {
-  if (pct >= 1)   return '#C25A00';
-  if (pct >= 0.8) return '#F97316';
-  return '#22C55E';
+function arcColor(pct: number, C: AppColors): string {
+  if (pct >= 1)   return C.red;
+  if (pct >= 0.8) return C.amber;
+  return C.green;
 }
 
 export function CalorieRing({ consumed, goal, pct, size = 100 }: CalorieRingProps) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const clampedPct = Math.min(pct, 1);
-  const color      = arcColor(pct);
+  const color      = arcColor(pct, C);
   const remaining  = Math.max(0, goal - consumed);
   const strokeW    = 7;
   const r          = (size - strokeW) / 2;
@@ -32,7 +32,7 @@ export function CalorieRing({ consumed, goal, pct, size = 100 }: CalorieRingProp
     <View style={s.wrap}>
       <View style={[s.ringWrap, { width: size, height: size }]}>
         <Svg width={size} height={size}>
-          <Circle cx={cx} cy={cy} r={r} stroke={TRACK_COLOR} strokeWidth={strokeW} fill="none" />
+          <Circle cx={cx} cy={cy} r={r} stroke={C.mid} strokeWidth={strokeW} fill="none" />
           <Circle
             cx={cx} cy={cy} r={r}
             stroke={color} strokeWidth={strokeW}
@@ -55,7 +55,7 @@ export function CalorieRing({ consumed, goal, pct, size = 100 }: CalorieRingProp
         </View>
         <View style={s.divider} />
         <View style={s.stat}>
-          <Text style={[s.statVal, remaining === 0 && { color: '#22C55E' }]}>{remaining}</Text>
+          <Text style={[s.statVal, remaining === 0 && { color: C.green }]}>{remaining}</Text>
           <Text style={s.statLabel}>{pct >= 1 ? 'over!' : 'left'}</Text>
         </View>
         <View style={s.divider} />
@@ -68,15 +68,15 @@ export function CalorieRing({ consumed, goal, pct, size = 100 }: CalorieRingProp
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) { return StyleSheet.create({
   wrap:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
   ringWrap:{ position: 'relative', alignItems: 'center', justifyContent: 'center' },
   center:  { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   kcal:    { fontFamily: Fonts.bold, fontSize: 18, lineHeight: 20, fontVariant: ['tabular-nums'] },
-  eaten:   { ...Type.overline, color: '#ADADAD' },
+  eaten:   { ...Type.overline, color: C.t3 },
   stats:   { flex: 1, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   stat:    { alignItems: 'center', gap: 2 },
-  statVal: { fontFamily: Fonts.semiBold, fontSize: 15, color: '#0A0A0A', fontVariant: ['tabular-nums'] },
-  statLabel:{ fontFamily: Fonts.regular, fontSize: 10, color: '#ADADAD', textTransform: 'uppercase', letterSpacing: 0.5 },
-  divider: { width: 0.5, height: 28, backgroundColor: '#E8E4DF' },
-});
+  statVal: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, fontVariant: ['tabular-nums'] },
+  statLabel:{ fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.5 },
+  divider: { width: 0.5, height: 28, backgroundColor: C.mid },
+}); }

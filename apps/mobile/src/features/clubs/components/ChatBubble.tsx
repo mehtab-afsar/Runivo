@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
-import { Colors, Fonts } from '@theme';
-
-const C = Colors;
+import { Fonts, useTheme, type AppColors } from '@theme';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -17,6 +15,8 @@ interface Props {
 }
 
 export function ChatBubble({ message, isOwn, onLongPress }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const bg = avatarColor(message.userName);
   const initials = message.userName.slice(0, 2).toUpperCase();
   const hasReactions = (message.reactions?.length ?? 0) > 0;
@@ -59,7 +59,8 @@ export function ChatBubble({ message, isOwn, onLongPress }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
   wrap:            { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 16, paddingVertical: 3 },
   wrapMe:          { flexDirection: 'row-reverse' },
   avatar:          { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -72,8 +73,8 @@ const s = StyleSheet.create({
   levelText:       { fontFamily: Fonts.regular, fontSize: 10 },
   bubble:          { borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
   bubbleMe:        { backgroundColor: C.red, borderBottomRightRadius: 4 },
-  bubbleThem:      { backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border, borderBottomLeftRadius: 4 },
-  msgText:         { fontFamily: Fonts.regular, fontSize: 14, color: C.black, lineHeight: 20 },
+  bubbleThem:      { backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, borderBottomLeftRadius: 4 },
+  msgText:         { fontFamily: Fonts.regular, fontSize: 14, color: C.t1, lineHeight: 20 },
   msgTextMe:       { color: C.white },
   reactionRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4, paddingLeft: 2 },
   reactionRowMe:   { paddingLeft: 0, paddingRight: 2, justifyContent: 'flex-end' },
@@ -83,4 +84,5 @@ const s = StyleSheet.create({
   reactionCount:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
   time:            { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 3, paddingLeft: 2 },
   timeMe:          { paddingLeft: 0, paddingRight: 2 },
-});
+  });
+}

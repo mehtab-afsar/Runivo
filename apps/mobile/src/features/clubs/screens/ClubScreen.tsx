@@ -101,7 +101,7 @@ function RankingRow({ club, rank, onPress, isLast }: { club: Club; rank: number;
 
 function mkRStyles(C: AppColors) {
   return StyleSheet.create({
-    row:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.white },
+    row:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.card },
     rowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
     rank:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, width: 20, textAlign: 'center' },
     avatar:    { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -295,7 +295,7 @@ function mkCsStyles(C: AppColors) {
     badgeBtn:          { width: 44, height: 44, borderRadius: 12, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     badgeBtnDot:       { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2 },
     // Inputs
-    input:             { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black, backgroundColor: C.white },
+    input:             { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black, backgroundColor: C.card },
     inputMulti:        { minHeight: 72, textAlignVertical: 'top', paddingTop: 12 },
     inputError:        { borderColor: C.red, backgroundColor: C.redLo },
     inputMeta:         { flexDirection: 'row', marginTop: 4 },
@@ -303,7 +303,7 @@ function mkCsStyles(C: AppColors) {
     inputHintError:    { fontFamily: Fonts.regular, fontSize: 10, color: C.red },
     // Policy cards (vertical)
     policyCol:         { gap: 8, marginBottom: 4 },
-    policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 0.5, borderColor: C.border, borderRadius: 14, padding: 14, backgroundColor: C.white },
+    policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 0.5, borderColor: C.border, borderRadius: 14, padding: 14, backgroundColor: C.card },
     policyCardActive:  { borderColor: C.border, backgroundColor: C.surface },
     policyIconBox:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     policyLabel:       { fontFamily: Fonts.semiBold, fontSize: 13, color: C.black },
@@ -418,7 +418,7 @@ export default function ClubScreen() {
         </Pressable>
         <Text style={s.title}>Clubs</Text>
         <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)} testID="clubs-create-btn">
-          <Plus size={16} color={C.white} weight="bold" />
+          <Plus size={16} color={C.t1} weight="bold" />
         </Pressable>
       </View>
 
@@ -527,12 +527,12 @@ export default function ClubScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:            { flex: 1, backgroundColor: C.bg },
-    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:         { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     title:           { fontFamily: Fonts.display, fontSize: 20, color: C.black },
     createTrigger:   { width: 28, height: 28, borderRadius: 14, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     // Tabs - match web (black underline active)
-    tabBar:          { flexDirection: 'row', backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.mid },
+    tabBar:          { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     tabBtn:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
     tabBtnActive:    { borderBottomColor: C.black },
     tabLabel:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
@@ -541,7 +541,7 @@ function mkStyles(C: AppColors) {
     // My Clubs tab
     searchWrap:      { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
     myClubList:      { paddingBottom: 100 },
-    myClubRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 13, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.mid },
+    myClubRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 13, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     myClubAvatar:    { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     myClubTopRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
     myClubName:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, flex: 1 },
@@ -555,7 +555,7 @@ function mkStyles(C: AppColors) {
     emptyBtnLabel:   { fontFamily: Fonts.medium, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.6 },
     // Rankings tab
     rankList:        { paddingBottom: 100 },
-    scopeRow:        { flexDirection: 'row', gap: 6, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 4, backgroundColor: C.white, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    scopeRow:        { flexDirection: 'row', gap: 6, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 4, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     scopeBtn:        { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.bg, flexDirection: 'row', alignItems: 'center', gap: 4 },
     scopeBtnActive:  { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
     scopeLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },

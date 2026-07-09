@@ -5,9 +5,7 @@ import { StatRow } from './StatRow';
 import type { PersonalRecord } from '../hooks/useProfile';
 import type { StoredRun } from '@shared/services/store';
 import type { ProfileStats } from '@shared/types/game';
-import { Colors, useTheme, Type, Fonts } from '@theme';
-
-const C = Colors;
+import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -50,10 +48,14 @@ function riegelPredict(baseSec: number, baseDist: number, targetDist: number): s
 // ── sub-components ────────────────────────────────────────────────────────────
 
 function SectionHeader({ label }: { label: string }) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   return <Text style={ss.section}>{label}</Text>;
 }
 
 function WeeklyChart({ runs }: { runs: StoredRun[] }) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const weeks = useMemo(() => {
     const map: Record<string, number> = {};
     for (const r of runs) {
@@ -100,6 +102,8 @@ function WeeklyChart({ runs }: { runs: StoredRun[] }) {
 }
 
 function PaceZones({ runs }: { runs: StoredRun[] }) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const zones = useMemo(() => {
     const buckets = [
       { label: 'Easy',     range: 'Under 5:30',   maxSec: Infinity, minSec: 330, totalSec: 0 },
@@ -136,6 +140,8 @@ function PaceZones({ runs }: { runs: StoredRun[] }) {
 }
 
 function RacePredictions({ personalRecords }: { personalRecords: PersonalRecord[] }) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const fiveKRecord = personalRecords.find(r => r.label.toLowerCase().includes('5k') || r.label.toLowerCase().includes('5 k'));
 
   if (!fiveKRecord || fiveKRecord.value === '—') {
@@ -193,8 +199,8 @@ function PeriodSelector({ value, onChange }: {
           onPress={() => onChange(p.key)}
           style={{
             paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-            backgroundColor: value === p.key ? C.black : C.stone,
-            borderWidth: 0.5, borderColor: value === p.key ? C.black : C.border,
+            backgroundColor: value === p.key ? C.alwaysDark : C.stone,
+            borderWidth: 0.5, borderColor: value === p.key ? C.alwaysDark : C.border,
           }}
         >
           <Text style={{
@@ -224,6 +230,8 @@ interface Props {
 }
 
 export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories, streakDays, runs, statsData, statsPeriod = 'all', onPeriodChange }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const periodStats = statsData ?? { totalKm, totalRuns, avgPaceSec: 0, totalCalories: 0, totalZones: totalTerritories };
   const allTime = [
     { label: 'Total runs',  value: String(periodStats.totalRuns) },
@@ -255,43 +263,45 @@ export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories
   );
 }
 
-const ss = StyleSheet.create({
-  section: { ...Type.overline, color: C.t3, marginBottom: 10, marginTop: 20 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    section: { ...Type.overline, color: C.t3, marginBottom: 10, marginTop: 20 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
-  // Weekly chart
-  chartCard: {
-    backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16,
-  },
-  bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 80 + 32 },
-  barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: 80 + 32 },
-  barKm: { fontFamily: Fonts.light, fontSize: 10, color: C.t3, marginBottom: 2 },
-  barTrack: { width: '100%', height: 80, justifyContent: 'flex-end', flexDirection: 'column' },
-  barFill: { borderRadius: 3, width: '100%' },
-  barLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4 },
-  barLabelActive: { fontFamily: Fonts.medium, color: C.red },
+    // Weekly chart
+    chartCard: {
+      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16,
+    },
+    bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 80 + 32 },
+    barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: 80 + 32 },
+    barKm: { fontFamily: Fonts.light, fontSize: 10, color: C.t3, marginBottom: 2 },
+    barTrack: { width: '100%', height: 80, justifyContent: 'flex-end', flexDirection: 'column' },
+    barFill: { borderRadius: 3, width: '100%' },
+    barLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4 },
+    barLabelActive: { fontFamily: Fonts.medium, color: C.red },
 
-  // Pace zones
-  zonesCard: {
-    backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, gap: 12,
-  },
-  zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  zoneLeft: { width: 72 },
-  zoneLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
-  zoneRange: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
-  zoneBarWrap: { flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, flexDirection: 'row', overflow: 'hidden' },
-  zoneBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
-  zoneTime: { fontFamily: Fonts.light, fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
+    // Pace zones
+    zonesCard: {
+      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, gap: 12,
+    },
+    zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    zoneLeft: { width: 72 },
+    zoneLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
+    zoneRange: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    zoneBarWrap: { flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, flexDirection: 'row', overflow: 'hidden' },
+    zoneBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
+    zoneTime: { fontFamily: Fonts.light, fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
 
-  // Race predictions
-  predictionsGrid: { flexDirection: 'row', gap: 8 },
-  predictCard: {
-    flex: 1, backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
-    padding: 14, alignItems: 'center',
-  },
-  predictVal: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-  predictLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
-  predictNote: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
-  predictionsEmpty: { backgroundColor: C.white, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
-  predictionsEmptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
-});
+    // Race predictions
+    predictionsGrid: { flexDirection: 'row', gap: 8 },
+    predictCard: {
+      flex: 1, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
+      padding: 14, alignItems: 'center',
+    },
+    predictVal: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+    predictLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
+    predictNote: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
+    predictionsEmpty: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
+    predictionsEmptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
+  });
+}

@@ -241,7 +241,7 @@ function mkStyles(C: AppColors) {
     scrubberWrap: { paddingVertical: 12 },
     scrubberTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, position: 'relative' },
     scrubberFill:  { position: 'absolute', left: 0, top: 0, height: 4, backgroundColor: C.red, borderRadius: 2 },
-    scrubberThumb: { position: 'absolute', top: -7, marginLeft: -9, width: 18, height: 18, borderRadius: 9, backgroundColor: C.white, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
+    scrubberThumb: { position: 'absolute', top: -7, marginLeft: -9, width: 18, height: 18, borderRadius: 9, backgroundColor: C.alwaysLight, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 4 },
     btnRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingBottom: 4 },
     ctrlBtn:      { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
     ctrlBtnActive: { backgroundColor: C.red },

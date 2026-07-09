@@ -64,11 +64,11 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   thumb: { width: 72, height: 72, borderRadius: 12 },
   placeholder: {
     width: 72, height: 72, borderRadius: 12,
-    backgroundColor: C.white, borderWidth: 0.5, borderColor: C.border,
+    backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border,
     alignItems: 'center', justifyContent: 'center',
   },
   btn: {
-    backgroundColor: C.white, borderRadius: 8, borderWidth: 0.5, borderColor: C.border,
+    backgroundColor: C.card, borderRadius: 8, borderWidth: 0.5, borderColor: C.border,
     paddingVertical: 8, paddingHorizontal: 12,
   },
   btnText: { fontFamily: Fonts.regular, fontSize: 12, color: C.black },

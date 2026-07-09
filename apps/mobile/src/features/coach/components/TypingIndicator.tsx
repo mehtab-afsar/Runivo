@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Animated, StyleSheet } from 'react-native';
-import { Colors } from '@theme';
+import { useTheme, type AppColors } from '@theme';
 
 export function TypingIndicator() {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const dots = [useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current, useRef(new Animated.Value(0)).current];
 
   useEffect(() => {
@@ -39,10 +41,12 @@ export function TypingIndicator() {
   );
 }
 
-const ss = StyleSheet.create({
-  wrap:    { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 16, paddingVertical: 6 },
-  avatar:  { width: 30, height: 30, borderRadius: 8, backgroundColor: '#F2EEF9', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  sparkle: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.purple },
-  bubble:  { flexDirection: 'row', gap: 4, backgroundColor: '#F2EEF9', borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 14, alignItems: 'center' },
-  dot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.purple },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    wrap:    { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 16, paddingVertical: 6 },
+    avatar:  { width: 30, height: 30, borderRadius: 8, backgroundColor: C.blueBg, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    sparkle: { width: 8, height: 8, borderRadius: 4, backgroundColor: C.purple },
+    bubble:  { flexDirection: 'row', gap: 4, backgroundColor: C.blueBg, borderRadius: 16, borderBottomLeftRadius: 4, paddingHorizontal: 14, paddingVertical: 14, alignItems: 'center' },
+    dot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: C.purple },
+  });
+}

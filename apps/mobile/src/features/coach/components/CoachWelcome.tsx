@@ -97,7 +97,7 @@ function mkStyles(C: AppColors) {
     pace:         { fontFamily: Fonts.display, fontSize: 36, color: C.black },
     x:            { fontFamily: Fonts.bold, fontSize: 36, color: C.red },
     tagline:      { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center' },
-    card:         { backgroundColor: C.white, borderRadius: 14, padding: 18, gap: 12, borderWidth: 0.5, borderColor: C.border },
+    card:         { backgroundColor: C.card, borderRadius: 14, padding: 18, gap: 12, borderWidth: 0.5, borderColor: C.border },
     cardHint:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 18 },
     input:        { fontFamily: Fonts.regular, fontSize: 14, borderWidth: 0.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.bg },
     templatesScroll:  { marginHorizontal: -2 },

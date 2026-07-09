@@ -70,7 +70,7 @@ export function EventCard({ event, joined, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    row:           { backgroundColor: C.white, paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: C.mid },
+    row:           { backgroundColor: C.card, paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     topRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
     pills:         { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
     categoryText:  { ...Type.overline, color: C.t3 },

@@ -47,7 +47,7 @@ export default function PostRunInsightsCard({ runId, distance, pace, duration }:
             <Text style={[ss.body, ss.suggestion]}><Lightbulb size={11} color={C.green} weight="light" /> {insights.suggestion}</Text>
           )}
           {insights.recovery && (
-            <Text style={[ss.body, ss.bodyMuted]}><BedDouble size={11} color="#A39E98" weight="light" /> {insights.recovery}</Text>
+            <Text style={[ss.body, ss.bodyMuted]}><BedDouble size={11} color={C.t3} weight="light" /> {insights.recovery}</Text>
           )}
         </>
       ) : !loading ? (
@@ -59,11 +59,11 @@ export default function PostRunInsightsCard({ runId, distance, pace, duration }:
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:       { marginHorizontal: Spacing.gutter, marginBottom: 12, padding: 14, backgroundColor: C.white, borderRadius: 4, borderWidth: 0.5, borderColor: C.border },
+    card:       { marginHorizontal: Spacing.gutter, marginBottom: 12, padding: 14, backgroundColor: C.card, borderRadius: 4, borderWidth: 0.5, borderColor: C.border },
     header:     { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
     iconWrap:   { width: 28, height: 28, borderRadius: 8, backgroundColor: 'rgba(139,92,246,0.1)', alignItems: 'center', justifyContent: 'center' },
     title:      { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
-    body:       { fontFamily: Fonts.light, fontSize: 13, color: '#4B5563', lineHeight: 19, marginBottom: 4 },
+    body:       { fontFamily: Fonts.light, fontSize: 13, color: C.t2, lineHeight: 19, marginBottom: 4 },
     bodyMuted:  { color: C.t3, fontSize: 12 },
     suggestion: { color: C.green, fontSize: 12 },
   });

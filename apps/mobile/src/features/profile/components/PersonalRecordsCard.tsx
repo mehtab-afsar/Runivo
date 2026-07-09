@@ -36,7 +36,7 @@ function mkStyles(C: AppColors) {
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     card: {
       width: '47%',
-      backgroundColor: C.white,
+      backgroundColor: C.card,
       borderRadius: 10,
       borderWidth: 0.5,
       borderColor: C.border,
