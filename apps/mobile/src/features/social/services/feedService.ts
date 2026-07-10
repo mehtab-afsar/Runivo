@@ -24,16 +24,24 @@ function mapRow(row: any): FeedPost {
   };
 }
 
+// supabase-js never throws on a DB/RPC error — it resolves { data: null, error }.
+// Every function here used to discard `error` and fall back to an empty/default
+// value, which made network or server failures indistinguishable from "no data" —
+// callers (useFeed) then applied that empty fallback as truth (e.g. zeroing a
+// post's kudos count on a transient failure). Throwing lets callers roll back an
+// optimistic update or show an error state instead.
+
 export async function fetchFeed(opts: {
   discover?: boolean;
   cursorTs?: string | null;
   lim?: number;
 }): Promise<{ posts: FeedPost[]; nextCursor: string | null }> {
-  const { data } = await supabase.rpc('get_feed', {
+  const { data, error } = await supabase.rpc('get_feed', {
     lim:       opts.lim ?? 20,
     cursor_ts: opts.cursorTs ?? null,
     discover:  opts.discover ?? false,
   });
+  if (error) throw error;
   const posts = (data ?? []).map(mapRow);
   const nextCursor = posts.length === (opts.lim ?? 20)
     ? posts[posts.length - 1].createdAt
@@ -42,25 +50,28 @@ export async function fetchFeed(opts: {
 }
 
 export async function toggleLike(postId: string): Promise<{ liked: boolean; count: number }> {
-  const { data } = await supabase.rpc('toggle_like', { p_post_id: postId });
+  const { data, error } = await supabase.rpc('toggle_like', { p_post_id: postId });
+  if (error) throw error;
   return (data ?? { liked: false, count: 0 }) as { liked: boolean; count: number };
 }
 
 export async function fetchFollowingIds(userId: string): Promise<string[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('followers')
     .select('following_id')
     .eq('follower_id', userId);
+  if (error) throw error;
   return (data ?? []).map((r: any) => r.following_id as string);
 }
 
 export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRunner[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('id, username, total_distance_km, territory_score')
     .neq('id', userId)
     .order('territory_score', { ascending: false })
     .limit(8);
+  if (error) throw error;
   return (data ?? []).map((r: any) => ({
     id:              r.id,
     username:        r.username ?? 'Runner',
@@ -70,11 +81,13 @@ export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRu
 }
 
 export async function toggleFollowService(targetId: string): Promise<void> {
-  await supabase.rpc('toggle_follow', { target_id: targetId });
+  const { error } = await supabase.rpc('toggle_follow', { target_id: targetId });
+  if (error) throw error;
 }
 
 export async function getComments(postId: string): Promise<Comment[]> {
-  const { data } = await supabase.rpc('get_comments', { p_post_id: postId });
+  const { data, error } = await supabase.rpc('get_comments', { p_post_id: postId });
+  if (error) throw error;
   return (data ?? []).map((r: any) => ({
     id:          r.id,
     userId:      r.user_id,
@@ -86,9 +99,10 @@ export async function getComments(postId: string): Promise<Comment[]> {
 }
 
 export async function addComment(postId: string, content: string): Promise<string> {
-  const { data } = await supabase.rpc('add_comment', {
+  const { data, error } = await supabase.rpc('add_comment', {
     p_post_id: postId,
     p_content: content.trim(),
   });
+  if (error) throw error;
   return data as string;
 }

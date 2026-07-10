@@ -30,10 +30,27 @@ export async function fetchClubs(userId: string | null): Promise<Club[]> {
   }));
 }
 
-export async function joinClub(clubId: string, userId: string): Promise<void> {
-  await supabase
+export async function joinClub(clubId: string, userId: string): Promise<{ error: unknown }> {
+  const { error } = await supabase
     .from('club_members')
     .upsert({ club_id: clubId, user_id: userId, role: 'member' }, { onConflict: 'club_id,user_id' });
+  return { error };
+}
+
+/**
+ * Request to join an invite-only club. Previously the UI showed "Request sent"
+ * without ever inserting a row, so admins never saw any pending requests and
+ * gated clubs were unjoinable through the app.
+ */
+export async function requestToJoinClub(clubId: string, userId: string): Promise<{ ok: boolean }> {
+  const { error } = await supabase
+    .from('club_join_requests')
+    .insert({ club_id: clubId, user_id: userId, status: 'pending' });
+  // A unique-constraint violation means a request already exists (pending, or a
+  // past rejection) — treat that as an idempotent success rather than a failure;
+  // an upsert-based reset would need club-admin UPDATE rights the requester
+  // doesn't have under RLS.
+  return { ok: !error || error.code === '23505' };
 }
 
 export async function leaveClub(clubId: string, userId: string): Promise<void> {
@@ -49,7 +66,7 @@ export async function createClub(
   name: string,
   description: string,
   badgeEmoji: string,
-  joinPolicy: 'open' | 'request' | 'invite',
+  joinPolicy: 'open' | 'invite_only',
 ): Promise<Club | null> {
   const { data, error } = await supabase
     .from('clubs')
@@ -84,6 +101,35 @@ export async function createClub(
     join_policy: data.join_policy ?? 'open',
     joined: true,
   };
+}
+
+/**
+ * Get the club's chat lobby, creating one if this club doesn't have one yet.
+ * ClubDetailScreen previously passed a fabricated `club_${clubId}` string to
+ * useLobbyChat — lobby_messages.lobby_id is a UUID FK to lobbies(id), so that
+ * value could never match anything; chat was entirely non-functional. Lobbies
+ * are looked up (or lazily created) by club_id instead.
+ */
+export async function getOrCreateClubLobby(clubId: string, clubName: string, userId: string): Promise<string | null> {
+  const { data: existing } = await supabase
+    .from('lobbies')
+    .select('id')
+    .eq('club_id', clubId)
+    .limit(1)
+    .maybeSingle();
+  if (existing) return existing.id;
+
+  const { data: created, error } = await supabase
+    .from('lobbies')
+    .insert({ club_id: clubId, name: clubName, status: 'open', created_by: userId })
+    .select('id')
+    .single();
+  if (error) {
+    // Lost a race with another member creating it concurrently — read it back.
+    const { data: retry } = await supabase.from('lobbies').select('id').eq('club_id', clubId).limit(1).maybeSingle();
+    return retry?.id ?? null;
+  }
+  return created?.id ?? null;
 }
 
 interface ClubMemberRow {
@@ -153,15 +199,23 @@ export async function fetchJoinRequests(clubId: string): Promise<JoinRequest[]> 
   }));
 }
 
-/** Approve a join request. */
-export async function approveJoinRequest(requestId: string, clubId: string, userId: string): Promise<void> {
-  await supabase.from('club_join_requests').update({ status: 'approved' }).eq('id', requestId);
-  await supabase.from('club_members').upsert({ club_id: clubId, user_id: userId, role: 'member' }, { onConflict: 'club_id,user_id' });
+/**
+ * Approve a join request via the accept_club_join_request SECURITY DEFINER RPC.
+ * The previous direct update+upsert set status='approved' (the CHECK constraint
+ * only allows 'accepted') and tried to insert the REQUESTER into club_members as
+ * the calling admin — blocked by RLS (self-join only) — so approval appeared to
+ * work (optimistic UI) but never actually added the member or bumped
+ * member_count; the request just reappeared on next load.
+ */
+export async function approveJoinRequest(requestId: string): Promise<{ ok: boolean }> {
+  const { error } = await supabase.rpc('accept_club_join_request', { request_id: requestId });
+  return { ok: !error };
 }
 
 /** Reject a join request. */
-export async function rejectJoinRequest(requestId: string): Promise<void> {
-  await supabase.from('club_join_requests').update({ status: 'rejected' }).eq('id', requestId);
+export async function rejectJoinRequest(requestId: string): Promise<{ ok: boolean }> {
+  const { error } = await supabase.from('club_join_requests').update({ status: 'rejected' }).eq('id', requestId);
+  return { ok: !error };
 }
 
 /** Update club description (admin/owner only). */

@@ -8,12 +8,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Users, Pulse, ClipboardText, Check, X, Heart, Fire, Barbell, ThumbsUp, Smiley, SmileyXEyes, type Icon } from 'phosphor-react-native';
+import { ArrowLeft, Users, Pulse, ClipboardText, Check, X, type Icon } from 'phosphor-react-native';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
 import { ChatInput } from '@features/clubs/components/ChatInput';
-import { reactToMessage } from '@features/clubs/services/lobbyChatService';
 import {
   fetchClubMembers,
   fetchClubActivity,
@@ -22,6 +21,7 @@ import {
   rejectJoinRequest,
   updateClubDescription,
   updateClubBadge,
+  getOrCreateClubLobby,
 } from '@features/clubs/services/clubService';
 import type { ClubMember, ActivityItem, JoinRequest } from '@features/clubs/types';
 import { supabase } from '@shared/services/supabase';
@@ -30,18 +30,6 @@ import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
-
-type ReactionEntry = { id: string; Icon: Icon; color: string; emoji: string };
-function mkReactionEntries(C: AppColors): ReactionEntry[] {
-  return [
-    { id: 'heart',    Icon: Heart,    color: '#EF4444', emoji: '❤️' },
-    { id: 'flame',    Icon: Fire,     color: '#EA580C', emoji: '🔥' },
-    { id: 'dumbbell', Icon: Barbell,  color: C.purple, emoji: '💪' },
-    { id: 'thumbsup', Icon: ThumbsUp, color: C.blue, emoji: '👏' },
-    { id: 'smile',    Icon: Smiley,   color: C.gold, emoji: '🤣' },
-    { id: 'laugh',    Icon: SmileyXEyes, color: '#059669', emoji: '😮' },
-  ];
-}
 
 const BADGE_EMOJIS = [
   '🏃','⚡','🔥','💪','🏆','🌍','🦅','🐺','🦁','🌟',
@@ -150,9 +138,8 @@ export default function ClubDetailScreen() {
   const [tab, setTab] = useState<DetailTab>('chat');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | null>(null);
-  const [reactingMsgId, setReactingMsgId] = useState<string | null>(null);
+  const [clubLobbyId, setClubLobbyId] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
-  const reactionEntries = useMemo(() => mkReactionEntries(C), [C]);
 
   // Members tab
   const [members, setMembers] = useState<ClubMember[]>([]);
@@ -173,7 +160,9 @@ export default function ClubDetailScreen() {
   const [savingDesc, setSavingDesc] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  const { messages, loading: chatLoading, inputText, setInputText, sending, sendMessage } = useLobbyChat(`club_${clubId}`);
+  // Resolves to '' until the club's lobby id loads — useLobbyChat's fetch/subscribe
+  // are harmless no-ops against an empty id (no row can match) until then.
+  const { messages, loading: chatLoading, inputText, setInputText, sending, sendMessage } = useLobbyChat(clubLobbyId ?? '');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -187,8 +176,11 @@ export default function ClubDetailScreen() {
         .eq('user_id', user.id)
         .maybeSingle();
       if (data) setCurrentUserRole(data.role as 'admin' | 'member');
+
+      const lobbyId = await getOrCreateClubLobby(clubId, clubName, user.id);
+      setClubLobbyId(lobbyId);
     });
-  }, [clubId]);
+  }, [clubId, clubName]);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -251,13 +243,16 @@ export default function ClubDetailScreen() {
   };
 
   const handleApprove = async (req: JoinRequest) => {
-    await approveJoinRequest(req.id, clubId, req.userId);
-    setJoinRequests(prev => prev.filter(r => r.id !== req.id));
+    const { ok } = await approveJoinRequest(req.id);
+    if (ok) {
+      setJoinRequests(prev => prev.filter(r => r.id !== req.id));
+      loadMembers();
+    }
   };
 
   const handleReject = async (req: JoinRequest) => {
-    await rejectJoinRequest(req.id);
-    setJoinRequests(prev => prev.filter(r => r.id !== req.id));
+    const { ok } = await rejectJoinRequest(req.id);
+    if (ok) setJoinRequests(prev => prev.filter(r => r.id !== req.id));
   };
 
   const tabs: { key: DetailTab; label: string }[] = [
@@ -325,11 +320,7 @@ export default function ClubDetailScreen() {
               data={messages}
               keyExtractor={msg => msg.id}
               renderItem={({ item }) => (
-                <ChatBubble
-                  message={item}
-                  isOwn={item.userId === currentUserId}
-                  onLongPress={() => setReactingMsgId(item.id)}
-                />
+                <ChatBubble message={item} isOwn={item.userId === currentUserId} />
               )}
               contentContainerStyle={{ paddingVertical: 12 }}
               showsVerticalScrollIndicator={false}
@@ -487,31 +478,6 @@ export default function ClubDetailScreen() {
         </ScrollView>
       )}
 
-      {/* Reaction picker */}
-      <Modal visible={!!reactingMsgId} transparent animationType="fade" onRequestClose={() => setReactingMsgId(null)}>
-        <Pressable style={s.overlay} onPress={() => setReactingMsgId(null)}>
-          <View style={s.picker}>
-            <Text style={s.pickerLabel}>React</Text>
-            <View style={s.emojiRow}>
-              {reactionEntries.map(entry => (
-                <Pressable
-                  key={entry.id}
-                  style={s.emojiBtn}
-                  onPress={async () => {
-                    if (reactingMsgId && currentUserId) {
-                      await reactToMessage(reactingMsgId, entry.emoji, currentUserId);
-                    }
-                    setReactingMsgId(null);
-                  }}
-                >
-                  <entry.Icon size={22} color={entry.color} weight="light" />
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        </Pressable>
-      </Modal>
-
       {/* Badge emoji picker modal */}
       <Modal visible={showEmojiPicker} transparent animationType="fade" onRequestClose={() => setShowEmojiPicker(false)}>
         <Pressable style={s.overlay} onPress={() => setShowEmojiPicker(false)}>
@@ -579,13 +545,8 @@ function mkStyles(C: AppColors) {
     approveBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.green },
     rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: C.red, alignItems: 'center', justifyContent: 'center' },
     rejectBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.red },
-    // Reaction picker
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-    picker:      { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
     pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, letterSpacing: 0.4 },
-    emojiRow:    { flexDirection: 'row', gap: 8 },
-    emojiBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-    emojiChar:   { fontSize: 22 },
     // Badge picker
     badgePickerSheet: { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
     badgeGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },

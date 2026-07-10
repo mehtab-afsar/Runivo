@@ -22,13 +22,13 @@ interface FollowerEntry {
 
 async function loadFollowers(targetUserId: string, currentUserId: string): Promise<FollowerEntry[]> {
   const { data } = await supabase
-    .from('follows')
-    .select('follower_id, profiles!follows_follower_id_fkey(id, username, display_name, runner_rank)')
+    .from('followers')
+    .select('follower_id, profiles!followers_follower_id_fkey(id, username, display_name, runner_rank)')
     .eq('following_id', targetUserId);
   if (!data) return [];
 
   const followingResp = await supabase
-    .from('follows')
+    .from('followers')
     .select('following_id')
     .eq('follower_id', currentUserId);
   const followingSet = new Set((followingResp.data ?? []).map((r: { following_id: string }) => r.following_id));
@@ -80,11 +80,10 @@ export default function FollowersScreen() {
     if (!currentUserId || entry.userId === currentUserId) return;
     const optimistic = entries.map(e => e.userId === entry.userId ? { ...e, isFollowing: !e.isFollowing } : e);
     setEntries(optimistic);
-    if (entry.isFollowing) {
-      await supabase.from('follows').delete().eq('follower_id', currentUserId).eq('following_id', entry.userId);
-    } else {
-      await supabase.from('follows').insert({ follower_id: currentUserId, following_id: entry.userId });
-    }
+    const { error } = entry.isFollowing
+      ? await supabase.from('followers').delete().eq('follower_id', currentUserId).eq('following_id', entry.userId)
+      : await supabase.from('followers').insert({ follower_id: currentUserId, following_id: entry.userId });
+    if (error) setEntries(entries); // revert on failure — supabase-js doesn't throw
   }, [currentUserId, entries]);
 
   return (

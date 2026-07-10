@@ -59,8 +59,8 @@ export async function fetchProfileData() {
   let following = 0;
   if (session) {
     const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
-      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', session.user.id),
-      supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', session.user.id),
+      supabase.from('followers').select('*', { count: 'exact', head: true }).eq('following_id', session.user.id),
+      supabase.from('followers').select('*', { count: 'exact', head: true }).eq('follower_id', session.user.id),
     ]);
     followers = followersCount ?? 0;
     following = followingCount ?? 0;

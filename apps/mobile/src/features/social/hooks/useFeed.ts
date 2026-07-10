@@ -25,6 +25,7 @@ export function useFeed() {
   const [userId, setUserId] = useState<string | null>(null);
 
   const loadingMoreRef = useRef(false);
+  const kudosInFlightRef = useRef(new Set<string>());
 
   const loadTab = useCallback(async (tab: Tab, refresh = false, uid?: string) => {
     const isDiscover = tab === 'discover';
@@ -90,10 +91,15 @@ export function useFeed() {
   };
 
   const toggleKudos = useCallback(async (postId: string) => {
+    // Without this, rapid tap-spam fires multiple concurrent toggle_like RPCs
+    // whose out-of-order responses can leave the wrong final state on screen.
+    if (kudosInFlightRef.current.has(postId)) return;
+    kudosInFlightRef.current.add(postId);
+
     const post =
       followingPosts.find(p => p.id === postId) ??
       discoverPosts.find(p  => p.id === postId);
-    if (!post) return;
+    if (!post) { kudosInFlightRef.current.delete(postId); return; }
 
     const optimistic: FeedPost = {
       ...post,
@@ -107,16 +113,24 @@ export function useFeed() {
       updateBothLists(postId, p => ({ ...p, hasKudos: liked, kudosCount: count }));
     } catch {
       updateBothLists(postId, () => post);
+    } finally {
+      kudosInFlightRef.current.delete(postId);
     }
   }, [followingPosts, discoverPosts]);
 
   const toggleFollow = useCallback(async (targetId: string) => {
     if (!userId || targetId === userId) return;
-    setFollowingIds(prev =>
-      prev.includes(targetId) ? prev.filter(id => id !== targetId) : [...prev, targetId],
-    );
-    await toggleFollowService(targetId);
-  }, [userId]);
+    const wasFollowing = followingIds.includes(targetId);
+    setFollowingIds(prev => wasFollowing ? prev.filter(id => id !== targetId) : [...prev, targetId]);
+    try {
+      await toggleFollowService(targetId);
+    } catch {
+      // Revert — toggleFollowService now throws on failure instead of silently
+      // no-oping, so a failed request no longer leaves the UI desynced from the
+      // server until the next full refresh.
+      setFollowingIds(prev => wasFollowing ? [...prev, targetId] : prev.filter(id => id !== targetId));
+    }
+  }, [userId, followingIds]);
 
   const refresh = useCallback(async (tab: Tab) => {
     setRefreshing(true);

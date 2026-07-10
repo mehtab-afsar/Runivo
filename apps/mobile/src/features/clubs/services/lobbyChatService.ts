@@ -1,11 +1,5 @@
 import { supabase } from '@shared/services/supabase';
 
-export interface MessageReaction {
-  emoji: string;
-  count: number;
-  hasMe: boolean;
-}
-
 export interface LobbyMessage {
   id: string;
   userId: string;
@@ -13,20 +7,22 @@ export interface LobbyMessage {
   userLevel: number;
   message: string;
   timestamp: string;
-  reactions?: MessageReaction[];
 }
 
-export async function fetchMessages(roomId: string): Promise<LobbyMessage[]> {
+// lobby_messages.lobby_id is a UUID FK to lobbies(id) — there is no room_id column
+// and no username column (joined from profiles instead). See the migration seeding
+// the 5 public discovery rooms this screen references by id.
+export async function fetchMessages(lobbyId: string): Promise<LobbyMessage[]> {
   const { data, error } = await supabase
     .from('lobby_messages')
     .select('id, user_id, content, created_at, profiles(username, level)')
-    .eq('room_id', roomId)
-    .order('created_at', { ascending: true })
+    .eq('lobby_id', lobbyId)
+    .order('created_at', { ascending: false })
     .limit(60);
 
   if (error) throw error;
 
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).reverse().map((row: any) => ({
     id: row.id,
     userId: row.user_id,
     userName: row.profiles?.username ?? 'Runner',
@@ -36,57 +32,32 @@ export async function fetchMessages(roomId: string): Promise<LobbyMessage[]> {
   }));
 }
 
-export async function reactToMessage(
-  messageId: string,
-  emoji: string,
-  userId: string,
-): Promise<void> {
-  // Try upsert — silently fails if table doesn't exist yet
-  try {
-    const { data: existing } = await supabase
-      .from('lobby_message_reactions')
-      .select('id')
-      .eq('message_id', messageId)
-      .eq('user_id', userId)
-      .eq('emoji', emoji)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase.from('lobby_message_reactions').delete()
-        .eq('message_id', messageId).eq('user_id', userId).eq('emoji', emoji);
-    } else {
-      await supabase.from('lobby_message_reactions').insert({ message_id: messageId, user_id: userId, emoji });
-    }
-  } catch { /* table may not exist — ignore */ }
-}
-
 export async function sendMessage(
-  roomId: string,
+  lobbyId: string,
   userId: string,
-  username: string,
   content: string,
 ): Promise<void> {
-  await supabase.from('lobby_messages').insert({
-    room_id: roomId,
+  const { error } = await supabase.from('lobby_messages').insert({
+    lobby_id: lobbyId,
     user_id: userId,
     content,
-    username,
   });
+  if (error) throw error;
 }
 
 export function subscribeToMessages(
-  roomId: string,
+  lobbyId: string,
   onMessage: (msg: LobbyMessage) => void,
 ): () => void {
   const channel = supabase
-    .channel(`lobby-${roomId}`)
+    .channel(`lobby-${lobbyId}`)
     .on(
       'postgres_changes',
       {
         event: 'INSERT',
         schema: 'public',
         table: 'lobby_messages',
-        filter: `room_id=eq.${roomId}`,
+        filter: `lobby_id=eq.${lobbyId}`,
       },
       async (payload) => {
         const row = payload.new as {

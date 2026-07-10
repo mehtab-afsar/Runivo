@@ -21,8 +21,8 @@ interface FollowingEntry {
 
 async function loadFollowing(targetUserId: string): Promise<FollowingEntry[]> {
   const { data } = await supabase
-    .from('follows')
-    .select('following_id, profiles!follows_following_id_fkey(id, username, display_name, runner_rank)')
+    .from('followers')
+    .select('following_id, profiles!followers_following_id_fkey(id, username, display_name, runner_rank)')
     .eq('follower_id', targetUserId);
   if (!data) return [];
   return data.map((row: any) => {
@@ -69,9 +69,11 @@ export default function FollowingScreen() {
 
   const unfollow = useCallback(async (entry: FollowingEntry) => {
     if (!currentUserId) return;
-    setEntries(prev => prev.filter(e => e.userId !== entry.userId));
-    await supabase.from('follows').delete().eq('follower_id', currentUserId).eq('following_id', entry.userId);
-  }, [currentUserId]);
+    const prev = entries;
+    setEntries(entries.filter(e => e.userId !== entry.userId));
+    const { error } = await supabase.from('followers').delete().eq('follower_id', currentUserId).eq('following_id', entry.userId);
+    if (error) setEntries(prev); // revert on failure — supabase-js doesn't throw
+  }, [currentUserId, entries]);
 
   const isOwn = currentUserId === userId;
 

@@ -51,9 +51,12 @@ export default function UserProfileScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsOwnProfile(session.user.id === userId);
+        // followers has no `id` column (composite PK on follower_id/following_id) —
+        // selecting 'id' always errored, so this always resolved undefined and
+        // isFollowing was permanently stuck false regardless of real state.
         const { data: follow } = await supabase
           .from('followers')
-          .select('id')
+          .select('follower_id')
           .eq('follower_id', session.user.id)
           .eq('following_id', userId)
           .maybeSingle();
@@ -68,13 +71,10 @@ export default function UserProfileScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session || session.user.id === userId) return;
     setFollowLoading(true);
-    if (isFollowing) {
-      await supabase.from('followers').delete().eq('follower_id', session.user.id).eq('following_id', userId);
-      setIsFollowing(false);
-    } else {
-      await supabase.from('followers').insert({ follower_id: session.user.id, following_id: userId });
-      setIsFollowing(true);
-    }
+    const { error } = isFollowing
+      ? await supabase.from('followers').delete().eq('follower_id', session.user.id).eq('following_id', userId)
+      : await supabase.from('followers').insert({ follower_id: session.user.id, following_id: userId });
+    if (!error) setIsFollowing(!isFollowing); // don't flip UI on a failed write
     setFollowLoading(false);
   };
 

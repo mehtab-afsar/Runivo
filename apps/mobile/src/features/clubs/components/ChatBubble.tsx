@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
 import { Fonts, useTheme, type AppColors } from '@theme';
@@ -11,15 +11,13 @@ function formatTime(iso: string) {
 interface Props {
   message: LobbyMessage;
   isOwn: boolean;
-  onLongPress?: () => void;
 }
 
-export function ChatBubble({ message, isOwn, onLongPress }: Props) {
+export function ChatBubble({ message, isOwn }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const bg = avatarColor(message.userName);
   const initials = message.userName.slice(0, 2).toUpperCase();
-  const hasReactions = (message.reactions?.length ?? 0) > 0;
 
   return (
     <View style={[s.wrap, isOwn && s.wrapMe]}>
@@ -37,21 +35,9 @@ export function ChatBubble({ message, isOwn, onLongPress }: Props) {
             </View>
           </View>
         )}
-        <Pressable onLongPress={onLongPress} delayLongPress={300}>
-          <View style={[s.bubble, isOwn ? s.bubbleMe : s.bubbleThem]}>
-            <Text style={[s.msgText, isOwn && s.msgTextMe]}>{message.message}</Text>
-          </View>
-        </Pressable>
-        {hasReactions && (
-          <View style={[s.reactionRow, isOwn && s.reactionRowMe]}>
-            {message.reactions!.map(r => (
-              <View key={r.emoji} style={[s.reactionBadge, r.hasMe && s.reactionBadgeMe]}>
-                <Text style={s.reactionEmoji}>{r.emoji}</Text>
-                {r.count > 1 && <Text style={s.reactionCount}>{r.count}</Text>}
-              </View>
-            ))}
-          </View>
-        )}
+        <View style={[s.bubble, isOwn ? s.bubbleMe : s.bubbleThem]}>
+          <Text style={[s.msgText, isOwn && s.msgTextMe]}>{message.message}</Text>
+        </View>
         <Text style={[s.time, isOwn && s.timeMe]}>{formatTime(message.timestamp)}</Text>
       </View>
       {isOwn && <View style={{ width: 30 }} />}
@@ -76,12 +62,6 @@ function mkStyles(C: AppColors) {
   bubbleThem:      { backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, borderBottomLeftRadius: 4 },
   msgText:         { fontFamily: Fonts.regular, fontSize: 14, color: C.t1, lineHeight: 20 },
   msgTextMe:       { color: C.white },
-  reactionRow:     { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4, paddingLeft: 2 },
-  reactionRowMe:   { paddingLeft: 0, paddingRight: 2, justifyContent: 'flex-end' },
-  reactionBadge:   { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border },
-  reactionBadgeMe: { backgroundColor: 'rgba(217,53,24,0.12)', borderColor: 'rgba(217,53,24,0.3)' },
-  reactionEmoji:   { fontSize: 12 },
-  reactionCount:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
   time:            { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 3, paddingLeft: 2 },
   timeMe:          { paddingLeft: 0, paddingRight: 2 },
   });

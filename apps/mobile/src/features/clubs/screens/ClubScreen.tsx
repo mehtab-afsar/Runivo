@@ -11,7 +11,7 @@ import {
   MapPin, Globe, Flag, Pulse, Users, X, Plus, Check,
   Fire, Lightning, Trophy, Shield, NavigationArrow, Barbell, Target, Medal,
   Rocket, Star, Sword, Waves, Mountains, Diamond, Crown, Leaf,
-  Footprints, Bicycle, UserCheck, Lock, ArrowLeft, Seal,
+  Footprints, Bicycle, Lock, ArrowLeft, Seal,
   type Icon,
 } from 'phosphor-react-native';
 import { useClubs } from '@features/clubs/hooks/useClubs';
@@ -25,7 +25,10 @@ import { useTheme, Colors, Fonts, Type, type AppColors } from '@theme';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ClubTab = 'my_clubs' | 'rankings';
 type RankingScope = 'local' | 'national' | 'international';
-type JoinPolicy = 'open' | 'request' | 'invite';
+// Matches the DB CHECK constraint on clubs.join_policy exactly (migration 005) —
+// it only allows these two values. The UI previously offered a third 'request'
+// option that could never be saved (createClub always failed the CHECK for it).
+type JoinPolicy = 'open' | 'invite_only';
 
 const CLUB_TIERS: { bg: string; fg: string; label: string; minKm: number }[] = [
   { bg: '#F1EFE8', fg: '#5F5E5A', label: 'Local',    minKm: 0    },
@@ -68,9 +71,8 @@ const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; lab
 ];
 
 const JOIN_POLICIES: { value: JoinPolicy; label: string; desc: string; Icon: Icon; color: string }[] = [
-  { value: 'open',    label: 'Open',     desc: 'Anyone can join',        Icon: Users,     color: '#059669' },
-  { value: 'request', label: 'Request',  desc: 'Approve new members',    Icon: UserCheck, color: Colors.gold },
-  { value: 'invite',  label: 'Invite',   desc: 'Invitation required',    Icon: Lock,      color: Colors.purple },
+  { value: 'open',        label: 'Open',    desc: 'Anyone can join',                Icon: Users, color: '#059669' },
+  { value: 'invite_only', label: 'Request', desc: 'Members must request to join',   Icon: Lock,  color: Colors.purple },
 ];
 
 function RankingRow({ club, rank, onPress, isLast }: { club: Club; rank: number; onJoin: () => void; onLeave: () => void; onPress: () => void; isLast?: boolean }) {

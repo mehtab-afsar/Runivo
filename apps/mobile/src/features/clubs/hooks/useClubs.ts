@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@shared/services/supabase';
-import { fetchClubs, joinClub, leaveClub, createClub } from '@features/clubs/services/clubService';
+import { fetchClubs, joinClub, leaveClub, createClub, requestToJoinClub } from '@features/clubs/services/clubService';
 import type { Club } from '@features/clubs/types';
 
 export function useClubs() {
@@ -27,10 +27,15 @@ export function useClubs() {
   const handleJoinClub = useCallback(async (club: Club) => {
     if (!userId) return;
     if (club.join_policy !== 'open') {
-      Alert.alert('Request sent', 'The club owner will review your request.');
+      const { ok } = await requestToJoinClub(club.id, userId);
+      Alert.alert(
+        ok ? 'Request sent' : 'Something went wrong',
+        ok ? 'The club owner will review your request.' : 'Please try again.',
+      );
       return;
     }
-    await joinClub(club.id, userId);
+    const { error } = await joinClub(club.id, userId);
+    if (error) { Alert.alert('Something went wrong', 'Please try again.'); return; }
     setClubs((prev) =>
       prev.map((c) =>
         c.id === club.id ? { ...c, joined: true, member_count: c.member_count + 1 } : c,
@@ -63,7 +68,7 @@ export function useClubs() {
     name: string,
     description: string,
     badgeEmoji: string,
-    joinPolicy: 'open' | 'request' | 'invite',
+    joinPolicy: 'open' | 'invite_only',
   ) => {
     if (!userId) return false;
     const newClub = await createClub(userId, name, description, badgeEmoji, joinPolicy);

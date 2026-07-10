@@ -31,16 +31,18 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
   const [comments, setComments]   = useState<Comment[]>([]);
   const [text, setText]           = useState('');
   const [loading, setLoading]     = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [sending, setSending]     = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (!postId) { setComments([]); return; }
     setLoading(true);
-    getComments(postId).then(data => {
-      setComments(data);
-      setLoading(false);
-    });
+    setLoadError(false);
+    getComments(postId)
+      .then(data => setComments(data))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
   }, [postId]);
 
   const handleSend = useCallback(async () => {
@@ -112,6 +114,8 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
 
         {loading ? (
           <View style={s.center}><ActivityIndicator color={C.red} /></View>
+        ) : loadError ? (
+          <View style={s.center}><Text style={s.empty}>Couldn't load comments.</Text></View>
         ) : (
           <FlatList
             data={comments}
