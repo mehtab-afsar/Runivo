@@ -1,21 +1,9 @@
+import { haversineM } from '@shared/services/claimEngine';
+
 export interface RouteProgress {
   closestIdx:          number;
   distanceToRouteM:    number;
   distanceRemainingM:  number;
-}
-
-function haversineM(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
-  const R = 6_371_000;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLng = (b.lng - a.lng) * Math.PI / 180;
-  const sinLat = Math.sin(dLat / 2);
-  const sinLng = Math.sin(dLng / 2);
-  const aa = sinLat * sinLat
-    + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinLng * sinLng;
-  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
 }
 
 export function computeRouteProgress(

@@ -66,7 +66,10 @@ serve(async (req) => {
       return new Response('Database update failed', { status: 500 });
     }
 
-    console.log(`Subscription updated: user=${userId} tier=${tier} expires=${expiresAt}`);
+    // Structured log, no raw string interpolation of user identifiers — keeps
+    // operational logs machine-parseable without embedding PII-adjacent data
+    // (user id) directly into free-text log lines.
+    console.log({ event: 'subscription_updated', userId, tier, expiresAt });
   }
 
   return new Response(JSON.stringify({ received: true }), {

@@ -108,7 +108,8 @@ serve(async (req) => {
     return new Response('DB error', { status: 500 });
   }
 
-  console.log(`[rc-webhook] ${userId} → ${newTier} (event: ${eventType})`);
+  // Structured log — see stripe-webhook's identical fix for rationale.
+  console.log({ source: 'rc-webhook', userId, newTier, eventType });
 
   return new Response(JSON.stringify({ ok: true, tier: newTier }), {
     headers: { 'Content-Type': 'application/json' },

@@ -204,17 +204,18 @@ export function useGameEngine() {
       const today = localDateString();
       const yesterday = localDateString(new Date(Date.now() - GAME_CONFIG.MS_PER_DAY));
       const oldStreak = freshPlayer.streakDays;
-      // A session shorter than this didn't happen as far as streak/PACE is concerned —
-      // matches the "haven't run far enough" warning ActiveRunScreen already shows
-      // before letting the user end early. Without this gate, ending a run immediately
-      // still counted as "today's run": it bumped/initialized the streak AND earned the
-      // flat PACE_STREAK_BONUS purely from streakDays > 0, regardless of the player's
-      // real streak — a zero-effort farming exploit. A run that fails this check keeps
-      // whatever streak/lastRunDate the player already had; it just doesn't get credit.
-      const meetsMinimumEffort = !(
-        runData.distanceMeters < GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M &&
-        runData.durationSec    < GAME_CONFIG.MIN_MEANINGFUL_RUN_DURATION_S
-      );
+      // A session that didn't cover real distance doesn't count toward streak/PACE,
+      // regardless of how long it lasted — a distance floor, not an OR with duration.
+      // (ActiveRunScreen's "haven't run far enough" nag and PostRunInsightsCard use
+      // the AND form deliberately — they're just warning the user before they end
+      // early, not gating credit, so a while spent moving slowly is fine there.) The
+      // credit gate needs the stricter distance-only floor: `!(distance < X AND
+      // duration < Y)` is equivalent to `distance >= X OR duration >= Y`, so a long,
+      // near-stationary session (GPS drift over 30+ min) satisfied the duration half
+      // alone and still farmed a streak bump with ~0 real distance. A run that fails
+      // this check keeps whatever streak/lastRunDate the player already had; it just
+      // doesn't get credit.
+      const meetsMinimumEffort = runData.distanceMeters >= GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M;
       let newStreak = oldStreak;
       let newLastRunDate = freshPlayer.lastRunDate;
       if (meetsMinimumEffort) {

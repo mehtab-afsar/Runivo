@@ -50,8 +50,12 @@ export interface RunPACEResult {
 }
 
 // ── Haversine distance ─────────────────────────────────────────────────────────
+// Canonical implementation — this was duplicated (with varying signatures: object
+// args here vs. 4 loose lat/lng numbers elsewhere) across useActiveRun.ts,
+// RunScreen.tsx, and routeNavigation.ts. Exported so all three can import instead
+// of re-implementing.
 
-function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+export function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6_371_000;
   const dLat = (b.lat - a.lat) * Math.PI / 180;
   const dLng = (b.lng - a.lng) * Math.PI / 180;
@@ -331,7 +335,15 @@ export function calculateRunPACE(params: {
   const fromDistance    = Math.floor(distanceKm * GAME_CONFIG.PACE_PER_KM);
   const fromNewZones    = newZonesClaimed * GAME_CONFIG.PACE_PER_NEW_ZONE;
   const fromStolenZones = stolenZones    * GAME_CONFIG.PACE_PER_STOLEN_ZONE;
-  const fromStreak      = streakDays > 0 ? GAME_CONFIG.PACE_STREAK_BONUS : 0;
+  // Weekly milestone bonus (7th, 14th, 21st... streak day) — must match the
+  // server's rule exactly (process-run-territory/index.ts's streakBonus calc,
+  // which is authoritative via apply_pace_adjustment). This used to award the
+  // bonus on ANY day with an active streak (streakDays > 0), which is true for
+  // nearly every run once a streak exists — the optimistic local credit showed
+  // +3 that then silently vanished on every non-multiple-of-7 day once the
+  // server's sync reconciliation corrected it down, and the ~3 PACE gap tripped
+  // the anti-cheat discrepancy log (threshold 2) on almost every streak day.
+  const fromStreak      = streakDays > 0 && streakDays % 7 === 0 ? GAME_CONFIG.PACE_STREAK_BONUS : 0;
 
   const raw       = fromDistance + fromNewZones + fromStolenZones + fromStreak;
   const paceEarned = Math.min(raw, remaining);

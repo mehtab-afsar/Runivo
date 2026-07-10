@@ -16,6 +16,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import * as SQLite from 'expo-sqlite';
 import { AppState } from 'react-native';
+import { GAME_CONFIG } from '@shared/services/config';
 
 // ─── Task name ────────────────────────────────────────────────────────────────
 export const BACKGROUND_LOCATION_TASK = 'runivo-background-location';
@@ -139,7 +140,7 @@ TaskManager.defineTask(
       // Same accuracy gate the foreground watcher applies (useActiveRun.ts) — without
       // it, a signal-poor background stretch (pocket, tunnel) injects zigzag noise
       // straight into distance on exactly the path where GPS is least reliable.
-      if ((loc.coords.accuracy ?? 100) > 30) continue;
+      if ((loc.coords.accuracy ?? 100) > GAME_CONFIG.GPS_LIVE_ACCURACY_THRESHOLD_M) continue;
       appendBgGpsPoint(
         activeRunId,
         loc.coords.latitude,

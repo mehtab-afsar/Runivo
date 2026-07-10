@@ -48,7 +48,7 @@ export function useEvents(): EventsState {
     // Optimistic update
     setJoinedIds(prev => {
       const next = new Set(prev);
-      isJoined ? next.delete(eventId) : next.add(eventId);
+      if (isJoined) next.delete(eventId); else next.add(eventId);
       return next;
     });
     setEvents(prev => prev.map(e =>
@@ -61,7 +61,7 @@ export function useEvents(): EventsState {
       // Revert optimistic update on failure
       setJoinedIds(prev => {
         const next = new Set(prev);
-        isJoined ? next.add(eventId) : next.delete(eventId);
+        if (isJoined) next.add(eventId); else next.delete(eventId);
         return next;
       });
     }

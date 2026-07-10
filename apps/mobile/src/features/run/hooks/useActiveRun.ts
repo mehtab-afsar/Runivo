@@ -11,6 +11,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { feedback } from '@theme';
 import { track } from '@shared/services/analytics';
 import { useGameEngine } from '@shared/hooks/useGameEngine';
+import { GAME_CONFIG } from '@shared/services/config';
+import { haversineM } from '@shared/services/claimEngine';
+import { formatPace } from '@shared/lib/paceFormat';
 import {
   startBackgroundTracking,
   stopBackgroundTracking,
@@ -68,24 +71,6 @@ interface ActiveRunState {
   gpsError: string | null;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatPace(kmPerSec: number): string {
-  if (kmPerSec <= 0) return '0:00';
-  const secPerKm = 1 / kmPerSec;
-  const minutes = Math.floor(secPerKm / 60);
-  const seconds = Math.floor(secPerKm % 60);
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useActiveRun(activityType: string = 'run') {
@@ -187,7 +172,7 @@ export function useActiveRun(activityType: string = 'run') {
           for (const pt of bgPoints) {
             const prev = lastPositionRef.current;
             if (prev) {
-              const d = haversineM(prev.lat, prev.lng, pt.lat, pt.lng);
+              const d = haversineM(prev, pt);
               if (d < 100 && d >= 1) {
                 totalDistanceRef.current += d / 1000;
               }
@@ -276,8 +261,11 @@ export function useActiveRun(activityType: string = 'run') {
         const now = Date.now();
         const gpsSpeed = speed ?? 0;
 
-        // Skip low-accuracy points (same threshold as claim engine)
-        if ((accuracy ?? 100) > 30) {
+        // Skip low-accuracy points — stricter than claimEngine's post-run filter
+        // (GPS_ACCURACY_THRESHOLD_M, 50m) since a bad point here immediately
+        // inflates the live distance/pace the user sees, with no smoothing pass
+        // to absorb it.
+        if ((accuracy ?? 100) > GAME_CONFIG.GPS_LIVE_ACCURACY_THRESHOLD_M) {
           consecutiveGoodPointsRef.current = 0;
           return;
         }
@@ -294,10 +282,8 @@ export function useActiveRun(activityType: string = 'run') {
         let deltaKm = 0;
         if (lastPositionRef.current) {
           const d = haversineM(
-            lastPositionRef.current.lat,
-            lastPositionRef.current.lng,
-            latitude,
-            longitude,
+            lastPositionRef.current,
+            { lat: latitude, lng: longitude },
           );
           if (d >= 100) {
             // GPS teleport / bad lock — skip
@@ -312,15 +298,21 @@ export function useActiveRun(activityType: string = 'run') {
         }
         lastPositionRef.current = { lat: latitude, lng: longitude };
 
-        // Accumulate elevation gain (>0.5m threshold filters out GPS altitude noise)
-        const alt = altitude ?? 0;
-        if (prevAltitudeRef.current !== null && alt > prevAltitudeRef.current + 0.5) {
-          elevationGainRef.current += alt - prevAltitudeRef.current;
+        // Accumulate elevation gain (>0.5m threshold filters out GPS altitude noise).
+        // altitude is commonly null on the first fix or two (no 3D lock yet) — coercing
+        // it to 0 used to record a fake "sea level" prior reading, so the first REAL
+        // altitude (e.g. 40m) registered as a one-time +40m gain spike. Only track
+        // deltas between two genuine altitude readings; skip (don't zero-fill) samples
+        // where altitude is unavailable.
+        if (altitude !== null && altitude !== undefined) {
+          if (prevAltitudeRef.current !== null && altitude > prevAltitudeRef.current + 0.5) {
+            elevationGainRef.current += altitude - prevAltitudeRef.current;
+          }
+          prevAltitudeRef.current = altitude;
         }
-        prevAltitudeRef.current = alt;
 
         if (!isFinite(latitude) || !isFinite(longitude)) return;
-        gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10, altitude: alt });
+        gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10, altitude: altitude ?? 0 });
 
         // Throttle React state updates to max 1/sec
         if (now - lastGpsStateUpdateRef.current < 1000) return;
@@ -403,7 +395,7 @@ export function useActiveRun(activityType: string = 'run') {
       for (const pt of bgTail) {
         const prev = lastPositionRef.current;
         if (prev) {
-          const d = haversineM(prev.lat, prev.lng, pt.lat, pt.lng);
+          const d = haversineM(prev, pt);
           if (d < 100 && d >= 1) totalDistanceRef.current += d / 1000;
         }
         lastPositionRef.current = { lat: pt.lat, lng: pt.lng };

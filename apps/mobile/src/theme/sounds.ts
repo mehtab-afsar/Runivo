@@ -6,7 +6,6 @@
  */
 import { Audio } from 'expo-av';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const SOUND_FILES = {
   gps_locked:   require('../../assets/sounds/gps_locked.mp3'),
   run_start:    require('../../assets/sounds/run_start.mp3'),

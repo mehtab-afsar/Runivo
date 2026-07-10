@@ -6,7 +6,15 @@ export const GAME_CONFIG = {
   LOOP_MAX_AREA_M2: 500_000,
   MIN_TERRITORY_DIST_M: 200,
   MIN_GPS_POINTS: 20,
+  // Post-run territory-polygon filtering (claimEngine.filterPoints) — lenient,
+  // since the trace gets Kalman-smoothed and RDP-simplified afterward.
   GPS_ACCURACY_THRESHOLD_M: 50,
+  // Live run-tracking gate (useActiveRun's foreground watcher + the background
+  // location task) — stricter, since a bad point directly and immediately
+  // inflates the distance/pace the user sees in real time. Deliberately
+  // different from GPS_ACCURACY_THRESHOLD_M above; single-sourced here so the
+  // two call sites can't drift from each other (they used separate 30 literals).
+  GPS_LIVE_ACCURACY_THRESHOLD_M: 30,
   GPS_VARIANCE_MIN: 2.0,
 
   // Freshness

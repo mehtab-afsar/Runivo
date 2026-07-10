@@ -7,7 +7,7 @@ import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { GPSPoint } from '../hooks/useActiveRun';
 import { kalmanSmooth } from '@shared/services/claimEngine';
-import { Fonts } from '@theme';
+import { Fonts, useTheme, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 
@@ -32,6 +32,8 @@ function buildLineString(pts: { lat: number; lng: number }[]) {
 }
 
 export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoints, closestIdx = 0 }: Props) {
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const cameraRef = useRef<any>(null);
   const latest = gpsPoints.length > 0 ? gpsPoints[gpsPoints.length - 1] : null;
 
@@ -166,9 +168,15 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
   );
 }
 
-const ss = StyleSheet.create({
-  map:          { flex: 1 },
-  fallback:     { flex: 1, backgroundColor: '#1A1A2E', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  fallbackText: { fontFamily: Fonts.regular, fontSize: 13, color: '#6B7280' },
-  fallbackSub:  { fontFamily: Fonts.regular, fontSize: 11, color: '#4B5563' },
-});
+// The run map always uses a dark tile style (DARK_STYLE above) regardless of the
+// app's light/dark theme setting, so the fallback view intentionally uses the
+// always-dark tokens (matching ActiveRunScreen's HUD sections) rather than C.bg,
+// which would flip white in light mode and clash with the map underneath.
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    map:          { flex: 1 },
+    fallback:     { flex: 1, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', gap: 6 },
+    fallbackText: { fontFamily: Fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.6)' },
+    fallbackSub:  { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  });
+}

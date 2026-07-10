@@ -16,24 +16,8 @@ import ActivityModal from '../components/ActivityModal';
 import RouteModal    from '../components/RouteModal';
 import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint, type GPSPoint } from '../hooks/useActiveRun';
 import { stopBackgroundTracking, clearBgGpsBuffer, cleanupOrphanedBackgroundTask } from '../services/locationTask';
-
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatPace(kmPerSec: number): string {
-  if (kmPerSec <= 0) return '0:00';
-  const secPerKm = 1 / kmPerSec;
-  const minutes = Math.floor(secPerKm / 60);
-  const seconds = Math.floor(secPerKm % 60);
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
+import { haversineM } from '@shared/services/claimEngine';
+import { formatPace } from '@shared/lib/paceFormat';
 
 /**
  * Reconstructs a full run from a crash checkpoint's raw GPS points and saves it
@@ -50,7 +34,7 @@ async function recoverRunFromCheckpoint(
 ): Promise<void> {
   let distanceM = 0;
   for (let i = 1; i < points.length; i++) {
-    const d = haversineM(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
+    const d = haversineM(points[i - 1], points[i]);
     if (d >= 1 && d < 100) distanceM += d;
   }
   const endTime = points[points.length - 1]?.timestamp ?? Date.now();

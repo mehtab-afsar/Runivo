@@ -11,7 +11,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 let AudioModule: any = null;
 try {
   // Dynamic require so missing native module doesn't crash import
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   AudioModule = require('expo-av').Audio;
 } catch { /* expo-av not available — sounds disabled */ }
 
