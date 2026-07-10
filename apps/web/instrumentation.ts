@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs';
+
 // Next.js instrumentation hook — runs once per server/edge runtime on boot.
 // Loads the matching Sentry config so server and edge requests are both captured.
 export async function register() {
@@ -8,3 +10,5 @@ export async function register() {
     await import('./sentry.edge.config');
   }
 }
+
+export const onRequestError = Sentry.captureRequestError;

@@ -21,8 +21,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: false,
-    bundleIdentifier: 'com.runivo.app',
+    // Must match the identity actually registered with EAS (projectId below) —
+    // this used to be 'com.runivo.app' while the real EAS project was
+    // registered under 'com.mehtabafsar.runivo' via a stray root-level
+    // app.json, so `eas build` from this directory (the real Expo project
+    // root) would fail projectId validation, or building from the repo root
+    // would ship a binary with none of the permission strings below.
+    bundleIdentifier: 'com.mehtabafsar.runivo',
     infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
         'Runivo uses your location to track your run and claim territory.',
       NSLocationAlwaysAndWhenInUseUsageDescription:
@@ -44,7 +51,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
-    package: 'com.runivo.app',
+    package: 'com.mehtabafsar.runivo',
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundColor: '#0A0A0A',
@@ -148,12 +155,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     eas: {
-      // Replace with the UUID from `eas init` after running `eas build:configure`
-      projectId: process.env.EAS_PROJECT_ID ?? 'REPLACE_WITH_EAS_PROJECT_ID',
+      // The real EAS project id (registered under com.mehtabafsar.runivo).
+      projectId: process.env.EAS_PROJECT_ID ?? '024aa932-e299-4d0c-bc08-bacb7617274a',
     },
   },
   updates: {
-    url: 'https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID',
+    url: 'https://u.expo.dev/024aa932-e299-4d0c-bc08-bacb7617274a',
     enabled: true,
     checkAutomatically: 'ON_LOAD',
     fallbackToCacheTimeout: 0,

@@ -180,13 +180,15 @@ function EventsSection() {
   };
 
   const toggleActive = async (row: EventRow) => {
-    await supabase.from('events').update({ is_active: !row.is_active }).eq('id', row.id);
+    const { error: err } = await supabase.from('events').update({ is_active: !row.is_active }).eq('id', row.id);
+    if (err) { setError(err.message); return; }
     setEvents(prev => prev.map(e => e.id === row.id ? { ...e, is_active: !e.is_active } : e));
   };
 
   const del = async (id: string) => {
     setDeletingId(id);
-    await supabase.from('events').delete().eq('id', id);
+    const { error: err } = await supabase.from('events').delete().eq('id', id);
+    if (err) { setError(err.message); setDeletingId(null); return; }
     setEvents(prev => prev.filter(e => e.id !== id));
     setDeletingId(null);
   };
@@ -436,13 +438,15 @@ function PromotionsSection() {
   };
 
   const toggleActive = async (row: PromoRow) => {
-    await supabase.from('promotions').update({ is_active: !row.is_active }).eq('id', row.id);
+    const { error: err } = await supabase.from('promotions').update({ is_active: !row.is_active }).eq('id', row.id);
+    if (err) { setError(err.message); return; }
     setPromos(prev => prev.map(p => p.id === row.id ? { ...p, is_active: !p.is_active } : p));
   };
 
   const del = async (id: string) => {
     setDeletingId(id);
-    await supabase.from('promotions').delete().eq('id', id);
+    const { error: err } = await supabase.from('promotions').delete().eq('id', id);
+    if (err) { setError(err.message); setDeletingId(null); return; }
     setPromos(prev => prev.filter(p => p.id !== id));
     setDeletingId(null);
   };
@@ -764,7 +768,8 @@ function StoreSection() {
 
   const del = async (id: string) => {
     setDeletingId(id);
-    await supabase.from('pace_store_rewards').delete().eq('id', id);
+    const { error: err } = await supabase.from('pace_store_rewards').delete().eq('id', id);
+    if (err) { setError(err.message); setDeletingId(null); return; }
     setRewards(prev => prev.filter(r => r.id !== id));
     setDeletingId(null);
   };
@@ -775,10 +780,12 @@ function StoreSection() {
     const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
     const swap = sorted[swapIdx];
-    await Promise.all([
+    const results = await Promise.all([
       supabase.from('pace_store_rewards').update({ sort_order: swap.sort_order }).eq('id', row.id),
       supabase.from('pace_store_rewards').update({ sort_order: row.sort_order }).eq('id', swap.id),
     ]);
+    const err = results.find(r => r.error)?.error;
+    if (err) { setError(err.message); return; }
     await load();
   };
 
@@ -961,30 +968,86 @@ function StoreSection() {
 
 // ─── Main Admin page ──────────────────────────────────────────────────────────
 
-type AccessState = 'loading' | 'granted' | 'denied';
+type AccessState = 'loading' | 'granted' | 'denied' | 'signed_out';
 
 export default function AdminPage() {
   const router = useRouter();
   const [access, setAccess] = useState<AccessState>('loading');
   const [tab, setTab] = useState<AdminTab>('events');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [signInError, setSignInError] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setAccess('denied'); return; }
-      const { data } = await supabase
-        .from('profiles')
-        .select('subscription_tier')
-        .eq('id', session.user.id)
-        .single();
-      setAccess(data?.subscription_tier === 'admin' ? 'granted' : 'denied');
-    })();
-  }, []);
+  const checkAccess = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setAccess('signed_out'); return; }
+    const { data } = await supabase
+      .from('profiles')
+      .select('subscription_tier')
+      .eq('id', session.user.id)
+      .single();
+    setAccess(data?.subscription_tier === 'admin' ? 'granted' : 'denied');
+  };
+
+  useEffect(() => { checkAccess(); }, []);
+
+  const handleSignIn = async () => {
+    setSigningIn(true);
+    setSignInError(null);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setSignInError(error.message);
+      setSigningIn(false);
+      return;
+    }
+    setSigningIn(false);
+    await checkAccess();
+  };
 
   if (access === 'loading') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-7 h-7 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(200,57,26,0.15)', borderTopColor: '#C8391A' }} />
+      </div>
+    );
+  }
+
+  if (access === 'signed_out') {
+    return (
+      <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center px-6 text-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center">
+          <ShieldAlert className="w-7 h-7 text-gray-500" />
+        </div>
+        <div>
+          <h1 className="text-lg font-bold text-gray-900 mb-1">Admin sign in</h1>
+          <p className="text-sm text-gray-400 max-w-xs">Sign in with your admin account to continue.</p>
+        </div>
+        <div className="w-full max-w-xs flex flex-col gap-2 mt-2">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-gray-400"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleSignIn(); }}
+            className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-gray-400"
+          />
+          {signInError && <p className="text-xs text-red-500 text-left">{signInError}</p>}
+          <button
+            onClick={handleSignIn}
+            disabled={signingIn || !email || !password}
+            className="mt-1 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold disabled:opacity-40"
+          >
+            {signingIn ? 'Signing in…' : 'Sign in'}
+          </button>
+        </div>
       </div>
     );
   }

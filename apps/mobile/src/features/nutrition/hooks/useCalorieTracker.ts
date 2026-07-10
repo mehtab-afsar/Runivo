@@ -141,9 +141,10 @@ export function useCalorieTracker() {
   );
 
   const handleDeleteEntry = useCallback(async (id: number) => {
-    await deleteEntry(id);
+    const remoteId = entries.find(e => e.id === id)?.remoteId;
+    await deleteEntry(id, remoteId);
     setEntries(prev => prev.filter(e => e.id !== id));
-  }, []);
+  }, [entries]);
 
   const openAdd = useCallback((meal: Meal) => {
     setDefaultMeal(meal);

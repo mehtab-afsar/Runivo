@@ -21,6 +21,11 @@
       "channel": "preview",
       "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
+        "EXPO_PUBLIC_SENTRY_DSN": ""
       }
     },
     "production": {
@@ -32,6 +37,11 @@
       "android": {
         "autoIncrement": true,
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
+        "EXPO_PUBLIC_SENTRY_DSN": ""
       }
     }
   },
@@ -42,7 +52,7 @@
         "ascAppId": "",
         "appleTeamId": "",
         "language": "en-US",
-        "sku": "com.runivo.app"
+        "sku": "com.mehtabafsar.runivo"
       },
       "android": {
         "serviceAccountKeyPath": "./google-services-key.json",

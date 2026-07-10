@@ -12,3 +12,5 @@ if (dsn) {
     beforeBreadcrumb: breadcrumb => scrubPII(breadcrumb),
   });
 }
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

@@ -4,6 +4,7 @@ import {
   saveNutritionProfile,
   addNutritionEntry,
   deleteNutritionEntry,
+  markNutritionEntrySynced,
   type NutritionEntry,
   type NutritionProfile,
 } from '@shared/services/store';
@@ -109,7 +110,13 @@ export async function addEntry(
   const localId = await addNutritionEntry(entry as NutritionEntry);
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
-    await supabase.from('nutrition_logs').upsert({
+    // A stable client-generated remote id — the local `id` is a per-device
+    // autoincrement integer with no relation to the server's UUID primary key,
+    // so it's stored back on the local entry (markNutritionEntrySynced) for any
+    // later operation (delete) that needs to address this exact remote row.
+    const remoteId = crypto.randomUUID();
+    const { error } = await supabase.from('nutrition_logs').upsert({
+      id: remoteId,
       user_id: session.user.id,
       log_date: entry.date,
       meal: entry.meal,
@@ -123,14 +130,18 @@ export async function addEntry(
       xp_awarded: entry.xpAwarded,
       logged_at: new Date(entry.loggedAt).toISOString(),
     });
+    if (!error) await markNutritionEntrySynced(localId, remoteId);
   }
   return localId;
 }
 
-export async function deleteEntry(id: number): Promise<void> {
+export async function deleteEntry(id: number, remoteId?: string): Promise<void> {
   await deleteNutritionEntry(id);
+  // Without remoteId, this entry was never synced (or was created before
+  // remoteId existed) — there's no remote row to delete.
+  if (!remoteId) return;
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
-    await supabase.from('nutrition_logs').delete().eq('id', id).eq('user_id', session.user.id);
+    await supabase.from('nutrition_logs').delete().eq('id', remoteId).eq('user_id', session.user.id);
   }
 }

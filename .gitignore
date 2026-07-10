@@ -38,3 +38,4 @@ dist-ssr
 # Stray root-level native prebuild output (real project lives in apps/mobile)
 /ios
 /android
+scripts/reports/
