@@ -8,7 +8,7 @@ export function buildRunSummaryParams(result: Record<string, unknown> & {
   elapsed: number;
   pace: string | number;
   territoriesClaimed: number;
-  gpsPoints?: { lat: number; lng: number }[];
+  gpsPoints?: { lat: number; lng: number; timestamp: number }[];
 }): RunSummaryParams {
   return {
     runId: result.runId,
@@ -19,7 +19,9 @@ export function buildRunSummaryParams(result: Record<string, unknown> & {
                           ? (() => { const [m, s] = result.pace.split(':').map(Number); return (m + s / 60) || 0; })()
                           : result.pace,
       territoriesClaimed: result.territoriesClaimed,
-      route:              result.gpsPoints?.map(p => ({ lat: p.lat, lng: p.lng })),
+      // timestamp is kept (not stripped) — computeSplits needs real per-point times
+      // to derive genuinely different per-km paces instead of the run average.
+      route:              result.gpsPoints?.map(p => ({ lat: p.lat, lng: p.lng, timestamp: p.timestamp })),
       actionType:         result.actionType as string || 'claim',
       success:            (result.success as boolean) ?? true,
       preRunLevel:        result.preRunLevel as number,

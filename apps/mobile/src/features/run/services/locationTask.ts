@@ -15,6 +15,7 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import * as SQLite from 'expo-sqlite';
+import { AppState } from 'react-native';
 
 // ─── Task name ────────────────────────────────────────────────────────────────
 export const BACKGROUND_LOCATION_TASK = 'runivo-background-location';
@@ -105,34 +106,40 @@ TaskManager.defineTask(
       return;
     }
 
+    // This task fires for every location update regardless of app state — while the
+    // app is foregrounded, useActiveRun's own watchPositionAsync subscription is
+    // already recording every point directly into distance/gpsPoints. Without this
+    // guard, the same fixes were ALSO buffered here and re-applied on the next
+    // drainBgGpsBuffer() call (foreground→background→foreground, or at finish),
+    // double-counting distance/pace/PACE for essentially every run. Only buffer
+    // while the app isn't active — i.e. genuinely backgrounded/screen-off.
+    if (AppState.currentState === 'active') return;
+
     const locations = data?.locations;
     if (!locations?.length) return;
 
-    // Read active run_id from bg_gps_buffer's most recent entry
-    // (set by startBackgroundTracking before task starts)
+    // Resolve the active run id ONLY from the sentinel set by setActiveRunId() before
+    // tracking starts. The previous fallback (newest bg_gps_buffer row) was
+    // self-perpetuating: once a run ended without a clean stopBackgroundTracking()
+    // (crash/force-kill), the next run's points kept resolving back to the dead run's
+    // id because its buffer rows were still the "newest" — silently losing all
+    // background GPS for every run after an unclean shutdown.
     let activeRunId: string | null = null;
     try {
       const db = getBgDb();
-      const row = db.getFirstSync<{ run_id: string }>(
-        `SELECT run_id FROM bg_gps_buffer ORDER BY id DESC LIMIT 1`,
+      const row = db.getFirstSync<{ value: string }>(
+        `SELECT value FROM bg_gps_meta WHERE key = 'active_run_id'`,
       );
-      activeRunId = row?.run_id ?? null;
-    } catch { /* ignore */ }
-
-    if (!activeRunId) {
-      // No active run — read from a sentinel row
-      try {
-        const db = getBgDb();
-        const row = db.getFirstSync<{ run_id: string }>(
-          `SELECT value FROM bg_gps_meta WHERE key = 'active_run_id'`,
-        );
-        activeRunId = (row as any)?.value ?? null;
-      } catch { /* table may not exist yet */ }
-    }
+      activeRunId = row?.value ?? null;
+    } catch { /* table may not exist yet */ }
 
     if (!activeRunId) return;
 
     for (const loc of locations) {
+      // Same accuracy gate the foreground watcher applies (useActiveRun.ts) — without
+      // it, a signal-poor background stretch (pocket, tunnel) injects zigzag noise
+      // straight into distance on exactly the path where GPS is least reliable.
+      if ((loc.coords.accuracy ?? 100) > 30) continue;
       appendBgGpsPoint(
         activeRunId,
         loc.coords.latitude,
@@ -194,5 +201,29 @@ export async function stopBackgroundTracking(): Promise<void> {
     }
   } catch (err) {
     console.warn('[locationTask] stopBackgroundTracking error:', err);
+  }
+}
+
+/**
+ * Call once on app/RunScreen mount, before any run has been started or recovered.
+ * A background task can be left registered if the app process was killed/crashed
+ * mid-run (no chance to run the normal finish/cancel cleanup) — without this, the
+ * orphaned task keeps writing GPS points under the dead run's id forever (battery
+ * drain, persistent iOS location indicator) and, since bg_gps_meta still points at
+ * that dead run, every subsequent real run's background points get misattributed to
+ * it and are never drained. Caller passes whether a real run is about to resume
+ * (actively running or a checkpoint is being recovered) — if not, any registered
+ * task is definitionally orphaned.
+ */
+export async function cleanupOrphanedBackgroundTask(hasActiveOrRecoverableRun: boolean): Promise<void> {
+  if (hasActiveOrRecoverableRun) return;
+  try {
+    const isRegistered = await Location.hasStartedLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+    if (!isRegistered) return;
+    await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
+    const db = getBgDb();
+    db.execSync('DELETE FROM bg_gps_buffer; DELETE FROM bg_gps_meta;');
+  } catch (err) {
+    console.warn('[locationTask] cleanupOrphanedBackgroundTask error:', err);
   }
 }

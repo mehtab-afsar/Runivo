@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -81,7 +81,7 @@ export default function RunSummaryScreen() {
   const route = useRoute<Route>();
   const { runId, runData: passedData } = route.params;
 
-  const { runData, splits, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe } =
+  const { runData, splits, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe, loading } =
     useRunSummary(runId, passedData);
 
   const [showSaveRoute, setShowSaveRoute]             = useState(false);
@@ -186,6 +186,14 @@ export default function RunSummaryScreen() {
   // Runner rank progress
   const displayRank = currentRank.charAt(0).toUpperCase() + currentRank.slice(1);
   const { pct, nextName, paceToNext } = rankProgress(paceTotalEarned, currentRank);
+
+  if (loading) {
+    return (
+      <View style={[ss.root, ss.loadingRoot, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={C.t2} />
+      </View>
+    );
+  }
 
   return (
     <View style={[ss.root, { paddingTop: insets.top }]}>
@@ -458,6 +466,7 @@ export default function RunSummaryScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
+    loadingRoot:  { alignItems: 'center', justifyContent: 'center' },
     // Close sits over the dark hero — dark translucent chip with a white glyph.
     close:        { position: 'absolute', right: Spacing.gutter, zIndex: 20, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
     card:         { marginHorizontal: Spacing.gutter, marginBottom: 12 },

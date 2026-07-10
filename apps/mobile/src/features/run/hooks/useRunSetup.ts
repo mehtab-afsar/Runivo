@@ -44,15 +44,24 @@ export function useRunSetup() {
 
   // GPS watch
   useEffect(() => {
+    // The cleanup below runs synchronously at unmount, but the subscription is only
+    // assigned to the ref after the permission-request await resolves — if the
+    // screen unmounts during that window, cleanup fires first (ref still null) and
+    // the subscription that arrives afterward is never removed, leaking the GPS
+    // watcher (battery drain) until app restart. `cancelled` catches that race.
+    let cancelled = false;
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
+      if (cancelled) return;
       if (status !== 'granted') { setGps(g => ({ ...g, status: 'error' })); return; }
-      locationSubRef.current = await Location.watchPositionAsync(
+      const sub = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 2000, distanceInterval: 5 },
         loc => setGps({ status: 'ready', accuracy: loc.coords.accuracy ?? null, lat: loc.coords.latitude, lng: loc.coords.longitude }),
       );
+      if (cancelled) { sub.remove(); return; }
+      locationSubRef.current = sub;
     })();
-    return () => { locationSubRef.current?.remove(); };
+    return () => { cancelled = true; locationSubRef.current?.remove(); };
   }, []);
 
   // Territory intel

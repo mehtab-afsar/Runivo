@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { getSettings } from '@shared/services/store';
+import { getSettings, saveRun, type StoredRun } from '@shared/services/store';
 import { postRunSync } from '@shared/services/sync';
 import { useTheme, type AppColors } from '@theme';
 
@@ -14,7 +14,71 @@ import RunMapView    from '../components/RunMapView';
 import RunSetupSheet from '../components/RunSetupSheet';
 import ActivityModal from '../components/ActivityModal';
 import RouteModal    from '../components/RouteModal';
-import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint } from '../hooks/useActiveRun';
+import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint, type GPSPoint } from '../hooks/useActiveRun';
+import { stopBackgroundTracking, clearBgGpsBuffer, cleanupOrphanedBackgroundTask } from '../services/locationTask';
+
+function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatPace(kmPerSec: number): string {
+  if (kmPerSec <= 0) return '0:00';
+  const secPerKm = 1 / kmPerSec;
+  const minutes = Math.floor(secPerKm / 60);
+  const seconds = Math.floor(secPerKm % 60);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+/**
+ * Reconstructs a full run from a crash checkpoint's raw GPS points and saves it
+ * locally so postRunSync() has something to actually push. Previously "Recover"
+ * only called postRunSync() (which just pushes already-saved runs) and then
+ * deleted the checkpoint — the interrupted run's data was silently lost on the
+ * exact path meant to restore it.
+ */
+async function recoverRunFromCheckpoint(
+  runId: string,
+  startTime: number,
+  points: GPSPoint[],
+  activityType: string,
+): Promise<void> {
+  let distanceM = 0;
+  for (let i = 1; i < points.length; i++) {
+    const d = haversineM(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
+    if (d >= 1 && d < 100) distanceM += d;
+  }
+  const endTime = points[points.length - 1]?.timestamp ?? Date.now();
+  const durationSec = Math.max(1, Math.round((endTime - startTime) / 1000));
+  const avgPace = formatPace((distanceM / 1000) / durationSec);
+
+  const run: StoredRun = {
+    id: runId,
+    activityType,
+    startTime,
+    endTime,
+    distanceMeters: distanceM,
+    durationSec,
+    avgPace,
+    gpsPoints: points,
+    territoriesClaimed: [],
+    territoriesFortified: [],
+    enemyCaptured: 0,
+    preRunLevel: 0,
+    synced: false,
+  };
+  await saveRun(run);
+
+  // The background task (if the crash happened before a clean stop) is still
+  // tracking under this run's id — stop it and drop its buffer before recovering.
+  await stopBackgroundTracking().catch(() => {});
+  clearBgGpsBuffer(runId);
+}
 
 const MAP_STYLE_URLS: Record<string, string> = {
   Standard:  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -66,14 +130,28 @@ export default function RunScreen() {
 
   useEffect(() => {
     findInterruptedRunCheckpoint().then(cp => {
-      if (!cp || cp.points.length < 2) { if (cp) clearInterruptedRunCheckpoint(); return; }
+      if (!cp || cp.points.length < 2) {
+        if (cp) clearInterruptedRunCheckpoint();
+        // No recoverable run — if a background task is still registered (e.g. the
+        // app was killed before a clean stop), it's orphaned; stop it so it doesn't
+        // keep tracking under a dead run id forever.
+        cleanupOrphanedBackgroundTask(false).catch(() => {});
+        return;
+      }
       const km = (cp.points.length * 3 / 1000).toFixed(1);
       Alert.alert(
         'Interrupted Run Found',
         `A run was interrupted (~${km} km of GPS data). Recover it?`,
         [
-          { text: 'Discard', style: 'destructive', onPress: () => clearInterruptedRunCheckpoint() },
-          { text: 'Recover', onPress: async () => { await postRunSync(); clearInterruptedRunCheckpoint(); } },
+          { text: 'Discard', style: 'destructive', onPress: () => {
+            clearInterruptedRunCheckpoint();
+            cleanupOrphanedBackgroundTask(false).catch(() => {});
+          } },
+          { text: 'Recover', onPress: async () => {
+            await recoverRunFromCheckpoint(cp.runId, cp.startTime, cp.points, cp.activityType);
+            await postRunSync();
+            clearInterruptedRunCheckpoint();
+          } },
         ],
       );
     });

@@ -83,15 +83,22 @@ export default function ActiveRunScreen() {
     }).catch(() => {});
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update live area estimate every 30s
+  // Update live area estimate every 30s. gpsPoints is read from a ref (updated by the
+  // effect below) rather than a dependency — run.gpsPoints is a new array reference on
+  // almost every render while running, which previously tore down and recreated this
+  // interval before its 30s callback ever had a chance to fire, leaving the live
+  // territory-area HUD stuck at 0 for the entire run.
+  const gpsPointsRef = useRef(run.gpsPoints);
+  useEffect(() => { gpsPointsRef.current = run.gpsPoints; }, [run.gpsPoints]);
+
   useEffect(() => {
     if (!run.isRunning) return;
     const id = setInterval(() => {
-      const pts = run.gpsPoints.map(p => ({ ...p }));
+      const pts = gpsPointsRef.current.map(p => ({ ...p }));
       setLiveAreaM2(estimateLiveArea(pts, activityType));
     }, 30_000);
     return () => clearInterval(id);
-  }, [run.isRunning, run.gpsPoints, activityType]);
+  }, [run.isRunning, activityType]);
 
   // Speed warning + loop close: update on each GPS point change
   useEffect(() => {
@@ -154,7 +161,14 @@ export default function ActiveRunScreen() {
     // it to the server below. Best-effort only: any failure here is swallowed and must
     // never block or delay the run finishing or syncing.
     const result = await run.finishRun();
-    if (!result) return;
+    if (!result) {
+      Alert.alert(
+        'Could not save run',
+        'Something went wrong saving your run. Your GPS data is safe — try again.',
+        [{ text: 'Retry', onPress: doFinish }],
+      );
+      return;
+    }
     try {
       const lastPt = result.gpsPoints[result.gpsPoints.length - 1];
       if (lastPt) {

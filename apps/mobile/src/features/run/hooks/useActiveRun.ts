@@ -23,16 +23,16 @@ const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
 const GPS_LOCK_REQUIRED_POINTS = 3;
 
 /** Returns any checkpoint key written by an interrupted run (crash recovery). */
-export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[] } | null> {
+export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[]; activityType: string } | null> {
   try {
     const keys = await AsyncStorage.getAllKeys();
     const checkpointKey = keys.find(k => k.startsWith(GPS_CHECKPOINT_PREFIX));
     if (!checkpointKey) return null;
     const raw = await AsyncStorage.getItem(checkpointKey);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { startTime: number; points: GPSPoint[] };
+    const parsed = JSON.parse(raw) as { startTime: number; points: GPSPoint[]; activityType?: string };
     const runId = checkpointKey.slice(GPS_CHECKPOINT_PREFIX.length);
-    return { runId, ...parsed };
+    return { runId, ...parsed, activityType: parsed.activityType ?? 'run' };
   } catch {
     return null;
   }
@@ -117,6 +117,7 @@ export function useActiveRun(activityType: string = 'run') {
   const pendingDistanceRef = useRef<number>(0);
   const totalDistanceRef  = useRef<number>(0);
   const isFinishingRef    = useRef<boolean>(false);
+  const isStartingRef     = useRef<boolean>(false);
   const appStateRef       = useRef<AppStateStatus>(AppState.currentState);
   // Refs that mirror state for use inside callbacks/finishRun — avoids stale closures
   const elapsedRef        = useRef<number>(0);
@@ -146,10 +147,18 @@ export function useActiveRun(activityType: string = 'run') {
 
   // ── Start ───────────────────────────────────────────────────────────────────
   const startRun = useCallback(async () => {
+    // Re-entrancy guard: a double-tap on the start button before the first await
+    // resolves would otherwise create two GPS watchers and two timers, overwriting
+    // locationSubRef/timerRef and leaking the first (duplicate points, distance
+    // inflation, and a subscription that's never cleaned up).
+    if (isStartingRef.current) return;
+    isStartingRef.current = true;
+
     // Request foreground permission
     const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
     if (fgStatus !== 'granted') {
       setState(prev => ({ ...prev, gpsError: 'Permission denied — enable location in Settings' }));
+      isStartingRef.current = false;
       return;
     }
 
@@ -224,6 +233,7 @@ export function useActiveRun(activityType: string = 'run') {
         await AsyncStorage.setItem(cpKey, JSON.stringify({
           startTime: startTimeRef.current,
           points: gpsPointsRef.current,
+          activityType,
         })).catch(() => {});
       }
     }, GPS_CHECKPOINT_INTERVAL_MS);
@@ -348,6 +358,7 @@ export function useActiveRun(activityType: string = 'run') {
     );
 
     lastKmRef.current = 0;
+    isStartingRef.current = false;
   }, [gameEngine]);
 
   // ── Pause / Resume ──────────────────────────────────────────────────────────
@@ -413,17 +424,36 @@ export function useActiveRun(activityType: string = 'run') {
 
     setState(prev => ({ ...prev, isRunning: false, isPaused: false, distance: finalDistance }));
 
-    const result = await gameEngine.endRunSession({
-      id:             finalRunId,
-      activityType:   activityType,
-      startTime:      startTimeRef.current,
-      endTime:        Date.now(),
-      distanceMeters: finalDistance * 1000,
-      durationSec:    finalElapsed,
-      avgPace:        finalPace,
-      gpsPoints:      gpsPointsRef.current,
-      elevationGainM: Math.round(elevationGainRef.current),
-    });
+    // A throw (SQLite write failure) or an undefined result (player state not yet
+    // loaded — see useGameEngine's `if (!player) return;` guard) used to leave
+    // isFinishingRef permanently true: every later finish attempt returned null
+    // immediately and the run could never be saved or retried. GPS/timers are
+    // already torn down above and the crash checkpoint is deliberately left in
+    // place (only cleared after a confirmed save below), so resetting the guard
+    // and returning null lets the caller show a retry affordance instead of a
+    // silently frozen screen.
+    let result;
+    try {
+      result = await gameEngine.endRunSession({
+        id:             finalRunId,
+        activityType:   activityType,
+        startTime:      startTimeRef.current,
+        endTime:        Date.now(),
+        distanceMeters: finalDistance * 1000,
+        durationSec:    finalElapsed,
+        avgPace:        finalPace,
+        gpsPoints:      gpsPointsRef.current,
+        elevationGainM: Math.round(elevationGainRef.current),
+      });
+    } catch (err) {
+      console.error('[useActiveRun] endRunSession threw:', err);
+      isFinishingRef.current = false;
+      return null;
+    }
+    if (!result) {
+      isFinishingRef.current = false;
+      return null;
+    }
 
     // Run is now saved to IndexedDB — safe to discard the crash checkpoint
     await AsyncStorage.removeItem(`${GPS_CHECKPOINT_PREFIX}${finalRunId}`).catch(() => {});

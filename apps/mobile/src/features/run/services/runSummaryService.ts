@@ -30,7 +30,7 @@ export async function saveRunToSupabase(run: StoredRun): Promise<void> {
   if (error) console.error('[runSummaryService] saveRunToSupabase failed:', error.message);
 }
 
-interface GpsPoint { lat: number; lng: number }
+interface GpsPoint { lat: number; lng: number; timestamp?: number }
 export interface Split { km: number; pace: number }
 
 function haversineDist(a: [number, number], b: [number, number]): number {
@@ -43,9 +43,17 @@ function haversineDist(a: [number, number], b: [number, number]): number {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-export function computeSplits(gpsPoints: GpsPoint[], totalDuration: number): Split[] {
+/**
+ * Splits are derived from each GPS point's real timestamp, not from the total run
+ * duration spread proportionally across distance — the latter collapses every split
+ * to the same overall average pace (a straight line through the run's midpoint has
+ * exactly zero variance). Falls back to the old duration-proportional estimate only
+ * when points lack timestamps (e.g. a very old cached run recorded before timestamps
+ * were persisted on the route).
+ */
+export function computeSplits(gpsPoints: GpsPoint[], totalDuration?: number): Split[] {
   const coords: [number, number][] = gpsPoints.map(p => [p.lng, p.lat]);
-  if (coords.length < 2 || totalDuration <= 0) return [];
+  if (coords.length < 2) return [];
 
   let cumDist = 0;
   const pts: { dist: number }[] = [{ dist: 0 }];
@@ -56,22 +64,42 @@ export function computeSplits(gpsPoints: GpsPoint[], totalDuration: number): Spl
   const totalDist = cumDist;
   if (totalDist < 0.1) return [];
 
+  const hasTimestamps = gpsPoints.every(p => typeof p.timestamp === 'number');
   const splits: Split[] = [];
-  let prevDist = 0, prevTime = 0, km = 1;
-  for (let i = 1; i < pts.length; i++) {
-    const d = pts[i].dist;
-    while (d >= km && km <= Math.floor(totalDist) + 1) {
-      const segDist = d - prevDist;
-      if (segDist === 0) { km++; continue; }
-      const frac = (km - prevDist) / segDist;
-      const t = prevTime + frac * ((pts[i].dist / totalDist) * totalDuration - prevTime);
-      splits.push({ km, pace: (t - prevTime) / 60 });
-      prevDist = km;
-      prevTime = t;
-      km++;
+
+  if (hasTimestamps) {
+    const times = gpsPoints.map(p => p.timestamp as number);
+    let prevSplitTime = times[0];
+    let km = 1;
+    for (let i = 1; i < pts.length; i++) {
+      while (pts[i].dist >= km && km <= Math.floor(totalDist) + 1) {
+        const segStartDist = pts[i - 1].dist;
+        const segDist = pts[i].dist - segStartDist;
+        const frac = segDist === 0 ? 0 : (km - segStartDist) / segDist;
+        const tAtKm = times[i - 1] + frac * (times[i] - times[i - 1]);
+        splits.push({ km, pace: (tAtKm - prevSplitTime) / 1000 / 60 });
+        prevSplitTime = tAtKm;
+        km++;
+      }
     }
-    prevTime = (pts[i].dist / totalDist) * totalDuration;
+  } else if (totalDuration && totalDuration > 0) {
+    let prevDist = 0, prevTime = 0, km = 1;
+    for (let i = 1; i < pts.length; i++) {
+      const d = pts[i].dist;
+      while (d >= km && km <= Math.floor(totalDist) + 1) {
+        const segDist = d - prevDist;
+        if (segDist === 0) { km++; continue; }
+        const frac = (km - prevDist) / segDist;
+        const t = prevTime + frac * ((pts[i].dist / totalDist) * totalDuration - prevTime);
+        splits.push({ km, pace: (t - prevTime) / 60 });
+        prevDist = km;
+        prevTime = t;
+        km++;
+      }
+      prevTime = (pts[i].dist / totalDist) * totalDuration;
+    }
   }
+
   return splits.slice(0, 20);
 }
 

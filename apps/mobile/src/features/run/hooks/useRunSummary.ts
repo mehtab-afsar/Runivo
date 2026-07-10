@@ -6,6 +6,7 @@ import {
   fetchShoesForSummary,
   assignShoeToRun,
   syncRunToHealth,
+  fetchRunById,
 } from '../services/runSummaryService';
 import type { RunStats, Split } from '../services/runSummaryService';
 import type { StoredShoe } from '@shared/services/store';
@@ -17,7 +18,7 @@ export interface PassedRunData {
   duration: number;
   pace: number;
   territoriesClaimed: number;
-  route?: { lat: number; lng: number }[];
+  route?: { lat: number; lng: number; timestamp?: number }[];
   actionType?: string;
   success?: boolean;
   bonusCoins?: number;
@@ -54,6 +55,7 @@ interface UseRunSummaryResult {
   showShoeDrawer: boolean;
   setShowShoeDrawer: (v: boolean) => void;
   selectShoe: (shoe: StoredShoe) => Promise<void>;
+  loading: boolean;
 }
 
 const EMPTY_RUN: PassedRunData = {
@@ -61,11 +63,47 @@ const EMPTY_RUN: PassedRunData = {
   route: [], actionType: 'claim', success: false,
 };
 
+function paceFromAvgPaceStr(avgPace: string): number {
+  const [m, s] = avgPace.split(':').map(Number);
+  return (m + (s || 0) / 60) || 0;
+}
+
 export function useRunSummary(
   runId: string,
   passedRunData?: PassedRunData,
 ): UseRunSummaryResult {
-  const runData = passedRunData ?? EMPTY_RUN;
+  // History/Dashboard/Profile navigate here with only { runId } (no runData) — the
+  // run already finished and synced in a previous session, so there's nothing to
+  // pass. Previously this fell back to EMPTY_RUN (0.00 km, "claim Failed" heading)
+  // for every historical run; fetch the saved run instead when nothing was passed.
+  const [fetchedRunData, setFetchedRunData] = useState<PassedRunData | null>(null);
+  const [loading, setLoading] = useState(!passedRunData);
+
+  useEffect(() => {
+    if (passedRunData) { setLoading(false); return; }
+    let cancelled = false;
+    fetchRunById(runId).then(run => {
+      if (cancelled) return;
+      if (run) {
+        setFetchedRunData({
+          distance:           run.distanceMeters / 1000,
+          duration:           run.durationSec,
+          pace:               paceFromAvgPaceStr(run.avgPace),
+          territoriesClaimed: run.territoriesClaimed?.length ?? 0,
+          route:              run.gpsPoints?.map(p => ({ lat: p.lat, lng: p.lng, timestamp: p.timestamp })),
+          actionType:         'claim',
+          success:            true,
+          startTime:          run.startTime,
+          elevationGainM:     run.elevationGainM,
+          rivalZonesStolen:   run.rivalZonesStolen ?? 0,
+        });
+      }
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [runId, passedRunData]);
+
+  const runData = passedRunData ?? fetchedRunData ?? EMPTY_RUN;
 
   const [runShoe, setRunShoe]   = useState<StoredShoe | null>(null);
   const [allShoes, setAllShoes] = useState<StoredShoe[]>([]);
@@ -73,6 +111,7 @@ export function useRunSummary(
   const [showShoeDrawer, setShowShoeDrawer] = useState(false);
 
   useEffect(() => {
+    if (loading) return;
     Haptics.notificationAsync(
       runData.success
         ? Haptics.NotificationFeedbackType.Success
@@ -89,11 +128,13 @@ export function useRunSummary(
         setShoeTotalKm(km);
       }
     });
-    syncRunToHealth(runData);
-  }, []);
+    // Don't re-sync a historical run to HealthKit — only for a run that just finished.
+    if (passedRunData) syncRunToHealth(runData);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const splits = useMemo(() => {
-    const coords = (runData.route ?? []).map(p => ({ lat: p.lat, lng: p.lng }));
+    const coords = (runData.route ?? []).map(p => ({ lat: p.lat, lng: p.lng, timestamp: p.timestamp }));
     return computeSplits(coords, runData.duration);
   }, [runData.route, runData.duration]);
 
@@ -112,5 +153,5 @@ export function useRunSummary(
     if (runId) await assignShoeToRun(runId, shoe.id);
   }, [runId]);
 
-  return { runData, splits, stats, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe };
+  return { runData, splits, stats, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe, loading };
 }

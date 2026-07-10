@@ -75,7 +75,7 @@ export type RootStackParamList = {
       duration: number;
       pace: number;
       territoriesClaimed: number;
-      route?: { lat: number; lng: number }[];
+      route?: { lat: number; lng: number; timestamp?: number }[];
       actionType?: string;
       success?: boolean;
       enemyCaptured?: number;
