@@ -100,9 +100,14 @@ export default function TerritoryMapScreen() {
   function handleRegionChange(feature: any) {
     const bounds = feature?.properties?.visibleBounds;
     if (!bounds) return;
+    // MapLibre RN's visibleBounds is [northEast, southWest], not [min, max] — treating
+    // it as [min, max] made minLat > maxLat, so the rival-polygon bbox filter could
+    // never match and rivals never rendered. Math.min/max over both corners is
+    // correct regardless of corner order.
+    const [c0, c1] = bounds;
     handleBboxChange({
-      minLng: bounds[0][0], minLat: bounds[0][1],
-      maxLng: bounds[1][0], maxLat: bounds[1][1],
+      minLng: Math.min(c0[0], c1[0]), minLat: Math.min(c0[1], c1[1]),
+      maxLng: Math.max(c0[0], c1[0]), maxLat: Math.max(c0[1], c1[1]),
     });
   }
 

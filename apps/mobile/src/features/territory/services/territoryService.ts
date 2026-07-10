@@ -1,5 +1,6 @@
 import { supabase } from '@shared/services/supabase';
 import { getTerritoryPolygons } from '@shared/services/store';
+import { pullMapPolygons } from '@shared/services/sync';
 import { computeFreshness } from '@shared/services/claimEngine';
 import type { TerritoryPolygon } from '@shared/types/game';
 
@@ -22,41 +23,14 @@ export async function fetchRivalPolygons(
   bbox: BBox,
   currentUserId: string,
 ): Promise<TerritoryPolygon[]> {
-  const { data, error } = await supabase
-    .from('territory_polygons')
-    .select('id, run_id, owner_id, owner_name, polygon_coords, area_m2, freshness, last_defended_at, claimed_at, is_loop_fill, tier')
-    .neq('owner_id', currentUserId)
-    .order('claimed_at', { ascending: false })
-    .limit(200);
-
-  if (error || !data) return [];
-
-  return data
-    .filter(row => {
-      const coords = row.polygon_coords as [number, number][] | null;
-      if (!coords?.length) return false;
-      return coords.some(([lng, lat]) =>
-        lat >= bbox.minLat && lat <= bbox.maxLat &&
-        lng >= bbox.minLng && lng <= bbox.maxLng,
-      );
-    })
-    .map(row => ({
-      id:             row.id as string,
-      runId:          row.run_id as string,
-      ownerId:        row.owner_id as string,
-      ownerName:      (row.owner_name as string | null) ?? 'Runner',
-      polygon:        row.polygon_coords as [number, number][],
-      areaM2:         (row.area_m2 as number | null) ?? 0,
-      freshness:      computeFreshness(
-        (row.last_defended_at as string | null) ?? '',
-        (row.freshness as number | null) ?? 100,
-      ),
-      lastDefendedAt: (row.last_defended_at as string | null) ?? '',
-      claimedAt:      (row.claimed_at as string | null) ?? '',
-      isLoopFill:     (row.is_loop_fill as boolean | null) ?? false,
-      tier:           ((row.tier as string | null) ?? 'patch') as TerritoryPolygon['tier'],
-      synced:         true,
-    }));
+  // get_map_polygons is a spatially-indexed (GiST) PostGIS RPC — it filters by the
+  // viewport bbox server-side, unlike the previous "download the 200 newest rows
+  // globally and filter client-side" approach, which meant nearby rivals could
+  // vanish entirely once >200 rows existed elsewhere in the world.
+  const all = await pullMapPolygons(bbox);
+  return all
+    .filter(p => p.ownerId !== currentUserId)
+    .map(p => ({ ...p, freshness: computeFreshness(p.lastDefendedAt, p.freshness) }));
 }
 
 export function subscribeToOwnPolygons(userId: string, onUpdate: () => void): () => void {

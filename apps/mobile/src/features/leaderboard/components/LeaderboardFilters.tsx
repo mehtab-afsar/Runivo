@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { TrendUp, NavigationArrow, Lightning, Globe, Flag, MapPin } from 'phosphor-react-native';
+import { TrendUp, NavigationArrow, Lightning, Globe, Flag } from 'phosphor-react-native';
 import type { LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 
@@ -28,7 +28,6 @@ const TIMEFRAMES: { value: LeaderboardTimeFrame; label: string }[] = [
 const SCOPE_DEFS: { value: LeaderboardScope; label: string; Icon: typeof Globe }[] = [
   { value: 'global',   label: 'Global',   Icon: Globe  },
   { value: 'national', label: 'National', Icon: Flag   },
-  { value: 'local',    label: 'Local',    Icon: MapPin },
 ];
 
 export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeFrameChange, onScopeChange }: Props) {

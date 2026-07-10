@@ -104,7 +104,11 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
         : 100,
       staleCount:     ownPolygons.filter(p => p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT).length,
       rivalCount:     rivalPolygons.length,
-      territoryScore: computeTerritoryScore(ownPolygons),
+      // ownPolygons is already decayed by fetchOwnPolygons (territoryService.ts) —
+      // decaying again here from the same lastDefendedAt produced a lower score than
+      // the dashboard's computation from raw values, showing two different numbers
+      // for the same data.
+      territoryScore: computeTerritoryScore(ownPolygons, true),
     };
   }, [ownPolygons, rivalPolygons]);
 

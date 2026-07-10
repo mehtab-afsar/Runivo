@@ -110,7 +110,11 @@ export default function LeaderboardScreen() {
         </View>
       ) : (
         <FlatList
-          data={entries.slice(3)}
+          // Podium only renders (and only makes sense) at 3+ entries — below that,
+          // slice(3) on a 1-2 entry array is empty, so the podium's own null-return
+          // combined with an empty list rendered "No data yet" even when there WAS
+          // data. Show every entry in the list until there are enough for a podium.
+          data={entries.length < 3 ? entries : entries.slice(3)}
           keyExtractor={e => String(e.rank)}
           renderItem={({ item }) => (
             <EntryRow

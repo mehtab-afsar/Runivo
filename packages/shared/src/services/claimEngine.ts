@@ -353,10 +353,14 @@ export function computeFreshness(lastDefendedAt: string, storedFreshness: number
 
 // ── Territory Score ────────────────────────────────────────────────────────────
 
-export function computeTerritoryScore(polygons: TerritoryPolygon[]): number {
+// alreadyDecayed: pass true when the caller already ran computeFreshness on each
+// polygon (e.g. the territory map screen decays for display before this is called) —
+// otherwise decaying again here from the same lastDefendedAt double-applies the decay
+// and produces a different (lower) score than callers who pass raw stored values.
+export function computeTerritoryScore(polygons: TerritoryPolygon[], alreadyDecayed = false): number {
   const { TS_FRESHNESS_SCALE_MIN: MIN, TS_FRESHNESS_SCALE_MAX: MAX } = GAME_CONFIG;
   return polygons.reduce((sum, t) => {
-    const fresh = computeFreshness(t.lastDefendedAt, t.freshness);
+    const fresh = alreadyDecayed ? t.freshness : computeFreshness(t.lastDefendedAt, t.freshness);
     const scale = MIN + (fresh / 100) * (MAX - MIN);
     return sum + t.areaM2 * scale;
   }, 0);
