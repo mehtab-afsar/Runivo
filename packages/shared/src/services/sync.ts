@@ -61,6 +61,7 @@ import {
   saveSavedRoute,
   getTerritoryPolygons,
   saveTerritory,
+  deleteTerritory,
   getNutritionProfile,
   getUnsyncedNutritionEntries,
   markNutritionEntrySynced,
@@ -255,8 +256,22 @@ function rdpSimplify(
   return [start, end];
 }
 
+// postRunSync (after finish) and initialSync (app launch / recovery) can be triggered
+// concurrently — without this, both snapshot the same unsynced run before either marks
+// it synced, and it gets pushed (and its territory processed) twice. Concurrent callers
+// share the one in-flight push instead of starting a second one.
+let _pushUnsyncedRunsInFlight: Promise<void> | null = null;
+
 /** Push all locally unsynced runs to Supabase. */
 export async function pushUnsyncedRuns(): Promise<void> {
+  if (_pushUnsyncedRunsInFlight) return _pushUnsyncedRunsInFlight;
+  _pushUnsyncedRunsInFlight = pushUnsyncedRunsImpl().finally(() => {
+    _pushUnsyncedRunsInFlight = null;
+  });
+  return _pushUnsyncedRunsInFlight;
+}
+
+async function pushUnsyncedRunsImpl(): Promise<void> {
   const user = await getAuthenticatedUser();
   if (!user) return;
 
@@ -436,59 +451,43 @@ export async function pullRuns(limit = 50): Promise<void> {
 // ----------------------------------------------------------------
 
 /**
- * Push locally-unsynced TerritoryPolygon records to the territory_polygons Supabase table.
- * The DB trigger tp_geom_trigger derives the PostGIS geom from polygon_coords automatically.
- * Each record is marked synced locally after a successful upsert.
+ * Territory claims are now server-authoritative: process-run-territory (invoked from
+ * pushUnsyncedRuns below) is the ONLY thing that inserts territory_polygons rows.
+ * The client used to also push its own locally-built polygon for the same run under a
+ * different id, which double-claimed area (and double-counted steals against rivals)
+ * on every single run. RLS on territory_polygons no longer grants clients INSERT/UPDATE
+ * for the same reason — see supabase/migrations for the corresponding policy change.
+ *
+ * The local polygon built by buildTerritoryPolygon() is still saved immediately
+ * (useGameEngine.endRunSession) purely for optimistic on-device display; it is
+ * superseded by pullTerritories() once the server's row comes back.
  */
-export async function pushPolygonTerritories(): Promise<void> {
+
+/**
+ * Pull the current user's own territory polygons from Supabase and reconcile the local
+ * store: upserts server rows, and removes any locally-cached "synced" territory whose id
+ * is no longer present server-side (e.g. fully captured by a rival) so a defeated player
+ * doesn't keep seeing a zone they no longer own. Locally-unsynced records (optimistic,
+ * not yet confirmed by the server) are never overwritten or deleted by this pass.
+ */
+export async function pullTerritories(): Promise<void> {
   const user = await getAuthenticatedUser();
   if (!user) return;
 
-  const all = await getTerritoryPolygons();
-  const unsynced = all.filter(t => t.ownerId === user.id && !t.synced && t.polygon.length >= 4);
-  if (unsynced.length === 0) return;
-
-  for (const t of unsynced) {
-    const { error } = await supabase.from('territory_polygons').upsert({
-      id:               t.id,
-      run_id:           t.runId || null,
-      owner_id:         user.id,
-      owner_name:       t.ownerName,
-      polygon_coords:   t.polygon,
-      area_m2:          t.areaM2,
-      freshness:        t.freshness,
-      last_defended_at: t.lastDefendedAt,
-      claimed_at:       t.claimedAt,
-      is_loop_fill:     t.isLoopFill,
-      tier:             t.tier,
-    }, { onConflict: 'id' });
-
-    if (!error) {
-      await saveTerritory({ ...t, synced: true });
-    } else {
-      console.warn('[sync] pushPolygonTerritories:', t.id, error.message);
-    }
-  }
-}
-
-/**
- * Pull all territory polygons from Supabase and merge into local store.
- * Rows with empty polygon_coords (legacy rows without the new column) are skipped.
- * Locally-unsynced records (pending push) are never overwritten.
- */
-export async function pullTerritories(): Promise<void> {
   const { data, error } = await supabase
     .from('territory_polygons')
     .select('id, run_id, owner_id, owner_name, polygon_coords, area_m2, freshness, last_defended_at, claimed_at, is_loop_fill, tier')
+    .eq('owner_id', user.id)
     .limit(2000);
 
-  if (error || !data || data.length === 0) return;
+  if (error) return;
 
   const existing = await getTerritoryPolygons();
-  const localMap = new Map(existing.map(t => [t.id, t]));
+  const ownExisting = existing.filter(t => t.ownerId === user.id);
+  const serverIds = new Set((data ?? []).map(row => row.id));
 
-  for (const row of data) {
-    const local = localMap.get(row.id);
+  for (const row of data ?? []) {
+    const local = ownExisting.find(t => t.id === row.id);
     if (local && !local.synced) continue;
 
     const coords = (row.polygon_coords as [number, number][]) ?? [];
@@ -508,6 +507,11 @@ export async function pullTerritories(): Promise<void> {
       tier:           row.tier as TerritoryTier,
       synced:         true,
     });
+  }
+
+  const stale = ownExisting.filter(t => t.synced && !serverIds.has(t.id));
+  for (const t of stale) {
+    await deleteTerritory(t.id);
   }
 }
 
@@ -746,9 +750,14 @@ export async function pushNutritionLogs(): Promise<void> {
   const unsynced = await getUnsyncedNutritionEntries();
   if (unsynced.length === 0) return;
 
+  // Each entry gets a stable remote UUID the first time it syncs (reused on retry) —
+  // using the local autoincrement id directly as the remote PK let two devices that
+  // both start counting from 1 collide and silently drop each other's entries.
+  const withRemoteId = unsynced.map(e => ({ entry: e, remoteId: e.remoteId ?? crypto.randomUUID() }));
+
   const { error } = await supabase.from('nutrition_logs').upsert(
-    unsynced.map(e => ({
-      id: String(e.id),
+    withRemoteId.map(({ entry: e, remoteId }) => ({
+      id: remoteId,
       user_id: user.id,
       log_date: e.date,
       meal: e.meal,
@@ -762,12 +771,12 @@ export async function pushNutritionLogs(): Promise<void> {
       logged_at: new Date(e.loggedAt).toISOString(),
       xp_awarded: e.xpAwarded,
     })),
-    { onConflict: 'id', ignoreDuplicates: true }
+    { onConflict: 'id' }
   );
 
   if (!error) {
-    for (const e of unsynced) {
-      if (e.id !== undefined) await markNutritionEntrySynced(e.id as number);
+    for (const { entry: e, remoteId } of withRemoteId) {
+      if (e.id !== undefined) await markNutritionEntrySynced(e.id as number, remoteId);
     }
   } else {
     console.warn('[sync] pushNutritionLogs failed:', error.message);
@@ -816,7 +825,6 @@ export async function initialSync(): Promise<void> {
   // Push any runs/routes/nutrition data recorded offline
   await Promise.allSettled([
     pushUnsyncedRuns(),
-    pushPolygonTerritories(),
     pushSavedRoutes(),
     pushNutritionLogs(),
     pushNutritionProfile(),
@@ -839,8 +847,8 @@ export async function postRunSync(): Promise<{ ok: boolean }> {
     await pullProfile();
     // 6. Refresh run list
     await pullRuns();
-    // 7. Push polygon territories (run corridor shapes) to server, then pull all
-    await pushPolygonTerritories();
+    // 7. Pull the territory row process-run-territory just wrote server-side
+    //    (the server is the sole claim path — see pullTerritories' doc comment)
     await pullTerritories();
     // 8. Sync any new nutrition entries logged during the run (XP food bonuses etc.)
     await pushNutritionLogs();
@@ -848,7 +856,10 @@ export async function postRunSync(): Promise<{ ok: boolean }> {
     return { ok: true };
   } catch (err) {
     console.error('[sync] postRunSync failed:', err);
-    setSyncStatus(!navigator.onLine ? 'offline' : 'error');
+    // navigator.onLine is undefined in React Native (not just false) — only report
+    // 'offline' when we positively know the device is offline, so real server/RLS
+    // errors surface as 'error' instead of being masked as an unretriable "offline".
+    setSyncStatus(typeof navigator !== 'undefined' && navigator.onLine === false ? 'offline' : 'error');
     // Don't attempt a pull on error — stale local state is safer than an overwritten local
     return { ok: false };
   }

@@ -16,7 +16,6 @@ import type {
   NutritionProfile,
   NutritionEntry,
   StoredSettings,
-  PendingAction,
 } from './store';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
 
@@ -30,7 +29,6 @@ export type {
   NutritionProfile,
   NutritionEntry,
   StoredSettings,
-  PendingAction,
   TerritoryPolygon,
   RunnerRank,
 };
@@ -300,55 +298,17 @@ export async function saveTerritory(territory: TerritoryPolygon): Promise<void> 
   );
 }
 
+export async function deleteTerritory(id: string): Promise<void> {
+  await ready();
+  _db.runSync('DELETE FROM territories WHERE id = ?', id);
+}
+
 export async function getTerritoryPolygons(ownerId?: string): Promise<TerritoryPolygon[]> {
   await ready();
   const rows = _db.getAllSync<{ data: string }>('SELECT data FROM territories');
   const all = rows.map(r => JSON.parse(r.data));
   const polygons = all.filter((t: any) => typeof t.freshness === 'number') as TerritoryPolygon[];
   return ownerId ? polygons.filter(t => t.ownerId === ownerId) : polygons;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Pending actions
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function queueAction(action: {
-  type: 'claim' | 'fortify';
-  territoryId: string;
-  timestamp: number;
-  gpsProof: { lat: number; lng: number; timestamp: number }[];
-}): Promise<void> {
-  await ready();
-  _db.runSync(
-    'INSERT INTO pending_actions (type, territory_id, timestamp, gps_proof) VALUES (?, ?, ?, ?)',
-    action.type,
-    action.territoryId,
-    action.timestamp,
-    JSON.stringify(action.gpsProof),
-  );
-}
-
-export async function getPendingActions(): Promise<PendingAction[]> {
-  await ready();
-  const rows = _db.getAllSync<{
-    id: number;
-    type: string;
-    territory_id: string;
-    timestamp: number;
-    gps_proof: string;
-  }>('SELECT id, type, territory_id, timestamp, gps_proof FROM pending_actions ORDER BY timestamp ASC');
-  return rows.map(r => ({
-    id: r.id,
-    type: r.type as 'claim' | 'fortify',
-    territoryId: r.territory_id,
-    timestamp: r.timestamp,
-    gpsProof: JSON.parse(r.gps_proof),
-  }));
-}
-
-export async function clearPendingAction(id: number): Promise<void> {
-  await ready();
-  _db.runSync('DELETE FROM pending_actions WHERE id = ?', id);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -463,11 +423,11 @@ export async function getUnsyncedNutritionEntries(): Promise<NutritionEntry[]> {
   return rows.map(r => ({ ...JSON.parse(r.data) as NutritionEntry, id: r.id }));
 }
 
-export async function markNutritionEntrySynced(id: number): Promise<void> {
+export async function markNutritionEntrySynced(id: number, remoteId: string): Promise<void> {
   await ready();
   const row = _db.getFirstSync<{ data: string }>('SELECT data FROM nutrition_log WHERE id = ?', id);
   if (!row) return;
-  const updated = { ...JSON.parse(row.data) as NutritionEntry, synced: true };
+  const updated = { ...JSON.parse(row.data) as NutritionEntry, synced: true, remoteId };
   _db.runSync(
     'UPDATE nutrition_log SET data = ? WHERE id = ?',
     JSON.stringify(updated),
@@ -605,8 +565,21 @@ export function clearLocalUserData(): void {
   _db.runSync('DELETE FROM player');
   _db.runSync('DELETE FROM nutrition_profile');
   _db.runSync('DELETE FROM nutrition_log');
-  _db.runSync('DELETE FROM pending_actions');
   _db.runSync('DELETE FROM runs');
   _db.runSync('DELETE FROM territories');
   _db.runSync('DELETE FROM missions');
+  _db.runSync('DELETE FROM saved_routes');
+  _db.runSync('DELETE FROM shoes');
+  // Onboarding profile (biometrics, training prefs) is keyed inside the shared
+  // 'settings' table (see profile.native.ts) — delete just that row, not the whole
+  // table, so device-level app preferences (dark mode, sound, GPS accuracy) survive
+  // an account switch on a shared device.
+  _db.runSync("DELETE FROM settings WHERE key = 'player_profile'");
+}
+
+/** Async alias of clearLocalUserData — matches the web store's signature so mobile
+ *  sign-out/clear-history code can import one name regardless of platform. */
+export async function clearAllLocalData(): Promise<void> {
+  await ready();
+  clearLocalUserData();
 }

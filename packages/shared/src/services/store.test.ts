@@ -142,33 +142,6 @@ describe('store — player (with data)', async () => {
   });
 });
 
-// ── pending actions ───────────────────────────────────────────────────────────
-
-describe('store — pending actions', async () => {
-  const { queueAction, getPendingActions, clearPendingAction } = await freshStore();
-
-  it('queueAction → getPendingActions returns the action', async () => {
-    await queueAction({
-      type: 'claim', territoryId: 'hex-abc',
-      timestamp: 1000, gpsProof: [{ lat: 51.5, lng: -0.1, timestamp: 1000 }],
-    });
-    const actions = await getPendingActions();
-    expect(actions.length).toBeGreaterThanOrEqual(1);
-    expect(actions.some(a => a.territoryId === 'hex-abc')).toBe(true);
-  });
-
-  it('clearPendingAction removes the specific action', async () => {
-    await queueAction({
-      type: 'fortify', territoryId: 'hex-xyz', timestamp: 2000, gpsProof: [],
-    });
-    const before = await getPendingActions();
-    const target = before.find(a => a.territoryId === 'hex-xyz')!;
-    expect(target).toBeDefined();
-    await clearPendingAction(target.id);
-    const after = await getPendingActions();
-    expect(after.some(a => a.territoryId === 'hex-xyz')).toBe(false);
-  });
-});
 
 // ── settings ──────────────────────────────────────────────────────────────────
 

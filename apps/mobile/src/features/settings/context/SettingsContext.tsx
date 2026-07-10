@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import { DEFAULT_SETTINGS, clearAllLocalData, clearLocalUserData } from '@shared/services/store';
+import { DEFAULT_SETTINGS, clearAllLocalData } from '@shared/services/store';
 import type { StoredSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import { resetAnalytics } from '@shared/services/analytics';
+import { unsubscribeFromPush } from '@shared/services/pushNotificationService';
 import { loadSettings, persistSettings, signOut as signOutService } from '../services/settingsService';
 
 interface SettingsContextValue {
@@ -33,7 +34,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(() => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => signOutService() },
+      { text: 'Sign out', style: 'destructive', onPress: async () => {
+        const { ok } = await signOutService();
+        if (!ok) {
+          Alert.alert('Couldn\'t sign out', 'Please check your connection and try again.');
+        }
+      }},
     ]);
   }, []);
 
@@ -75,8 +81,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     resetAnalytics();
-    clearLocalUserData();
+    await unsubscribeFromPush().catch(() => {});
     await supabase.auth.signOut();
+    await clearAllLocalData();
     // No explicit navigation — App.tsx's useAuth()-driven re-render already routes
     // to the auth stack once the session is null, same as normal sign-out.
   }, []);

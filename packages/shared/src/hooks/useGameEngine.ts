@@ -237,6 +237,20 @@ export function useGameEngine() {
 
       const defaultShoe = await getDefaultShoe().catch(() => undefined);
 
+      // Calculated before the run is saved so the optimistic PACE credit can be
+      // stamped onto the run row itself (StoredRun.xpEarned) — sync.ts's post-sync
+      // delta reconciliation reads this value back to avoid double-crediting the
+      // server-authoritative amount on top of what was already credited here.
+      const distanceKm = runData.distanceMeters / 1000;
+      const paceResult = calculateRunPACE({
+        distanceKm,
+        newZonesClaimed: buildResult ? 1 : 0,
+        stolenZones:     0,
+        streakDays:      meetsMinimumEffort ? newStreak : 0,
+        paceWeeklyEarned: freshPlayer.paceWeeklyEarned ?? 0,
+        isPremium:       false,
+      });
+
       const run: StoredRun = {
         ...runData,
         territoriesClaimed:   buildResult ? ['pending'] : [],
@@ -246,6 +260,7 @@ export function useGameEngine() {
         synced: false,
         shoeId: defaultShoe?.id,
         elevationGainM: runData.elevationGainM,
+        xpEarned: paceResult.paceEarned,
       };
       const safeGpsPoints = run.gpsPoints.filter(p =>
         isFinite(p.lat) && isFinite(p.lng) &&
@@ -274,21 +289,7 @@ export function useGameEngine() {
         await saveTerritory(territory);
       }
 
-      // 4. Calculate PACE (0 stolen zones — server refines after sync)
-      const distanceKm = runData.distanceMeters / 1000;
-      const paceResult = calculateRunPACE({
-        distanceKm,
-        newZonesClaimed: buildResult ? 1 : 0,
-        stolenZones:     0,
-        // 0 (not newStreak) when this run didn't meet the minimum — the player's real
-        // streak may still be > 0 from previous real runs, but THIS run doesn't get to
-        // claim the streak bonus on its coattails.
-        streakDays:      meetsMinimumEffort ? newStreak : 0,
-        paceWeeklyEarned: freshPlayer.paceWeeklyEarned ?? 0,
-        isPremium:       false,
-      });
-
-      // 5. Update player PACE fields — base is freshPlayer, not the stale closure
+      // 4. Player PACE fields already computed above (paceResult) — base is freshPlayer, not the stale closure
       const newPaceTotalEarned = (freshPlayer.paceTotalEarned ?? 0) + paceResult.paceEarned;
       const newRunnerRank: RunnerRank = computeRunnerRank(newPaceTotalEarned);
 

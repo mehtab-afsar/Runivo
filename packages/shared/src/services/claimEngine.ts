@@ -156,6 +156,16 @@ export function buildCorridorPolygon(
   for (let i = 0; i < segment.length; i++) {
     const prev = segment[Math.max(0, i - 1)];
     const next = segment[Math.min(segment.length - 1, i + 1)];
+    // Miter guard: on a hairpin (heading change > 90°) the averaged tangent flips
+    // the offset to the wrong side and the ribbon self-intersects (bow-tie).
+    // Skip the offset pair for such interior points — the neighbours bridge the gap.
+    if (i > 0 && i < segment.length - 1) {
+      const inE  = (segment[i].lng - prev.lng) * LNG_M;
+      const inN  = (segment[i].lat - prev.lat) * LAT_M;
+      const outE = (next.lng - segment[i].lng) * LNG_M;
+      const outN = (next.lat - segment[i].lat) * LAT_M;
+      if (inE * outE + inN * outN < 0) continue;
+    }
     const dlat = (next.lat - prev.lat) / LAT_M;
     const dlng = (next.lng - prev.lng) / LNG_M;
     const len  = Math.sqrt(dlat * dlat + dlng * dlng) || 1;
@@ -186,7 +196,12 @@ export function buildConvexHull(points: ValidGPSPoint[]): [number, number][] {
   const rest = pts.slice(1).sort((a, b) => {
     const dA = Math.atan2(a[1] - pivot[1], a[0] - pivot[0]);
     const dB = Math.atan2(b[1] - pivot[1], b[0] - pivot[0]);
-    return dA - dB;
+    if (dA !== dB) return dA - dB;
+    // Collinear with the pivot — nearer point first (standard Graham scan
+    // tie-break; without it equal-angle points can produce a self-intersecting hull).
+    const distA = (a[0] - pivot[0]) ** 2 + (a[1] - pivot[1]) ** 2;
+    const distB = (b[0] - pivot[0]) ** 2 + (b[1] - pivot[1]) ** 2;
+    return distA - distB;
   });
 
   const hull: [number, number][] = [pivot];
@@ -204,13 +219,15 @@ export function buildConvexHull(points: ValidGPSPoint[]): [number, number][] {
 
 export function shouldLoopFill(
   allPoints: ValidGPSPoint[],
-  corridorPolygon: [number, number][],
+  fillPolygon: [number, number][],
 ): boolean {
   if (allPoints.length < GAME_CONFIG.MIN_GPS_POINTS) return false;
   const start = allPoints[0];
   const end   = allPoints[allPoints.length - 1];
   if (haversineM(start, end) > GAME_CONFIG.LOOP_CLOSE_DIST_M) return false;
-  const area  = polygonAreaM2(corridorPolygon);
+  // The cap must be tested against the polygon that would actually be claimed
+  // (the convex hull) — capping on the corridor area would leave the hull unbounded.
+  const area = polygonAreaM2(fillPolygon);
   return area > 0 && area < GAME_CONFIG.LOOP_MAX_AREA_M2;
 }
 
@@ -249,11 +266,13 @@ export function rdpSimplify(polygon: [number, number][], epsilon = 0.00003): [nu
 
 // ── Tier from area ─────────────────────────────────────────────────────────────
 
+// Thresholds MUST match computeTierFromArea in the process-run-territory edge
+// function — the server is the authoritative claim path and re-derives the tier.
 export function computeTier(areaM2: number): TerritoryTier {
   if (areaM2 < 5_000)   return 'patch';
-  if (areaM2 < 20_000)  return 'block';
-  if (areaM2 < 80_000)  return 'district';
-  if (areaM2 < 200_000) return 'quarter';
+  if (areaM2 < 50_000)  return 'block';
+  if (areaM2 < 200_000) return 'district';
+  if (areaM2 < 500_000) return 'quarter';
   return 'domain';
 }
 
@@ -284,8 +303,9 @@ export function buildTerritoryPolygon(
 
   const longestSegment = smoothed.reduce((a, b) => a.length > b.length ? a : b);
   const corridor       = buildCorridorPolygon(longestSegment);
-  const isLoopFill     = shouldLoopFill(allSmoothed, corridor);
-  const rawPolygon     = isLoopFill ? buildConvexHull(allSmoothed) : corridor;
+  const hull           = buildConvexHull(allSmoothed);
+  const isLoopFill     = shouldLoopFill(allSmoothed, hull);
+  const rawPolygon     = isLoopFill ? hull : corridor;
   const polygon        = rdpSimplify(rawPolygon);
   const areaM2         = polygonAreaM2(polygon);
 

@@ -247,16 +247,13 @@ export interface NutritionEntry {
   xpAwarded: boolean;
   loggedAt: number;
   synced?: boolean;        // true once pushed to Supabase nutrition_logs
-}
-
-// ── Pending Actions ───────────────────────────────────────────────────────────
-
-export interface PendingAction {
-  id:          number;
-  type:        'claim' | 'fortify';
-  territoryId: string;
-  timestamp:   number;
-  gpsProof:    { lat: number; lng: number; timestamp: number }[];
+  // Supabase nutrition_logs primary key, assigned client-side (crypto.randomUUID())
+  // the first time this entry syncs. The local `id` is a per-device IndexedDB/SQLite
+  // autoincrement integer — using it directly as the remote PK let two devices both
+  // starting at id=1 silently collide and drop each other's entries (upsert +
+  // ignoreDuplicates). remoteId is stable and globally unique, so it's reused on
+  // every subsequent push instead of colliding with another device's row.
+  remoteId?: string;
 }
 
 let dbInstance: IDBPDatabase | null = null;
@@ -454,6 +451,11 @@ export async function saveTerritory(territory: TerritoryPolygon): Promise<void> 
   await idbSafe(() => db.put('territories', territory), undefined, 'saveTerritory');
 }
 
+export async function deleteTerritory(id: string): Promise<void> {
+  const db = await getDB();
+  await idbSafe(() => db.delete('territories', id), undefined, 'deleteTerritory');
+}
+
 export async function getTerritoryPolygons(ownerId?: string): Promise<TerritoryPolygon[]> {
   const db = await getDB();
   const all = await idbSafe(
@@ -464,30 +466,6 @@ export async function getTerritoryPolygons(ownerId?: string): Promise<TerritoryP
   // Filter to records with polygon-engine shape (have freshness field)
   const polygons = all.filter((t: any) => typeof t.freshness === 'number');
   return ownerId ? polygons.filter(t => t.ownerId === ownerId) : polygons;
-}
-
-export async function queueAction(action: {
-  type: 'claim' | 'fortify';
-  territoryId: string;
-  timestamp: number;
-  gpsProof: { lat: number; lng: number; timestamp: number }[];
-}): Promise<void> {
-  const db = await getDB();
-  await idbSafe(() => db.add('pendingActions', action), undefined, 'queueAction');
-}
-
-export async function getPendingActions(): Promise<PendingAction[]> {
-  const db = await getDB();
-  return idbSafe(
-    () => db.getAll('pendingActions') as Promise<PendingAction[]>,
-    [],
-    'getPendingActions',
-  );
-}
-
-export async function clearPendingAction(id: number): Promise<void> {
-  const db = await getDB();
-  await idbSafe(() => db.delete('pendingActions', id), undefined, 'clearPendingAction');
 }
 
 // ── App Settings ─────────────────────────────────────────────────────────────
@@ -599,8 +577,8 @@ export async function getUnsyncedNutritionEntries(): Promise<NutritionEntry[]> {
   return all.filter(e => !e.synced && e.id !== undefined);
 }
 
-/** Mark a single nutrition entry as synced. */
-export async function markNutritionEntrySynced(id: number): Promise<void> {
+/** Mark a single nutrition entry as synced, stamping the remote id it synced under. */
+export async function markNutritionEntrySynced(id: number, remoteId: string): Promise<void> {
   const db = await getDB();
   const existing = await idbSafe(
     () => db.get('nutritionLog', id) as Promise<NutritionEntry | undefined>,
@@ -609,7 +587,7 @@ export async function markNutritionEntrySynced(id: number): Promise<void> {
   );
   if (!existing) return;
   await idbSafe(
-    () => db.put('nutritionLog', { ...existing, synced: true }),
+    () => db.put('nutritionLog', { ...existing, synced: true, remoteId }),
     undefined,
     'markNutritionEntrySynced-put',
   );
@@ -751,12 +729,21 @@ export async function matchOrCreateRun(imported: {
 // Web stub — no local SQLite to clear; Supabase session handles identity
 export function clearLocalUserData(): void {}
 
+/**
+ * Wipes every locally-cached record tied to the signed-in account: runs, territories,
+ * player stats/PACE, onboarding profile, saved routes, nutrition log + profile, and
+ * gear. Used on sign-out / account deletion so the next account on this device never
+ * inherits (or, worse, uploads) the previous user's data — see the sign-out flow in
+ * SettingsContext. Device-level app preferences (dark mode, sound, GPS accuracy — the
+ * 'settings' store) are intentionally left alone; they aren't account data.
+ */
 export async function clearAllLocalData(): Promise<void> {
   const db = await getDB();
+  const stores = ['runs', 'territories', 'player', 'profile', 'savedRoutes', 'nutritionProfile', 'nutritionLog', 'shoes', 'missions']
+    .filter(name => db.objectStoreNames.contains(name));
   await idbSafe(async () => {
-    const tx = db.transaction(['runs', 'territories'], 'readwrite');
-    await tx.objectStore('runs').clear();
-    await tx.objectStore('territories').clear();
+    const tx = db.transaction(stores, 'readwrite');
+    await Promise.all(stores.map(name => tx.objectStore(name).clear()));
     await tx.done;
   }, undefined, 'clearAllLocalData');
 }
