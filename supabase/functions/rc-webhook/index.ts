@@ -51,7 +51,10 @@ serve(async (req) => {
     return new Response('Webhook secret not configured', { status: 500 });
   }
   const auth = req.headers.get('Authorization') ?? '';
-  if (auth !== `Bearer ${secret}`) {
+  const expected = `Bearer ${secret}`;
+  const authorized = auth.length === expected.length &&
+    Array.from(auth).reduce((diff, c, i) => diff | (c.charCodeAt(0) ^ expected.charCodeAt(i)), 0) === 0;
+  if (!authorized) {
     return new Response('Unauthorized', { status: 401 });
   }
 

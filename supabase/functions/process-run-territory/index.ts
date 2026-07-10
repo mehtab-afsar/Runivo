@@ -63,7 +63,12 @@ function corridor(seg: ValidPt[]): [number, number][] {
     const prev = seg[Math.max(0, i - 1)], next = seg[Math.min(seg.length - 1, i + 1)];
     const dlat = (next.lat - prev.lat) / LAT_M, dlng = (next.lng - prev.lng) / LNG_M;
     const len = Math.sqrt(dlat * dlat + dlng * dlng) || 1;
-    const px = -dlng / len, py = dlat / len;
+    // Left-perpendicular (CCW 90°) of tangent (dlng, dlat) is (-dlat, dlng), not
+    // (-dlng, dlat) — the old formula wasn't perpendicular at all (dot product
+    // dlat²-dlng² ≠ 0 except at exactly 45°), producing zero-width/self-overlapping
+    // corridors for north-south or east-west runs. Mirrors the client-side fix in
+    // packages/shared/src/services/claimEngine.ts's buildCorridorPolygon.
+    const px = -dlat / len, py = dlng / len;
     L.push([seg[i].lng + px * dLng, seg[i].lat + py * dLat]);
     R.push([seg[i].lng - px * dLng, seg[i].lat - py * dLat]);
   }
@@ -156,12 +161,22 @@ Deno.serve(async (req) => {
   // Fetch attacker profile (username + PACE cap data + subscription tier)
   const { data: attackerProfile } = await supabase
     .from('profiles')
-    .select('username, pace_weekly_earned, streak_days, subscription_tier')
+    .select('username, pace_weekly_earned, pace_weekly_reset_at, streak_days, subscription_tier')
     .eq('id', user.id)
     .single();
 
   const attackerUsername  = (attackerProfile as { username: string | null } | null)?.username ?? 'A rival runner';
-  const weeklyEarned      = (attackerProfile as { pace_weekly_earned: number } | null)?.pace_weekly_earned ?? 0;
+  // If the stored accumulator is from a previous UTC week, apply_pace_adjustment
+  // (below) will reset it — treat the cap check here as if it already had, so a
+  // run that lands right at the week boundary isn't wrongly capped by last
+  // week's total before the reset takes effect.
+  const weekStart = new Date(Date.UTC(
+    new Date().getUTCFullYear(), new Date().getUTCMonth(),
+    new Date().getUTCDate() - ((new Date().getUTCDay() + 6) % 7),
+  ));
+  const paceWeeklyResetAt = (attackerProfile as { pace_weekly_reset_at: string | null } | null)?.pace_weekly_reset_at;
+  const weekIsStale       = !paceWeeklyResetAt || new Date(paceWeeklyResetAt) < weekStart;
+  const weeklyEarned      = weekIsStale ? 0 : ((attackerProfile as { pace_weekly_earned: number } | null)?.pace_weekly_earned ?? 0);
   const streakDays        = (attackerProfile as { streak_days: number } | null)?.streak_days ?? 0;
   const subscriptionTier  = (attackerProfile as { subscription_tier: string | null } | null)?.subscription_tier ?? 'free';
   // Server-authoritative cap — mirrors claimEngine.ts calculateRunPACE's isPremium branch.
@@ -320,11 +335,14 @@ Deno.serve(async (req) => {
         }));
 
         feedOps.push(supabase.functions.invoke('send-push-notification', {
+          // send-push-notification reads user_id/action_url (snake_case) — the previous
+          // userId/data.actionUrl keys never matched, so this call 400'd silently on
+          // every steal and the "your territory is under attack" push never fired.
           body: {
-            userId: steal.rivalOwnerId,
-            title:  '⚔ Your territory is under attack',
-            body:   `${attackerUsername} captured part of your ${steal.tier} zone. Defend it now.`,
-            data:   { actionUrl: '/territory-map?filter=stale' },
+            user_id:    steal.rivalOwnerId,
+            title:      '⚔ Your territory is under attack',
+            body:       `${attackerUsername} captured part of your ${steal.tier} zone. Defend it now.`,
+            action_url: '/territory-map?filter=stale',
           },
         }));
       }

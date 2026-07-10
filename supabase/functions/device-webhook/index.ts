@@ -104,9 +104,16 @@ function parseDuration(iso: string): number {
 }
 
 // ─── Signature verification ────────────────────────────────────────────────────
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function verifyGarminSig(body: string, signature: string, secret: string): boolean {
   const expected = createHmac('sha1', secret).update(body).digest('hex');
-  return expected === signature;
+  return timingSafeEqual(expected, signature);
 }
 
 // ─── Match or create run ───────────────────────────────────────────────────────
@@ -192,15 +199,24 @@ Deno.serve(async (req) => {
   const rawBody = await req.text();
 
   // ── Signature checks ──────────────────────────────────────────────────────
+  // Fail CLOSED when the secret isn't configured — previously an unset
+  // GARMIN_WEBHOOK_SECRET skipped verification entirely, letting an
+  // unauthenticated caller inject arbitrary "device" runs for any user_id.
   if (provider === 'garmin') {
     const sig    = req.headers.get('x-garmin-signature') ?? '';
     const secret = Deno.env.get('GARMIN_WEBHOOK_SECRET') ?? '';
-    if (secret && !verifyGarminSig(rawBody, sig, secret)) {
+    if (!secret) {
+      return new Response('Webhook not configured', { status: 503, headers: CORS });
+    }
+    if (!verifyGarminSig(rawBody, sig, secret)) {
       return new Response('Invalid signature', { status: 401, headers: CORS });
     }
   }
-  // Coros & Polar: verify via shared secret in query param or header
-  // (implementation depends on their specific webhook docs)
+  // Coros & Polar: no signature scheme is implemented yet (needs their specific
+  // webhook docs) — reject rather than accept unauthenticated payloads.
+  if (provider === 'coros' || provider === 'polar') {
+    return new Response('Provider not yet supported', { status: 501, headers: CORS });
+  }
 
   let payload: unknown;
   try { payload = JSON.parse(rawBody); }
