@@ -1,15 +1,17 @@
 /**
  * ActiveRunMapView — full-screen map for the live run screen.
  * Shows: MapLibre tile map · live GPS trail polyline · user position indicator
- * Gracefully falls back to a dark placeholder if MapLibre is not linked.
  */
-import React, { useRef, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet } from 'react-native';
 import type { GPSPoint } from '../hooks/useActiveRun';
 import { kalmanSmooth } from '@shared/services/claimEngine';
-import { Fonts, useTheme, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+
+const styles = StyleSheet.create({
+  map: { flex: 1 },
+});
 
 const _hour = new Date().getHours();
 const DARK_STYLE = (_hour >= 19 || _hour < 6)
@@ -31,22 +33,8 @@ function buildLineString(pts: { lat: number; lng: number }[]) {
   };
 }
 
-export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoints, closestIdx = 0 }: Props) {
-  const C = useTheme();
-  const ss = useMemo(() => mkStyles(C), [C]);
-  const cameraRef = useRef<any>(null);
+export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestIdx = 0 }: Props) {
   const latest = gpsPoints.length > 0 ? gpsPoints[gpsPoints.length - 1] : null;
-
-  // Follow the runner: re-center whenever latest position changes
-  useEffect(() => {
-    if (!latest || !cameraRef.current || !isRunning) return;
-    cameraRef.current.setCamera({
-      centerCoordinate: [latest.lng, latest.lat],
-      zoomLevel: 16,
-      animationDuration: 800,
-      animationMode: 'flyTo',
-    });
-  }, [latest?.lat, latest?.lng, isRunning]);
 
   // Kalman-smoothed display path — keeps raw gpsPoints for distance/territory calculation
   const displayPath = useMemo(() => {
@@ -93,7 +81,7 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
 
   return (
     <MapLibreGL.MapView
-      style={ss.map}
+      style={styles.map}
       mapStyle={DARK_STYLE}
       logoEnabled={false}
       attributionEnabled={false}
@@ -103,7 +91,6 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
       scrollEnabled
     >
       <MapLibreGL.Camera
-        ref={cameraRef}
         zoomLevel={latest ? 16 : 14}
         centerCoordinate={latest ? [latest.lng, latest.lat] : undefined}
         animationMode="flyTo"
@@ -166,17 +153,4 @@ export default function ActiveRunMapView({ gpsPoints, isRunning, ghostRoutePoint
       )}
     </MapLibreGL.MapView>
   );
-}
-
-// The run map always uses a dark tile style (DARK_STYLE above) regardless of the
-// app's light/dark theme setting, so the fallback view intentionally uses the
-// always-dark tokens (matching ActiveRunScreen's HUD sections) rather than C.bg,
-// which would flip white in light mode and clash with the map underneath.
-function mkStyles(C: AppColors) {
-  return StyleSheet.create({
-    map:          { flex: 1 },
-    fallback:     { flex: 1, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', gap: 6 },
-    fallbackText: { fontFamily: Fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-    fallbackSub:  { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.4)' },
-  });
 }
