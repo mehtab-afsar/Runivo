@@ -91,7 +91,7 @@ interface Props extends Omit<SignUpState, 'emailExists' | 'rateLimitSeconds'> {
 
 export default function SignUpForm({
   username, email, pwd, showPwd, loading, error, valid,
-  emailExists = false, rateLimitSeconds = 0,
+  emailExists = false, rateLimitSeconds = 0, needsEmailConfirmation,
   setUsername, setEmail, setPwd, setShowPwd, handleSignUp,
   onGoBack, onGoLogin,
 }: Props) {
@@ -236,6 +236,9 @@ export default function SignUpForm({
           </Animated.View>
 
           {/* Inline errors */}
+          {needsEmailConfirmation ? (
+            <Text style={s.emailExistsBase}>Check your email to confirm your account, then sign in.</Text>
+          ) : null}
           {error ? <Text style={s.errText}>{error}</Text> : null}
           {emailExists ? (
             <View style={s.emailExistsRow}>

@@ -10,6 +10,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 
 const supabaseUrl  = process.env.EXPO_PUBLIC_SUPABASE_URL  ?? 'https://placeholder.supabase.co';
 const supabaseAnon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key';
@@ -29,4 +30,17 @@ export const supabase = createClient<any>(supabaseUrl, supabaseAnon, {
   realtime: {
     params: { eventsPerSecond: 10 },
   },
+});
+
+// supabase-js's autoRefreshToken relies on a running timer, which the OS suspends
+// while the app is backgrounded — without this, a session that expires during a
+// long background period isn't refreshed until *something* triggers it, causing
+// the first request(s) after foregrounding to fail with 401 until the next refresh
+// tick. This is the documented React Native pattern.
+AppState.addEventListener('change', (state) => {
+  if (state === 'active') {
+    supabase.auth.startAutoRefresh();
+  } else {
+    supabase.auth.stopAutoRefresh();
+  }
 });

@@ -91,10 +91,18 @@ export function onAuthStateChange(callback: (state: AuthState) => void) {
 // ----------------------------------------------------------------
 // Reset password (sends email)
 // ----------------------------------------------------------------
+// The canonical web page that can actually complete a password reset (native
+// has no such screen, and no in-app deep-link handler for a recovery token).
+// On native, `window` is a global polyfill (apps/mobile/index.ts) with
+// `location.origin = ''`, so `typeof window !== 'undefined'` is true but
+// produces a bare relative path '/reset-password' — a link the recovery
+// email can't resolve to anything. Always target the real page unless a
+// caller explicitly overrides it.
+const RESET_PASSWORD_URL = 'https://runivo.app/reset-password';
+
 export async function resetPassword(email: string, redirectTo?: string) {
-  const origin = redirectTo ?? (typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined);
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: origin,
+    redirectTo: redirectTo ?? RESET_PASSWORD_URL,
   });
   if (error) throw error;
 }

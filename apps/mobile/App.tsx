@@ -49,11 +49,15 @@ initAnalytics(
 
 // Catch unhandled JS exceptions and promise rejections in production so they
 // reach Sentry instead of crashing silently or showing a cryptic RN red screen.
+// Chains to the previous handler (RN's default, and the one Sentry.init() installs)
+// instead of replacing it outright — without this, a fatal JS error left the app in
+// an undefined frozen state instead of the platform's normal crash/restart behavior.
 if (!__DEV__) {
-  const handler = (error: Error, isFatal?: boolean) => {
+  const previousHandler = ErrorUtils.getGlobalHandler();
+  ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
     captureException(error, { isFatal });
-  };
-  ErrorUtils.setGlobalHandler(handler);
+    previousHandler?.(error, isFatal);
+  });
 }
 
 // Keep native Expo splash visible until fonts are loaded
@@ -75,31 +79,59 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [splashDone, setSplashDone]                 = useState(false);
 
+  // Adjust state during render (React's documented pattern for "reset derived state
+  // when a prop changes") the instant `user` flips from null to signed-in, rather
+  // than waiting for the effect below to run after this render commits. Without
+  // this, sign-in produced one painted frame where `loading` was already false but
+  // `checkingOnboarding` still held its stale pre-sign-in value (false), so
+  // `authReady` was briefly true with a stale `needsOnboarding` — flashing the Main
+  // navigator (and mounting its data hooks) before the real onboarding check
+  // resolved.
+  const prevUserIdRef = useRef<string | null>(null);
+  if (user?.id !== prevUserIdRef.current) {
+    prevUserIdRef.current = user?.id ?? null;
+    if (user && !checkingOnboarding) setCheckingOnboarding(true);
+  }
+
   useEffect(() => {
     if (!user) { setCheckingOnboarding(false); return; }
     setCheckingOnboarding(true);
+    // Guards against a rapid sign-out→sign-in-as-different-account race: without
+    // it, the PREVIOUS user's in-flight profile response could resolve after the
+    // new user's effect run and set needsOnboarding for the wrong account.
+    let cancelled = false;
     Promise.resolve(
       supabase.from('profiles').select('onboarding_completed_at').eq('id', user.id).maybeSingle()
     )
       .then(async ({ data }) => {
-        if (data !== null) {
-          setNeedsOnboarding(!data.onboarding_completed_at);
-          return;
-        }
+        if (cancelled) return;
+        // The handle_new_user trigger always creates a profile row, so `data` is
+        // essentially never null — trusting it exclusively meant a swallowed
+        // pushProfile() failure at the end of onboarding (saveOnboardingData)
+        // left the server's onboarding_completed_at permanently null, forcing
+        // the user through onboarding again on every future launch even though
+        // they'd already completed it (and, before the fix above, silently
+        // resetting their local progress each time they did). Trust local
+        // completion too, and retry the push instead of re-forcing onboarding.
         const localProfile = await getProfile().catch(() => undefined);
-        if (localProfile?.onboardingCompletedAt) {
+        const serverComplete = !!data?.onboarding_completed_at;
+        const localComplete  = !!localProfile?.onboardingCompletedAt;
+
+        if (serverComplete || localComplete) {
           setNeedsOnboarding(false);
-          pushProfile().catch(() => {});
+          if (!serverComplete) pushProfile().catch(() => {});
           return;
         }
         setNeedsOnboarding(true);
       })
-      .catch(() =>
-        getPlayer()
+      .catch(() => {
+        if (cancelled) return;
+        return getPlayer()
           .then(player => setNeedsOnboarding(!player))
-          .catch(() => setNeedsOnboarding(true))
-      )
-      .finally(() => setCheckingOnboarding(false));
+          .catch(() => setNeedsOnboarding(true));
+      })
+      .finally(() => { if (!cancelled) setCheckingOnboarding(false); });
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   // CRITICAL PATH: restores territory/profile/runs/saved routes from the server on

@@ -12,6 +12,7 @@ export interface SignUpState {
   loading: boolean;
   error: string;
   emailExists: boolean;
+  needsEmailConfirmation: boolean;
   rateLimitSeconds: number;
   valid: boolean;
   pwStrength: number;
@@ -32,6 +33,7 @@ export function useSignUp(): SignUpState {
   const [error, setError] = useState('');
   const [emailExists, setEmailExists] = useState(false);
   const [rateLimitSeconds, setRateLimitSeconds] = useState(0);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Countdown timer for rate limit
@@ -52,11 +54,17 @@ export function useSignUp(): SignUpState {
 
   const handleSignUp = async () => {
     if (!valid || loading || rateLimitSeconds > 0) return;
-    setLoading(true); setError(''); setEmailExists(false);
+    setLoading(true); setError(''); setEmailExists(false); setNeedsEmailConfirmation(false);
     try {
-      await signUp(email.trim(), pwd, username.trim());
+      const { needsEmailConfirmation: pending } = await signUp(email.trim(), pwd, username.trim());
       track('signup');
-      // App.tsx detects new user (no player record) → shows Onboarding automatically
+      if (pending) {
+        // "Confirm email" is enabled server-side — no session yet, so App.tsx's
+        // auth listener never fires and nothing navigates. Without this, the
+        // screen just sat there with a stopped spinner and no explanation.
+        setNeedsEmailConfirmation(true);
+      }
+      // Otherwise App.tsx detects new user (no player record) → shows Onboarding
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Sign up failed.';
       const lower = msg.toLowerCase();
@@ -77,7 +85,7 @@ export function useSignUp(): SignUpState {
   };
 
   return {
-    username, email, pwd, showPwd, loading, error, emailExists, rateLimitSeconds,
+    username, email, pwd, showPwd, loading, error, emailExists, needsEmailConfirmation, rateLimitSeconds,
     valid, pwStrength, pwColor,
     setUsername, setEmail, setPwd, setShowPwd, handleSignUp,
   };

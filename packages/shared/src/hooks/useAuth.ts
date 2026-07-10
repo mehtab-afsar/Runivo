@@ -11,11 +11,16 @@ export function useAuth(): AuthState {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session: s } }) => {
+        setSession(s);
+        setUser(s?.user ?? null);
+      })
+      // Without this, a rejection (e.g. AsyncStorage failure reading the persisted
+      // session) left `loading` true forever — the app stuck on its splash screen
+      // with no way to recover.
+      .catch(() => {})
+      .finally(() => setLoading(false));
 
     const { data } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
