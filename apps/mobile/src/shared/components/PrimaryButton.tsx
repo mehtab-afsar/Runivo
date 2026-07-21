@@ -25,6 +25,10 @@ interface PrimaryButtonProps {
 
 const HEIGHT = { sm: 40, md: 52, lg: 56 } as const;
 const FONT_SIZE = { sm: 13, md: 15, lg: 16 } as const;
+// iOS HIG minimum tap target is 44x44pt. `sm` renders at 40 to keep the visual
+// density of compact/inline CTAs — hitSlop expands the tappable area to 44
+// without changing how the button looks. md/lg already clear 44 on their own.
+const HIT_SLOP = { sm: { top: 2, bottom: 2, left: 2, right: 2 }, md: undefined, lg: undefined } as const;
 
 export function PrimaryButton({
   label, onPress, disabled, loading,
@@ -59,6 +63,7 @@ export function PrimaryButton({
     <Pressable
       onPress={handlePress}
       disabled={disabled || loading}
+      hitSlop={HIT_SLOP[size]}
       style={({ pressed }) => [
         styles.btn,
         { height: HEIGHT[size], backgroundColor: bg },

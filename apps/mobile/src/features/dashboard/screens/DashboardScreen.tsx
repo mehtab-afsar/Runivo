@@ -16,6 +16,9 @@ import { MissionRow } from '../components/MissionRow';
 import { RecentRunRow } from '../components/RecentRunRow';
 import { BentoCard } from '../components/BentoCard';
 import { PACEStoreBanner } from '../components/PACEStoreBanner';
+import { DailyBonusCard } from '../components/DailyBonusCard';
+import { TerritoryCapBanner } from '../components/TerritoryCapBanner';
+import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -25,6 +28,7 @@ export default function DashboardScreen() {
   const insets     = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const dash       = useDashboard();
+  const gate       = useFeatureGate();
   const [unreadCount, setUnreadCount] = useState(0);
   const [tsDisplay, setTsDisplay]     = useState(0);
   const hasAnimatedTs                 = useRef(false);
@@ -66,6 +70,12 @@ export default function DashboardScreen() {
 
   return (
     <View style={[s.fill, { backgroundColor: C.bg }]}>
+      {dash.loginBonusCoins > 0 && (
+        <View style={[s.bonusToastWrap, { top: insets.top + 8 }]}>
+          <DailyBonusCard coins={dash.loginBonusCoins} onCollect={dash.dismissLoginBonus} />
+        </View>
+      )}
+
       <ScrollView style={s.fill} contentContainerStyle={{ paddingBottom: 100, paddingTop: insets.top }} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
@@ -149,6 +159,15 @@ export default function DashboardScreen() {
           onPress={() => navigation.navigate('TerritoryMap')}
         />
 
+        {/* Territory-cap paywall */}
+        {!gate.loading && !gate.canClaimTerritory(dash.ownedCount) && (
+          <TerritoryCapBanner
+            ownedCount={dash.ownedCount}
+            territoryLimit={gate.territoryLimit}
+            onUpgrade={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Subscription'); }}
+          />
+        )}
+
         {/* Missions */}
         <View style={s.section}>
           <SectionHeader
@@ -203,6 +222,7 @@ export default function DashboardScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     fill:            { flex: 1 },
+    bonusToastWrap:  { position: 'absolute', left: 0, right: 0, zIndex: 50 },
     loadText:        { ...Type.displaySm, color: C.t1 },
 
     // Header — editorial greeting with breathing room

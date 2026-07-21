@@ -8,7 +8,7 @@ export function usePlayerStats() {
   const [recentRuns, setRecentRuns] = useState<StoredRun[]>([]);
   const [totalAreaM2, setTotalAreaM2] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loginBonusCoins, _setLoginBonusCoins] = useState(0);
+  const [loginBonusCoins, setLoginBonusCoins] = useState(0);
 
   useEffect(() => {
     load();
@@ -22,10 +22,11 @@ export function usePlayerStats() {
       if (p) {
         const territories = await getAllTerritories();
         const ownedCount = territories.filter(t => t.ownerId === p!.id).length;
-        const { updatedPlayer, alreadyCollected } = collectLoginBonus(p, ownedCount);
+        const { updatedPlayer, alreadyCollected, coinsEarned } = collectLoginBonus(p, ownedCount);
         if (!alreadyCollected) {
           await savePlayer(updatedPlayer);
           p = updatedPlayer;
+          if (coinsEarned > 0) setLoginBonusCoins(coinsEarned);
         }
       }
 
@@ -41,5 +42,7 @@ export function usePlayerStats() {
     }
   };
 
-  return { player, recentRuns, totalAreaM2, loading, loginBonusCoins, reload: load };
+  const dismissLoginBonus = () => setLoginBonusCoins(0);
+
+  return { player, recentRuns, totalAreaM2, loading, loginBonusCoins, dismissLoginBonus, reload: load };
 }

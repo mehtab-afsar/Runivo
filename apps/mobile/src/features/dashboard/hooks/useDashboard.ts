@@ -9,7 +9,7 @@ import { computeFreshness, computeTerritoryScore } from '@shared/services/claimE
 import { supabase } from '@shared/services/supabase';
 
 export function useDashboard() {
-  const { player, loading } = usePlayerStats();
+  const { player, loading, loginBonusCoins, dismissLoginBonus } = usePlayerStats();
 
   const [territories, setTerritories] = useState<TerritoryPolygon[]>([]);
   const [missions, setMissions]       = useState<Mission[]>([]);
@@ -131,6 +131,8 @@ export function useDashboard() {
   return {
     player,
     loading,
+    loginBonusCoins,
+    dismissLoginBonus,
     pacePct,
     weeklyCapLimit,
     territories,

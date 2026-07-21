@@ -12,6 +12,8 @@ const FRESHNESS_STALE_AT  = 40;
 const STEAL_THRESHOLD     = 0.30;
 const PACE_WEEKLY_CAP_FREE    = 100; // mirrors claimEngine.ts GAME_CONFIG.PACE_WEEKLY_CAP_FREE
 const PACE_WEEKLY_CAP_PREMIUM = 150; // mirrors claimEngine.ts GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM
+const MAX_TERRITORIES_FREE    = 10;  // mirrors packages/shared/src/services/config.ts GAME_CONFIG.MAX_TERRITORIES_FREE
+const MIN_MEANINGFUL_RUN_DISTANCE_M = 50; // mirrors GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M
 
 // ── Geometry helpers (mirrored from claimEngine.ts for Deno) ──────────────────
 
@@ -161,7 +163,7 @@ Deno.serve(async (req) => {
   // Fetch attacker profile (username + PACE cap data + subscription tier)
   const { data: attackerProfile } = await supabase
     .from('profiles')
-    .select('username, pace_weekly_earned, pace_weekly_reset_at, streak_days, subscription_tier')
+    .select('username, pace_weekly_earned, pace_weekly_reset_at, streak_days, last_run_date, subscription_tier')
     .eq('id', user.id)
     .single();
 
@@ -177,11 +179,45 @@ Deno.serve(async (req) => {
   const paceWeeklyResetAt = (attackerProfile as { pace_weekly_reset_at: string | null } | null)?.pace_weekly_reset_at;
   const weekIsStale       = !paceWeeklyResetAt || new Date(paceWeeklyResetAt) < weekStart;
   const weeklyEarned      = weekIsStale ? 0 : ((attackerProfile as { pace_weekly_earned: number } | null)?.pace_weekly_earned ?? 0);
-  const streakDays        = (attackerProfile as { streak_days: number } | null)?.streak_days ?? 0;
   const subscriptionTier  = (attackerProfile as { subscription_tier: string | null } | null)?.subscription_tier ?? 'free';
+
+  // Server-authoritative streak — streak_days feeds the PACE streak bonus below, so
+  // it can't be trusted from the client. Both streak_days and last_run_date are
+  // client-writable via the profiles upsert (packages/shared/src/services/sync.ts
+  // pushProfile — kept there only for legacy/offline-display reasons) and are now
+  // ALSO locked server-side against non-service-role writes (see the
+  // lock_streak_columns migration), so this is the sole place either is advanced.
+  // Uses UTC calendar days (the server has no notion of the user's timezone) —
+  // this can occasionally disagree by a day with the client's local-date optimistic
+  // streak; pullProfile() reconciles it back, same as every other PACE field.
+  const priorStreakDays  = (attackerProfile as { streak_days: number | null } | null)?.streak_days ?? 0;
+  const priorLastRunDate = (attackerProfile as { last_run_date: string | null } | null)?.last_run_date ?? null;
+  const todayUTC     = new Date().toISOString().slice(0, 10);
+  const yesterdayUTC = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const meetsMinimumEffort = (serverDistanceKm * 1000) >= MIN_MEANINGFUL_RUN_DISTANCE_M;
+
+  let streakDays  = priorStreakDays;
+  let newRunDate  = priorLastRunDate;
+  if (meetsMinimumEffort && priorLastRunDate !== todayUTC) {
+    streakDays = priorLastRunDate === yesterdayUTC ? priorStreakDays + 1 : 1;
+    newRunDate = todayUTC;
+  }
+  if (streakDays !== priorStreakDays || newRunDate !== priorLastRunDate) {
+    await supabase.from('profiles').update({ streak_days: streakDays, last_run_date: newRunDate }).eq('id', user.id);
+  }
   // Server-authoritative cap — mirrors claimEngine.ts calculateRunPACE's isPremium branch.
   // subscription_tier is set by the RevenueCat/Stripe webhooks (rc-webhook, stripe-webhook).
   const weeklyCap         = subscriptionTier === 'premium' ? PACE_WEEKLY_CAP_PREMIUM : PACE_WEEKLY_CAP_FREE;
+
+  // Server-authoritative free-tier territory cap — client-side gating alone is
+  // bypassable, so new claims/steals are refused here regardless of what the
+  // client sent. Defending already-owned territory is never capped.
+  const { count: ownedTerritoryCount } = await supabase
+    .from('territory_polygons')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', user.id);
+  const atTerritoryCap = subscriptionTier !== 'premium'
+    && (ownedTerritoryCount ?? 0) >= MAX_TERRITORIES_FREE;
 
   // Territory processing
   const ring = buildPolygon(body.gpsPoints, body.activityType);
@@ -201,62 +237,68 @@ Deno.serve(async (req) => {
   if (ring) {
     const wkt = polygonToWKT(ring);
 
-    // Find rival territory_polygons that intersect the new polygon
-    const { data: rivals } = await supabase.rpc('find_intersecting_territories', {
-      p_wkt: wkt,
-      p_owner_id: user.id,
-    });
-
-    const rivalRows = (rivals ?? []) as {
-      id: string;
-      owner_id: string;
-      freshness: number;
-      area_m2: number;
-      intersection_area: number;
-    }[];
-
-    // Batch-fetch rival usernames
-    const rivalOwnerIds = [...new Set(rivalRows.map(r => r.owner_id))];
-    const { data: rivalProfiles } = rivalOwnerIds.length > 0
-      ? await supabase.from('profiles').select('id, username').in('id', rivalOwnerIds)
-      : { data: [] };
-    const rivalUsernameMap = new Map<string, string>(
-      ((rivalProfiles ?? []) as { id: string; username: string | null }[]).map(p => [p.id, p.username ?? 'Runner'])
-    );
-
-    for (const rival of rivalRows) {
-      const overlapPct = rival.area_m2 > 0 ? rival.intersection_area / rival.area_m2 : 0;
-      const isFresh    = rival.freshness >= FRESHNESS_STALE_AT;
-      const qualifies  = isFresh ? overlapPct > STEAL_THRESHOLD : overlapPct > 0;
-
-      if (!qualifies) continue;
-
-      stealRecords.push({
-        rivalOwnerId:   rival.owner_id,
-        rivalOwnerName: rivalUsernameMap.get(rival.owner_id) ?? 'Runner',
-        stolenAreaM2:   rival.intersection_area,
-        tier:           computeTierFromArea(rival.intersection_area),
+    // Free-tier runners at the territory cap can still run and defend what they
+    // already own, but cannot expand — neither by claiming unclaimed area nor by
+    // stealing a rival's. Gated here (not just client-side) since a client-only
+    // check is trivially bypassable.
+    if (!atTerritoryCap) {
+      // Find rival territory_polygons that intersect the new polygon
+      const { data: rivals } = await supabase.rpc('find_intersecting_territories', {
+        p_wkt: wkt,
+        p_owner_id: user.id,
       });
 
-      await supabase.rpc('steal_territory_portion', {
-        p_rival_id:    rival.id,
-        p_new_wkt:     wkt,
-        p_new_owner:   user.id,
-        p_run_id:      body.runId,
-      });
+      const rivalRows = (rivals ?? []) as {
+        id: string;
+        owner_id: string;
+        freshness: number;
+        area_m2: number;
+        intersection_area: number;
+      }[];
 
-      stolenZones++;
-      if (!stolenFromUserIds.includes(rival.owner_id)) {
-        stolenFromUserIds.push(rival.owner_id);
+      // Batch-fetch rival usernames
+      const rivalOwnerIds = [...new Set(rivalRows.map(r => r.owner_id))];
+      const { data: rivalProfiles } = rivalOwnerIds.length > 0
+        ? await supabase.from('profiles').select('id, username').in('id', rivalOwnerIds)
+        : { data: [] };
+      const rivalUsernameMap = new Map<string, string>(
+        ((rivalProfiles ?? []) as { id: string; username: string | null }[]).map(p => [p.id, p.username ?? 'Runner'])
+      );
+
+      for (const rival of rivalRows) {
+        const overlapPct = rival.area_m2 > 0 ? rival.intersection_area / rival.area_m2 : 0;
+        const isFresh    = rival.freshness >= FRESHNESS_STALE_AT;
+        const qualifies  = isFresh ? overlapPct > STEAL_THRESHOLD : overlapPct > 0;
+
+        if (!qualifies) continue;
+
+        stealRecords.push({
+          rivalOwnerId:   rival.owner_id,
+          rivalOwnerName: rivalUsernameMap.get(rival.owner_id) ?? 'Runner',
+          stolenAreaM2:   rival.intersection_area,
+          tier:           computeTierFromArea(rival.intersection_area),
+        });
+
+        await supabase.rpc('steal_territory_portion', {
+          p_rival_id:    rival.id,
+          p_new_wkt:     wkt,
+          p_new_owner:   user.id,
+          p_run_id:      body.runId,
+        });
+
+        stolenZones++;
+        if (!stolenFromUserIds.includes(rival.owner_id)) {
+          stolenFromUserIds.push(rival.owner_id);
+        }
       }
-    }
 
-    const { data: claimedNew } = await supabase.rpc('claim_unclaimed_area', {
-      p_wkt:      wkt,
-      p_owner_id: user.id,
-      p_run_id:   body.runId,
-    });
-    if (claimedNew) newZonesClaimed = 1;
+      const { data: claimedNew } = await supabase.rpc('claim_unclaimed_area', {
+        p_wkt:      wkt,
+        p_owner_id: user.id,
+        p_run_id:   body.runId,
+      });
+      if (claimedNew) newZonesClaimed = 1;
+    }
 
     await supabase.rpc('defend_own_territories', {
       p_wkt:      wkt,
@@ -357,5 +399,6 @@ Deno.serve(async (req) => {
     rivalZonesStolen: stolenZones,
     paceAdjustment: serverPaceEarned,
     stolenFromUserIds,
+    territoryCapReached: atTerritoryCap,
   }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 });

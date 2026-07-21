@@ -105,6 +105,7 @@ function mkStyles(C: AppColors) {
     overlay:      { position: 'absolute', bottom: 0, right: 0, left: 0, padding: 12, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end' },
     ctaText:      { ...Type.labelSm, color: C.alwaysLight, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, overflow: 'hidden' },
     emptyOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-    emptyText:    { ...Type.caption, color: C.t3, textAlign: 'center' },
+    // t3 (~1.9:1 contrast) is too low for real guidance copy the user needs to read.
+    emptyText:    { ...Type.caption, color: C.t2, textAlign: 'center' },
   });
 }

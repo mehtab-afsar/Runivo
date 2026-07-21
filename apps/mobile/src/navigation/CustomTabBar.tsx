@@ -85,13 +85,28 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               }
             };
 
+            // maxFontSizeMultiplier caps below are deliberate: this is a fixed-height
+            // (TAB_CONTENT_H) 5-across bottom bar, the one piece of chrome present on
+            // almost every screen — uncapped iOS accessibility text sizes would clip
+            // vertically against the fixed bar height and collide horizontally between
+            // adjacent tabs (e.g. "PROFILE"). A capped ~20% grow still helps without
+            // breaking the bar; unlike this label text, ordinary screen content is left
+            // uncapped elsewhere in the app.
             if (isRun) {
               return (
-                <Pressable key={route.key} onPress={onPress} style={s.runOuter}>
+                <Pressable
+                  key={route.key} onPress={onPress} style={s.runOuter}
+                  accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={meta.label}
+                >
                   <View style={[s.runCircle, focused && s.runCircleActive]}>
                     <Play size={20} color={C.alwaysLight} weight="fill" />
                   </View>
-                  <Text style={[s.label, s.labelActive, { color: C.red }]}>{meta.label}</Text>
+                  <Text
+                    style={[s.label, s.labelActive, { color: C.red }]} maxFontSizeMultiplier={1.2}
+                    accessibilityElementsHidden importantForAccessibility="no"
+                  >
+                    {meta.label}
+                  </Text>
                 </Pressable>
               );
             }
@@ -102,18 +117,28 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             const IconComp = isPaceX ? null : ICON_MAP[meta.icon as Exclude<NonRunIcon, 'PaceX'>];
 
             return (
-              <Pressable key={route.key} onPress={onPress} style={s.tab}>
+              <Pressable
+                key={route.key} onPress={onPress} style={s.tab}
+                accessibilityRole="tab" accessibilityState={{ selected: focused }}
+                accessibilityLabel={enabled ? meta.label : `${meta.label} — coming soon`}
+              >
                 {isPaceX || !IconComp
-                  ? <Text style={{ fontFamily: Fonts.bold, fontSize: 22, color, lineHeight: 26 }}>X</Text>
+                  // "X" is a visual brand glyph, not the tab's name — VoiceOver reads
+                  // the Pressable's accessibilityLabel (meta.label) instead, so this
+                  // decorative glyph itself must not also be announced.
+                  ? <Text style={{ fontFamily: Fonts.bold, fontSize: 22, color, lineHeight: 26 }} maxFontSizeMultiplier={1.2} accessibilityElementsHidden importantForAccessibility="no">X</Text>
                   : <IconComp size={22} color={color} weight={focused ? 'regular' : 'light'} />
                 }
                 {enabled ? (
-                  <Text style={[s.label, focused && s.labelActive, { color }]}>
+                  <Text
+                    style={[s.label, focused && s.labelActive, { color }]} maxFontSizeMultiplier={1.2}
+                    accessibilityElementsHidden importantForAccessibility="no"
+                  >
                     {meta.label}
                   </Text>
                 ) : (
                   <View style={s.soonBadge}>
-                    <Text style={s.soonText}>SOON</Text>
+                    <Text style={s.soonText} maxFontSizeMultiplier={1.2}>SOON</Text>
                   </View>
                 )}
               </Pressable>

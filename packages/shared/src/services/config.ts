@@ -30,6 +30,12 @@ export const GAME_CONFIG = {
   PACE_WEEKLY_CAP_FREE: 100,
   PACE_WEEKLY_CAP_PREMIUM: 150,
 
+  // Legacy coin economy (secondary to PACE)
+  LOGIN_BONUS_COINS_PER_TERRITORY: 2,
+
+  // Subscription / paywall
+  MAX_TERRITORIES_FREE: 10,
+
   // Minimum effort for a session to count as a real run — below this, no streak
   // credit and no streak PACE bonus (prevents "start, immediately stop" farming).
   // Matches the existing "haven't run far enough" warning threshold in ActiveRunScreen.

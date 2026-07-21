@@ -7,6 +7,7 @@
  *   if (!gate.canClaimTerritory(ownedCount)) showTerritoryPaywall();
  */
 import { useSubscription } from './useSubscription';
+import { GAME_CONFIG } from '@shared/services/config';
 
 export type GatedFeature =
   | 'ai_coach'
@@ -52,7 +53,7 @@ const PREMIUM_FEATURES = new Set<GatedFeature>([
 export function useFeatureGate(): FeatureGateResult {
   const { isPremium, loading } = useSubscription();
 
-  const territoryLimit = Infinity;
+  const territoryLimit = isPremium ? Infinity : GAME_CONFIG.MAX_TERRITORIES_FREE;
 
   const canUse = (feature: GatedFeature): boolean => {
     if (loading) return false;
@@ -61,14 +62,15 @@ export function useFeatureGate(): FeatureGateResult {
     return true;
   };
 
-  const canClaimTerritory = (_currentOwnedCount: number): boolean => {
+  const canClaimTerritory = (currentOwnedCount: number): boolean => {
     if (loading) return false;
-    return true;
+    if (isPremium) return true;
+    return currentOwnedCount < territoryLimit;
   };
 
   const territoryBlockReason = (currentOwnedCount: number): string | null => {
     if (canClaimTerritory(currentOwnedCount)) return null;
-    return null;
+    return `Free plan limit reached — you own ${currentOwnedCount}/${territoryLimit} zones. Upgrade to Runivo Premium to claim unlimited territory.`;
   };
 
   return {

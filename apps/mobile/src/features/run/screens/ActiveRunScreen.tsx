@@ -429,6 +429,9 @@ function mkStyles(C: AppColors) {
     resumeBtn:         { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
     resumeBtnTxt:      { ...Type.button, fontSize: 16, color: C.alwaysLight },
     pauseFinishBtn:    { paddingVertical: 12, alignItems: 'center' },
-    pauseFinishBtnTxt: { ...Type.bodySm, fontSize: 14, color: C.t3 },
+    // t3 (~1.9:1 contrast) is too low for a tappable button label the user must
+    // read to end their run — t2 keeps it visually secondary vs. Resume above
+    // while staying legible.
+    pauseFinishBtnTxt: { ...Type.bodySm, fontSize: 14, color: C.t2 },
   });
 }

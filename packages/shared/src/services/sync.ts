@@ -106,8 +106,14 @@ export async function pushProfile(): Promise<void> {
     total_distance_km: player.totalDistanceKm,
     total_runs: player.totalRuns,
     total_territories_claimed: player.totalTerritoriesClaimed,
-    streak_days: player.streakDays,
-    last_run_date: player.lastRunDate,
+    // streak_days / last_run_date deliberately NOT pushed — streak_days feeds
+    // process-run-territory's PACE streak bonus directly, so (like the pace_*
+    // fields below) it's computed and persisted server-side from the profile's
+    // own prior last_run_date, not trusted from the client. The client still
+    // computes an optimistic streak locally for immediate UI feedback; pullProfile()
+    // reads the authoritative value back. Pushing here would just be ignored by
+    // the protect_profile_columns trigger, but not pushing at all matches the
+    // pace_* precedent below and avoids the client ever reconstructing a stale value.
     // CRITICAL PATH: pace_balance / pace_total_earned / pace_weekly_earned are NEVER
     // pushed from the client. apply_pace_adjustment (20260515000059_territory_engine_rpcs.sql,
     // called from process-run-territory after every run) is the only thing allowed to
@@ -555,31 +561,6 @@ export async function pullMapPolygons(bbox: {
       tier:           r.tier as TerritoryTier,
       synced:         true,
     }));
-}
-
-/**
- * Claim a territory via the server-side RPC function.
- * The server validates GPS proof and writes the territory row.
- * Returns {success, reason}.
- */
-export async function claimTerritoryRemote(
-  h3Index: string,
-  gpsProof: { lat: number; lng: number; timestamp: number }[]
-): Promise<{ success: boolean; reason: string | null }> {
-  const user = await getAuthenticatedUser();
-  if (!user) return { success: false, reason: 'not_authenticated' };
-
-  const player = await getPlayer();
-
-  const { data, error } = await supabase.rpc('claim_territory', {
-    p_h3_index: h3Index,
-    p_owner_id: user.id,
-    p_owner_name: player?.username ?? 'Runner',
-    p_gps_proof: gpsProof,
-  });
-
-  if (error) return { success: false, reason: error.message };
-  return data as { success: boolean; reason: string | null };
 }
 
 // ----------------------------------------------------------------

@@ -22,24 +22,34 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2 }: RunHUDPr
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.container}>
+      {/*
+        maxFontSizeMultiplier caps below are deliberate, not a Dynamic Type
+        opt-out: this HUD is read one-handed, mid-stride, in a fixed-height
+        panel. Uncapped iOS accessibility text sizes (up to ~3x) would blow the
+        72px hero number and the bordered tri-column row well past this
+        container and off-screen. Capping still lets these grow ~20-30% for
+        larger accessibility sizes, matching Apple's own HIG allowance for
+        capping large numeric displays specifically (unlike ordinary body/label
+        text elsewhere in the app, which is intentionally left uncapped).
+      */}
       <View style={ss.distanceBlock}>
-        <Text style={ss.distanceValue}>{distance.toFixed(2)}</Text>
-        <Text style={ss.distanceUnit}>km</Text>
+        <Text style={ss.distanceValue} maxFontSizeMultiplier={1.2}>{distance.toFixed(2)}</Text>
+        <Text style={ss.distanceUnit} maxFontSizeMultiplier={1.2}>km</Text>
       </View>
       <View style={ss.secondaryStats}>
         <View style={ss.secondaryStat}>
-          <Text style={ss.secondaryValue}>{formatElapsed(elapsed)}</Text>
-          <Text style={ss.secondaryLabel}>TIME</Text>
+          <Text style={ss.secondaryValue} maxFontSizeMultiplier={1.3}>{formatElapsed(elapsed)}</Text>
+          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>TIME</Text>
         </View>
         <View style={[ss.secondaryStat, ss.secondaryStatMid]}>
-          <Text style={ss.secondaryValue}>{pace}</Text>
-          <Text style={ss.secondaryLabel}>PACE /KM</Text>
+          <Text style={ss.secondaryValue} maxFontSizeMultiplier={1.3}>{pace}</Text>
+          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>PACE /KM</Text>
         </View>
         <View style={ss.secondaryStat}>
-          <Text style={[ss.secondaryValue, { color: C.green }]}>
+          <Text style={[ss.secondaryValue, { color: C.green }]} maxFontSizeMultiplier={1.3}>
             {liveAreaM2 && liveAreaM2 > 0 ? `~${Math.round(liveAreaM2).toLocaleString()}` : '—'}
           </Text>
-          <Text style={ss.secondaryLabel}>ZONE M²</Text>
+          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>ZONE M²</Text>
         </View>
       </View>
     </View>

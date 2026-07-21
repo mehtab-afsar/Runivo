@@ -30,6 +30,11 @@ export function FilterChip({ label, active, onPress, count, style }: FilterChipP
   return (
     <Pressable
       onPress={handlePress}
+      // Chip renders at Spacing.height.chip (34) to stay visually compact in a
+      // filter row — hitSlop brings the tappable height up to the 44pt iOS HIG
+      // minimum without widening the chip itself (horizontal left at 0 since
+      // chips sit in a row and equal horizontal hitSlop would overlap neighbors).
+      hitSlop={{ top: 5, bottom: 5, left: 0, right: 0 }}
       style={[styles.chip, { backgroundColor: bg, borderColor: border }, style]}
     >
       <Text style={[styles.label, { color }]}>{label}</Text>

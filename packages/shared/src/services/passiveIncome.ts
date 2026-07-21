@@ -1,4 +1,5 @@
 import { StoredPlayer } from './store';
+import { GAME_CONFIG } from './config';
 
 /**
  * Daily login bonus: collect LOGIN_BONUS_COINS_PER_TERRITORY × owned territories.
@@ -21,8 +22,12 @@ export function collectLoginBonus(
     return { coinsEarned: 0, updatedPlayer, alreadyCollected: false };
   }
 
-  const coinsEarned = 0;
-  const updatedPlayer: StoredPlayer = { ...player, lastLoginBonusDate: today };
+  const coinsEarned = GAME_CONFIG.LOGIN_BONUS_COINS_PER_TERRITORY * ownedZoneCount;
+  const updatedPlayer: StoredPlayer = {
+    ...player,
+    lastLoginBonusDate: today,
+    coins: (player.coins ?? 0) + coinsEarned,
+  };
 
   return { coinsEarned, updatedPlayer, alreadyCollected: false };
 }

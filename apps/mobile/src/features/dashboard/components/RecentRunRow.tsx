@@ -48,7 +48,9 @@ function mkStyles(C: AppColors) {
     row:       { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20 },
     rowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
     type:      { ...Type.overline, color: C.t2 },
-    date:      { ...Type.caption, color: C.t3, marginTop: 2 },
+    // t3 (~1.9:1 contrast) is too low for the run date itself, not just its
+    // type label above (which stays t2 already) — this is real info, not decoration.
+    date:      { ...Type.caption, color: C.t2, marginTop: 2 },
     stats:     { flexDirection: 'row', gap: 16 },
     stat:      { alignItems: 'flex-end' },
     statValue: { ...Type.metricSm, fontFamily: Fonts.light, color: C.t1, lineHeight: 18 },

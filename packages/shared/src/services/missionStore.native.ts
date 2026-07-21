@@ -5,7 +5,6 @@
 import * as SQLite from 'expo-sqlite';
 import { Mission, generateDailyMissions, updateMissionProgress, MISSION_TEMPLATES } from './missions';
 import { getPlayer, savePlayer, getSettings } from './store';
-import { GAME_CONFIG } from './config';
 import { computeRunnerRank } from './claimEngine';
 
 const _db = SQLite.openDatabaseSync('runivo.db');
@@ -75,20 +74,36 @@ export async function claimMissionReward(missionId: string): Promise<Mission | n
     [mission.id, JSON.stringify(mission), mission.expiresAt],
   );
 
-  const player = await getPlayer();
-  if (player) {
-    const paceReward = mission.rewards.pace ?? 0;
-    const cap = GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
-    const remaining = cap - (player.paceWeeklyEarned ?? 0);
-    const credited = Math.min(paceReward, Math.max(0, remaining));
-    const newTotal = (player.paceTotalEarned ?? 0) + credited;
-    await savePlayer({
-      ...player,
-      paceBalance:      (player.paceBalance ?? 0) + credited,
-      paceTotalEarned:  newTotal,
-      paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + credited,
-      runnerRank:       computeRunnerRank(newTotal),
+  // Server-authoritative credit: the claim_mission_reward RPC looks up the
+  // mission's PACE reward from its own canonical title→reward table and
+  // enforces the weekly cap itself — pace_balance/pace_total_earned/
+  // pace_weekly_earned are never client-writable (profiles_column_protection),
+  // so crediting them locally without this round-trip only produced a number
+  // that reverted on the next pullProfile(). If offline or the call fails, the
+  // mission still shows claimed (matches this store's offline-first design
+  // elsewhere) but no PACE is credited until a future successful claim.
+  let credited = 0;
+  try {
+    const { supabase } = await import('./supabase');
+    const { data, error } = await supabase.rpc('claim_mission_reward', {
+      p_mission_id: missionId,
+      p_title:      mission.title,
     });
+    if (!error && typeof data === 'number') credited = data;
+  } catch { /* offline — not credited this attempt */ }
+
+  if (credited > 0) {
+    const player = await getPlayer();
+    if (player) {
+      const newTotal = (player.paceTotalEarned ?? 0) + credited;
+      await savePlayer({
+        ...player,
+        paceBalance:      (player.paceBalance ?? 0) + credited,
+        paceTotalEarned:  newTotal,
+        paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + credited,
+        runnerRank:       computeRunnerRank(newTotal),
+      });
+    }
   }
 
   return mission;
