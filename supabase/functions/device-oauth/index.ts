@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
       const { provider } = await req.json() as { provider: Provider };
       await supabase
         .from('device_connections')
-        .update({ status: 'disconnected', metadata: {} })
+        .update({ status: 'disconnected', metadata: {}, secrets: {} })
         .eq('user_id', user.id)
         .eq('device_type', provider);
       return new Response(JSON.stringify({ disconnected: true }), {
@@ -193,28 +193,51 @@ Deno.serve(async (req) => {
           user_id:     user.id,
           device_type: 'garmin',
           status:      'disconnected',
-          metadata:    { pending_token_secret: oauth_token_secret },
+          secrets:     { pending_token_secret: oauth_token_secret },
         }, { onConflict: 'user_id,device_type' });
 
         authUrl = `${GARMIN.authorizeUrl}?oauth_token=${oauth_token}`;
 
       } else if (provider === 'coros') {
         const clientId = Deno.env.get('COROS_CLIENT_ID') ?? '';
+        // CSRF state: the authorization code comes back through a web callback that
+        // deep-links into the app over the `runivo://` custom scheme, which any other
+        // installed app can also claim. Without state, an attacker-crafted callback
+        // could bind THEIR provider account to the victim's Runivo profile. The nonce
+        // is held server-side so it survives the web hop.
+        const state = crypto.randomUUID();
+        await supabase.from('device_connections').upsert({
+          user_id:     user.id,
+          device_type: 'coros',
+          status:      'disconnected',
+          secrets:     { pending_state: state },
+        }, { onConflict: 'user_id,device_type' });
+
         const params   = new URLSearchParams({
           response_type: 'code',
           client_id:     clientId,
           redirect_uri:  `${callbackBase}?provider=coros`,
           scope:         COROS.scope,
+          state,
         });
         authUrl = `${COROS.authorizeUrl}?${params}`;
 
       } else if (provider === 'polar') {
         const clientId = Deno.env.get('POLAR_CLIENT_ID') ?? '';
+        const state    = crypto.randomUUID();
+        await supabase.from('device_connections').upsert({
+          user_id:     user.id,
+          device_type: 'polar',
+          status:      'disconnected',
+          secrets:     { pending_state: state },
+        }, { onConflict: 'user_id,device_type' });
+
         const params   = new URLSearchParams({
           response_type: 'code',
           client_id:     clientId,
           redirect_uri:  `${callbackBase}?provider=polar`,
           scope:         POLAR.scope,
+          state,
         });
         authUrl = `${POLAR.authorizeUrl}?${params}`;
 
@@ -233,12 +256,32 @@ Deno.serve(async (req) => {
         provider:        Provider;
         action:          'callback';
         code?:           string;    // OAuth 2
+        state?:          string;    // OAuth 2 CSRF nonce
         oauth_token?:    string;    // Garmin
         oauth_verifier?: string;    // Garmin
       };
 
       const { provider } = body;
-      let metadata: Record<string, string> = {};
+
+      // Verify the CSRF nonce for the OAuth 2 providers before spending a code.
+      // Garmin is OAuth 1.0a — its request-token secret already binds the callback
+      // to the request that started it, so it needs no separate state.
+      if (provider === 'coros' || provider === 'polar') {
+        const { data: pending } = await supabase
+          .from('device_connections')
+          .select('secrets')
+          .eq('user_id', user.id)
+          .eq('device_type', provider)
+          .single();
+
+        const expectedState = (pending?.secrets as Record<string, string>)?.pending_state ?? '';
+        if (!body.state || !expectedState || body.state !== expectedState) {
+          return new Response('OAuth state mismatch', { status: 400, headers: CORS });
+        }
+      }
+      // Provider tokens go to `secrets`, not `metadata`: metadata is readable by the
+      // signed-in client, secrets is service-role only (20260723000002).
+      let secrets: Record<string, string> = {};
 
       if (provider === 'garmin') {
         if (!body.oauth_token || !body.oauth_verifier) {
@@ -247,19 +290,19 @@ Deno.serve(async (req) => {
         // Retrieve the request token secret we stashed
         const { data: existing } = await supabase
           .from('device_connections')
-          .select('metadata')
+          .select('secrets')
           .eq('user_id', user.id)
           .eq('device_type', 'garmin')
           .single();
 
-        const tokenSecret = (existing?.metadata as Record<string, string>)?.pending_token_secret ?? '';
+        const tokenSecret = (existing?.secrets as Record<string, string>)?.pending_token_secret ?? '';
         const key    = Deno.env.get('GARMIN_CONSUMER_KEY')    ?? '';
         const secret = Deno.env.get('GARMIN_CONSUMER_SECRET') ?? '';
 
         const { access_token, token_secret } = await garminAccessToken(
           key, secret, body.oauth_token, tokenSecret, body.oauth_verifier,
         );
-        metadata = { access_token, token_secret };
+        secrets = { access_token, token_secret };
 
       } else if (provider === 'coros') {
         if (!body.code) return new Response('Missing code', { status: 400, headers: CORS });
@@ -270,7 +313,7 @@ Deno.serve(async (req) => {
           body.code,
           `${callbackBase}?provider=coros`,
         );
-        metadata = {
+        secrets = {
           access_token:  tokens.access_token,
           refresh_token: tokens.refresh_token ?? '',
           expires_at:    tokens.expires_in
@@ -287,7 +330,7 @@ Deno.serve(async (req) => {
           body.code,
           `${callbackBase}?provider=polar`,
         );
-        metadata = {
+        secrets = {
           access_token:  tokens.access_token,
           refresh_token: tokens.refresh_token ?? '',
           expires_at:    tokens.expires_in
@@ -303,7 +346,7 @@ Deno.serve(async (req) => {
         device_type:  provider,
         status:       'connected',
         last_sync_at: new Date().toISOString(),
-        metadata,
+        secrets,
       }, { onConflict: 'user_id,device_type' });
 
       return new Response(JSON.stringify({ connected: true }), {

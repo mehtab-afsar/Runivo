@@ -52,6 +52,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'com.mehtabafsar.runivo',
+    // The Supabase session (access + refresh token) is persisted in AsyncStorage —
+    // see packages/shared/src/services/supabase.native.ts, which documents why
+    // SecureStore's 2048-char value cap ruled it out. With Android's default
+    // allowBackup=true that plaintext file is swept into the user's Google Drive by
+    // Auto Backup and is extractable via `adb backup` on older devices. Disable it:
+    // nothing in this app needs cloud backup of local state (everything syncs from
+    // Supabase on sign-in).
+    allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundColor: '#0A0A0A',
@@ -164,6 +172,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     enabled: true,
     checkAutomatically: 'ON_LOAD',
     fallbackToCacheTimeout: 0,
+    // OTA code signing. Without this the client executes ANY bundle served on the
+    // production channel, so a leaked EAS token = arbitrary code execution inside a
+    // binary holding background location, HealthKit and every user's session — with
+    // no App Review gate. The certificate is public and committed; the matching
+    // private key (keys/private-key.pem) is gitignored and must live in a secret
+    // manager — `eas update` signs with it at publish time.
+    codeSigningCertificate: './certs/certificate.pem',
+    codeSigningMetadata: {
+      keyid: 'main',
+      alg: 'rsa-v1_5-sha256',
+    },
   },
   runtimeVersion: {
     policy: 'appVersion',

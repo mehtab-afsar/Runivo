@@ -66,7 +66,7 @@ export async function fetchFollowingIds(userId: string): Promise<string[]> {
 
 export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRunner[]> {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('profiles_public')
     .select('id, username, total_distance_km, territory_score')
     .neq('id', userId)
     .order('territory_score', { ascending: false })

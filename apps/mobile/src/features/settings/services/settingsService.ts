@@ -32,7 +32,10 @@ export async function persistSettings(settings: StoredSettings): Promise<void> {
 export async function signOut(): Promise<{ ok: boolean }> {
   await unsubscribeFromPush().catch(() => {});
 
-  const { error } = await supabase.auth.signOut();
+  // scope: 'global' revokes every refresh token for this user, not just this
+  // device's. A local-only sign-out leaves a stolen session usable — which is
+  // exactly the situation someone is in when they reach for "sign out".
+  const { error } = await supabase.auth.signOut({ scope: 'global' });
   if (error) return { ok: false };
 
   await clearAllLocalData();

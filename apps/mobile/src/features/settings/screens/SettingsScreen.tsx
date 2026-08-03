@@ -14,7 +14,7 @@ import { SettingSection } from '../components/SettingSection';
 import { SegmentedControl, PillCycle } from '../components/SettingToggle';
 import { useTheme, setSoundEnabled, setHapticEnabled, Fonts, Spacing, type AppColors } from '@theme';
 import { useAuth } from '@shared/hooks/useAuth';
-import { supabase } from '@shared/services/supabase';
+import { resetPassword } from '@shared/services/auth';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -64,10 +64,12 @@ export default function SettingsScreen() {
           <Pressable style={s.linkRow} onPress={() => {
             const email = user?.email;
             if (!email) return;
-            supabase.auth.resetPasswordForEmail(email).then(({ error }) => {
-              if (error) Alert.alert('Error', error.message);
-              else Alert.alert('Check your email', `A password reset link has been sent to ${email}.`);
-            });
+            // Goes through the shared helper so it targets the real reset page and
+            // uses the implicit-flow email client — a bare resetPasswordForEmail on
+            // the PKCE app client produces a link the web page cannot redeem.
+            resetPassword(email)
+              .then(() => Alert.alert('Check your email', `A password reset link has been sent to ${email}.`))
+              .catch((e: unknown) => Alert.alert('Error', e instanceof Error ? e.message : 'Could not send reset email.'));
           }}>
             <Text style={s.linkLabel}>Change Password</Text>
             <Text style={s.linkArrow}>→</Text>

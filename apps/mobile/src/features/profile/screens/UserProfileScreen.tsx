@@ -22,7 +22,7 @@ interface UserData {
   avatar_url: string | null;
   total_runs?: number;
   total_distance_km?: number;
-  territories_claimed?: number;
+  total_territories_claimed?: number;
   runner_rank?: RunnerRank;
 }
 
@@ -42,8 +42,8 @@ export default function UserProfileScreen() {
   useEffect(() => {
     async function load() {
       const { data } = await supabase
-        .from('profiles')
-        .select('display_name, bio, location, avatar_color, avatar_url, total_runs, total_distance_km, territories_claimed, runner_rank')
+        .from('profiles_public')
+        .select('display_name, bio, location, avatar_color, avatar_url, total_runs, total_distance_km, total_territories_claimed, runner_rank')
         .eq('id', userId)
         .single();
       setUser(data ?? null);
@@ -141,7 +141,7 @@ export default function UserProfileScreen() {
             {[
               { label: 'Runs', value: String(user?.total_runs ?? 0) },
               { label: 'km', value: (user?.total_distance_km ?? 0).toFixed(0) },
-              { label: 'Zones', value: String(user?.territories_claimed ?? 0) },
+              { label: 'Zones', value: String(user?.total_territories_claimed ?? 0) },
             ].map(stat => (
               <View key={stat.label} style={s.statCell}>
                 <Text style={s.statValue}>{stat.value}</Text>

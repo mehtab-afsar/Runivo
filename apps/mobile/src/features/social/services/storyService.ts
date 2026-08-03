@@ -1,4 +1,5 @@
 import { supabase } from '@shared/services/supabase';
+import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 
 export interface Story {
   id: string;
@@ -20,19 +21,22 @@ export async function fetchStories(userId: string): Promise<StoryGroup[]> {
 
   const { data, error } = await supabase
     .from('stories')
-    .select('id, user_id, image_url, profiles(username)')
+    .select('id, user_id, image_url')
     .in('user_id', followingIds)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
+  const rows = data ?? [];
+  const profiles = await fetchPublicProfiles(rows.map(r => r.user_id as string));
+
   const groupMap = new Map<string, StoryGroup>();
-  for (const row of data ?? []) {
+  for (const row of rows) {
     const uid: string = row.user_id;
     if (!groupMap.has(uid)) {
       groupMap.set(uid, {
         userId: uid,
-        userName: (row.profiles as unknown as { username: string | null } | null)?.username ?? 'Runner',
+        userName: profiles.get(uid)?.username ?? 'Runner',
         stories: [],
       });
     }

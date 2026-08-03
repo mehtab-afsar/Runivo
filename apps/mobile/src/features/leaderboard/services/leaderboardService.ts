@@ -104,7 +104,7 @@ async function fetchMonthOrAll(
   // downloading the entire table (M13) and sorting client-side.
   const orderCol = tab === 'weekly_pace' ? 'pace_total_earned' : 'territory_score';
   let query = supabase
-    .from('profiles')
+    .from('profiles_public')
     .select(`id, username, runner_rank, ${orderCol}, country`)
     .order(orderCol, { ascending: false })
     .limit(PAGE_LIMIT);
@@ -135,7 +135,7 @@ async function fetchOwnProfileEntry(
   orderCol: 'territory_score' | 'pace_total_earned', tab: LeaderboardTab, userId: string,
 ): Promise<LeaderboardEntry | null> {
   const { data: own } = await supabase
-    .from('profiles')
+    .from('profiles_public')
     .select(`id, username, runner_rank, ${orderCol}`)
     .eq('id', userId)
     .maybeSingle();
@@ -143,7 +143,7 @@ async function fetchOwnProfileEntry(
 
   const raw = (own as Record<string, unknown>)[orderCol] as number | null ?? 0;
   const { count } = await supabase
-    .from('profiles')
+    .from('profiles_public')
     .select('id', { count: 'exact', head: true })
     .gt(orderCol, raw);
 
@@ -172,7 +172,7 @@ async function fetchMonthOrAllDistance(
 
   const ids = rows.map(r => r.user_id);
   const { data: profs, error: profErr } = await supabase
-    .from('profiles')
+    .from('profiles_public')
     .select('id, username, runner_rank, country')
     .in('id', ids);
   if (profErr) { console.error('[leaderboard] profiles fetch:', profErr.message); return []; }
@@ -203,7 +203,7 @@ async function fetchMonthOrAllDistance(
 async function fetchOwnDistanceEntry(cutoff: string, userId: string): Promise<LeaderboardEntry | null> {
   const [{ data: myRuns }, { data: profile }, { data: rank }] = await Promise.all([
     supabase.from('runs').select('distance_m').eq('user_id', userId).gte('started_at', cutoff),
-    supabase.from('profiles').select('id, username, runner_rank').eq('id', userId).maybeSingle(),
+    supabase.from('profiles_public').select('id, username, runner_rank').eq('id', userId).maybeSingle(),
     supabase.rpc('get_own_distance_rank', { p_user_id: userId, p_cutoff: cutoff }),
   ]);
   if (!profile) return null;

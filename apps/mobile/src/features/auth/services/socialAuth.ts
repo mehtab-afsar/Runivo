@@ -4,6 +4,20 @@ import { supabase } from '@shared/services/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Social sign-in over PKCE (see `flowType: 'pkce'` in supabase.native.ts).
+ *
+ * The previous implementation ran the implicit flow: it read `access_token` and
+ * `refresh_token` straight out of the returned URL fragment and handed them to
+ * `setSession()` without checking where the URL came from. `runivo://` is a custom
+ * scheme that any app on Android can also register, so that was a session-fixation
+ * sink — a crafted callback could log the user into an attacker's account, or an
+ * interceptor could lift a full session out of the fragment.
+ *
+ * Under PKCE the callback carries only a single-use `?code=`, useless without the
+ * code_verifier this client generated and kept locally. The origin check below is
+ * defence in depth: nothing but our own redirect target should ever be parsed.
+ */
 async function oauthFlow(provider: 'google' | 'apple'): Promise<void> {
   const redirectTo = makeRedirectUri({ scheme: 'runivo', path: 'auth/callback' });
 
@@ -15,15 +29,25 @@ async function oauthFlow(provider: 'google' | 'apple'): Promise<void> {
   if (!data.url) throw new Error('No OAuth URL returned');
 
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  // 'cancel' / 'dismiss' — user backed out; not an error.
   if (result.type !== 'success') return;
 
-  const hash = new URL(result.url).hash.slice(1);
-  const params = new URLSearchParams(hash);
-  const access_token = params.get('access_token');
-  const refresh_token = params.get('refresh_token');
-  if (access_token && refresh_token) {
-    await supabase.auth.setSession({ access_token, refresh_token });
+  const returned = new URL(result.url);
+  const expected = new URL(redirectTo);
+  if (returned.protocol !== expected.protocol || returned.host !== expected.host) {
+    throw new Error('OAuth redirect origin mismatch — sign-in rejected.');
   }
+
+  // Supabase surfaces provider failures as query params rather than a rejected promise.
+  const oauthError = returned.searchParams.get('error_description')
+    ?? returned.searchParams.get('error');
+  if (oauthError) throw new Error(oauthError);
+
+  const code = returned.searchParams.get('code');
+  if (!code) throw new Error('No authorization code returned');
+
+  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+  if (exchangeError) throw exchangeError;
 }
 
 export const signInWithGoogle = (): Promise<void> => oauthFlow('google');

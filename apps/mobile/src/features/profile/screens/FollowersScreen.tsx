@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { supabase } from '@shared/services/supabase';
+import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 import { avatarColor as getAvatarColor } from '@shared/lib/avatarUtils';
 import { RANK_COLORS } from '@shared/constants/territory';
 import { ArrowLeft } from 'phosphor-react-native';
@@ -23,7 +24,7 @@ interface FollowerEntry {
 async function loadFollowers(targetUserId: string, currentUserId: string): Promise<FollowerEntry[]> {
   const { data } = await supabase
     .from('followers')
-    .select('follower_id, profiles!followers_follower_id_fkey(id, username, display_name, runner_rank)')
+    .select('follower_id')
     .eq('following_id', targetUserId);
   if (!data) return [];
 
@@ -33,14 +34,17 @@ async function loadFollowers(targetUserId: string, currentUserId: string): Promi
     .eq('follower_id', currentUserId);
   const followingSet = new Set((followingResp.data ?? []).map((r: { following_id: string }) => r.following_id));
 
+  const profiles = await fetchPublicProfiles(data.map((r: any) => r.follower_id as string));
+
   return data.map((row: any) => {
-    const p = row.profiles;
+    const id = row.follower_id as string;
+    const p = profiles.get(id);
     return {
-      userId:      p.id,
-      username:    p.username ?? '',
-      displayName: p.display_name ?? null,
-      runnerRank:  p.runner_rank ?? 'pacer',
-      isFollowing: followingSet.has(p.id),
+      userId:      id,
+      username:    p?.username ?? '',
+      displayName: p?.display_name ?? null,
+      runnerRank:  p?.runner_rank ?? 'pacer',
+      isFollowing: followingSet.has(id),
     };
   });
 }

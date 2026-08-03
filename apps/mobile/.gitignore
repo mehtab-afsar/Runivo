@@ -39,3 +39,13 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# expo-updates code signing — the CERTIFICATE (certs/) is public and MUST be committed
+# so builds embed it; the PRIVATE KEY signs OTA updates and must never be committed.
+# Anyone holding it can publish arbitrary JS to every installed binary.
+/keys
+*.pem
+!certs/certificate.pem
+
+# Play Store service account key (referenced by eas.json submit config)
+google-services-key.json

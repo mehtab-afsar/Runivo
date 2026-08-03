@@ -8,6 +8,56 @@ const CORS_HEADERS = {
 
 type ArchType = 'flat' | 'neutral' | 'high';
 
+// Mirrors ai-coach/index.ts:185. foot-scan was the one AI endpoint with neither a
+// size cap nor a spend cap, so any signed-in user could loop it with large payloads
+// and bill the Anthropic key without limit.
+const DAILY_CAP_USD  = 0.12;
+const MAX_IMAGE_B64  = 7 * 1024 * 1024;   // same ceiling as ai-coach:1545
+const ALLOWED_MIME   = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+/** Reject the request if this user has already spent the daily AI budget. */
+async function enforceDailyCap(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  userId: string,
+): Promise<Response | null> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await supabase
+    .from('ai_usage_log')
+    .select('cost_usd')
+    .eq('user_id', userId)
+    .gte('created_at', since);
+
+  const totalUsd = (data ?? []).reduce(
+    (s: number, r: { cost_usd: number }) => s + (r.cost_usd ?? 0), 0,
+  );
+  if (totalUsd >= DAILY_CAP_USD) {
+    return new Response(
+      JSON.stringify({ error: 'daily_limit_reached', detail: 'Daily AI usage limit reached. Try again tomorrow.' }),
+      { status: 429, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+    );
+  }
+  return null;
+}
+
+/** Record spend so this endpoint counts against the same budget as ai-coach. */
+async function logUsage(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  userId: string,
+  usage: { input_tokens: number; output_tokens: number },
+): Promise<void> {
+  // Same rate card as ai-coach/index.ts:247 ($3/Mtok in, $15/Mtok out).
+  const costUsd = (usage.input_tokens * 3 + usage.output_tokens * 15) / 1_000_000;
+  await supabase.from('ai_usage_log').insert({
+    user_id:       userId,
+    feature:       'foot_scan',
+    input_tokens:  usage.input_tokens,
+    output_tokens: usage.output_tokens,
+    cost_usd:      costUsd,
+  });
+}
+
 interface FootScanResult {
   archType:            ArchType;
   confidence:          number;   // 0–100
@@ -35,9 +85,19 @@ Deno.serve(async (req) => {
 
     // Parse body — expects { imageBase64: string, mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }
     const { imageBase64, mimeType } = await req.json();
-    if (!imageBase64 || !mimeType) {
-      return new Response('Missing imageBase64 or mimeType', { status: 400, headers: CORS_HEADERS });
+    if (typeof imageBase64 !== 'string' || typeof mimeType !== 'string' || !imageBase64 || !mimeType) {
+      return new Response('Missing or invalid imageBase64/mimeType', { status: 400, headers: CORS_HEADERS });
     }
+    // mimeType previously went straight into the Anthropic media_type field unchecked.
+    if (!ALLOWED_MIME.has(mimeType)) {
+      return new Response('Unsupported mimeType', { status: 400, headers: CORS_HEADERS });
+    }
+    if (imageBase64.length > MAX_IMAGE_B64) {
+      return new Response('Image too large', { status: 413, headers: CORS_HEADERS });
+    }
+
+    const capped = await enforceDailyCap(supabase, user.id);
+    if (capped) return capped;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
 
@@ -74,6 +134,8 @@ Respond with ONLY valid JSON, no markdown:
         ],
       }],
     });
+
+    await logUsage(supabase, user.id, response.usage);
 
     const raw = (response.content[0] as { type: 'text'; text: string }).text.trim();
 

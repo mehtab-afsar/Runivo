@@ -21,14 +21,46 @@ export const supabaseConfigured =
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const supabase = createClient<any>(supabaseUrl, supabaseAnon, {
   auth: {
+    // PKCE, not the auth-js default of 'implicit'. Under implicit, signInWithOAuth
+    // returns the access/refresh tokens in the redirect URL *fragment*, with nothing
+    // binding the response to the app that started the flow. `runivo://` is a custom
+    // scheme and on Android any installed app can claim it, so an interceptor got a
+    // usable session. PKCE returns a one-time ?code= that is worthless without the
+    // code_verifier held only by this client. Required by RFC 8252 for native apps.
+    flowType:           'pkce',
     persistSession:     true,
     autoRefreshToken:   true,
-    detectSessionInUrl: false,    // No URL on mobile
+    detectSessionInUrl: false,    // No URL on mobile; socialAuth exchanges manually
     storageKey:         'runivo-auth',
     storage:            AsyncStorage,
   },
   realtime: {
     params: { eventsPerSecond: 10 },
+  },
+});
+
+/**
+ * Client used ONLY to send password-recovery emails. Not for anything else.
+ *
+ * Password reset is completed on the web page (https://runivo.app/reset-password —
+ * there is no native reset screen; see resetPassword() in auth.ts). Under PKCE the
+ * recovery link carries a ?code= that can only be redeemed with the code_verifier
+ * stored on the device that requested it — which the browser on the web page cannot
+ * reach, so the reset would dead-end as "invalid link". This client stays on the
+ * implicit flow so the emailed link still carries recovery tokens the web page's
+ * detectSessionInUrl can consume.
+ *
+ * persistSession:false + a distinct storageKey keep it from touching the real
+ * session or the PKCE verifier above.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const authEmailClient = createClient<any>(supabaseUrl, supabaseAnon, {
+  auth: {
+    flowType:           'implicit',
+    persistSession:     false,
+    autoRefreshToken:   false,
+    detectSessionInUrl: false,
+    storageKey:         'runivo-auth-email',
   },
 });
 

@@ -1,4 +1,5 @@
 import { supabase } from '@shared/services/supabase';
+import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 import type { Club, ActivityItem, ClubMember, JoinRequest } from '@features/clubs/types';
 
 export async function fetchClubs(userId: string | null): Promise<Club[]> {
@@ -132,27 +133,26 @@ export async function getOrCreateClubLobby(clubId: string, clubName: string, use
   return created?.id ?? null;
 }
 
-interface ClubMemberRow {
-  user_id: string;
-  role: string;
-  profiles: { username: string | null; level: number | null; total_distance_km: number | null } | null;
-}
-
 /** Fetch club members ranked by total_km descending. */
 export async function fetchClubMembers(clubId: string): Promise<ClubMember[]> {
   const { data } = await supabase
     .from('club_members')
-    .select('user_id, role, profiles(username, level, total_distance_km)')
+    .select('user_id, role')
     .eq('club_id', clubId);
   if (!data) return [];
-  return (data as unknown as ClubMemberRow[])
-    .map(m => ({
-      id: m.user_id,
-      username: m.profiles?.username ?? 'Runner',
-      level: m.profiles?.level ?? 1,
-      total_km: Math.round(Number(m.profiles?.total_distance_km ?? 0)),
-      role: (m.role as 'admin' | 'member') ?? 'member',
-    }))
+
+  const profiles = await fetchPublicProfiles(data.map(m => m.user_id as string));
+  return data
+    .map(m => {
+      const p = profiles.get(m.user_id as string);
+      return {
+        id: m.user_id as string,
+        username: p?.username ?? 'Runner',
+        level: p?.level ?? 1,
+        total_km: Math.round(Number(p?.total_distance_km ?? 0)),
+        role: (m.role as 'admin' | 'member') ?? 'member',
+      };
+    })
     .sort((a, b) => b.total_km - a.total_km);
 }
 
@@ -175,27 +175,22 @@ export async function fetchClubActivity(clubId: string): Promise<ActivityItem[]>
   }));
 }
 
-interface JoinRequestRow {
-  id: string;
-  user_id: string;
-  created_at: string;
-  profiles: { username: string | null } | null;
-}
-
 /** Fetch pending join requests for a club (admin only). */
 export async function fetchJoinRequests(clubId: string): Promise<JoinRequest[]> {
   const { data } = await supabase
     .from('club_join_requests')
-    .select('id, user_id, created_at, profiles(username)')
+    .select('id, user_id, created_at')
     .eq('club_id', clubId)
     .eq('status', 'pending')
     .order('created_at', { ascending: true });
   if (!data) return [];
-  return (data as unknown as JoinRequestRow[]).map(r => ({
-    id: r.id,
-    userId: r.user_id,
-    username: r.profiles?.username ?? 'Runner',
-    requestedAt: r.created_at,
+
+  const profiles = await fetchPublicProfiles(data.map(r => r.user_id as string));
+  return data.map(r => ({
+    id: r.id as string,
+    userId: r.user_id as string,
+    username: profiles.get(r.user_id as string)?.username ?? 'Runner',
+    requestedAt: r.created_at as string,
   }));
 }
 

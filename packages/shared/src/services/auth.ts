@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, authEmailClient } from './supabase';
 import { clearLocalUserData } from './store';
 import type { Session, User } from '@supabase/supabase-js';
 
@@ -30,8 +30,16 @@ export async function signUp(email: string, password: string, username: string) 
 // ----------------------------------------------------------------
 // Sign in with email + password
 // ----------------------------------------------------------------
-export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+// `captchaToken` is threaded through so that turning on hCaptcha/Turnstile in the
+// Supabase dashboard becomes a config change plus a widget, not a refactor of every
+// auth call site. Server-side captcha + per-account rate limiting are the real
+// brute-force controls; the client-side lockout in useLogin is only defence in depth.
+export async function signIn(email: string, password: string, captchaToken?: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: captchaToken ? { captchaToken } : undefined,
+  });
   if (error) throw error;
   return data;
 }
@@ -51,10 +59,14 @@ export async function signInWithProvider(provider: 'google' | 'apple', redirectT
 // ----------------------------------------------------------------
 // Sign out
 // ----------------------------------------------------------------
+// scope: 'global' revokes refresh tokens on every device, not just this one.
+// Local data is cleared only after the server confirms — supabase-js keeps the
+// session alive on a network failure, so wiping first would strand a still
+// signed-in user with no data (same ordering as the native settingsService path).
 export async function signOut() {
-  clearLocalUserData();
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut({ scope: 'global' });
   if (error) throw error;
+  clearLocalUserData();
 }
 
 // ----------------------------------------------------------------
@@ -100,8 +112,12 @@ export function onAuthStateChange(callback: (state: AuthState) => void) {
 // caller explicitly overrides it.
 const RESET_PASSWORD_URL = 'https://runivo.app/reset-password';
 
+// Sent via authEmailClient, not `supabase`: the native client is on the PKCE flow,
+// which would produce a ?code= link redeemable only with a code_verifier stored on
+// this phone — unusable from the browser that opens RESET_PASSWORD_URL. See
+// supabase.native.ts. On web authEmailClient is just `supabase`.
 export async function resetPassword(email: string, redirectTo?: string) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  const { error } = await authEmailClient.auth.resetPasswordForEmail(email, {
     redirectTo: redirectTo ?? RESET_PASSWORD_URL,
   });
   if (error) throw error;

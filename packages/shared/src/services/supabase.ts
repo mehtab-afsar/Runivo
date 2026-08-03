@@ -24,3 +24,11 @@ export const supabase = createClient<any>(supabaseUrl, supabaseAnon, {
     params: { eventsPerSecond: 10 },
   },
 });
+
+/**
+ * Web twin of the native `authEmailClient`. On web the recovery link is opened in the
+ * same browser that requested it, so the ordinary client can complete the flow — this
+ * is just an alias that lets shared code (auth.ts) call the same symbol on both
+ * platforms. See supabase.native.ts for why native needs a separate instance.
+ */
+export const authEmailClient = supabase;

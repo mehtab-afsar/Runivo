@@ -1,4 +1,5 @@
 import { supabase } from '@shared/services/supabase';
+import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 
 export interface LobbyMessage {
   id: string;
@@ -15,21 +16,27 @@ export interface LobbyMessage {
 export async function fetchMessages(lobbyId: string): Promise<LobbyMessage[]> {
   const { data, error } = await supabase
     .from('lobby_messages')
-    .select('id, user_id, content, created_at, profiles(username, level)')
+    .select('id, user_id, content, created_at')
     .eq('lobby_id', lobbyId)
     .order('created_at', { ascending: false })
     .limit(60);
 
   if (error) throw error;
 
-  return (data ?? []).reverse().map((row: any) => ({
-    id: row.id,
-    userId: row.user_id,
-    userName: row.profiles?.username ?? 'Runner',
-    userLevel: row.profiles?.level ?? 1,
-    message: row.content,
-    timestamp: row.created_at,
-  }));
+  const rows = data ?? [];
+  const profiles = await fetchPublicProfiles(rows.map((r: any) => r.user_id as string));
+
+  return rows.reverse().map((row: any) => {
+    const p = profiles.get(row.user_id as string);
+    return {
+      id: row.id,
+      userId: row.user_id,
+      userName: p?.username ?? 'Runner',
+      userLevel: p?.level ?? 1,
+      message: row.content,
+      timestamp: row.created_at,
+    };
+  });
 }
 
 export async function sendMessage(
@@ -67,7 +74,7 @@ export function subscribeToMessages(
           created_at: string;
         };
         const { data: p } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('username, level')
           .eq('id', row.user_id)
           .single();
