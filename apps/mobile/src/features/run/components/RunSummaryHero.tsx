@@ -14,8 +14,9 @@ import { Play } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import { MapStyleUrl } from '@theme/maps';
 
-const HERO_MAP_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const HERO_MAP_STYLE = MapStyleUrl.darkMatter;
 
 interface Props {
   topInset:    number;
@@ -63,7 +64,7 @@ export default function RunSummaryHero({
           style={StyleSheet.absoluteFill}
           mapStyle={HERO_MAP_STYLE}
           logoEnabled={false}
-          attributionEnabled={false}
+          attributionEnabled
           scrollEnabled={false}
           zoomEnabled={false}
           pitchEnabled={false}

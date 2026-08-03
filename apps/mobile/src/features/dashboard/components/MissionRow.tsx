@@ -8,7 +8,8 @@ interface Props {
   isLast?: boolean;
 }
 
-export function MissionRow({ mission: m, isLast }: Props) {
+// Memoised: one per daily mission, re-rendered by unrelated Dashboard state.
+export const MissionRow = React.memo(function MissionRow({ mission: m, isLast }: Props) {
   const C   = useTheme();
   const ss  = useMemo(() => mkStyles(C), [C]);
   const bar = Math.min(m.current / Math.max(m.target, 1), 1);
@@ -27,7 +28,7 @@ export function MissionRow({ mission: m, isLast }: Props) {
       <Text style={[ss.xp, m.completed && ss.xpDone]}>+{m.rewards.pace} PACE</Text>
     </View>
   );
-}
+});
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({

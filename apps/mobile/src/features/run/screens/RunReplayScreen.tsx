@@ -7,8 +7,9 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import { MapStyleUrl } from '@theme/maps';
 
-const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const DARK_STYLE = MapStyleUrl.darkMatter;
 
 type Route = RouteProp<RootStackParamList, 'RunReplay'>;
 
@@ -135,7 +136,7 @@ export default function RunReplayScreen() {
           style={ss.map}
           mapStyle={DARK_STYLE}
           logoEnabled={false}
-          attributionEnabled={false}
+          attributionEnabled
           compassEnabled={false}
           zoomEnabled
           rotateEnabled={false}

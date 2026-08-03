@@ -15,6 +15,7 @@
     "build": "npm run build --workspace=apps/web",
     "typecheck": "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/mobile",
     "lint": "eslint apps/web/app apps/web/components apps/web/lib apps/mobile/src packages/shared/src",
+    "test": "vitest run",
     "clean:mobile": "npm run clean --workspace=apps/mobile",
     "clean:web": "npm run clean --workspace=apps/web",
     "clean": "npm run clean:mobile && npm run clean:web",
@@ -44,6 +45,21 @@
       "bash -c 'npx tsc --noEmit --project packages/shared/tsconfig.json'",
       "eslint --no-warn-ignored"
     ]
+  },
+  "comment:overrides": [
+    "H-10 (security audit). next@15.5.22 cleared its own SSRF/DoS advisories, and the",
+    "direct postcss/sharp deps in apps/web are on patched versions. Still outstanding:",
+    "next bundles postcss@8.4.31 and resolves the hoisted sharp@0.34.5 (it pins an",
+    "optional ^0.34.3), and @expo/metro-config carries postcss@8.4.49 — all build-chain",
+    "or image-pipeline, none of them the SSRF/DoS that mattered.",
+    "NOTE: npm did not apply these overrides against the existing lockfile (no",
+    "'overrides' key was written to package-lock.json). They take effect on the next",
+    "full lockfile regeneration — do that deliberately, with a build + smoke test,",
+    "rather than as a side effect. Re-check on the next Next.js upgrade."
+  ],
+  "overrides": {
+    "sharp": "^0.35.3",
+    "postcss": "^8.5.25"
   },
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",

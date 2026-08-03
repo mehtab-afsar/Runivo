@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, RefreshControl, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import type { StoredRun } from '@shared/services/store';
 import { useRunHistory } from '../hooks/useRunHistory';
 import { RunItem } from '../components/RunItem';
 import { HistoryStats } from '../components/HistoryStats';
@@ -24,6 +25,12 @@ const FILTERS = [
 
 type FilterValue = typeof FILTERS[number]['value'];
 
+// Module-level so the identity is stable across renders. Previously this was an
+// inline `() => <View/>`, i.e. a new component TYPE every render, which forces
+// React to unmount and remount every separator in the list.
+const ItemSeparator = () => <View style={{ height: 8 }} />;
+const keyExtractor = (r: StoredRun) => r.id;
+
 export default function HistoryScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
@@ -37,6 +44,16 @@ export default function HistoryScreen() {
 
   const filteredTotalKm = useMemo(() => filtered.reduce((acc, r) => acc + r.distanceMeters / 1000, 0), [filtered]);
   const filteredAvgKm   = useMemo(() => filteredTotalKm / Math.max(filtered.length, 1), [filteredTotalKm, filtered.length]);
+
+  // Stable identities so the memoised RunItem rows can actually bail out.
+  const openRun = useCallback(
+    (run: StoredRun) => navigation.navigate('RunSummary', { runId: run.id }),
+    [navigation],
+  );
+  const renderItem = useCallback(
+    ({ item }: { item: StoredRun }) => <RunItem run={item} onPress={openRun} />,
+    [openRun],
+  );
 
   return (
     <SafeAreaView style={s.root}>
@@ -63,13 +80,15 @@ export default function HistoryScreen() {
 
       <FlatList
         data={filtered}
-        keyExtractor={r => r.id}
-        renderItem={({ item }) => (
-          <RunItem run={item} onPress={() => navigation.navigate('RunSummary', { runId: item.id })} />
-        )}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        ItemSeparatorComponent={ItemSeparator}
         contentContainerStyle={s.list}
         showsVerticalScrollIndicator={false}
+        // History can hold hundreds of runs; without these the whole list mounts up front.
+        initialNumToRender={10}
+        windowSize={7}
+        removeClippedSubviews
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
         ListEmptyComponent={
           <View style={s.empty}>

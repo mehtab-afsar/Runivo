@@ -5,8 +5,9 @@ import { track } from '@shared/services/analytics';
 import { D } from './onboardingStyles';
 
 import ML from '@maplibre/maplibre-react-native';
+import { MapStyleUrl } from '@theme/maps';
 
-const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+const DARK_STYLE = MapStyleUrl.darkMatter;
 const LONDON: [number, number] = [-0.1278, 51.5074];
 
 interface Props {
@@ -53,7 +54,7 @@ export default function CityMapPreviewStep({ onLocationCaptured }: Props) {
           rotateEnabled={false}
           pitchEnabled={false}
           logoEnabled={false}
-          attributionEnabled={false}
+          attributionEnabled
         >
           <ML.Camera centerCoordinate={center} zoomLevel={14} animationDuration={0} />
           <ML.UserLocation visible renderMode="native" />

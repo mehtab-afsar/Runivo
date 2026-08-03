@@ -80,7 +80,10 @@ interface Props {
   onUserPress?: () => void;
 }
 
-export function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
+// Memoised: the heaviest row in the app (renders a route polyline per post).
+// FeedScreen already uses a useCallback renderItem — without memo here that win
+// was cancelled, and every keystroke in the search box re-rendered every card.
+export const FeedPostCard = React.memo(function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
 
@@ -162,7 +165,7 @@ export function FeedPostCard({ post, onKudos, onComment, onUserPress }: Props) {
 
     </View>
   );
-}
+});
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({

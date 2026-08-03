@@ -24,27 +24,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ── Web ──────────────────────────────────────────────────────────────────
+      # ── Typecheck ────────────────────────────────────────────────────────────
       - name: Typecheck (web)
         run: npm run typecheck --workspace=apps/web
 
-      - name: Lint (web)
-        run: npx eslint apps/web/src --ext .ts,.tsx --max-warnings 0
-        continue-on-error: false
-
-      # ── Mobile ───────────────────────────────────────────────────────────────
       - name: Typecheck (mobile)
         run: npm run typecheck --workspace=apps/mobile
 
-      # ── Shared ───────────────────────────────────────────────────────────────
       - name: Typecheck (shared)
         run: npx tsc --noEmit --project packages/shared/tsconfig.json
 
+      # ── Lint ─────────────────────────────────────────────────────────────────
+      # Covers web + mobile + shared. The previous step ran
+      # `eslint apps/web/src --ext .ts,.tsx`, which was broken two ways: that
+      # directory does not exist (web code lives in app/, components/, lib/), and
+      # `--ext` was removed in ESLint 9. It therefore never linted a single file,
+      # and mobile/shared were never linted in CI at all.
+      #
+      # Deliberately NOT `--max-warnings 0`: there are ~92 pre-existing warnings
+      # (mostly no-explicit-any and exhaustive-deps). Gating on them today would
+      # make CI permanently red, which is worse than no gate. This fails on
+      # ERRORS only; burn the warning count down, then tighten this.
+      - name: Lint (all workspaces)
+        run: npm run lint
+
       # ── Tests ────────────────────────────────────────────────────────────────
-      - name: Unit tests (shared)
-        run: |
-          if [ -f packages/shared/package.json ] && grep -q '"test"' packages/shared/package.json; then
-            npm test --workspace=packages/shared
-          else
-            echo "No test script configured in shared package — skipping"
-          fi
+      # Unconditional. The previous version was guarded by
+      # `grep -q '"test"' packages/shared/package.json` — that manifest has no
+      # scripts block at all, so the guard never passed, CI printed "skipping",
+      # and the whole suite went unrun on every commit.
+      - name: Unit tests
+        run: npm test

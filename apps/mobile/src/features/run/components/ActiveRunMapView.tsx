@@ -8,6 +8,7 @@ import type { GPSPoint } from '../hooks/useActiveRun';
 import { kalmanSmooth } from '@shared/services/claimEngine';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import { MapStyleUrl } from '@theme/maps';
 
 const styles = StyleSheet.create({
   map: { flex: 1 },
@@ -15,8 +16,8 @@ const styles = StyleSheet.create({
 
 const _hour = new Date().getHours();
 const DARK_STYLE = (_hour >= 19 || _hour < 6)
-  ? 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
-  : 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
+  ? MapStyleUrl.darkMatter
+  : MapStyleUrl.voyager;
 
 interface Props {
   gpsPoints: GPSPoint[];
@@ -84,7 +85,7 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
       style={styles.map}
       mapStyle={DARK_STYLE}
       logoEnabled={false}
-      attributionEnabled={false}
+      attributionEnabled
       compassEnabled={false}
       zoomEnabled
       rotateEnabled={false}

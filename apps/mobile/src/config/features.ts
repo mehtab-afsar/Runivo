@@ -6,7 +6,13 @@ export const FEATURES = {
 
   // Social
   SOCIAL_FEED: true,
-  CLUBS:       false,
+  // Flipped on for the closed-club pilot — the target cohort already knows
+  // each other, and club chat is what makes a steal shared social knowledge
+  // instead of an easy-to-ignore private push. Already audited/fixed, just
+  // re-exposing a working feature — not new engineering. Revert to false if
+  // the pilot doesn't need it, or before a broader public launch that hasn't
+  // separately validated Clubs.
+  CLUBS:       true,
   EVENTS:      false,
 
   // Gamification

@@ -27,6 +27,7 @@ import AwardUnlockSheet from '../components/AwardUnlockSheet';
 import type { RunnerRank } from '@shared/types/game';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import { MapStyleUrl } from '@theme/maps';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RunSummary'>;
@@ -290,9 +291,9 @@ export default function RunSummaryScreen() {
                 <View style={ss.mapWrap}>
                   <MapLibreGL.MapView
                       style={{ flex: 1 }}
-                      mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+                      mapStyle={MapStyleUrl.darkMatter}
                       logoEnabled={false}
-                      attributionEnabled={false}
+                      attributionEnabled
                       scrollEnabled={false}
                       zoomEnabled={false}
                       pitchEnabled={false}

@@ -3,29 +3,10 @@ import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Stack, X } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { MAP_STYLES } from '@theme/maps';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
-
-const TERRAIN_STYLE = JSON.stringify({
-  version: 8,
-  sources: { 'raster-tiles': { type: 'raster', tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© OpenTopoMap' } },
-  layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 17 }],
-});
-
-const SATELLITE_STYLE = JSON.stringify({
-  version: 8,
-  sources: { 'raster-tiles': { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, attribution: '© Esri, Maxar' } },
-  layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 19 }],
-});
-
-const MAP_STYLES = [
-  { id: 'standard',  label: 'Standard',  preview: '#E8F5E9', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
-  { id: 'dark',      label: 'Dark',      preview: '#263238', url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
-  { id: 'light',     label: 'Light',     preview: '#FAFAFA', url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
-  { id: 'terrain',   label: 'Terrain',   preview: '#C8E6C9', url: TERRAIN_STYLE },
-  { id: 'satellite', label: 'Satellite', preview: '#1B5E20', url: SATELLITE_STYLE },
-];
 
 interface RunMapViewProps {
   lat: number | null;
@@ -54,7 +35,7 @@ export default function RunMapView({
 
   return (
     <Animated.View style={[ss.container, { bottom: sheetAnim }]}>
-      <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled={false}>
+      <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled>
         {lat !== null && lng !== null && (
           <MapLibreGL.Camera
             zoomLevel={15}
@@ -91,7 +72,7 @@ export default function RunMapView({
           <Text style={ss.pickerLabel}>Map Style</Text>
           {MAP_STYLES.map(s => (
             <Pressable key={s.id} style={ss.pickerRow} onPress={() => { onMapStyleChange(s.url); setShowStylePicker(false); }}>
-              <View style={[ss.preview, { backgroundColor: s.preview }, mapStyle === s.url && ss.previewActive]} />
+              <View style={[ss.preview, { backgroundColor: s.swatch }, mapStyle === s.url && ss.previewActive]} />
               <Text style={[ss.previewLabel, mapStyle === s.url && { color: C.black }]}>{s.label}</Text>
             </Pressable>
           ))}

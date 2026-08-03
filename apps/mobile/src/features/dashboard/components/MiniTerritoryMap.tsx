@@ -5,6 +5,7 @@ import type { TerritoryPolygon } from '@shared/types/game';
 import { useTheme, Type, Spacing, type AppColors } from '@theme';
 
 import ML from '@maplibre/maplibre-react-native';
+import { MapStyleUrl } from '@theme/maps';
 
 const D_RED  = '#C8391A';
 const D_GRAY = '#CCCCCC';
@@ -67,13 +68,13 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
     <Pressable style={ss.container} onPress={onPress}>
       <ML.MapView
         style={{ flex: 1 }}
-        mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+        mapStyle={MapStyleUrl.positron}
         zoomEnabled={false}
         scrollEnabled={false}
         rotateEnabled={false}
         pitchEnabled={false}
         logoEnabled={false}
-        attributionEnabled={false}
+        attributionEnabled
       >
         {centroid && <ML.Camera centerCoordinate={centroid} zoomLevel={14} animationDuration={0} />}
         <ML.UserLocation visible renderMode="native" />

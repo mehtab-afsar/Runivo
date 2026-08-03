@@ -9,7 +9,10 @@ import { useTheme, Fonts, type AppColors } from '@theme';
 interface Props {
   entry: LeaderboardEntry;
   unit: string;
-  onPress?: () => void;
+  // Receives the entry so the parent can pass one stable handler rather than
+  // allocating a closure per row — required for the React.memo below to bail out.
+  // Undefined means "not tappable" (your own row).
+  onPress?: (entry: LeaderboardEntry) => void;
 }
 
 function formatValue(value: number, unit: string): string {
@@ -18,7 +21,8 @@ function formatValue(value: number, unit: string): string {
   return `${Intl.NumberFormat().format(Math.round(value))} TS`;
 }
 
-export function EntryRow({ entry, unit, onPress }: Props) {
+// Memoised: rendered once per leaderboard entry (page size 100).
+export const EntryRow = React.memo(function EntryRow({ entry, unit, onPress }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const rankColor = RANK_COLORS[entry.runnerRank] ?? RANK_COLORS.pacer;
@@ -26,7 +30,7 @@ export function EntryRow({ entry, unit, onPress }: Props) {
   return (
     <Pressable
       style={[s.row, entry.isPlayer && s.rowMe]}
-      onPress={onPress}
+      onPress={onPress ? () => onPress(entry) : undefined}
     >
       {/* Rank */}
       <Text style={s.rank}>{entry.rank}</Text>
@@ -58,7 +62,7 @@ export function EntryRow({ entry, unit, onPress }: Props) {
       </View>
     </Pressable>
   );
-}
+});
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({

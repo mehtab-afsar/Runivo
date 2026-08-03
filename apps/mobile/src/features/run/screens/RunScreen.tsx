@@ -7,6 +7,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getSettings, saveRun, type StoredRun } from '@shared/services/store';
 import { postRunSync } from '@shared/services/sync';
 import { useTheme, type AppColors } from '@theme';
+import { mapStyleUrlFor } from '@theme/maps';
 
 import { useRunSetup } from '../hooks/useRunSetup';
 import { useBeatPacer } from '../hooks/useBeatPacer';
@@ -64,14 +65,6 @@ async function recoverRunFromCheckpoint(
   clearBgGpsBuffer(runId);
 }
 
-const MAP_STYLE_URLS: Record<string, string> = {
-  Standard:  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  Dark:      'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-  Light:     'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-  Terrain:   'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  Satellite: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-};
-
 function gpsColor(status: string, acc: number | null): string {
   if (status === 'error') return '#EF4444';
   if (status === 'searching' || acc === null) return '#D1D5DB';
@@ -92,12 +85,14 @@ export default function RunScreen() {
   const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const [mapStyle, setMapStyle] = useState(MAP_STYLE_URLS.Standard);
+  const [mapStyle, setMapStyle] = useState(() => mapStyleUrlFor(undefined));
 
   useEffect(() => {
-    getSettings().then(s => {
-      if (s.mapStyle && MAP_STYLE_URLS[s.mapStyle]) setMapStyle(MAP_STYLE_URLS[s.mapStyle]);
-    });
+    // mapStyleUrlFor resolves Terrain/Satellite to their real raster styles.
+    // This used to read from a local table where both of those pointed at
+    // ordinary CARTO vector styles, so picking "Satellite" silently showed the
+    // dark basemap.
+    getSettings().then(s => setMapStyle(mapStyleUrlFor(s.mapStyle)));
   }, []);
 
   const {

@@ -18,17 +18,21 @@ const ACTIVITY_LABELS: Record<string, { emoji: string; label: string }> = {
 
 interface Props {
   run: StoredRun;
-  onPress: () => void;
+  // Takes the run rather than being a pre-bound closure: that lets the parent
+  // pass one stable handler instead of allocating a new arrow per row, which is
+  // what makes the React.memo below actually bail out.
+  onPress: (run: StoredRun) => void;
 }
 
-export function RunItem({ run, onPress }: Props) {
+// Memoised: rendered once per run in the full history list (up to 200 rows).
+export const RunItem = React.memo(function RunItem({ run, onPress }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const activity = ACTIVITY_LABELS[run.activityType] ?? { emoji: '🏃', label: run.activityType };
   const claimedCount = run.territoriesClaimed.length;
 
   return (
-    <Pressable style={s.card} onPress={onPress}>
+    <Pressable style={s.card} onPress={() => onPress(run)}>
       {/* Left column */}
       <View style={{ flex: 1, gap: 4 }}>
         <View style={s.topRow}>
@@ -47,7 +51,7 @@ export function RunItem({ run, onPress }: Props) {
 
     </Pressable>
   );
-}
+});
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({

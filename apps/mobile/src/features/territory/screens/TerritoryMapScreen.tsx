@@ -12,41 +12,7 @@ import { TerritoryFilterChips } from '../components/TerritoryFilterChips';
 import { TerritoryBottomSheet } from '../components/TerritoryBottomSheet';
 import { TerritoryStatsBar } from '../components/TerritoryStatsBar';
 
-// Raster tile sources need to be wrapped in an inline GL style JSON
-const TERRAIN_STYLE = JSON.stringify({
-  version: 8,
-  sources: {
-    'raster-tiles': {
-      type: 'raster',
-      tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenTopoMap contributors',
-    },
-  },
-  layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 17 }],
-});
-
-const SATELLITE_STYLE = JSON.stringify({
-  version: 8,
-  sources: {
-    'raster-tiles': {
-      type: 'raster',
-      tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-      tileSize: 256,
-      attribution: '© Esri, Maxar, Earthstar Geographics',
-    },
-  },
-  layers: [{ id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: 19 }],
-});
-
-const MAP_STYLES = [
-  { id: 'standard',  label: 'Standard',  color: '#E8F5E9', url: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json' },
-  { id: 'dark',      label: 'Dark',      color: '#263238', url: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json' },
-  { id: 'light',     label: 'Light',     color: '#FAFAFA', url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json' },
-  { id: 'terrain',   label: 'Terrain',   color: '#C8E6C9', url: TERRAIN_STYLE },
-  { id: 'satellite', label: 'Satellite', color: '#1B5E20', url: SATELLITE_STYLE },
-] as const;
-
+import { MAP_STYLES } from '@theme/maps';
 import ML from '@maplibre/maplibre-react-native';
 
 const ACCENT = '#D93518';
@@ -131,7 +97,7 @@ export default function TerritoryMapScreen() {
         mapStyle={MAP_STYLES[styleIdx].url}
         onRegionDidChange={handleRegionChange}
         logoEnabled={false}
-        attributionEnabled={false}
+        attributionEnabled
       >
         <ML.Camera
           ref={cameraRef}

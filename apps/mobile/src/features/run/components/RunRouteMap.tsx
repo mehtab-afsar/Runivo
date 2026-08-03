@@ -7,8 +7,9 @@ import { View, StyleSheet } from 'react-native';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import { MapStyleUrl } from '@theme/maps';
 
-const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const MAP_STYLE = MapStyleUrl.positron;
 
 interface Props {
   route: { lat: number; lng: number }[];
@@ -38,7 +39,7 @@ export default function RunRouteMap({ route }: Props) {
         style={ss.map}
         mapStyle={MAP_STYLE}
         logoEnabled={false}
-        attributionEnabled={false}
+        attributionEnabled
         scrollEnabled={false}
         zoomEnabled={false}
         pitchEnabled={false}

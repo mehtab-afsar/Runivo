@@ -231,8 +231,16 @@ Deno.serve(async (req) => {
     rivalOwnerName: string;
     stolenAreaM2:   number;
     tier:           string;
+    territoryId:    string;
   }
   const stealRecords: StealRecord[] = [];
+  // Pilot instrumentation: every rival-overlap detection this run, qualifying
+  // or not — without this, "contested-run rate" has no denominator (only
+  // completed steals were ever persisted before). Best-effort, non-blocking.
+  const contestLogRows: {
+    run_id: string; user_id: string; rival_owner_id: string;
+    overlap_pct: number; qualified: boolean;
+  }[] = [];
 
   if (ring) {
     const wkt = polygonToWKT(ring);
@@ -270,6 +278,11 @@ Deno.serve(async (req) => {
         const isFresh    = rival.freshness >= FRESHNESS_STALE_AT;
         const qualifies  = isFresh ? overlapPct > STEAL_THRESHOLD : overlapPct > 0;
 
+        contestLogRows.push({
+          run_id: body.runId, user_id: user.id, rival_owner_id: rival.owner_id,
+          overlap_pct: overlapPct, qualified: qualifies,
+        });
+
         if (!qualifies) continue;
 
         stealRecords.push({
@@ -277,6 +290,7 @@ Deno.serve(async (req) => {
           rivalOwnerName: rivalUsernameMap.get(rival.owner_id) ?? 'Runner',
           stolenAreaM2:   rival.intersection_area,
           tier:           computeTierFromArea(rival.intersection_area),
+          territoryId:    rival.id,
         });
 
         await supabase.rpc('steal_territory_portion', {
@@ -290,6 +304,12 @@ Deno.serve(async (req) => {
         if (!stolenFromUserIds.includes(rival.owner_id)) {
           stolenFromUserIds.push(rival.owner_id);
         }
+      }
+
+      if (contestLogRows.length > 0) {
+        try {
+          await supabase.from('run_territory_contests').insert(contestLogRows);
+        } catch { /* non-critical — pilot instrumentation only */ }
       }
 
       const { data: claimedNew } = await supabase.rpc('claim_unclaimed_area', {
@@ -344,6 +364,14 @@ Deno.serve(async (req) => {
       const feedOps: Promise<unknown>[] = [];
 
       for (const steal of stealRecords) {
+        // Pilot A/B: randomly withhold the proactive "under attack" push for
+        // ~half of steals, so the pilot can measure how much of the reclaim
+        // behaviour the push itself drives. A suppressed victim still sees the
+        // attack in their feed on next open — this isolates the value of the
+        // ALERT, not of awareness. Remove this randomisation (always notify)
+        // once the pilot readout is done.
+        const pushSuppressed = Math.random() < 0.5;
+
         feedOps.push(supabase.from('feed_posts').insert({
           user_id:              body.userId,
           post_type:            'conquest',
@@ -374,19 +402,27 @@ Deno.serve(async (req) => {
           stolen_area_m2:       steal.stolenAreaM2,
           xp_earned:            0,
           leveled_up:           false,
+          // Pilot instrumentation: links this notification to the actual
+          // territory_polygons row taken, so a later query can check whether
+          // the victim reclaimed this SAME spot — not just whether they ran
+          // again somewhere.
+          stolen_territory_id:  steal.territoryId,
+          push_suppressed:      pushSuppressed,
         }));
 
-        feedOps.push(supabase.functions.invoke('send-push-notification', {
-          // send-push-notification reads user_id/action_url (snake_case) — the previous
-          // userId/data.actionUrl keys never matched, so this call 400'd silently on
-          // every steal and the "your territory is under attack" push never fired.
-          body: {
-            user_id:    steal.rivalOwnerId,
-            title:      '⚔ Your territory is under attack',
-            body:       `${attackerUsername} captured part of your ${steal.tier} zone. Defend it now.`,
-            action_url: '/territory-map?filter=stale',
-          },
-        }));
+        if (!pushSuppressed) {
+          feedOps.push(supabase.functions.invoke('send-push-notification', {
+            // send-push-notification reads user_id/action_url (snake_case) — the previous
+            // userId/data.actionUrl keys never matched, so this call 400'd silently on
+            // every steal and the "your territory is under attack" push never fired.
+            body: {
+              user_id:    steal.rivalOwnerId,
+              title:      '⚔ Your territory is under attack',
+              body:       `${attackerUsername} captured part of your ${steal.tier} zone. Defend it now.`,
+              action_url: '/territory-map?filter=stale',
+            },
+          }));
+        }
       }
 
       await Promise.allSettled(feedOps);

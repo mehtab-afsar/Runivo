@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +12,9 @@ import { Seal, Medal, ArrowLeft } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// Module-level for a stable identity across renders.
+const keyExtractor = (e: LeaderboardEntry) => String(e.rank);
 
 // Podium: [2nd, 1st, 3rd] order, heights: [50, 70, 36]
 function Podium({ entries, unit, currentUserId: _currentUserId }: { entries: LeaderboardEntry[]; unit: string; currentUserId?: string }) {
@@ -85,6 +88,25 @@ export default function LeaderboardScreen() {
     : unit === 'PACE' ? `${v} PACE`
     : `${Intl.NumberFormat().format(Math.round(v))} TS`;
 
+  // Stable identities so the memoised EntryRow can bail out. The podium was
+  // previously constructed inline as a JSX element on every render, remounting
+  // the whole list header each time.
+  const openProfile = useCallback(
+    (entry: LeaderboardEntry) =>
+      navigation.navigate('UserProfile', { userId: entry.userId, username: entry.name }),
+    [navigation],
+  );
+  const renderItem = useCallback(
+    ({ item }: { item: LeaderboardEntry }) => (
+      <EntryRow entry={item} unit={unit} onPress={item.isPlayer ? undefined : openProfile} />
+    ),
+    [unit, openProfile],
+  );
+  const podium = useMemo(
+    () => <Podium entries={entries} unit={unit} currentUserId={currentUserId} />,
+    [entries, unit, currentUserId],
+  );
+
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
@@ -115,17 +137,15 @@ export default function LeaderboardScreen() {
           // combined with an empty list rendered "No data yet" even when there WAS
           // data. Show every entry in the list until there are enough for a podium.
           data={entries.length < 3 ? entries : entries.slice(3)}
-          keyExtractor={e => String(e.rank)}
-          renderItem={({ item }) => (
-            <EntryRow
-              entry={item}
-              unit={unit}
-              onPress={!item.isPlayer ? () => navigation.navigate('UserProfile', { userId: item.userId, username: item.name }) : undefined}
-            />
-          )}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={<Podium entries={entries} unit={unit} currentUserId={currentUserId} />}
+          // Page size is 100; without these the entire board mounts at once.
+          initialNumToRender={12}
+          windowSize={7}
+          removeClippedSubviews
+          ListHeaderComponent={podium}
           ListEmptyComponent={
             <View style={s.empty}>
               <Text style={s.emptyTitle}>No data yet</Text>

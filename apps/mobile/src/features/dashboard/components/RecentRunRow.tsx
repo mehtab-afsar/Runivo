@@ -17,7 +17,9 @@ function relativeDate(ts: number): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function RecentRunRow({ run, isLast, onPress }: Props) {
+// Memoised: rendered once per run in a list. Without this, any Dashboard state
+// change (unread count, TS count-up tick, sync status) re-renders every row.
+export const RecentRunRow = React.memo(function RecentRunRow({ run, isLast, onPress }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
@@ -41,7 +43,7 @@ export function RecentRunRow({ run, isLast, onPress }: Props) {
       </View>
     </Pressable>
   );
-}
+});
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
