@@ -1,7 +1,7 @@
 import { signIn as sharedSignIn, signUp as sharedSignUp, resetPassword as sharedResetPassword } from '@shared/services/auth';
 
-export async function signIn(email: string, password: string): Promise<void> {
-  await sharedSignIn(email, password);
+export async function signIn(email: string, password: string, captchaToken?: string): Promise<void> {
+  await sharedSignIn(email, password, captchaToken);
 }
 
 // Returns whether the account needs email confirmation before it can sign in

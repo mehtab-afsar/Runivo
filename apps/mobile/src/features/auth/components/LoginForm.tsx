@@ -79,6 +79,7 @@ interface Props extends LoginState {
 
 export default function LoginForm({
   email, password, showPwd, loading, error, resetSent, valid,
+  lockoutSeconds, resetCooldownSeconds,
   setEmail, setPassword, setShowPwd, handleSignIn, handleForgotPassword,
   onGoBack, onGoSignUp,
 }: Props) {
@@ -176,15 +177,25 @@ export default function LoginForm({
             </View>
           </Animated.View>
 
-          <Pressable onPress={handleForgotPassword} disabled={loading} style={s.forgotRow}>
-            <Text style={s.forgotText}>Forgot password?</Text>
+          <Pressable
+            onPress={handleForgotPassword}
+            disabled={loading || resetCooldownSeconds > 0}
+            style={s.forgotRow}
+          >
+            <Text style={s.forgotText}>
+              {resetCooldownSeconds > 0
+                ? `Resend in ${resetCooldownSeconds}s`
+                : 'Forgot password?'}
+            </Text>
           </Pressable>
 
-          {resetSent
-            ? <Text style={s.resetText}>Check your inbox — reset link sent.</Text>
-            : error
-              ? <Text style={s.errText}>{error}</Text>
-              : null}
+          {lockoutSeconds > 0
+            ? <Text style={s.errText}>Too many attempts. Try again in {lockoutSeconds}s.</Text>
+            : resetSent
+              ? <Text style={s.resetText}>Check your inbox — reset link sent.</Text>
+              : error
+                ? <Text style={s.errText}>{error}</Text>
+                : null}
         </Animated.View>
 
         <Animated.View style={[s.orRow, socialAnim]}>
@@ -210,9 +221,9 @@ export default function LoginForm({
 
         <Animated.View style={[s.ctaWrap, ctaAnim]}>
           <Pressable
-            style={[s.ctaBtn, !valid && s.ctaDisabled]}
+            style={[s.ctaBtn, (!valid || lockoutSeconds > 0) && s.ctaDisabled]}
             onPress={handleSignIn}
-            disabled={!valid || loading}
+            disabled={!valid || loading || lockoutSeconds > 0}
           >
             <LinearGradient
               colors={['rgba(255,255,255,0.06)', 'transparent']}

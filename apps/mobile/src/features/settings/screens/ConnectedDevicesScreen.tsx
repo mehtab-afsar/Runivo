@@ -98,7 +98,7 @@ async function getOAuthAuthUrl(provider: string): Promise<string> {
 
 async function completeOAuthCallback(
   provider: string,
-  params: { code?: string; oauth_token?: string; oauth_verifier?: string },
+  params: { code?: string; state?: string; oauth_token?: string; oauth_verifier?: string },
 ): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not signed in');
@@ -341,6 +341,7 @@ export default function ConnectedDevicesScreen() {
       const parsed = new URL(url.replace('runivo://', 'https://runivo.app/'));
       const provider      = parsed.searchParams.get('provider');
       const code          = parsed.searchParams.get('code') ?? undefined;
+      const state         = parsed.searchParams.get('state') ?? undefined;
       const oauthToken    = parsed.searchParams.get('oauth_token') ?? undefined;
       const oauthVerifier = parsed.searchParams.get('oauth_verifier') ?? undefined;
       const error         = parsed.searchParams.get('error');
@@ -355,7 +356,10 @@ export default function ConnectedDevicesScreen() {
       if (code || (oauthToken && oauthVerifier)) {
         setOauthBusy(provider);
         try {
-          await completeOAuthCallback(provider, { code, oauth_token: oauthToken, oauth_verifier: oauthVerifier });
+          // `state` is forwarded so the edge function can reject a callback that
+          // didn't originate from an authorize request we made (the runivo:// scheme
+          // is claimable by other apps).
+          await completeOAuthCallback(provider, { code, state, oauth_token: oauthToken, oauth_verifier: oauthVerifier });
           await loadOAuthConnections();
           showToast(`${provider.charAt(0).toUpperCase() + provider.slice(1)} connected!`);
         } catch (err) {
