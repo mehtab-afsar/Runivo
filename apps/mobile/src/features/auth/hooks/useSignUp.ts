@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { signUp } from '../services/authService';
 import { track } from '@shared/services/analytics';
+import { useTheme } from '@theme';
 
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
@@ -25,6 +26,7 @@ export interface SignUpState {
 }
 
 export function useSignUp(): SignUpState {
+  const C = useTheme();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
@@ -49,7 +51,7 @@ export function useSignUp(): SignUpState {
   }, [rateLimitSeconds]);
 
   const pwStrength = pwd.length === 0 ? 0 : pwd.length < 6 ? 1 : pwd.length < 10 ? 2 : 3;
-  const pwColor = pwStrength === 1 ? '#D93518' : pwStrength === 2 ? '#D4870A' : '#1A6B40';
+  const pwColor = pwStrength === 1 ? C.red : pwStrength === 2 ? C.amber : C.green;
   const valid = username.trim().length >= 3 && emailOk(email) && pwd.length >= 8;
 
   const handleSignUp = async () => {

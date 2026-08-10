@@ -7,9 +7,10 @@ import type { Mission } from '@shared/services/missions';
 import { GAME_CONFIG } from '@shared/services/config';
 import { computeFreshness, computeTerritoryScore } from '@shared/services/claimEngine';
 import { supabase } from '@shared/services/supabase';
+import { claimMissionReward } from '@shared/services/missionStore';
 
 export function useDashboard() {
-  const { player, loading, loginBonusCoins, dismissLoginBonus } = usePlayerStats();
+  const { player, loading, loginBonusCoins, dismissLoginBonus, reload: reloadPlayer } = usePlayerStats();
 
   const [territories, setTerritories] = useState<TerritoryPolygon[]>([]);
   const [missions, setMissions]       = useState<Mission[]>([]);
@@ -24,6 +25,7 @@ export function useDashboard() {
   const [isPremium, setIsPremium]     = useState(false);
   const [refreshing, setRefreshing]   = useState(false);
   const [syncError, setSyncError]     = useState(false);
+  const [claimingId, setClaimingId]   = useState<string | null>(null);
 
   const loadData = useCallback(async (userId: string) => {
     const data = await fetchDashboardData(userId);
@@ -87,6 +89,24 @@ export function useDashboard() {
       setRefreshing(false);
     }
   }, [player?.id, loadData, fetchCityRank, fetchSubscriptionTier]);
+
+  // Optimistic claimed-flag flip + local mission replace; PACE balance itself
+  // only ever moves via claimMissionReward's own server round-trip (see its
+  // doc comment) — reloadPlayer() just pulls that already-applied local write
+  // back into `player` so the balance shown elsewhere on this screen updates.
+  const claimMission = useCallback(async (missionId: string) => {
+    setClaimingId(missionId);
+    try {
+      const claimed = await claimMissionReward(missionId);
+      if (claimed) {
+        setMissions(prev => prev.map(m => m.id === missionId ? claimed : m));
+        await reloadPlayer();
+      }
+      return claimed;
+    } finally {
+      setClaimingId(null);
+    }
+  }, [reloadPlayer]);
 
   const weeklyCapLimit = isPremium ? GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM : GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
 
@@ -154,5 +174,7 @@ export function useDashboard() {
     cityRank,
     syncError,
     refresh,
+    claimMission,
+    claimingId,
   };
 }

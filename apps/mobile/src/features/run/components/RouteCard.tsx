@@ -1,22 +1,9 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Pulse, Fire, Waves, Mountains, Star, Target, TreeEvergreen, ArrowClockwise, Lightning, PathIcon as RouteIcon, MapTrifold, Trophy, type Icon } from 'phosphor-react-native';
+import { Pulse } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
-
-const ROUTE_ICON_MAP: Record<string, { Icon: Icon; color: string }> = {
-  run:      { Icon: Pulse,          color: '#D93518' },
-  flame:    { Icon: Fire,           color: '#EA580C' },
-  waves:    { Icon: Waves,          color: '#0EA5E9' },
-  mountain: { Icon: Mountains,      color: '#78716C' },
-  star:     { Icon: Star,           color: '#F59E0B' },
-  target:   { Icon: Target,         color: '#D93518' },
-  tree:     { Icon: TreeEvergreen,  color: '#15803D' },
-  loop:     { Icon: ArrowClockwise, color: '#7C3AED' },
-  zap:      { Icon: Lightning,      color: '#EAB308' },
-  route:    { Icon: RouteIcon,      color: '#6B6B6B' },
-  map:      { Icon: MapTrifold,     color: '#0284C7' },
-  trophy:   { Icon: Trophy,         color: '#D97706' },
-};
+import { fmtDist, fmtDistShort } from '@mobile/shared/lib/formatters';
+import { ROUTE_ICON_MAP } from '@mobile/shared/constants/routeIcons';
 
 
 export interface RouteItem {
@@ -38,12 +25,11 @@ interface RouteCardProps {
 export default function RouteCard({ route, onSelect, highlighted = false }: RouteCardProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const distKm = (route.distanceM / 1000).toFixed(2);
   const meta = [
-    `${distKm} km`,
+    `${fmtDist(route.distanceM)} km`,
     route.durationSec ? `${Math.floor(route.durationSec / 60)} min` : null,
     route.username ? route.username : null,
-    route.distanceAwayM != null ? `${(route.distanceAwayM / 1000).toFixed(1)} km away` : null,
+    route.distanceAwayM != null ? `${fmtDistShort(route.distanceAwayM)} km away` : null,
   ].filter(Boolean).join(' · ');
 
   return (

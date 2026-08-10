@@ -38,6 +38,15 @@ export interface ActivityItem {
   time: string;
 }
 
+/** Activity item plus which club it happened in — for the cross-club strip on the main Feed. */
+export interface ClubFeedActivityItem extends ActivityItem {
+  clubId: string;
+  clubName: string;
+  badgeEmoji: string;
+  memberCount: number;
+  totalKm: number;
+}
+
 export interface ClubMember {
   id: string;
   username: string;

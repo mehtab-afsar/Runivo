@@ -7,11 +7,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Crown } from 'phosphor-react-native';
+import { Crown, ArrowLeft } from 'phosphor-react-native';
 import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
 import { SegmentedControl, PillCycle } from '../components/SettingToggle';
+import { RowChevron } from '@mobile/shared/components/RowChevron';
 import { useTheme, setSoundEnabled, setHapticEnabled, Fonts, Spacing, type AppColors } from '@theme';
 import { useAuth } from '@shared/hooks/useAuth';
 import { resetPassword } from '@shared/services/auth';
@@ -34,7 +35,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Text style={s.backText}>←</Text>
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <Text style={s.title}>Settings</Text>
         <View style={{ width: 32 }} />
@@ -46,7 +47,7 @@ export default function SettingsScreen() {
         <SettingSection title="Account">
           <Pressable style={s.linkRow} onPress={() => navigation.navigate('Main', { screen: 'Profile' })}>
             <Text style={s.linkLabel}>Edit Profile</Text>
-            <Text style={s.linkArrow}>→</Text>
+            <RowChevron />
           </Pressable>
           <SettingRow label="Profile Visibility">
             <SegmentedControl
@@ -72,7 +73,7 @@ export default function SettingsScreen() {
               .catch((e: unknown) => Alert.alert('Error', e instanceof Error ? e.message : 'Could not send reset email.'));
           }}>
             <Text style={s.linkLabel}>Change Password</Text>
-            <Text style={s.linkArrow}>→</Text>
+            <RowChevron />
           </Pressable>
         </SettingSection>
 
@@ -154,15 +155,15 @@ export default function SettingsScreen() {
         <SettingSection title="Data & Privacy">
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/privacy')}>
             <Text style={s.linkLabel}>Privacy Policy</Text>
-            <Text style={s.linkArrow}>→</Text>
+            <RowChevron />
           </Pressable>
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/terms')}>
             <Text style={s.linkLabel}>Terms of Service</Text>
-            <Text style={s.linkArrow}>→</Text>
+            <RowChevron />
           </Pressable>
           <Pressable style={s.linkRow} onPress={deleteAccount}>
             <Text style={[s.linkLabel, { color: C.red }]}>Delete Account</Text>
-            <Text style={s.linkArrow}>→</Text>
+            <RowChevron />
           </Pressable>
         </SettingSection>
 
@@ -170,11 +171,11 @@ export default function SettingsScreen() {
         <SettingSection title="About">
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/help')}>
             <Text style={s.linkLabel}>Help & FAQ</Text>
-            <Text style={s.linkArrow}>→</Text>
+            <RowChevron />
           </Pressable>
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/bug-report')}>
             <Text style={s.linkLabel}>Report a Bug</Text>
-            <Text style={s.linkArrow}>→</Text>
+            <RowChevron />
           </Pressable>
           <View style={s.linkRow}>
             <Text style={s.linkLabel}>App Version</Text>
@@ -224,13 +225,11 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn:     { width: 32 },
-  backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
   title:       { fontFamily: Fonts.display, fontSize: 20, color: C.black },
   scroll:      { paddingBottom: 40 },
   linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
   linkLabel:   { fontFamily: Fonts.regular, fontSize: 14, color: C.black },
   linkSub:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
-  linkArrow:   { fontFamily: Fonts.regular, fontSize: 16, color: C.t3 },
   versionText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
   // Premium card
   premiumCard:       { marginHorizontal: Spacing.gutter, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },

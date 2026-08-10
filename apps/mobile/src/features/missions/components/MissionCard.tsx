@@ -1,97 +1,144 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { MapPin, Flag, Wind, Fire, Timer, Target, Check, Lightning, Shield, Sword, type Icon } from 'phosphor-react-native';
-import type { Mission } from '@shared/services/missions';
-import { DifficultyBadge } from './DifficultyBadge';
+import React, { useEffect, useMemo } from 'react';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue, withRepeat, withSequence, withTiming, useAnimatedStyle, Easing,
+} from 'react-native-reanimated';
+import { Check, CaretRight, type Icon } from 'phosphor-react-native';
+import type { Mission, MissionType } from '@shared/services/missions';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { MissionRing } from './MissionRing';
 
-const mkTypeIcon = (C: AppColors): Record<string, { Icon: Icon; color: string }> => ({
-  run_distance:      { Icon: MapPin,    color: C.red },
-  claim_territories: { Icon: Lightning, color: C.gold },
-  capture_enemy:     { Icon: Flag,      color: '#9CA3AF' },
-  speed_run:         { Icon: Wind,      color: '#64748B' },
-  run_streak:        { Icon: Fire,      color: C.orange },
-  defend_zone:  { Icon: Shield,    color: C.green },
-  steal_rival:  { Icon: Sword,     color: C.red },
-  complete_run: { Icon: Check,     color: C.green },
-  beat_pace:    { Icon: Timer,     color: C.red },
-});
+const GLOW = '#6DE8A8';
 
-interface MissionCardProps {
+const fmtNum = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
+const missionUnit = (t: MissionType) => t === 'run_distance' ? 'km' : t === 'nutrition_streak' ? 'd' : '';
+
+export type CardState = 'idle' | 'claiming' | 'retry';
+
+interface Props {
   mission: Mission;
+  MIcon: Icon;
+  accentColor: string;
+  sourceLabel: string;
+  state: CardState;
   onClaim: (id: string) => void;
+  onSwap: (id: string) => void;
 }
 
-export function MissionCard({ mission, onClaim }: MissionCardProps) {
-  const C = useTheme();
+export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state, onClaim, onSwap }: Props) {
+  const C  = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const pct = Math.min(1, mission.current / mission.target);
-  const diff = (mission.difficulty ?? 'medium') as 'easy' | 'medium' | 'hard';
-  const typeIcon = mkTypeIcon(C)[mission.type] ?? { Icon: Target, color: C.red };
-  const { Icon: MissionIcon, color: iconColor } = typeIcon;
+  const claimable = m.completed && !m.claimed;
+  const pct = Math.min(1, m.current / Math.max(m.target, 1));
+  const unit = missionUnit(m.type);
+  const ringColor = m.claimed ? GLOW : m.completed ? GLOW : accentColor;
+
+  // Shimmer sweep — only while a reward is actually sitting there waiting,
+  // so the one card asking for a tap is the one that visibly says so.
+  const shimmerX = useSharedValue(-140);
+  useEffect(() => {
+    if (!claimable) return;
+    shimmerX.value = withRepeat(
+      withSequence(
+        withTiming(340, { duration: 900, easing: Easing.inOut(Easing.quad) }),
+        withTiming(-140, { duration: 0 }),
+        withTiming(-140, { duration: 1800 }),
+      ),
+      -1,
+    );
+  }, [claimable]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shimmerStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shimmerX.value }] }));
 
   return (
-    <View style={[ss.card, mission.claimed && ss.cardClaimed]}>
-      <View style={ss.cardRow}>
-        <View style={ss.iconBox}>
-          <MissionIcon size={18} color={iconColor} weight="light" />
+    <LinearGradient colors={['#201D19', '#0A0A0A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={ss.card}>
+      {claimable && <Animated.View style={[ss.shimmer, shimmerStyle]} pointerEvents="none" />}
+
+      <View style={ss.topRow}>
+        <MissionRing pct={pct} color={ringColor}>
+          {m.claimed
+            ? <Check size={16} color={GLOW} weight="bold" />
+            : <MIcon size={18} color={ringColor} weight="light" />}
+        </MissionRing>
+
+        <View style={ss.meta}>
+          <Text style={ss.title} numberOfLines={1}>{m.title}</Text>
+          <Text style={ss.source}>{sourceLabel}</Text>
         </View>
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <View style={ss.titleRow}>
-            <Text style={ss.missionTitle} numberOfLines={1}>{mission.title}</Text>
-            <DifficultyBadge difficulty={diff} />
+
+        <View style={ss.heroWrap}>
+          <Text style={[ss.heroNum, m.claimed && { color: GLOW }]}>
+            {fmtNum(m.current)}{unit}
+          </Text>
+          <Text style={ss.heroTarget}>/ {fmtNum(m.target)}{unit}</Text>
+        </View>
+      </View>
+
+      <View style={ss.footer}>
+        {claimable ? (
+          <>
+            <Text style={state === 'retry' ? ss.retryHint : ss.readyHint}>
+              {state === 'retry' ? 'Not yet — try again shortly' : '● Ready to claim'}
+            </Text>
+            <Pressable
+              onPress={() => onClaim(m.id)}
+              disabled={state === 'claiming'}
+              style={({ pressed }) => [ss.claimBtn, pressed && { opacity: 0.85 }]}
+            >
+              {state === 'claiming'
+                ? <ActivityIndicator size="small" color={C.alwaysDark} />
+                : <Text style={ss.claimBtnText}>Claim +{m.rewards.pace}</Text>}
+            </Pressable>
+          </>
+        ) : m.claimed ? (
+          <View style={ss.claimedRow}>
+            <Check size={12} color={GLOW} weight="bold" />
+            <Text style={ss.claimedText}>+{m.rewards.pace} PACE claimed</Text>
           </View>
-          <Text style={ss.missionDesc} numberOfLines={2}>{mission.description}</Text>
-        </View>
+        ) : (
+          <>
+            <View style={[ss.rewardChip, { backgroundColor: `${accentColor}26` }]}>
+              <Text style={[ss.rewardChipText, { color: accentColor }]}>+{m.rewards.pace} PACE</Text>
+            </View>
+            <Pressable onPress={() => onSwap(m.id)} hitSlop={8} style={ss.swapLink}>
+              <Text style={ss.swapLinkText}>Swap</Text>
+              <CaretRight size={10} color="rgba(255,255,255,0.4)" weight="bold" />
+            </Pressable>
+          </>
+        )}
       </View>
-
-      <View style={ss.progressBg}>
-        <View style={[ss.progressFill, { flex: pct, backgroundColor: mission.completed ? C.green : C.red }]} />
-        <View style={{ flex: 1 - pct }} />
-      </View>
-
-      <View style={ss.cardFooter}>
-        <Text style={ss.progressText}>
-          {mission.completed ? 'Completed!' : `${mission.current} / ${mission.target}`}
-        </Text>
-        <View style={ss.rewardRow}>
-          {(mission.rewards.pace ?? 0) > 0 && (
-            <Text style={ss.rewardText}>+{mission.rewards.pace} PACE</Text>
-          )}
-        </View>
-      </View>
-
-      {mission.completed && !mission.claimed && (
-        <Pressable style={ss.claimBtn} onPress={() => onClaim(mission.id)}>
-          <Text style={ss.claimBtnLabel}>Claim reward →</Text>
-        </Pressable>
-      )}
-      {mission.claimed && (
-        <View style={[ss.claimedBanner, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
-          <Check size={12} color={C.green} weight="regular" />
-          <Text style={ss.claimedText}>Reward claimed</Text>
-        </View>
-      )}
-    </View>
+    </LinearGradient>
   );
 }
 
-function mkStyles(C: AppColors) { return StyleSheet.create({
-  card: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
-  cardClaimed: { opacity: 0.7 },
-  cardRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  iconBox: { width: 40, height: 40, borderRadius: 10, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' },
-  missionTitle: { fontFamily: Fonts.medium, fontSize: 13, color: C.black, flex: 1 },
-  missionDesc: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, lineHeight: 16 },
-  progressBg: { height: 3, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', marginBottom: 8, flexDirection: 'row' },
-  progressFill: { height: 3 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  progressText: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, fontVariant: ['tabular-nums'] },
-  rewardRow: { flexDirection: 'row', alignItems: 'center' },
-  rewardText: { fontFamily: Fonts.regular, fontSize: 11, color: C.green },
-  claimBtn: { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 4, paddingVertical: 10, alignItems: 'center' },
-  claimBtnLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight, letterSpacing: 1 },
-  claimedBanner: { marginTop: 10, backgroundColor: C.greenLo, borderRadius: 6, paddingVertical: 8, alignItems: 'center' },
-  claimedText: { fontFamily: Fonts.regular, fontSize: 11, color: C.green },
-}); }
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    card: {
+      borderRadius: 20, padding: 16, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 6,
+    },
+    shimmer: { position: 'absolute', top: 0, bottom: 0, width: 90, backgroundColor: 'rgba(255,255,255,0.06)', transform: [{ skewX: '-20deg' }] },
+
+    topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+    meta:   { flex: 1 },
+    title:  { fontFamily: Fonts.medium, fontSize: 14.5, color: C.alwaysLight, marginBottom: 2 },
+    source: { fontFamily: Fonts.regular, fontSize: 10.5, color: 'rgba(255,255,255,0.4)' },
+
+    heroWrap:   { alignItems: 'flex-end' },
+    heroNum:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
+    heroTarget: { fontFamily: Fonts.regular, fontSize: 10.5, color: 'rgba(255,255,255,0.4)' },
+
+    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 12 },
+    readyHint:  { fontFamily: Fonts.semiBold, fontSize: 11.5, color: GLOW, letterSpacing: 0.2 },
+    retryHint:  { fontFamily: Fonts.regular, fontSize: 11, color: '#EF9F27' },
+    claimedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: GLOW },
+    claimBtn:   { backgroundColor: C.alwaysLight, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, minWidth: 90, alignItems: 'center' },
+    claimBtnText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysDark, letterSpacing: 0.3 },
+
+    rewardChip: { borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4 },
+    rewardChipText: { fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 0.2 },
+    swapLink: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+    swapLinkText: { fontFamily: Fonts.medium, fontSize: 11.5, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.2 },
+  });
+}

@@ -1,9 +1,15 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun } from '@shared/services/store';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { AwardCategory, AwardId } from '@shared/types/game';
+import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
 import { useTheme, Fonts, type AppColors } from '@theme';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORIES: { key: AwardCategory; label: string }[] = [
   { key: 'territory', label: 'Territory' },
@@ -33,6 +39,7 @@ export function AwardsTab({
 }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
+  const navigation = useNavigation<Nav>();
 
   const earnedSet = useMemo(
     () => new Map(earnedAwards.map(a => [a.awardId, a.unlockedAt])),
@@ -79,10 +86,18 @@ export function AwardsTab({
                 const progress = !isEarned ? getProgress(id) : null;
 
                 return (
-                  <View key={id} style={[s.card, isEarned && s.cardEarned]}>
-                    <Text style={[s.cardIcon, !isEarned && s.cardIconLocked]}>
-                      {isEarned ? def.icon : '🔒'}
-                    </Text>
+                  <Pressable
+                    key={id}
+                    style={[s.card, isEarned && s.cardEarned]}
+                    onPress={() => navigation.navigate('AwardDetail', { awardId: id, unlockedAt: unlockedAt ?? null })}
+                  >
+                    {isEarned ? (
+                      <Text style={s.cardIcon}>{def.icon}</Text>
+                    ) : (
+                      <View style={s.cardIconLockWrap}>
+                        <GlyphIcon glyph="🔒" size={22} />
+                      </View>
+                    )}
                     <Text style={[s.cardTitle, isEarned && s.cardTitleEarned]} numberOfLines={1}>
                       {def.title}
                     </Text>
@@ -103,7 +118,7 @@ export function AwardsTab({
                         </Text>
                       </>
                     ) : null}
-                  </View>
+                  </Pressable>
                 );
               })}
             </View>
@@ -129,7 +144,7 @@ function mkStyles(C: AppColors) {
     cardEarned: { borderColor: C.gold, backgroundColor: C.amberBg },
 
     cardIcon: { fontSize: 32 },
-    cardIconLocked: { opacity: 0.35 },
+    cardIconLockWrap: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', opacity: 0.35 },
 
     cardTitle: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
     cardTitleEarned: { fontFamily: Fonts.semiBold, color: C.black },

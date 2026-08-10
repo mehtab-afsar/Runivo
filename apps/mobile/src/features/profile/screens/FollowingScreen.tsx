@@ -5,9 +5,11 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { supabase } from '@shared/services/supabase';
 import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
+import { toggleFollowService } from '@features/social/services/feedService';
 import { avatarColor as getAvatarColor } from '@shared/lib/avatarUtils';
 import { RANK_COLORS } from '@shared/constants/territory';
 import { ArrowLeft } from 'phosphor-react-native';
+import { Avatar } from '@mobile/shared/components/Avatar';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -17,6 +19,7 @@ interface FollowingEntry {
   userId: string;
   username: string;
   displayName: string | null;
+  avatarUrl: string | null;
   runnerRank: string;
 }
 
@@ -36,6 +39,7 @@ async function loadFollowing(targetUserId: string): Promise<FollowingEntry[]> {
       userId:      id,
       username:    p?.username ?? '',
       displayName: p?.display_name ?? null,
+      avatarUrl:   p?.avatar_url ?? null,
       runnerRank:  p?.runner_rank ?? 'pacer',
     };
   });
@@ -76,8 +80,11 @@ export default function FollowingScreen() {
     if (!currentUserId) return;
     const prev = entries;
     setEntries(entries.filter(e => e.userId !== entry.userId));
-    const { error } = await supabase.from('followers').delete().eq('follower_id', currentUserId).eq('following_id', entry.userId);
-    if (error) setEntries(prev); // revert on failure — supabase-js doesn't throw
+    try {
+      await toggleFollowService(entry.userId);
+    } catch {
+      setEntries(prev); // revert on failure
+    }
   }, [currentUserId, entries]);
 
   const isOwn = currentUserId === userId;
@@ -114,9 +121,7 @@ export default function FollowingScreen() {
             const ac = getAvatarColor(item.username);
             return (
               <View style={s.row}>
-                <View style={[s.avatar, { backgroundColor: ac }]}>
-                  <Text style={s.avatarText}>{(item.displayName ?? item.username).charAt(0).toUpperCase()}</Text>
-                </View>
+                <Avatar name={item.displayName ?? item.username} color={ac} size={40} uri={item.avatarUrl} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.name}>{item.displayName ?? item.username}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
@@ -158,8 +163,6 @@ function mkStyles(C: AppColors) {
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:         { paddingHorizontal: Spacing.gutter, paddingBottom: 100 },
     row:          { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    avatar:       { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-    avatarText:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.alwaysLight },
     name:         { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
     handle:       { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     rankBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },

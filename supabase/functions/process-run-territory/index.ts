@@ -10,6 +10,19 @@ const PACE_PER_NEW_ZONE   = 5;
 const PACE_PER_STOLEN     = 10;
 const FRESHNESS_STALE_AT  = 40;
 const STEAL_THRESHOLD     = 0.30;
+
+// Mirrors packages/shared/src/constants/awards.ts's titles — only what's needed
+// for the "Achievement unlocked" push body, so this Deno function doesn't need
+// a cross-package import for one string per award.
+const AWARD_TITLES: Record<string, string> = {
+  first_claim: 'First Claim', first_blood: 'First Blood', park_capture: 'Park Capture',
+  district_owner: 'District Owner', quarter_owner: 'Quarter Owner', domain_lord: 'Domain Lord',
+  city_builder: 'City Builder', defender: 'Defender', sovereign_rank: 'Sovereign',
+  first_5k: 'First 5K', first_10k: '10K Club', first_halfmarathon: 'Half Done',
+  km_100: '100km', km_500: '500km Club', km_1000: '1000km',
+  streak_7: 'On Fire', streak_30: 'Unstoppable', early_bird: 'Early Bird',
+  sub_5: 'Sub-5', sub_4_30: 'Sub-4:30', monthly_100: 'Century Month',
+};
 const PACE_WEEKLY_CAP_FREE    = 100; // mirrors claimEngine.ts GAME_CONFIG.PACE_WEEKLY_CAP_FREE
 const PACE_WEEKLY_CAP_PREMIUM = 150; // mirrors claimEngine.ts GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM
 const MAX_TERRITORIES_FREE    = 10;  // mirrors packages/shared/src/services/config.ts GAME_CONFIG.MAX_TERRITORIES_FREE
@@ -205,6 +218,16 @@ Deno.serve(async (req) => {
   if (streakDays !== priorStreakDays || newRunDate !== priorLastRunDate) {
     await supabase.from('profiles').update({ streak_days: streakDays, last_run_date: newRunDate }).eq('id', user.id);
   }
+
+  // Server-authoritative lifetime stats — total_distance_km/total_runs are locked
+  // against direct client writes (lock_run_stat_columns.sql) because clubService.ts
+  // ranks club leaderboards on total_distance_km with no other server recomputation;
+  // this atomic RPC, run with the service_role key, is now the only write that sticks.
+  await supabase.rpc('increment_run_stats', {
+    p_user_id: user.id,
+    p_distance_km: serverDistanceKm,
+  });
+
   // Server-authoritative cap — mirrors claimEngine.ts calculateRunPACE's isPremium branch.
   // subscription_tier is set by the RevenueCat/Stripe webhooks (rc-webhook, stripe-webhook).
   const weeklyCap         = subscriptionTier === 'premium' ? PACE_WEEKLY_CAP_PREMIUM : PACE_WEEKLY_CAP_FREE;
@@ -222,8 +245,9 @@ Deno.serve(async (req) => {
   // Territory processing
   const ring = buildPolygon(body.gpsPoints, body.activityType);
 
-  let stolenZones       = 0;
-  let newZonesClaimed   = 0;
+  let stolenZones        = 0;
+  let newZonesClaimed    = 0;
+  let defendedStaleZones = 0;
   const stolenFromUserIds: string[] = [];
 
   interface StealRecord {
@@ -319,6 +343,15 @@ Deno.serve(async (req) => {
       });
       if (claimedNew) newZonesClaimed = 1;
     }
+
+    // Checked BEFORE defend_own_territories bumps freshness, so this reflects
+    // zones that were actually stale at the moment this run passed through them.
+    const { data: staleDefended } = await supabase.rpc('count_defendable_stale_zones', {
+      p_wkt:      wkt,
+      p_owner_id: user.id,
+      p_stale_at: FRESHNESS_STALE_AT,
+    });
+    defendedStaleZones = (staleDefended as number | null) ?? 0;
 
     await supabase.rpc('defend_own_territories', {
       p_wkt:      wkt,
@@ -420,12 +453,57 @@ Deno.serve(async (req) => {
               title:      '⚔ Your territory is under attack',
               body:       `${attackerUsername} captured part of your ${steal.tier} zone. Defend it now.`,
               action_url: '/territory-map?filter=stale',
+              // Lets send-push-notification apply the Territory alerts toggle —
+              // this call bypasses the notifications-table trigger entirely, so
+              // without this it would ignore that setting completely.
+              type:       'zone_attacked',
             },
           }));
         }
       }
 
       await Promise.allSettled(feedOps);
+    } catch { /* non-critical */ }
+  }
+
+  // Awards — this is now the ONLY place awards are granted. Previously the
+  // client computed eligibility itself and inserted directly into user_awards;
+  // RLS only checked user_id = auth.uid(), never the award, so any signed-in
+  // user could grant themselves any award via a direct REST call. first_blood
+  // and defender are granted here because they're tied to what this run's
+  // server-verified geometry just proved happened (stolenZones/defendedStaleZones
+  // are computed above from real intersection checks, not client input); every
+  // threshold-based award (distance, streak, territory tier, rank, ...) is
+  // re-derived fresh from current-state tables by sync_user_awards regardless of
+  // whether this run touched territory at all.
+  const newAwards: string[] = [];
+  if (stolenZones > 0) {
+    const { data: granted } = await supabase.rpc('grant_award', { p_user_id: user.id, p_award_id: 'first_blood' });
+    if (granted) newAwards.push('first_blood');
+  }
+  if (defendedStaleZones > 0) {
+    const { data: granted } = await supabase.rpc('grant_award', { p_user_id: user.id, p_award_id: 'defender' });
+    if (granted) newAwards.push('defender');
+  }
+  const { data: syncedAwards } = await supabase.rpc('sync_user_awards', { p_user_id: user.id });
+  if (Array.isArray(syncedAwards)) newAwards.push(...(syncedAwards as string[]));
+
+  // Achievement push — inserting into `notifications` (rather than invoking
+  // send-push-notification directly, like the steal alert above) reuses the
+  // existing trigger fan-out and gives the user an in-app notification-feed
+  // record too, not just a transient push. The Announce achievements toggle
+  // is enforced by send-push-notification reading this row's `type`.
+  if (newAwards.length > 0) {
+    try {
+      await supabase.from('notifications').insert(
+        newAwards.map(awardId => ({
+          user_id: user.id,
+          type: 'achievement',
+          title: 'Achievement unlocked',
+          body: `You earned "${AWARD_TITLES[awardId] ?? awardId}"`,
+          action_url: '/profile',
+        }))
+      );
     } catch { /* non-critical */ }
   }
 
@@ -436,5 +514,6 @@ Deno.serve(async (req) => {
     paceAdjustment: serverPaceEarned,
     stolenFromUserIds,
     territoryCapReached: atTerritoryCap,
+    newAwards,
   }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 });

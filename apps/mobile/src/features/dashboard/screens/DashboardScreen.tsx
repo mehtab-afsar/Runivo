@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
-import { Bell, Lightning, Pulse, Fire } from 'phosphor-react-native';
+import { Bell, Lightning, Pulse, Fire, Crown } from 'phosphor-react-native';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
@@ -100,6 +100,16 @@ export default function DashboardScreen() {
               <Text style={s.badgeSup}>TS</Text>
             </View>
 
+            {/* Runivo Plus — always-visible entry point to the paywall/plan screen,
+                not buried in Settings. Gold+filled once subscribed, outline as an
+                upsell otherwise. */}
+            <Pressable
+              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Subscription'); }}
+              style={[s.bellBtn, gate.isPremium && s.crownBtnActive]}
+            >
+              <Crown size={14} color={gate.isPremium ? C.gold : C.black} weight={gate.isPremium ? 'fill' : 'light'} />
+            </Pressable>
+
             {/* Notifications bell */}
             <Pressable onPress={() => { go('Notifications'); setUnreadCount(0); }} style={s.bellBtn}>
               <Bell size={14} color={C.black} weight="light" />
@@ -136,7 +146,7 @@ export default function DashboardScreen() {
         <PACEStoreBanner
           paceBalance={dash.player.paceBalance ?? 0}
           weeklyEarned={dash.player.paceWeeklyEarned ?? 0}
-          weeklyCap={100}
+          weeklyCap={dash.weeklyCapLimit}
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('PACEStore'); }}
         />
 
@@ -178,7 +188,9 @@ export default function DashboardScreen() {
           />
           <View style={s.missionCard}>
             <Text style={s.cardLabel}>TODAY'S CHALLENGE</Text>
-            {dash.missions.map((m, i) => <MissionRow key={m.id} mission={m} isLast={i === dash.missions.length - 1} />)}
+            {dash.missions.map((m, i) => (
+              <MissionRow key={m.id} mission={m} isLast={i === dash.missions.length - 1} onClaim={dash.claimMission} />
+            ))}
           </View>
         </View>
 
@@ -234,6 +246,7 @@ function mkStyles(C: AppColors) {
     badgeTxt:        { ...Type.metricSm, fontSize: 13, color: C.t1 },
     badgeSup:        { fontFamily: Fonts.medium, fontSize: 10, color: C.t3, letterSpacing: 0.4, marginTop: 2 },
     bellBtn:         { width: 32, height: 32, borderRadius: 16, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    crownBtnActive:  { backgroundColor: C.amberBg, borderColor: 'rgba(212,162,0,0.35)' },
     bellBadge:       { position: 'absolute', top: -3, right: -3, minWidth: 14, height: 14, borderRadius: 7, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.bg },
     bellBadgeText:   { fontFamily: Fonts.bold, fontSize: 9, color: C.alwaysLight, lineHeight: 11 },
 

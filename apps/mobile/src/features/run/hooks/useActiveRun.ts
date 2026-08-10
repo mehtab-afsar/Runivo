@@ -14,6 +14,7 @@ import { useGameEngine } from '@shared/hooks/useGameEngine';
 import { GAME_CONFIG } from '@shared/services/config';
 import { haversineM } from '@shared/services/claimEngine';
 import { formatPace } from '@shared/lib/paceFormat';
+import { getSettings } from '@shared/services/store';
 import {
   startBackgroundTracking,
   stopBackgroundTracking,
@@ -24,6 +25,18 @@ import {
 const GPS_CHECKPOINT_INTERVAL_MS = 30_000;
 const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
 const GPS_LOCK_REQUIRED_POINTS = 3;
+// Below ~1.8 km/h counts as stopped (well under walking pace, so normal running/
+// walking cadence never trips it); 8s of that before auto-pausing absorbs a red
+// light or a photo stop without pausing on every brief slowdown.
+const AUTO_PAUSE_SPEED_MS = 0.5;
+const AUTO_PAUSE_DELAY_MS = 8_000;
+
+// 'standard' still needs to be good enough for territory-corridor accuracy —
+// this is one step down from BestForNavigation, not a big drop to Balanced/Low,
+// since claimed-zone geometry and the PACE economy both depend on this track.
+function resolveGpsAccuracy(setting: 'standard' | 'high'): Location.Accuracy {
+  return setting === 'standard' ? Location.Accuracy.High : Location.Accuracy.BestForNavigation;
+}
 
 /** Returns any checkpoint key written by an interrupted run (crash recovery). */
 export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[]; activityType: string } | null> {
@@ -115,6 +128,13 @@ export function useActiveRun(activityType: string = 'run') {
   const prevAltitudeRef        = useRef<number | null>(null);
   const elevationGainRef       = useRef<number>(0);
   const lastKmRef              = useRef<number>(0);
+  // Auto-pause: distinguishes a user-tapped pause (isPausedRef alone) from one
+  // this hook triggered itself, so auto-pause never fights a deliberate pause,
+  // and only a stop *it* caused gets auto-resumed on movement.
+  const autoPauseEnabledRef    = useRef<boolean>(false);
+  const manualPauseRef         = useRef<boolean>(false);
+  const autoPausedRef          = useRef<boolean>(false);
+  const stoppedSinceRef        = useRef<number | null>(null);
 
 
   // ── Cleanup on unmount ───────────────────────────────────────────────────────
@@ -149,6 +169,13 @@ export function useActiveRun(activityType: string = 'run') {
 
     // Request background permission (soft — if denied, foreground-only tracking still works)
     await Location.requestBackgroundPermissionsAsync().catch(() => {});
+
+    const settings = await getSettings().catch(() => null);
+    const gpsAccuracy = resolveGpsAccuracy(settings?.gpsAccuracy ?? 'high');
+    autoPauseEnabledRef.current = settings?.autoPause ?? false;
+    manualPauseRef.current = false;
+    autoPausedRef.current = false;
+    stoppedSinceRef.current = null;
 
     await activateKeepAwakeAsync();
 
@@ -249,17 +276,44 @@ export function useActiveRun(activityType: string = 'run') {
     // GPS watcher
     locationSubRef.current = await Location.watchPositionAsync(
       {
-        accuracy:     Location.Accuracy.BestForNavigation,
+        accuracy:     gpsAccuracy,
         timeInterval: 1000,
         distanceInterval: 3,
       },
       (location) => {
-        // Skip GPS points while paused — prevents distance inflation
-        if (isPausedRef.current) return;
-
         const { latitude, longitude, speed, accuracy, altitude } = location.coords;
         const now = Date.now();
         const gpsSpeed = speed ?? 0;
+
+        // Auto-pause / auto-resume — evaluated even while already paused, so a
+        // stop this hook triggered can detect movement resuming. Never engages
+        // if the user paused manually (manualPauseRef), and never overrides one.
+        if (autoPauseEnabledRef.current && !manualPauseRef.current) {
+          if (gpsSpeed < AUTO_PAUSE_SPEED_MS) {
+            if (stoppedSinceRef.current == null) {
+              stoppedSinceRef.current = now;
+            } else if (!isPausedRef.current && now - stoppedSinceRef.current >= AUTO_PAUSE_DELAY_MS) {
+              autoPausedRef.current = true;
+              isPausedRef.current = true;
+              pauseStartRef.current = now;
+              setState(prev => ({ ...prev, isPaused: true }));
+              feedback.runPause();
+            }
+          } else {
+            stoppedSinceRef.current = null;
+            if (autoPausedRef.current) {
+              autoPausedRef.current = false;
+              totalPausedMsRef.current += now - pauseStartRef.current;
+              lastPositionRef.current = null;
+              isPausedRef.current = false;
+              setState(prev => ({ ...prev, isPaused: false }));
+              feedback.runStart();
+            }
+          }
+        }
+
+        // Skip GPS points while paused — prevents distance inflation
+        if (isPausedRef.current) return;
 
         // Skip low-accuracy points — stricter than claimEngine's post-run filter
         // (GPS_ACCURACY_THRESHOLD_M, 50m) since a bad point here immediately
@@ -345,7 +399,7 @@ export function useActiveRun(activityType: string = 'run') {
     );
 
     // Start background location task for screen-off tracking
-    startBackgroundTracking(runIdRef.current).catch(err =>
+    startBackgroundTracking(runIdRef.current, gpsAccuracy).catch(err =>
       console.warn('[useActiveRun] background tracking unavailable:', err)
     );
 
@@ -355,6 +409,8 @@ export function useActiveRun(activityType: string = 'run') {
 
   // ── Pause / Resume ──────────────────────────────────────────────────────────
   const pauseRun = useCallback(() => {
+    manualPauseRef.current = true;
+    autoPausedRef.current = false;
     isPausedRef.current = true;
     setState(prev => ({ ...prev, isPaused: true }));
     pauseStartRef.current = Date.now();
@@ -365,6 +421,8 @@ export function useActiveRun(activityType: string = 'run') {
     totalPausedMsRef.current += Date.now() - pauseStartRef.current;
     // Reset last position so the first point after resume doesn't create a large delta
     lastPositionRef.current = null;
+    manualPauseRef.current = false;
+    stoppedSinceRef.current = null;
     isPausedRef.current = false;
     setState(prev => ({ ...prev, isPaused: false }));
     feedback.runStart();

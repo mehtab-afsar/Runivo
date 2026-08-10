@@ -103,9 +103,15 @@ export async function pushProfile(): Promise<void> {
     coins: player.coins,
     energy: player.energy,
     last_energy_regen: player.lastEnergyRegen ? new Date(player.lastEnergyRegen).toISOString() : new Date().toISOString(),
-    total_distance_km: player.totalDistanceKm,
-    total_runs: player.totalRuns,
     total_territories_claimed: player.totalTerritoriesClaimed,
+    // total_distance_km / total_runs deliberately NOT pushed (as of
+    // lock_run_stat_columns.sql) — clubService.ts ranks club leaderboards on
+    // total_distance_km with no other server recomputation, so a client-pushed
+    // absolute value here was a direct leaderboard spoof. process-run-territory's
+    // increment_run_stats RPC (service_role only) is now the sole writer, using its
+    // own GPS-derived distance for each run. Pushing here would just be ignored by
+    // protect_profile_columns, same as pace_*/streak_days below — not pushing at all
+    // avoids the client ever reconstructing a stale value.
     // streak_days / last_run_date deliberately NOT pushed — streak_days feeds
     // process-run-territory's PACE streak bonus directly, so (like the pace_*
     // fields below) it's computed and persisted server-side from the profile's
@@ -885,29 +891,6 @@ export async function createFeedPost(
     route_points:        opts?.routePoints ?? null,
   });
   if (error) console.warn('[sync] feed post failed:', error.message);
-}
-
-export async function fetchFeed(limit = 20, offset = 0) {
-  const { data, error } = await supabase.rpc('get_feed', {
-    lim: limit,
-    off_set: offset,
-  });
-
-  if (error) throw error;
-  return data;
-}
-
-export async function toggleLike(postId: string) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  const { data, error } = await supabase.rpc('toggle_like', {
-    p_post_id: postId,
-    p_user_id: user.id,
-  });
-
-  if (error) throw error;
-  return data as boolean;
 }
 
 // ----------------------------------------------------------------

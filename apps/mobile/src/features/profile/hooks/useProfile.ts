@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import type { StoredRun, StoredShoe } from '@shared/services/store';
+import type { StoredRun } from '@shared/services/store';
 import { getSettings, saveSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import {
   fetchProfileData, updateProfile, uploadAvatar,
-  fetchAwards, fetchProfileStats, setPinnedRun,
+  fetchAwards, fetchProfileStats, setPinnedRun, fetchFollowCounts,
 } from '../services/profileService';
 import type { ProfileTab } from '../types';
 import type { ProfileStats } from '@shared/types/game';
@@ -19,7 +19,6 @@ export interface PersonalRecord {
 
 export function useProfile() {
   const [runs, setRuns] = useState<StoredRun[]>([]);
-  const [shoes, setShoes] = useState<StoredShoe[]>([]);
   const [weeklyGoalKm, setWeeklyGoalKm] = useState(20);
   const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([]);
   const [tab, setTab] = useState<ProfileTab>('overview');
@@ -52,7 +51,6 @@ export function useProfile() {
   const load = useCallback(async () => {
     const data = await fetchProfileData();
     setRuns(data.runs);
-    setShoes(data.shoes);
     setWeeklyGoalKm(data.weeklyGoalKm);
     setPersonalRecords(data.personalRecords);
     setFollowers(data.followers);
@@ -71,6 +69,9 @@ export function useProfile() {
     if (data.weeklyGoalKm != null) toWrite.weeklyGoalKm = data.weeklyGoalKm;
     if (data.distanceUnit === 'km' || data.distanceUnit === 'mi') toWrite.distanceUnit = data.distanceUnit;
     if (data.notificationsEnabled != null) toWrite.notificationsEnabled = data.notificationsEnabled;
+    if (data.profileVisibility === 'public' || data.profileVisibility === 'followers' || data.profileVisibility === 'private') {
+      toWrite.privacy = data.profileVisibility;
+    }
     if (Object.keys(toWrite).length > 0) {
       const current = await getSettings();
       await saveSettings({ ...current, ...toWrite });
@@ -93,6 +94,18 @@ export function useProfile() {
     if (!session) return;
     const stats = await fetchProfileStats(session.user.id, period);
     setStatsData(stats);
+  }, []);
+
+  // Cheap, focus-triggered refresh — full `load()` reloads runs/records/awards
+  // and would flash the loading state every time this tab regains focus.
+  // Counts alone are the one thing that reliably goes stale after following
+  // someone from FollowersScreen/FollowingScreen and tabbing back here.
+  const refreshCounts = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { followers: f, following: g } = await fetchFollowCounts(session.user.id);
+    setFollowers(f);
+    setFollowing(g);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -168,7 +181,7 @@ export function useProfile() {
   }, []);
 
   return {
-    runs, shoes, weeklyGoalKm, personalRecords, thisWeekKm,
+    runs, weeklyGoalKm, personalRecords, thisWeekKm,
     followers, following,
     tab, setTab,
     avatarColor, avatarUri, displayName, bio, location, instagram, strava,
@@ -187,5 +200,6 @@ export function useProfile() {
       loadStats(p);
     },
     pinnedRunId, pinRun,
+    refreshCounts,
   };
 }

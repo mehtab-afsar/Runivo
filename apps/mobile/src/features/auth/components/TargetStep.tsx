@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
 import type { OnboardingData } from '../types';
 import { DAY_LABELS, DIST_CHIPS } from '../types';
-import { D, shared } from './onboardingStyles';
+import { mkD, mkShared, type OnboardingD } from './onboardingStyles';
+import { useTheme, Fonts } from '@theme';
 
 interface Props {
   data: Pick<OnboardingData, 'preferredDistance'>;
@@ -17,6 +18,10 @@ interface Props {
 export default function TargetStep({
   data, selectedDays, distKm, weeklyKmDisplay, todayIdx, onToggleDay, onDistanceChange,
 }: Props) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const shared = useMemo(() => mkShared(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   const dayScales   = useRef(DAY_LABELS.map(() => new Animated.Value(1))).current;
   const summaryAnim = useRef(new Animated.Value(1)).current;
   const summaryKey  = useRef(`${selectedDays.length}-${data.preferredDistance}`);
@@ -103,32 +108,34 @@ export default function TargetStep({
   );
 }
 
-const s = StyleSheet.create({
-  // Days
-  dayRow:          { flexDirection: 'row', gap: 5 },
-  dayTile:         { paddingVertical: 12, borderRadius: 8, alignItems: 'center', gap: 3, flex: 1, borderWidth: 0.5 },
-  dayTileUnsel:    { borderColor: D.div, backgroundColor: 'transparent' },
-  dayTileToday:    { borderColor: D.red, backgroundColor: 'rgba(200,57,26,0.05)' },
-  dayTileSel:      { borderColor: D.t1, backgroundColor: D.t1 },
-  dayLetter:       { fontSize: 12, color: D.t3 },
-  dayLetterSel:    { color: '#fff', fontWeight: '500' },
-  dayLetterSub:    { fontSize: 8, color: D.div },
-  dayLetterSubSel: { color: 'rgba(255,255,255,0.5)' },
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    // Days
+    dayRow:          { flexDirection: 'row', gap: 5 },
+    dayTile:         { paddingVertical: 12, borderRadius: 8, alignItems: 'center', gap: 3, flex: 1, borderWidth: 0.5 },
+    dayTileUnsel:    { borderColor: D.div, backgroundColor: 'transparent' },
+    dayTileToday:    { borderColor: D.red, backgroundColor: D.redLo },
+    dayTileSel:      { borderColor: D.alwaysDark, backgroundColor: D.alwaysDark },
+    dayLetter:       { fontSize: 12, color: D.t3 },
+    dayLetterSel:    { color: D.alwaysLight, fontFamily: Fonts.medium },
+    dayLetterSub:    { fontSize: 8, color: D.div },
+    dayLetterSubSel: { color: 'rgba(255,255,255,0.5)' },
 
-  // Distance chips
-  distGrid:        { flexDirection: 'row', gap: 8, marginBottom: 24 },
-  distChip:        { flex: 1, padding: 14, borderRadius: 8, borderWidth: 0.5, alignItems: 'flex-start' },
-  distChipUnsel:   { borderColor: D.div, backgroundColor: 'transparent' },
-  distChipSel:     { borderColor: D.t1, backgroundColor: D.t1 },
-  distLabel:       { fontSize: 15, color: D.t1, marginBottom: 2 },
-  distLabelSel:    { color: '#fff' },
-  distSub:         { fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-  distSubSel:      { color: 'rgba(255,255,255,0.6)' },
+    // Distance chips
+    distGrid:        { flexDirection: 'row', gap: 8, marginBottom: 24 },
+    distChip:        { flex: 1, padding: 14, borderRadius: 8, borderWidth: 0.5, alignItems: 'flex-start' },
+    distChipUnsel:   { borderColor: D.div, backgroundColor: 'transparent' },
+    distChipSel:     { borderColor: D.alwaysDark, backgroundColor: D.alwaysDark },
+    distLabel:       { fontSize: 15, color: D.t1, marginBottom: 2 },
+    distLabelSel:    { color: D.alwaysLight },
+    distSub:         { fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    distSubSel:      { color: 'rgba(255,255,255,0.6)' },
 
-  // Summary
-  summaryCard:     { borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, paddingVertical: 24 },
-  summaryEyebrow:  { fontWeight: '500', fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
-  summaryNum:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 52, color: D.t1, lineHeight: 52 },
-  summaryUnit:     { fontSize: 14, color: D.t3 },
-  summarySub:      { fontSize: 13, color: D.t3, marginTop: 6 },
-});
+    // Summary
+    summaryCard:     { borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, paddingVertical: 24 },
+    summaryEyebrow:  { fontFamily: Fonts.medium, fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
+    summaryNum:      { fontFamily: Fonts.display, fontSize: 52, color: D.t1, lineHeight: 52 },
+    summaryUnit:     { fontSize: 14, color: D.t3 },
+    summarySub:      { fontSize: 13, color: D.t3, marginTop: 6 },
+  });
+}

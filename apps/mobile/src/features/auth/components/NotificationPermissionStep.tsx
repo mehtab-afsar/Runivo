@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Shield, Fire, Lightning, Heart, type Icon } from 'phosphor-react-native';
-import { D, shared } from './onboardingStyles';
+import { mkD, mkShared, type OnboardingD } from './onboardingStyles';
+import { useTheme } from '@theme';
 
 type IconComp = Icon;
 
@@ -13,6 +14,10 @@ const BENEFITS: Array<{ Icon: IconComp; text: string }> = [
 ];
 
 export default function NotificationPermissionStep() {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const shared = useMemo(() => mkShared(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   const anims = useRef(BENEFITS.map(() => ({
     opacity:    new Animated.Value(0),
     translateY: new Animated.Value(14),
@@ -56,10 +61,12 @@ export default function NotificationPermissionStep() {
   );
 }
 
-const s = StyleSheet.create({
-  rule: { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  row:  { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
-  accent: { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
-  text: { fontSize: 14, color: D.t2, flex: 1, lineHeight: 20 },
-  note: { fontSize: 10, color: D.t3, textAlign: 'center', marginTop: 24 },
-});
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    rule: { height: 1, backgroundColor: D.div, marginBottom: 0 },
+    row:  { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
+    accent: { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
+    text: { fontSize: 14, color: D.t2, flex: 1, lineHeight: 20 },
+    note: { fontSize: 10, color: D.t3, textAlign: 'center', marginTop: 24 },
+  });
+}

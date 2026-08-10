@@ -1,3 +1,5 @@
+export type PostType = 'run' | 'conquest' | 'attack' | 'milestone';
+
 export interface FeedPost {
   id: string;
   userId: string;
@@ -16,12 +18,19 @@ export interface FeedPost {
   territoryTier: string | null;
   territoryAreaM2: number | null;
   runnerRank: string | null;
+  postType: PostType;
+  stolenFromUsername: string | null;
+  stolenAreaM2: number | null;
+  zoneTier: string | null;
+  stolenFromUserId: string | null;
   createdAt: string;
 }
 
 export interface SuggestedRunner {
   id: string;
   username: string;
+  avatarUrl: string | null;
+  avatarColor: string;
   totalDistanceKm: number;
   territoryScore: number;
 }
@@ -33,4 +42,11 @@ export interface Comment {
   avatarColor: string;
   content: string;
   createdAt: string;
+}
+
+export interface PostLiker {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  avatarColor: string;
 }

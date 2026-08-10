@@ -5,6 +5,15 @@ import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
 
+// Mirrors the CHECK constraints in 20260810000001_profile_field_limits.sql —
+// keep these two in sync; the DB constraint is the real backstop, this is just
+// so the user sees the limit before hitting save instead of after.
+const DISPLAY_NAME_MAX = 40;
+const BIO_MAX = 150;
+const LOCATION_MAX = 60;
+const INSTAGRAM_MAX = 100;
+const STRAVA_MAX = 200;
+
 interface Props {
   editName: string;
   setEditName: (v: string) => void;
@@ -58,14 +67,18 @@ export function EditProfileSheet({
           <Text style={ss.inputLabel}>Display name</Text>
           <TextInput
             style={ss.input} value={editName} onChangeText={setEditName}
-            placeholder="Your name" placeholderTextColor={C.t3}
+            placeholder="Your name" placeholderTextColor={C.t3} maxLength={DISPLAY_NAME_MAX}
           />
 
-          <Text style={ss.inputLabel}>Bio</Text>
+          <View style={ss.labelRow}>
+            <Text style={ss.inputLabel}>Bio</Text>
+            <Text style={ss.charCount}>{editBio.length}/{BIO_MAX}</Text>
+          </View>
           <TextInput
             style={[ss.input, { height: 72, textAlignVertical: 'top' }]}
             value={editBio} onChangeText={setEditBio}
             placeholder="Tell your city who you are" placeholderTextColor={C.t3} multiline
+            maxLength={BIO_MAX}
           />
 
           <Text style={ss.inputLabel}>Location</Text>
@@ -73,7 +86,7 @@ export function EditProfileSheet({
             <MapPin size={14} color={C.t3} weight="light" style={{ marginRight: 8 }} />
             <TextInput
               style={ss.iconInputText} value={editLocation} onChangeText={setEditLocation}
-              placeholder="City, Country" placeholderTextColor={C.t3}
+              placeholder="City, Country" placeholderTextColor={C.t3} maxLength={LOCATION_MAX}
             />
           </View>
 
@@ -82,7 +95,7 @@ export function EditProfileSheet({
             <InstagramLogo size={14} color={C.t3} weight="light" style={{ marginRight: 8 }} />
             <TextInput
               style={ss.iconInputText} value={editInstagram} onChangeText={setEditInstagram}
-              placeholder="@username" placeholderTextColor={C.t3} autoCapitalize="none"
+              placeholder="@username" placeholderTextColor={C.t3} autoCapitalize="none" maxLength={INSTAGRAM_MAX}
             />
           </View>
 
@@ -91,7 +104,7 @@ export function EditProfileSheet({
             <Pulse size={14} color={C.t3} weight="light" style={{ marginRight: 8 }} />
             <TextInput
               style={ss.iconInputText} value={editStrava} onChangeText={setEditStrava}
-              placeholder="Strava profile URL" placeholderTextColor={C.t3} autoCapitalize="none"
+              placeholder="Strava profile URL" placeholderTextColor={C.t3} autoCapitalize="none" maxLength={STRAVA_MAX}
             />
           </View>
 
@@ -131,6 +144,8 @@ function mkStyles(C: AppColors) {
     avatarPlaceholder: { width: 72, height: 72, borderRadius: 36, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
     cameraOverlay: { position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: 12, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: C.white },
     inputLabel: { ...Type.overline, color: C.t3, marginBottom: 6 },
+    labelRow:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    charCount:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginBottom: 6 },
     input: {
       fontFamily: Fonts.regular, fontSize: 14, color: C.black,
       borderWidth: 0.5, borderColor: C.border, borderRadius: 8,

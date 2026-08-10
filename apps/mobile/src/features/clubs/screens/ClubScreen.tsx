@@ -21,6 +21,8 @@ import { avatarColor } from '@shared/lib/avatarUtils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Club } from '@features/clubs/types';
 import { useTheme, Colors, Fonts, Type, type AppColors } from '@theme';
+import { ClubRankRow } from '../components/ClubRankRow';
+import { ClubHeroCard } from '../components/ClubHeroCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ClubTab = 'my_clubs' | 'rankings';
@@ -29,17 +31,6 @@ type RankingScope = 'local' | 'national' | 'international';
 // it only allows these two values. The UI previously offered a third 'request'
 // option that could never be saved (createClub always failed the CHECK for it).
 type JoinPolicy = 'open' | 'invite_only';
-
-const CLUB_TIERS: { bg: string; fg: string; label: string; minKm: number }[] = [
-  { bg: '#F1EFE8', fg: '#5F5E5A', label: 'Local',    minKm: 0    },
-  { bg: '#E6F1FB', fg: '#185FA5', label: 'Active',   minKm: 100  },
-  { bg: '#EEEDFE', fg: '#3C3489', label: 'Regional', minKm: 500  },
-  { bg: '#FAEEDA', fg: '#854F0B', label: 'Pro',      minKm: 1000 },
-  { bg: '#FCEBEB', fg: '#A32D2D', label: 'Elite',    minKm: 5000 },
-];
-function getClubTier(km: number) {
-  return [...CLUB_TIERS].reverse().find(t => km >= t.minKm) ?? CLUB_TIERS[0];
-}
 
 const SCOPES: { value: RankingScope; label: string }[] = [
   { value: 'local',         label: 'Local'         },
@@ -74,48 +65,6 @@ const JOIN_POLICIES: { value: JoinPolicy; label: string; desc: string; Icon: Ico
   { value: 'open',        label: 'Open',    desc: 'Anyone can join',                Icon: Users, color: '#059669' },
   { value: 'invite_only', label: 'Request', desc: 'Members must request to join',   Icon: Lock,  color: Colors.purple },
 ];
-
-function RankingRow({ club, rank, onPress, isLast }: { club: Club; rank: number; onJoin: () => void; onLeave: () => void; onPress: () => void; isLast?: boolean }) {
-  const C = useTheme();
-  const r = useMemo(() => mkRStyles(C), [C]);
-  const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(club.badge_emoji);
-  const bg = avatarColor(club.name);
-  const tier = getClubTier(club.total_km);
-  return (
-    <Pressable style={[r.row, !isLast && r.rowBorder]} onPress={onPress}>
-      <Text style={r.rank}>{rank}</Text>
-      <View style={[r.avatar, { backgroundColor: bg + '30' }]}>
-        <BadgeIcon size={18} color={badgeColor} weight="light" />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={r.name} numberOfLines={1}>{club.name}</Text>
-        <Text style={r.meta}>{club.member_count} members</Text>
-      </View>
-      <View style={[r.tierBadge, { backgroundColor: tier.bg }]}>
-        <Text style={[r.tierText, { color: tier.fg }]}>{tier.label.toUpperCase()}</Text>
-      </View>
-      <View style={r.cols}>
-        <Text style={r.colVal}>{club.total_km.toFixed(0)}<Text style={r.colUnit}> km</Text></Text>
-      </View>
-    </Pressable>
-  );
-}
-
-function mkRStyles(C: AppColors) {
-  return StyleSheet.create({
-    row:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.card },
-    rowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    rank:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, width: 20, textAlign: 'center' },
-    avatar:    { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    name:      { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    meta:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
-    cols:      { flexDirection: 'row', alignItems: 'center', gap: 24 },
-    colVal:    { fontFamily: Fonts.regular, fontSize: 12, color: C.black, textAlign: 'right', width: 56, fontVariant: ['tabular-nums'] },
-    colUnit:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
-    tierBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-    tierText:  { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase' as const },
-  });
-}
 
 // ── Create Club Sheet ────────────────────────────────────────────────────────
 
@@ -441,25 +390,13 @@ export default function ClubScreen() {
         <FlatList
           data={myClubs}
           keyExtractor={c => c.id}
-          renderItem={({ item }) => {
-            const bg = avatarColor(item.name);
-            const { icon: BIco, color: bColor } = getEmojiIcon(item.badge_emoji);
-            return (
-              <Pressable style={s.myClubRow} onPress={() => goToDetail(item)}>
-                <View style={[s.myClubAvatar, { backgroundColor: bg + '30' }]}>
-                  <BIco size={22} color={bColor} weight="light" />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <View style={s.myClubTopRow}>
-                    <Text style={s.myClubName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={s.myClubDate}>{item.total_km.toFixed(0)} km</Text>
-                  </View>
-                  <Text style={s.myClubMeta}>{item.member_count} members · {item.total_km.toFixed(0)} zones</Text>
-                  <Text style={s.myClubPreview} numberOfLines={1}>{item.description ?? 'Tap to open'}</Text>
-                </View>
-              </Pressable>
-            );
-          }}
+          renderItem={({ item }) => (
+            <ClubHeroCard
+              club={item}
+              rank={rankedClubs.findIndex(c => c.id === item.id) + 1 || undefined}
+              onPress={() => goToDetail(item)}
+            />
+          )}
           contentContainerStyle={s.myClubList}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
@@ -499,12 +436,15 @@ export default function ClubScreen() {
             </>
           }
           renderItem={({ item, index }) => (
-            <RankingRow
+            <ClubRankRow
               club={item}
-              rank={(filteredRanked ? index : index + 4) }
-              onJoin={() => joinClub(item)}
-              onLeave={() => leaveClub(item)}
-              onPress={() => goToDetail(item)}
+              // Search results are their own 1-based list; the unfiltered list
+              // starts at 4 because the podium already showed 1-3. This was
+              // `index` in search mode, which rendered the first result as "0".
+              rank={filteredRanked ? index + 1 : index + 4}
+              onJoin={joinClub}
+              onLeave={leaveClub}
+              onPress={goToDetail}
               isLast={index === (filteredRanked ?? rankedClubs.slice(3)).length - 1}
             />
           )}

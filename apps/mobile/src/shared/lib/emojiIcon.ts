@@ -1,7 +1,8 @@
 import {
   Pulse, Fire, Lightning, Barbell, Trophy, Globe, Shield, Sword,
   Mountains, Waves, Star, Target, Rocket, Diamond, Crown, Medal,
-  Flag, MapTrifold, Wind, Leaf, type Icon,
+  Flag, MapTrifold, Wind, Leaf, PersonSimpleWalk, Users, ChartBar,
+  Lock, Hexagon, type Icon,
 } from 'phosphor-react-native';
 
 interface EmojiIconEntry { icon: Icon; color: string }
@@ -31,6 +32,11 @@ const MAP: Record<string, EmojiIconEntry> = {
   '🌱': { icon: Leaf,        color: '#16A34A' },
   '🌿': { icon: Leaf,        color: '#16A34A' },
   '🌲': { icon: Leaf,        color: '#15803D' },
+  '🚶': { icon: PersonSimpleWalk, color: '#78716C' },
+  '👥': { icon: Users,       color: '#0284C7' },
+  '📊': { icon: ChartBar,    color: '#7C3AED' },
+  '🔒': { icon: Lock,        color: '#9CA3AF' },
+  '⬡':  { icon: Hexagon,     color: '#D93518' },
   // animal → symbolic fallbacks
   '🦅': { icon: Wind,        color: '#64748B' },
   '🐺': { icon: Shield,      color: '#475569' },

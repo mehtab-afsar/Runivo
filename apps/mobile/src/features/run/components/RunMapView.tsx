@@ -7,6 +7,7 @@ import { MAP_STYLES } from '@theme/maps';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 
 interface RunMapViewProps {
   lat: number | null;
@@ -32,6 +33,7 @@ export default function RunMapView({
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const [showStylePicker, setShowStylePicker] = React.useState(false);
+  const locationGranted = useLocationGranted();
 
   return (
     <Animated.View style={[ss.container, { bottom: sheetAnim }]}>
@@ -44,7 +46,7 @@ export default function RunMapView({
             animationDuration={800}
           />
         )}
-        <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />
+        {locationGranted && <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />}
       </MapLibreGL.MapView>
 
       <View style={[ss.header, { top: topInset + 8 }]}>

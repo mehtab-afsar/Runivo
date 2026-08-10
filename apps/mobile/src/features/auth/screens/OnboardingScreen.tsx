@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import {
   View, StyleSheet, Pressable, Text,
   ActivityIndicator, Animated, Dimensions,
@@ -19,8 +19,8 @@ import FirstMissionStep from '../components/FirstMissionStep';
 import NotificationPermissionStep from '../components/NotificationPermissionStep';
 import LaunchStep from '../components/LaunchStep';
 import type { OnboardingData } from '../types';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
-const D = { bg: '#F7F5F2', t1: '#111110', t2: '#7A7873', t3: '#B8B5B0', red: '#C8391A' };
 const todayIdx = (new Date().getDay() + 6) % 7;
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -82,6 +82,8 @@ function LoadingOverlay({ visible, goal, level }: {
   goal: OnboardingData['primaryGoal'];
   level: OnboardingData['experienceLevel'];
 }) {
+  const C = useTheme();
+  const lo = useMemo(() => mkLoadingStyles(C), [C]);
   const opacity = useRef(new Animated.Value(0)).current;
   const quotes  = useRef(getQuotes(goal, level)).current;
   const [qIdx, setQIdx]         = useState(() => Math.floor(Math.random() * quotes.length));
@@ -107,7 +109,7 @@ function LoadingOverlay({ visible, goal, level }: {
   return (
     <Animated.View style={[lo.root, { opacity }]}>
       <View style={lo.inner}>
-        <ActivityIndicator color={D.t3} size="small" style={{ marginBottom: 32 }} />
+        <ActivityIndicator color={C.t3} size="small" style={{ marginBottom: 32 }} />
         <Text style={lo.eyebrow}>Setting up your profile</Text>
         <Animated.Text style={[lo.quote, { opacity: quoteOpacity }]}>
           "{quotes[qIdx]}"
@@ -117,18 +119,22 @@ function LoadingOverlay({ visible, goal, level }: {
   );
 }
 
-const lo = StyleSheet.create({
-  root:   { ...StyleSheet.absoluteFillObject, backgroundColor: D.bg, zIndex: 50, alignItems: 'center', justifyContent: 'center' },
-  inner:  { paddingHorizontal: 40, alignItems: 'center' },
-  eyebrow:{ fontWeight: '500', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 20 },
-  quote:  { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 22, color: D.t1, textAlign: 'center', lineHeight: 30 },
-});
+function mkLoadingStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:   { ...StyleSheet.absoluteFillObject, backgroundColor: C.bg, zIndex: 50, alignItems: 'center', justifyContent: 'center' },
+    inner:  { paddingHorizontal: 40, alignItems: 'center' },
+    eyebrow:{ fontFamily: Fonts.medium, fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 20 },
+    quote:  { fontFamily: Fonts.display, fontSize: 22, color: C.t1, textAlign: 'center', lineHeight: 30 },
+  });
+}
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const C = useTheme();
+  const ss = useMemo(() => mkStyles(C), [C]);
   const ob = useOnboarding(() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }));
 
   const slideX = useRef(new Animated.Value(0)).current;
@@ -230,11 +236,15 @@ export default function OnboardingScreen() {
   );
 }
 
-const ss = StyleSheet.create({
-  root:        { flex: 1, backgroundColor: D.bg },
-  topBar:      { height: 2, backgroundColor: D.red },
-  footer:      { paddingHorizontal: 24, paddingTop: 12 },
-  cta:         { backgroundColor: D.t1, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
-  ctaDisabled: { opacity: 0.4 },
-  ctaLabel:    { fontWeight: '500', fontSize: 13, color: '#fff', letterSpacing: 0.8 },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:        { flex: 1, backgroundColor: C.bg },
+    topBar:      { height: 2, backgroundColor: C.red },
+    footer:      { paddingHorizontal: 24, paddingTop: 12 },
+    // Fixed dark/light pair — filled CTA pill, not the adapting ink token (see
+    // LoginForm.tsx's ctaBtn for why).
+    cta:         { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
+    ctaDisabled: { opacity: 0.4 },
+    ctaLabel:    { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, letterSpacing: 0.8 },
+  });
+}

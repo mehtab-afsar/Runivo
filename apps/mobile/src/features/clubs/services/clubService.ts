@@ -1,6 +1,6 @@
 import { supabase } from '@shared/services/supabase';
 import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
-import type { Club, ActivityItem, ClubMember, JoinRequest } from '@features/clubs/types';
+import type { Club, ActivityItem, ClubFeedActivityItem, ClubMember, JoinRequest } from '@features/clubs/types';
 
 export async function fetchClubs(userId: string | null): Promise<Club[]> {
   const { data: clubsData } = await supabase
@@ -85,12 +85,22 @@ export async function createClub(
 
   if (error || !data) return null;
 
-  // Auto-join creator as admin
-  await supabase.from('club_members').insert({
+  // Auto-join creator as admin. This used to be fire-and-forget, which hid a
+  // real failure: for invite_only clubs the club_members INSERT policy rejected
+  // it, so the club existed with nobody in it and no admin — unusable and
+  // unrecoverable. The owner-self-join policy (20260804000001) permits it now,
+  // but check the error regardless: a club whose creator isn't a member is
+  // worse than no club, so roll the club back rather than return a broken one.
+  const { error: memberError } = await supabase.from('club_members').insert({
     club_id: data.id,
     user_id: userId,
     role: 'admin',
   });
+
+  if (memberError) {
+    await supabase.from('clubs').delete().eq('id', data.id);
+    return null;
+  }
 
   return {
     id: data.id,
@@ -173,6 +183,48 @@ export async function fetchClubActivity(clubId: string): Promise<ActivityItem[]>
     detail: d.detail ?? '',
     time: d.created_at,
   }));
+}
+
+/**
+ * Recent activity across every club the current user belongs to — powers the
+ * "From your clubs" strip on the main Feed. No club_id filter is passed: the
+ * `club_activity: members can read` RLS policy already scopes rows to clubs
+ * the caller is a member of, so this one query is naturally "my clubs' activity".
+ */
+export async function fetchMyClubActivity(limit = 12): Promise<ClubFeedActivityItem[]> {
+  const { data } = await supabase
+    .from('club_activity')
+    .select('id, club_id, user_id, username, action, detail, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (!data || data.length === 0) return [];
+
+  const clubIds = [...new Set(data.map(d => d.club_id as string))];
+  const { data: clubs } = await supabase
+    .from('clubs')
+    .select('id, name, badge_emoji, member_count, total_km')
+    .in('id', clubIds);
+  const clubMap = new Map((clubs ?? []).map(c => [c.id as string, c]));
+
+  return data
+    .map(d => {
+      const club = clubMap.get(d.club_id as string);
+      if (!club) return null;
+      return {
+        id:          d.id,
+        clubId:      d.club_id,
+        clubName:    club.name,
+        badgeEmoji:  club.badge_emoji ?? '🏃',
+        memberCount: club.member_count ?? 0,
+        totalKm:     Number(club.total_km ?? 0),
+        userId:      d.user_id,
+        username:    d.username ?? 'Runner',
+        action:      d.action,
+        detail:      d.detail ?? '',
+        time:        d.created_at,
+      } as ClubFeedActivityItem;
+    })
+    .filter((item): item is ClubFeedActivityItem => item !== null);
 }
 
 /** Fetch pending join requests for a club (admin only). */

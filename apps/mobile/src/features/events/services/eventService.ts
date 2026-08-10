@@ -1,5 +1,5 @@
 import { supabase } from '@shared/services/supabase';
-import { fmtEventDate, fmtEventTime } from '@mobile/shared/lib/formatters';
+import { fmtEventDate, fmtEventTime, fmtDistShort } from '@mobile/shared/lib/formatters';
 import type { RunEvent } from '../types';
 
 export interface EventsData {
@@ -27,7 +27,7 @@ export async function fetchEvents(): Promise<EventsData> {
     date: fmtEventDate(e.starts_at),
     time: fmtEventTime(e.starts_at),
     location: e.location_name ?? 'TBD',
-    distance: e.distance_m ? `${(e.distance_m / 1000).toFixed(1)} km` : undefined,
+    distance: e.distance_m ? `${fmtDistShort(e.distance_m)} km` : undefined,
     participants: e.participant_count ?? 0,
   }));
 
@@ -41,7 +41,11 @@ export async function fetchEvents(): Promise<EventsData> {
   return {
     events,
     joinedIds: new Set(parts?.map(p => p.event_id) ?? []),
-    canCreate: profile?.subscription_tier === 'empire-builder',
+    // 'empire-builder' was a pre-migration-042 tier value that no longer exists —
+    // subscription_tier is now just 'free' | 'premium' | 'admin'. The old check
+    // could never match, so no one — including paying subscribers — could create
+    // an event.
+    canCreate: profile?.subscription_tier === 'premium' || profile?.subscription_tier === 'admin',
   };
 }
 

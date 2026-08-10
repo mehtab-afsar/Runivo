@@ -5,15 +5,17 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useLogin } from '../hooks/useLogin';
 import LoginForm from '../components/LoginForm';
+import { useTheme } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<Nav>();
   const login = useLogin();
+  const C = useTheme();
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F7F5F2' }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

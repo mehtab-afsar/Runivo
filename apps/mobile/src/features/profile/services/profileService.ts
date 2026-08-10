@@ -1,11 +1,18 @@
-import { getRuns, getShoes, getSettings } from '@shared/services/store';
+import { getRuns, getSettings } from '@shared/services/store';
 import { calculatePersonalRecords, formatRecordValue, getRecordLabel } from '@shared/services/personalRecords';
 import { supabase } from '@shared/services/supabase';
 
+export async function fetchFollowCounts(userId: string): Promise<{ followers: number; following: number }> {
+  const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
+    supabase.from('followers').select('*', { count: 'exact', head: true }).eq('following_id', userId),
+    supabase.from('followers').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
+  ]);
+  return { followers: followersCount ?? 0, following: followingCount ?? 0 };
+}
+
 export async function fetchProfileData() {
-  const [runs, shoes, settings] = await Promise.all([
+  const [runs, settings] = await Promise.all([
     getRuns(200),
-    getShoes(),
     getSettings(),
   ]);
 
@@ -30,11 +37,12 @@ export async function fetchProfileData() {
   let distanceUnit: string | null = null;
   let notificationsEnabled: boolean | null = null;
   let missionDifficulty: string | null = null;
+  let profileVisibility: string | null = null;
 
   if (session) {
     const { data } = await supabase
       .from('profiles')
-      .select('bio, avatar_color, display_name, location, instagram, strava, avatar_url, weekly_goal_km, primary_goal, experience_level, weekly_frequency, distance_unit, notifications_enabled, mission_difficulty')
+      .select('bio, avatar_color, display_name, location, instagram, strava, avatar_url, weekly_goal_km, primary_goal, experience_level, weekly_frequency, distance_unit, notifications_enabled, mission_difficulty, profile_visibility')
       .eq('id', session.user.id)
       .single();
     if (data) {
@@ -52,25 +60,20 @@ export async function fetchProfileData() {
       distanceUnit = data.distance_unit ?? null;
       notificationsEnabled = data.notifications_enabled ?? null;
       missionDifficulty = data.mission_difficulty ?? null;
+      profileVisibility = data.profile_visibility ?? null;
     }
   }
 
-  let followers = 0;
-  let following = 0;
-  if (session) {
-    const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
-      supabase.from('followers').select('*', { count: 'exact', head: true }).eq('following_id', session.user.id),
-      supabase.from('followers').select('*', { count: 'exact', head: true }).eq('follower_id', session.user.id),
-    ]);
-    followers = followersCount ?? 0;
-    following = followingCount ?? 0;
-  }
+  const { followers, following } = session
+    ? await fetchFollowCounts(session.user.id)
+    : { followers: 0, following: 0 };
 
   return {
-    runs, shoes,
+    runs,
     weeklyGoalKm: weeklyGoalKmFromDb ?? settings.weeklyGoalKm,
     personalRecords, avatarColor, displayName, bio, location, instagram, strava, avatarUrl,
     primaryGoal, experienceLevel, weeklyFrequency, distanceUnit, notificationsEnabled, missionDifficulty,
+    profileVisibility,
     followers, following,
   };
 }

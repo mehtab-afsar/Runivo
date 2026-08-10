@@ -1,8 +1,10 @@
 // Cross-platform services
 export * from './services/config';
-// missions — export functions/constants only; MissionType is already in types/game.ts
-export type { GoalCategory } from './services/missions';
-export { MISSION_TEMPLATES, GOAL_TO_CATEGORY, generateDailyMissions, updateMissionProgress } from './services/missions';
+export type { GoalCategory, MissionType, Mission } from './services/missions';
+export {
+  MISSION_TEMPLATES, ACTIVE_MISSION_TEMPLATES, MISSION_SOURCE_LABEL,
+  GOAL_TO_CATEGORY, generateDailyMissions, generateBlueprint, updateMissionProgress,
+} from './services/missions';
 export * from './services/missionStore';
 export * from './services/claimEngine';
 export * from './services/store';

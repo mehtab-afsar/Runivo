@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { Gear, Pencil } from 'phosphor-react-native';
-import { Avatar } from './Avatar';
+import { Avatar } from '@mobile/shared/components/Avatar';
+import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { RANK_COLORS } from '@shared/constants/territory';
 
@@ -76,11 +77,11 @@ export function ProfileHeader({
         <View style={ss.infoBlock}>
           <Text style={ss.displayName} numberOfLines={1}>{displayName}</Text>
 
-          <Text style={ss.rankLine}>
-            {username ? `@${username}  ·  ` : ''}
-            <Text style={ss.rankEmoji}>{rankEmoji} </Text>
+          <View style={ss.rankLine}>
+            {!!username && <Text style={ss.rankUsername}>@{username}  ·  </Text>}
+            <GlyphIcon glyph={rankEmoji} size={12} />
             <Text style={[ss.rankName, { color: rankColor.fg }]}>{displayRank}</Text>
-          </Text>
+          </View>
 
           {/* Followers / Following */}
           <View style={ss.socialLine}>
@@ -136,8 +137,8 @@ function mkStyles(C: AppColors) {
     },
     infoBlock:    { flex: 1, gap: 4 },
     displayName:  { fontFamily: Fonts.semiBold, fontSize: 17, color: C.black, letterSpacing: -0.2 },
-    rankLine:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
-    rankEmoji:    { fontSize: 12 },
+    rankLine:     { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    rankUsername: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
     rankName:     { fontFamily: Fonts.medium, fontSize: 12 },
     socialLine:   { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
     socialText:   {},

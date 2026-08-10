@@ -15,10 +15,13 @@ import { Play, X } from 'phosphor-react-native';
 import * as Location from 'expo-location';
 import { useActiveRun }          from '../hooks/useActiveRun';
 import { postRunSync, createFeedPost } from '@shared/services/sync';
-import { getTerritoryPolygons, getPlayer, savePlayer } from '@shared/services/store';
+import { getTerritoryPolygons, getPlayer, savePlayer, getSettings } from '@shared/services/store';
+import CountdownOverlay from '../components/CountdownOverlay';
 import { track } from '@shared/services/analytics';
 import { buildRunSummaryParams }  from '../services/runNavigationHelper';
 import { useToast }              from '@mobile/shared/hooks/useToast';
+import { useDistanceUnit }       from '@mobile/shared/hooks/useDistanceUnit';
+import { fmtDistShort }          from '@mobile/shared/lib/formatters';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import RunHUD             from '../components/RunHUD';
 import RunControls        from '../components/RunControls';
@@ -61,6 +64,7 @@ export default function ActiveRunScreen() {
   const run  = useActiveRun(activityType);
   const { showToast } = useToast();
   const { user } = useAuth();
+  const distanceUnit = useDistanceUnit();
 
   // ── Live territory HUD banners ─────────────────────────────────────────────
   const [liveAreaM2,    setLiveAreaM2]    = useState(0);
@@ -72,7 +76,19 @@ export default function ActiveRunScreen() {
   // closes (the in-the-moment "you claimed a zone" payoff that was previously deferred
   // entirely to the post-run summary).
   const [claimEvent,    setClaimEvent]    = useState<{ type: string; paceEarned?: number } | null>(null);
+  const [countdown,     setCountdown]     = useState<number | null>(null);
   const rivalPolygonsRef = useRef<TerritoryPolygon[]>([]);
+
+  const handleStartPress = useCallback(async () => {
+    const settings = await getSettings().catch(() => null);
+    const seconds = settings?.countdownSeconds ?? 0;
+    if (seconds > 0) {
+      setCountdown(seconds);
+    } else {
+      feedback.runStart();
+      run.startRun();
+    }
+  }, [run]);
 
   // Load rival polygons once at run start — rivals don't change mid-run
   useEffect(() => {
@@ -309,18 +325,30 @@ export default function ActiveRunScreen() {
       {/* One-shot capture reward, center-screen, self-dismissing */}
       <ClaimToast event={claimEvent} onDismiss={() => setClaimEvent(null)} />
 
+      {countdown !== null && (
+        <CountdownOverlay
+          seconds={countdown}
+          onComplete={() => {
+            setCountdown(null);
+            feedback.runStart();
+            run.startRun();
+          }}
+        />
+      )}
+
       <RunHUD
         distance={run.distance}
         pace={run.pace}
         elapsed={run.elapsed}
         liveAreaM2={run.isRunning ? liveAreaM2 : undefined}
+        unit={distanceUnit}
       />
 
       {ghostRoutePoints && routeProgress && run.isRunning && (
         <View style={ss.routeRemaining}>
           <Text style={ss.routeRemainingTxt}>
             {routeProgress.distanceRemainingM >= 1000
-              ? `${(routeProgress.distanceRemainingM / 1000).toFixed(1)} km left`
+              ? `${fmtDistShort(routeProgress.distanceRemainingM)} km left`
               : `${Math.round(routeProgress.distanceRemainingM)} m left`}
           </Text>
         </View>
@@ -335,7 +363,7 @@ export default function ActiveRunScreen() {
 
       <View style={[ss.controls, { paddingBottom: insets.bottom + 16 }]}>
         {!run.isRunning
-          ? <Pressable style={ss.startBtn} onPress={() => { feedback.runStart(); run.startRun(); }}><Play size={28} color={C.white} weight="fill" /></Pressable>
+          ? <Pressable style={ss.startBtn} onPress={handleStartPress}><Play size={28} color={C.white} weight="fill" /></Pressable>
           : !run.isPaused
             ? <RunControls isPaused={false} onPause={run.pauseRun} onResume={run.resumeRun} onStop={handleFinish} />
             : <View style={{ height: 72 }} />

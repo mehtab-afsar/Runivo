@@ -38,6 +38,10 @@ export function buildRunSummaryParams(result: Record<string, unknown> & {
       paceTotalEarned:      result.paceTotalEarned as number | undefined,
       runnerRankPaceToNext: result.runnerRankPaceToNext as number | undefined,
       rivalZonesStolen:     0,
+      // Optimistic, same-device guess from endRunSession's local award check —
+      // used only to drive the unlock celebration. The real grant happens
+      // server-side (see process-run-territory); this is display-only.
+      newAwards:            (result.newlyUnlockedAwards as { key: string }[] | undefined)?.map(a => a.key),
     },
   };
 }

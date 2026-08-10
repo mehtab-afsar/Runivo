@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { formatArea } from '@shared/constants/territory';
 
 interface Props {
   ownedCount: number;
@@ -12,9 +13,7 @@ interface Props {
 export function TerritoryStats({ ownedCount, weakZones, avgFreshness, totalAreaM2 }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const areaLabel = totalAreaM2 >= 1000
-    ? `${(totalAreaM2 / 1000).toFixed(1)}k m²`
-    : `${Math.round(totalAreaM2)} m²`;
+  const areaLabel = formatArea(totalAreaM2);
 
   const stats = [
     { value: String(ownedCount),      label: 'ZONES OWNED',   color: C.t1 },

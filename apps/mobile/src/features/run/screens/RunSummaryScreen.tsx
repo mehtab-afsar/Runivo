@@ -16,15 +16,19 @@ import PostRunInsightsCard  from '../components/PostRunInsightsCard';
 import ShoeChip             from '../components/ShoeChip';
 import ShoeDrawer           from '../components/ShoeDrawer';
 import PostRunActions       from '../components/PostRunActions';
+import RunSummaryMissionsCard from '../components/RunSummaryMissionsCard';
 import SaveRouteSheet       from '../components/SaveRouteSheet';
 import { buildStoryDataUrl } from '../services/storyCardGenerator';
 import { getNutritionProfile } from '@shared/services/store';
 import { computeRunnerRank } from '@shared/services/claimEngine';
 import { GAME_CONFIG } from '@shared/services/config';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
+import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
+import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
 import { useTheme, Colors, feedback, Type, Fonts, Spacing, type AppColors } from '@theme';
 import AwardUnlockSheet from '../components/AwardUnlockSheet';
 import type { RunnerRank } from '@shared/types/game';
+import { FEATURES } from '../../../config/features';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
@@ -84,6 +88,7 @@ export default function RunSummaryScreen() {
 
   const { runData, splits, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe, loading } =
     useRunSummary(runId, passedData);
+  const distanceUnit = useDistanceUnit();
 
   const [showSaveRoute, setShowSaveRoute]             = useState(false);
   const [weightKg, setWeightKg]                       = useState(70);
@@ -143,7 +148,7 @@ export default function RunSummaryScreen() {
         ]).start();
       }, 900);
     }
-    const newAwards = (runData as unknown as Record<string, unknown>).newAwards as string[] | undefined;
+    const newAwards = runData.newAwards;
     if (newAwards && newAwards.length > 0) {
       setTimeout(() => {
         setShowAward(true);
@@ -216,11 +221,12 @@ export default function RunSummaryScreen() {
           heading={heading}
           dateLabel={dateLbl}
           success={!!runData.success}
-          distanceKm={runData.distance.toFixed(2)}
+          distanceKm={convertKm(runData.distance, distanceUnit).toFixed(2)}
           timeLabel={fmt(runData.duration)}
-          paceLabel={pace(runData.pace)}
+          paceLabel={pace(convertPaceMinPerKm(runData.pace, distanceUnit))}
           paceEarned={paceEarned}
           route={runData.route ?? []}
+          unit={distanceUnit}
           onReplay={(runData.route?.length ?? 0) >= 10
             ? () => navigation.navigate('RunReplay', {
                 runId,
@@ -267,6 +273,8 @@ export default function RunSummaryScreen() {
             <Text style={ss.expandHint}>{expanded ? '▲ hide' : '▼ breakdown'}</Text>
           </Pressable>
         )}
+
+        <RunSummaryMissionsCard completedMissions={runData.completedMissions ?? []} />
 
         {/* ── Section B: Territory Captured ─────────────────────────────── */}
         {runData.territory != null && (() => {
@@ -380,9 +388,11 @@ export default function RunSummaryScreen() {
                   : 'Refuel within 2 hours'}
               </Text>
             </View>
-            <Pressable style={ss.fuelBtn} onPress={() => navigation.navigate('CalorieTracker', { burnKcal: calories })}>
-              <Text style={ss.fuelBtnText}>+ LOG</Text>
-            </Pressable>
+            {FEATURES.NUTRITION_TRACKER && (
+              <Pressable style={ss.fuelBtn} onPress={() => navigation.navigate('CalorieTracker', { burnKcal: calories })}>
+                <Text style={ss.fuelBtnText}>+ LOG</Text>
+              </Pressable>
+            )}
           </View>
         )}
         <PostRunActions
@@ -458,7 +468,7 @@ export default function RunSummaryScreen() {
       <AwardUnlockSheet
         visible={showAward}
         onClose={() => setShowAward(false)}
-        awards={((runData as unknown as Record<string, unknown>).newAwards as string[]) ?? []}
+        awards={runData.newAwards ?? []}
       />
     </View>
   );

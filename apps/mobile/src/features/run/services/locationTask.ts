@@ -171,7 +171,10 @@ export function setActiveRunId(runId: string): void {
   }
 }
 
-export async function startBackgroundTracking(runId: string): Promise<void> {
+export async function startBackgroundTracking(
+  runId: string,
+  accuracy: Location.Accuracy = Location.Accuracy.BestForNavigation,
+): Promise<void> {
   // Persist the run ID so the task can look it up when it fires
   setActiveRunId(runId);
 
@@ -179,7 +182,7 @@ export async function startBackgroundTracking(runId: string): Promise<void> {
   if (isRegistered) return; // already running
 
   await Location.startLocationUpdatesAsync(BACKGROUND_LOCATION_TASK, {
-    accuracy:                Location.Accuracy.BestForNavigation,
+    accuracy,
     timeInterval:            2000,   // 2-second floor between updates
     distanceInterval:        3,      // min 3 m between updates
     showsBackgroundLocationIndicator: true,   // blue iOS status bar

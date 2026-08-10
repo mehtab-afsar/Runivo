@@ -78,8 +78,11 @@ export default function CoachScreen() {
             if (!data) return;
             setPlayerName(data.username ?? 'Runner');
             setPaceWeeklyEarned(data.pace_weekly_earned ?? 0);
+            // Matches the isPremium semantics used everywhere else (useSubscription,
+            // useDashboard) — anything other than null/'free' counts as premium,
+            // rather than strictly requiring the literal 'premium' string.
             setPaceWeeklyCap(
-              data.subscription_tier === 'premium'
+              !!data.subscription_tier && data.subscription_tier !== 'free'
                 ? GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM
                 : GAME_CONFIG.PACE_WEEKLY_CAP_FREE,
             );

@@ -6,6 +6,8 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import Svg, { Polyline, Rect } from 'react-native-svg';
 import type { StoredRun } from '@shared/services/store';
 import { fmtDist, fmtDuration } from '@mobile/shared/lib/formatters';
+import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
+import { RowChevron } from '@mobile/shared/components/RowChevron';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -166,14 +168,22 @@ export function ActivityFeedTab({ runs, isOwn }: Props) {
     <View>
       {isOwn && (
         <View style={s.heatmapSection}>
-          <Text style={s.sectionLabel}>8-Week Activity</Text>
+          <Text style={[s.sectionLabel, { marginBottom: 10 }]}>8-Week Activity</Text>
           <View style={s.heatmapCard}>
             <CalendarHeatmap runs={runs} emptyColor={C.stone} redColor={C.red} />
           </View>
         </View>
       )}
 
-      <Text style={s.sectionLabel}>Recent Runs</Text>
+      <View style={s.recentHeader}>
+        <Text style={s.sectionLabel}>Recent Runs</Text>
+        {isOwn && (
+          <Pressable style={s.historyLink} onPress={() => navigation.navigate('History')} hitSlop={8}>
+            <Text style={s.historyLinkText}>Full history</Text>
+            <RowChevron size={13} color={C.red} />
+          </Pressable>
+        )}
+      </View>
 
       {visibleRuns.map(run => {
         const zonesCount = run.territoriesClaimed.length;
@@ -196,11 +206,12 @@ export function ActivityFeedTab({ runs, isOwn }: Props) {
               </View>
               {zonesCount > 0 && (
                 <View style={s.zonePill}>
-                  <Text style={s.zonePillText}>⬡ {zonesCount} zone{zonesCount !== 1 ? 's' : ''}</Text>
+                  <GlyphIcon glyph="⬡" size={11} color={C.red} />
+                  <Text style={s.zonePillText}>{zonesCount} zone{zonesCount !== 1 ? 's' : ''}</Text>
                 </View>
               )}
             </View>
-            <Text style={s.arrow}>›</Text>
+            <RowChevron />
           </Pressable>
         );
       })}
@@ -221,7 +232,10 @@ export function ActivityFeedTab({ runs, isOwn }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    sectionLabel:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 10 },
+    sectionLabel:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    recentHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+    historyLink:   { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    historyLinkText:{ fontFamily: Fonts.medium, fontSize: 12, color: C.red },
     heatmapSection:{ marginBottom: 28 },
     heatmapCard:   { backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     card: {
@@ -236,9 +250,8 @@ function mkStyles(C: AppColors) {
     metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6 },
     metaText:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
     metaDot:       { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
-    zonePill:      { alignSelf: 'flex-start', backgroundColor: 'rgba(217,53,24,0.08)', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginTop: 2 },
+    zonePill:      { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: 'rgba(217,53,24,0.08)', borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, marginTop: 2 },
     zonePillText:  { fontFamily: Fonts.medium, fontSize: 11, color: C.red },
-    arrow:         { fontSize: 18, color: C.t3 },
     showMore:      { backgroundColor: C.stone, borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 8 },
     showMoreText:  { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
     empty:         { alignItems: 'center', paddingVertical: 40 },

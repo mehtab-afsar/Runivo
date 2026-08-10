@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { convertKm, convertPaceStringPerKm } from '@mobile/shared/lib/formatters';
 
 interface RunHUDProps {
   distance: number;
   pace: string;
   elapsed: number;
   liveAreaM2?: number;
+  unit?: 'km' | 'mi';
 }
 
 function formatElapsed(seconds: number): string {
@@ -17,9 +19,11 @@ function formatElapsed(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function RunHUD({ distance, pace, elapsed, liveAreaM2 }: RunHUDProps) {
+export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km' }: RunHUDProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
+  const displayDistance = convertKm(distance, unit);
+  const displayPace = convertPaceStringPerKm(pace, unit);
   return (
     <View style={ss.container}>
       {/*
@@ -33,8 +37,8 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2 }: RunHUDPr
         text elsewhere in the app, which is intentionally left uncapped).
       */}
       <View style={ss.distanceBlock}>
-        <Text style={ss.distanceValue} maxFontSizeMultiplier={1.2}>{distance.toFixed(2)}</Text>
-        <Text style={ss.distanceUnit} maxFontSizeMultiplier={1.2}>km</Text>
+        <Text style={ss.distanceValue} maxFontSizeMultiplier={1.2}>{displayDistance.toFixed(2)}</Text>
+        <Text style={ss.distanceUnit} maxFontSizeMultiplier={1.2}>{unit}</Text>
       </View>
       <View style={ss.secondaryStats}>
         <View style={ss.secondaryStat}>
@@ -42,8 +46,8 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2 }: RunHUDPr
           <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>TIME</Text>
         </View>
         <View style={[ss.secondaryStat, ss.secondaryStatMid]}>
-          <Text style={ss.secondaryValue} maxFontSizeMultiplier={1.3}>{pace}</Text>
-          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>PACE /KM</Text>
+          <Text style={ss.secondaryValue} maxFontSizeMultiplier={1.3}>{displayPace}</Text>
+          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>PACE /{unit.toUpperCase()}</Text>
         </View>
         <View style={ss.secondaryStat}>
           <Text style={[ss.secondaryValue, { color: C.green }]} maxFontSizeMultiplier={1.3}>

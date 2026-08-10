@@ -9,6 +9,7 @@ import { kalmanSmooth } from '@shared/services/claimEngine';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
+import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 
 const styles = StyleSheet.create({
   map: { flex: 1 },
@@ -36,6 +37,7 @@ function buildLineString(pts: { lat: number; lng: number }[]) {
 
 export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestIdx = 0 }: Props) {
   const latest = gpsPoints.length > 0 ? gpsPoints[gpsPoints.length - 1] : null;
+  const locationGranted = useLocationGranted();
 
   // Kalman-smoothed display path — keeps raw gpsPoints for distance/territory calculation
   const displayPath = useMemo(() => {
@@ -99,11 +101,13 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
       />
 
       {/* User position dot */}
-      <MapLibreGL.UserLocation
-        visible
-        renderMode="native"
-        showsUserHeadingIndicator
-      />
+      {locationGranted && (
+        <MapLibreGL.UserLocation
+          visible
+          renderMode="native"
+          showsUserHeadingIndicator
+        />
+      )}
 
       {/* Ghost route — completed section (solid, muted) */}
       {ghostCompletedGeoJSON && (

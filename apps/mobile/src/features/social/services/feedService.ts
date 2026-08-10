@@ -1,26 +1,31 @@
 import { supabase } from '@shared/services/supabase';
-import type { FeedPost, SuggestedRunner, Comment } from '../types';
+import type { FeedPost, SuggestedRunner, Comment, PostLiker } from '../types';
 
 function mapRow(row: any): FeedPost {
   return {
-    id:             row.id,
-    userId:         row.user_id,
-    username:       row.username ?? 'Runner',
-    avatarUrl:      row.avatar_url ?? null,
-    avatarColor:    row.avatar_color ?? '#888888',
-    distanceM:      Math.round((row.distance_km ?? 0) * 1000),
-    durationSec:    row.duration_sec ?? 0,
-    avgPace:        row.avg_pace ?? '',
-    activityType:   row.activity_type ?? 'run',
-    routePoints:    row.route_points ?? [],
-    kudosCount:     row.likes ?? 0,
-    hasKudos:       row.has_liked ?? false,
-    commentCount:   row.comment_count ?? 0,
-    paceEarned:     row.pace_earned ?? 0,
-    territoryTier:  row.territory_tier ?? null,
-    territoryAreaM2:row.territory_area_m2 ?? null,
-    runnerRank:     row.runner_rank ?? null,
-    createdAt:      row.created_at,
+    id:                 row.id,
+    userId:             row.user_id,
+    username:           row.username ?? 'Runner',
+    avatarUrl:          row.avatar_url ?? null,
+    avatarColor:        row.avatar_color ?? '#888888',
+    distanceM:          Math.round((row.distance_km ?? 0) * 1000),
+    durationSec:        row.duration_sec ?? 0,
+    avgPace:            row.avg_pace ?? '',
+    activityType:       row.activity_type ?? 'run',
+    routePoints:        row.route_points ?? [],
+    kudosCount:         row.likes ?? 0,
+    hasKudos:           row.has_liked ?? false,
+    commentCount:       row.comment_count ?? 0,
+    paceEarned:         row.pace_earned ?? 0,
+    territoryTier:      row.territory_tier ?? null,
+    territoryAreaM2:    row.territory_area_m2 ?? null,
+    runnerRank:         row.runner_rank ?? null,
+    postType:           row.post_type ?? 'run',
+    stolenFromUsername: row.stolen_from_username ?? null,
+    stolenAreaM2:       row.stolen_area_m2 ?? null,
+    zoneTier:           row.zone_tier ?? null,
+    stolenFromUserId:   row.stolen_from_user_id ?? null,
+    createdAt:          row.created_at,
   };
 }
 
@@ -67,7 +72,7 @@ export async function fetchFollowingIds(userId: string): Promise<string[]> {
 export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRunner[]> {
   const { data, error } = await supabase
     .from('profiles_public')
-    .select('id, username, total_distance_km, territory_score')
+    .select('id, username, avatar_url, avatar_color, total_distance_km, territory_score')
     .neq('id', userId)
     .order('territory_score', { ascending: false })
     .limit(8);
@@ -75,6 +80,8 @@ export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRu
   return (data ?? []).map((r: any) => ({
     id:              r.id,
     username:        r.username ?? 'Runner',
+    avatarUrl:       r.avatar_url ?? null,
+    avatarColor:     r.avatar_color ?? '#888888',
     totalDistanceKm: Number(r.total_distance_km ?? 0),
     territoryScore:  Math.round(Number(r.territory_score ?? 0)),
   }));
@@ -105,4 +112,27 @@ export async function addComment(postId: string, content: string): Promise<strin
   });
   if (error) throw error;
   return data as string;
+}
+
+// RLS ("feed_posts: owner can delete") already scopes this to auth.uid() —
+// this can't delete anyone else's post regardless of what postId is passed.
+export async function deletePost(postId: string): Promise<void> {
+  const { error } = await supabase.from('feed_posts').delete().eq('id', postId);
+  if (error) throw error;
+}
+
+export async function reportPost(postId: string, reason: string): Promise<void> {
+  const { error } = await supabase.rpc('report_post', { p_post_id: postId, p_reason: reason });
+  if (error) throw error;
+}
+
+export async function fetchPostLikers(postId: string, lim = 3): Promise<PostLiker[]> {
+  const { data, error } = await supabase.rpc('get_post_likers', { p_post_id: postId, lim });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id:          r.id,
+    username:    r.username ?? 'Runner',
+    avatarUrl:   r.avatar_url ?? null,
+    avatarColor: r.avatar_color ?? '#888888',
+  }));
 }

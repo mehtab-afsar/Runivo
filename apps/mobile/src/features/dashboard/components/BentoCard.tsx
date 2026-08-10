@@ -5,6 +5,7 @@ import { Calendar, Users, Trophy } from 'phosphor-react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { WeeklyRing } from './WeeklyRing';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { FEATURES } from '../../../config/features';
 
 const { width: SW } = Dimensions.get('window');
 const HERO_W = (SW - Spacing.gutter * 2 - 10) * (1.15 / 2.15);
@@ -136,6 +137,7 @@ export function BentoCard({
   const userScrollingRef = useRef(false);
 
   useEffect(() => {
+    if (!FEATURES.NUTRITION_TRACKER) return;
     const id = setInterval(() => {
       if (userScrollingRef.current) return;
       setSlide(prev => {
@@ -152,45 +154,55 @@ export function BentoCard({
       <View style={ss.bentoRow}>
 
         <View style={ss.hero}>
-          <ScrollView
-            ref={scrollRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            scrollEventThrottle={16}
-            onScrollBeginDrag={() => { userScrollingRef.current = true; }}
-            onScrollEndDrag={() => { userScrollingRef.current = false; }}
-            onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / HERO_W);
-              setSlide(idx);
-            }}
-            style={{ flex: 1 }}
-          >
-            {/* Slide 0 — Weekly Goal: pure black */}
+          {FEATURES.NUTRITION_TRACKER ? (
+            <>
+              <ScrollView
+                ref={scrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                scrollEventThrottle={16}
+                onScrollBeginDrag={() => { userScrollingRef.current = true; }}
+                onScrollEndDrag={() => { userScrollingRef.current = false; }}
+                onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / HERO_W);
+                  setSlide(idx);
+                }}
+                style={{ flex: 1 }}
+              >
+                {/* Slide 0 — Weekly Goal: pure black */}
+                <View style={[ss.slide, { width: HERO_W }]}>
+                  <WeeklyRing weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays} />
+                </View>
+
+                {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark */}
+                <Pressable
+                  style={[ss.slide, { width: HERO_W, backgroundColor: '#1A120C' }]}
+                  onPress={onNutritionPress}
+                >
+                  <NutritionTile
+                    caloriesConsumed={caloriesConsumed}
+                    calorieGoal={calorieGoal}
+                    netCaloriesToday={netCaloriesToday}
+                    runDays={runDays}
+                    onPress={onNutritionPress}
+                  />
+                </Pressable>
+              </ScrollView>
+
+              <View style={ss.dots}>
+                {[0, 1].map(i => (
+                  <View key={i} style={[ss.dot, slide === i && ss.dotActive]} />
+                ))}
+              </View>
+            </>
+          ) : (
+            // Nutrition tracking is off — no carousel, no fake calorie card to tap
+            // through to a ComingSoon screen. Just the weekly-goal ring, full width.
             <View style={[ss.slide, { width: HERO_W }]}>
               <WeeklyRing weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays} />
             </View>
-
-            {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark */}
-            <Pressable
-              style={[ss.slide, { width: HERO_W, backgroundColor: '#1A120C' }]}
-              onPress={onNutritionPress}
-            >
-              <NutritionTile
-                caloriesConsumed={caloriesConsumed}
-                calorieGoal={calorieGoal}
-                netCaloriesToday={netCaloriesToday}
-                runDays={runDays}
-                onPress={onNutritionPress}
-              />
-            </Pressable>
-          </ScrollView>
-
-          <View style={ss.dots}>
-            {[0, 1].map(i => (
-              <View key={i} style={[ss.dot, slide === i && ss.dotActive]} />
-            ))}
-          </View>
+          )}
         </View>
 
         {/* Right column */}

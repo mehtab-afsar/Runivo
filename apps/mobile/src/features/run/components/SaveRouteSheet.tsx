@@ -5,25 +5,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { X, Pulse, Fire, Waves, Mountains, Star, Target, TreeEvergreen, ArrowClockwise, Lightning, PathIcon as RouteIcon, MapTrifold, Trophy, type Icon } from 'phosphor-react-native';
+import { X } from 'phosphor-react-native';
 import { saveSavedRoute, type StoredSavedRoute } from '@shared/services/store';
 import { pushSavedRoutes } from '@shared/services/sync';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { fmtDist } from '@mobile/shared/lib/formatters';
+import { ROUTE_ICON_OPTIONS as ICON_OPTIONS } from '@mobile/shared/constants/routeIcons';
 
-const ICON_OPTIONS: { key: string; Icon: Icon; color: string }[] = [
-  { key: 'run',     Icon: Pulse,          color: '#D93518' },
-  { key: 'flame',   Icon: Fire,           color: '#EA580C' },
-  { key: 'waves',   Icon: Waves,          color: '#0EA5E9' },
-  { key: 'mountain',Icon: Mountains,      color: '#78716C' },
-  { key: 'star',    Icon: Star,           color: '#F59E0B' },
-  { key: 'target',  Icon: Target,         color: '#D93518' },
-  { key: 'tree',    Icon: TreeEvergreen,  color: '#15803D' },
-  { key: 'loop',    Icon: ArrowClockwise, color: '#7C3AED' },
-  { key: 'zap',     Icon: Lightning,      color: '#EAB308' },
-  { key: 'route',   Icon: RouteIcon,      color: '#6B6B6B' },
-  { key: 'map',     Icon: MapTrifold,     color: '#0284C7' },
-  { key: 'trophy',  Icon: Trophy,         color: '#D97706' },
-];
 interface SaveRouteSheetProps {
   visible: boolean;
   gpsPoints: { lat: number; lng: number }[];
@@ -87,7 +75,7 @@ export default function SaveRouteSheet({
         <View style={ss.infoRow}>
           <View style={ss.infoIconWrap}>{ICON_OPTIONS.find(o => o.key === emoji) ? (() => { const { Icon, color } = ICON_OPTIONS.find(o => o.key === emoji)!; return <Icon size={22} color={color} weight="light" />; })() : null}</View>
           <View>
-            <Text style={ss.infoDistance}>{(distanceM / 1000).toFixed(2)} km</Text>
+            <Text style={ss.infoDistance}>{fmtDist(distanceM)} km</Text>
             {durationSec != null && (
               <Text style={ss.infoDuration}>
                 {Math.floor(durationSec / 60)}m {durationSec % 60}s · {gpsPoints.length} points

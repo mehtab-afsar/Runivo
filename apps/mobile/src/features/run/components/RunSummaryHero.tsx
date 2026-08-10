@@ -24,17 +24,18 @@ interface Props {
   heading:     string;   // e.g. "Territory Conquered"
   dateLabel:   string;
   success:     boolean;
-  distanceKm:  string;   // pre-formatted, e.g. "5.02"
+  distanceKm:  string;   // pre-formatted and pre-converted by the caller, e.g. "5.02"
   timeLabel:   string;   // e.g. "27:14"
-  paceLabel:   string;   // e.g. "5:26"
+  paceLabel:   string;   // e.g. "5:26" — also pre-converted by the caller
   paceEarned:  number;
   route:       { lat: number; lng: number }[];
   onReplay?:   () => void;
+  unit?:       'km' | 'mi';
 }
 
 export default function RunSummaryHero({
   topInset, eyebrow, heading, dateLabel, success,
-  distanceKm, timeLabel, paceLabel, paceEarned, route, onReplay,
+  distanceKm, timeLabel, paceLabel, paceEarned, route, onReplay, unit = 'km',
 }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -115,7 +116,7 @@ export default function RunSummaryHero({
 
         <View style={ss.distanceRow}>
           <Text style={ss.distance}>{distanceKm}</Text>
-          <Text style={ss.distanceUnit}>km</Text>
+          <Text style={ss.distanceUnit}>{unit}</Text>
         </View>
 
         <View style={ss.rail}>
@@ -126,7 +127,7 @@ export default function RunSummaryHero({
           <View style={ss.railDivider} />
           <View style={ss.railItem}>
             <Text style={ss.railValue}>{paceLabel}</Text>
-            <Text style={ss.railLabel}>PACE /KM</Text>
+            <Text style={ss.railLabel}>PACE /{unit.toUpperCase()}</Text>
           </View>
           <View style={ss.railDivider} />
           <View style={ss.railItem}>

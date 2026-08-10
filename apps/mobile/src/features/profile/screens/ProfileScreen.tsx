@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
@@ -11,6 +11,8 @@ import { OverviewTab } from '../components/OverviewTab';
 import { ActivityFeedTab } from '../components/ActivityFeedTab';
 import { IntelligenceTab } from '../components/IntelligenceTab';
 import { TerritoryTab } from '../components/TerritoryTab';
+import { StatsTab } from '../components/StatsTab';
+import { NutritionTab } from '../components/NutritionTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import { AwardsTab } from '../components/AwardsTab';
 import type { ProfileTab } from '../types';
@@ -19,16 +21,32 @@ import { FEATURES } from '../../../config/features';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const ALL_TABS: { key: ProfileTab; label: string }[] = [
+// 'gear' isn't a ProfileTab — it has no in-page content, it jumps straight to
+// the full standalone Gear screen (retire/delete/default/foot-scan), which is
+// already built and was simply unreachable from anywhere in the app. Keeping
+// shoe management there instead of duplicating a second copy of it here.
+const ALL_TABS: { key: ProfileTab | 'gear'; label: string }[] = [
   { key: 'overview',      label: 'Overview' },
   { key: 'activity',      label: 'Activity' },
+  { key: 'stats',         label: 'Stats' },
   { key: 'territory',     label: 'Territory' },
   { key: 'intelligence',  label: 'Intelligence' },
   { key: 'awards',        label: 'Awards' },
+  { key: 'nutrition',     label: 'Nutrition' },
+  { key: 'gear',          label: 'Gear' },
 ];
 
-// Intelligence is part of the AI Coach feature — hidden here too when that flag is off.
-const TABS = ALL_TABS.filter(t => t.key !== 'intelligence' || FEATURES.AI_COACH);
+// Each of these tabs is gated behind a feature flag that's currently off in
+// production — hidden here rather than shown-then-ComingSoon'd, since a
+// horizontal tab strip has no room for a "SOON" treatment the way the bottom
+// tab bar does, and there's no legitimate always-on content to show for the
+// nutrition tab (unlike, say, RunSummaryScreen's calorie estimate) once its
+// tracker is disabled.
+const TABS = ALL_TABS.filter(t =>
+  (t.key !== 'intelligence' || FEATURES.AI_COACH) &&
+  (t.key !== 'gear' || FEATURES.GEAR_TRACKING) &&
+  (t.key !== 'nutrition' || FEATURES.NUTRITION_TRACKER),
+);
 
 export default function ProfileScreen() {
   const C = useTheme();
@@ -43,8 +61,15 @@ export default function ProfileScreen() {
     editAvatarUri, pickAvatar,
     startEdit, saveEdit, cancelEdit,
     earnedAwards,
+    statsData, statsPeriod, setStatsPeriod,
     pinnedRunId, pinRun,
+    refreshCounts,
   } = useProfile();
+
+  // Follow/unfollow from FollowersScreen or FollowingScreen doesn't update this
+  // screen's state — refresh just the counts (not a full reload) whenever the
+  // Profile tab regains focus.
+  useFocusEffect(useCallback(() => { refreshCounts(); }, [refreshCounts]));
 
   const displayedName = displayName || player?.username || 'Runner';
   const totalKm = runs.reduce((s, r) => s + r.distanceMeters / 1000, 0);
@@ -83,7 +108,11 @@ export default function ProfileScreen() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ss.tabsScroll} contentContainerStyle={ss.tabsContent}>
           {TABS.map(t => (
-            <Pressable key={t.key} style={[ss.tab, tab === t.key && ss.tabActive]} onPress={() => setTab(t.key)}>
+            <Pressable
+              key={t.key}
+              style={[ss.tab, tab === t.key && ss.tabActive]}
+              onPress={() => t.key === 'gear' ? navigation.navigate('Gear') : setTab(t.key)}
+            >
               <Text style={[ss.tabLabel, tab === t.key && ss.tabLabelActive]}>{t.label}</Text>
             </Pressable>
           ))}
@@ -103,6 +132,19 @@ export default function ProfileScreen() {
             />
           )}
           {tab === 'activity' && <ActivityFeedTab runs={runs} isOwn />}
+          {tab === 'stats' && (
+            <StatsTab
+              personalRecords={personalRecords}
+              totalRuns={runs.length}
+              totalKm={totalKm}
+              totalTerritories={player?.totalTerritoriesClaimed ?? 0}
+              streakDays={player?.streakDays ?? 0}
+              runs={runs}
+              statsData={statsData}
+              statsPeriod={statsPeriod}
+              onPeriodChange={setStatsPeriod}
+            />
+          )}
           {tab === 'territory' && <TerritoryTab />}
           {tab === 'intelligence' && FEATURES.AI_COACH && (
             <IntelligenceTab runs={runs} personalRecords={personalRecords} />
@@ -117,6 +159,7 @@ export default function ProfileScreen() {
               runs={runs}
             />
           )}
+          {tab === 'nutrition' && <NutritionTab />}
         </View>
       </ScrollView>
 

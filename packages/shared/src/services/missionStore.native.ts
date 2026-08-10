@@ -68,20 +68,19 @@ export async function claimMissionReward(missionId: string): Promise<Mission | n
   if (!row) return null;
   const mission = JSON.parse(row.data) as Mission;
   if (!mission.completed || mission.claimed) return null;
-  mission.claimed = true;
-  _db.runSync(
-    'INSERT OR REPLACE INTO missions (id, data, expires_at) VALUES (?, ?, ?)',
-    [mission.id, JSON.stringify(mission), mission.expiresAt],
-  );
 
-  // Server-authoritative credit: the claim_mission_reward RPC looks up the
-  // mission's PACE reward from its own canonical title→reward table and
-  // enforces the weekly cap itself — pace_balance/pace_total_earned/
-  // pace_weekly_earned are never client-writable (profiles_column_protection),
-  // so crediting them locally without this round-trip only produced a number
-  // that reverted on the next pullProfile(). If offline or the call fails, the
-  // mission still shows claimed (matches this store's offline-first design
-  // elsewhere) but no PACE is credited until a future successful claim.
+  // Server-authoritative credit: the claim_mission_reward RPC verifies the
+  // mission was actually completed (mission_completed_today), looks up its
+  // PACE reward from its own canonical title→reward table, and enforces the
+  // weekly cap — pace_balance/pace_total_earned/pace_weekly_earned are never
+  // client-writable (profiles_column_protection), so crediting them locally
+  // without this round-trip only produced a number that reverted on the next
+  // pullProfile(). `claimed` is deliberately NOT set until this succeeds: if
+  // it were set unconditionally (as it once was here), a claim attempted
+  // before this run/log has finished syncing to the server would verify-fail,
+  // credit 0, and then permanently hide the claim button behind a
+  // `claimed: true` that never actually paid out. Leaving it false lets the
+  // same tap be retried once the underlying activity has synced.
   let credited = 0;
   try {
     const { supabase } = await import('./supabase');
@@ -92,18 +91,24 @@ export async function claimMissionReward(missionId: string): Promise<Mission | n
     if (!error && typeof data === 'number') credited = data;
   } catch { /* offline — not credited this attempt */ }
 
-  if (credited > 0) {
-    const player = await getPlayer();
-    if (player) {
-      const newTotal = (player.paceTotalEarned ?? 0) + credited;
-      await savePlayer({
-        ...player,
-        paceBalance:      (player.paceBalance ?? 0) + credited,
-        paceTotalEarned:  newTotal,
-        paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + credited,
-        runnerRank:       computeRunnerRank(newTotal),
-      });
-    }
+  if (credited <= 0) return null;
+
+  mission.claimed = true;
+  _db.runSync(
+    'INSERT OR REPLACE INTO missions (id, data, expires_at) VALUES (?, ?, ?)',
+    [mission.id, JSON.stringify(mission), mission.expiresAt],
+  );
+
+  const player = await getPlayer();
+  if (player) {
+    const newTotal = (player.paceTotalEarned ?? 0) + credited;
+    await savePlayer({
+      ...player,
+      paceBalance:      (player.paceBalance ?? 0) + credited,
+      paceTotalEarned:  newTotal,
+      paceWeeklyEarned: (player.paceWeeklyEarned ?? 0) + credited,
+      runnerRank:       computeRunnerRank(newTotal),
+    });
   }
 
   return mission;
@@ -122,6 +127,27 @@ export async function setDailyMissions(templateTitles: string[]): Promise<Missio
   });
   await saveMissions(missions);
   return missions;
+}
+
+// Replaces exactly one of today's missions with a fresh mission built from
+// `newTitle`, keeping the other slots (and their progress) untouched —
+// unlike setDailyMissions, which regenerates the whole set from scratch and
+// would silently wipe progress on the two missions the user didn't ask to
+// change. Reuses the swapped-out mission's id so its position in the list
+// stays stable.
+export async function swapMission(missionId: string, newTitle: string): Promise<Mission[]> {
+  const current = await getTodaysMissions();
+  const today    = new Date();
+  const endOfDay = new Date(today);
+  endOfDay.setHours(23, 59, 59, 999);
+  const expiresAt = endOfDay.getTime();
+  const template  = MISSION_TEMPLATES.find(t => t.title === newTitle) ?? MISSION_TEMPLATES[0];
+
+  const updated = current.map(m => m.id !== missionId ? m : {
+    ...template, id: missionId, current: 0, completed: false, claimed: false, expiresAt,
+  });
+  await saveMissions(updated);
+  return updated;
 }
 
 export async function updateMissionsAfterNutritionLog(

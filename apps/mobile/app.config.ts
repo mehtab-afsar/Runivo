@@ -153,7 +153,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission: 'Runivo uses the camera to photograph your shoes.',
       },
     ],
-    '@kingstinct/react-native-healthkit',
+    // Must be passed as [plugin, props] — the plugin dereferences
+    // `props.NSHealthShareUsageDescription` with no undefined guard
+    // (node_modules/@kingstinct/react-native-healthkit/app.plugin.js:62), so
+    // registering it as a bare string crashes prebuild with
+    // "Cannot read properties of undefined". Because apps/mobile/ios is
+    // gitignored, EAS prebuilds too — this failed `eas build`, not just local.
+    // Strings kept identical to the ios.infoPlist entries above.
+    [
+      '@kingstinct/react-native-healthkit',
+      {
+        NSHealthShareUsageDescription:
+          'Runivo reads your past workouts to calculate baselines and passive income.',
+        NSHealthUpdateUsageDescription:
+          'Runivo saves completed runs to Apple Health.',
+      },
+    ],
     '@maplibre/maplibre-react-native',
     '@sentry/react-native',
     'expo-updates',

@@ -6,8 +6,11 @@ import {
   fetchFollowingIds,
   fetchSuggestedRunners,
   toggleFollowService,
+  deletePost as deletePostService,
 } from '@features/social/services/feedService';
+import { fetchMyClubActivity } from '@features/clubs/services/clubService';
 import type { FeedPost, SuggestedRunner } from '@features/social/types';
+import type { ClubFeedActivityItem } from '@features/clubs/types';
 
 type Tab = 'following' | 'discover';
 
@@ -22,6 +25,7 @@ export function useFeed() {
   const [refreshing, setRefreshing] = useState(false);
   const [followingIds,     setFollowingIds]     = useState<string[]>([]);
   const [suggestedRunners, setSuggestedRunners] = useState<SuggestedRunner[]>([]);
+  const [clubActivity,     setClubActivity]     = useState<ClubFeedActivityItem[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
   const loadingMoreRef = useRef(false);
@@ -54,12 +58,14 @@ export function useFeed() {
   }, [discoverCursor, followingCursor, discoverHasMore, followingHasMore]);
 
   const initLoad = useCallback(async (uid: string) => {
-    const [followIds, suggested] = await Promise.all([
+    const [followIds, suggested, myClubActivity] = await Promise.all([
       fetchFollowingIds(uid),
       fetchSuggestedRunners(uid),
+      fetchMyClubActivity().catch(() => []),
     ]);
     setFollowingIds(followIds);
     setSuggestedRunners(suggested.filter(r => r.id !== uid));
+    setClubActivity(myClubActivity);
 
     await loadTab('following', true, uid);
     setLoading(false);
@@ -151,6 +157,21 @@ export function useFeed() {
     updateBothLists(postId, p => ({ ...p, commentCount: p.commentCount + 1 }));
   }, []);
 
+  const deletePost = useCallback(async (postId: string) => {
+    const prevFollowing = followingPosts;
+    const prevDiscover  = discoverPosts;
+    setFollowingPosts(prev => prev.filter(p => p.id !== postId));
+    setDiscoverPosts(prev => prev.filter(p => p.id !== postId));
+    try {
+      await deletePostService(postId);
+    } catch {
+      // Rare (RLS already prevents deleting anyone else's post) — restore rather
+      // than leave the list silently missing a post that's still on the server.
+      setFollowingPosts(prevFollowing);
+      setDiscoverPosts(prevDiscover);
+    }
+  }, [followingPosts, discoverPosts]);
+
   return {
     followingPosts,
     discoverPosts,
@@ -160,6 +181,7 @@ export function useFeed() {
     refreshing,
     followingIds,
     suggestedRunners,
+    clubActivity,
     userId,
     loadMore,
     switchToDiscover,
@@ -167,5 +189,6 @@ export function useFeed() {
     toggleFollow,
     refresh,
     onCommentPosted,
+    deletePost,
   };
 }

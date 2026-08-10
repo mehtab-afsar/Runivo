@@ -148,15 +148,35 @@ serve(async (req) => {
     return new Response('Missing user_id or title', { status: 400 });
   }
 
-  // Check master notification toggle
+  // Per-category toggles (Settings screen) sit under the master switch — the
+  // notify_push_on_notification() trigger already passes `type` here
+  // (20260520000071_fix_notify_push_type.sql), but nothing ever read it until
+  // now, so Run reminders / Territory alerts / Announce achievements / Weekly
+  // summary all looked real but never actually suppressed anything.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('notifications_enabled')
+    .select('notifications_enabled, run_reminders_enabled, territory_alerts_enabled, announce_achievements_enabled, weekly_summary_enabled')
     .eq('id', user_id)
     .single();
 
   if (profile && profile.notifications_enabled === false) {
     return new Response(JSON.stringify({ sent: 0, reason: 'disabled' }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const CATEGORY_BY_TYPE: Record<string, keyof NonNullable<typeof profile>> = {
+    run_reminder:       'run_reminders_enabled',
+    territory_claimed:  'territory_alerts_enabled',
+    territory_lost:     'territory_alerts_enabled',
+    territory_captured: 'territory_alerts_enabled',
+    zone_attacked:      'territory_alerts_enabled',
+    achievement:        'announce_achievements_enabled',
+    weekly_summary:     'weekly_summary_enabled',
+  };
+  const categoryColumn = CATEGORY_BY_TYPE[type];
+  if (profile && categoryColumn && profile[categoryColumn] === false) {
+    return new Response(JSON.stringify({ sent: 0, reason: 'category_disabled' }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }

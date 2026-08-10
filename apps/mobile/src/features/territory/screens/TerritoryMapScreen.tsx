@@ -14,6 +14,7 @@ import { TerritoryStatsBar } from '../components/TerritoryStatsBar';
 
 import { MAP_STYLES } from '@theme/maps';
 import ML from '@maplibre/maplibre-react-native';
+import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 
 const ACCENT = '#D93518';
 
@@ -53,6 +54,7 @@ export default function TerritoryMapScreen() {
 
   const cameraRef = useRef<any>(null);
   const [styleIdx, setStyleIdx] = useState(0);
+  const locationGranted = useLocationGranted();
 
   const cycleMapStyle = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -105,7 +107,7 @@ export default function TerritoryMapScreen() {
           zoomLevel={13}
           animationDuration={0}
         />
-        <ML.UserLocation visible={true} />
+        {locationGranted && <ML.UserLocation visible={true} />}
         {geoJSON.features.length > 0 && (
           <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
             <ML.FillLayer id="territory-fill" style={territoryFillStyle} />

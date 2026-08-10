@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun } from '@shared/services/store';
+import { ArrowLeft } from 'phosphor-react-native';
 import { useRunHistory } from '../hooks/useRunHistory';
 import { RunItem } from '../components/RunItem';
 import { HistoryStats } from '../components/HistoryStats';
@@ -59,7 +60,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <Text style={s.backText}>←</Text>
+          <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
         <Text style={s.title}>Run History</Text>
         <View style={{ width: 32 }} />
@@ -117,7 +118,6 @@ function mkStyles(C: AppColors) {
     root:         { flex: 1, backgroundColor: C.bg },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:      { width: 32 },
-    backText:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
     filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.card, flexGrow: 0 },
     filterContent:{ paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 8, flexDirection: 'row' },

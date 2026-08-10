@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
   ActivityIndicator, Alert,
@@ -13,16 +13,7 @@ import Svg, { Path } from 'react-native-svg';
 import HexMark from './HexMark';
 import type { SignUpState } from '../hooks/useSignUp';
 import { signInWithGoogle, signInWithApple } from '../services/socialAuth';
-
-// ── Design tokens ─────────────────────────────────────────────────────────────
-const D = {
-  bg:    '#F7F5F2',
-  t1:    '#111110',
-  t2:    '#7A7873',
-  t3:    '#B8B5B0',
-  div:   '#E2DFDA',
-  red:   '#C8391A',
-} as const;
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 const EASE = Easing.bezier(0.22, 0.68, 0, 1);
 
@@ -45,10 +36,10 @@ function useEntrance(delay: number) {
 }
 
 // ── Animated field border ─────────────────────────────────────────────────────
-function useFieldBorder() {
+function useFieldBorder(C: AppColors) {
   const p = useSharedValue(0);
   const style = useAnimatedStyle(() => ({
-    borderBottomColor: interpolateColor(p.value, [0, 1], [D.div, D.t1]),
+    borderBottomColor: interpolateColor(p.value, [0, 1], [C.border, C.t1]),
   }));
   return {
     style,
@@ -70,11 +61,11 @@ function GoogleIcon() {
 }
 
 // ── Apple icon ────────────────────────────────────────────────────────────────
-function AppleIcon() {
+function AppleIcon({ color }: { color: string }) {
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24">
       <Path
-        fill={D.t1}
+        fill={color}
         d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.32.07 2.24.74 3.01.75.84-.15 1.64-.84 3.03-.91 1.81.1 3.17.9 3.95 2.35-3.44 2.08-2.64 6.89.88 8.25-.65 1.4-1.5 2.79-2.87 4.44zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
       />
     </Svg>
@@ -95,6 +86,8 @@ export default function SignUpForm({
   setUsername, setEmail, setPwd, setShowPwd, handleSignUp,
   onGoBack, onGoLogin,
 }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
 
@@ -120,9 +113,9 @@ export default function SignUpForm({
   const ctaAnim     = useEntrance(420);
 
   // Per-field animated border
-  const userBorder  = useFieldBorder();
-  const emailBorder = useFieldBorder();
-  const pwBorder    = useFieldBorder();
+  const userBorder  = useFieldBorder(C);
+  const emailBorder = useFieldBorder(C);
+  const pwBorder    = useFieldBorder(C);
 
   const countOver = username.length > 16;
 
@@ -137,7 +130,7 @@ export default function SignUpForm({
           <Text style={s.backText}>← Back</Text>
         </Pressable>
         <View style={s.logoRow}>
-          <HexMark size={20} color={D.red} fadedOpacity={0.3} animate delay={80} />
+          <HexMark size={20} color={C.red} fadedOpacity={0.3} animate delay={80} />
           <Text style={s.logoWord}>runivo</Text>
         </View>
       </Animated.View>
@@ -174,12 +167,12 @@ export default function SignUpForm({
               value={username}
               onChangeText={v => setUsername(v.slice(0, 20))}
               placeholder="e.g. marcus_runs"
-              placeholderTextColor={D.t3}
+              placeholderTextColor={C.t3}
               autoCapitalize="none"
               autoCorrect={false}
               autoFocus
               returnKeyType="next"
-              selectionColor={D.red}
+              selectionColor={C.red}
               onFocus={userBorder.onFocus}
               onBlur={userBorder.onBlur}
             />
@@ -195,12 +188,12 @@ export default function SignUpForm({
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor={D.t3}
+              placeholderTextColor={C.t3}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="next"
-              selectionColor={D.red}
+              selectionColor={C.red}
               onFocus={emailBorder.onFocus}
               onBlur={emailBorder.onBlur}
             />
@@ -217,7 +210,7 @@ export default function SignUpForm({
                 value={pwd}
                 onChangeText={setPwd}
                 placeholder="Min. 8 characters"
-                placeholderTextColor={D.t3}
+                placeholderTextColor={C.t3}
                 secureTextEntry={!showPwd}
                 returnKeyType="done"
                 onSubmitEditing={handleSignUp}
@@ -225,7 +218,7 @@ export default function SignUpForm({
                 autoCorrect={false}
                 spellCheck={false}
                 textContentType="newPassword"
-                selectionColor={D.red}
+                selectionColor={C.red}
                 onFocus={pwBorder.onFocus}
                 onBlur={pwBorder.onBlur}
               />
@@ -268,7 +261,7 @@ export default function SignUpForm({
             disabled={!!socialLoading}
           >
             {socialLoading === 'google'
-              ? <ActivityIndicator size="small" color={D.t1} />
+              ? <ActivityIndicator size="small" color={C.t1} />
               : <GoogleIcon />}
             <Text style={s.socialText}>Google</Text>
           </Pressable>
@@ -278,8 +271,8 @@ export default function SignUpForm({
             disabled={!!socialLoading}
           >
             {socialLoading === 'apple'
-              ? <ActivityIndicator size="small" color={D.t1} />
-              : <AppleIcon />}
+              ? <ActivityIndicator size="small" color={C.t1} />
+              : <AppleIcon color={C.t1} />}
             <Text style={s.socialText}>Apple</Text>
           </Pressable>
         </Animated.View>
@@ -300,7 +293,7 @@ export default function SignUpForm({
               pointerEvents="none"
             />
             {loading ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={C.alwaysLight} size="small" />
             ) : (
               <Text style={s.ctaLabel}>
                 {rateLimitSeconds > 0
@@ -322,62 +315,64 @@ export default function SignUpForm({
   );
 }
 
-const s = StyleSheet.create({
-  root:    { flex: 1, backgroundColor: D.bg },
-  topBar:  { height: 2, backgroundColor: D.red },
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:    { flex: 1, backgroundColor: C.bg },
+    topBar:  { height: 2, backgroundColor: C.red },
 
-  // Nav
-  nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingBottom: 4 },
-  backText:{ fontSize: 13, color: D.t2 },
-  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoWord:{ fontWeight: '500', fontSize: 14, color: D.t1, letterSpacing: -0.2 },
+    // Nav
+    nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingBottom: 4 },
+    backText:{ fontSize: 13, color: C.t2 },
+    logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    logoWord:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1, letterSpacing: -0.2 },
 
-  // Scroll / hero
-  scroll:  { paddingHorizontal: 24 },
-  hero:    { paddingTop: 52 },
-  eyebrow: { fontWeight: '500', fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 14 },
-  h1:      { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 46, color: D.t1, lineHeight: 46, marginBottom: 14 },
-  subtext: { fontSize: 14, color: D.t2, lineHeight: 21, maxWidth: 240 },
+    // Scroll / hero
+    scroll:  { paddingHorizontal: 24 },
+    hero:    { paddingTop: 52 },
+    eyebrow: { fontFamily: Fonts.medium, fontSize: 10, color: C.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 14 },
+    h1:      { fontFamily: Fonts.display, fontSize: 46, color: C.t1, lineHeight: 46, marginBottom: 14 },
+    subtext: { fontSize: 14, color: C.t2, lineHeight: 21, maxWidth: 240 },
 
-  // Divider
-  rule:    { height: 1, backgroundColor: D.div, marginTop: 44, marginBottom: 0 },
+    // Divider
+    rule:    { height: 1, backgroundColor: C.border, marginTop: 44, marginBottom: 0 },
 
-  // Fields
-  field:   { borderBottomWidth: 0.5, paddingTop: 24, paddingBottom: 10 },
-  labelRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  label:   { fontWeight: '500', fontSize: 10, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-  counter: { fontWeight: '500', fontSize: 10, color: D.t3 },
-  counterOver: { color: D.red },
-  inputRow:{ flexDirection: 'row', alignItems: 'center' },
-  input:   { fontSize: 16, color: D.t1, paddingVertical: 0, flex: 1 },
-  toggleBtn:{ paddingLeft: 12 },
-  toggleText: { fontWeight: '500', fontSize: 11, color: D.t2, letterSpacing: 0.5 },
+    // Fields
+    field:   { borderBottomWidth: 0.5, paddingTop: 24, paddingBottom: 10 },
+    labelRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    label:   { fontFamily: Fonts.medium, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    counter: { fontFamily: Fonts.medium, fontSize: 10, color: C.t3 },
+    counterOver: { color: C.red },
+    inputRow:{ flexDirection: 'row', alignItems: 'center' },
+    input:   { fontSize: 16, color: C.t1, paddingVertical: 0, flex: 1 },
+    toggleBtn:{ paddingLeft: 12 },
+    toggleText: { fontFamily: Fonts.medium, fontSize: 11, color: C.t2, letterSpacing: 0.5 },
 
-  // Errors
-  errText:       { fontSize: 11, color: D.red, marginTop: 10 },
-  emailExistsRow:{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
-  emailExistsBase: { fontSize: 12, color: D.t2 },
-  emailExistsLink: { fontWeight: '500', fontSize: 12, color: D.t1, textDecorationLine: 'underline' },
-  rateLimitText: { fontSize: 11, color: '#C27F00', marginTop: 10 },
+    // Errors
+    errText:       { fontSize: 11, color: C.red, marginTop: 10 },
+    emailExistsRow:{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
+    emailExistsBase: { fontSize: 12, color: C.t2 },
+    emailExistsLink: { fontFamily: Fonts.medium, fontSize: 12, color: C.t1, textDecorationLine: 'underline' },
+    rateLimitText: { fontSize: 11, color: C.amber, marginTop: 10 },
 
-  // OR divider
-  orRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, marginBottom: 16 },
-  orLine:  { flex: 1, height: 1, backgroundColor: D.div },
-  orLabel: { fontSize: 11, color: D.t3, letterSpacing: 0.5 },
+    // OR divider
+    orRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, marginBottom: 16 },
+    orLine:  { flex: 1, height: 1, backgroundColor: C.border },
+    orLabel: { fontSize: 11, color: C.t3, letterSpacing: 0.5 },
 
-  // Social
-  socialRow: { flexDirection: 'row', gap: 12 },
-  socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 0.5, borderColor: D.div, borderRadius: 8, paddingVertical: 13 },
-  socialText:{ fontSize: 13, color: D.t1 },
+    // Social
+    socialRow: { flexDirection: 'row', gap: 12 },
+    socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 0.5, borderColor: C.border, borderRadius: 8, paddingVertical: 13 },
+    socialText:{ fontSize: 13, color: C.t1 },
 
-  // CTA
-  ctaWrap:    { marginTop: 20 },
-  ctaBtn:     { backgroundColor: D.t1, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  ctaDisabled:{ backgroundColor: '#555' },
-  ctaLabel:   { fontWeight: '500', fontSize: 13, color: '#fff', letterSpacing: 0.8 },
+    // CTA — fixed dark/light pair, same reasoning as LoginForm's ctaBtn.
+    ctaWrap:    { marginTop: 20 },
+    ctaBtn:     { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    ctaDisabled:{ backgroundColor: '#555' },
+    ctaLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, letterSpacing: 0.8 },
 
-  // Sign in link
-  signinRow:  { marginTop: 20, alignItems: 'center' },
-  signinText: { fontSize: 13, color: D.t2 },
-  signinLink: { fontWeight: '500', fontSize: 13, color: D.t1, textDecorationLine: 'underline' },
-});
+    // Sign in link
+    signinRow:  { marginTop: 20, alignItems: 'center' },
+    signinText: { fontSize: 13, color: C.t2 },
+    signinLink: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, textDecorationLine: 'underline' },
+  });
+}

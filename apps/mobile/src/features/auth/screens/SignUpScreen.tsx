@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useSignUp } from '../hooks/useSignUp';
 import SignUpForm from '../components/SignUpForm';
+import { useTheme, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function SignUpScreen() {
   const navigation = useNavigation<Nav>();
   const signUp = useSignUp();
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
 
   return (
     <View style={s.root}>
@@ -30,6 +33,8 @@ export default function SignUpScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F7F5F2' },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: C.bg },
+  });
+}

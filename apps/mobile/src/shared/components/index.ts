@@ -1,11 +1,9 @@
-export { TierBadge } from './TierBadge';
 export { RunnerRankBadge } from './RunnerRankBadge';
-export { PACEPill } from './PACEPill';
 export { Avatar } from './Avatar';
-export { RunStatRow } from './RunStatRow';
 export { BottomSheet } from './BottomSheet';
 export { PrimaryButton } from './PrimaryButton';
 export { FilterChip } from './FilterChip';
-export { CardContainer } from './CardContainer';
 export { SectionHeader } from './SectionHeader';
 export { ComingSoon } from './ComingSoon';
+export { GlyphIcon } from './GlyphIcon';
+export { RowChevron } from './RowChevron';

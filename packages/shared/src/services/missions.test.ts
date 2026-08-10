@@ -53,24 +53,15 @@ describe('MISSION_TEMPLATES', () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it('documents that the "explore" goal has no missions of its own — KNOWN GAP', () => {
-    // GOAL_TO_CATEGORY maps the onboarding goal `explore` to the category
-    // `explorer`, but no template carries that category. generateBlueprint's
-    // 70% goal bias therefore finds an empty `preferred` pool for those users
-    // and silently falls back to the generic pool every time — "Explore"
-    // runners get no personalisation at all.
-    //
-    // This test pins the CURRENT state deliberately rather than asserting the
-    // ideal, so the suite stays honest and green. When explorer templates are
-    // added, this test will fail and should be replaced with the stronger
-    // "every goal maps to a real category" assertion below it.
+  it('gives every onboarding goal at least one template of its own', () => {
+    // Previously "explore" was orphaned — GOAL_TO_CATEGORY mapped it to the
+    // `explorer` category but no template carried that category, so
+    // generateBlueprint's 70% goal bias silently fell back to the generic
+    // pool for those users. Fixed by adding explorer-tagged templates; this
+    // is the stronger assertion the old "KNOWN GAP" test said should replace
+    // it once that happened.
     const categories = new Set(MISSION_TEMPLATES.map(t => t.goalCategory));
-    const orphaned = Object.values(GOAL_TO_CATEGORY).filter(c => !categories.has(c));
-    expect(orphaned).toEqual(['explorer']);
-
-    // Every OTHER goal must keep working.
     for (const [goal, category] of Object.entries(GOAL_TO_CATEGORY)) {
-      if (category === 'explorer') continue;
       expect(categories.has(category), `goal "${goal}" has no missions`).toBe(true);
     }
   });

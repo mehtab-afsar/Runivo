@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Check } from 'phosphor-react-native';
-import { D } from './onboardingStyles';
+import { mkD, type OnboardingD } from './onboardingStyles';
 import { GOAL_LABELS, EXP_LABELS } from '../types';
 import type { OnboardingData } from '../types';
+import { useTheme, Fonts } from '@theme';
 
 interface Props {
   weeklyKmDisplay: number;
@@ -21,6 +22,9 @@ const GOAL_LINES: Record<OnboardingData['primaryGoal'], string> = {
 };
 
 export default function LaunchStep({ weeklyKmDisplay, primaryGoal, experienceLevel, error }: Props) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   const summaryRows = [
     { label: 'Weekly goal',  val: `${weeklyKmDisplay.toFixed(0)} km` },
     { label: 'Primary goal', val: GOAL_LABELS[primaryGoal] ?? primaryGoal },
@@ -85,35 +89,37 @@ export default function LaunchStep({ weeklyKmDisplay, primaryGoal, experienceLev
   );
 }
 
-const s = StyleSheet.create({
-  wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  checkCircle: {
-    width: 52, height: 52, borderRadius: 26,
-    borderWidth: 0.5, borderColor: D.div, backgroundColor: '#fff',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
-  },
-  eyebrow: {
-    fontWeight: '500', fontSize: 9, color: D.red,
-    textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 10,
-  },
-  title: {
-    fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 36,
-    color: D.t1, lineHeight: 40, textAlign: 'center', marginBottom: 10,
-  },
-  sub: {
-    fontSize: 13, color: D.t2,
-    textAlign: 'center', lineHeight: 19, marginBottom: 32,
-  },
-  summaryList: { width: '100%', marginBottom: 16 },
-  summaryRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: D.div,
-  },
-  summaryRowFirst: { borderTopWidth: 0.5, borderTopColor: D.div },
-  summaryLabel: { fontSize: 12, color: D.t2 },
-  summaryVal:   { fontWeight: '500', fontSize: 14, color: D.t1 },
-  errText: {
-    fontSize: 10, color: D.red,
-    textAlign: 'center', marginTop: 8,
-  },
-});
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+    checkCircle: {
+      width: 52, height: 52, borderRadius: 26,
+      borderWidth: 0.5, borderColor: D.div, backgroundColor: D.card,
+      alignItems: 'center', justifyContent: 'center', marginBottom: 20,
+    },
+    eyebrow: {
+      fontFamily: Fonts.medium, fontSize: 9, color: D.red,
+      textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 10,
+    },
+    title: {
+      fontFamily: Fonts.display, fontSize: 36,
+      color: D.t1, lineHeight: 40, textAlign: 'center', marginBottom: 10,
+    },
+    sub: {
+      fontSize: 13, color: D.t2,
+      textAlign: 'center', lineHeight: 19, marginBottom: 32,
+    },
+    summaryList: { width: '100%', marginBottom: 16 },
+    summaryRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: D.div,
+    },
+    summaryRowFirst: { borderTopWidth: 0.5, borderTopColor: D.div },
+    summaryLabel: { fontSize: 12, color: D.t2 },
+    summaryVal:   { fontFamily: Fonts.medium, fontSize: 14, color: D.t1 },
+    errText: {
+      fontSize: 10, color: D.red,
+      textAlign: 'center', marginTop: 8,
+    },
+  });
+}

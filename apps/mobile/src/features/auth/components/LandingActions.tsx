@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   onSignUp: () => void;
@@ -7,6 +8,9 @@ interface Props {
 }
 
 export default function LandingActions({ onSignUp, onSignIn }: Props) {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
+
   return (
     <View style={s.wrap}>
       <Pressable style={s.btnPrimary} onPress={onSignUp}>
@@ -20,27 +24,29 @@ export default function LandingActions({ onSignUp, onSignIn }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: 28,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 28,
-    gap: 0,
-  },
-  btnPrimary: {
-    backgroundColor: '#0A0A0A', borderRadius: 4,
-    paddingVertical: 15, alignItems: 'center', marginBottom: 14,
-  },
-  btnPrimaryLabel: {
-    fontWeight: '500', fontSize: 12,
-    color: '#FFFFFF', letterSpacing: 1.2,
-  },
-  btnSecondary: { alignItems: 'center', paddingVertical: 6, marginBottom: 16 },
-  btnSecondaryLabel: {
-    fontSize: 12,
-    color: '#6B6B6B', letterSpacing: 0.8,
-  },
-  footer: {
-    fontSize: 10,
-    color: '#ADADAD', textAlign: 'center',
-  },
-});
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    wrap: {
+      paddingHorizontal: 28,
+      paddingBottom: Platform.OS === 'ios' ? 36 : 28,
+      gap: 0,
+    },
+    btnPrimary: {
+      backgroundColor: C.alwaysDark, borderRadius: 4,
+      paddingVertical: 15, alignItems: 'center', marginBottom: 14,
+    },
+    btnPrimaryLabel: {
+      fontFamily: Fonts.medium, fontSize: 12,
+      color: C.alwaysLight, letterSpacing: 1.2,
+    },
+    btnSecondary: { alignItems: 'center', paddingVertical: 6, marginBottom: 16 },
+    btnSecondaryLabel: {
+      fontFamily: Fonts.regular, fontSize: 12,
+      color: C.t2, letterSpacing: 0.8,
+    },
+    footer: {
+      fontFamily: Fonts.regular, fontSize: 10,
+      color: C.t3, textAlign: 'center',
+    },
+  });
+}

@@ -36,6 +36,13 @@ function applyRoute(nav: AnyNav, actionUrl: string): void {
   if (url === '/notifications') { nav.navigate('Notifications'); return; }
   if (url === '/missions')      { nav.navigate('Missions');      return; }
   if (url === '/leaderboard')   { nav.navigate('Leaderboard');   return; }
+  // Follow-notification action_url is '/profile/<uuid>' (notify_follow() trigger) —
+  // this used to only match the bare '/profile' path, so tapping a "started
+  // following you" push silently no-opped instead of opening their profile.
+  if (url.startsWith('/profile/')) {
+    const followerId = url.slice('/profile/'.length).split(/[/?]/)[0];
+    if (followerId) { nav.navigate('UserProfile', { userId: followerId }); return; }
+  }
   if (url === '/profile')       { nav.navigate('Main');          return; }
   if (url === '/events')        { nav.navigate('Events');        return; }
   if (url === '/clubs')         { nav.navigate('Club');          return; }

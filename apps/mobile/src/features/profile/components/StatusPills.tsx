@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun } from '@shared/services/store';
+import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
@@ -29,17 +30,17 @@ export function StatusPills({ streakDays, weekPace, runs }: Props) {
   return (
     <View style={s.row}>
       <View style={s.pill}>
-        <Text style={s.pillIcon}>🔥</Text>
+        <View style={s.pillIcon}><GlyphIcon glyph="🔥" size={16} /></View>
         <Text style={s.pillValue}>{streakDays}</Text>
         <Text style={s.pillLabel}>streak</Text>
       </View>
       <View style={s.pill}>
-        <Text style={s.pillIcon}>⚡</Text>
+        <View style={s.pillIcon}><GlyphIcon glyph="⚡" size={16} /></View>
         <Text style={s.pillValue}>{weekPace}</Text>
         <Text style={s.pillLabel}>PACE this wk</Text>
       </View>
       <View style={s.pill}>
-        <Text style={s.pillIcon}>📊</Text>
+        <View style={s.pillIcon}><GlyphIcon glyph="📊" size={16} /></View>
         <Text style={s.pillValue}>{consistency}%</Text>
         <Text style={s.pillLabel}>active days</Text>
       </View>
@@ -59,7 +60,7 @@ function mkStyles(C: AppColors) {
       padding: 12,
       alignItems: 'center',
     },
-    pillIcon: { fontSize: 16, marginBottom: 4 },
+    pillIcon: { marginBottom: 4 },
     pillValue: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
     pillLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
   });

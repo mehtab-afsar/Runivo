@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
 import { track } from '@shared/services/analytics';
-import { D } from './onboardingStyles';
+import { mkD, type OnboardingD } from './onboardingStyles';
+import { useTheme, Fonts } from '@theme';
 
 import ML from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
@@ -15,12 +16,22 @@ interface Props {
 }
 
 export default function CityMapPreviewStep({ onLocationCaptured }: Props) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const ss = useMemo(() => mkStyles(D), [D]);
   const [coord, setCoord] = useState<[number, number] | null>(null);
+  // MapLibre's native user-location layer raises an NSException from
+  // -[MLRNNativeUserLocation setMap:] if it is attached without location
+  // authorization, which aborts the process. Rendering it unconditionally meant
+  // tapping "Don't Allow" on this step hard-crashed the app on a real device,
+  // not just the simulator. Only mount it once permission is actually granted.
+  const [locationGranted, setLocationGranted] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { setCoord(LONDON); return; }
+      setLocationGranted(true);
       // No lat/lng in properties — just the grant event itself.
       track('location_permission_granted');
 
@@ -57,7 +68,7 @@ export default function CityMapPreviewStep({ onLocationCaptured }: Props) {
           attributionEnabled
         >
           <ML.Camera centerCoordinate={center} zoomLevel={14} animationDuration={0} />
-          <ML.UserLocation visible renderMode="native" />
+          {locationGranted && <ML.UserLocation visible renderMode="native" />}
         </ML.MapView>
       ) : (
         <View style={ss.loading}>
@@ -74,11 +85,15 @@ export default function CityMapPreviewStep({ onLocationCaptured }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
-  container:      { flex: 1, backgroundColor: '#0A0A0A' },
-  loading:        { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  textOverlay:    { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(247,245,242,0.94)', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
-  overlayEyebrow: { fontWeight: '500', fontSize: 9, color: D.red, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 6 },
-  overlayTitle:   { fontFamily: 'PlayfairDisplay_400Regular_Italic', fontSize: 28, color: D.t1, marginBottom: 8, lineHeight: 30 },
-  overlaySub:     { fontSize: 13, color: D.t2, lineHeight: 19 },
-});
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    // Fixed dark — matches DARK_STYLE, the map's own always-dark style, shown
+    // briefly before tiles load. Not tied to the app theme.
+    container:      { flex: 1, backgroundColor: D.alwaysDark },
+    loading:        { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    textOverlay:    { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: D.bg, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
+    overlayEyebrow: { fontFamily: Fonts.medium, fontSize: 9, color: D.red, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 6 },
+    overlayTitle:   { fontFamily: Fonts.display, fontSize: 28, color: D.t1, marginBottom: 8, lineHeight: 30 },
+    overlaySub:     { fontSize: 13, color: D.t2, lineHeight: 19 },
+  });
+}

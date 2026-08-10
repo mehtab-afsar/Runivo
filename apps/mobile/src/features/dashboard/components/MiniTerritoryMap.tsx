@@ -6,6 +6,7 @@ import { useTheme, Type, Spacing, type AppColors } from '@theme';
 
 import ML from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
+import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 
 const D_RED  = '#C8391A';
 const D_GRAY = '#CCCCCC';
@@ -33,6 +34,7 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
   const C  = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const [userCoord, setUserCoord] = useState<[number, number] | null>(null);
+  const locationGranted = useLocationGranted();
 
   const owned  = territories.filter(t => t.ownerId === ownerId);
   const others = territories.filter(t => t.ownerId !== ownerId).slice(0, 7);
@@ -77,7 +79,7 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
         attributionEnabled
       >
         {centroid && <ML.Camera centerCoordinate={centroid} zoomLevel={14} animationDuration={0} />}
-        <ML.UserLocation visible renderMode="native" />
+        {locationGranted && <ML.UserLocation visible renderMode="native" />}
         {geojson.features.length > 0 && (
           <ML.ShapeSource id="miniHexes" shape={geojson}>
             <ML.FillLayer id="miniHexFill" style={{ fillColor: ['get', 'color'], fillOpacity: 0.3 }} />

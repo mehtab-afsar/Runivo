@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Footprints, MapTrifold, Fire, Heart, Lightning, Compass, Sword, Shield, Clock, type Icon } from 'phosphor-react-native';
 import type { OnboardingData } from '../types';
-import { D, shared } from './onboardingStyles';
+import { mkD, mkShared, type OnboardingD } from './onboardingStyles';
+import { useTheme, Fonts } from '@theme';
 
 type IconComp = Icon;
 
@@ -25,6 +26,10 @@ interface Props {
 }
 
 export default function FirstMissionStep({ primaryGoal }: Props) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const shared = useMemo(() => mkShared(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   const missions = MISSIONS[primaryGoal];
 
   const anims = useRef(missions.map(() => ({
@@ -72,11 +77,13 @@ export default function FirstMissionStep({ primaryGoal }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  rule:      { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  card:      { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
-  iconWrap:  { width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(200,57,26,0.08)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  cardTitle: { fontSize: 14, color: D.t1, flex: 1 },
-  paceBadge: { borderRadius: 4, backgroundColor: 'rgba(200,57,26,0.08)', paddingHorizontal: 8, paddingVertical: 3 },
-  paceText:  { fontWeight: '500', fontSize: 11, color: D.red },
-});
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    rule:      { height: 1, backgroundColor: D.div, marginBottom: 0 },
+    card:      { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
+    iconWrap:  { width: 32, height: 32, borderRadius: 8, backgroundColor: D.redLo, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    cardTitle: { fontSize: 14, color: D.t1, flex: 1 },
+    paceBadge: { borderRadius: 4, backgroundColor: D.redLo, paddingHorizontal: 8, paddingVertical: 3 },
+    paceText:  { fontFamily: Fonts.medium, fontSize: 11, color: D.red },
+  });
+}

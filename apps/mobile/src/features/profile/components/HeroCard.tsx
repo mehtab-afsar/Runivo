@@ -1,23 +1,26 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun, StoredPlayer } from '@shared/services/store';
+import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+
+interface HeroBadge { icon?: string; label: string }
 
 interface HeroCardData {
   eyebrow: string;
   bigNumber: string;
   bigUnit: string;
   subline: string;
-  badges: string[];
+  badges: HeroBadge[];
 }
 
 function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCardData {
   const streakDays = player?.streakDays ?? 0;
   const weekPace = player?.paceWeeklyEarned ?? 0;
 
-  const badges: string[] = [];
-  if (streakDays > 0) badges.push(`🔥 ${streakDays}-day streak`);
-  if (weekPace > 0) badges.push(`+${weekPace} PACE`);
+  const badges: HeroBadge[] = [];
+  if (streakDays > 0) badges.push({ icon: '🔥', label: `${streakDays}-day streak` });
+  if (weekPace > 0) badges.push({ label: `+${weekPace} PACE` });
 
   if (runs.length === 0) {
     return {
@@ -101,8 +104,9 @@ export function HeroCard({ runs, player }: Props) {
       {card.badges.length > 0 && (
         <View style={ss.badgesRow}>
           {card.badges.map(b => (
-            <View key={b} style={ss.badge}>
-              <Text style={ss.badgeText}>{b}</Text>
+            <View key={b.label} style={ss.badge}>
+              {!!b.icon && <GlyphIcon glyph={b.icon} size={11} color="rgba(255,255,255,0.8)" />}
+              <Text style={ss.badgeText}>{b.label}</Text>
             </View>
           ))}
         </View>
@@ -159,6 +163,9 @@ function mkStyles(C: AppColors) {
       flexWrap: 'wrap',
     },
     badge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
       backgroundColor: 'rgba(255,255,255,0.10)',
       borderRadius: 4,
       paddingHorizontal: 8,

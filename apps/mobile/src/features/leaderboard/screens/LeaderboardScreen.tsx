@@ -1,15 +1,17 @@
-import React, { useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
+import React, { useMemo, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { EntryRow } from '../components/EntryRow';
 import { LeaderboardFilters } from '../components/LeaderboardFilters';
 import type { LeaderboardEntry } from '../types';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { Seal, Medal, ArrowLeft } from 'phosphor-react-native';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,10 +49,42 @@ function Podium({ entries, unit, currentUserId: _currentUserId }: { entries: Lea
             <View style={ps.youBadge}><Text style={ps.youText}>YOU</Text></View>
           )}
           <Text style={ps.val}>{fmtVal(entry.value)}</Text>
-          <View style={[ps.block, { height: heights[i], backgroundColor: i === 1 ? C.alwaysDark : C.stone }, i === 1 && ps.blockFirst]}>
-            <Text style={[ps.rankNum, { color: i === 1 ? C.alwaysLight : C.t2 }]}>#{ranks[i]}</Text>
-          </View>
+          {i === 1 ? (
+            <LinearGradient
+              colors={['#3A2F0A', C.alwaysDark]}
+              start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+              style={[ps.block, { height: heights[i] }, ps.blockFirst]}
+            >
+              <Text style={[ps.rankNum, { color: C.alwaysLight }]}>#{ranks[i]}</Text>
+            </LinearGradient>
+          ) : (
+            <View style={[ps.block, { height: heights[i], backgroundColor: C.stone }]}>
+              <Text style={[ps.rankNum, { color: C.t2 }]}>#{ranks[i]}</Text>
+            </View>
+          )}
         </View>
+      ))}
+    </View>
+  );
+}
+
+// Shimmering placeholder rows shown while the board loads — replaces the bare
+// centered spinner, matching the row shape so the swap-in doesn't jump.
+function SkeletonRows() {
+  const C = useTheme();
+  const s = useMemo(() => mkStyles(C), [C]);
+  const pulse = useSharedValue(0.4);
+
+  useEffect(() => {
+    pulse.value = withRepeat(withTiming(1, { duration: 700, easing: Easing.inOut(Easing.quad) }), -1, true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
+
+  return (
+    <View style={s.skeletonWrap}>
+      {Array.from({ length: 7 }).map((_, i) => (
+        <Animated.View key={i} style={[s.skeletonRow, pulseStyle, { backgroundColor: C.surface }]} />
       ))}
     </View>
   );
@@ -97,8 +131,8 @@ export default function LeaderboardScreen() {
     [navigation],
   );
   const renderItem = useCallback(
-    ({ item }: { item: LeaderboardEntry }) => (
-      <EntryRow entry={item} unit={unit} onPress={item.isPlayer ? undefined : openProfile} />
+    ({ item, index }: { item: LeaderboardEntry; index: number }) => (
+      <EntryRow entry={item} unit={unit} index={index} onPress={item.isPlayer ? undefined : openProfile} />
     ),
     [unit, openProfile],
   );
@@ -127,9 +161,7 @@ export default function LeaderboardScreen() {
       />
 
       {loading ? (
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <ActivityIndicator color={C.red} />
-        </View>
+        <SkeletonRows />
       ) : (
         <FlatList
           // Podium only renders (and only makes sense) at 3+ entries — below that,
@@ -182,10 +214,12 @@ function mkStyles(C: AppColors) {
     backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     title: { fontFamily: Fonts.display, fontSize: 24, color: C.black },
     list:          { paddingBottom: 100 },
+    skeletonWrap:  { paddingTop: 8 },
+    skeletonRow:   { height: 51, marginHorizontal: Spacing.gutter, marginBottom: 8, borderRadius: Spacing.radius.md },
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
     emptyTitle:    { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
     emptyText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
-    playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)' },
+    playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)', shadowColor: C.red, shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 3 },
     playerRank:    { fontFamily: Fonts.regular, fontSize: 13, color: C.red, width: 24, textAlign: 'center', fontVariant: ['tabular-nums'] },
     playerAvatar:  { width: 28, height: 28, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
     playerAvatarText: { fontFamily: Fonts.medium, fontSize: 10, color: C.alwaysLight },

@@ -43,6 +43,7 @@ export interface PassedRunData {
   paceTotalEarned?: number;
   runnerRankPaceToNext?: number;
   rivalZonesStolen?: number;
+  newAwards?: string[];
 }
 
 interface UseRunSummaryResult {

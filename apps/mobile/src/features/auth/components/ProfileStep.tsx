@@ -1,9 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
 import { Footprints, Person, Lightning, Fire, type Icon } from 'phosphor-react-native';
 import type { OnboardingData } from '../types';
 import { EXP_OPTIONS, AGES, HEIGHTS, WEIGHTS } from '../types';
-import { D, shared } from './onboardingStyles';
+import { mkD, mkShared, type OnboardingD } from './onboardingStyles';
+import { useTheme, Fonts } from '@theme';
 
 // ─── Drum Column ──────────────────────────────────────────────────────────────
 
@@ -18,6 +19,9 @@ function DrumColumn({ values, value, onSelect, label, unit, toggleEl }: {
   unit?: string;
   toggleEl?: React.ReactNode;
 }) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const ds = useMemo(() => mkDrumStyles(D), [D]);
   const idx = values.indexOf(value);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -74,6 +78,9 @@ function UnitToggle({ options, value, onChange }: {
   value: string;
   onChange: (v: string) => void;
 }) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   return (
     <View style={s.unitRow}>
       {options.map(u => (
@@ -102,6 +109,10 @@ interface Props {
 }
 
 export default function ProfileStep({ data, onChange }: Props) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const shared = useMemo(() => mkShared(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   const [htUnit, setHtUnit] = useState<'cm' | 'ft'>('cm');
   const [wtUnit, setWtUnit] = useState<'kg' | 'lbs'>('kg');
 
@@ -201,34 +212,38 @@ export default function ProfileStep({ data, onChange }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  rule:       { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  row:        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
-  accent:     { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
-  accentActive:{ backgroundColor: D.red },
-  label:      { fontSize: 15, color: D.t2, flex: 1 },
-  labelSel:   { fontWeight: '500', color: D.t1 },
-  sub:        { fontSize: 12, color: D.t3, marginTop: 2 },
-  dot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
-  divider:    { height: 1, backgroundColor: D.div, marginVertical: 24 },
-  drumsRow:   { flexDirection: 'row', gap: 8, marginTop: 16 },
-  unitRow:    { flexDirection: 'row', backgroundColor: D.div, borderRadius: 6, padding: 2 },
-  unitBtn:    { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  unitBtnSel: { backgroundColor: '#fff' },
-  unitLabel:  { fontWeight: '500', fontSize: 9, color: D.t3 },
-  unitLabelSel:{ color: D.red },
-});
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    rule:       { height: 1, backgroundColor: D.div, marginBottom: 0 },
+    row:        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
+    accent:     { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
+    accentActive:{ backgroundColor: D.red },
+    label:      { fontSize: 15, color: D.t2, flex: 1 },
+    labelSel:   { fontFamily: Fonts.medium, color: D.t1 },
+    sub:        { fontSize: 12, color: D.t3, marginTop: 2 },
+    dot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
+    divider:    { height: 1, backgroundColor: D.div, marginVertical: 24 },
+    drumsRow:   { flexDirection: 'row', gap: 8, marginTop: 16 },
+    unitRow:    { flexDirection: 'row', backgroundColor: D.div, borderRadius: 6, padding: 2 },
+    unitBtn:    { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
+    unitBtnSel: { backgroundColor: D.bg },
+    unitLabel:  { fontFamily: Fonts.medium, fontSize: 9, color: D.t3 },
+    unitLabelSel:{ color: D.red },
+  });
+}
 
-const ds = StyleSheet.create({
-  col:       { flex: 1 },
-  colHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  colLabel:  { fontWeight: '500', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-  colUnit:   { fontSize: 9, color: D.t3 },
-  drumWrap:  { backgroundColor: D.surf, borderRadius: 10, overflow: 'hidden', position: 'relative' },
-  band:      { position: 'absolute', top: 1 * ITEM_H, left: 0, right: 0, height: ITEM_H, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, zIndex: 1 },
-  item:      { alignItems: 'center', justifyContent: 'center' },
-  itemText:  { fontSize: 15, color: D.t3 },
-  itemActive:{ fontWeight: '500', fontSize: 18, color: D.t1 },
-  fadeT:     { position: 'absolute', top: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: 'rgba(237,233,228,0.82)' },
-  fadeB:     { position: 'absolute', bottom: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: 'rgba(237,233,228,0.82)' },
-});
+function mkDrumStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    col:       { flex: 1 },
+    colHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+    colLabel:  { fontFamily: Fonts.medium, fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    colUnit:   { fontSize: 9, color: D.t3 },
+    drumWrap:  { backgroundColor: D.surf, borderRadius: 10, overflow: 'hidden', position: 'relative' },
+    band:      { position: 'absolute', top: 1 * ITEM_H, left: 0, right: 0, height: ITEM_H, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, zIndex: 1 },
+    item:      { alignItems: 'center', justifyContent: 'center' },
+    itemText:  { fontSize: 15, color: D.t3 },
+    itemActive:{ fontFamily: Fonts.medium, fontSize: 18, color: D.t1 },
+    fadeT:     { position: 'absolute', top: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: D.surf },
+    fadeB:     { position: 'absolute', bottom: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: D.surf },
+  });
+}

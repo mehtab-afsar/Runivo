@@ -4,30 +4,36 @@ import type { ViewStyle } from 'react-native';
 import { Gear } from 'phosphor-react-native';
 import { useTheme, Fonts } from '@theme';
 
-
 interface AvatarProps {
   uri?: string | null;
   name: string;
+  /** Per-user background color (e.g. from avatarColor(name)). Falls back to the
+   *  theme accent when omitted — always themed, never a hardcoded hex. */
+  color?: string;
   size?: number;
   onPress?: () => void;
   showEditOverlay?: boolean;
   style?: ViewStyle;
+  /** Leading characters of `name` shown as initials. Defaults to 2. */
+  initialsLength?: 1 | 2;
 }
 
-export function Avatar({ uri, name, size = 44, onPress, showEditOverlay, style }: AvatarProps) {
+export function Avatar({
+  uri, name, color, size = 56, onPress, showEditOverlay, style, initialsLength = 2,
+}: AvatarProps) {
   const C = useTheme();
-  const initial  = (name.trim()[0] ?? '?').toUpperCase();
-  const fontSize = Math.round(size * 0.4);
+  const initials = name.trim().slice(0, initialsLength).toUpperCase() || '?';
+  const fontSize = Math.round(size * (initialsLength === 1 ? 0.4 : 0.35));
   const overlaySize = Math.round(size * 0.32);
 
   const inner = (
     <View style={[styles.circle, {
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: uri ? 'transparent' : C.accent,
+      backgroundColor: uri ? 'transparent' : (color ?? C.accent),
     }, style]}>
       {uri
         ? <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />
-        : <Text style={[styles.initial, { fontSize, color: C.alwaysLight }]}>{initial}</Text>
+        : <Text style={[styles.initial, { fontSize, color: C.alwaysLight }]}>{initials}</Text>
       }
       {showEditOverlay && (
         <View style={[styles.overlay, {

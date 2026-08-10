@@ -1,6 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
-import { D } from './onboardingStyles';
+import { mkD, type OnboardingD } from './onboardingStyles';
+import { useTheme, Fonts } from '@theme';
 
 const CHAPTERS = [
   { label: 'Goal',    steps: [1] },
@@ -15,6 +16,9 @@ interface Props {
 }
 
 export default function OnboardingProgress({ step, onBack }: Props) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   const fillAnims = useRef(CHAPTERS.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
@@ -66,13 +70,15 @@ export default function OnboardingProgress({ step, onBack }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  header:              { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10 },
-  backText:            { fontSize: 13, color: D.t2 },
-  chaptersRow:         { flexDirection: 'row', gap: 6, paddingHorizontal: 24, paddingBottom: 12 },
-  chapterCol:          { flex: 1, alignItems: 'center' },
-  trackBg:             { width: '100%', height: 2, backgroundColor: D.div, borderRadius: 1, overflow: 'hidden', marginBottom: 5 },
-  trackFill:           { height: '100%', backgroundColor: D.red, borderRadius: 1 },
-  chapterLabel:        { fontWeight: '500', fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-  chapterLabelActive:  { color: D.red },
-});
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    header:              { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10 },
+    backText:            { fontSize: 13, color: D.t2 },
+    chaptersRow:         { flexDirection: 'row', gap: 6, paddingHorizontal: 24, paddingBottom: 12 },
+    chapterCol:          { flex: 1, alignItems: 'center' },
+    trackBg:             { width: '100%', height: 2, backgroundColor: D.div, borderRadius: 1, overflow: 'hidden', marginBottom: 5 },
+    trackFill:           { height: '100%', backgroundColor: D.red, borderRadius: 1 },
+    chapterLabel:        { fontFamily: Fonts.medium, fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    chapterLabelActive:  { color: D.red },
+  });
+}

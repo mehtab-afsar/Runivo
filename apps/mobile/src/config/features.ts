@@ -22,7 +22,6 @@ export const FEATURES = {
   // Intelligence
   AI_COACH:          false,
   NUTRITION_TRACKER: false,
-  CHAT:              false,
 } as const;
 
 export const FEATURE_LABELS: Partial<Record<keyof typeof FEATURES, string>> = {
@@ -33,5 +32,4 @@ export const FEATURE_LABELS: Partial<Record<keyof typeof FEATURES, string>> = {
   DAILY_MISSIONS:    'Daily Missions',
   GEAR_TRACKING:     'Shoe Tracker',
   NUTRITION_TRACKER: 'Nutrition Tracker',
-  CHAT:              'Chat',
 };

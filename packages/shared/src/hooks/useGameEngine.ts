@@ -94,17 +94,16 @@ async function checkAndAwardAchievements(params: {
     if (earlyCount >= 5) grant('early_bird');
   }
 
-  if (newAwards.length > 0) {
-    try {
-      const { supabase } = await import('../services/supabase');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await Promise.all(newAwards.map(id =>
-          Promise.resolve(supabase.from('user_awards').insert({ user_id: user.id, award_id: id })).catch(() => {})
-        ));
-      }
-    } catch { /* offline — awards persist locally */ }
-  }
+  // Awards are no longer written to Supabase from here. This used to insert
+  // directly into user_awards, but RLS only ever checked user_id = auth.uid()
+  // — never the award itself — so any signed-in user could grant themselves
+  // any award via a direct REST call. The authoritative grant now happens
+  // server-side in process-run-territory (grant_award / sync_user_awards),
+  // triggered from postRunSync shortly after this run finishes. What's
+  // returned here is purely a same-device, optimistic guess — used to show
+  // the unlock celebration immediately and to update the local player record
+  // for instant display — and gets reconciled against the server's real
+  // user_awards rows the same way every other PACE field already is.
   return newAwards;
 }
 

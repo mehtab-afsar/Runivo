@@ -1,9 +1,10 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
 import { Heart, Fire, Lightning, Compass, Sword, type Icon } from 'phosphor-react-native';
 import type { OnboardingData } from '../types';
 import { GOAL_OPTIONS } from '../types';
-import { D, shared } from './onboardingStyles';
+import { mkD, mkShared, type OnboardingD } from './onboardingStyles';
+import { useTheme, Fonts } from '@theme';
 
 type IconComp = Icon;
 const ICONS: Record<OnboardingData['primaryGoal'], IconComp> = {
@@ -24,6 +25,10 @@ interface Props {
 }
 
 export default function GoalStep({ primaryGoal, onChange }: Props) {
+  const C = useTheme();
+  const D = useMemo(() => mkD(C), [C]);
+  const shared = useMemo(() => mkShared(C), [C]);
+  const s = useMemo(() => mkStyles(D), [D]);
   const anims = useRef(GOAL_OPTIONS.map(() => ({
     opacity: new Animated.Value(0),
     translateY: new Animated.Value(14),
@@ -74,15 +79,17 @@ export default function GoalStep({ primaryGoal, onChange }: Props) {
   );
 }
 
-const s = StyleSheet.create({
-  rule:        { height: 1, backgroundColor: D.div, marginBottom: 0 },
-  row:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
-  accent:      { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
-  accentActive:{ backgroundColor: D.red },
-  label:       { fontSize: 15, color: D.t2 },
-  labelSel:    { fontWeight: '500', color: D.t1 },
-  sub:         { fontSize: 12, color: D.t3, marginTop: 2 },
-  dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
-  hint:        { marginTop: 20, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: 'rgba(200,57,26,0.05)', borderRadius: 8, borderLeftWidth: 2, borderLeftColor: D.red },
-  hintText:    { fontSize: 13, color: D.t1, lineHeight: 19 },
-});
+function mkStyles(D: OnboardingD) {
+  return StyleSheet.create({
+    rule:        { height: 1, backgroundColor: D.div, marginBottom: 0 },
+    row:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
+    accent:      { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
+    accentActive:{ backgroundColor: D.red },
+    label:       { fontSize: 15, color: D.t2 },
+    labelSel:    { fontFamily: Fonts.medium, color: D.t1 },
+    sub:         { fontSize: 12, color: D.t3, marginTop: 2 },
+    dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
+    hint:        { marginTop: 20, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: D.redLo, borderRadius: 8, borderLeftWidth: 2, borderLeftColor: D.red },
+    hintText:    { fontSize: 13, color: D.t1, lineHeight: 19 },
+  });
+}

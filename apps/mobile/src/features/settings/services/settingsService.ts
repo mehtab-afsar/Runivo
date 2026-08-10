@@ -16,6 +16,11 @@ export async function persistSettings(settings: StoredSettings): Promise<void> {
       distance_unit: settings.distanceUnit,
       notifications_enabled: settings.notificationsEnabled,
       mission_difficulty: settings.missionDifficulty,
+      run_reminders_enabled: settings.runReminders,
+      territory_alerts_enabled: settings.territoryAlerts,
+      announce_achievements_enabled: settings.announceAchievements,
+      weekly_summary_enabled: settings.weeklySummary,
+      profile_visibility: settings.privacy,
     }).eq('id', session.user.id);
   }
 }

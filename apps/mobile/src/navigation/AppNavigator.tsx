@@ -93,6 +93,7 @@ export type RootStackParamList = {
       paceTotalEarned?: number;
       runnerRankPaceToNext?: number;
       rivalZonesStolen?: number;
+      newAwards?: string[];
     };
   };
   Coach:     undefined;
@@ -119,7 +120,9 @@ export type RootStackParamList = {
     groups: { userId: string; userName: string; stories: { id: string; imageUrl: string }[] }[];
     initialGroupIndex: number;
   };
-  UserProfile: { userId: string; username: string };
+  // username is optional — deep links from push notifications (e.g. a new-follower
+  // push) only carry the userId; the screen fetches the rest itself.
+  UserProfile: { userId: string; username?: string };
   Followers: { userId: string };
   Following: { userId: string };
   AwardDetail: { awardId: string; unlockedAt: string | null };
@@ -199,6 +202,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Subscription:      'subscription',
       ConnectedDevices:  'settings/devices',
       RunSummary:    'run/summary/:runId',
+      AwardDetail:   'award/:awardId',
     },
   },
 };
@@ -261,7 +265,7 @@ export function AppNavigator({
             />
             <Stack.Screen name="RunSummary"      component={RunSummaryScreen} />
             <Stack.Screen name="Coach"           component={FEATURES.AI_COACH ? CoachScreen : () => <ComingSoon feature={FEATURE_LABELS.AI_COACH!} />} />
-            <Stack.Screen name="Missions"        component={MissionsScreen} />
+            <Stack.Screen name="Missions"        component={FEATURES.DAILY_MISSIONS ? MissionsScreen : () => <ComingSoon feature={FEATURE_LABELS.DAILY_MISSIONS!} />} />
             <Stack.Screen name="Events"          component={FEATURES.EVENTS ? EventsScreen      : () => <ComingSoon feature={FEATURE_LABELS.EVENTS!} />} />
             <Stack.Screen name="CreateEvent"     component={FEATURES.EVENTS ? CreateEventScreen : () => <ComingSoon feature={FEATURE_LABELS.EVENTS!} />} />
             <Stack.Screen name="Club"            component={FEATURES.CLUBS ? ClubScreen       : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />

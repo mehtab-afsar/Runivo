@@ -1,28 +1,29 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, FlatList,
+  View, Text, StyleSheet, ScrollView, Pressable,
   SafeAreaView, Platform, ActivityIndicator,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { TrendUp, Fire, Target, Check, Shield, Lightning, type Icon } from 'phosphor-react-native';
+import { TrendUp, Fire, Target, X, Shield, Lightning, ForkKnife, type Icon } from 'phosphor-react-native';
 import {
-  MISSION_TEMPLATES,
-  generateBlueprint,
+  ACTIVE_MISSION_TEMPLATES,
+  MISSION_SOURCE_LABEL,
   GOAL_TO_CATEGORY,
-  type GoalCategory,
-  type MissionType,
+  type Mission,
 } from '@shared/services/missions';
-import { setDailyMissions, getTodaysMissions } from '@shared/services/missionStore';
+import { ensureTodaysMissions, swapMission, claimMissionReward } from '@shared/services/missionStore';
 import { getProfile } from '@shared/services/profile';
 import type { PlayerProfile } from '@shared/services/profile';
 
-import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { MissionCard, type CardState } from '../components/MissionCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// Mission type → icon
+// Mission type → icon (shared by both the "today" cards and the swap picker)
 const mkTypeIcon = (C: AppColors): Record<string, { Icon: Icon; color: string }> => ({
   run_distance:      { Icon: TrendUp,    color: C.red },
   claim_territories: { Icon: Lightning,  color: C.gold },
@@ -31,49 +32,8 @@ const mkTypeIcon = (C: AppColors): Record<string, { Icon: Icon; color: string }>
   run_streak:        { Icon: Fire,       color: C.orange },
   defend_zone:       { Icon: Shield,     color: C.green },
   steal_rival:       { Icon: Lightning,  color: C.red },
+  nutrition_streak:  { Icon: ForkKnife,  color: C.orange },
 });
-
-// Difficulty styles on white card
-const mkDiffCard = (C: AppColors) => ({
-  easy:   { bg: C.greenBg, fg: C.green },
-  medium: { bg: C.amberBg, fg: C.amber },
-  hard:   { bg: C.redLo,   fg: C.red   },
-} as const);
-
-// Difficulty styles on black (blueprint card)
-const DIFF_BP = {
-  easy:   { bg: 'rgba(26,107,64,0.3)',  fg: '#6DE8A8' },
-  medium: { bg: 'rgba(158,104,0,0.3)',  fg: '#FAC75A' },
-  hard:   { bg: 'rgba(217,53,24,0.35)', fg: '#FF8B72' },
-} as const;
-
-// Category tab definitions
-type TabId = 'recommended' | GoalCategory;
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'recommended', label: 'For You' },
-  { id: 'weight_loss', label: 'Weight Loss' },
-  { id: 'endurance',   label: 'Endurance' },
-  { id: 'speed',       label: 'Speed' },
-  { id: 'territory',   label: 'Territory' },
-  { id: 'explorer',    label: 'Explorer' },
-  { id: 'all',         label: 'All' },
-];
-
-const CAT_LABELS: Record<string, string> = {
-  weight_loss: 'Weight Loss',
-  endurance:   'Endurance',
-  speed:       'Speed',
-  territory:   'Territory',
-  explorer:    'Explorer',
-};
-
-const GOAL_LABELS: Record<PlayerProfile['primaryGoal'], string> = {
-  get_fit:     'Get Fit',
-  lose_weight: 'Lose Weight',
-  run_faster:  'Run Faster',
-  explore:     'Explore',
-  compete:     'Compete',
-};
 
 // ── Component ──────────────────────────────────────────────────────────────────
 export default function MissionsScreen() {
@@ -94,86 +54,60 @@ export default function MissionsScreen() {
   } as const;
   const ss = useMemo(() => mkStyles(T), [C]);
   const TYPE_ICON = useMemo(() => mkTypeIcon(C), [C]);
-  const DIFF_CARD = useMemo(() => mkDiffCard(C), [C]);
   const navigation = useNavigation<Nav>();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<PlayerProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>('recommended');
-  const [blueprintMissions, setBlueprintMissions] = useState<ReturnType<typeof generateBlueprint>>([]);
-  const [loading, setLoading] = useState(true);
+
+  const [missions, setMissions]   = useState<Mission[]>([]);
+  const [profile, setProfile]     = useState<PlayerProfile | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [rowStates, setRowStates] = useState<Record<string, CardState>>({});
+  const [swappingId, setSwappingId] = useState<string | null>(null);
+  const [swapBusy, setSwapBusy]     = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      getTodaysMissions(),
-      getProfile(),
-    ]).then(([missions, p]) => {
-      if (missions.length > 0) setSelected(new Set(missions.map(m => m.title)));
-      if (p) {
-        setProfile(p);
-        setBlueprintMissions(generateBlueprint(p.primaryGoal, p.missionDifficulty));
-      }
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    Promise.all([ensureTodaysMissions(), getProfile()])
+      .then(([m, p]) => { setMissions(m); setProfile(p ?? null); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
-  const toggle = useCallback((title: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(title)) {
-        next.delete(title);
-      } else if (next.size < 3) {
-        next.add(title);
-      }
-      return next;
-    });
-  }, []);
-
-  const applyBlueprint = useCallback(async () => {
-    const titles = blueprintMissions.map(m => m.title);
-    setSelected(new Set(titles));
-    setSaving(true);
-    await setDailyMissions(titles);
-    setSaving(false);
-    navigation.goBack();
-  }, [blueprintMissions, navigation]);
-
-  const handleSave = useCallback(async () => {
-    if (selected.size === 0 || saving) return;
-    setSaving(true);
-    await setDailyMissions(Array.from(selected));
-    setSaving(false);
-    navigation.goBack();
-  }, [selected, saving, navigation]);
-
-  // Filtered + sorted (selected first)
-  const filteredTemplates = useMemo(() => {
-    let list: typeof MISSION_TEMPLATES;
-    if (activeTab === 'all') {
-      list = MISSION_TEMPLATES;
-    } else if (activeTab === 'recommended') {
-      const goalCat = profile?.primaryGoal ? GOAL_TO_CATEGORY[profile.primaryGoal] : null;
-      list = [...MISSION_TEMPLATES].sort((a, b) => {
-        if (!goalCat) return 0;
-        return (b.goalCategory === goalCat ? 1 : 0) - (a.goalCategory === goalCat ? 1 : 0);
-      });
+  const handleClaim = useCallback(async (missionId: string) => {
+    setRowStates(prev => ({ ...prev, [missionId]: 'claiming' }));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const result = await claimMissionReward(missionId);
+    if (result) {
+      setMissions(prev => prev.map(m => m.id === missionId ? result : m));
+      setRowStates(prev => ({ ...prev, [missionId]: 'idle' }));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      list = MISSION_TEMPLATES.filter(t => t.goalCategory === activeTab);
+      setRowStates(prev => ({ ...prev, [missionId]: 'retry' }));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
-    const sel   = list.filter(t => selected.has(t.title));
-    const unsel = list.filter(t => !selected.has(t.title));
-    return [...sel, ...unsel];
-  }, [activeTab, profile, selected]);
+  }, []);
+
+  const swappingMission = missions.find(m => m.id === swappingId) ?? null;
+
+  const swapCandidates = useMemo(() => {
+    if (!swappingMission) return [];
+    const currentTitles = new Set(missions.map(m => m.title));
+    const goalCat = profile?.primaryGoal ? GOAL_TO_CATEGORY[profile.primaryGoal] : null;
+    return ACTIVE_MISSION_TEMPLATES
+      .filter(t => !currentTitles.has(t.title))
+      .sort((a, b) => (b.goalCategory === goalCat ? 1 : 0) - (a.goalCategory === goalCat ? 1 : 0));
+  }, [swappingMission, missions, profile]);
+
+  const selectReplacement = useCallback(async (newTitle: string) => {
+    if (!swappingId) return;
+    setSwapBusy(true);
+    const updated = await swapMission(swappingId, newTitle);
+    setMissions(updated);
+    setSwapBusy(false);
+    setSwappingId(null);
+  }, [swappingId]);
 
   // Date label "Mon · Mar 17"
   const today = new Date();
   const weekday  = today.toLocaleDateString('en-US', { weekday: 'short' });
   const monthDay = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const dateLabel = `${weekday} · ${monthDay}`;
-
-  const selectedMissions = Array.from(selected)
-    .map(title => MISSION_TEMPLATES.find(t => t.title === title))
-    .filter(Boolean) as (typeof MISSION_TEMPLATES)[0][];
 
   if (loading) {
     return (
@@ -185,196 +119,82 @@ export default function MissionsScreen() {
     );
   }
 
+  // ── Swap picker (full-screen overlay over a single slot) ──────────────────
+  if (swappingMission) {
+    return (
+      <SafeAreaView style={ss.root}>
+        <View style={ss.header}>
+          <Pressable onPress={() => setSwappingId(null)} style={ss.backBtn}>
+            <X size={14} weight="bold" color={T.black} />
+          </Pressable>
+          <Text style={ss.headerTitle} numberOfLines={1}>Swap "{swappingMission.title}"</Text>
+          <View style={{ width: 30 }} />
+        </View>
+        {swapBusy ? (
+          <View style={ss.loader}><ActivityIndicator color={T.black} /></View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+            {swapCandidates.map((c, i) => {
+              const { Icon: CIcon, color } = TYPE_ICON[c.type] ?? { Icon: Target, color: C.red };
+              return (
+                <Pressable
+                  key={c.title}
+                  onPress={() => selectReplacement(c.title)}
+                  style={[ss.candidateRow, i > 0 && ss.rowBorder]}
+                >
+                  <View style={ss.cardIconBox}><CIcon size={16} color={color} weight="light" /></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={ss.cardTitle}>{c.title}</Text>
+                    <Text style={ss.sourceCaption}>{c.description}</Text>
+                  </View>
+                  <Text style={ss.rewardValue}>+{c.rewards.pace}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+      </SafeAreaView>
+    );
+  }
+
+  // ── Today (default view) ────────────────────────────────────────────────
+  const doneCount = missions.filter(m => m.claimed).length;
+  const progressLabel = doneCount === missions.length && missions.length > 0
+    ? 'All claimed for today'
+    : `${doneCount} of ${missions.length} claimed`;
+
   return (
     <SafeAreaView style={ss.root}>
-      {/* ── Header ── */}
       <View style={ss.header}>
         <Pressable onPress={() => navigation.goBack()} style={ss.backBtn}>
           <Text style={ss.backText}>←</Text>
         </Pressable>
-        <Text style={ss.headerTitle}>Missions</Text>
-        <Text style={ss.dateLabel}>{dateLabel}</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={ss.headerTitle}>Today</Text>
+          <Text style={ss.dateLabel}>{dateLabel} · {progressLabel}</Text>
+        </View>
+        <View style={{ width: 30 }} />
       </View>
 
-      {/* ── Category Tabs ── */}
-      <View style={ss.tabsContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={ss.tabsScroll}
-        >
-          {TABS.map(tab => {
-            const isActive = activeTab === tab.id;
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={ss.todayList}>
+          {missions.map(m => {
+            const { Icon: MIcon, color } = TYPE_ICON[m.type] ?? { Icon: Target, color: C.red };
             return (
-              <Pressable
-                key={tab.id}
-                onPress={() => setActiveTab(tab.id)}
-                style={[ss.tab, isActive && ss.tabActive]}
-              >
-                <Text style={[ss.tabText, isActive && ss.tabTextActive]}>
-                  {tab.label}
-                </Text>
-              </Pressable>
+              <MissionCard
+                key={m.id}
+                mission={m}
+                MIcon={MIcon}
+                accentColor={color}
+                sourceLabel={MISSION_SOURCE_LABEL[m.type]}
+                state={rowStates[m.id] ?? 'idle'}
+                onClaim={handleClaim}
+                onSwap={setSwappingId}
+              />
             );
           })}
-        </ScrollView>
-      </View>
-
-      <FlatList
-        data={filteredTemplates}
-        keyExtractor={item => item.title}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: selected.size > 0 ? 100 : 40 }}
-        ListHeaderComponent={
-          <>
-            {/* ── Daily Blueprint Card ── */}
-            <View style={ss.blueprintOuter}>
-              <Text style={ss.blueprintEyebrow}>Daily blueprint</Text>
-              <View style={ss.blueprintCard}>
-                <Text style={ss.blueprintKicker}>
-                  Curated for your {profile ? GOAL_LABELS[profile.primaryGoal] : 'Running'} goal
-                </Text>
-                <Text style={ss.blueprintTitle}>Today's optimal mission set</Text>
-
-                {/* 3 mission preview rows */}
-                <View style={ss.blueprintRows}>
-                  {blueprintMissions.length > 0
-                    ? blueprintMissions.slice(0, 3).map((m, i) => {
-                        const { Icon: BPIcon, color: bpColor } = TYPE_ICON[m.type as MissionType] ?? { Icon: Target, color: C.red };
-                        const dStyle = DIFF_BP[m.difficulty];
-                        return (
-                          <View key={i} style={ss.blueprintRow}>
-                            <View style={ss.blueprintIconBox}>
-                              <BPIcon size={14} color={bpColor} weight="light" />
-                            </View>
-                            <View style={ss.blueprintMeta}>
-                              <Text style={ss.blueprintMissionTitle}>{m.title}</Text>
-                              <Text style={ss.blueprintMissionXp}>+{m.rewards.pace} PACE</Text>
-                            </View>
-                            <View style={[ss.diffPill, { backgroundColor: dStyle.bg }]}>
-                              <Text style={[ss.diffPillText, { color: dStyle.fg }]}>{m.difficulty}</Text>
-                            </View>
-                          </View>
-                        );
-                      })
-                    : [0, 1, 2].map(i => <View key={i} style={ss.blueprintSkeleton} />)}
-                </View>
-
-                {/* Apply button */}
-                <Pressable
-                  onPress={applyBlueprint}
-                  style={({ pressed }) => [ss.applyBtn, pressed && { opacity: 0.85 }]}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Check size={12} color={T.alwaysDark} weight="regular" />
-                    <Text style={ss.applyBtnText}>Apply Blueprint</Text>
-                  </View>
-                </Pressable>
-              </View>
-            </View>
-
-            {/* ── Section Divider ── */}
-            <View style={ss.divider}>
-              <Text style={ss.dividerLabel}>All missions</Text>
-              <Text style={ss.dividerCount}>{selected.size} / 3 selected</Text>
-            </View>
-          </>
-        }
-        renderItem={({ item: template }) => {
-          const isSelected  = selected.has(template.title);
-          const isDisabled  = !isSelected && selected.size >= 3;
-          const { Icon: CardIcon, color: cardIconColor } = TYPE_ICON[template.type as MissionType] ?? { Icon: Target, color: C.red };
-          const diffStyle   = DIFF_CARD[template.difficulty];
-          const catLabel    = template.goalCategory ? CAT_LABELS[template.goalCategory] : null;
-          return (
-            <Pressable
-              onPress={() => !isDisabled && toggle(template.title)}
-              style={[ss.missionCard, isSelected && ss.missionCardSelected, isDisabled && ss.missionCardDisabled]}
-            >
-              {/* Top row */}
-              <View style={ss.cardTopRow}>
-                <View style={[ss.cardIconBox, isSelected && ss.cardIconBoxSelected]}>
-                  <CardIcon size={16} color={isSelected ? T.alwaysLight : cardIconColor} weight="light" />
-                </View>
-                <View style={ss.cardMeta}>
-                  <Text style={ss.cardTitle}>{template.title}</Text>
-                  <View style={ss.badgeRow}>
-                    <View style={[ss.diffBadge, { backgroundColor: diffStyle.bg }]}>
-                      <Text style={[ss.diffBadgeText, { color: diffStyle.fg }]}>{template.difficulty}</Text>
-                    </View>
-                    {catLabel && (
-                      <View style={ss.catBadge}>
-                        <Text style={ss.catBadgeText}>{catLabel}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-                {isSelected && (
-                  <View style={ss.checkCircle}>
-                    <Check size={11} color={T.alwaysLight} weight="regular" />
-                  </View>
-                )}
-              </View>
-
-              {/* Description */}
-              <Text style={ss.cardDesc}>{template.description}</Text>
-
-              {/* Rewards row */}
-              <View style={ss.rewardsRow}>
-                <Text style={ss.rewardValue}>+{template.rewards.pace}</Text>
-                <Text style={ss.rewardUnit}> PACE</Text>
-              </View>
-            </Pressable>
-          );
-        }}
-        ListEmptyComponent={
-          <View style={ss.emptyWrap}>
-            <Text style={ss.emptyText}>No missions in this category</Text>
-          </View>
-        }
-        ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: T.mid }} />}
-      />
-
-      {/* ── Sticky Save Bar ── */}
-      {selected.size > 0 && (
-        <View style={ss.saveBar}>
-          {/* 3 slot icons */}
-          <View style={ss.slotRow}>
-            {[0, 1, 2].map(i => {
-              const mission = selectedMissions[i];
-              const filled  = !!mission;
-              const entry: { Icon: Icon; color: string } = mission ? (TYPE_ICON[mission.type as MissionType] ?? { Icon: Target, color: C.red }) : { Icon: Target, color: T.t3 };
-              const { Icon: SlotIcon } = entry;
-              return (
-                <View
-                  key={i}
-                  style={[ss.slot, filled && ss.slotFilled, i > 0 && { marginLeft: -6 }]}
-                >
-                  {filled
-                    ? <SlotIcon size={14} color={T.alwaysLight} weight="light" />
-                    : <Text style={{ fontFamily: Fonts.regular, fontSize: 16, color: T.t3 }}>+</Text>
-                  }
-                </View>
-              );
-            })}
-          </View>
-
-          {/* Save button */}
-          <Pressable
-            onPress={handleSave}
-            disabled={saving}
-            style={[ss.saveBtn, saving && { opacity: 0.6 }]}
-          >
-            <Text style={ss.saveBtnText}>
-              {saving
-                ? 'Saving…'
-                : selected.size === 3
-                ? 'Set 3 missions for today'
-                : `Set ${selected.size} mission${selected.size !== 1 ? 's' : ''}`}
-            </Text>
-          </Pressable>
         </View>
-      )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -388,78 +208,16 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: T.card, borderBottomWidth: 0.5, borderBottomColor: T.border },
   backBtn:         { width: 30, height: 30, borderRadius: 15, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
   backText:        { fontFamily: Fonts.regular, fontSize: 16, color: T.black, lineHeight: 18 },
-  headerTitle:     { fontFamily: Fonts.display, fontSize: 22, color: T.black },
+  headerTitle:     { fontFamily: Fonts.display, fontSize: 18, color: T.black, flex: 1, textAlign: 'center', marginHorizontal: 8 },
   dateLabel:       { fontFamily: Fonts.regular, fontSize: 11, color: T.t3 },
 
-  // Tabs
-  tabsContainer:   { backgroundColor: T.card, borderBottomWidth: 0.5, borderBottomColor: T.border },
-  tabsScroll:      { paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 6, flexDirection: 'row' },
-  tab:             { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 2, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border },
-  tabActive:       { backgroundColor: T.alwaysDark, borderColor: T.alwaysDark },
-  tabText:         { fontFamily: Fonts.medium, fontSize: 11, color: T.t3, letterSpacing: 0.6 },
-  tabTextActive:   { color: T.alwaysLight },
+  todayList:       { padding: Spacing.gutter, gap: 14 },
 
-  // Blueprint
-  blueprintOuter:  { backgroundColor: T.card, padding: 18, marginBottom: 1 },
-  blueprintEyebrow:{ ...Type.overline, letterSpacing: 1.8, color: T.t3, marginBottom: 8 },
-  blueprintCard:   { backgroundColor: T.alwaysDark, borderRadius: 12, padding: 16 },
-  blueprintKicker: { ...Type.overline, letterSpacing: 1.8, color: 'rgba(255,255,255,0.45)', marginBottom: 6 },
-  blueprintTitle:  { fontFamily: Fonts.display, fontSize: 17, color: T.alwaysLight, lineHeight: 22, marginBottom: 14 },
-  blueprintRows:   { gap: 8, marginBottom: 14 },
-  blueprintRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  blueprintIconBox:{ width: 28, height: 28, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.10)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-  blueprintMeta:   { flex: 1 },
-  blueprintMissionTitle: { fontFamily: Fonts.regular, fontSize: 12, color: T.alwaysLight, lineHeight: 16 },
-  blueprintMissionXp:    { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.5)' },
-  blueprintSkeleton:     { height: 40, borderRadius: 6, backgroundColor: 'rgba(255,255,255,0.08)' },
-  diffPill:        { borderRadius: 2, paddingHorizontal: 6, paddingVertical: 2 },
-  diffPillText:    { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
-  applyBtn:        { backgroundColor: T.alwaysLight, borderRadius: 6, paddingVertical: 11, alignItems: 'center', justifyContent: 'center' },
-  applyBtnText:    { fontFamily: Fonts.medium, fontSize: 12, color: T.alwaysDark, letterSpacing: 0.6 },
-
-  // Section divider
-  divider:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, backgroundColor: T.stone },
-  dividerLabel:    { ...Type.overline, letterSpacing: 1.8, color: T.t3 },
-  dividerCount:    { fontFamily: Fonts.regular, fontSize: 10, color: T.t3, fontVariant: ['tabular-nums'] },
-
-  // Mission cards
-  missionCard:     { backgroundColor: T.card, padding: 14, paddingHorizontal: 18 },
-  missionCardSelected: { backgroundColor: T.surface },
-  missionCardDisabled: { opacity: 0.4 },
-  cardTopRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
-  cardIconBox:     { width: 36, height: 36, borderRadius: 8, backgroundColor: T.stone, borderWidth: 0.5, borderColor: T.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  cardIconBoxSelected: { backgroundColor: T.alwaysDark, borderColor: T.alwaysDark },
-  cardMeta:        { flex: 1 },
-  cardTitle:       { fontFamily: Fonts.medium, fontSize: 13, color: T.black, marginBottom: 5, lineHeight: 16 },
-  badgeRow:        { flexDirection: 'row', gap: 5, flexWrap: 'wrap' },
-  diffBadge:       { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 2 },
-  diffBadgeText:   { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6 },
-  catBadge:        { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 2, backgroundColor: T.stone },
-  catBadgeText:    { fontFamily: Fonts.regular, fontSize: 10, color: T.t3 },
-  checkCircle:     { width: 20, height: 20, borderRadius: 10, backgroundColor: T.alwaysDark, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 },
-  checkText:       { fontFamily: Fonts.semiBold, fontSize: 11, color: T.alwaysLight },
-  cardDesc:        { fontFamily: Fonts.regular, fontSize: 11, color: T.t2, lineHeight: 17, marginBottom: 10 },
-  rewardsRow:      { flexDirection: 'row', alignItems: 'baseline' },
-  rewardValue:     { fontFamily: Fonts.regular, fontSize: 12, color: T.black },
-  rewardUnit:      { fontFamily: Fonts.regular, fontSize: 10, color: T.t3 },
-  rewardDivider:   { width: 1, height: 12, backgroundColor: T.mid, marginHorizontal: 10 },
-
-  // Empty
-  emptyWrap:       { padding: 48, alignItems: 'center' },
-  emptyText:       { fontFamily: Fonts.regular, fontSize: 13, color: T.t3 },
-
-  // Save bar
-  saveBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: T.card,
-    borderTopWidth: 0.5, borderTopColor: T.border,
-    paddingHorizontal: 20, paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 16,
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-  },
-  slotRow:    { flexDirection: 'row', alignItems: 'center' },
-  slot:       { width: 32, height: 32, borderRadius: 8, borderWidth: 2, borderColor: T.card, backgroundColor: T.stone, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
-  slotFilled: { backgroundColor: T.alwaysDark, zIndex: 3 },
-  saveBtn:    { flex: 1, backgroundColor: T.alwaysDark, borderRadius: 3, paddingVertical: 13, alignItems: 'center' },
-  saveBtnText:{ fontFamily: Fonts.medium, fontSize: 12, color: T.alwaysLight, letterSpacing: 0.6 },
+  // Swap picker rows
+  cardIconBox:     { width: 34, height: 34, borderRadius: 9, backgroundColor: T.stone, borderWidth: 0.5, borderColor: T.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  cardTitle:       { fontFamily: Fonts.medium, fontSize: 13.5, color: T.black, marginBottom: 3 },
+  sourceCaption:   { fontFamily: Fonts.regular, fontSize: 10.5, color: T.t3 },
+  candidateRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: T.card, paddingVertical: 14, paddingHorizontal: 20 },
+  rowBorder:       { borderTopWidth: 0.5, borderTopColor: T.border },
+  rewardValue:     { fontFamily: Fonts.medium, fontSize: 12, color: T.t2 },
 }); }
