@@ -33,7 +33,7 @@ export default function PostRunActions({ onShare, onSave, onDone, canSave = true
       </View>
       {canSave && (
         <Pressable style={ss.saveBtn} onPress={onSave}>
-          <Bookmark size={14} weight="regular" color={C.black} />
+          <Bookmark size={14} weight="fill" color={C.red} />
           <Text style={ss.saveBtnText}>Save Route</Text>
         </Pressable>
       )}
@@ -45,11 +45,11 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     col:           { marginHorizontal: Spacing.gutter, marginTop: 8, gap: 8 },
     row:           { flexDirection: 'row', gap: 8 },
-    doneBtn:       { flex: 1, paddingVertical: 14, backgroundColor: C.alwaysDark, borderRadius: 3, alignItems: 'center', justifyContent: 'center' },
+    doneBtn:       { flex: 1, paddingVertical: 14, backgroundColor: C.alwaysDark, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
     doneBtnText:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight, letterSpacing: 0.3 },
-    secondaryBtn:  { flex: 1, paddingVertical: 14, backgroundColor: C.stone, borderRadius: 3, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 0.5, borderColor: C.border },
+    secondaryBtn:  { flex: 1, paddingVertical: 14, backgroundColor: C.stone, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 0.5, borderColor: C.border },
     secondaryBtnText: { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    saveBtn:       { paddingVertical: 12, backgroundColor: C.stone, borderRadius: 3, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 0.5, borderColor: C.border },
-    saveBtnText:   { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
+    saveBtn:       { paddingVertical: 12, backgroundColor: C.accentMuted, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, borderWidth: 0.5, borderColor: C.border },
+    saveBtnText:   { fontFamily: Fonts.medium, fontSize: 13, color: C.red },
   });
 }

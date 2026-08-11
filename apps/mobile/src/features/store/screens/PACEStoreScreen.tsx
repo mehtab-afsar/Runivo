@@ -51,8 +51,6 @@ export default function PACEStoreScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }
 
-  const featuredReward = rewards[0];
-
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
       {/* Header bar */}
@@ -89,17 +87,22 @@ export default function PACEStoreScreen() {
             : <Text style={[s.weekHint, { color: C.amber }]}>Weekly cap reached — resets Monday 🎯</Text>}
         </View>
 
-        {/* Featured reward */}
-        {featuredReward && (
+        {/* Rewards catalog */}
+        {rewards.length > 0 && (
           <View style={s.featuredSection}>
-            <Text style={s.sectionLabel}>FEATURED REWARD</Text>
-            <RewardCard
-              reward={featuredReward}
-              onPress={r => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                navigation.navigate('RewardDetail', { rewardId: r.id });
-              }}
-            />
+            <Text style={s.sectionLabel}>{rewards.length === 1 ? 'FEATURED REWARD' : 'REWARDS'}</Text>
+            <View style={{ gap: 10 }}>
+              {rewards.map(r => (
+                <RewardCard
+                  key={r.id}
+                  reward={r}
+                  onPress={reward => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    navigation.navigate('RewardDetail', { rewardId: reward.id, reward });
+                  }}
+                />
+              ))}
+            </View>
           </View>
         )}
 

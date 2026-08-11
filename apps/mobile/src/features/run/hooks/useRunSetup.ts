@@ -109,12 +109,17 @@ export function useRunSetup() {
     finally { setNearbyLoading(false); }
   }, [gps.lat, gps.lng]);
 
-  const startRun = useCallback(() => {
+  const startRun = useCallback((mapStyle?: string, pacer?: { enabled: boolean; pace: string }) => {
     if (gps.status !== 'ready') return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate('ActiveRun', {
       activityType: activityType,
+      ...(mapStyle ? { mapStyle } : {}),
       ...(selectedRoute?.gpsPoints ? { ghostRoutePoints: selectedRoute.gpsPoints } : {}),
+      // Hands off the setup screen's already-resolved pacer state so the live
+      // run's separate useBeatPacer() instance can start on its first render
+      // instead of waiting on an async settings read — see useBeatPacer.ts.
+      ...(pacer ? { pacerEnabled: pacer.enabled, pacerPace: pacer.pace } : {}),
     });
   }, [gps.status, navigation, selectedRoute, activityType]);
 

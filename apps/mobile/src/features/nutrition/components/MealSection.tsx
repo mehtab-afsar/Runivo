@@ -11,10 +11,11 @@ interface MealSectionProps {
   expanded: boolean;
   onToggle: () => void;
   onDelete: (id: number) => void;
+  onEdit: (entry: NutritionEntry) => void;
   onAdd: () => void;
 }
 
-export function MealSection({ meal, entries, expanded, onToggle, onDelete, onAdd }: MealSectionProps) {
+export function MealSection({ meal, entries, expanded, onToggle, onDelete, onEdit, onAdd }: MealSectionProps) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const meta = MEALS.find(m => m.value === meal)!;
@@ -42,6 +43,7 @@ export function MealSection({ meal, entries, expanded, onToggle, onDelete, onAdd
             <Pressable
               key={e.id}
               style={s.entry}
+              onPress={() => onEdit(e)}
               onLongPress={() => e.id !== undefined && confirmDelete(e.id as number)}
             >
               <View style={{ flex: 1 }}>
@@ -49,6 +51,7 @@ export function MealSection({ meal, entries, expanded, onToggle, onDelete, onAdd
                 <Text style={s.entryMacros}>{e.proteinG}g P · {e.carbsG}g C · {e.fatG}g F</Text>
               </View>
               <Text style={s.entryKcal}>{e.kcal} kcal</Text>
+              <Text style={s.entryChevron}>›</Text>
             </Pressable>
           ))}
           <Pressable style={s.addBtn} onPress={onAdd}>
@@ -76,6 +79,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   entryName: { fontFamily: Fonts.regular, fontSize: 12, color: C.t1, marginBottom: 1 },
   entryMacros: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
   entryKcal: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, fontVariant: ['tabular-nums'] },
+  entryChevron: { fontFamily: Fonts.regular, fontSize: 14, color: C.t3, marginLeft: 6 },
   addBtn: {
     borderTopWidth: 0.5, borderTopColor: C.border,
     paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center',

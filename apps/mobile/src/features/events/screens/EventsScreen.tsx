@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, Modal, Share, Linking, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, Plus, ArrowLeft } from 'phosphor-react-native';
+import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, Plus, ArrowLeft, ArrowSquareOut, NavigationArrow } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
-import type { RunEvent } from '../types';
+import { DISCIPLINE_LABEL, type RunEvent, type Discipline } from '../types';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -19,6 +19,7 @@ const TABS: { id: EventTab; label: string }[] = [
   { id: 'past',       label: 'Past'       },
 ];
 
+const DISCIPLINE_CHIPS = Object.entries(DISCIPLINE_LABEL) as [Discipline, string][];
 const CHALLENGE_CATEGORIES = new Set(['challenge', 'brand-challenge', 'king-of-hill', 'survival']);
 
 function avatarColor(initial: string): string {
@@ -36,7 +37,25 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
   const ed = useMemo(() => mkEdStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [bookmarked, setBookmarked] = useState(false);
-  const categoryLabel = event.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const isCurated = event.source === 'curated';
+  const categoryLabel = event.discipline
+    ? DISCIPLINE_LABEL[event.discipline]
+    : event.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  const detailRows = [
+    { Icon: Calendar, label: 'Date',     value: event.date },
+    { Icon: Clock,    label: 'Time',     value: event.time },
+    { Icon: MapPin,   label: 'Location', value: event.location },
+    ...(isCurated ? [] : [{ Icon: Users, label: 'Going', value: `${event.participants.toLocaleString()} runners` }]),
+  ];
+
+  const handleShare = () => {
+    Share.share({
+      message: isCurated && event.registrationUrl
+        ? `${event.title} — ${event.date}\n${event.registrationUrl}`
+        : `${event.title} — ${event.date} at ${event.location}`,
+    }).catch(() => {});
+  };
 
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
@@ -50,6 +69,12 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
             <Text style={ed.categoryText}>{categoryLabel}</Text>
             {event.distance && (
               <View style={ed.distPill}><Text style={ed.distPillText}>{event.distance}</Text></View>
+            )}
+            {isCurated && (
+              <View style={ed.externalPill}>
+                <ArrowSquareOut size={9} color={C.t3} weight="bold" />
+                <Text style={ed.externalPillText}>{event.sourceName ?? 'External listing'}</Text>
+              </View>
             )}
           </View>
           <Pressable style={ed.closeBtn} onPress={onClose}>
@@ -65,12 +90,7 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
 
         {/* Detail rows */}
         <View style={ed.detailCard}>
-          {[
-            { Icon: Calendar, label: 'Date',     value: event.date },
-            { Icon: Clock,    label: 'Time',     value: event.time },
-            { Icon: MapPin,   label: 'Location', value: event.location },
-            { Icon: Users,    label: 'Going',    value: `${event.participants.toLocaleString()} runners` },
-          ].map(({ Icon, label, value }, i, arr) => (
+          {detailRows.map(({ Icon, label, value }, i, arr) => (
             <View key={label} style={[ed.detailRow, i < arr.length - 1 && ed.detailRowBorder]}>
               <View style={ed.detailIconBox}>
                 <Icon size={13} color={C.t2} weight="light" />
@@ -96,9 +116,15 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
           </View>
         )}
 
+        {isCurated && (
+          <Text style={ed.disclaimer}>
+            Registration happens on the organizer's own site — Runivo isn't hosting this event.
+          </Text>
+        )}
+
         {/* Footer */}
         <View style={ed.footer}>
-          <Pressable style={ed.iconBtn} onPress={() => {}}>
+          <Pressable style={ed.iconBtn} onPress={handleShare}>
             <ShareNetwork size={16} color={C.t2} weight="light" />
           </Pressable>
           <Pressable
@@ -107,14 +133,25 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
           >
             <Bookmark size={16} color={bookmarked ? C.red : C.t2} weight={bookmarked ? 'fill' : 'light'} />
           </Pressable>
-          <Pressable
-            style={[ed.joinBtn, joined && ed.joinBtnJoined]}
-            onPress={() => { onJoin(); onClose(); }}
-          >
-            {joined
-              ? <><Check size={15} color={C.green} weight="regular" /><Text style={[ed.joinLabel, ed.joinLabelJoined]}>Joined</Text></>
-              : <Text style={ed.joinLabel}>Join Event</Text>}
-          </Pressable>
+          {isCurated ? (
+            <Pressable
+              style={ed.joinBtn}
+              onPress={() => event.registrationUrl && Linking.openURL(event.registrationUrl)}
+              disabled={!event.registrationUrl}
+            >
+              <Text style={ed.joinLabel}>Register</Text>
+              <ArrowSquareOut size={14} color={C.alwaysLight} weight="bold" />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={[ed.joinBtn, joined && ed.joinBtnJoined]}
+              onPress={() => { onJoin(); onClose(); }}
+            >
+              {joined
+                ? <><Check size={15} color={C.green} weight="regular" /><Text style={[ed.joinLabel, ed.joinLabelJoined]}>Joined</Text></>
+                : <Text style={ed.joinLabel}>Join Event</Text>}
+            </Pressable>
+          )}
         </View>
       </View>
     </Modal>
@@ -131,6 +168,8 @@ function mkEdStyles(C: AppColors) {
     categoryText:    { ...Type.overline, color: C.t3 },
     distPill:        { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: C.redLo },
     distPillText:    { fontFamily: Fonts.medium, fontSize: 10, color: C.red },
+    externalPill:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: C.stone },
+    externalPillText:{ fontFamily: Fonts.medium, fontSize: 10, color: C.t3 },
     closeBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8 },
     eventTitle:      { ...Type.displaySm, color: C.black, marginBottom: 8 },
     eventDesc:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
@@ -145,6 +184,7 @@ function mkEdStyles(C: AppColors) {
     orgAvatarText:   { fontFamily: Fonts.bold, fontSize: 11, color: C.white },
     orgLabel:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.8, marginBottom: 1 },
     orgName:         { fontFamily: Fonts.regular, fontSize: 13, color: C.black },
+    disclaimer:      { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3, lineHeight: 15, marginBottom: 14 },
     footer:          { flexDirection: 'row', gap: 8, alignItems: 'center' },
     iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     iconBtnSaved:    { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
@@ -160,23 +200,30 @@ export default function EventsScreen() {
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const { events, joinedIds, canCreate, loading, refreshing, handleJoin, refresh } = useEvents();
+  const {
+    events, joinedIds, canCreate, loading, refreshing,
+    nearMeAvailable, nearMeActive, toggleNearMe, handleJoin, refresh,
+  } = useEvents();
   const [activeTab, setActiveTab] = useState<EventTab>('upcoming');
+  const [activeDiscipline, setActiveDiscipline] = useState<Discipline | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
 
-  const now = new Date();
-
   const filteredEvents = useMemo(() => {
+    const now = Date.now();
     return events.filter(e => {
-      const eventDate = new Date(e.date);
-      const isPast = eventDate < now;
+      // startsAt is the raw ISO timestamp — e.date is display-formatted
+      // (e.g. "Mon, Aug 15") and re-parsing it silently produced wrong
+      // results (no year, engine-dependent), which is why "Past" used to
+      // show nothing.
+      const isPast = new Date(e.startsAt).getTime() < now;
       const isChallenge = CHALLENGE_CATEGORIES.has(e.category);
+      const matchesDiscipline = !activeDiscipline || e.discipline === activeDiscipline;
+      if (!matchesDiscipline) return false;
       if (activeTab === 'past')       return isPast;
       if (activeTab === 'challenges') return !isPast && isChallenge;
       return !isPast && !isChallenge;
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [events, activeTab]);
+  }, [events, activeTab, activeDiscipline]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -213,6 +260,28 @@ export default function EventsScreen() {
             </Pressable>
           ))}
         </View>
+
+        {/* Discipline + near-me filter row */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
+          {nearMeAvailable && (
+            <Pressable
+              style={[s.chip, nearMeActive && s.chipActive]}
+              onPress={() => toggleNearMe(activeDiscipline ?? undefined)}
+            >
+              <NavigationArrow size={10} color={nearMeActive ? C.alwaysLight : C.t3} weight="fill" />
+              <Text style={[s.chipText, nearMeActive && s.chipTextActive]}>Near me</Text>
+            </Pressable>
+          )}
+          {DISCIPLINE_CHIPS.map(([value, label]) => (
+            <Pressable
+              key={value}
+              style={[s.chip, activeDiscipline === value && s.chipActive]}
+              onPress={() => setActiveDiscipline(activeDiscipline === value ? null : value)}
+            >
+              <Text style={[s.chipText, activeDiscipline === value && s.chipTextActive]}>{label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
       </View>
 
       {loading ? (
@@ -280,11 +349,17 @@ function mkStyles(C: AppColors) {
     createBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
     // Segmented tabs
     tabContainer:   { backgroundColor: C.card, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    tabPill:        { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 20, padding: 3, gap: 2 },
+    tabPill:        { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 20, padding: 3, gap: 2, marginBottom: 10 },
     tab:            { flex: 1, paddingVertical: 6, borderRadius: 16, alignItems: 'center' },
     tabActive:      { backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border },
     tabLabel:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
     tabLabelActive: { fontFamily: Fonts.medium, color: C.black },
+    // Discipline/near-me chip row
+    chipRow:        { gap: 6, paddingRight: 8 },
+    chip:           { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border },
+    chipActive:     { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+    chipText:       { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
+    chipTextActive: { fontFamily: Fonts.medium, color: C.alwaysLight },
     // List
     list:           { paddingBottom: 120 },
     empty:          { alignItems: 'center' as const, paddingVertical: 56, paddingHorizontal: 18, gap: 8 },

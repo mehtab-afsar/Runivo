@@ -6,7 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getSettings, saveRun, type StoredRun } from '@shared/services/store';
 import { postRunSync } from '@shared/services/sync';
-import { useTheme, type AppColors } from '@theme';
+import { useTheme, useIsDark, type AppColors } from '@theme';
 import { mapStyleUrlFor } from '@theme/maps';
 
 import { useRunSetup } from '../hooks/useRunSetup';
@@ -82,18 +82,23 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function RunScreen() {
   const C = useTheme();
+  const isDark = useIsDark();
   const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const [mapStyle, setMapStyle] = useState(() => mapStyleUrlFor(undefined));
+  const [mapStyle, setMapStyle] = useState(() => mapStyleUrlFor(undefined, isDark));
 
   useEffect(() => {
     // mapStyleUrlFor resolves Terrain/Satellite to their real raster styles.
     // This used to read from a local table where both of those pointed at
     // ordinary CARTO vector styles, so picking "Satellite" silently showed the
     // dark basemap.
-    getSettings().then(s => setMapStyle(mapStyleUrlFor(s.mapStyle)));
-  }, []);
+    //
+    // Passing isDark means: if the user has never explicitly picked a map style,
+    // default to dark/light matching the app's own theme instead of always light.
+    // An explicit past choice (including a light one) still wins either way.
+    getSettings().then(s => setMapStyle(mapStyleUrlFor(s.mapStyle, isDark)));
+  }, [isDark]);
 
   const {
     activityType, setActivityType, gps, intel,
@@ -168,7 +173,7 @@ export default function RunScreen() {
         onPacerPaceChange={p => pacer.setPace(p)}
         onActivityPress={() => setShowActivityModal(true)}
         onRoutePress={openRouteModal}
-        onStartPress={startRun}
+        onStartPress={() => startRun(mapStyle, { enabled: pacer.enabled, pace: pacer.pace })}
       />
       <ActivityModal
         visible={showActivityModal}

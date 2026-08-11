@@ -1,8 +1,10 @@
 import {
   getNutritionEntries,
   getNutritionEntriesRange,
+  getRecentFoods,
   saveNutritionProfile,
   addNutritionEntry,
+  updateNutritionEntry,
   deleteNutritionEntry,
   markNutritionEntrySynced,
   type NutritionEntry,
@@ -133,6 +135,39 @@ export async function addEntry(
     if (!error) await markNutritionEntrySynced(localId, remoteId);
   }
   return localId;
+}
+
+/**
+ * Distinct foods logged before, most recent first — local SQLite only,
+ * so this stays fast and works offline.
+ */
+export async function fetchRecentFoods(limit = 8): Promise<NutritionEntry[]> {
+  try {
+    return await getRecentFoods(limit);
+  } catch {
+    return [];
+  }
+}
+
+export async function updateEntry(
+  id: number,
+  patch: Omit<NutritionEntry, 'id' | 'date' | 'loggedAt' | 'xpAwarded' | 'synced' | 'remoteId'>,
+  remoteId?: string,
+): Promise<void> {
+  await updateNutritionEntry(id, patch);
+  if (!remoteId) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await supabase.from('nutrition_logs').update({
+      meal: patch.meal,
+      name: patch.name,
+      kcal: patch.kcal,
+      protein_g: patch.proteinG,
+      carbs_g: patch.carbsG,
+      fat_g: patch.fatG,
+      serving_size: patch.servingSize,
+    }).eq('id', remoteId).eq('user_id', session.user.id);
+  }
 }
 
 export async function deleteEntry(id: number, remoteId?: string): Promise<void> {

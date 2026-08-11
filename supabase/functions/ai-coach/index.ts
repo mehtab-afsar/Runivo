@@ -254,6 +254,63 @@ async function logUsage(
   }).then(() => {});
 }
 
+// ─── Safety guardrails ─────────────────────────────────────────────────────────
+// Previously only handleCoachChat's system prompt carried any scope/medical
+// restriction — the other nine LLM calls (post_run, training_plan, adapt_plan,
+// weekly_brief, nutrition_insights, pace_intelligence, territory_strategy,
+// habit_tracking, food_scan) had none at all. A runner asking training_plan or
+// adapt_plan to push through pain, or nutrition_insights to comment on extreme
+// restriction, hit zero guardrail. This is now the single shared source of
+// truth for those rules — appended to every handler's system prompt via
+// withGuardrails() so a future eleventh mode can't be added without it.
+const SAFETY_GUARDRAILS = `
+SAFETY RULES (apply to every response, regardless of topic or format):
+- Never diagnose a medical condition. If the input describes pain, injury, illness, or an ongoing symptom, give only general rest/recovery guidance and clearly recommend seeing a physio or doctor — do not prescribe training around it.
+- Never give financial or political opinions.
+- Nutrition: never encourage restrictive eating, extreme calorie deficits, or comment on body weight/shape beyond the runner's own logged numbers. If the data or the request suggests disordered eating (skipping meals, extreme restriction, obsessive tracking), say plainly that's outside what an app can safely advise on and suggest a professional — do not generate a plan around it.
+- Training load: if the runner's own data shows a declining trend, low consistency, or a stated injury/pain alongside a request to train harder, say so plainly rather than complying by default. Sustainability outranks a single request.
+- Stay in scope: running, training, recovery, athlete nutrition, gear, and Runivo's territory/PACE mechanics. Redirect anything else briefly.
+- Never promise specific race times — give ranges.
+`.trim();
+
+function withGuardrails(persona: string): string {
+  return `${persona}\n\n${SAFETY_GUARDRAILS}`;
+}
+
+// ─── Deterministic red-flag detection ──────────────────────────────────────────
+// The rules above are instructions, not a guarantee — a model can be talked
+// past its own system prompt. For the highest-risk signals (acute medical
+// distress, disordered eating), this runs BEFORE any Anthropic call and — on a
+// match — returns a fixed response instead, so the model's judgment is never
+// the only thing standing between a user and an unsafe reply for these cases.
+// Deliberately matches specific phrases over single common words (e.g. not
+// bare "pain" or "tight") to keep false positives on a hard tempo run low;
+// tune with real usage rather than trying to be exhaustive up front.
+const RED_FLAG_PATTERNS: RegExp[] = [
+  // Acute medical distress
+  /chest (pain|tightness|pressure)/i,
+  /can'?t (breathe|catch my breath)/i,
+  /irregular heart ?beat/i,
+  /heart (racing|pounding) (and|but)/i,
+  /(fainted|passed out|blacking out)/i,
+  /(severe|sharp|shooting) pain/i,
+  /can'?t (walk|move|put weight)/i,
+  /(numb|no feeling) in my/i,
+  // Disordered eating
+  /haven'?t eaten (in|for) \d/i,
+  /starving myself/i,
+  /(purge|purging|throw(ing)? up) (after|on purpose)/i,
+  /binge(d|ing)? and (then|after)/i,
+];
+
+const SAFE_REDIRECT_MESSAGE =
+  "That sounds like something worth a real person's attention rather than an app — if this is urgent (chest pain, trouble breathing, a serious injury), please contact emergency services or a doctor now. I'm not the right tool for this one. I'm here whenever you want to talk training, pace, or your Runivo stats.";
+
+function detectRedFlag(text: string | undefined | null): boolean {
+  if (!text) return false;
+  return RED_FLAG_PATTERNS.some(p => p.test(text));
+}
+
 // ─── Context builder ──────────────────────────────────────────────────────────
 async function buildUserContext(
   supabase: ReturnType<typeof createClient>,
@@ -674,7 +731,7 @@ Nutrition last 7 days:
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 384,
-    system:     'You are Runivo Intelligence — a terse, motivating running coach. Return only valid JSON.',
+    system:     withGuardrails('You are Runivo Intelligence — a terse, motivating running coach. Return only valid JSON.'),
     messages: [{
       role:    'user',
       content: `Runner data — last 8 weeks:
@@ -782,6 +839,8 @@ async function handlePostRun(
   const todayProtein = todayLog?.proteinG ?? 0;
   const targetKcal   = ctx.nutrition?.dailyGoalKcal ?? 0;
   const targetProtein = ctx.nutrition?.proteinGoalG  ?? 0;
+  // Deno edge function can't import packages/shared — keep this constant in
+  // sync with estimateRunCalories() in packages/shared/src/services/nutrition.ts.
   const caloriesBurned = Math.round((run.distance_m / 1000) * (ctx.nutrition?.weightKg ?? 70) * 1.036);
   const remaining    = Math.max(0, targetKcal - todayKcal + caloriesBurned);
 
@@ -803,7 +862,7 @@ Add a "recovery" field: a specific 2-sentence recovery prescription. Sentence 1:
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 192,
-    system:     'You are the Runivo AI Coach — a concise running coach. Return only valid JSON.',
+    system:     withGuardrails('You are the Runivo AI Coach — a concise running coach. Return only valid JSON.'),
     messages: [{
       role:    'user',
       content: `Post-run feedback.
@@ -871,7 +930,7 @@ async function handleTrainingPlan(
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 1024,
-    system:     'You are Runivo Intelligence — a running coach. Return only valid JSON.',
+    system:     withGuardrails('You are Runivo Intelligence — a running coach. Return only valid JSON.'),
     messages: [{
       role:    'user',
       content: `Create a 4-week running training plan.
@@ -1054,20 +1113,18 @@ COACHING PHILOSOPHY:
 1. Connect training advice to territorial benefit where relevant.
 2. Be direct and specific — cite actual data (distances, paces, zones, PACE earned).
 3. Never give generic advice when you have real data.
-4. Injury: give general advice and recommend a physio. Never diagnose.
-5. Off-topic: redirect warmly — "I'm your running and territory coach."
+4. Off-topic: redirect warmly — "I'm your running and territory coach."
 
-TONE: Confident, warm, competitive. Like a coach who has run 50 marathons and also plays chess. Keep responses under 180 words unless generating a structured plan.
-
-GUARDRAILS:
-- Only discuss: running, training, fitness, recovery, athlete nutrition, gear, Runivo territory strategy, PACE economy.
-- Never: medical diagnosis, financial advice, political opinions.
-- Never promise specific race times — give ranges.`;
+TONE: Confident, warm, competitive. Like a coach who has run 50 marathons and also plays chess. Keep responses under 180 words unless generating a structured plan.`;
 
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 512,
-    system:     systemPrompt,
+    // withGuardrails appends the shared SAFETY_GUARDRAILS block — this used to be
+    // its own hand-written copy here, which meant this handler (the one with the
+    // most actual free-text conversation) could silently drift from the rules
+    // every other handler now shares.
+    system:     withGuardrails(systemPrompt),
     messages,
   });
 
@@ -1117,7 +1174,7 @@ async function handleNutritionInsights(
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 512,
-    system:     'You are Runivo Intelligence — a data-driven running and nutrition coach. Return only valid JSON.',
+    system:     withGuardrails('You are Runivo Intelligence — a data-driven running and nutrition coach. Return only valid JSON.'),
     messages: [{
       role:    'user',
       content: `Analyse this runner's last 14 days of nutrition and training data and generate 3-4 insight cards.
@@ -1210,7 +1267,7 @@ Return ONLY valid JSON:
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 400,
-    system:     'You are Runivo Intelligence — a data-driven running coach. Return only valid JSON.',
+    system:     withGuardrails('You are Runivo Intelligence — a data-driven running coach. Return only valid JSON.'),
     messages: [{ role: 'user', content: prompt }],
   });
 
@@ -1252,7 +1309,7 @@ async function handleTerritoryStrategy(
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 400,
-    system:     'You are the Runivo AI Coach — a territory strategist. Be specific and competitive.',
+    system:     withGuardrails('You are the Runivo AI Coach — a territory strategist. Be specific and competitive.'),
     messages: [{
       role:    'user',
       content: `Plan a territory strategy for ${ctx.runnerRank}-ranked runner.
@@ -1379,7 +1436,7 @@ async function handleAdaptPlan(
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 512,
-    system:     'You are Runivo Intelligence — a running coach. Return only valid JSON.',
+    system:     withGuardrails('You are Runivo Intelligence — a running coach. Return only valid JSON.'),
     messages: [{
       role:    'user',
       content: `Adapt training plan for next week (Week ${(plan.week_current as number) + 1}).
@@ -1489,11 +1546,13 @@ Be direct. Use real numbers. Under 220 words total. Conversational, not clinical
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
     max_tokens: 400,
-    system:     'You are Pace — a direct, data-driven running coach embedded in the Runivo app.',
+    system:     withGuardrails('You are Pace — a direct, data-driven running coach embedded in the Runivo app.'),
     messages:   [{ role: 'user', content }],
   });
 
-  await logUsage(supabase, userId, 'coach_chat', response.usage);
+  // Was previously logged under 'coach_chat' — miscounted against the tighter
+  // $0.08/day chat-specific cap instead of habit_tracking's own spend.
+  await logUsage(supabase, userId, 'habit_tracking', response.usage);
 
   const reply = (response.content[0] as { type: 'text'; text: string }).text;
 
@@ -1535,6 +1594,20 @@ Deno.serve(async (req) => {
 
     if (!feature) return new Response('Missing feature', { status: 400, headers: CORS_HEADERS });
 
+    // Deterministic safety check — runs before ANY Claude call, cost, or context
+    // build, for the one free-form text surface (coach_chat). SAFETY_GUARDRAILS
+    // is an instruction the model could be talked past; this is a fixed response
+    // for the highest-risk signals so the model's judgment is never the only
+    // thing standing between a user and an unsafe reply. Still logs the exchange
+    // to coach_messages so the chat history reflects what was actually said.
+    if (feature === 'coach_chat' && detectRedFlag(message)) {
+      await supabase.from('coach_messages').insert({ user_id: user.id, role: 'user', content: message ?? '' });
+      await supabase.from('coach_messages').insert({ user_id: user.id, role: 'assistant', content: SAFE_REDIRECT_MESSAGE });
+      return new Response(JSON.stringify({ data: SAFE_REDIRECT_MESSAGE }), {
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
     // food_scan is a vision call — handled before the shared context build, but it
     // MUST still be behind the per-user daily spend cap (it was previously returning
     // before the cap, so a user could spam uncapped vision requests) and its input
@@ -1550,6 +1623,7 @@ Deno.serve(async (req) => {
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 300,
+        system: withGuardrails('You identify food from photos and estimate nutrition. Return only valid JSON.'),
         messages: [{
           role: 'user',
           content: [

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { CaretLeft } from 'phosphor-react-native';
+import { CaretLeft, SealCheck } from 'phosphor-react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
-import { getPlayer } from '@shared/services/store';
+import { getPlayer, savePlayer } from '@shared/services/store';
 import { HARDCODED_REWARDS } from '../rewards';
+import { redeemReward } from '../services/rewardService';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 
 export default function RewardDetailScreen() {
@@ -14,15 +16,22 @@ export default function RewardDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'RewardDetail'>>();
-  const { rewardId } = route.params;
+  const { rewardId, reward: passedReward } = route.params;
 
   const [paceBalance, setPaceBalance] = useState(0);
+  const [redeeming, setRedeeming] = useState(false);
+  const [redeemedMsg, setRedeemedMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     getPlayer().then(p => { if (p) setPaceBalance(p.paceBalance ?? 0); }).catch(() => {});
   }, []);
 
-  const reward = HARDCODED_REWARDS.find(r => r.id === rewardId);
+  // Prefer the object passed by PACEStoreScreen — covers both DB-sourced and
+  // HARDCODED_REWARDS-fallback rewards. Falls back to a hardcoded-only lookup
+  // for any other way this screen might be reached (there's no deep link to
+  // it today, but route params alone shouldn't be assumed complete).
+  const reward = passedReward ?? HARDCODED_REWARDS.find(r => r.id === rewardId);
 
   if (!reward) {
     return (
@@ -36,6 +45,35 @@ export default function RewardDetailScreen() {
 
   const canAfford = paceBalance >= reward.paceCost;
   const afterRedemption = paceBalance - reward.paceCost;
+
+  const handleClaim = async () => {
+    if (redeeming || redeemedMsg) return;
+    setErrorMsg(null);
+    setRedeeming(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const result = await redeemReward(reward.id);
+      if (result.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (result.newBalance != null) {
+          setPaceBalance(result.newBalance);
+          // Keep the locally-cached player balance in sync so the dashboard/
+          // store hero doesn't show a stale number until the next pull.
+          const player = await getPlayer();
+          if (player) await savePlayer({ ...player, paceBalance: result.newBalance });
+        }
+        setRedeemedMsg("Redeemed! We'll email your code within 24 hours.");
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setErrorMsg(result.message);
+      }
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setErrorMsg('Redemption failed. Please try again.');
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -76,14 +114,26 @@ export default function RewardDetailScreen() {
 
         <View style={s.divider} />
 
-        {/* Claim button */}
-        <Pressable
-          style={[s.claimBtn, !canAfford && s.claimBtnDisabled]}
-          onPress={() => Alert.alert('Coming Soon', 'Reward claiming is coming soon. Keep earning PACE!')}
-        >
-          <Text style={s.claimBtnText}>Claim Reward</Text>
-        </Pressable>
-        <Text style={s.comingSoon}>Coming soon — claim will be available shortly</Text>
+        {redeemedMsg ? (
+          <View style={s.redeemedRow}>
+            <SealCheck size={18} color={C.green} weight="fill" />
+            <Text style={s.redeemedText}>{redeemedMsg}</Text>
+          </View>
+        ) : (
+          <>
+            {/* Claim button */}
+            <Pressable
+              style={[s.claimBtn, (!canAfford || redeeming) && s.claimBtnDisabled]}
+              onPress={handleClaim}
+              disabled={!canAfford || redeeming}
+            >
+              {redeeming
+                ? <ActivityIndicator size="small" color={C.white} />
+                : <Text style={s.claimBtnText}>{canAfford ? 'Claim Reward' : 'Not enough PACE'}</Text>}
+            </Pressable>
+            {errorMsg ? <Text style={s.errorText}>{errorMsg}</Text> : null}
+          </>
+        )}
       </View>
     </View>
   );
@@ -109,6 +159,8 @@ function mkStyles(C: AppColors) {
     claimBtn:           { backgroundColor: C.red, borderRadius: 14, height: 48, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     claimBtnDisabled:   { opacity: 0.5 },
     claimBtnText:       { fontFamily: Fonts.semiBold, fontSize: 15, color: C.white },
-    comingSoon:         { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center' },
+    errorText:          { fontFamily: Fonts.regular, fontSize: 12, color: C.red, textAlign: 'center' },
+    redeemedRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.greenLo, borderRadius: 14, paddingVertical: 16, paddingHorizontal: 16 },
+    redeemedText:       { fontFamily: Fonts.medium, fontSize: 14, color: C.green, flexShrink: 1, textAlign: 'center' },
   });
 }

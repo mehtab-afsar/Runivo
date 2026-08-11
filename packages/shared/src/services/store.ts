@@ -2,7 +2,7 @@ import { openDB, IDBPDatabase } from 'idb';
 import type { TerritoryPolygon, RunnerRank, TerritoryTier } from '../types/game';
 
 const DB_NAME = 'runivo';
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 
 /**
  * Returns the current date as a 'YYYY-MM-DD' string in the device's LOCAL timezone.
@@ -64,6 +64,9 @@ export interface StoredSettings {
   autoPause: boolean;
   gpsAccuracy: 'standard' | 'high';
   countdownSeconds: 0 | 3 | 5;
+  // Off by default — mutual connections only ever see you while this is on
+  // AND you're actively running (see 20260811000004_live_run_sharing.sql).
+  liveRunSharingEnabled: boolean;
   // Missions
   dailyMissionsEnabled: boolean;
   missionDifficulty: 'easy' | 'mixed' | 'hard';
@@ -94,6 +97,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   autoPause: true,
   gpsAccuracy: 'high',
   countdownSeconds: 3,
+  liveRunSharingEnabled: false,
   dailyMissionsEnabled: true,
   missionDifficulty: 'mixed',
   weeklyGoalKm: 20,
@@ -256,6 +260,14 @@ export interface NutritionEntry {
   remoteId?: string;
 }
 
+export interface WeightLogEntry {
+  id?: number;
+  weightKg: number;
+  loggedAt: number;
+  synced?: boolean;
+  remoteId?: string;
+}
+
 let dbInstance: IDBPDatabase | null = null;
 
 export async function getDB(): Promise<IDBPDatabase> {
@@ -327,6 +339,10 @@ export async function getDB(): Promise<IDBPDatabase> {
       }
       if (oldVersion < 10) {
         db.createObjectStore('shoes', { keyPath: 'id' });
+      }
+      if (oldVersion < 11) {
+        const weightStore = db.createObjectStore('weightLogs', { autoIncrement: true, keyPath: 'id' });
+        weightStore.createIndex('loggedAt', 'loggedAt');
       }
     },
   });
@@ -556,6 +572,21 @@ export async function deleteNutritionEntry(id: number): Promise<void> {
   await idbSafe(() => db.delete('nutritionLog', id), undefined, 'deleteNutritionEntry');
 }
 
+export async function updateNutritionEntry(id: number, patch: Partial<NutritionEntry>): Promise<void> {
+  const db = await getDB();
+  const existing = await idbSafe(
+    () => db.get('nutritionLog', id) as Promise<NutritionEntry | undefined>,
+    undefined,
+    'updateNutritionEntry-get',
+  );
+  if (!existing) return;
+  await idbSafe(
+    () => db.put('nutritionLog', { ...existing, ...patch, id }),
+    undefined,
+    'updateNutritionEntry-put',
+  );
+}
+
 export async function getNutritionEntriesRange(from: string, to: string): Promise<NutritionEntry[]> {
   const db = await getDB();
   const all = await idbSafe(
@@ -613,6 +644,49 @@ export async function getRecentFoods(limit = 10): Promise<NutritionEntry[]> {
     if (result.length >= limit) break;
   }
   return result;
+}
+
+// ── Weight log ──────────────────────────────────────────────────────────────
+
+export async function addWeightLog(entry: Omit<WeightLogEntry, 'id'>): Promise<number> {
+  const db = await getDB();
+  return idbSafe(() => db.add('weightLogs', entry) as Promise<number>, 0, 'addWeightLog');
+}
+
+/** Most recent first. */
+export async function getWeightLogs(limit = 30): Promise<WeightLogEntry[]> {
+  const db = await getDB();
+  const all = await idbSafe(
+    () => db.getAll('weightLogs') as Promise<WeightLogEntry[]>,
+    [],
+    'getWeightLogs',
+  );
+  return all.sort((a, b) => b.loggedAt - a.loggedAt).slice(0, limit);
+}
+
+export async function getUnsyncedWeightLogs(): Promise<WeightLogEntry[]> {
+  const db = await getDB();
+  const all = await idbSafe(
+    () => db.getAll('weightLogs') as Promise<WeightLogEntry[]>,
+    [],
+    'getUnsyncedWeightLogs',
+  );
+  return all.filter(e => !e.synced && e.id !== undefined);
+}
+
+export async function markWeightLogSynced(id: number, remoteId: string): Promise<void> {
+  const db = await getDB();
+  const existing = await idbSafe(
+    () => db.get('weightLogs', id) as Promise<WeightLogEntry | undefined>,
+    undefined,
+    'markWeightLogSynced-get',
+  );
+  if (!existing) return;
+  await idbSafe(
+    () => db.put('weightLogs', { ...existing, synced: true, remoteId }),
+    undefined,
+    'markWeightLogSynced-put',
+  );
 }
 
 // ── Shoes ─────────────────────────────────────────────────────────────────────

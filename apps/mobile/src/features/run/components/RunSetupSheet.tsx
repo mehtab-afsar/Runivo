@@ -1,20 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, Text, Animated, StyleSheet, TouchableOpacity, Switch, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Pulse, Footprints, Bicycle, Mountains, TreeEvergreen, Timer, TrendUp, PathIcon as RouteIcon, Check, Play, MusicNotes as Music2 } from 'phosphor-react-native';
+import { Check, Play, MusicNotes as Music2, PathIcon as RouteIcon } from 'phosphor-react-native';
 import type { ActivityType } from '../types';
+import { activityMetaFor } from '../constants/activities';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
-
-type IconComponent = typeof Pulse;
-const ACTIVITIES: { id: ActivityType; label: string; icon: IconComponent; color: string; bg: string }[] = [
-  { id: 'run',      label: 'Run',       icon: Pulse,         color: '#D93518', bg: '#FDE8E4' },
-  { id: 'walk',     label: 'Walk',      icon: Footprints,    color: '#059669', bg: '#D1FAE5' },
-  { id: 'cycle',    label: 'Cycle',     icon: Bicycle,       color: '#0284C7', bg: '#E0F2FE' },
-  { id: 'hike',     label: 'Hike',      icon: Mountains,     color: '#B45309', bg: '#FEF3C7' },
-  { id: 'trail',    label: 'Trail',     icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
-  { id: 'interval', label: 'Intervals', icon: Timer,         color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'long_run', label: 'Long Run',  icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
-];
 
 interface RunSetupSheetProps {
   sheetAnim: Animated.Value;
@@ -41,7 +31,7 @@ export default function RunSetupSheet({
 }: RunSetupSheetProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const activity = ACTIVITIES.find(a => a.id === activityType) ?? ACTIVITIES[0];
+  const activity = activityMetaFor(activityType);
   const ActivityIcon = activity.icon;
 
   return (
@@ -162,9 +152,9 @@ function mkStyles(C: AppColors) {
     paceChipUnitActive:{ color: 'rgba(255,255,255,0.7)' },
     startWrap:        { paddingHorizontal: 16, marginTop: 'auto' },
     startBtn:         { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
-    startBtnDisabled: { backgroundColor: '#D1D5DB' },
+    startBtnDisabled: { backgroundColor: C.mid },
     startDot:         { width: 34, height: 34, borderRadius: 17, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
-    startDotDisabled: { backgroundColor: '#9CA3AF' },
+    startDotDisabled: { backgroundColor: C.muted },
     startLabel:       { fontFamily: Fonts.medium, fontSize: 14, color: C.alwaysLight, letterSpacing: 1.5 },
   });
 }

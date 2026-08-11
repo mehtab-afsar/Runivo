@@ -66,21 +66,34 @@ interface BeatPacerState {
   bpm: number;
 }
 
-export function useBeatPacer() {
+/**
+ * `initial` lets a caller seed the very first render's state synchronously
+ * (e.g. the setup screen's already-resolved pacer choice, handed to the live
+ * run screen via nav params) instead of the hardcoded default. Without it,
+ * this hook's own instance always starts disabled and waits on an async
+ * getSettings() round-trip before its ticker can start — on ActiveRunScreen
+ * that's a second, independent instance from the one on RunScreen, so that
+ * gap is a real, audible silence/restart right as the run begins.
+ */
+export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
+  const initialPace = initial?.pace ?? '5:00';
+  const initialBpm  = paceToBpm(initialPace);
   const [state, setState] = useState<BeatPacerState>({
-    enabled: false,
-    pace: '5:00',
-    bpm: 172,
+    enabled: initial?.enabled ?? false,
+    pace: initialPace,
+    bpm: initialBpm,
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const soundRef      = useRef<any | null>(null);
   const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const nextBeatRef   = useRef<number>(0);
-  const enabledRef    = useRef(false);
-  const bpmRef        = useRef(172);
+  const enabledRef    = useRef(initial?.enabled ?? false);
+  const bpmRef        = useRef(initialBpm);
 
-  // Load persisted settings on mount
+  // Load persisted settings on mount — confirms/reconciles the seeded initial
+  // state above (harmless no-op if they already agree) and is still the only
+  // source of truth when no `initial` is passed in (e.g. RunScreen's own instance).
   useEffect(() => {
     getSettings().then(s => {
       const bpm = paceToBpm(s.beatPacerPace);
@@ -97,6 +110,12 @@ export function useBeatPacer() {
     (async () => {
       try {
         if (!Audio) return;
+        // Without this, whichever OTHER sound feature last touched the shared
+        // audio session wins — and theme/sounds.ts sets playsInSilentModeIOS:
+        // false for feedback.runStart(), which fires right as a run (and this
+        // pacer) starts. On a muted phone that leaves the click scheduling
+        // correctly and the HUD dot pulsing, but no sound ever actually plays.
+        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { sound: s } = await Audio.Sound.createAsync(require('../../../shared/audio/files/click.wav'));
         sound = s;
@@ -167,6 +186,12 @@ export function useBeatPacer() {
   const setEnabled = useCallback(async (enabled: boolean) => {
     enabledRef.current = enabled;
     setState(prev => ({ ...prev, enabled }));
+    if (enabled && Audio) {
+      // Re-assert silent-mode playback right as ticking starts — feedback.runStart()
+      // (theme/sounds.ts) sets playsInSilentModeIOS: false around the same moment a
+      // run begins, and whichever call lands last wins for the whole audio session.
+      Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+    }
     const s = await getSettings();
     await saveSettings({ ...s, beatPacerEnabled: enabled });
   }, []);

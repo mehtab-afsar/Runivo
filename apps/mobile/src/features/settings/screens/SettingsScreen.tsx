@@ -149,6 +149,9 @@ export default function SettingsScreen() {
           <SettingRow label="Countdown">
             <PillCycle value={`${settings.countdownSeconds}s`} onPress={cycleCountdown} />
           </SettingRow>
+          <SettingRow label="Live run sharing" sub="Mutual friends see your avatar move on the map while you run — off between runs">
+            <Switch value={settings.liveRunSharingEnabled} onValueChange={v => updateSetting({ liveRunSharingEnabled: v })} {...sw} />
+          </SettingRow>
         </SettingSection>
 
         {/* ── Data & Privacy ── */}

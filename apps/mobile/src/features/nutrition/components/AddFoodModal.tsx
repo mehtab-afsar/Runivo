@@ -12,6 +12,7 @@ import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { scanFoodPhoto, type ScannedFood } from '@features/nutrition/services/foodScanService';
+import { fetchRecentFoods } from '@features/nutrition/services/nutritionService';
 
 const QUICK_ADDS = [
   { name: 'Banana',         kcal: 90,  protein: 1,  carbs: 23, fat: 0 },
@@ -25,14 +26,16 @@ const QUICK_ADDS = [
 interface AddFoodModalProps {
   visible:      boolean;
   defaultMeal:  Meal;
-  defaultKcal?: number;
-  onAdd:   (entry: Omit<NutritionEntry, 'id' | 'date' | 'loggedAt' | 'xpAwarded'>) => void;
-  onClose: () => void;
+  editingEntry?: NutritionEntry | null;
+  onAdd:    (entry: Omit<NutritionEntry, 'id' | 'date' | 'loggedAt' | 'xpAwarded'>) => void;
+  onUpdate?: (id: number, entry: Omit<NutritionEntry, 'id' | 'date' | 'loggedAt' | 'xpAwarded' | 'synced' | 'remoteId'>) => void;
+  onClose:  () => void;
 }
 
-export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose }: AddFoodModalProps) {
+export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpdate, onClose }: AddFoodModalProps) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
+  const isEditing = !!editingEntry;
   const [name,    setName]    = useState('');
   const [kcal,    setKcal]    = useState('');
   const [protein, setProtein] = useState('');
@@ -44,14 +47,29 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [scanBanner,         setScanBanner]         = useState<string | null>(null);
   const [photoScanning,      setPhotoScanning]      = useState(false);
+  const [recentFoods,        setRecentFoods]        = useState<NutritionEntry[]>([]);
 
   const submittingRef = useRef(false);
 
   useEffect(() => { setMeal(defaultMeal); }, [defaultMeal]);
 
   useEffect(() => {
-    if (defaultKcal && defaultKcal > 0) setKcal(String(defaultKcal));
-  }, [defaultKcal]);
+    if (visible) fetchRecentFoods().then(setRecentFoods);
+  }, [visible]);
+
+  // Prefill the form when opened to edit an existing entry
+  useEffect(() => {
+    if (visible && editingEntry) {
+      setName(editingEntry.name);
+      setKcal(String(editingEntry.kcal));
+      setProtein(String(editingEntry.proteinG));
+      setCarbs(String(editingEntry.carbsG));
+      setFat(String(editingEntry.fatG));
+      setServing(editingEntry.servingSize);
+      setMeal(editingEntry.meal);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, editingEntry?.id]);
 
   // Clear form and banner when modal closes
   useEffect(() => {
@@ -73,13 +91,33 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }
 
-  function applyQuickAdd(q: typeof QUICK_ADDS[0]) {
-    setName(q.name);
-    setKcal(String(q.kcal));
-    setProtein(String(q.protein));
-    setCarbs(String(q.carbs));
-    setFat(String(q.fat));
-    setScanBanner(null);
+  // Quick-add and recent foods are known-good, previously-confirmed values —
+  // logging them is one tap, no review step. Scanned foods (barcode/photo)
+  // still land in the form for a look before saving, since OCR/vision can
+  // misread a product. While editing an existing entry there's no "tap to
+  // log a new one" — these fill the form instead, same as a scan would.
+  function logQuickAdd(q: typeof QUICK_ADDS[0]) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isEditing) {
+      setName(q.name); setKcal(String(q.kcal));
+      setProtein(String(q.protein)); setCarbs(String(q.carbs)); setFat(String(q.fat));
+      return;
+    }
+    submitEntry({ name: q.name, kcal: q.kcal, proteinG: q.protein, carbsG: q.carbs, fatG: q.fat });
+  }
+
+  function logRecentFood(f: NutritionEntry) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isEditing) {
+      setName(f.name); setKcal(String(f.kcal));
+      setProtein(String(f.proteinG)); setCarbs(String(f.carbsG)); setFat(String(f.fatG));
+      setServing(f.servingSize);
+      return;
+    }
+    submitEntry({
+      name: f.name, kcal: f.kcal, proteinG: f.proteinG, carbsG: f.carbsG, fatG: f.fatG,
+      servingSize: f.servingSize,
+    });
   }
 
   async function handlePhotoScan() {
@@ -108,22 +146,56 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
 
   const canAdd = name.trim().length > 0 && parseFloat(kcal) > 0;
 
-  function handleAdd() {
-    if (!canAdd || submittingRef.current) return;
+  // Guards double-tap: set on the first submit, only cleared by the
+  // `!visible` cleanup effect below (i.e. once the modal has actually
+  // closed) — not immediately after firing onAdd, which would leave a
+  // window for a fast second tap to log the same entry twice.
+  function submitEntry(item: {
+    name: string; kcal: number; proteinG: number; carbsG: number; fatG: number; servingSize?: string;
+  }) {
+    if (submittingRef.current) return;
     submittingRef.current = true;
     onAdd({
       meal,
+      name:        item.name,
+      kcal:        item.kcal,
+      proteinG:    item.proteinG,
+      carbsG:      item.carbsG,
+      fatG:        item.fatG,
+      servingSize: item.servingSize || '1 serving',
+      source:      'manual',
+      synced:      false,
+    });
+    onClose();
+  }
+
+  function handleAdd() {
+    if (!canAdd || submittingRef.current) return;
+
+    if (isEditing && editingEntry?.id !== undefined && onUpdate) {
+      submittingRef.current = true;
+      onUpdate(editingEntry.id, {
+        meal,
+        name:        name.trim(),
+        kcal:        parseFloat(kcal)    || 0,
+        proteinG:    parseFloat(protein) || 0,
+        carbsG:      parseFloat(carbs)   || 0,
+        fatG:        parseFloat(fat)     || 0,
+        servingSize: serving || '1 serving',
+        source:      editingEntry.source,
+      });
+      onClose();
+      return;
+    }
+
+    submitEntry({
       name:        name.trim(),
       kcal:        parseFloat(kcal)    || 0,
       proteinG:    parseFloat(protein) || 0,
       carbsG:      parseFloat(carbs)   || 0,
       fatG:        parseFloat(fat)     || 0,
-      servingSize: serving || '1 serving',
-      source:      'manual',
-      synced:      false,
+      servingSize: serving,
     });
-    submittingRef.current = false;
-    onClose();
   }
 
   function handleClose() { onClose(); }
@@ -137,7 +209,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
             <Pressable onPress={handleClose} style={s.closeBtn}>
               <X size={16} color={C.t2} weight="regular" />
             </Pressable>
-            <Text style={s.title}>Log Food</Text>
+            <Text style={s.title}>{isEditing ? 'Edit Food' : 'Log Food'}</Text>
             <View style={s.scanBtns}>
               <Pressable
                 style={s.scanBtn}
@@ -206,11 +278,26 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
               </View>
             )}
 
+            {/* Recent foods — one tap to repeat something already logged */}
+            {recentFoods.length > 0 && (
+              <>
+                <Text style={s.sectionLabel}>RECENT</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipsContent}>
+                  {recentFoods.map(f => (
+                    <Pressable key={f.name} style={s.chip} onPress={() => logRecentFood(f)}>
+                      <Text style={s.chipName}>{f.name}</Text>
+                      <Text style={s.chipKcal}>{f.kcal} kcal</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            )}
+
             {/* Quick-add chips */}
             <Text style={s.sectionLabel}>QUICK ADD</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipsContent}>
               {QUICK_ADDS.map(q => (
-                <Pressable key={q.name} style={s.chip} onPress={() => applyQuickAdd(q)}>
+                <Pressable key={q.name} style={s.chip} onPress={() => logQuickAdd(q)}>
                   <Text style={s.chipName}>{q.name}</Text>
                   <Text style={s.chipKcal}>{q.kcal} kcal</Text>
                 </Pressable>
@@ -256,7 +343,7 @@ export function AddFoodModal({ visible, defaultMeal, defaultKcal, onAdd, onClose
             />
 
             <Pressable style={[s.addBtn, !canAdd && s.addBtnDisabled]} onPress={handleAdd} disabled={!canAdd}>
-              <Text style={s.addBtnLabel}>Add Food</Text>
+              <Text style={s.addBtnLabel}>{isEditing ? 'Save Changes' : 'Add Food'}</Text>
             </Pressable>
           </ScrollView>
         </SafeAreaView>

@@ -49,9 +49,9 @@ function mkStyles(C: AppColors) {
     title:      { fontFamily: Fonts.bold, fontSize: 18, color: C.black, textAlign: 'center', marginBottom: 8 },
     sub:        { fontFamily: Fonts.regular, fontSize: 13, color: C.muted, textAlign: 'center', marginBottom: 24, fontVariant: ['tabular-nums'] },
     actions:    { flexDirection: 'row', gap: 12 },
-    cancel:     { flex: 1, paddingVertical: 14, borderRadius: 3, borderWidth: 0.5, borderColor: C.mid, alignItems: 'center' },
+    cancel:     { flex: 1, paddingVertical: 14, borderRadius: 14, borderWidth: 0.5, borderColor: C.mid, alignItems: 'center' },
     cancelText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black },
-    finish:     { flex: 1, paddingVertical: 14, borderRadius: 3, backgroundColor: C.red, alignItems: 'center' },
+    finish:     { flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: C.red, alignItems: 'center' },
     finishText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
   });
 }

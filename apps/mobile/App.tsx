@@ -29,7 +29,8 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
 import { getProfile } from '@shared/services/profile';
-import { pushProfile, initialSync } from '@shared/services/sync';
+import { pushProfile, initialSync, setAiCoachEnabled } from '@shared/services/sync';
+import { FEATURES } from './src/config/features';
 import { supabase } from '@shared/services/supabase';
 import { ToastProvider } from './src/shared/components/ToastProvider';
 import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
@@ -69,6 +70,7 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
 
   useEffect(() => {
     preloadSounds().catch(() => {});
+    setAiCoachEnabled(FEATURES.AI_COACH);
   }, []);
 
   useEffect(() => {

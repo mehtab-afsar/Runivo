@@ -91,15 +91,18 @@ export default function RunMapView({
 function mkStyles(C: AppColors) { return StyleSheet.create({
   container:    { position: 'absolute', top: 0, left: 0, right: 0 },
   map:          { flex: 1, minHeight: 300 },
-  fallback:     { backgroundColor: '#D1D5DB', alignItems: 'center', justifyContent: 'center', height: 300 },
-  fallbackText: { fontFamily: Fonts.regular, fontSize: 14, color: '#6B7280' },
   header:       { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  closeBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  pill:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 0.5, borderColor: C.border },
+  // These chrome pills sit on top of the map itself, whose basemap can be
+  // light or dark independent of C.card — a near-opaque white pill (the old
+  // value) paired with C.black text is invisible in dark mode, since C.black
+  // inverts to near-white there. C.card is the themed "elevated surface"
+  // token, so it inverts correctly on both.
+  closeBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  pill:         { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7, borderWidth: 0.5, borderColor: C.border },
   dot:          { width: 7, height: 7, borderRadius: 3.5 },
   pillTxt:      { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
-  mapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  picker:       { position: 'absolute', right: 16, top: 60, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, padding: 12, minWidth: 130, borderWidth: 0.5, borderColor: C.border, zIndex: 20 },
+  mapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  picker:       { position: 'absolute', right: 16, top: 60, backgroundColor: C.card, borderRadius: 16, padding: 12, minWidth: 130, borderWidth: 0.5, borderColor: C.border, zIndex: 20 },
   pickerLabel:  { ...Type.overline, color: C.muted, marginBottom: 8 },
   pickerRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   preview:      { width: 28, height: 28, borderRadius: 6, borderWidth: 0.5, borderColor: C.border },

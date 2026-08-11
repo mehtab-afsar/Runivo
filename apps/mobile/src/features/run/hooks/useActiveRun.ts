@@ -15,6 +15,7 @@ import { GAME_CONFIG } from '@shared/services/config';
 import { haversineM } from '@shared/services/claimEngine';
 import { formatPace } from '@shared/lib/paceFormat';
 import { getSettings } from '@shared/services/store';
+import { upsertLivePosition, clearLivePosition } from '@shared/services/liveRunSharing';
 import {
   startBackgroundTracking,
   stopBackgroundTracking,
@@ -23,6 +24,10 @@ import {
 } from '../services/locationTask';
 
 const GPS_CHECKPOINT_INTERVAL_MS = 30_000;
+// How often a running position reaches friends — not every GPS tick (~1/sec):
+// battery/bandwidth, and a friend's marker only needs to look alive, not
+// exactly track every single fix.
+const LIVE_SHARE_INTERVAL_MS = 6_000;
 const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
 const GPS_LOCK_REQUIRED_POINTS = 3;
 // Below ~1.8 km/h counts as stopped (well under walking pace, so normal running/
@@ -135,6 +140,14 @@ export function useActiveRun(activityType: string = 'run') {
   const manualPauseRef         = useRef<boolean>(false);
   const autoPausedRef          = useRef<boolean>(false);
   const stoppedSinceRef        = useRef<number | null>(null);
+  // Live Run Sharing — read once at run start (matches autoPauseEnabledRef's
+  // pattern); playerIdRef stays fresh via the effect below so the GPS watcher
+  // closure (created once per startRun call) never reads a stale id.
+  const liveSharingEnabledRef  = useRef<boolean>(false);
+  const lastLiveBroadcastRef   = useRef<number>(0);
+  const playerIdRef            = useRef<string | null>(null);
+
+  useEffect(() => { playerIdRef.current = gameEngine.player?.id ?? null; }, [gameEngine.player?.id]);
 
 
   // ── Cleanup on unmount ───────────────────────────────────────────────────────
@@ -147,6 +160,9 @@ export function useActiveRun(activityType: string = 'run') {
       deactivateKeepAwake();
       stopBackgroundTracking().catch(() => {});
       clearBgGpsBuffer(runIdRef.current);
+      if (liveSharingEnabledRef.current && playerIdRef.current) {
+        clearLivePosition(playerIdRef.current).catch(() => {});
+      }
     };
   }, []);
 
@@ -173,6 +189,8 @@ export function useActiveRun(activityType: string = 'run') {
     const settings = await getSettings().catch(() => null);
     const gpsAccuracy = resolveGpsAccuracy(settings?.gpsAccuracy ?? 'high');
     autoPauseEnabledRef.current = settings?.autoPause ?? false;
+    liveSharingEnabledRef.current = settings?.liveRunSharingEnabled ?? false;
+    lastLiveBroadcastRef.current = 0;
     manualPauseRef.current = false;
     autoPausedRef.current = false;
     stoppedSinceRef.current = null;
@@ -298,6 +316,9 @@ export function useActiveRun(activityType: string = 'run') {
               pauseStartRef.current = now;
               setState(prev => ({ ...prev, isPaused: true }));
               feedback.runPause();
+              if (liveSharingEnabledRef.current && playerIdRef.current) {
+                clearLivePosition(playerIdRef.current).catch(() => {});
+              }
             }
           } else {
             stoppedSinceRef.current = null;
@@ -368,6 +389,15 @@ export function useActiveRun(activityType: string = 'run') {
         if (!isFinite(latitude) || !isFinite(longitude)) return;
         gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10, altitude: altitude ?? 0 });
 
+        // Live Run Sharing — fire-and-forget, throttled independently of the 1s
+        // state-update throttle below. Only reaches mutual connections who also
+        // opted in (enforced server-side, see live_run_positions RLS) — this
+        // client-side gate is just "don't even try" when the setting is off.
+        if (liveSharingEnabledRef.current && playerIdRef.current && now - lastLiveBroadcastRef.current >= LIVE_SHARE_INTERVAL_MS) {
+          lastLiveBroadcastRef.current = now;
+          upsertLivePosition(playerIdRef.current, runIdRef.current, latitude, longitude).catch(() => {});
+        }
+
         // Throttle React state updates to max 1/sec
         if (now - lastGpsStateUpdateRef.current < 1000) return;
         lastGpsStateUpdateRef.current = now;
@@ -415,6 +445,9 @@ export function useActiveRun(activityType: string = 'run') {
     setState(prev => ({ ...prev, isPaused: true }));
     pauseStartRef.current = Date.now();
     feedback.runPause();
+    if (liveSharingEnabledRef.current && playerIdRef.current) {
+      clearLivePosition(playerIdRef.current).catch(() => {});
+    }
   }, []);
 
   const resumeRun = useCallback(() => {
@@ -442,6 +475,10 @@ export function useActiveRun(activityType: string = 'run') {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (checkpointIntervalRef.current) { clearInterval(checkpointIntervalRef.current); checkpointIntervalRef.current = null; }
     deactivateKeepAwake();
+
+    if (liveSharingEnabledRef.current && playerIdRef.current) {
+      clearLivePosition(playerIdRef.current).catch(() => {});
+    }
 
     // Stop background task and merge any remaining buffered points.
     // CRITICAL PATH: same pause guard as the resume-drain — if the run was paused when

@@ -52,6 +52,7 @@ function StepSlide({ direction, children }: { direction: 'forward' | 'back'; chi
 function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   const C  = useTheme();
   const ss = useMemo(() => mkWelcomeStyles(C), [C]);
+  const [acknowledged, setAcknowledged] = useState(false);
 
   return (
     <ScrollView contentContainerStyle={ss.screen} keyboardShouldPersistTaps="handled">
@@ -71,7 +72,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
           { icon: '🎯', text: 'Personalised calorie & macro targets' },
           { icon: '📊', text: 'Track meals by type — breakfast, lunch, dinner, snacks' },
           { icon: '📷', text: 'Scan barcodes or photos to log food instantly' },
-          { icon: '⚡', text: 'Run calories automatically deducted' },
+          { icon: '⚡', text: "See today's run burn next to what you've eaten" },
         ].map(f => (
           <View key={f.icon} style={ss.featureRow}>
             <Text style={ss.featureIcon}>{f.icon}</Text>
@@ -80,8 +81,21 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
         ))}
       </View>
 
+      <Pressable
+        style={ss.disclaimerRow}
+        onPress={() => { Haptics.selectionAsync(); setAcknowledged(a => !a); }}
+      >
+        <View style={[ss.checkbox, acknowledged && ss.checkboxChecked]}>
+          {acknowledged && <Text style={ss.checkmark}>✓</Text>}
+        </View>
+        <Text style={ss.disclaimerText}>
+          I'm 16 or older. I understand Runivo's targets are general estimates, not medical or
+          dietetic advice, and I'll talk to a doctor or dietitian for any health condition.
+        </Text>
+      </Pressable>
+
       <View style={ss.ctaWrap}>
-        <PrimaryButton label="Get started" onPress={onContinue} fullWidth />
+        <PrimaryButton label="Get started" onPress={onContinue} fullWidth disabled={!acknowledged} />
       </View>
     </ScrollView>
   );
@@ -108,6 +122,18 @@ function mkWelcomeStyles(C: AppColors) {
     featureRow:  { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
     featureIcon: { fontSize: 18, width: 28, textAlign: 'center' },
     featureText: { fontFamily: Fonts.regular, fontSize: FontSize.callout, color: C.black, flex: 1 },
+    disclaimerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
+    checkbox: {
+      width: 20, height: 20, borderRadius: 5, marginTop: 1,
+      borderWidth: 1.5, borderColor: C.border,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkboxChecked: { backgroundColor: C.red, borderColor: C.red },
+    checkmark:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.white },
+    disclaimerText: {
+      flex: 1, fontFamily: Fonts.regular, fontSize: FontSize.footnote, color: C.t2,
+      lineHeight: FontSize.footnote * 1.4,
+    },
     ctaWrap:     { marginTop: 'auto' as any, paddingTop: Spacing.xl },
   });
 }
@@ -184,7 +210,7 @@ function BodyStatsStep({ weightKg, heightCm, age, sex, onChange, onContinue }: B
           label="Age" value={age} unit="yrs"
           onInc={() => onChange({ age: age + 1 })}
           onDec={() => onChange({ age: age - 1 })}
-          min={10} max={100}
+          min={16} max={100}
         />
         <View style={ss.divider} />
         <View style={ss.statRow}>
@@ -480,7 +506,7 @@ function ResultsStep({ weightKg, heightCm, age, sex, goal, activityLevel, onStar
       </View>
 
       <Text style={ss.note}>
-        Run calories are added automatically when you finish a run.
+        Finish a run and your burn shows up on the tracker automatically — logging what you eat is still on you.
       </Text>
 
       <View style={ss.ctaWrap}>

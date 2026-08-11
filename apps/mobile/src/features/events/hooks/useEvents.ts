@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
-import type { RunEvent } from '../types';
-import { fetchEvents, toggleEventJoin } from '../services/eventService';
+import type { RunEvent, Discipline } from '../types';
+import { fetchEvents, fetchNearbyEvents, toggleEventJoin } from '../services/eventService';
+import { getPlayer } from '@shared/services/store';
 
 export interface EventsState {
   events: RunEvent[];
@@ -9,6 +10,9 @@ export interface EventsState {
   canCreate: boolean;
   loading: boolean;
   refreshing: boolean;
+  nearMeAvailable: boolean;
+  nearMeActive: boolean;
+  toggleNearMe: (discipline?: Discipline) => void;
   handleJoin: (eventId: string) => void;
   refresh: () => void;
 }
@@ -19,14 +23,17 @@ export function useEvents(): EventsState {
   const [canCreate, setCanCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [lastKnownLocation, setLastKnownLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearMeActive, setNearMeActive] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
-      const data = await fetchEvents();
+      const [data, player] = await Promise.all([fetchEvents(), getPlayer()]);
       setEvents(data.events);
       setJoinedIds(data.joinedIds);
       setCanCreate(data.canCreate);
+      setLastKnownLocation(player?.lastKnownLocation ?? null);
     } catch { /* offline */ } finally {
       setLoading(false);
       setRefreshing(false);
@@ -34,6 +41,23 @@ export function useEvents(): EventsState {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // "Near me" reuses the last-known location already captured after a run
+  // finishes (useActiveRun.doFinish) — no extra location-permission prompt
+  // needed just to browse nearby events.
+  const toggleNearMe = useCallback(async (discipline?: Discipline) => {
+    if (!lastKnownLocation) return;
+    if (nearMeActive) {
+      setNearMeActive(false);
+      load();
+      return;
+    }
+    setLoading(true);
+    const nearby = await fetchNearbyEvents(lastKnownLocation.lat, lastKnownLocation.lng, 50, discipline);
+    setEvents(nearby);
+    setNearMeActive(true);
+    setLoading(false);
+  }, [lastKnownLocation, nearMeActive, load]);
 
   const handleJoin = useCallback(async (eventId: string) => {
     const isJoined = joinedIds.has(eventId);
@@ -56,7 +80,7 @@ export function useEvents(): EventsState {
     ));
 
     try {
-      await toggleEventJoin(eventId, event.participants, isJoined);
+      await toggleEventJoin(eventId, isJoined);
     } catch {
       // Revert optimistic update on failure
       setJoinedIds(prev => {
@@ -64,10 +88,17 @@ export function useEvents(): EventsState {
         if (isJoined) next.add(eventId); else next.delete(eventId);
         return next;
       });
+      setEvents(prev => prev.map(e =>
+        e.id === eventId ? { ...e, participants: e.participants + (isJoined ? 1 : -1) } : e
+      ));
     }
   }, [events, joinedIds]);
 
   const refresh = useCallback(() => load(true), [load]);
 
-  return { events, joinedIds, canCreate, loading, refreshing, handleJoin, refresh };
+  return {
+    events, joinedIds, canCreate, loading, refreshing,
+    nearMeAvailable: !!lastKnownLocation, nearMeActive, toggleNearMe,
+    handleJoin, refresh,
+  };
 }

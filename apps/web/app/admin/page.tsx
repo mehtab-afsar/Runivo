@@ -54,6 +54,12 @@ interface EventRow {
   is_active: boolean;
   participant_count: number;
   organizer?: string | null;
+  source: 'hosted' | 'curated';
+  registration_url?: string | null;
+  source_name?: string | null;
+  discipline?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   created_at: string;
 }
 
@@ -90,6 +96,22 @@ const EVENT_TYPES = [
   { value: 'survival',        label: 'Survival Run' },
 ];
 
+// Real-world sport taxonomy — deliberately separate from EVENT_TYPES above,
+// which mixes real categories with in-app gamified modes. Mirrors the CHECK
+// constraint on events.discipline (20260811000002_events_hosted_curated.sql).
+const DISCIPLINES = [
+  { value: '',              label: '— None —' },
+  { value: 'marathon',      label: 'Marathon' },
+  { value: 'half_marathon', label: 'Half Marathon' },
+  { value: '10k',           label: '10K' },
+  { value: '5k',            label: '5K' },
+  { value: 'cyclothon',     label: 'Cyclothon' },
+  { value: 'triathlon',     label: 'Triathlon' },
+  { value: 'trail_run',     label: 'Trail Run' },
+  { value: 'community_run', label: 'Community Run' },
+  { value: 'other',         label: 'Other' },
+];
+
 const PLACEMENTS = [
   { value: 'home_banner',    label: 'Home — Hero Banner' },
   { value: 'events_top',     label: 'Events — Top Banner' },
@@ -102,6 +124,8 @@ const PLACEMENTS = [
 const EMPTY_EVENT = {
   title: '', event_type: 'community-run', starts_at: '', ends_at: '',
   location_name: '', distance_km: '', description: '', organizer: '',
+  source: 'hosted' as 'hosted' | 'curated',
+  registration_url: '', source_name: '', discipline: '', lat: '', lng: '',
 };
 
 function EventsSection() {
@@ -127,6 +151,7 @@ function EventsSection() {
   useEffect(() => { load(); }, [load]);
 
   const upd = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
+  const setSource = (v: 'hosted' | 'curated') => setForm(p => ({ ...p, source: v }));
 
   const openNew = () => {
     setForm(EMPTY_EVENT);
@@ -146,6 +171,12 @@ function EventsSection() {
       distance_km: e.distance_m ? String(e.distance_m / 1000) : '',
       description: e.description ?? '',
       organizer: e.organizer ?? '',
+      source: e.source ?? 'hosted',
+      registration_url: e.registration_url ?? '',
+      source_name: e.source_name ?? '',
+      discipline: e.discipline ?? '',
+      lat: e.lat != null ? String(e.lat) : '',
+      lng: e.lng != null ? String(e.lng) : '',
     });
     setEditId(e.id);
     setError('');
@@ -156,19 +187,29 @@ function EventsSection() {
 
   const save = async () => {
     if (!form.title.trim() || !form.starts_at || !form.location_name.trim()) return;
+    if (form.source === 'curated' && !form.registration_url.trim()) {
+      setError('Curated listings need a registration URL — that\'s the whole point, it\'s where users actually sign up.');
+      return;
+    }
     setSaving(true);
     setError('');
     const startsAt = new Date(form.starts_at);
     const endsAt = new Date(startsAt.getTime() + 2 * 3600 * 1000);
     const payload = {
-      title:         form.title.trim(),
-      event_type:    form.event_type,
-      starts_at:     startsAt.toISOString(),
-      ends_at:       endsAt.toISOString(),
-      location_name: form.location_name.trim() || null,
-      distance_m:    form.distance_km ? Math.round(parseFloat(form.distance_km) * 1000) : null,
-      description:   form.description.trim() || null,
-      organizer:     form.organizer.trim() || null,
+      title:             form.title.trim(),
+      event_type:        form.event_type,
+      starts_at:         startsAt.toISOString(),
+      ends_at:           endsAt.toISOString(),
+      location_name:     form.location_name.trim() || null,
+      distance_m:        form.distance_km ? Math.round(parseFloat(form.distance_km) * 1000) : null,
+      description:       form.description.trim() || null,
+      organizer:         form.organizer.trim() || null,
+      source:            form.source,
+      registration_url:  form.source === 'curated' ? form.registration_url.trim() : null,
+      source_name:       form.source === 'curated' ? (form.source_name.trim() || null) : null,
+      discipline:        form.discipline || null,
+      lat:               form.lat ? parseFloat(form.lat) : null,
+      lng:               form.lng ? parseFloat(form.lng) : null,
     };
     const { error: err } = editId
       ? await supabase.from('events').update(payload).eq('id', editId)
@@ -193,7 +234,8 @@ function EventsSection() {
     setDeletingId(null);
   };
 
-  const canSave = form.title.trim().length >= 3 && !!form.starts_at && form.location_name.trim().length >= 2;
+  const canSave = form.title.trim().length >= 3 && !!form.starts_at && form.location_name.trim().length >= 2
+    && (form.source !== 'curated' || form.registration_url.trim().length > 0);
 
   return (
     <div>
@@ -226,16 +268,58 @@ function EventsSection() {
               </button>
             </div>
 
+            {/* Source: hosted (in-app RSVP) vs curated (outbound registration link) —
+                the field that decides which of the inputs below are shown/required. */}
+            <div className="mb-4">
+              <label className={labelClass}>Source</label>
+              <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-1 gap-1">
+                {(['hosted', 'curated'] as const).map(v => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setSource(v)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                      form.source === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
+                    }`}
+                  >
+                    {v === 'hosted' ? 'Hosted (in-app RSVP)' : 'Curated (external link)'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
                 <label className={labelClass}>Event Title *</label>
                 <input type="text" value={form.title} onChange={e => upd('title', e.target.value)}
                   placeholder="e.g. Sunday Morning Run" maxLength={80} className={inputClass} />
               </div>
+
+              {form.source === 'curated' && (
+                <>
+                  <div>
+                    <label className={labelClass}>Registration URL *</label>
+                    <input type="url" value={form.registration_url} onChange={e => upd('registration_url', e.target.value)}
+                      placeholder="https://..." className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Source name <span className="normal-case font-normal tracking-normal text-gray-300">shown as &quot;via ...&quot;</span></label>
+                    <input type="text" value={form.source_name} onChange={e => upd('source_name', e.target.value)}
+                      placeholder="e.g. World Marathon Majors" className={inputClass} />
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className={labelClass}>Event Type</label>
                 <select value={form.event_type} onChange={e => upd('event_type', e.target.value)} className={inputClass}>
                   {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Sport / discipline <span className="normal-case font-normal tracking-normal text-gray-300">for category search</span></label>
+                <select value={form.discipline} onChange={e => upd('discipline', e.target.value)} className={inputClass}>
+                  {DISCIPLINES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                 </select>
               </div>
               <div>
@@ -246,6 +330,16 @@ function EventsSection() {
                 <label className={labelClass}>Location *</label>
                 <input type="text" value={form.location_name} onChange={e => upd('location_name', e.target.value)}
                   placeholder="e.g. Hyde Park, London" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Latitude <span className="normal-case font-normal tracking-normal text-gray-300">powers &quot;near me&quot; search</span></label>
+                <input type="number" value={form.lat} onChange={e => upd('lat', e.target.value)}
+                  placeholder="e.g. 51.5074" step="0.000001" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Longitude</label>
+                <input type="number" value={form.lng} onChange={e => upd('lng', e.target.value)}
+                  placeholder="e.g. -0.1278" step="0.000001" className={inputClass} />
               </div>
               <div>
                 <label className={labelClass}>Distance km <span className="normal-case font-normal tracking-normal text-gray-300">Optional</span></label>
@@ -311,8 +405,19 @@ function EventsSection() {
               {events.map(e => (
                 <tr key={e.id} className={`transition-colors ${!e.is_active ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-gray-900 leading-tight">{e.title}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 capitalize">{e.event_type.replace(/-/g, ' ')} · {e.participant_count} going</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-semibold text-gray-900 leading-tight">{e.title}</p>
+                      <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                        e.source === 'curated' ? 'bg-blue-50 text-blue-500' : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {e.source === 'curated' ? 'Curated' : 'Hosted'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5 capitalize">
+                      {e.event_type.replace(/-/g, ' ')}
+                      {e.discipline ? ` · ${e.discipline.replace(/_/g, ' ')}` : ''}
+                      {e.source === 'curated' ? '' : ` · ${e.participant_count} going`}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">
                     {new Date(e.starts_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}

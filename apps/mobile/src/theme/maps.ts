@@ -92,7 +92,12 @@ export const MAP_STYLE_IDS: MapStyleId[] = MAP_STYLES.map(s => s.id);
 
 const BY_ID: Record<string, string> = Object.fromEntries(MAP_STYLES.map(s => [s.id, s.url]));
 
-/** Resolve a persisted `settings.mapStyle` value to a style URL/JSON, with a safe default. */
-export function mapStyleUrlFor(id: string | undefined | null): string {
-  return (id && BY_ID[id]) || MapStyleUrl.positron;
+/**
+ * Resolve a persisted `settings.mapStyle` value to a style URL/JSON.
+ * `isDark` only matters when the user has never explicitly picked a style —
+ * an explicit choice (including a light one, e.g. Satellite/Terrain) always wins.
+ */
+export function mapStyleUrlFor(id: string | undefined | null, isDark = false): string {
+  if (id && BY_ID[id]) return BY_ID[id];
+  return isDark ? MapStyleUrl.darkMatter : MapStyleUrl.positron;
 }

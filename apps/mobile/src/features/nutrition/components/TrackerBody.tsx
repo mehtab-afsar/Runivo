@@ -10,23 +10,25 @@ import type { Meal } from '../types';
 
 interface Props {
   profile: NutritionProfile;
+  calorieGoal: number;
   entries: NutritionEntry[];
   consumed: number; pct: number;
   proteinConsumed: number; carbsConsumed: number; fatConsumed: number;
   expandedMeal: Meal | null;
   setExpandedMeal: (m: Meal | null) => void;
   deleteEntry: (id: number) => void;
+  editEntry: (entry: NutritionEntry) => void;
   openAdd: (m: Meal) => void;
   onLogFood: () => void;
 }
 
-export function TrackerBody({ profile, entries, consumed, pct, proteinConsumed, carbsConsumed, fatConsumed, expandedMeal, setExpandedMeal, deleteEntry, openAdd, onLogFood }: Props) {
+export function TrackerBody({ profile, calorieGoal, entries, consumed, pct, proteinConsumed, carbsConsumed, fatConsumed, expandedMeal, setExpandedMeal, deleteEntry, editEntry, openAdd, onLogFood }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   return (
     <>
       <View style={s.card}>
-        <CalorieRing consumed={consumed} goal={profile.dailyGoalKcal} pct={pct} />
+        <CalorieRing consumed={consumed} goal={calorieGoal} pct={pct} />
       </View>
       <View style={s.card}>
         <MacroBars
@@ -41,7 +43,7 @@ export function TrackerBody({ profile, entries, consumed, pct, proteinConsumed, 
           entries={entries.filter(e => e.meal === m.value && e.source !== 'run')}
           expanded={expandedMeal === m.value}
           onToggle={() => setExpandedMeal(expandedMeal === m.value ? null : m.value)}
-          onDelete={deleteEntry} onAdd={() => openAdd(m.value)}
+          onDelete={deleteEntry} onEdit={editEntry} onAdd={() => openAdd(m.value)}
         />
       ))}
       <Pressable style={s.logBtn} onPress={onLogFood}>

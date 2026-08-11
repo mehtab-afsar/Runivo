@@ -62,7 +62,10 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:        { backgroundColor: C.alwaysDark, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
+    // Rounded where this panel meets the map above it (the one visual seam that
+    // actually reads); square below, where it sits flush against the pacer/
+    // controls bar sharing the same alwaysDark background.
+    container:        { backgroundColor: C.alwaysDark, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
     distanceBlock:    { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 16 },
     distanceValue:    { ...Type.metricXL, color: C.alwaysLight, letterSpacing: -2, lineHeight: 76 },
     distanceUnit:     { fontFamily: Fonts.light, fontSize: 22, color: 'rgba(255,255,255,0.4)' },

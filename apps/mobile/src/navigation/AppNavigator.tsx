@@ -54,6 +54,7 @@ import SignUpScreen          from '@features/auth/screens/SignUpScreen';
 import OnboardingScreen      from '@features/auth/screens/OnboardingScreen';
 import PACEStoreScreen       from '@features/store/screens/PACEStoreScreen';
 import RewardDetailScreen    from '@features/store/screens/RewardDetailScreen';
+import type { Reward }       from '@features/store/types';
 import CoachPlanScreen      from '@features/coach/screens/CoachPlanScreen';
 import RunReplayScreen      from '@features/run/screens/RunReplayScreen';
 
@@ -67,7 +68,7 @@ export type RootStackParamList = {
   // Authenticated
   Main:      NavigatorScreenParams<TabParamList> | undefined;
   // Modal / overlay stacks
-  ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[]; activityType?: string } | undefined;
+  ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[]; activityType?: string; mapStyle?: string; pacerEnabled?: boolean; pacerPace?: string } | undefined;
   RunSummary: {
     runId: string;
     runData?: {
@@ -127,7 +128,10 @@ export type RootStackParamList = {
   Following: { userId: string };
   AwardDetail: { awardId: string; unlockedAt: string | null };
   PACEStore:    undefined;
-  RewardDetail: { rewardId: string };
+  // `reward` is optional — passed by PACEStoreScreen to avoid a second fetch
+  // (and to work for the HARDCODED_REWARDS fallback, which isn't in the DB
+  // at all); falls back to a rewardId-only lookup if ever reached another way.
+  RewardDetail: { rewardId: string; reward?: Reward };
   CoachPlan:    undefined;
   RunReplay: {
     runId: string;

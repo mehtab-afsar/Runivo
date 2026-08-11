@@ -8,6 +8,7 @@ import { GAME_CONFIG } from '@shared/services/config';
 import { computeFreshness, computeTerritoryScore } from '@shared/services/claimEngine';
 import { supabase } from '@shared/services/supabase';
 import { claimMissionReward } from '@shared/services/missionStore';
+import { estimateRunCalories } from '@shared/services/nutrition';
 
 export function useDashboard() {
   const { player, loading, loginBonusCoins, dismissLoginBonus, reload: reloadPlayer } = usePlayerStats();
@@ -20,6 +21,7 @@ export function useDashboard() {
   const [weeklyGoal, setWeeklyGoal]   = useState(20);
   const [caloriesConsumed, setCaloriesConsumed] = useState(0);
   const [calorieGoal, setCalorieGoal]           = useState(2000);
+  const [weightKg, setWeightKg]                 = useState(70);
   const [hasRunToday, setHasRunToday] = useState(false);
   const [cityRank, setCityRank]       = useState<number | null>(null);
   const [isPremium, setIsPremium]     = useState(false);
@@ -37,6 +39,7 @@ export function useDashboard() {
     setWeeklyGoal(data.weeklyGoal);
     setCaloriesConsumed(data.caloriesConsumed);
     setCalorieGoal(data.calorieGoal);
+    setWeightKg(data.weightKg);
     const today = new Date().toDateString();
     setHasRunToday(data.recentRuns.some(r => new Date(r.startTime).toDateString() === today));
     return data.recentRuns;
@@ -144,9 +147,9 @@ export function useDashboard() {
     const today = new Date().toDateString();
     const burned = recentRuns
       .filter(r => new Date(r.startTime).toDateString() === today)
-      .reduce((sum, r) => sum + Math.round((r.distanceMeters / 1000) * 65), 0);
+      .reduce((sum, r) => sum + estimateRunCalories(r.distanceMeters, weightKg), 0);
     return burned - caloriesConsumed;
-  }, [recentRuns, caloriesConsumed]);
+  }, [recentRuns, caloriesConsumed, weightKg]);
 
   return {
     player,

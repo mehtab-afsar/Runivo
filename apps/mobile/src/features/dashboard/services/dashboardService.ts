@@ -20,6 +20,7 @@ export interface DashboardData {
   weeklyGoal: number;
   caloriesConsumed: number;
   calorieGoal: number;
+  weightKg: number;
 }
 
 export async function fetchDashboardData(_userId: string): Promise<DashboardData> {
@@ -47,6 +48,7 @@ export async function fetchDashboardData(_userId: string): Promise<DashboardData
 
   let caloriesConsumed = 0;
   let calorieGoal = 2000;
+  let weightKg = 70;
   try {
     const [nutProf, nutEntries] = await Promise.all([
       getNutritionProfile(),
@@ -57,6 +59,7 @@ export async function fetchDashboardData(_userId: string): Promise<DashboardData
       nutEntries.filter(e => e.source !== 'run').reduce((s, e) => s + e.kcal, 0),
     );
     calorieGoal = nutProf?.dailyGoalKcal ?? 2000;
+    weightKg = nutProf?.weightKg ?? 70;
   } catch { /* ignore */ }
 
   const recentRuns = [...allRuns]
@@ -73,5 +76,6 @@ export async function fetchDashboardData(_userId: string): Promise<DashboardData
     weeklyGoal,
     caloriesConsumed,
     calorieGoal,
+    weightKg,
   };
 }

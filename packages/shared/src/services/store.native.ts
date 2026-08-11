@@ -15,6 +15,7 @@ import type {
   StoredShoe,
   NutritionProfile,
   NutritionEntry,
+  WeightLogEntry,
   StoredSettings,
 } from './store';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
@@ -28,6 +29,7 @@ export type {
   StoredShoe,
   NutritionProfile,
   NutritionEntry,
+  WeightLogEntry,
   StoredSettings,
   TerritoryPolygon,
   RunnerRank,
@@ -49,6 +51,7 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   autoPause: true,
   gpsAccuracy: 'high',
   countdownSeconds: 3,
+  liveRunSharingEnabled: false,
   dailyMissionsEnabled: true,
   missionDifficulty: 'mixed',
   weeklyGoalKm: 20,
@@ -146,6 +149,13 @@ export async function initDatabase(): Promise<void> {
       id   TEXT PRIMARY KEY,
       data TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS weight_logs (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      data      TEXT NOT NULL,
+      logged_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_weight_logs_logged_at ON weight_logs(logged_at);
 
     CREATE TABLE IF NOT EXISTS missions (
       id         TEXT PRIMARY KEY,
@@ -405,6 +415,20 @@ export async function deleteNutritionEntry(id: number): Promise<void> {
   _db.runSync('DELETE FROM nutrition_log WHERE id = ?', id);
 }
 
+export async function updateNutritionEntry(id: number, patch: Partial<NutritionEntry>): Promise<void> {
+  await ready();
+  const row = _db.getFirstSync<{ data: string }>('SELECT data FROM nutrition_log WHERE id = ?', id);
+  if (!row) return;
+  const updated = { ...JSON.parse(row.data) as NutritionEntry, ...patch, id };
+  _db.runSync(
+    'UPDATE nutrition_log SET data = ?, date = ?, logged_at = ? WHERE id = ?',
+    JSON.stringify(updated),
+    updated.date,
+    updated.loggedAt,
+    id,
+  );
+}
+
 export async function getNutritionEntriesRange(from: string, to: string): Promise<NutritionEntry[]> {
   await ready();
   const rows = _db.getAllSync<{ id: number; data: string }>(
@@ -452,6 +476,46 @@ export async function getRecentFoods(limit = 10): Promise<NutritionEntry[]> {
     if (result.length >= limit) break;
   }
   return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Weight log
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function addWeightLog(entry: Omit<WeightLogEntry, 'id'>): Promise<number> {
+  await ready();
+  const result = _db.runSync(
+    'INSERT INTO weight_logs (data, logged_at) VALUES (?, ?)',
+    JSON.stringify(entry),
+    entry.loggedAt,
+  );
+  return result.lastInsertRowId;
+}
+
+/** Most recent first. */
+export async function getWeightLogs(limit = 30): Promise<WeightLogEntry[]> {
+  await ready();
+  const rows = _db.getAllSync<{ id: number; data: string }>(
+    'SELECT id, data FROM weight_logs ORDER BY logged_at DESC LIMIT ?',
+    limit,
+  );
+  return rows.map(r => ({ ...JSON.parse(r.data) as WeightLogEntry, id: r.id }));
+}
+
+export async function getUnsyncedWeightLogs(): Promise<WeightLogEntry[]> {
+  await ready();
+  const rows = _db.getAllSync<{ id: number; data: string }>(
+    "SELECT id, data FROM weight_logs WHERE json_extract(data, '$.synced') IS NOT 1 ORDER BY logged_at ASC",
+  );
+  return rows.map(r => ({ ...JSON.parse(r.data) as WeightLogEntry, id: r.id }));
+}
+
+export async function markWeightLogSynced(id: number, remoteId: string): Promise<void> {
+  await ready();
+  const row = _db.getFirstSync<{ data: string }>('SELECT data FROM weight_logs WHERE id = ?', id);
+  if (!row) return;
+  const updated = { ...JSON.parse(row.data) as WeightLogEntry, synced: true, remoteId };
+  _db.runSync('UPDATE weight_logs SET data = ? WHERE id = ?', JSON.stringify(updated), id);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

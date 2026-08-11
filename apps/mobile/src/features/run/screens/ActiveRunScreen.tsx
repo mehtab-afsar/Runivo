@@ -29,6 +29,7 @@ import FinishConfirmSheet from '../components/FinishConfirmSheet';
 import BeatPacerChip      from '../components/BeatPacerChip';
 import ClaimToast         from '../components/ClaimToast';
 import ActiveRunMapView   from '../components/ActiveRunMapView';
+import { useLiveFriendRuns } from '../hooks/useLiveFriendRuns';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
 import { computeRouteProgress, type RouteProgress } from '../utils/routeNavigation';
 import { useTheme, feedback, Type, Fonts, type AppColors } from '@theme';
@@ -61,7 +62,9 @@ export default function ActiveRunScreen() {
   const route = useRoute<Route>();
   const ghostRoutePoints = route.params?.ghostRoutePoints;
   const activityType = route.params?.activityType ?? 'run';
+  const mapStyle = route.params?.mapStyle;
   const run  = useActiveRun(activityType);
+  const liveFriends = useLiveFriendRuns();
   const { showToast } = useToast();
   const { user } = useAuth();
   const distanceUnit = useDistanceUnit();
@@ -167,7 +170,10 @@ export default function ActiveRunScreen() {
   }, [run.isPaused]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [showConfirm, setShowConfirm] = useState(false);
-  const pacer = useBeatPacer();
+  // Seeded from the setup screen's already-resolved choice (see useRunSetup.startRun)
+  // so this screen's own pacer instance ticks from its first render instead of
+  // waiting on an async settings read — closes the audible gap at run start.
+  const pacer = useBeatPacer({ enabled: route.params?.pacerEnabled, pace: route.params?.pacerPace });
 
   const doFinish = useCallback(async () => {
     setShowConfirm(false);
@@ -276,7 +282,7 @@ export default function ActiveRunScreen() {
       </View>
 
       <View style={ss.map}>
-        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} closestIdx={routeProgress?.closestIdx ?? 0} />
+        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} closestIdx={routeProgress?.closestIdx ?? 0} mapStyle={mapStyle} liveFriends={liveFriends} />
         {run.isRunning && !run.gpsLocked && (
           <View style={ss.gpsAcquiring}>
             <ActivityIndicator size="small" color={C.red} />

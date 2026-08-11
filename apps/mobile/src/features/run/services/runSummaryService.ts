@@ -2,6 +2,7 @@ import { getRunById, saveRun, getDefaultShoe, getShoes, getNutritionProfile } fr
 import type { StoredRun, StoredShoe } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import { writeRunToHealth } from '@mobile/shared/services/healthService';
+import { estimateRunCalories } from '@shared/services/nutrition';
 
 export async function fetchRunById(runId: string): Promise<StoredRun | null> {
   return (await getRunById(runId)) ?? null;
@@ -124,7 +125,7 @@ export async function syncRunToHealth(run: {
     startTime:      run.startTime ?? (now - run.duration * 1000),
     endTime:        run.startTime ? run.startTime + run.duration * 1000 : now,
     distanceMeters: run.distance * 1000,
-    calories:       Math.round(run.distance * weightKg * 0.95),
+    calories:       estimateRunCalories(run.distance * 1000, weightKg),
   }).catch(() => {});
 }
 
@@ -148,6 +149,6 @@ export function computeRunStats(run: {
     paceStr:     `${m}:${s.toString().padStart(2, '0')}`,
     duration:    run.duration,
     territories: run.territoriesClaimed ?? 0,
-    calories:    Math.round(run.distance * (run.weightKg ?? 70) * 0.95),
+    calories:    estimateRunCalories(run.distance * 1000, run.weightKg ?? 70),
   };
 }

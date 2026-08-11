@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { EVENT_TYPES } from '../hooks/useCreateEvent';
+import { DISCIPLINE_LABEL, type Discipline } from '../types';
 import { Fonts, Type, useTheme, type AppColors } from '@theme';
+
+const DISCIPLINE_OPTIONS = Object.entries(DISCIPLINE_LABEL) as [Discipline, string][];
 
 interface Props {
   saving: boolean; error: string; canSubmit: boolean;
@@ -12,10 +15,11 @@ interface Props {
   location: string; setLocation: (v: string) => void;
   distanceKm: string; setDistanceKm: (v: string) => void;
   description: string; setDescription: (v: string) => void;
+  discipline: Discipline | ''; setDiscipline: (v: Discipline | '') => void;
   onSubmit: () => void;
 }
 
-export function EventForm({ saving, error, canSubmit, title, setTitle, eventType, setEventType, date, setDate, time, setTime, location, setLocation, distanceKm, setDistanceKm, description, setDescription, onSubmit }: Props) {
+export function EventForm({ saving, error, canSubmit, title, setTitle, eventType, setEventType, date, setDate, time, setTime, location, setLocation, distanceKm, setDistanceKm, description, setDescription, discipline, setDiscipline, onSubmit }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   return (
@@ -40,6 +44,15 @@ export function EventForm({ saving, error, canSubmit, title, setTitle, eventType
 
       <Text style={s.label}>Location</Text>
       <TextInput style={s.input} value={location} onChangeText={setLocation} placeholder="Central Park, NYC" placeholderTextColor={C.t3} maxLength={120} />
+
+      <Text style={s.label}>Sport — optional, helps people find it by category</Text>
+      <View style={s.typeGrid}>
+        {DISCIPLINE_OPTIONS.map(([value, label]) => (
+          <Pressable key={value} style={[s.typeBtn, discipline === value && s.typeBtnActive]} onPress={() => setDiscipline(discipline === value ? '' : value)}>
+            <Text style={[s.typeLabel, discipline === value && s.typeLabelActive]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
 
       <Text style={s.label}>Distance (km) — optional</Text>
       <TextInput style={s.input} value={distanceKm} onChangeText={setDistanceKm} placeholder="5.0" placeholderTextColor={C.t3} keyboardType="decimal-pad" maxLength={6} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Platform, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -10,7 +10,11 @@ import { useNutritionContext } from '@features/nutrition/hooks/useNutritionConte
 import { useNutritionInsights } from '@features/nutrition/hooks/useNutritionInsights';
 import { TrackerBody } from '@features/nutrition/components/TrackerBody';
 import { AddFoodModal } from '@features/nutrition/components/AddFoodModal';
+import { WeightTrendCard } from '@features/nutrition/components/WeightTrendCard';
+import { LogWeightModal } from '@features/nutrition/components/LogWeightModal';
 import { fetchExistingProfile } from '@features/nutrition/services/nutritionSetupService';
+import { fetchWeightLogs, logWeight } from '@features/nutrition/services/weightLogService';
+import type { WeightLogEntry } from '@shared/services/store';
 import { NutritionWelcomeFlow } from './NutritionWelcomeFlow';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 
@@ -86,13 +90,20 @@ export default function CalorieTrackerScreen() {
     profile, entries, weekEntries, weekKcals, weekAvg, weekDates, runBurnKcal,
     loading, refreshing, loadError,
     showAddModal, setShowAddModal, defaultMeal, expandedMeal, setExpandedMeal,
-    consumed: _consumed, pct: _pct, proteinConsumed, carbsConsumed, fatConsumed,
-    addEntry, deleteEntry, refresh, openAdd,
+    proteinConsumed, carbsConsumed, fatConsumed,
+    addEntry, updateEntry, deleteEntry, refresh, openAdd,
   } = useCalorieTracker();
 
   const todayStr = new Date().toLocaleDateString('en-CA');
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [activeTab, setActiveTab] = useState<'today' | 'insights'>('today');
+  const isToday = selectedDate === todayStr;
+  const [editingEntry, setEditingEntry] = useState<import('@shared/services/store').NutritionEntry | null>(null);
+  const editEntry = useCallback((entry: import('@shared/services/store').NutritionEntry) => {
+    if (!isToday) return;
+    setEditingEntry(entry);
+    setShowAddModal(true);
+  }, [isToday, setShowAddModal]);
 
   // Entries for the selected date (today uses live `entries`; past days use weekEntries)
   const selectedEntries = useMemo(() => {
@@ -103,18 +114,40 @@ export default function CalorieTrackerScreen() {
   const selectedConsumed = useMemo(() =>
     selectedEntries.filter(e => e.source !== 'run').reduce((s, e) => s + e.kcal, 0),
     [selectedEntries]);
+  // A run raises today's fuelling budget rather than shrinking it — burning
+  // 600 kcal on a run and eating 600 kcal back is "on target," not "over."
+  const selectedGoal = useMemo(() =>
+    (profile?.dailyGoalKcal ?? 0) + (isToday ? runBurnKcal : 0),
+    [profile, isToday, runBurnKcal]);
   const selectedPct = useMemo(() =>
-    Math.min(selectedConsumed / Math.max(profile?.dailyGoalKcal ?? 0, 1), 1),
-    [selectedConsumed, profile]);
+    Math.min(selectedConsumed / Math.max(selectedGoal, 1), 1),
+    [selectedConsumed, selectedGoal]);
   const selectedProtein = useMemo(() => selectedEntries.reduce((s, e) => s + e.proteinG, 0), [selectedEntries]);
   const selectedCarbs   = useMemo(() => selectedEntries.reduce((s, e) => s + e.carbsG, 0),   [selectedEntries]);
   const selectedFat     = useMemo(() => selectedEntries.reduce((s, e) => s + e.fatG, 0),     [selectedEntries]);
-  const isToday = selectedDate === todayStr;
   const { insights: aiInsights, loading: aiLoading } = useNutritionInsights();
 
-  // Pre-open add modal when navigated from RunSummary with a burn kcal value
+  const [weightLogs, setWeightLogs] = useState<WeightLogEntry[]>([]);
+  const [showLogWeight, setShowLogWeight] = useState(false);
+  const loadWeightLogs = useCallback(() => { fetchWeightLogs().then(setWeightLogs); }, []);
   useEffect(() => {
-    if (burnKcalParam) openAdd('dinner');
+    if (activeTab === 'insights') loadWeightLogs();
+  }, [activeTab, loadWeightLogs]);
+  const handleLogWeight = useCallback(async (weightKg: number) => {
+    await logWeight(weightKg);
+    loadWeightLogs();
+  }, [loadWeightLogs]);
+
+  // Pre-open add modal when navigated from RunSummary's "+ LOG" (post-run
+  // recovery meal) — burnKcalParam only signals "open the form", it must
+  // never seed the kcal field: that would log the calories just burned as
+  // calories eaten, inverting the whole point of fuelling after a run.
+  useEffect(() => {
+    if (burnKcalParam) {
+      const hour = new Date().getHours();
+      const meal = hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 21 ? 'dinner' : 'snacks';
+      openAdd(meal);
+    }
   }, [burnKcalParam]);
 
   const ctx = useNutritionContext({
@@ -225,15 +258,16 @@ export default function CalorieTrackerScreen() {
             {runBurnKcal > 0 && (
               <View style={s.burnChip}>
                 <Lightning size={12} color={C.orange} weight="light" />
-                <Text style={s.burnText}>Run activity · +{runBurnKcal} kcal burned today</Text>
+                <Text style={s.burnText}>Run activity · +{runBurnKcal} kcal added to today's budget</Text>
               </View>
             )}
             <TrackerBody
-              profile={profile} entries={selectedEntries}
+              profile={profile} calorieGoal={selectedGoal} entries={selectedEntries}
               consumed={selectedConsumed} pct={selectedPct}
               proteinConsumed={selectedProtein} carbsConsumed={selectedCarbs} fatConsumed={selectedFat}
               expandedMeal={expandedMeal} setExpandedMeal={setExpandedMeal}
               deleteEntry={isToday ? deleteEntry : () => {}}
+              editEntry={editEntry}
               openAdd={isToday ? openAdd : () => {}}
               onLogFood={() => { if (isToday) setShowAddModal(true); }}
             />
@@ -242,6 +276,8 @@ export default function CalorieTrackerScreen() {
 
         {activeTab === 'insights' && (
           <View style={{ gap: 10 }}>
+            <WeightTrendCard logs={weightLogs} onLogWeight={() => setShowLogWeight(true)} />
+
             {/* Weekly bar chart */}
             <WeeklyChart
               weekKcals={weekKcals} weekAvg={weekAvg}
@@ -323,9 +359,14 @@ export default function CalorieTrackerScreen() {
       </ScrollView>
 
       <AddFoodModal
-        visible={showAddModal} defaultMeal={defaultMeal}
-        defaultKcal={burnKcalParam}
-        onAdd={addEntry} onClose={() => setShowAddModal(false)}
+        visible={showAddModal} defaultMeal={defaultMeal} editingEntry={editingEntry}
+        onAdd={addEntry} onUpdate={updateEntry}
+        onClose={() => { setShowAddModal(false); setEditingEntry(null); }}
+      />
+
+      <LogWeightModal
+        visible={showLogWeight} currentWeightKg={weightLogs[0]?.weightKg ?? profile.weightKg}
+        onSave={handleLogWeight} onClose={() => setShowLogWeight(false)}
       />
     </SafeAreaView>
   );

@@ -21,6 +21,7 @@ export async function persistSettings(settings: StoredSettings): Promise<void> {
       announce_achievements_enabled: settings.announceAchievements,
       weekly_summary_enabled: settings.weeklySummary,
       profile_visibility: settings.privacy,
+      live_run_sharing_enabled: settings.liveRunSharingEnabled,
     }).eq('id', session.user.id);
   }
 }

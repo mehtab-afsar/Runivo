@@ -8,10 +8,12 @@ import {
   fetchNutritionProfile,
   fetchWeekEntries,
   addEntry,
+  updateEntry,
   deleteEntry,
   todayKey,
 } from '@features/nutrition/services/nutritionService';
 import { updateMissionsAfterNutritionLog } from '@shared/services/missionStore';
+import { estimateRunCalories } from '@shared/services/nutrition';
 
 function getWeekDates(): string[] {
   const dates: string[] = [];
@@ -77,7 +79,7 @@ export function useCalorieTracker() {
     try {
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
       const todayRuns = await getRunsSince(todayStart.getTime());
-      const burn = todayRuns.reduce((s, r) => s + Math.round(r.distanceMeters / 1000 * 60 * 0.95), 0);
+      const burn = todayRuns.reduce((s, r) => s + estimateRunCalories(r.distanceMeters, prof.weightKg), 0);
       setRunBurnKcal(burn);
     } catch { /* offline */ }
 
@@ -146,6 +148,15 @@ export function useCalorieTracker() {
     setEntries(prev => prev.filter(e => e.id !== id));
   }, [entries]);
 
+  const handleUpdateEntry = useCallback(async (
+    id: number,
+    patch: Omit<NutritionEntry, 'id' | 'date' | 'loggedAt' | 'xpAwarded' | 'synced' | 'remoteId'>,
+  ) => {
+    const remoteId = entries.find(e => e.id === id)?.remoteId;
+    await updateEntry(id, patch, remoteId);
+    setEntries(prev => prev.map(e => (e.id === id ? { ...e, ...patch } : e)));
+  }, [entries]);
+
   const openAdd = useCallback((meal: Meal) => {
     setDefaultMeal(meal);
     setShowAddModal(true);
@@ -187,6 +198,7 @@ export function useCalorieTracker() {
     carbsConsumed,
     fatConsumed,
     addEntry: handleAddEntry,
+    updateEntry: handleUpdateEntry,
     deleteEntry: handleDeleteEntry,
     refresh,
     openAdd,

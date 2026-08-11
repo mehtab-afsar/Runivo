@@ -14,6 +14,22 @@
 import { supabase } from './supabase';
 
 // ----------------------------------------------------------------
+// AI COACH ENABLEMENT — the app's own FEATURES.AI_COACH flag, mirrored here.
+// This package can't import apps/mobile's config directly (wrong dependency
+// direction — shared is also usable from apps/web), so the app calls
+// setAiCoachEnabled() once at boot, same pattern as setSoundEnabled/
+// setHapticEnabled in the theme layer.
+//
+// Without this, the auto post-run debrief below called the ai-coach edge
+// function — sending heart rate, HRV, cadence and calorie data to Anthropic —
+// on every completed run regardless of the flag, for a feature no user could
+// even see. Defaults to false: no debrief call happens unless the app
+// explicitly turns this on.
+// ----------------------------------------------------------------
+let _aiCoachEnabled = false;
+export function setAiCoachEnabled(enabled: boolean): void { _aiCoachEnabled = enabled; }
+
+// ----------------------------------------------------------------
 // SYNC STATUS — subscribe to know when a sync is in-flight or failed
 // ----------------------------------------------------------------
 
@@ -353,8 +369,9 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
             }
           }
 
-          // Auto post-run debrief — fire-and-forget, non-blocking
-          ;(async () => {
+          // Auto post-run debrief — fire-and-forget, non-blocking. Gated on
+          // _aiCoachEnabled: see setAiCoachEnabled() above.
+          if (_aiCoachEnabled) (async () => {
             try {
               const { data: debriefData } = await supabase.functions.invoke('ai-coach', {
                 body: { feature: 'post_run', runId: run.id },

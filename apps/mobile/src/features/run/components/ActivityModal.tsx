@@ -1,34 +1,8 @@
 import React, { useMemo } from 'react';
 import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import {
-  Pulse, Gauge, Lightning, Footprints, Mountains, TreeEvergreen, Bicycle,
-  Timer, TrendUp, Shuffle, Fire, PathIcon as RouteIcon, Barbell,
-  Waves, Wheelchair, Snowflake,
-} from 'phosphor-react-native';
 import type { ActivityType } from '../types';
+import { SELECTABLE_ACTIVITIES as ACTIVITIES } from '../constants/activities';
 import { useTheme, Fonts, type AppColors } from '@theme';
-
-type IconComp = typeof Pulse;
-const ACTIVITIES: { id: ActivityType; label: string; icon: IconComp; color: string; bg: string }[] = [
-  { id: 'run',           label: 'Run',        icon: Pulse,         color: '#D93518', bg: '#FDE8E4' },
-  { id: 'jog',           label: 'Jog',        icon: Gauge,         color: '#D93518', bg: '#FDE8E4' },
-  { id: 'sprint',        label: 'Sprint',     icon: Lightning,     color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'walk',          label: 'Walk',       icon: Footprints,    color: '#059669', bg: '#D1FAE5' },
-  { id: 'hike',          label: 'Hike',       icon: Mountains,     color: '#B45309', bg: '#FEF3C7' },
-  { id: 'trail_run',     label: 'Trail',      icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
-  { id: 'cycle',         label: 'Cycle',      icon: Bicycle,       color: '#0284C7', bg: '#E0F2FE' },
-  { id: 'interval',      label: 'Intervals',  icon: Timer,         color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'tempo',         label: 'Tempo',      icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
-  { id: 'fartlek',       label: 'Fartlek',    icon: Shuffle,       color: '#2563EB', bg: '#DBEAFE' },
-  { id: 'race',          label: 'Race',       icon: Fire,          color: '#E11D48', bg: '#FFE4E6' },
-  { id: 'cross_country', label: 'XC',         icon: RouteIcon,     color: '#4338CA', bg: '#E0E7FF' },
-  { id: 'stair_climb',   label: 'Stairs',     icon: TrendUp,       color: '#9333EA', bg: '#F3E8FF' },
-  { id: 'hiit',          label: 'HIIT',       icon: Fire,          color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'strength',      label: 'Strength',   icon: Barbell,       color: '#4B5563', bg: '#F3F4F6' },
-  { id: 'swim',          label: 'Swim',       icon: Waves,         color: '#0369A1', bg: '#E0F2FE' },
-  { id: 'wheelchair',    label: 'Wheelchair', icon: Wheelchair,    color: '#6D28D9', bg: '#EDE9FE' },
-  { id: 'ski',           label: 'Ski',        icon: Snowflake,     color: '#0EA5E9', bg: '#E0F2FE' },
-];
 
 interface ActivityModalProps {
   visible: boolean;

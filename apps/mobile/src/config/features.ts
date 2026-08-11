@@ -13,7 +13,12 @@ export const FEATURES = {
   // the pilot doesn't need it, or before a broader public launch that hasn't
   // separately validated Clubs.
   CLUBS:       true,
-  EVENTS:      false,
+  // Split into hosted (in-app RSVP) vs curated (outbound registration link)
+  // events, day-one launch surface — see 20260811000002_events_hosted_curated.sql.
+  // The real bugs that were sitting under this flag (dead Past tab, unwired
+  // join button, racy participant count, unvalidated date crash, empty share
+  // handler) are fixed alongside the split, not just the new fields.
+  EVENTS:      true,
 
   // Gamification
   DAILY_MISSIONS: true,

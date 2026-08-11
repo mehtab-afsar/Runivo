@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { createEvent } from '../services/eventService';
+import type { Discipline } from '../types';
 
 export interface CreateEventForm {
   title: string;
@@ -9,6 +10,7 @@ export interface CreateEventForm {
   location: string;
   distanceKm: string;
   description: string;
+  discipline: Discipline | '';
 }
 
 const EVENT_TYPES = [
@@ -32,6 +34,7 @@ export function useCreateEvent() {
   const [location, setLocation]       = useState('');
   const [distanceKm, setDistanceKm]   = useState('');
   const [description, setDescription] = useState('');
+  const [discipline, setDiscipline]   = useState<Discipline | ''>('');
 
   const canSubmit = title.trim().length >= 3 && !!date && !!time && location.trim().length >= 2;
 
@@ -40,7 +43,10 @@ export function useCreateEvent() {
     setSaving(true);
     setError('');
     try {
-      await createEvent({ title, eventType, date, time, location, distanceKm, description });
+      await createEvent({
+        title, eventType, date, time, location, distanceKm, description,
+        discipline: discipline || undefined,
+      });
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create event.');
@@ -48,7 +54,7 @@ export function useCreateEvent() {
     } finally {
       setSaving(false);
     }
-  }, [canSubmit, title, eventType, date, time, location, distanceKm, description]);
+  }, [canSubmit, title, eventType, date, time, location, distanceKm, description, discipline]);
 
   return {
     saving, error, canSubmit,
@@ -59,6 +65,7 @@ export function useCreateEvent() {
     location, setLocation,
     distanceKm, setDistanceKm,
     description, setDescription,
+    discipline, setDiscipline,
     submit,
   };
 }

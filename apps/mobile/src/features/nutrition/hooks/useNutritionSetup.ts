@@ -1,29 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { NutritionProfile } from '@shared/services/store';
+import { computeNutritionTargets, type NutritionGoal, type ActivityLevel, type DietType } from '@shared/services/nutrition';
 import {
   saveNutritionProfileService,
   fetchExistingProfile,
 } from '@features/nutrition/services/nutritionSetupService';
 
-type Goal          = 'lose' | 'maintain' | 'gain';
-type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
-type Diet          = 'everything' | 'vegetarian' | 'vegan' | 'pescatarian' | 'keto' | 'halal';
-
-const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
-  sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9,
-};
-const GOAL_OFFSETS: Record<Goal, number> = { lose: -400, maintain: 0, gain: 300 };
-
-function calcDailyGoal(p: {
-  weightKg: number; heightCm: number; age: number;
-  sex: 'male' | 'female'; activityLevel: ActivityLevel; goal: Goal;
-}): number {
-  const bmr = p.sex === 'male'
-    ? 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age + 5
-    : 10 * p.weightKg + 6.25 * p.heightCm - 5 * p.age - 161;
-  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[p.activityLevel]);
-  return Math.max(1200, tdee + GOAL_OFFSETS[p.goal]);
-}
+type Goal = NutritionGoal;
+type Diet = DietType;
 
 export function useNutritionSetup() {
   const [saving, setSaving]           = useState(false);
@@ -39,12 +23,9 @@ export function useNutritionSetup() {
   const weightKg  = parseFloat(weightStr) || 70;
   const heightCm  = parseFloat(heightStr) || 175;
 
-  const dailyKcal = calcDailyGoal({ weightKg, heightCm, age, sex, activityLevel, goal });
-  const macros = {
-    proteinG: Math.round((dailyKcal * 0.30) / 4),
-    carbsG:   Math.round((dailyKcal * 0.45) / 4),
-    fatG:     Math.round((dailyKcal * 0.25) / 9),
-  };
+  const targets = computeNutritionTargets({ weightKg, heightCm, age, sex, activityLevel, goal });
+  const dailyKcal = targets.dailyKcal;
+  const macros = { proteinG: targets.proteinG, carbsG: targets.carbsG, fatG: targets.fatG };
 
   const updateField = useCallback((field: string, value: string) => {
     switch (field) {

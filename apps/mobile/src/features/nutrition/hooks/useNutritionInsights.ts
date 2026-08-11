@@ -25,7 +25,8 @@ export function useNutritionInsights() {
         body:    { feature: 'nutrition_insights' },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (!error && data) setInsights(data as NutritionInsights);
+      // Edge function wraps every response as { data: result }.
+      if (!error && data) setInsights((data as { data: NutritionInsights }).data);
     } catch { /* offline */ } finally {
       setLoading(false);
     }

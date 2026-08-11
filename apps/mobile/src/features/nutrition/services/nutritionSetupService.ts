@@ -4,9 +4,21 @@ import {
   type NutritionProfile,
 } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
+import { fetchWeightLogs, logWeight } from './weightLogService';
 
 export async function saveNutritionProfileService(profile: NutritionProfile): Promise<void> {
   await saveNutritionProfile(profile);
+
+  // Every profile save is a natural weigh-in checkpoint (onboarding, or a
+  // settings edit) — but only worth a new history point if the weight
+  // actually changed, so switching goal/diet alone doesn't spam duplicates.
+  try {
+    const [lastLog] = await fetchWeightLogs(1);
+    if (!lastLog || Math.abs(lastLog.weightKg - profile.weightKg) >= 0.1) {
+      await logWeight(profile.weightKg);
+    }
+  } catch { /* non-critical — don't block the profile save */ }
+
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
     await supabase.from('nutrition_profiles').upsert({
@@ -35,7 +47,7 @@ export async function fetchExistingProfile(): Promise<NutritionProfile | undefin
       .from('nutrition_profiles')
       .select('*')
       .eq('user_id', session.user.id)
-      .single();
+      .maybeSingle();
     if (np) {
       return {
         id: 'profile',
@@ -56,7 +68,7 @@ export async function fetchExistingProfile(): Promise<NutritionProfile | undefin
     // Fall back to onboarding body stats stored in profiles table
     const { data: profile } = await supabase
       .from('profiles')
-      .select('age, height_cm, weight_kg')
+      .select('age, height_cm, weight_kg, gender')
       .eq('id', session.user.id)
       .maybeSingle();
     if (profile?.weight_kg || profile?.height_cm || profile?.age) {
@@ -65,7 +77,7 @@ export async function fetchExistingProfile(): Promise<NutritionProfile | undefin
         goal: 'maintain',
         activityLevel: 'moderate',
         diet: 'everything',
-        sex: 'male',
+        sex: profile.gender === 'female' ? 'female' : 'male',
         weightKg: profile.weight_kg ?? 70,
         heightCm: profile.height_cm ?? 170,
         age: profile.age ?? 25,
