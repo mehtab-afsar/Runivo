@@ -403,7 +403,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
   back:         { width: 32 },
   backText:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-  title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+  title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   settingsBtn:  { width: 32, alignItems: 'flex-end' },
   settingsLabel:{ fontFamily: Fonts.regular, fontSize: 16, color: C.t2 },
   tabBar:       { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },

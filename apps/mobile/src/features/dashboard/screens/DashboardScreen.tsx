@@ -18,6 +18,7 @@ import { BentoCard } from '../components/BentoCard';
 import { PACEStoreBanner } from '../components/PACEStoreBanner';
 import { DailyBonusCard } from '../components/DailyBonusCard';
 import { TerritoryCapBanner } from '../components/TerritoryCapBanner';
+import { DashboardTour } from '../components/DashboardTour';
 import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -32,6 +33,9 @@ export default function DashboardScreen() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [tsDisplay, setTsDisplay]     = useState(0);
   const hasAnimatedTs                 = useRef(false);
+  const paceStoreRef = useRef<View>(null);
+  const bentoRef     = useRef<View>(null);
+  const mapRef       = useRef<View>(null);
 
   useEffect(() => {
     if (dash.territoryScore > 0 && !hasAnimatedTs.current) {
@@ -143,31 +147,37 @@ export default function DashboardScreen() {
         )}
 
         {/* PACE Store banner */}
-        <PACEStoreBanner
-          paceBalance={dash.player.paceBalance ?? 0}
-          weeklyEarned={dash.player.paceWeeklyEarned ?? 0}
-          weeklyCap={dash.weeklyCapLimit}
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('PACEStore'); }}
-        />
+        <View ref={paceStoreRef} collapsable={false}>
+          <PACEStoreBanner
+            paceBalance={dash.player.paceBalance ?? 0}
+            weeklyEarned={dash.player.paceWeeklyEarned ?? 0}
+            weeklyCap={dash.weeklyCapLimit}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('PACEStore'); }}
+          />
+        </View>
 
         {/* Bento card — slide 1: weekly km | slide 2: nutrition */}
-        <BentoCard
-          weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal} runDays={dash.runDays}
-          ownedCount={dash.ownedCount} avgFreshness={dash.avgFreshness}
-          caloriesConsumed={dash.caloriesConsumed}
-          calorieGoal={dash.calorieGoal}
-          netCaloriesToday={dash.netCaloriesToday}
-          onNavigate={go as (screen: string) => void}
-          onStartRun={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Main', { screen: 'Run' }); }}
-          onNutritionPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('CalorieTracker'); }}
-        />
+        <View ref={bentoRef} collapsable={false}>
+          <BentoCard
+            weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal} runDays={dash.runDays}
+            ownedCount={dash.ownedCount} avgFreshness={dash.avgFreshness}
+            caloriesConsumed={dash.caloriesConsumed}
+            calorieGoal={dash.calorieGoal}
+            netCaloriesToday={dash.netCaloriesToday}
+            onNavigate={go as (screen: string) => void}
+            onStartRun={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Main', { screen: 'Run' }); }}
+            onNutritionPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('CalorieTracker'); }}
+          />
+        </View>
 
         {/* Mini territory map */}
-        <MiniTerritoryMap
-          territories={dash.territories}
-          ownerId={dash.player.id}
-          onPress={() => navigation.navigate('TerritoryMap')}
-        />
+        <View ref={mapRef} collapsable={false}>
+          <MiniTerritoryMap
+            territories={dash.territories}
+            ownerId={dash.player.id}
+            onPress={() => navigation.navigate('TerritoryMap')}
+          />
+        </View>
 
         {/* Territory-cap paywall */}
         {!gate.loading && !gate.canClaimTerritory(dash.ownedCount) && (
@@ -194,37 +204,32 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Recent runs */}
-        <View style={s.section}>
-          <SectionHeader
-            title="Recent runs"
-            icon={<Pulse size={11} color={C.t3} weight="light" />}
-            action={dash.recentRuns.length > 0 ? { label: 'See all →', onPress: () => go('History') } : undefined}
-            style={s.sectionHead}
-          />
-          <View style={s.runsCard}>
-            {dash.recentRuns.length > 0
-              ? dash.recentRuns.map((r, i) => (
-                  <RecentRunRow
-                    key={r.id} run={r} isLast={i === dash.recentRuns.length - 1}
-                    onPress={run => navigation.navigate('RunSummary', { runId: run.id })}
-                  />
-                ))
-              : (
-                <View style={s.firstRunCard}>
-                  <Text style={s.firstRunTitle}>Your first run awaits</Text>
-                  <Text style={s.firstRunBody}>Hit the streets, claim territory and start earning PACE. Your stats and history will live here.</Text>
-                  <Pressable
-                    style={s.firstRunBtn}
-                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('Main', { screen: 'Run' }); }}
-                  >
-                    <Text style={s.firstRunBtnText}>Start your first run →</Text>
-                  </Pressable>
-                </View>
-              )}
+        {/* Recent runs — only shown once there's something to show; a brand-new
+            account gets the dashboard tour instead of a static empty-state card */}
+        {dash.recentRuns.length > 0 && (
+          <View style={s.section}>
+            <SectionHeader
+              title="Recent runs"
+              icon={<Pulse size={11} color={C.t3} weight="light" />}
+              action={{ label: 'See all →', onPress: () => go('History') }}
+              style={s.sectionHead}
+            />
+            <View style={s.runsCard}>
+              {dash.recentRuns.map((r, i) => (
+                <RecentRunRow
+                  key={r.id} run={r} isLast={i === dash.recentRuns.length - 1}
+                  onPress={run => navigation.navigate('RunSummary', { runId: run.id })}
+                />
+              ))}
+            </View>
           </View>
-        </View>
+        )}
       </ScrollView>
+
+      <DashboardTour
+        targets={{ paceStore: paceStoreRef, bento: bentoRef, map: mapRef }}
+        active={dash.recentRuns.length === 0}
+      />
     </View>
   );
 }
@@ -258,11 +263,6 @@ function mkStyles(C: AppColors) {
     missionCard:     { backgroundColor: C.alwaysDark, borderRadius: 20, padding: 18 },
     cardLabel:       { ...Type.overline, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
     runsCard:        { backgroundColor: C.card, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
-    firstRunCard:    { padding: 24, alignItems: 'center', gap: 10 },
-    firstRunTitle:   { ...Type.displaySm, fontSize: 20, color: C.t1, textAlign: 'center' },
-    firstRunBody:    { ...Type.bodySm, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
-    firstRunBtn:     { marginTop: 4, backgroundColor: C.red, borderRadius: 14, paddingVertical: 12, paddingHorizontal: 28 },
-    firstRunBtnText: { ...Type.button, fontSize: 14, color: C.alwaysLight },
     syncChip:        { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', backgroundColor: C.red, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, gap: 4 },
     syncDot:         { fontSize: 8, color: C.alwaysLight, lineHeight: 12 },
     syncText:        { ...Type.labelSm, color: C.alwaysLight, letterSpacing: 0.2 },

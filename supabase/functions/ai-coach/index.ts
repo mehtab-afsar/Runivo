@@ -273,8 +273,154 @@ SAFETY RULES (apply to every response, regardless of topic or format):
 - Never promise specific race times — give ranges.
 `.trim();
 
+// ─── Value guardrails ───────────────────────────────────────────────────────
+// SAFETY_GUARDRAILS is about not causing harm. This is about the other half —
+// with 10 different modes each independently prompted, "be a good coach" was
+// left to each handler's own judgment with no shared standard for what
+// actually makes a response useful rather than generic. These rules are the
+// shared standard, same distribution mechanism (withGuardrails) as safety.
+const COACHING_VALUE_RULES = `
+COACHING VALUE RULES (apply to every response):
+- Ground every claim in the runner's own numbers. Never give advice that could apply to anyone — if you're not citing a specific pace, distance, day, or trend from their data, you're being generic. If a relevant data point is missing or empty, say so rather than filling the gap with a plausible-sounding guess.
+- If the runner's literal request conflicts with a higher-priority signal in their data (e.g. they ask to train harder while consistency or trend is declining), answer the request but name the tension explicitly rather than silently complying either way.
+- End with exactly one concrete next action, not a list of options. A single clear thing beats three vague ones.
+`.trim();
+
 function withGuardrails(persona: string): string {
-  return `${persona}\n\n${SAFETY_GUARDRAILS}`;
+  return `${persona}\n\n${SAFETY_GUARDRAILS}\n\n${COACHING_VALUE_RULES}`;
+}
+
+// ─── Coaching priority engine ───────────────────────────────────────────────
+// The single place that decides "what actually matters most for this runner
+// right now" from their full context. Two consumers: handleQuickPrompts (which
+// used to run its own separate, narrower if/else chain — daysSince/trend/
+// volume/protein/shoes, in that fixed order regardless of how the numbers
+// actually compared) and handleCoachChat's system prompt, which previously
+// handed the model a flat wall of stats and left it to infer on its own what
+// was most worth leading with. Same ranking now drives both, so an open-ended
+// "what should I focus on" question and the quick-prompt suggestions agree
+// with each other instead of being two independent guesses.
+type SignalPriority = 'high' | 'medium' | 'low';
+
+interface CoachSignal {
+  key:        string;
+  priority:   SignalPriority;
+  headline:   string;
+  detail:     string;
+  /** A first-person question a runner might ask about this signal — reused
+   *  as-is for quick-prompt suggestions. */
+  promptSeed: string;
+}
+
+const PRIORITY_WEIGHT: Record<SignalPriority, number> = { high: 3, medium: 2, low: 1 };
+
+function rankSignals(ctx: UserContext): CoachSignal[] {
+  const signals: CoachSignal[] = [];
+
+  // Inactivity — the highest-leverage moment to re-engage, so it outranks
+  // everything else when it applies at all.
+  const lastRun   = ctx.runs90d[0];
+  const daysSince = lastRun ? Math.floor((Date.now() - new Date(lastRun.started_at).getTime()) / 86_400_000) : 999;
+  if (daysSince >= 4) {
+    signals.push({
+      key: 'inactivity', priority: 'high',
+      headline: `${daysSince} days since your last run`,
+      detail:   `Longest gap recently — worth a deliberate, easy comeback run rather than jumping back in at full effort.`,
+      promptSeed: `It's been ${daysSince} days since my last run. Help me plan a good comeback run based on my fitness.`,
+    });
+  }
+
+  // Plan adherence — missed sessions this week, only meaningful if a plan exists.
+  if (ctx.planCompliance && ctx.planCompliance.sessionsMissedThisWeek > 0) {
+    signals.push({
+      key: 'plan_behind', priority: 'high',
+      headline: `${ctx.planCompliance.sessionsMissedThisWeek} planned session${ctx.planCompliance.sessionsMissedThisWeek > 1 ? 's' : ''} missed this week`,
+      detail:   `Week ${ctx.planCompliance.weekCurrent}/${ctx.planCompliance.weeksTotal} of "${ctx.planCompliance.goal}" — ${ctx.planCompliance.sessionsCompletedThisWeek}/${ctx.planCompliance.sessionsPlannedThisWeek} done.`,
+      promptSeed: `I've missed ${ctx.planCompliance.sessionsMissedThisWeek} planned sessions this week. Should I adapt the rest of the week or just pick back up?`,
+    });
+  }
+
+  // Pace trend — declining is the one that needs attention; improving is worth
+  // reinforcing but isn't urgent.
+  if (ctx.trend === 'declining' && ctx.runs90d.length >= 4) {
+    signals.push({
+      key: 'declining_trend', priority: 'high',
+      headline: 'Pace has been declining',
+      detail:   `Last 4 weeks are slower than the 4 before that — could be fatigue, heat, or just a rough patch.`,
+      promptSeed: 'My pace has been declining recently. Based on my data, what could be causing it and how do I fix it?',
+    });
+  }
+
+  // Territory decay — competitive/game-layer urgency, medium by default,
+  // escalates to high once a meaningful share of ground is actually stale.
+  if (ctx.staleZoneCount > 0) {
+    signals.push({
+      key: 'stale_territory', priority: ctx.staleZoneCount >= 3 ? 'high' : 'medium',
+      headline: `${ctx.staleZoneCount} zone${ctx.staleZoneCount > 1 ? 's' : ''} going stale`,
+      detail:   `Average freshness ${ctx.avgFreshness}% — rivals can steal these now.`,
+      promptSeed: `I have ${ctx.staleZoneCount} stale zones. What's the best route to defend them this week?`,
+    });
+  }
+
+  // Upcoming race — high if it's genuinely close, otherwise not urgent.
+  if (ctx.nutrition?.daysUntilEvent !== null && ctx.nutrition?.daysUntilEvent !== undefined) {
+    const d = ctx.nutrition.daysUntilEvent;
+    signals.push({
+      key: 'near_event', priority: d <= 14 ? 'high' : 'medium',
+      headline: `${d} day${d !== 1 ? 's' : ''} until your race`,
+      detail:   d <= 14 ? 'Taper and fueling matter more than extra volume from here.' : 'Still time to build — worth checking the plan is on track to peak correctly.',
+      promptSeed: `I have a race in ${d} days. What should I focus on between now and then?`,
+    });
+  }
+
+  // Weekly volume — meaningfully behind pace vs. this runner's own recent
+  // average, not an absolute threshold. Suppressed by inactivity above (same
+  // underlying problem, no need to say it twice).
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+  const thisWeekKm   = ctx.runs90d.filter(r => r.started_at >= sevenDaysAgo).reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
+  const weeklyGoal   = ctx.weeklyKm * 1.1;
+  if (daysSince < 4 && weeklyGoal > 0 && thisWeekKm < weeklyGoal * 0.5) {
+    signals.push({
+      key: 'behind_weekly_volume', priority: 'medium',
+      headline: `${thisWeekKm.toFixed(1)} km this week, behind your own pace`,
+      detail:   `Typical week is ~${ctx.weeklyKm.toFixed(1)} km — this week's under half that so far.`,
+      promptSeed: `I'm only at ${thisWeekKm.toFixed(1)} km this week. Help me catch up to my weekly goal without overtraining.`,
+    });
+  }
+
+  // Nutrition — protein consistency, medium (not acute unless it's persistent).
+  if (ctx.nutrition && ctx.nutrition.daysUnderProtein80g >= 3) {
+    signals.push({
+      key: 'low_protein', priority: 'medium',
+      headline: `Protein under 80g on ${ctx.nutrition.daysUnderProtein80g} of the last 7 days`,
+      detail:   `Recent avg: ${ctx.nutrition.recentAvgProteinG}g vs a ${ctx.nutrition.proteinGoalG}g goal.`,
+      promptSeed: `I've been under 80g protein for ${ctx.nutrition.daysUnderProtein80g} days this week. How should I adjust my diet to support my training?`,
+    });
+  }
+
+  // Gear — low priority, informational rather than urgent.
+  const wornShoe = ctx.shoes.find(s => s.pctWorn >= 85 && s.isDefault);
+  if (wornShoe) {
+    signals.push({
+      key: 'shoe_worn', priority: 'low',
+      headline: `${wornShoe.name} at ${wornShoe.pctWorn}% worn`,
+      detail:   `${wornShoe.totalKm}/${wornShoe.maxKm} km on your default pair.`,
+      promptSeed: `My main running shoes (${wornShoe.name}) are at ${wornShoe.pctWorn}% worn. Should I replace them now and what should I look for?`,
+    });
+  }
+
+  // Positive reinforcement signals — always low priority (never the lead, but
+  // worth surfacing when nothing more pressing is going on).
+  if (ctx.trend === 'improving' && ctx.runs90d.length >= 4) {
+    signals.push({
+      key: 'improving_trend', priority: 'low',
+      headline: "Pace has been improving",
+      detail:   'Last 4 weeks are faster than the 4 before — worth building on with a clear next goal.',
+      promptSeed: "My pace has been improving lately. Based on my current fitness, what should my next goal be?",
+    });
+  }
+
+  return signals.sort((a, b) => PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority]);
 }
 
 // ─── Deterministic red-flag detection ──────────────────────────────────────────
@@ -1059,7 +1205,20 @@ async function handleCoachChat(
     ? `Daily goal: ${ctx.nutrition.dailyGoalKcal} kcal | Protein goal: ${ctx.nutrition.proteinGoalG}g | Goal: ${ctx.nutrition.goal} | Recent 7-day avg: ${ctx.nutrition.recentAvgKcal} kcal / ${ctx.nutrition.recentAvgProteinG}g protein | Days hit target: ${ctx.nutrition.daysHitKcalTarget}/7 | Days under 80g protein: ${ctx.nutrition.daysUnderProtein80g}/7`
     : 'No nutrition data logged.';
 
+  // Same ranking handleQuickPrompts uses — the model reasons from an explicit
+  // priority order instead of inferring importance from the raw stats below on
+  // its own, which is what let "what should I focus on"-type questions answer
+  // differently than the quick-prompt suggestions for the exact same runner.
+  const topSignals = rankSignals(ctx).slice(0, 3);
+  const signalsBlock = topSignals.length > 0
+    ? topSignals.map((s, i) => `${i + 1}. [${s.priority.toUpperCase()}] ${s.headline} — ${s.detail}`).join('\n')
+    : 'Nothing urgent — this runner is on track. Lead with encouragement and a forward-looking suggestion rather than manufacturing a problem.';
+
   const systemPrompt = `You are the Runivo AI Coach — an elite running coach and territory strategist embedded in the Runivo app.
+
+== WHAT MATTERS MOST RIGHT NOW (ranked, computed from this runner's actual data) ==
+${signalsBlock}
+If the runner's question relates to one of these, lead with it. If they ask about something else entirely, answer what they asked — don't force an unrelated priority into every reply.
 
 ABOUT RUNIVO:
 Runivo is a gamified running app where runners claim real-world territory by running through it. Your GPS path generates a corridor polygon. Rivals can steal your territory by running through it. Territory freshness decays over time (−10/day) — stale zones (freshness < 40) are easy to steal. Runners win by running consistently to defend and expand their ground.
@@ -1331,65 +1490,15 @@ Give a specific 3-run strategy: which zones to prioritize defending, optimal rou
 }
 
 // ─── Quick prompts ────────────────────────────────────────────────────────────
+// Driven by rankSignals() rather than its own separate logic — previously this
+// ran an independent if/else chain that didn't match what handleCoachChat
+// reasoned from, so the suggested prompts and the coach's own sense of what
+// mattered most could point in different directions.
 function handleQuickPrompts(ctx: UserContext): Array<{ label: string; message: string }> {
-  const prompts: Array<{ label: string; message: string }> = [];
+  const prompts = rankSignals(ctx)
+    .slice(0, 4)
+    .map(s => ({ label: `${s.headline} →`, message: s.promptSeed }));
 
-  // Days since last run
-  const lastRun = ctx.runs90d[0];
-  const daysSince = lastRun
-    ? Math.floor((Date.now() - new Date(lastRun.started_at).getTime()) / 86_400_000)
-    : 999;
-
-  if (daysSince >= 4) {
-    prompts.push({
-      label:   `${daysSince} days off — plan a comeback run?`,
-      message: `It's been ${daysSince} days since my last run. Help me plan a good comeback run based on my fitness.`,
-    });
-  } else if (ctx.trend === 'declining') {
-    prompts.push({
-      label:   'Your pace has dropped — why?',
-      message: 'My pace has been declining recently. Based on my data, what could be causing it and how do I fix it?',
-    });
-  } else if (ctx.trend === 'improving') {
-    prompts.push({
-      label:   "You're improving — what's next?",
-      message: 'My pace has been improving lately. Based on my current fitness, what should my next goal be?',
-    });
-  }
-
-  // Weekly volume check
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const thisWeekKm   = ctx.runs90d
-    .filter(r => r.started_at >= sevenDaysAgo)
-    .reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
-  const weeklyGoal   = ctx.weeklyKm * 1.1; // 10% more than current avg = goal
-  if (prompts.length < 2 && thisWeekKm < weeklyGoal * 0.5) {
-    prompts.push({
-      label:   'Behind weekly goal — catch up plan?',
-      message: `I'm only at ${thisWeekKm.toFixed(1)} km this week. Help me catch up to my weekly goal without overtraining.`,
-    });
-  }
-
-  // Nutrition prompt
-  if (prompts.length < 3 && ctx.nutrition && ctx.nutrition.daysUnderProtein80g >= 4) {
-    prompts.push({
-      label:   'Low protein this week — fix it?',
-      message: `I've been under 80g protein for ${ctx.nutrition.daysUnderProtein80g} days this week. How should I adjust my diet to support my training?`,
-    });
-  }
-
-  // Shoe wear warning
-  if (prompts.length < 3) {
-    const wornShoe = ctx.shoes.find(s => s.pctWorn >= 85 && s.isDefault);
-    if (wornShoe) {
-      prompts.push({
-        label:   `${wornShoe.name} at ${wornShoe.pctWorn}% — replace soon?`,
-        message: `My main running shoes (${wornShoe.name}) are at ${wornShoe.pctWorn}% worn (${wornShoe.totalKm}/${wornShoe.maxKm} km). Should I replace them now and what should I look for?`,
-      });
-    }
-  }
-
-  // Pad with quality static fallbacks
   const fallbacks: Array<{ label: string; message: string }> = [
     { label: 'Build me a training plan',       message: 'Build me a personalised training plan based on my current fitness and weekly schedule.' },
     { label: 'Analyse my last run',            message: 'Analyse my most recent run and tell me what it reveals about my current fitness.' },

@@ -286,7 +286,7 @@ function mkStyles(C: AppColors) {
     root:           { flex: 1, backgroundColor: C.bg },
     header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 14 : 4, paddingBottom: 16, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:          { flex: 1, textAlign: 'center', fontFamily: Fonts.display, fontSize: 22, color: C.black },
+    title:          { flex: 1, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 22, color: C.black },
     createBtn:      { width: 32, height: 32, borderRadius: 16, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
     // Near-me — the one filter worth surfacing, everything else lives on the card itself
     nearMeRow:      { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 2, backgroundColor: C.bg },

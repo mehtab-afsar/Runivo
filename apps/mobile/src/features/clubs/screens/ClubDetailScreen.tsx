@@ -508,7 +508,7 @@ function mkStyles(C: AppColors) {
     backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     headerCenter:{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' },
     emoji:       { alignItems: 'center', justifyContent: 'center' },
-    title:       { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+    title:       { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
     subtitle:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     // Tab bar
     tabScroll:   { flexGrow: 0, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
@@ -520,7 +520,7 @@ function mkStyles(C: AppColors) {
     // Common
     loader:      { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty:       { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
-    emptyTitle:  { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+    emptyTitle:  { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
     emptyText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
     listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
     sectionLabel:{ ...Type.overline, color: C.t3, marginBottom: 10 },

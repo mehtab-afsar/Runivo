@@ -11,6 +11,7 @@ import {
 } from '@features/notifications/services/notificationHandler';
 import { syncPushSubscriptionOnLoad } from '@shared/services/pushNotificationService';
 import { configureRevenueCat } from '@features/subscription/services/purchaseService';
+import { useTheme } from '@theme';
 
 // ─── Feature flags ───────────────────────────────────────────────────────────
 import { FEATURES, FEATURE_LABELS } from '../config/features';
@@ -222,6 +223,7 @@ export function AppNavigator({
   needsOnboarding?: boolean;
 }) {
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  const C = useTheme();
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -238,7 +240,11 @@ export function AppNavigator({
   return (
     <CoachNavProvider>
     <NavigationContainer ref={navigationRef} linking={linking}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {/* contentStyle gives every screen a guaranteed opaque backing during the
+          push transition — without it, a screen whose own root view doesn't yet
+          fully cover the viewport lets the outgoing screen (tab bar included)
+          show through underneath for the length of the animation. */}
+      <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
         {!isAuthenticated ? (
           // Unauthenticated group
           <>

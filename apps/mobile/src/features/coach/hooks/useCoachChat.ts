@@ -21,6 +21,10 @@ export function useCoachChat() {
   const [planOpen, setPlanOpen]         = useState(false);
   const [goalInput, setGoalInput]       = useState('');
   const lastSentMsgRef = useRef<string>('');
+  // Replies that arrived live this session (vs. loaded from history on mount) —
+  // MessageBubble uses this to decide which messages get the reveal animation,
+  // so reopening the chat doesn't replay it for every past message.
+  const [liveMessageIds, setLiveMessageIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -54,6 +58,7 @@ export function useCoachChat() {
         id: `opt-reply-${Date.now()}`, role: 'assistant', content, type, created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, aiMsg]);
+      setLiveMessageIds(prev => new Set(prev).add(aiMsg.id));
     } catch (e: unknown) {
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
       setError((e as Error)?.message ?? 'Failed to send');
@@ -90,6 +95,7 @@ export function useCoachChat() {
         id: `opt-habit-${Date.now()}`, role: 'assistant', content, created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, aiMsg]);
+      setLiveMessageIds(prev => new Set(prev).add(aiMsg.id));
     } catch (e: unknown) {
       setError((e as Error)?.message ?? 'Failed to load habit analysis');
     } finally {
@@ -109,6 +115,7 @@ export function useCoachChat() {
         id: `opt-nutrition-${Date.now()}`, role: 'assistant', content, created_at: new Date().toISOString(),
       };
       setMessages(prev => [...prev, aiMsg]);
+      setLiveMessageIds(prev => new Set(prev).add(aiMsg.id));
     } catch (e: unknown) {
       setError((e as Error)?.message ?? 'Failed to load nutrition analysis');
     } finally {
@@ -124,6 +131,7 @@ export function useCoachChat() {
 
   return {
     messages,
+    liveMessageIds,
     sending,
     error,
     inputText,

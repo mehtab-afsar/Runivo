@@ -80,7 +80,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 32 },
   backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-  title: { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+  title: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   content: { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
   label: { ...Type.overline, color: C.t3, marginTop: 14, marginBottom: 6 },
   input: { backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black },

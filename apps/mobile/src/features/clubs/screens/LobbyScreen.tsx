@@ -77,7 +77,7 @@ function mkStyles(C: AppColors) {
     root: { flex: 1, backgroundColor: C.bg },
     header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     back: { width: 32 }, backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-    title: { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    title: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     subtitle: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
     list: { paddingHorizontal: Spacing.gutter, paddingTop: 8, paddingBottom: 100, gap: 10 },
     loader: { flex: 1, alignItems: 'center', justifyContent: 'center' },

@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
-import { Colors, Fonts } from '@theme';
 
 const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
 
@@ -24,28 +23,21 @@ interface Props {
   onHidden?: () => void;
 }
 
+/**
+ * JS-rendered splash shown after the native splash hands off (while auth is
+ * checked) — the brand mark (hollow orange hex, drawn on), no wordmark.
+ */
 export function SplashView({ ready, onLayout, onHidden }: Props) {
-  const dashOffset  = useRef(new Animated.Value(PERIM)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
+  const dashOffset = useRef(new Animated.Value(PERIM)).current;
   const rootOpacity = useRef(new Animated.Value(1)).current;
   const animDone    = useRef(false);
 
-  // Phase 1 (0–900ms): hexagon draws. Phase 2 (600–950ms): wordmark fades in.
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(dashOffset, {
-        toValue: 0, duration: 900, useNativeDriver: false,
-      }),
-      Animated.sequence([
-        Animated.delay(600),
-        Animated.timing(textOpacity, {
-          toValue: 1, duration: 350, useNativeDriver: true,
-        }),
-      ]),
-    ]).start(() => { animDone.current = true; });
-  }, [dashOffset, textOpacity]);
+    Animated.timing(dashOffset, {
+      toValue: 0, duration: 900, useNativeDriver: false,
+    }).start(() => { animDone.current = true; });
+  }, [dashOffset]);
 
-  // Phase 3: fade out once auth is ready — waits for draw to finish first.
   useEffect(() => {
     if (!ready) return;
 
@@ -72,17 +64,14 @@ export function SplashView({ ready, onLayout, onHidden }: Props) {
         <AnimatedPolygon
           points={pts}
           fill="none"
-          stroke="#C8391A"
-          strokeWidth={2.2}
+          stroke="#FF5326"
+          strokeWidth={2.4}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeDasharray={`${PERIM}`}
           strokeDashoffset={dashOffset}
         />
       </Svg>
-      <Animated.Text style={[s.wordmark, { opacity: textOpacity }]}>
-        RUNIVO
-      </Animated.Text>
     </Animated.View>
   );
 }
@@ -94,12 +83,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
-  },
-  wordmark: {
-    fontFamily: Fonts.display,
-    fontSize: 28,
-    color: Colors.alwaysLight,
-    letterSpacing: 6,
-    marginTop: 24,
   },
 });

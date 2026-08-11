@@ -234,7 +234,7 @@ function mkStyles(C: AppColors) {
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
     backBtn:      { width: 32 },
-    title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     profileSection:{ alignItems: 'center', padding: 24, gap: 6 },
     displayName:  { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, marginTop: 8 },
     bio:          { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18, maxWidth: 280 },

@@ -2,8 +2,8 @@ import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Dimensions, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Calendar, Users, Trophy } from 'phosphor-react-native';
-import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { WeeklyRing } from './WeeklyRing';
+import { DayArcRing } from './DayArcRing';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { FEATURES } from '../../../config/features';
 
@@ -15,9 +15,6 @@ const QUICK_ACTIONS = [
   { icon: Users,    name: 'Clubs',       screen: 'Club' },
   { icon: Trophy,   name: 'Leaderboard', screen: 'Leaderboard' },
 ] as const;
-
-const R_NUT  = 68;
-const CIRC   = 2 * Math.PI * R_NUT;
 
 interface Props {
   weeklyKm:         number;
@@ -33,10 +30,18 @@ interface Props {
   onNutritionPress: () => void;
 }
 
+function nutritionCaption(consumed: number, goal: number, remaining: number): string {
+  if (goal <= 0) return 'Set up your targets';
+  if (remaining === 0) return 'Right on target';
+  if (consumed === 0) return 'Nothing logged yet today';
+  return `${remaining.toLocaleString()} kcal left today`;
+}
+
 function NutritionTile({
   caloriesConsumed,
   calorieGoal,
   runDays,
+  onPress,
 }: {
   caloriesConsumed: number;
   calorieGoal: number;
@@ -44,85 +49,36 @@ function NutritionTile({
   runDays: boolean[];
   onPress: () => void;
 }) {
-  const pct       = calorieGoal > 0 ? Math.min(1, caloriesConsumed / calorieGoal) : 0;
-  const offset    = CIRC * (1 - pct);
   const remaining = Math.max(0, calorieGoal - caloriesConsumed);
   const todayIdx  = (new Date().getDay() + 6) % 7;
 
   return (
     <View style={ns.content}>
-      <View style={ns.ringWrap}>
-        <Svg width={148} height={148}>
-          <Defs>
-            {/* Brand ramp: gold → hot vermilion (was off-palette amber/red/violet) */}
-            <LinearGradient id="nutGrad" x1="0" y1="0" x2="1" y2="1">
-              <Stop offset="0" stopColor="#E8B400" />
-              <Stop offset="1" stopColor="#FF5326" />
-            </LinearGradient>
-          </Defs>
-          {/* Track */}
-          <Circle cx={74} cy={74} r={R_NUT} stroke="rgba(255,255,255,0.07)" strokeWidth={5} fill="none" />
-          {/* Glow bloom */}
-          {pct > 0 && (
-            <Circle
-              cx={74} cy={74} r={R_NUT}
-              stroke="#FF5326" strokeWidth={16} strokeOpacity={0.12}
-              strokeLinecap="round" fill="none"
-              strokeDasharray={CIRC}
-              strokeDashoffset={offset}
-              transform="rotate(-90, 74, 74)"
-            />
-          )}
-          {/* Main arc */}
-          <Circle
-            cx={74} cy={74} r={R_NUT}
-            stroke="url(#nutGrad)" strokeWidth={5}
-            strokeLinecap="round" fill="none"
-            strokeDasharray={CIRC}
-            strokeDashoffset={offset}
-            transform="rotate(-90, 74, 74)"
-          />
-        </Svg>
-        <View style={ns.center}>
-          <View style={ns.kcalRow}>
-            <Text style={ns.kcal}>{caloriesConsumed.toLocaleString()}</Text>
-            <Text style={ns.kcalUnit}>kcal</Text>
-          </View>
-          <Text style={ns.kcalSub}>
-            {remaining > 0 ? `${remaining.toLocaleString()} left` : 'goal hit'}
-          </Text>
+      <DayArcRing
+        dayDone={runDays} todayIdx={todayIdx}
+        accentColor="#FF5326" gradientFrom="#E8B400" gradientTo="#FF5326" gradientId="nutritionRing"
+        onPress={onPress}
+      >
+        <View style={ns.kcalRow}>
+          <Text style={ns.kcal}>{caloriesConsumed.toLocaleString()}</Text>
+          <Text style={ns.kcalUnit}>kcal</Text>
         </View>
-      </View>
-
-      <View style={ns.dayDots}>
-        {runDays.map((active, i) => (
-          <View
-            key={i}
-            style={[
-              ns.dot,
-              i === todayIdx
-                ? { backgroundColor: active ? '#FF5326' : 'rgba(255,255,255,0.22)', height: 5 }
-                : active
-                  ? { backgroundColor: '#E8B400', opacity: 0.8 }
-                  : { backgroundColor: 'rgba(255,255,255,0.1)' },
-            ]}
-          />
-        ))}
-      </View>
+        <Text style={ns.kcalSub}>
+          {remaining > 0 ? `${remaining.toLocaleString()} left` : 'goal hit'}
+        </Text>
+      </DayArcRing>
+      <Text style={ns.caption}>{nutritionCaption(caloriesConsumed, calorieGoal, remaining)}</Text>
     </View>
   );
 }
 
 const ns = StyleSheet.create({
-  content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14 },
-  ringWrap:{ position: 'relative', width: 148, height: 148, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  center:  { position: 'absolute', alignItems: 'center' },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 10 },
   kcalRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
   kcal:    { fontFamily: Fonts.light, fontSize: 34, color: '#fff', letterSpacing: -1.2, lineHeight: 36, fontVariant: ['tabular-nums'] },
   kcalUnit:{ fontFamily: Fonts.light, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 3 },
   kcalSub: { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
-  dayDots: { flexDirection: 'row', gap: 4, paddingHorizontal: 18 },
-  dot:     { flex: 1, height: 3, borderRadius: 2 },
+  caption: { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', paddingHorizontal: 20 },
 });
 
 export function BentoCard({
@@ -172,14 +128,16 @@ export function BentoCard({
               >
                 {/* Slide 0 — Weekly Goal: pure black */}
                 <View style={[ss.slide, { width: HERO_W }]}>
-                  <WeeklyRing weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays} />
+                  <WeeklyRing
+                    weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays}
+                    onPress={() => onNavigate('History')}
+                  />
                 </View>
 
-                {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark */}
-                <Pressable
-                  style={[ss.slide, { width: HERO_W, backgroundColor: '#1A120C' }]}
-                  onPress={onNutritionPress}
-                >
+                {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark.
+                    The ring itself is the tap target (DayArcRing) — no outer Pressable,
+                    so its own press-bounce animation isn't fighting a nested one. */}
+                <View style={[ss.slide, { width: HERO_W, backgroundColor: '#1A120C' }]}>
                   <NutritionTile
                     caloriesConsumed={caloriesConsumed}
                     calorieGoal={calorieGoal}
@@ -187,7 +145,7 @@ export function BentoCard({
                     runDays={runDays}
                     onPress={onNutritionPress}
                   />
-                </Pressable>
+                </View>
               </ScrollView>
 
               <View style={ss.dots}>
@@ -200,7 +158,10 @@ export function BentoCard({
             // Nutrition tracking is off — no carousel, no fake calorie card to tap
             // through to a ComingSoon screen. Just the weekly-goal ring, full width.
             <View style={[ss.slide, { width: HERO_W }]}>
-              <WeeklyRing weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays} />
+              <WeeklyRing
+                weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays}
+                onPress={() => onNavigate('History')}
+              />
             </View>
           )}
         </View>

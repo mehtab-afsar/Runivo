@@ -152,8 +152,16 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    wrapper:         { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: -3 } },
-    topBorder:       { height: 0.5, backgroundColor: C.border },
+    wrapper:         {
+      // No overflow:hidden here — the floating red Run button (runCircle) pokes
+      // above this view via a negative margin, and clipping would cut it off.
+      // A rounded background still renders correctly without it.
+      position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg,
+      borderTopLeftRadius: 26, borderTopRightRadius: 26,
+      shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: -4 },
+    },
+    // Inset past the rounded corners so the hairline doesn't poke out past the curve.
+    topBorder:       { height: 0.5, backgroundColor: C.border, marginHorizontal: 26 },
     row:             { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 6 },
     tab:             { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 4 },
     // 10px tracked-uppercase floor — 9px system font was both illegible and an SF leak.

@@ -64,7 +64,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     borderWidth: 0.5, borderColor: C.border,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontFamily: Fonts.display, fontSize: 16, color: C.t1 },
+  title: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
   input: {
     backgroundColor: C.stone, borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
     paddingHorizontal: 14, paddingVertical: Platform.OS === 'ios' ? 14 : 10,

@@ -15,6 +15,7 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   messages: CoachMessage[];
+  liveMessageIds: Set<string>;
   sending: boolean;
   error: string | null;
   inputText: string;
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export function PaceChatModal({
-  visible, onClose, messages, sending, error,
+  visible, onClose, messages, liveMessageIds, sending, error,
   inputText, setInputText, onSend, onRetry, onOpenCapabilities,
 }: Props) {
   const C = useTheme();
@@ -75,7 +76,7 @@ export function PaceChatModal({
                   {item.auto_triggered && (
                     <Text style={s.autoLabel}>✨ After your run</Text>
                   )}
-                  <MessageBubble role={item.role} content={item.content} type={item.type} />
+                  <MessageBubble role={item.role} content={item.content} type={item.type} animate={liveMessageIds.has(item.id)} />
                 </>
               )}
               contentContainerStyle={s.listContent}

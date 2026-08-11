@@ -238,7 +238,7 @@ function mkStyles(D: OnboardingD) {
     overlayBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(17,17,16,0.88)' },
     sheet:           { backgroundColor: D.surf, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 48, alignItems: 'center' },
     handle:          { width: 36, height: 3, borderRadius: 2, backgroundColor: D.div, marginBottom: 20 },
-    sheetTitle:      { fontFamily: Fonts.display, fontSize: 20, color: D.t1, marginBottom: 8, textAlign: 'center' },
+    sheetTitle:      { fontFamily: Fonts.semiBold, fontSize: 20, color: D.t1, marginBottom: 8, textAlign: 'center' },
     sheetSub:        { fontSize: 12, color: D.t2, textAlign: 'center', lineHeight: 18, marginBottom: 24 },
     sheetConfirm:    { width: '100%', paddingVertical: 14, borderRadius: 10, backgroundColor: D.alwaysDark, alignItems: 'center', marginBottom: 10 },
     sheetConfirmLabel:{ fontFamily: Fonts.medium, fontSize: 12, color: D.alwaysLight, letterSpacing: 1 },

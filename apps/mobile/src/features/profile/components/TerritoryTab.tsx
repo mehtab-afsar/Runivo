@@ -77,7 +77,7 @@ export function TerritoryTab() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     empty: { alignItems: 'center', paddingVertical: 40 },
-    emptyTitle: { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, marginBottom: 6 },
     emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
     summaryCard: {
       backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,

@@ -164,7 +164,7 @@ function mkStyles(C: AppColors) {
     topOverlay:   { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
     styleBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
     emptyState:   { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', gap: 12, padding: 40 },
-    emptyTitle:   { fontFamily: Fonts.display, fontSize: 22, color: C.alwaysLight },
+    emptyTitle:   { fontFamily: Fonts.semiBold, fontSize: 22, color: C.alwaysLight },
     emptyBody:    { fontFamily: Fonts.regular, fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
     emptyBtn:     { backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
     emptyBtnText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },

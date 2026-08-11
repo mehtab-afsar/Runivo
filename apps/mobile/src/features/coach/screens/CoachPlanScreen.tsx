@@ -139,7 +139,7 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1, backgroundColor: C.bg },
     header:      { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingBottom: 12, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:     { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
-    title:       { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    title:       { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     subtitle:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
     weekBadge:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)', marginTop: 2 },
     weekBadgeText: { fontFamily: Fonts.semiBold, fontSize: 10, color: C.red, fontVariant: ['tabular-nums'] },

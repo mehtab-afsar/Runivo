@@ -94,7 +94,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrap:         { paddingHorizontal: 20, paddingTop: 32, paddingBottom: 20, gap: 16 },
     wordmark:     { textAlign: 'center' },
-    pace:         { fontFamily: Fonts.display, fontSize: 36, color: C.black },
+    pace:         { fontFamily: Fonts.semiBold, fontSize: 36, color: C.black },
     x:            { fontFamily: Fonts.bold, fontSize: 36, color: C.red },
     tagline:      { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center' },
     card:         { backgroundColor: C.card, borderRadius: 14, padding: 18, gap: 12, borderWidth: 0.5, borderColor: C.border },

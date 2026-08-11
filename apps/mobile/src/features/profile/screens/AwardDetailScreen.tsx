@@ -64,7 +64,7 @@ function mkStyles(C: AppColors) {
     content:         { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
     icon:            { fontSize: 72, marginBottom: 16 },
     iconLocked:      { opacity: 0.35 },
-    title:           { fontFamily: Fonts.display, fontSize: 28, color: C.black, textAlign: 'center', marginBottom: 12 },
+    title:           { fontFamily: Fonts.semiBold, fontSize: 28, color: C.black, textAlign: 'center', marginBottom: 12 },
     categoryBadge:   { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, marginBottom: 16 },
     categoryBadgeEarned: { backgroundColor: C.amberBg, borderColor: C.gold },
     categoryText:    { ...Type.overline, color: C.t2 },

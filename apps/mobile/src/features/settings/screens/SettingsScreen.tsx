@@ -228,7 +228,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
   header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn:     { width: 32 },
-  title:       { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+  title:       { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   scroll:      { paddingBottom: 40 },
   linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
   linkLabel:   { fontFamily: Fonts.regular, fontSize: 14, color: C.black },

@@ -20,6 +20,7 @@ import type { PlayerProfile } from '@shared/services/profile';
 
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { MissionCard, type CardState } from '../components/MissionCard';
+import { MissionRow } from '@features/dashboard/components/MissionRow';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -81,6 +82,7 @@ export default function MissionsScreen() {
       setRowStates(prev => ({ ...prev, [missionId]: 'retry' }));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
+    return result;
   }, []);
 
   const swappingMission = missions.find(m => m.id === swappingId) ?? null;
@@ -163,14 +165,28 @@ export default function MissionsScreen() {
     ? 'All claimed for today'
     : `${doneCount} of ${missions.length} claimed`;
 
+  // One mission gets the full card — everything else was getting the exact
+  // same dark-ring treatment regardless of state, so nothing told your eye
+  // which one actually needed attention. Priority: something ready to claim,
+  // else whichever is closest to finishing — the other two drop to compact
+  // rows, same visual language as the Dashboard widget.
+  const claimableMission = missions.find(m => m.completed && !m.claimed);
+  const inProgress = missions.filter(m => !m.completed);
+  const featured = claimableMission
+    ?? (inProgress.length > 0
+      ? inProgress.reduce((best, m) =>
+          (m.current / Math.max(m.target, 1)) > (best.current / Math.max(best.target, 1)) ? m : best)
+      : null);
+  const rest = missions.filter(m => m.id !== featured?.id);
+
   return (
     <SafeAreaView style={ss.root}>
       <View style={ss.header}>
         <Pressable onPress={() => navigation.goBack()} style={ss.backBtn}>
           <Text style={ss.backText}>←</Text>
         </Pressable>
-        <View style={{ alignItems: 'center' }}>
-          <Text style={ss.headerTitle}>Today</Text>
+        <View style={ss.todayTitleWrap}>
+          <Text style={ss.todayTitle}>Today</Text>
           <Text style={ss.dateLabel}>{dateLabel} · {progressLabel}</Text>
         </View>
         <View style={{ width: 30 }} />
@@ -178,21 +194,34 @@ export default function MissionsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={ss.todayList}>
-          {missions.map(m => {
-            const { Icon: MIcon, color } = TYPE_ICON[m.type] ?? { Icon: Target, color: C.red };
+          {featured && (() => {
+            const { Icon: MIcon, color } = TYPE_ICON[featured.type] ?? { Icon: Target, color: C.red };
             return (
               <MissionCard
-                key={m.id}
-                mission={m}
+                mission={featured}
                 MIcon={MIcon}
                 accentColor={color}
-                sourceLabel={MISSION_SOURCE_LABEL[m.type]}
-                state={rowStates[m.id] ?? 'idle'}
+                sourceLabel={MISSION_SOURCE_LABEL[featured.type]}
+                state={rowStates[featured.id] ?? 'idle'}
                 onClaim={handleClaim}
                 onSwap={setSwappingId}
               />
             );
-          })}
+          })()}
+
+          {rest.length > 0 && (
+            <View style={ss.restCard}>
+              {rest.map((m, i) => (
+                <MissionRow
+                  key={m.id}
+                  mission={m}
+                  isLast={i === rest.length - 1}
+                  onClaim={handleClaim}
+                  onPress={() => setSwappingId(m.id)}
+                />
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -204,14 +233,22 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   root:            { flex: 1, backgroundColor: T.pageBg },
   loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  // Header
-  header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: T.card, borderBottomWidth: 0.5, borderBottomColor: T.border },
+  // Header — no bar, no border, sits directly on the page (only the swap
+  // picker's single-line title still uses headerTitle/flex:1 directly).
+  header:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 14 : 6, paddingBottom: 10, backgroundColor: T.pageBg },
   backBtn:         { width: 30, height: 30, borderRadius: 15, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
   backText:        { fontFamily: Fonts.regular, fontSize: 16, color: T.black, lineHeight: 18 },
-  headerTitle:     { fontFamily: Fonts.display, fontSize: 18, color: T.black, flex: 1, textAlign: 'center', marginHorizontal: 8 },
-  dateLabel:       { fontFamily: Fonts.regular, fontSize: 11, color: T.t3 },
+  headerTitle:     { fontFamily: Fonts.semiBold, fontSize: 18, color: T.black, flex: 1, textAlign: 'center', marginHorizontal: 8 },
+  // "Today" screen's title sits in its own flex:1 wrapper (with the date
+  // subtitle) — the bug was flex:1 living on the Text instead of this View,
+  // so the wrapper never actually claimed the space between the two buttons
+  // and "Today" got clipped against its own margin.
+  todayTitleWrap:  { flex: 1, alignItems: 'center' },
+  todayTitle:      { fontFamily: Fonts.semiBold, fontSize: 18, color: T.black },
+  dateLabel:       { fontFamily: Fonts.regular, fontSize: 11, color: T.t3, marginTop: 1 },
 
   todayList:       { padding: Spacing.gutter, gap: 14 },
+  restCard:        { backgroundColor: T.alwaysDark, borderRadius: 16, padding: 16 },
 
   // Swap picker rows
   cardIconBox:     { width: 34, height: 34, borderRadius: 9, backgroundColor: T.stone, borderWidth: 0.5, borderColor: T.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

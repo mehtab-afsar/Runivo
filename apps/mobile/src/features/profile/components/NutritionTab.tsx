@@ -223,7 +223,7 @@ function mkStyles(C: AppColors) {
     btn: { backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
     btnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.5 },
     empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 20 },
-    emptyTitle: { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 8 },
+    emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, marginBottom: 8 },
     emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
   });
 }

@@ -544,7 +544,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   },
   backBtn:  { width: 32 },
   backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-  title:    { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+  title:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   scroll:   { paddingHorizontal: Spacing.gutter, paddingBottom: 40 },
 
   banner: {

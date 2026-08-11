@@ -188,6 +188,57 @@ export function generateBlueprint(
   }));
 }
 
+// ── Training-plan → mission bridge ──────────────────────────────────────────
+// Missions only ever represent "today" — there's no forward-scheduling concept
+// in this system (generateDailyMissions regenerates from scratch every day,
+// keyed by date). A multi-week training_plans row can't be represented here
+// wholesale, so this only ever surfaces the ONE session actually due today,
+// as one of today's missions, rather than pretending the whole week fits.
+export interface PlanSession {
+  day:         string;
+  type:        string;
+  description: string;
+}
+
+const PLAN_SESSION_DEFAULT_KM: Record<string, number> = {
+  'Easy Run': 3,
+  'Tempo':    3,
+  'Long Run': 6,
+};
+
+/**
+ * Builds a run_distance mission from today's scheduled plan session, so a
+ * plan someone's actually following shows up as today's mission instead of
+ * an unrelated random pick. Returns null for a Rest day — nothing to turn
+ * into a mission.
+ *
+ * Target distance is parsed from the session's own description ("5km at
+ * ...") when present — the format handleTrainingPlan's prompt asks Claude to
+ * use — falling back to a type-based default since not every description
+ * follows it (the edge function's own parse-failure fallback plan phrases
+ * Tempo in minutes, not km).
+ */
+export function missionFromPlanSession(session: PlanSession, expiresAt: number): Omit<Mission, 'id'> | null {
+  if (session.type === 'Rest') return null;
+  const match    = session.description.match(/(\d+(?:\.\d+)?)\s*km/i);
+  const targetKm = match ? parseFloat(match[1]) : (PLAN_SESSION_DEFAULT_KM[session.type] ?? 3);
+  return {
+    type:        'run_distance',
+    title:       session.type,
+    description: session.description,
+    icon:        '📅',
+    target:      targetKm,
+    current:     0,
+    completed:   false,
+    claimed:     false,
+    // Roughly matches ACTIVE_MISSION_TEMPLATES' existing run_distance scaling
+    // (1km → 4 PACE, 3km → ~10-12, 8km → 35) rather than a fixed flat reward.
+    rewards:     { pace: Math.max(4, Math.round(targetKm * 4)) },
+    expiresAt,
+    difficulty:  targetKm >= 6 ? 'hard' : targetKm >= 3 ? 'medium' : 'easy',
+  };
+}
+
 export function updateMissionProgress(
   missions: Mission[],
   runResult: {

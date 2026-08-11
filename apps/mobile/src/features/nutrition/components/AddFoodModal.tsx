@@ -367,7 +367,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: C.border,
   },
   closeBtn:    { width: 40, height: 40, alignItems: 'flex-start', justifyContent: 'center' },
-  title:       { fontFamily: Fonts.display, fontSize: 18, color: C.t1 },
+  title:       { fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
   scanBtns:    { flexDirection: 'row', gap: 4 },
   scanBtn:     { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
 

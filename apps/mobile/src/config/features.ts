@@ -25,7 +25,13 @@ export const FEATURES = {
   GEAR_TRACKING:  false,
 
   // Intelligence
-  AI_COACH:          false,
+  // All 10 LLM-calling modes now share SAFETY_GUARDRAILS (medical/injury,
+  // disordered eating, training-load sustainability, scope fence) plus a
+  // deterministic pre-model red-flag check for coach_chat — see
+  // supabase/functions/ai-coach/index.ts. The post-run debrief is properly
+  // gated behind this flag via setAiCoachEnabled() (App.tsx → sync.ts), so
+  // flipping this is now what actually turns the feature on end-to-end.
+  AI_COACH:          true,
   NUTRITION_TRACKER: true,
 } as const;
 

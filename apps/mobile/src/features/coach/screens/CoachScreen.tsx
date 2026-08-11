@@ -237,6 +237,7 @@ export default function CoachScreen() {
         visible={chatVisible}
         onClose={() => setChatVisible(false)}
         messages={coach.messages}
+        liveMessageIds={coach.liveMessageIds}
         sending={coach.sending}
         error={coach.error}
         inputText={coach.inputText}

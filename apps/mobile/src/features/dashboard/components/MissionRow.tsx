@@ -25,10 +25,14 @@ interface Props {
   mission: Mission;
   isLast?: boolean;
   onClaim?: (missionId: string) => Promise<unknown>;
+  /** Optional — when provided, the name/caption area becomes tappable (used by
+   *  the full Missions screen to open the swap picker; the Dashboard widget
+   *  doesn't pass this, so it stays a plain row there). */
+  onPress?: () => void;
 }
 
 // Memoised: one per daily mission, re-rendered by unrelated Dashboard state.
-export const MissionRow = React.memo(function MissionRow({ mission: m, isLast, onClaim }: Props) {
+export const MissionRow = React.memo(function MissionRow({ mission: m, isLast, onClaim, onPress }: Props) {
   const C        = useTheme();
   const ss       = useMemo(() => mkStyles(C), [C]);
   const TYPE_ICON = useMemo(() => mkTypeIcon(C), [C]);
@@ -62,14 +66,14 @@ export const MissionRow = React.memo(function MissionRow({ mission: m, isLast, o
           ? <Check size={12} color={GLOW} weight="bold" />
           : <MIcon size={13} color={ringColor} weight="light" />}
       </MissionRing>
-      <View style={{ flex: 1 }}>
+      <Pressable style={{ flex: 1 }} onPress={onPress} disabled={!onPress}>
         <Text style={[ss.title, m.claimed && ss.titleDone]}>{m.title}</Text>
         {claimable ? (
           <Text style={ss.claimHint}>{justMissed ? 'Not yet — try again shortly' : '● Ready to claim'}</Text>
         ) : (
           !m.claimed && <Text style={ss.source}>{MISSION_SOURCE_LABEL[m.type]}</Text>
         )}
-      </View>
+      </Pressable>
       {claimable ? (
         <Pressable
           onPress={handleClaim}

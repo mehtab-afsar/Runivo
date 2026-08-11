@@ -255,7 +255,7 @@ function mkStyles(C: AppColors) {
     showMore:      { backgroundColor: C.stone, borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 8 },
     showMoreText:  { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
     empty:         { alignItems: 'center', paddingVertical: 40 },
-    emptyTitle:    { fontFamily: Fonts.display, fontSize: 20, color: C.black, marginBottom: 6 },
+    emptyTitle:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, marginBottom: 6 },
     emptyText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 19 },
   });
 }

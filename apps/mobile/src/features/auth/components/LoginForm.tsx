@@ -250,7 +250,7 @@ function mkStyles(C: AppColors) {
 
     nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingBottom: 4 },
     backText:{ fontSize: 13, color: C.t2 },
-    logoWord:{ fontFamily: Fonts.display, fontSize: 15, color: C.t1 },
+    logoWord:{ fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     logoRed: { color: C.red },
 
     scroll:  { paddingHorizontal: 24 },

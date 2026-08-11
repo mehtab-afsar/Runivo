@@ -53,7 +53,7 @@ function mkStyles(C: AppColors) {
       paddingBottom: 10,
     },
     logo: {
-      fontFamily: Fonts.display,
+      fontFamily: Fonts.semiBold,
       fontSize: 16, color: C.t1,
     },
     navRight:     { flexDirection: 'row', alignItems: 'center', gap: 10 },

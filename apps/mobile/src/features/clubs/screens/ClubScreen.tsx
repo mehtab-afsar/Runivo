@@ -11,16 +11,17 @@ import {
   MapPin, Globe, Flag, Pulse, Users, X, Plus, Check,
   Fire, Lightning, Trophy, Shield, NavigationArrow, Barbell, Target, Medal,
   Rocket, Star, Sword, Waves, Mountains, Diamond, Crown, Leaf,
-  Footprints, Bicycle, Lock, ArrowLeft, Seal,
+  Footprints, Bicycle, Lock, ArrowLeft, Seal, CaretDown, MagnifyingGlass,
   type Icon,
 } from 'phosphor-react-native';
 import { useClubs } from '@features/clubs/hooks/useClubs';
 import { SearchBar } from '@features/clubs/components/SearchBar';
+import { BottomSheet } from '@mobile/shared/components/BottomSheet';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Club } from '@features/clubs/types';
-import { useTheme, Colors, Fonts, Type, type AppColors } from '@theme';
+import { useTheme, Colors, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { ClubRankRow } from '../components/ClubRankRow';
 import { ClubHeroCard } from '../components/ClubHeroCard';
 
@@ -281,6 +282,8 @@ export default function ClubScreen() {
   const { filteredClubs, clubs, loading, refreshing, searchQuery, setSearchQuery, joinClub, leaveClub, createClub, refresh } = useClubs();
   const [tab, setTab] = useState<ClubTab>('my_clubs');
   const [rankScope, setRankScope] = useState<RankingScope>('international');
+  const [scopeSheetOpen, setScopeSheetOpen] = useState(false);
+  const [rankSearchOpen, setRankSearchOpen] = useState(false);
   const [rankSearch, setRankSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
 
@@ -297,25 +300,31 @@ export default function ClubScreen() {
   const goToDetail = (item: Club) =>
     navigation.navigate('ClubDetail', { clubId: item.id, clubName: item.name, badgeEmoji: item.badge_emoji, memberCount: item.member_count, totalKm: item.total_km });
 
+  const scopeLabel = SCOPES.find(sc => sc.value === rankScope)?.label ?? 'International';
+
+  // One row: a scope chip that opens a sheet for the 3 options, plus a search
+  // toggle — instead of 3 always-visible pills + a permanently-open search bar
+  // + a table header stacked before a single ranked list ever shows.
   const ScopeHeader = (
     <>
-      {/* Scope pills */}
-      <View style={s.scopeRow}>
-        {SCOPES.map(sc => {
-          const active = rankScope === sc.value;
-          const SIcon = sc.value === 'local' ? MapPin : sc.value === 'national' ? Flag : Globe;
-          return (
-            <Pressable key={sc.value} style={[s.scopeBtn, active && s.scopeBtnActive]} onPress={() => { setRankScope(sc.value); setRankSearch(''); }}>
-              <SIcon size={10} color={active ? C.red : C.t3} weight="light" />
-              <Text style={[s.scopeLabel, active && s.scopeLabelActive]}>{sc.label}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={s.rankHeaderRow}>
+        <Pressable style={s.scopeChip} onPress={() => setScopeSheetOpen(true)}>
+          <Text style={s.scopeChipText}>{scopeLabel}</Text>
+          <CaretDown size={9} color={C.t3} weight="bold" />
+        </Pressable>
+        <Pressable
+          style={[s.searchToggle, rankSearchOpen && s.searchToggleActive]}
+          onPress={() => setRankSearchOpen(o => { if (o) setRankSearch(''); return !o; })}
+          hitSlop={6}
+        >
+          <MagnifyingGlass size={14} color={rankSearchOpen ? C.alwaysLight : C.t3} weight="regular" />
+        </Pressable>
       </View>
-      {/* Search bar */}
-      <View style={s.rankSearchWrap}>
-        <SearchBar value={rankSearch} onChange={setRankSearch} placeholder="Search clubs..." />
-      </View>
+      {rankSearchOpen && (
+        <View style={s.rankSearchWrap}>
+          <SearchBar value={rankSearch} onChange={setRankSearch} placeholder="Search clubs..." />
+        </View>
+      )}
     </>
   );
 
@@ -354,13 +363,6 @@ export default function ClubScreen() {
     </View>
   ) : null;
 
-  const TableHeader = !filteredRanked && rankedClubs.length > 3 ? (
-    <View style={[s.tableHeader, { marginTop: 12 }]}>
-      <Text style={[s.tableHeaderText, { flex: 1, marginLeft: 72 }]}>Club</Text>
-      <Text style={[s.tableHeaderText, { width: 56, textAlign: 'right' }]}>KM</Text>
-    </View>
-  ) : null;
-
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
@@ -390,6 +392,8 @@ export default function ClubScreen() {
         <FlatList
           data={myClubs}
           keyExtractor={c => c.id}
+          numColumns={2}
+          columnWrapperStyle={s.myClubGridRow}
           renderItem={({ item }) => (
             <ClubHeroCard
               club={item}
@@ -427,7 +431,6 @@ export default function ClubScreen() {
             <>
               {ScopeHeader}
               {PodiumSection}
-              {TableHeader}
               {filteredRanked !== null && filteredRanked.length === 0 && (
                 <View style={s.empty}>
                   <Text style={s.emptyTitle}>No clubs found</Text>
@@ -462,6 +465,27 @@ export default function ClubScreen() {
         onClose={() => setShowCreate(false)}
         onCreate={createClub}
       />
+
+      <BottomSheet visible={scopeSheetOpen} onClose={() => setScopeSheetOpen(false)} maxHeight={0.36}>
+        <View style={s.scopeSheetContent}>
+          <Text style={s.scopeSheetLabel}>Rank clubs by</Text>
+          {SCOPES.map(sc => {
+            const active = rankScope === sc.value;
+            const SIcon = sc.value === 'local' ? MapPin : sc.value === 'national' ? Flag : Globe;
+            return (
+              <Pressable
+                key={sc.value}
+                style={[s.scopeSheetRow, active && s.scopeSheetRowActive]}
+                onPress={() => { setRankScope(sc.value); setRankSearch(''); setScopeSheetOpen(false); }}
+              >
+                <SIcon size={15} color={active ? C.red : C.t3} weight={active ? 'fill' : 'light'} />
+                <Text style={[s.scopeSheetRowLabel, active && s.scopeSheetRowLabelActive]}>{sc.label}</Text>
+                {active && <Check size={14} color={C.red} weight="bold" />}
+              </Pressable>
+            );
+          })}
+        </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -480,9 +504,10 @@ function mkStyles(C: AppColors) {
     tabLabel:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     tabLabelActive:  { fontFamily: Fonts.medium, color: C.black },
     loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    // My Clubs tab
+    // My Clubs tab — 2-column grid
     searchWrap:      { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
-    myClubList:      { paddingBottom: 100 },
+    myClubList:      { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 10 },
+    myClubGridRow:   { gap: 10 },
     myClubRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 13, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     myClubAvatar:    { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     myClubTopRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
@@ -495,14 +520,21 @@ function mkStyles(C: AppColors) {
     emptyText:       { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', marginBottom: 12 },
     emptyBtn:        { backgroundColor: C.alwaysDark, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 4 },
     emptyBtnLabel:   { fontFamily: Fonts.medium, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.6 },
-    // Rankings tab
+    // Rankings tab — one row (scope chip + search toggle) instead of pills + a
+    // permanently-open search bar stacked above the list.
     rankList:        { paddingBottom: 100 },
-    scopeRow:        { flexDirection: 'row', gap: 6, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 4, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    scopeBtn:        { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.bg, flexDirection: 'row', alignItems: 'center', gap: 4 },
-    scopeBtnActive:  { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
-    scopeLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
-    scopeLabelActive:{ fontFamily: Fonts.medium, color: C.red },
-    rankSearchWrap:  { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
+    rankHeaderRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, backgroundColor: C.bg },
+    scopeChip:       { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 7 },
+    scopeChipText:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t1 },
+    searchToggle:    { width: 30, height: 30, borderRadius: 15, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    searchToggleActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+    rankSearchWrap:  { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 4 },
+    scopeSheetContent: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl },
+    scopeSheetLabel:   { ...Type.overline, color: C.t3, marginBottom: 12 },
+    scopeSheetRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, paddingHorizontal: 10, borderRadius: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
+    scopeSheetRowActive: { backgroundColor: C.redLo, borderBottomColor: 'transparent' },
+    scopeSheetRowLabel:  { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
+    scopeSheetRowLabelActive: { fontFamily: Fonts.medium, color: C.red },
     // Dark podium
     podiumCard:      { marginHorizontal: 18, marginTop: 12, marginBottom: 0, backgroundColor: C.alwaysDark, borderRadius: 16, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' },
     podiumHeader:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },
@@ -514,8 +546,5 @@ function mkStyles(C: AppColors) {
     podiumMeta:      { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 8 },
     podiumBlock:     { width: '100%', borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
     podiumRank:      { fontFamily: Fonts.bold, fontSize: 18, color: C.alwaysLight },
-    // Table header
-    tableHeader:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.stone, borderTopWidth: 0.5, borderTopColor: C.border, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    tableHeaderText: { ...Type.overline, color: C.t3 },
   });
 }

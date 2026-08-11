@@ -68,10 +68,10 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn: { width: 40 },
   backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-  title: { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+  title: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
   markAll: { fontFamily: Fonts.medium, fontSize: 11, color: C.red, textAlign: 'right' },
   list: { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 6 },
   empty: { alignItems: 'center' as const, paddingVertical: 48 },
-  emptyTitle: { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+  emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, marginBottom: 6 },
   emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', paddingHorizontal: 24 },
 }); }

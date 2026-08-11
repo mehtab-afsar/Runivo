@@ -169,7 +169,7 @@ function mkStyles(C: AppColors) {
     root:         { flex: 1, backgroundColor: C.bg },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:      { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     searchWrap:   { paddingHorizontal: Spacing.gutter, paddingBottom: 8 },
     search:       { backgroundColor: C.stone, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 13, color: C.black, borderWidth: 0.5, borderColor: C.border },
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },

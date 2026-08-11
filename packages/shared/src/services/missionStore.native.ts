@@ -3,9 +3,37 @@
  * Metro automatically picks this file on iOS/Android.
  */
 import * as SQLite from 'expo-sqlite';
-import { Mission, generateDailyMissions, updateMissionProgress, MISSION_TEMPLATES } from './missions';
+import { Mission, generateDailyMissions, updateMissionProgress, MISSION_TEMPLATES, missionFromPlanSession, type PlanSession } from './missions';
 import { getPlayer, savePlayer, getSettings } from './store';
 import { computeRunnerRank } from './claimEngine';
+
+const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Active plan's session for today, or null offline/signed-out/no plan/no
+ *  session scheduled today — ensureTodaysMissions() falls back to the plain
+ *  random set in every one of those cases, same as before this existed. */
+async function fetchTodayPlanSession(): Promise<PlanSession | null> {
+  try {
+    const { supabase } = await import('./supabase');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data: plan } = await supabase
+      .from('training_plans')
+      .select('week_current, plan_data')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!plan) return null;
+    const planData = plan.plan_data as { weeks: Array<{ week: number; sessions: PlanSession[] }> };
+    const week = planData?.weeks?.[(plan.week_current ?? 1) - 1];
+    if (!week) return null;
+    return week.sessions.find(s => s.day === DAY_ABBREVS[new Date().getDay()]) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 const _db = SQLite.openDatabaseSync('runivo.db');
 
@@ -172,6 +200,16 @@ export async function ensureTodaysMissions(): Promise<Mission[]> {
   const settings   = await getSettings();
   const difficulty = (settings?.missionDifficulty ?? 'mixed') as 'easy' | 'mixed' | 'hard';
   const missions   = generateDailyMissions(new Date(), difficulty);
+
+  // An active training plan with a session scheduled for today replaces one
+  // of the random picks — the plan someone's actually following shows up as
+  // today's mission instead of competing against an unrelated one.
+  const planSession = await fetchTodayPlanSession();
+  if (planSession) {
+    const built = missionFromPlanSession(planSession, missions[0].expiresAt);
+    if (built) missions[0] = { ...built, id: missions[0].id };
+  }
+
   await saveMissions(missions);
   return missions;
 }

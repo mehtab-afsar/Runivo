@@ -57,6 +57,6 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.stone },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   back: { width: 32 }, backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-  title: { fontFamily: Fonts.display, fontSize: 20, color: C.t1 },
+  title: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1 },
   content: { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
 }); }

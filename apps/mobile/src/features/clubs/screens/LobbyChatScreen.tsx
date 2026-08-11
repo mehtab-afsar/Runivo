@@ -90,7 +90,7 @@ function mkStyles(C: AppColors) {
     roomDesc:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     loader:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty:        { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
-    emptyTitle:   { fontFamily: Fonts.display, fontSize: 18, color: C.black },
+    emptyTitle:   { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
     emptyText:    { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }

@@ -131,8 +131,8 @@ export default function LeaderboardScreen() {
     [navigation],
   );
   const renderItem = useCallback(
-    ({ item, index }: { item: LeaderboardEntry; index: number }) => (
-      <EntryRow entry={item} unit={unit} index={index} onPress={item.isPlayer ? undefined : openProfile} />
+    ({ item }: { item: LeaderboardEntry }) => (
+      <EntryRow entry={item} unit={unit} onPress={item.isPlayer ? undefined : openProfile} />
     ),
     [unit, openProfile],
   );
@@ -212,12 +212,12 @@ function mkStyles(C: AppColors) {
     root: { flex: 1, backgroundColor: C.bg },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title: { fontFamily: Fonts.display, fontSize: 24, color: C.black },
+    title: { fontFamily: Fonts.semiBold, fontSize: 24, color: C.black },
     list:          { paddingBottom: 100 },
     skeletonWrap:  { paddingTop: 8 },
     skeletonRow:   { height: 51, marginHorizontal: Spacing.gutter, marginBottom: 8, borderRadius: Spacing.radius.md },
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
-    emptyTitle:    { fontFamily: Fonts.display, fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyTitle:    { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, marginBottom: 6 },
     emptyText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
     playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)', shadowColor: C.red, shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 3 },
     playerRank:    { fontFamily: Fonts.regular, fontSize: 13, color: C.red, width: 24, textAlign: 'center', fontVariant: ['tabular-nums'] },
