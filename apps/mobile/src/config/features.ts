@@ -26,7 +26,7 @@ export const FEATURES = {
 
   // Intelligence
   AI_COACH:          false,
-  NUTRITION_TRACKER: false,
+  NUTRITION_TRACKER: true,
 } as const;
 
 export const FEATURE_LABELS: Partial<Record<keyof typeof FEATURES, string>> = {

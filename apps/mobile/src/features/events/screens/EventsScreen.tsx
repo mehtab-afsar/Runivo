@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, Modal, Share, Linking, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, Modal, Share, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -7,20 +7,10 @@ import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, Plus,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
-import { DISCIPLINE_LABEL, type RunEvent, type Discipline } from '../types';
+import { DISCIPLINE_LABEL, type RunEvent } from '../types';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-type EventTab = 'upcoming' | 'challenges' | 'past';
-
-const TABS: { id: EventTab; label: string }[] = [
-  { id: 'upcoming',   label: 'Upcoming'   },
-  { id: 'challenges', label: 'Challenges' },
-  { id: 'past',       label: 'Past'       },
-];
-
-const DISCIPLINE_CHIPS = Object.entries(DISCIPLINE_LABEL) as [Discipline, string][];
-const CHALLENGE_CATEGORIES = new Set(['challenge', 'brand-challenge', 'king-of-hill', 'survival']);
 
 function avatarColor(initial: string): string {
   const COLORS = ['#D93518', '#1A6B40', '#9E6800', '#1E4D8C', '#6B2D8C', '#8C2D1E', '#2D6B5C'];
@@ -204,26 +194,15 @@ export default function EventsScreen() {
     events, joinedIds, canCreate, loading, refreshing,
     nearMeAvailable, nearMeActive, toggleNearMe, handleJoin, refresh,
   } = useEvents();
-  const [activeTab, setActiveTab] = useState<EventTab>('upcoming');
-  const [activeDiscipline, setActiveDiscipline] = useState<Discipline | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
 
-  const filteredEvents = useMemo(() => {
+  // One list, upcoming only, sorted by date (already server-sorted) — no tabs,
+  // no category taxonomy. What's happening next is the only question this
+  // screen answers; a discipline label still shows on each card itself.
+  const upcomingEvents = useMemo(() => {
     const now = Date.now();
-    return events.filter(e => {
-      // startsAt is the raw ISO timestamp — e.date is display-formatted
-      // (e.g. "Mon, Aug 15") and re-parsing it silently produced wrong
-      // results (no year, engine-dependent), which is why "Past" used to
-      // show nothing.
-      const isPast = new Date(e.startsAt).getTime() < now;
-      const isChallenge = CHALLENGE_CATEGORIES.has(e.category);
-      const matchesDiscipline = !activeDiscipline || e.discipline === activeDiscipline;
-      if (!matchesDiscipline) return false;
-      if (activeTab === 'past')       return isPast;
-      if (activeTab === 'challenges') return !isPast && isChallenge;
-      return !isPast && !isChallenge;
-    });
-  }, [events, activeTab, activeDiscipline]);
+    return events.filter(e => new Date(e.startsAt).getTime() >= now);
+  }, [events]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -232,10 +211,7 @@ export default function EventsScreen() {
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
           <ArrowLeft size={18} color={C.t2} weight="regular" />
         </Pressable>
-        <View style={{ flex: 1 }}>
-          <Text style={s.title}>Events</Text>
-          <Text style={s.subtitle}>Races, meetups &amp; challenges near you</Text>
-        </View>
+        <Text style={s.title}>Events</Text>
         {canCreate ? (
           <Pressable onPress={() => navigation.navigate('CreateEvent')} style={s.createBtn}>
             <Plus size={14} color={C.white} weight="bold" />
@@ -245,44 +221,14 @@ export default function EventsScreen() {
         )}
       </View>
 
-      {/* Segmented tabs — matches web pill container */}
-      <View style={s.tabContainer}>
-        <View style={s.tabPill}>
-          {TABS.map(tab => (
-            <Pressable
-              key={tab.id}
-              style={[s.tab, activeTab === tab.id && s.tabActive]}
-              onPress={() => setActiveTab(tab.id)}
-            >
-              <Text style={[s.tabLabel, activeTab === tab.id && s.tabLabelActive]}>
-                {tab.label}
-              </Text>
-            </Pressable>
-          ))}
+      {nearMeAvailable && (
+        <View style={s.nearMeRow}>
+          <Pressable style={[s.nearMePill, nearMeActive && s.nearMePillActive]} onPress={() => toggleNearMe()}>
+            <NavigationArrow size={11} color={nearMeActive ? C.alwaysLight : C.t3} weight="fill" />
+            <Text style={[s.nearMeText, nearMeActive && s.nearMeTextActive]}>Near me</Text>
+          </Pressable>
         </View>
-
-        {/* Discipline + near-me filter row */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
-          {nearMeAvailable && (
-            <Pressable
-              style={[s.chip, nearMeActive && s.chipActive]}
-              onPress={() => toggleNearMe(activeDiscipline ?? undefined)}
-            >
-              <NavigationArrow size={10} color={nearMeActive ? C.alwaysLight : C.t3} weight="fill" />
-              <Text style={[s.chipText, nearMeActive && s.chipTextActive]}>Near me</Text>
-            </Pressable>
-          )}
-          {DISCIPLINE_CHIPS.map(([value, label]) => (
-            <Pressable
-              key={value}
-              style={[s.chip, activeDiscipline === value && s.chipActive]}
-              onPress={() => setActiveDiscipline(activeDiscipline === value ? null : value)}
-            >
-              <Text style={[s.chipText, activeDiscipline === value && s.chipTextActive]}>{label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+      )}
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -290,17 +236,15 @@ export default function EventsScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredEvents}
+          data={upcomingEvents}
           keyExtractor={e => e.id}
           renderItem={({ item }) => (
-            <View style={item.category === 'brand-challenge' ? s.paceCardAccent : undefined}>
-              <EventCard
-                event={item}
-                joined={joinedIds.has(item.id)}
-                onJoin={() => handleJoin(item.id)}
-                onPress={() => setSelectedEvent(item)}
-              />
-            </View>
+            <EventCard
+              event={item}
+              joined={joinedIds.has(item.id)}
+              onJoin={() => handleJoin(item.id)}
+              onPress={() => setSelectedEvent(item)}
+            />
           )}
           contentContainerStyle={s.list}
           showsVerticalScrollIndicator={false}
@@ -308,9 +252,7 @@ export default function EventsScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Calendar size={32} color={C.t3} weight="light" />
-              <Text style={s.emptyTitle}>
-                {activeTab === 'past' ? 'No past events' : activeTab === 'challenges' ? 'No challenges' : 'No upcoming events'}
-              </Text>
+              <Text style={s.emptyTitle}>No upcoming events</Text>
               <Text style={s.emptyText}>Check back soon for new events.</Text>
             </View>
           }
@@ -342,31 +284,22 @@ export default function EventsScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:           { flex: 1, backgroundColor: C.bg },
-    header:         { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
-    title:          { fontFamily: Fonts.display, fontSize: 20, color: C.black },
-    subtitle:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
-    createBtn:      { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
-    // Segmented tabs
-    tabContainer:   { backgroundColor: C.card, paddingHorizontal: 18, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    tabPill:        { flexDirection: 'row', backgroundColor: C.bg, borderRadius: 20, padding: 3, gap: 2, marginBottom: 10 },
-    tab:            { flex: 1, paddingVertical: 6, borderRadius: 16, alignItems: 'center' },
-    tabActive:      { backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border },
-    tabLabel:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
-    tabLabelActive: { fontFamily: Fonts.medium, color: C.black },
-    // Discipline/near-me chip row
-    chipRow:        { gap: 6, paddingRight: 8 },
-    chip:           { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border },
-    chipActive:     { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-    chipText:       { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
-    chipTextActive: { fontFamily: Fonts.medium, color: C.alwaysLight },
+    header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 14 : 4, paddingBottom: 16, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+    title:          { flex: 1, textAlign: 'center', fontFamily: Fonts.display, fontSize: 22, color: C.black },
+    createBtn:      { width: 32, height: 32, borderRadius: 16, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    // Near-me — the one filter worth surfacing, everything else lives on the card itself
+    nearMeRow:      { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 2, backgroundColor: C.bg },
+    nearMePill:     { flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border },
+    nearMePillActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+    nearMeText:     { fontFamily: Fonts.medium, fontSize: 11.5, color: C.t3 },
+    nearMeTextActive: { color: C.alwaysLight },
     // List
-    list:           { paddingBottom: 120 },
+    list:           { paddingTop: 8, paddingBottom: 120 },
     empty:          { alignItems: 'center' as const, paddingVertical: 56, paddingHorizontal: 18, gap: 8 },
     emptyTitle:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
     emptyText:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center' },
     // FAB
     fab:            { position: 'absolute', right: 14, width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
-    paceCardAccent: { borderLeftWidth: 3, borderLeftColor: C.red },
   });
 }
