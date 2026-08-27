@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { MapPin, Stack } from 'phosphor-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { useTheme, Fonts, Colors, type AppColors } from '@theme';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTerritoryMap } from '../hooks/useTerritoryMap';
 import { TerritoryFilterChips } from '../components/TerritoryFilterChips';
@@ -22,7 +22,7 @@ const territoryFillStyle = {
   fillColor: ['case',
     ['all', ['==', ['get', 'isOwn'], true], ['>=', ['get', 'freshness'], 70]], ACCENT,
     ['all', ['==', ['get', 'isOwn'], true], ['>=', ['get', 'freshness'], 40]], '#D4785A',
-    ['all', ['==', ['get', 'isOwn'], true], ['<',  ['get', 'freshness'], 40]], '#EF9F27',
+    ['all', ['==', ['get', 'isOwn'], true], ['<',  ['get', 'freshness'], 40]], Colors.retryAmber,
     '#6B7FA3',
   ],
   fillOpacity: ['case', ['==', ['get', 'isOwn'], true], 0.40, 0.25],

@@ -10,7 +10,7 @@ import { useTheme, Fonts, type AppColors } from '@theme';
 function freshnessColor(f: number, C: AppColors): string {
   if (f >= 70) return C.red;
   if (f >= 40) return C.gold;
-  return '#EF9F27';
+  return C.retryAmber;
 }
 
 const TIER_LABELS: Record<TerritoryTier, string> = {

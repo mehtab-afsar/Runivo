@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, RefreshControl, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun } from '@shared/services/store';
-import { ArrowLeft } from 'phosphor-react-native';
 import { useRunHistory } from '../hooks/useRunHistory';
 import { RunItem } from '../components/RunItem';
 import { HistoryStats } from '../components/HistoryStats';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
+import { EmptyState } from '@mobile/shared/components/EmptyState';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -58,13 +59,7 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Run History</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="Run History" onBack={() => navigation.goBack()} />
 
       {runs.length > 0 && (
         <HistoryStats runCount={filtered.length} totalKm={filteredTotalKm} avgKm={filteredAvgKm} />
@@ -92,21 +87,15 @@ export default function HistoryScreen() {
         removeClippedSubviews
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
         ListEmptyComponent={
-          <View style={s.empty}>
-            <Text style={s.emptyTitle}>
-              {filter === 'all' ? 'No runs yet' : `No ${filter} activities`}
-            </Text>
-            <Text style={s.emptyText}>
-              {filter === 'all'
-                ? 'Head out for your first run and your history will appear here.'
-                : 'Try a different filter or log a new activity.'}
-            </Text>
-            {filter === 'all' && (
-              <Pressable style={s.emptyBtn} onPress={() => navigation.navigate('Main', { screen: 'Run' })}>
-                <Text style={s.emptyBtnText}>Start a run →</Text>
-              </Pressable>
-            )}
-          </View>
+          <EmptyState
+            title={filter === 'all' ? 'No runs yet' : `No ${filter} activities`}
+            body={filter === 'all'
+              ? 'Head out for your first run and your history will appear here.'
+              : 'Try a different filter or log a new activity.'}
+            cta={filter === 'all'
+              ? { label: 'Start a run', onPress: () => navigation.navigate('Main', { screen: 'Run' }) }
+              : undefined}
+          />
         }
       />
     </SafeAreaView>
@@ -116,9 +105,6 @@ export default function HistoryScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
-    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn:      { width: 32 },
-    title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.card, flexGrow: 0 },
     filterContent:{ paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 8, flexDirection: 'row' },
     chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
@@ -126,10 +112,5 @@ function mkStyles(C: AppColors) {
     chipText:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
     chipTextActive:{ color: C.alwaysLight, fontFamily: Fonts.medium },
     list:         { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 8, paddingTop: 8 },
-    empty:        { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 32, gap: 8 },
-    emptyTitle:   { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, textAlign: 'center' },
-    emptyText:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
-    emptyBtn:     { marginTop: 8, backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 28 },
-    emptyBtnText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.white },
   });
 }

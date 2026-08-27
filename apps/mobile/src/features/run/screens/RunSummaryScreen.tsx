@@ -496,7 +496,7 @@ function mkStyles(C: AppColors) {
     bdRow:         { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
     bdLabel:       { fontFamily: Fonts.light, fontSize: 13, color: 'rgba(255,255,255,0.55)' },
     bdValue:       { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
-    capRow:        { fontFamily: Fonts.light, fontSize: 11, color: '#EF9F27', marginTop: 6 },
+    capRow:        { fontFamily: Fonts.light, fontSize: 11, color: C.retryAmber, marginTop: 6 },
 
     // Light-bg card label (territory + rank sections)
     cardLabel:     { ...Type.overline, letterSpacing: 1.5, color: C.t3, marginBottom: 10 },

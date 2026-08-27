@@ -46,7 +46,7 @@ export default function RunSummaryMissionsCard({ completedMissions }: Props) {
           <View key={m.id} style={[ss.row, i > 0 && ss.rowBorder]}>
             <View style={[ss.iconBox, state === 'claimed' && ss.iconBoxDone]}>
               {state === 'claimed'
-                ? <Check size={14} color="#6DE8A8" weight="bold" />
+                ? <Check size={14} color={C.glow} weight="bold" />
                 : <Text style={ss.emoji}>{template?.icon ?? '🎯'}</Text>}
             </View>
             <View style={{ flex: 1 }}>
@@ -83,8 +83,8 @@ function mkStyles(C: AppColors) {
     iconBoxDone: { backgroundColor: 'rgba(26,107,64,0.3)' },
     emoji:     { fontSize: 14 },
     title:     { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
-    retryHint: { fontFamily: Fonts.light, fontSize: 10.5, color: '#EF9F27', marginTop: 2 },
-    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: '#6DE8A8' },
+    retryHint: { fontFamily: Fonts.light, fontSize: 10.5, color: C.retryAmber, marginTop: 2 },
+    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: C.glow },
     claimBtn:  { backgroundColor: C.alwaysLight, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, minWidth: 84, alignItems: 'center' },
     claimBtnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysDark, letterSpacing: 0.3 },
   });

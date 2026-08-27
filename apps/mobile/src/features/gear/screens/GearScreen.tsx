@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
-  Platform, ActivityIndicator, RefreshControl, Alert, Animated,
+  Platform, ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,6 +11,7 @@ import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import { useShoeTracker } from '@features/gear/hooks/useShoeTracker';
 import { ShoeCard } from '@features/gear/components/ShoeCard';
 import type { StoredShoe } from '@shared/services/store';
+import { useToast } from '@mobile/shared/hooks/useToast';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -21,22 +22,12 @@ export default function GearScreen() {
   const { shoes, shoeKm, loading, refreshing, refresh, setDefault, retire, deleteShoe } = useShoeTracker();
   const activeShoes  = shoes.filter(sh => !sh.isRetired);
   const retiredShoes = shoes.filter(sh => sh.isRetired);
-  const [toast, setToast] = useState('');
-  const toastOpacity = useRef(new Animated.Value(0)).current;
-
-  const showToast = useCallback((msg: string) => {
-    setToast(msg);
-    toastOpacity.setValue(1);
-    Animated.sequence([
-      Animated.delay(2200),
-      Animated.timing(toastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
-    ]).start();
-  }, [toastOpacity]);
+  const { showToast } = useToast();
 
   const handleRetire = useCallback(async (shoe: StoredShoe) => {
     await retire(shoe.id);
     const km = shoeKm[shoe.id] ?? 0;
-    showToast(`${shoe.brand} ${shoe.model} · ${km.toFixed(0)}km · Well run.`);
+    showToast({ message: `${shoe.brand} ${shoe.model} · ${km.toFixed(0)}km · Well run.`, type: 'success' });
   }, [retire, shoeKm, showToast]);
 
   const confirmDelete = (shoe: StoredShoe) => {
@@ -105,11 +96,6 @@ export default function GearScreen() {
           }
         />
       )}
-      {toast !== '' && (
-        <Animated.View style={[s.toast, { opacity: toastOpacity }]}>
-          <Text style={s.toastText}>{toast}</Text>
-        </Animated.View>
-      )}
     </SafeAreaView>
   );
 }
@@ -128,7 +114,5 @@ function mkStyles(C: AppColors) {
     emptyBtn:      { backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10 },
     emptyBtnLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight, letterSpacing: 0.5 },
     sectionLabel:  { ...Type.overline, color: C.t3, marginTop: 8, marginBottom: 4, paddingLeft: 4 },
-    toast:         { position: 'absolute', bottom: 36, left: 20, right: 20, backgroundColor: C.alwaysDark, borderRadius: 12, paddingVertical: 13, paddingHorizontal: 16 },
-    toastText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.alwaysLight, textAlign: 'center' },
   });
 }

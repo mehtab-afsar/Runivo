@@ -9,7 +9,6 @@ import type { Mission, MissionType } from '@shared/services/missions';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { MissionRing } from './MissionRing';
 
-const GLOW = '#6DE8A8';
 
 const fmtNum = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
 const missionUnit = (t: MissionType) => t === 'run_distance' ? 'km' : t === 'nutrition_streak' ? 'd' : '';
@@ -32,7 +31,7 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
   const claimable = m.completed && !m.claimed;
   const pct = Math.min(1, m.current / Math.max(m.target, 1));
   const unit = missionUnit(m.type);
-  const ringColor = m.claimed ? GLOW : m.completed ? GLOW : accentColor;
+  const ringColor = m.claimed ? C.glow : m.completed ? C.glow : accentColor;
 
   // Shimmer sweep — only while a reward is actually sitting there waiting,
   // so the one card asking for a tap is the one that visibly says so.
@@ -57,7 +56,7 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
       <View style={ss.topRow}>
         <MissionRing pct={pct} color={ringColor}>
           {m.claimed
-            ? <Check size={16} color={GLOW} weight="bold" />
+            ? <Check size={16} color={C.glow} weight="bold" />
             : <MIcon size={18} color={ringColor} weight="light" />}
         </MissionRing>
 
@@ -67,7 +66,7 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
         </View>
 
         <View style={ss.heroWrap}>
-          <Text style={[ss.heroNum, m.claimed && { color: GLOW }]}>
+          <Text style={[ss.heroNum, m.claimed && { color: C.glow }]}>
             {fmtNum(m.current)}{unit}
           </Text>
           <Text style={ss.heroTarget}>/ {fmtNum(m.target)}{unit}</Text>
@@ -92,7 +91,7 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
           </>
         ) : m.claimed ? (
           <View style={ss.claimedRow}>
-            <Check size={12} color={GLOW} weight="bold" />
+            <Check size={12} color={C.glow} weight="bold" />
             <Text style={ss.claimedText}>+{m.rewards.pace} PACE claimed</Text>
           </View>
         ) : (
@@ -129,10 +128,10 @@ function mkStyles(C: AppColors) {
     heroTarget: { fontFamily: Fonts.regular, fontSize: 10.5, color: 'rgba(255,255,255,0.4)' },
 
     footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 12 },
-    readyHint:  { fontFamily: Fonts.semiBold, fontSize: 11.5, color: GLOW, letterSpacing: 0.2 },
-    retryHint:  { fontFamily: Fonts.regular, fontSize: 11, color: '#EF9F27' },
+    readyHint:  { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.glow, letterSpacing: 0.2 },
+    retryHint:  { fontFamily: Fonts.regular, fontSize: 11, color: C.retryAmber },
     claimedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: GLOW },
+    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: C.glow },
     claimBtn:   { backgroundColor: C.alwaysLight, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, minWidth: 90, alignItems: 'center' },
     claimBtnText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysDark, letterSpacing: 0.3 },
 

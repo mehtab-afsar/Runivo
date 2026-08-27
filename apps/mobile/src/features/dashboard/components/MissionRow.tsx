@@ -6,7 +6,6 @@ import { MISSION_SOURCE_LABEL, type Mission } from '@shared/services/missions';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { MissionRing } from '@features/missions/components/MissionRing';
 
-const GLOW = '#6DE8A8';
 
 // Same type→accent mapping as the full Missions screen — kept in sync by eye
 // since it's plain data, not worth a shared cross-platform export for 8 lines.
@@ -42,7 +41,7 @@ export const MissionRow = React.memo(function MissionRow({ mission: m, isLast, o
   const [justMissed, setJustMissed] = useState(false);
 
   const { Icon: MIcon, color } = TYPE_ICON[m.type] ?? { Icon: Target, color: C.red };
-  const ringColor = m.claimed ? GLOW : m.completed ? GLOW : color;
+  const ringColor = m.claimed ? C.glow : m.completed ? C.glow : color;
 
   const handleClaim = useCallback(async () => {
     if (!onClaim || claiming) return;
@@ -63,7 +62,7 @@ export const MissionRow = React.memo(function MissionRow({ mission: m, isLast, o
     <View style={[ss.row, !isLast && ss.rowBorder]}>
       <MissionRing pct={pct} color={ringColor} size={38}>
         {m.claimed
-          ? <Check size={12} color={GLOW} weight="bold" />
+          ? <Check size={12} color={C.glow} weight="bold" />
           : <MIcon size={13} color={ringColor} weight="light" />}
       </MissionRing>
       <Pressable style={{ flex: 1 }} onPress={onPress} disabled={!onPress}>
@@ -102,7 +101,7 @@ function mkStyles(C: AppColors) {
     source:     { fontFamily: Fonts.regular, fontSize: 9.5, color: 'rgba(255,255,255,0.4)' },
     xp:         { ...Type.labelSm, color: 'rgba(255,255,255,0.55)', marginTop: 2 },
     xpDone:     { color: C.green },
-    claimHint:  { ...Type.labelSm, color: GLOW },
+    claimHint:  { ...Type.labelSm, color: C.glow },
     claimBtn:   { backgroundColor: C.alwaysLight, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 7, minWidth: 78, alignItems: 'center' },
     claimBtnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysDark, letterSpacing: 0.3 },
   });

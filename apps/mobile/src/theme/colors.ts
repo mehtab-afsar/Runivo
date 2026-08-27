@@ -63,6 +63,10 @@ export const Colors = {
   alwaysDark:          '#0A0A0A',
   danger:              '#D93518',
   backgroundSecondary: '#F0EDE8',
+  // Fixed-tone, same rationale as alwaysDark/alwaysLight — used only on permanently-
+  // dark surfaces (mission cards), so they don't invert with the theme.
+  glow:                '#6DE8A8',
+  retryAmber:          '#EF9F27',
 } as const;
 
 export const DarkColors = {
@@ -121,6 +125,9 @@ export const DarkColors = {
   alwaysDark:          '#0A0A0A',
   danger:              '#FF5326',
   backgroundSecondary: '#1A1816',
+  // Fixed-tone — same value as light mode, see Colors.glow/retryAmber.
+  glow:                '#6DE8A8',
+  retryAmber:          '#EF9F27',
 } as const;
 
 export type AppColors = Record<keyof typeof Colors, string>;

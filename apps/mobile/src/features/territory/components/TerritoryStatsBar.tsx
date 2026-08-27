@@ -45,6 +45,6 @@ function mkStyles(C: AppColors) {
     row2:      { flexDirection: 'row', alignItems: 'center' },
     tsLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.6)' },
     tsVal:     { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
-    stale:     { fontFamily: Fonts.medium, fontSize: 13, color: '#EF9F27' },
+    stale:     { fontFamily: Fonts.medium, fontSize: 13, color: C.retryAmber },
   });
 }

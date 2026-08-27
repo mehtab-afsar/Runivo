@@ -14,7 +14,10 @@ interface PrimaryButtonProps {
    * dark    — always-dark fill, white text (bold secondary, e.g. "Start run")
    * surface — bordered neutral fill, ink text (tertiary)
    * ghost   — no fill, accent text (inline actions)
-   * danger  — same fill as accent, reserved for destructive intent
+   * danger  — red outline, transparent fill, red text (destructive intent —
+   *           visually distinct from `accent` on purpose; same hue as the brand
+   *           accent since there's no separate "danger red," so the shape
+   *           carries the distinction instead of the color)
    */
   variant?: 'accent' | 'dark' | 'surface' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
@@ -38,19 +41,22 @@ export function PrimaryButton({
 
   const bg = disabled
     ? C.surface
-    : variant === 'accent' || variant === 'danger' ? C.accent
+    : variant === 'accent' ? C.accent
     : variant === 'dark' ? C.alwaysDark
-    : variant === 'ghost' ? 'transparent'
+    : variant === 'ghost' || variant === 'danger' ? 'transparent'
     : C.surface;
 
   const textColor = disabled
     ? C.t3
     : variant === 'surface' ? C.t1
     : variant === 'ghost' ? C.accent
+    : variant === 'danger' ? C.red
     : C.alwaysLight;
 
   const borderStyle = variant === 'surface'
     ? { borderWidth: 0.5, borderColor: C.border }
+    : variant === 'danger' && !disabled
+    ? { borderWidth: 1.5, borderColor: C.red }
     : {};
 
   function handlePress() {
