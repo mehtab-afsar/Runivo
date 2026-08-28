@@ -6,31 +6,23 @@ import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 interface HeroBadge { icon?: string; label: string }
 
-interface HeroCardData {
-  eyebrow: string;
-  bigNumber: string;
-  bigUnit: string;
-  subline: string;
-  badges: HeroBadge[];
-}
+type HeroCardData =
+  | { kind: 'empty' }
+  | { kind: 'stats'; eyebrow: string; bigNumber: string; bigUnit: string; subline: string; badges: HeroBadge[] };
 
 function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCardData {
+  // Lifetime run count === 0 — same check the rest of the card's stats would
+  // otherwise divide-by-zero on; no separate query needed.
+  if (runs.length === 0) {
+    return { kind: 'empty' };
+  }
+
   const streakDays = player?.streakDays ?? 0;
   const weekPace = player?.paceWeeklyEarned ?? 0;
 
   const badges: HeroBadge[] = [];
   if (streakDays > 0) badges.push({ icon: '🔥', label: `${streakDays}-day streak` });
   if (weekPace > 0) badges.push({ label: `+${weekPace} PACE` });
-
-  if (runs.length === 0) {
-    return {
-      eyebrow: 'WELCOME',
-      bigNumber: '0',
-      bigUnit: 'km this week',
-      subline: 'Start your first run to build your stats',
-      badges: [],
-    };
-  }
 
   const now = new Date();
   const todayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
@@ -56,6 +48,7 @@ function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCa
 
   if (thisWeekKm > maxPrevWeekKm && thisWeekKm > 0 && maxPrevWeekKm > 0) {
     return {
+      kind: 'stats',
       eyebrow: 'NEW HIGH',
       bigNumber: thisWeekKm.toFixed(1),
       bigUnit: 'km this week',
@@ -66,6 +59,7 @@ function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCa
 
   if (streakDays >= 7 && streakDays % 7 === 0) {
     return {
+      kind: 'stats',
       eyebrow: 'MILESTONE',
       bigNumber: String(streakDays),
       bigUnit: 'day streak',
@@ -75,6 +69,7 @@ function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCa
   }
 
   return {
+    kind: 'stats',
     eyebrow: 'THIS WEEK',
     bigNumber: thisWeekKm.toFixed(1),
     bigUnit: 'km',
@@ -92,6 +87,15 @@ export function HeroCard({ runs, player }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const card = useMemo(() => computeHeroCard(runs, player), [runs, player]);
+
+  if (card.kind === 'empty') {
+    return (
+      <View style={ss.card}>
+        <Text style={ss.emptyHeadline}>Your story starts with one run.</Text>
+        <Text style={ss.emptyCaption}>Runs, territory, and records show up here.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={ss.card}>
@@ -175,6 +179,19 @@ function mkStyles(C: AppColors) {
       fontFamily: Fonts.medium,
       fontSize: 10,
       color: 'rgba(255,255,255,0.8)',
+    },
+    emptyHeadline: {
+      fontFamily: Fonts.display,
+      fontSize: 21,
+      lineHeight: 26,
+      color: C.alwaysLight,
+    },
+    emptyCaption: {
+      fontFamily: Fonts.regular,
+      fontSize: 12.5,
+      lineHeight: 18,
+      color: 'rgba(255,255,255,0.55)',
+      marginTop: 6,
     },
   });
 }

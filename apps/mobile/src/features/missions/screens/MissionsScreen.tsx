@@ -7,12 +7,15 @@ import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { TrendUp, Fire, Target, X, Shield, Lightning, ForkKnife, type Icon } from 'phosphor-react-native';
+import {
+  Route, Flag, Shield, Zap, Flame, UtensilsCrossed, X, Diamond, type LucideIcon,
+} from 'lucide-react-native';
 import {
   ACTIVE_MISSION_TEMPLATES,
   MISSION_SOURCE_LABEL,
   GOAL_TO_CATEGORY,
   type Mission,
+  type MissionType,
 } from '@shared/services/missions';
 import { ensureTodaysMissions, swapMission, claimMissionReward } from '@shared/services/missionStore';
 import { getProfile } from '@shared/services/profile';
@@ -24,16 +27,17 @@ import { MissionRow } from '@features/dashboard/components/MissionRow';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// Mission type → icon (shared by both the "today" cards and the swap picker)
-const mkTypeIcon = (C: AppColors): Record<string, { Icon: Icon; color: string }> => ({
-  run_distance:      { Icon: TrendUp,    color: C.red },
-  claim_territories: { Icon: Lightning,  color: C.gold },
-  capture_enemy:     { Icon: Shield,     color: C.green },
-  speed_run:         { Icon: TrendUp,    color: C.red },
-  run_streak:        { Icon: Fire,       color: C.orange },
-  defend_zone:       { Icon: Shield,     color: C.green },
-  steal_rival:       { Icon: Lightning,  color: C.red },
-  nutrition_streak:  { Icon: ForkKnife,  color: C.orange },
+// Mission type → icon — mirrors the Dashboard widget's map (MissionRow.tsx)
+// so the same mission type always shows the same glyph everywhere it appears.
+const mkTypeIcon = (C: AppColors): Record<MissionType, { Icon: LucideIcon; color: string }> => ({
+  run_distance:      { Icon: Route,           color: C.red },
+  claim_territories: { Icon: Flag,             color: C.gold },
+  capture_enemy:     { Icon: Shield,           color: C.green },
+  speed_run:         { Icon: Zap,              color: C.red },
+  run_streak:        { Icon: Flame,            color: C.orange },
+  defend_zone:       { Icon: Shield,           color: C.green },
+  steal_rival:       { Icon: Zap,              color: C.red },
+  nutrition_streak:  { Icon: UtensilsCrossed,  color: C.orange },
 });
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -48,6 +52,9 @@ export default function MissionsScreen() {
     black:   C.black,
     white:   C.white,
     card:    C.card,
+    gold:    C.gold,
+    goldBg:  C.goldBg,
+    red:     C.red,
     alwaysDark:  C.alwaysDark,
     alwaysLight: C.alwaysLight,
     t2:      C.t2,
@@ -121,35 +128,38 @@ export default function MissionsScreen() {
     );
   }
 
-  // ── Swap picker (full-screen overlay over a single slot) ──────────────────
+  // ── Change picker (full-screen overlay over a single slot) ────────────────
   if (swappingMission) {
     return (
       <SafeAreaView style={ss.root}>
         <View style={ss.header}>
           <Pressable onPress={() => setSwappingId(null)} style={ss.backBtn}>
-            <X size={14} weight="bold" color={T.black} />
+            <X size={15} strokeWidth={2.5} color={T.black} />
           </Pressable>
-          <Text style={ss.headerTitle} numberOfLines={1}>Swap "{swappingMission.title}"</Text>
+          <Text style={ss.headerTitle} numberOfLines={1}>Change "{swappingMission.title}"</Text>
           <View style={{ width: 30 }} />
         </View>
         {swapBusy ? (
           <View style={ss.loader}><ActivityIndicator color={T.black} /></View>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-            {swapCandidates.map((c, i) => {
-              const { Icon: CIcon, color } = TYPE_ICON[c.type] ?? { Icon: Target, color: C.red };
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={ss.candidateList}>
+            {swapCandidates.map(c => {
+              const { Icon: CIcon, color } = TYPE_ICON[c.type] ?? { Icon: Route, color: C.red };
               return (
                 <Pressable
                   key={c.title}
                   onPress={() => selectReplacement(c.title)}
-                  style={[ss.candidateRow, i > 0 && ss.rowBorder]}
+                  style={ss.candidateRow}
                 >
-                  <View style={ss.cardIconBox}><CIcon size={16} color={color} weight="light" /></View>
+                  <View style={ss.cardIconBox}><CIcon size={16} color={color} strokeWidth={2} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={ss.cardTitle}>{c.title}</Text>
                     <Text style={ss.sourceCaption}>{c.description}</Text>
                   </View>
-                  <Text style={ss.rewardValue}>+{c.rewards.pace}</Text>
+                  <View style={ss.rewardChip}>
+                    <Diamond size={10} color={C.gold} strokeWidth={2} fill={C.gold} />
+                    <Text style={ss.rewardValue}>{c.rewards.pace}</Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -195,7 +205,7 @@ export default function MissionsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={ss.todayList}>
           {featured && (() => {
-            const { Icon: MIcon, color } = TYPE_ICON[featured.type] ?? { Icon: Target, color: C.red };
+            const { Icon: MIcon, color } = TYPE_ICON[featured.type] ?? { Icon: Route, color: C.red };
             return (
               <MissionCard
                 mission={featured}
@@ -228,7 +238,7 @@ export default function MissionsScreen() {
   );
 }
 
-type TTokens = { pageBg: string; stone: string; mid: string; border: string; surface: string; black: string; white: string; card: string; alwaysDark: string; alwaysLight: string; t2: string; t3: string };
+type TTokens = { pageBg: string; stone: string; mid: string; border: string; surface: string; black: string; white: string; card: string; gold: string; goldBg: string; red: string; alwaysDark: string; alwaysLight: string; t2: string; t3: string };
 function mkStyles(T: TTokens) { return StyleSheet.create({
   root:            { flex: 1, backgroundColor: T.pageBg },
   loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -248,13 +258,15 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   dateLabel:       { fontFamily: Fonts.regular, fontSize: 11, color: T.t3, marginTop: 1 },
 
   todayList:       { padding: Spacing.gutter, gap: 14 },
-  restCard:        { backgroundColor: T.alwaysDark, borderRadius: 16, padding: 16 },
+  restCard:        { backgroundColor: T.card, borderRadius: 16, padding: 16, borderWidth: 0.5, borderColor: T.border },
 
-  // Swap picker rows
-  cardIconBox:     { width: 34, height: 34, borderRadius: 9, backgroundColor: T.stone, borderWidth: 0.5, borderColor: T.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  // Change picker rows — one card per candidate, same icon-badge language as
+  // MissionRow (Dashboard widget) and MissionCard above.
+  candidateList:   { padding: Spacing.gutter, gap: 10, paddingBottom: 40 },
+  candidateRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: T.card, borderRadius: 14, borderWidth: 0.5, borderColor: T.border, paddingVertical: 12, paddingHorizontal: 14 },
+  cardIconBox:     { width: 34, height: 34, borderRadius: 10, backgroundColor: T.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   cardTitle:       { fontFamily: Fonts.medium, fontSize: 13.5, color: T.black, marginBottom: 3 },
   sourceCaption:   { fontFamily: Fonts.regular, fontSize: 10.5, color: T.t3 },
-  candidateRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: T.card, paddingVertical: 14, paddingHorizontal: 20 },
-  rowBorder:       { borderTopWidth: 0.5, borderTopColor: T.border },
-  rewardValue:     { fontFamily: Fonts.medium, fontSize: 12, color: T.t2 },
+  rewardChip:      { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: T.goldBg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
+  rewardValue:     { fontFamily: Fonts.semiBold, fontSize: 11.5, color: T.gold, fontVariant: ['tabular-nums'] },
 }); }

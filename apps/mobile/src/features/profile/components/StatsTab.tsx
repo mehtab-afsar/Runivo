@@ -8,6 +8,11 @@ import type { ProfileStats } from '@shared/types/game';
 import { isoWeekStart, parsePaceSec, fmtTime, riegelPredict } from '../utils/raceIntelligence';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
+// Below this many logged runs, a 4-bucket pace-effort breakdown is mostly
+// noise (one run fills one bucket to 100%) — hidden rather than shown
+// half-meaningful until there's enough spread to say anything real.
+const MIN_RUNS_FOR_PACE_ZONES = 3;
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function weekLabel(isoDate: string): string {
@@ -71,6 +76,9 @@ function WeeklyChart({ runs }: { runs: StoredRun[] }) {
   );
 }
 
+// "Time-of-day pace breakdown" — this app's existing breakdown is effort-zone
+// based (Easy/Moderate/Tempo/Hard), not literal clock-time buckets; that's
+// the only pace-distribution section in this tab, so it's the one gated here.
 function PaceZones({ runs }: { runs: StoredRun[] }) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -114,13 +122,9 @@ function RacePredictions({ personalRecords }: { personalRecords: PersonalRecord[
   const ss = useMemo(() => mkStyles(C), [C]);
   const fiveKRecord = personalRecords.find(r => r.label.toLowerCase().includes('5k') || r.label.toLowerCase().includes('5 k'));
 
-  if (!fiveKRecord || fiveKRecord.value === '—') {
-    return (
-      <View style={ss.predictionsEmpty}>
-        <Text style={ss.predictionsEmptyText}>Run a 5K to unlock race predictions.</Text>
-      </View>
-    );
-  }
+  // Properly hidden until there's a qualifying 5K, not a locked/dashed
+  // placeholder standing in for it.
+  if (!fiveKRecord || fiveKRecord.value === '—') return null;
 
   // Parse "MM:SS" or "H:MM:SS"
   const parts = fiveKRecord.value.split(':').map(Number);
@@ -202,6 +206,18 @@ interface Props {
 export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories, streakDays, runs, statsData, statsPeriod = 'all', onPeriodChange }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
+
+  // Zero lifetime runs — one consolidated empty state, nothing else in this
+  // tab (no chart, no breakdown, no predictions section, no period selector).
+  if (totalRuns === 0) {
+    return (
+      <View style={ss.empty}>
+        <Text style={ss.emptyHeadline}>Your patterns haven't formed yet.</Text>
+        <Text style={ss.emptyText}>Pace trends, timing, and race predictions build up after your first few runs.</Text>
+      </View>
+    );
+  }
+
   const periodStats = statsData ?? { totalKm, totalRuns, avgPaceSec: 0, totalCalories: 0, totalZones: totalTerritories };
   const allTime = [
     { label: 'Total runs',  value: String(periodStats.totalRuns) },
@@ -209,6 +225,10 @@ export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories
     { label: 'Zones',       value: String(periodStats.totalZones) },
     { label: 'Streak',      value: `${streakDays}d` },
   ];
+
+  const showPaceZones = runs.length >= MIN_RUNS_FOR_PACE_ZONES;
+  const fiveKRecord = personalRecords.find(r => r.label.toLowerCase().includes('5k') || r.label.toLowerCase().includes('5 k'));
+  const showPredictions = !!fiveKRecord && fiveKRecord.value !== '—';
 
   return (
     <View>
@@ -219,11 +239,19 @@ export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories
       <SectionHeader label="Weekly km" />
       <WeeklyChart runs={runs} />
 
-      <SectionHeader label="Pace zones" />
-      <PaceZones runs={runs} />
+      {showPaceZones && (
+        <>
+          <SectionHeader label="Pace zones" />
+          <PaceZones runs={runs} />
+        </>
+      )}
 
-      <SectionHeader label="Race predictions" />
-      <RacePredictions personalRecords={personalRecords} />
+      {showPredictions && (
+        <>
+          <SectionHeader label="Race predictions" />
+          <RacePredictions personalRecords={personalRecords} />
+        </>
+      )}
 
       <SectionHeader label="All-time" />
       <View style={ss.grid}>
@@ -237,6 +265,10 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     section: { ...Type.overline, color: C.t3, marginBottom: 10, marginTop: 20 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+
+    empty:        { backgroundColor: C.stone, borderRadius: 14, paddingVertical: 40, paddingHorizontal: 28, alignItems: 'center', gap: 8 },
+    emptyHeadline:{ fontFamily: Fonts.display, fontSize: 21, lineHeight: 26, color: C.black, textAlign: 'center' },
+    emptyText:    { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textAlign: 'center', lineHeight: 18 },
 
     // Weekly chart
     chartCard: {
@@ -271,7 +303,5 @@ function mkStyles(C: AppColors) {
     predictVal: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
     predictLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
     predictNote: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
-    predictionsEmpty: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
-    predictionsEmptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }

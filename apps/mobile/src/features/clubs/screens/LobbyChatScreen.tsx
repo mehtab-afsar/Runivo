@@ -17,8 +17,10 @@ type Route = RouteProp<RootStackParamList, 'LobbyChat'>;
 // Fixed ids matching the seeded public rooms (supabase/migrations/
 // 20260710000109_lobby_public_rooms.sql) — these are real lobbies.id UUIDs, not
 // arbitrary client strings, so fetch/send/subscribe all target real rows.
-type LobbyRoomEntry = { id: string; name: string; description: string; Icon: Icon; iconColor: string; color: string };
-function mkLobbyRooms(C: AppColors): LobbyRoomEntry[] {
+// Exported so anything else linking into a specific room (e.g. the Dashboard's
+// CommunityPulseCard) reuses these ids instead of re-typing UUIDs by hand.
+export type LobbyRoomEntry = { id: string; name: string; description: string; Icon: Icon; iconColor: string; color: string };
+export function mkLobbyRooms(C: AppColors): LobbyRoomEntry[] {
   return [
     { id: '00000000-0000-0000-0000-000000000001', name: 'Global Runners',    description: 'Connect with runners worldwide',      Icon: Globe,  iconColor: C.blue,   color: C.blue },
     { id: '00000000-0000-0000-0000-000000000002', name: 'Training Talk',     description: 'Plans, tips, and workout advice',     Icon: Pulse,  iconColor: C.green,  color: C.green },

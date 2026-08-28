@@ -1,11 +1,21 @@
 import React, { useMemo, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun } from '@shared/services/store';
 import type { PersonalRecord } from '../hooks/useProfile';
 import { useIntelligence, type WeeklyConsistency } from '../hooks/useIntelligence';
 import { PersonalRecordsCard } from './PersonalRecordsCard';
+import { CoachMessageCard } from '@features/coach/components/CoachMessageCard';
 import { isoWeekStart, parsePaceSec, fmtTime, riegelPredict } from '../utils/raceIntelligence';
 import { useTheme, Fonts, type AppColors } from '@theme';
+
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+// Below this many logged runs, the pace-effort breakdown is mostly noise —
+// same threshold the Stats tab work established for the identical section.
+const MIN_RUNS_FOR_PACE_ZONES = 3;
 
 // ── sub-components ────────────────────────────────────────────────────────────
 
@@ -115,13 +125,8 @@ function RacePredictions({ personalRecords, C }: { personalRecords: PersonalReco
   const s = useMemo(() => mkRaceStyles(C), [C]);
   const fiveKRecord = personalRecords.find(r => r.label.toLowerCase().includes('5k') || r.label.toLowerCase().includes('best 5k'));
 
-  if (!fiveKRecord || fiveKRecord.value === '—') {
-    return (
-      <View style={s.empty}>
-        <Text style={s.emptyText}>Run a 5K to unlock race predictions.</Text>
-      </View>
-    );
-  }
+  // Properly hidden until there's a qualifying 5K — no locked placeholder.
+  if (!fiveKRecord || fiveKRecord.value === '—') return null;
 
   const parts = fiveKRecord.value.replace('/km', '').trim().split(':').map(Number);
   let baseSec = 0;
@@ -154,8 +159,6 @@ function mkRaceStyles(C: AppColors) {
     val:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
     label: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
     note:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
-    empty: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
-    emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });
 }
 
@@ -253,7 +256,37 @@ interface Props {
 export function IntelligenceTab({ runs, personalRecords }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
-  const { insights, insightsLoading, weeklyKm, trendLabel, consistencyHistory } = useIntelligence(runs);
+  const navigation = useNavigation<Nav>();
+  const {
+    insights, insightsLoading, weeklyKm, trendLabel, consistencyHistory,
+    brief, briefLoading,
+  } = useIntelligence(runs);
+
+  // Brand new — one welcome message reusing the Coach tab's own cold-start
+  // copy and card styling, nothing else in this tab. No CTA button (Profile
+  // doesn't do those); a plain link into Coach instead.
+  if (runs.length === 0) {
+    return (
+      <View>
+        {briefLoading ? (
+          <InsightSkeleton C={C} />
+        ) : brief ? (
+          <CoachMessageCard type="insight" content={JSON.stringify(brief)} style={s.welcomeCard} />
+        ) : (
+          <View style={s.insightEmpty}>
+            <Text style={s.insightEmptyText}>Log your first run to unlock Pace intelligence.</Text>
+          </View>
+        )}
+        <Pressable onPress={() => navigation.navigate('Main', { screen: 'Coach' })} hitSlop={8} style={s.coachLinkWrap}>
+          <Text style={s.coachLink}>Ask Pace on the Coach tab →</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const showPaceZones = runs.length >= MIN_RUNS_FOR_PACE_ZONES;
+  const fiveKRecord = personalRecords.find(r => r.label.toLowerCase().includes('5k') || r.label.toLowerCase().includes('best 5k'));
+  const showPredictions = !!fiveKRecord && fiveKRecord.value !== '—';
 
   return (
     <View>
@@ -293,11 +326,19 @@ export function IntelligenceTab({ runs, personalRecords }: Props) {
       <SectionLabel label="Personal records" C={C} />
       <PersonalRecordsCard records={personalRecords} />
 
-      <SectionLabel label="Pace zones" C={C} />
-      <PaceZones runs={runs} C={C} />
+      {showPaceZones && (
+        <>
+          <SectionLabel label="Pace zones" C={C} />
+          <PaceZones runs={runs} C={C} />
+        </>
+      )}
 
-      <SectionLabel label="Race predictions" C={C} />
-      <RacePredictions personalRecords={personalRecords} C={C} />
+      {showPredictions && (
+        <>
+          <SectionLabel label="Race predictions" C={C} />
+          <RacePredictions personalRecords={personalRecords} C={C} />
+        </>
+      )}
     </View>
   );
 }
@@ -312,5 +353,9 @@ function mkStyles(C: AppColors) {
     insightRec:     { fontFamily: Fonts.regular, fontSize: 12, color: C.red, fontStyle: 'italic', marginTop: 8 },
     insightEmpty:   { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 20, alignItems: 'center' },
     insightEmptyText:{ fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
+
+    welcomeCard:    { maxWidth: '100%' },
+    coachLinkWrap:  { marginTop: 14, alignItems: 'center' },
+    coachLink:      { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.red },
   });
 }

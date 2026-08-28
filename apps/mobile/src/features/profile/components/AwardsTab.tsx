@@ -4,25 +4,46 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun } from '@shared/services/store';
-import { AWARD_DEFINITIONS } from '@shared/constants/awards';
+import { AWARD_DEFINITIONS, AWARD_PROGRESS_TARGETS } from '@shared/constants/awards';
 import type { AwardCategory, AwardId } from '@shared/types/game';
-import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
+import {
+  Flag, Swords, TreePine, Landmark, Castle, Crown, Building2, Shield, Star,
+  Route, Milestone, Trophy, CalendarCheck, Flame, FlameKindling, Sunrise,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+// Pace excluded on purpose — sub_5/sub_4_30 are confirmed unearnable (nothing
+// writes the best-pace data they'd check against). Not shown locked, not
+// shown at all, until a real data path exists.
 const CATEGORIES: { key: AwardCategory; label: string }[] = [
   { key: 'territory', label: 'Territory' },
   { key: 'distance',  label: 'Distance' },
   { key: 'streak',    label: 'Streak' },
-  { key: 'pace',      label: 'Pace' },
 ];
 
-const PROGRESS_TARGETS: Partial<Record<AwardId, number>> = {
-  km_100:      100,
-  km_500:      500,
-  km_1000:     1000,
-  monthly_100: 100,
+const AWARD_ICONS: Partial<Record<AwardId, LucideIcon>> = {
+  first_claim:        Flag,
+  first_blood:        Swords,
+  park_capture:       TreePine,
+  district_owner:     Landmark,
+  quarter_owner:      Castle,
+  domain_lord:        Crown,
+  city_builder:       Building2,
+  defender:           Shield,
+  sovereign_rank:     Star,
+  first_5k:           Route,
+  first_10k:          Route,
+  first_halfmarathon: Route,
+  km_100:             Milestone,
+  km_500:             Milestone,
+  km_1000:            Trophy,
+  monthly_100:        CalendarCheck,
+  streak_7:           Flame,
+  streak_30:          FlameKindling,
+  early_bird:         Sunrise,
 };
 
 interface Props {
@@ -46,7 +67,9 @@ export function AwardsTab({
     [earnedAwards],
   );
 
-  const allAwardIds = Object.keys(AWARD_DEFINITIONS) as AwardId[];
+  const allAwardIds = (Object.keys(AWARD_DEFINITIONS) as AwardId[]).filter(
+    id => AWARD_DEFINITIONS[id].category !== 'pace',
+  );
   const earnedCount = allAwardIds.filter(id => earnedSet.has(id)).length;
   const total = allAwardIds.length;
 
@@ -56,11 +79,17 @@ export function AwardsTab({
     return runs.filter(r => r.startTime >= monthStart.getTime()).reduce((sum, r) => sum + r.distanceMeters / 1000, 0);
   }, [runs]);
 
-  const getProgress = (id: AwardId): { current: number; target: number } | null => {
-    const target = PROGRESS_TARGETS[id];
-    if (!target) return null;
-    const current = id === 'monthly_100' ? monthKm : totalKm;
-    return { current: Math.min(current, target), target };
+  // Every card gets a progress bar + "{current}/{target}" — awards with a
+  // real tracked km value (AWARD_PROGRESS_TARGETS) show that; everything
+  // else is binary, so it's 0/1 unearned or 1/1 earned rather than leaving
+  // most of the grid without the bar the design calls for on every card.
+  const getProgress = (id: AwardId, isEarned: boolean): { current: number; target: number } => {
+    const target = AWARD_PROGRESS_TARGETS[id];
+    if (target) {
+      const current = id === 'monthly_100' ? monthKm : totalKm;
+      return { current: Math.min(current, target), target };
+    }
+    return { current: isEarned ? 1 : 0, target: 1 };
   };
 
   return (
@@ -81,9 +110,12 @@ export function AwardsTab({
             <View style={s.grid}>
               {awards.map(id => {
                 const def = AWARD_DEFINITIONS[id];
+                const Icon = AWARD_ICONS[id] ?? Trophy;
                 const isEarned = earnedSet.has(id);
                 const unlockedAt = earnedSet.get(id);
-                const progress = !isEarned ? getProgress(id) : null;
+                const progress = getProgress(id, isEarned);
+                const pct = progress.target > 0 ? progress.current / progress.target : 0;
+                const isKmAward = !!AWARD_PROGRESS_TARGETS[id];
 
                 return (
                   <Pressable
@@ -91,33 +123,29 @@ export function AwardsTab({
                     style={[s.card, isEarned && s.cardEarned]}
                     onPress={() => navigation.navigate('AwardDetail', { awardId: id, unlockedAt: unlockedAt ?? null })}
                   >
-                    {isEarned ? (
-                      <Text style={s.cardIcon}>{def.icon}</Text>
-                    ) : (
-                      <View style={s.cardIconLockWrap}>
-                        <GlyphIcon glyph="🔒" size={22} />
-                      </View>
-                    )}
+                    <View style={[s.cardIconWrap, isEarned && s.cardIconWrapEarned]}>
+                      <Icon size={22} color={isEarned ? C.gold : C.t3} strokeWidth={1.75} />
+                    </View>
                     <Text style={[s.cardTitle, isEarned && s.cardTitleEarned]} numberOfLines={1}>
                       {def.title}
                     </Text>
                     <Text style={s.cardDesc} numberOfLines={2}>{def.description}</Text>
-                    {isEarned && unlockedAt ? (
+
+                    <View style={s.progressMini}>
+                      <View style={[s.progressMiniFill, { flex: Math.max(0.02, pct), backgroundColor: isEarned ? C.gold : C.red }]} />
+                      <View style={{ flex: 1 - Math.max(0.02, pct) }} />
+                    </View>
+                    <Text style={s.progressMiniLabel}>
+                      {isKmAward
+                        ? `${progress.current.toFixed(0)} / ${progress.target} km`
+                        : `${progress.current} / ${progress.target}`}
+                    </Text>
+
+                    {isEarned && unlockedAt && (
                       <Text style={s.cardDate}>
                         {new Date(unlockedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </Text>
-                    ) : null}
-                    {!isEarned && progress ? (
-                      <>
-                        <View style={s.progressMini}>
-                          <View style={[s.progressMiniFill, { flex: progress.current / progress.target }]} />
-                          <View style={{ flex: 1 - progress.current / progress.target }} />
-                        </View>
-                        <Text style={s.progressMiniLabel}>
-                          {progress.current.toFixed(0)} / {progress.target} km
-                        </Text>
-                      </>
-                    ) : null}
+                    )}
                   </Pressable>
                 );
               })}
@@ -143,8 +171,8 @@ function mkStyles(C: AppColors) {
     card: { width: '47%', backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', gap: 6 },
     cardEarned: { borderColor: C.gold, backgroundColor: C.amberBg },
 
-    cardIcon: { fontSize: 32 },
-    cardIconLockWrap: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', opacity: 0.35 },
+    cardIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
+    cardIconWrapEarned: { backgroundColor: C.card },
 
     cardTitle: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
     cardTitleEarned: { fontFamily: Fonts.semiBold, color: C.black },
@@ -152,7 +180,7 @@ function mkStyles(C: AppColors) {
     cardDate: { fontFamily: Fonts.regular, fontSize: 10, color: C.gold, marginTop: 2 },
 
     progressMini: { height: 3, width: '100%', backgroundColor: C.mid, borderRadius: 2, flexDirection: 'row', overflow: 'hidden', marginTop: 4 },
-    progressMiniFill: { height: 3, backgroundColor: C.red },
+    progressMiniFill: { height: 3, borderRadius: 2 },
     progressMiniLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
   });
 }

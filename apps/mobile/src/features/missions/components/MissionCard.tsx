@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, withRepeat, withSequence, withTiming, useAnimatedStyle, Easing,
 } from 'react-native-reanimated';
-import { Check, CaretRight, type Icon } from 'phosphor-react-native';
+import { Check, ChevronRight, type LucideIcon } from 'lucide-react-native';
 import type { Mission, MissionType } from '@shared/services/missions';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 import { MissionRing } from './MissionRing';
-
 
 const fmtNum = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(1);
 const missionUnit = (t: MissionType) => t === 'run_distance' ? 'km' : t === 'nutrition_streak' ? 'd' : '';
@@ -17,7 +16,7 @@ export type CardState = 'idle' | 'claiming' | 'retry';
 
 interface Props {
   mission: Mission;
-  MIcon: Icon;
+  MIcon: LucideIcon;
   accentColor: string;
   sourceLabel: string;
   state: CardState;
@@ -31,7 +30,7 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
   const claimable = m.completed && !m.claimed;
   const pct = Math.min(1, m.current / Math.max(m.target, 1));
   const unit = missionUnit(m.type);
-  const ringColor = m.claimed ? C.glow : m.completed ? C.glow : accentColor;
+  const ringColor = m.claimed ? C.green : m.completed ? C.green : accentColor;
 
   // Shimmer sweep — only while a reward is actually sitting there waiting,
   // so the one card asking for a tap is the one that visibly says so.
@@ -50,14 +49,14 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
   const shimmerStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shimmerX.value }] }));
 
   return (
-    <LinearGradient colors={['#201D19', '#0A0A0A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={ss.card}>
+    <View style={ss.card}>
       {claimable && <Animated.View style={[ss.shimmer, shimmerStyle]} pointerEvents="none" />}
 
       <View style={ss.topRow}>
-        <MissionRing pct={pct} color={ringColor}>
+        <MissionRing pct={pct} color={ringColor} trackColor={C.border}>
           {m.claimed
-            ? <Check size={16} color={C.glow} weight="bold" />
-            : <MIcon size={18} color={ringColor} weight="light" />}
+            ? <Check size={16} color={C.green} strokeWidth={2.5} />
+            : <MIcon size={18} color={ringColor} strokeWidth={2} />}
         </MissionRing>
 
         <View style={ss.meta}>
@@ -66,7 +65,7 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
         </View>
 
         <View style={ss.heroWrap}>
-          <Text style={[ss.heroNum, m.claimed && { color: C.glow }]}>
+          <Text style={[ss.heroNum, m.claimed && { color: C.green }]}>
             {fmtNum(m.current)}{unit}
           </Text>
           <Text style={ss.heroTarget}>/ {fmtNum(m.target)}{unit}</Text>
@@ -79,65 +78,63 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
             <Text style={state === 'retry' ? ss.retryHint : ss.readyHint}>
               {state === 'retry' ? 'Not yet — try again shortly' : '● Ready to claim'}
             </Text>
-            <Pressable
+            <PrimaryButton
+              label={`Claim +${m.rewards.pace}`}
               onPress={() => onClaim(m.id)}
-              disabled={state === 'claiming'}
-              style={({ pressed }) => [ss.claimBtn, pressed && { opacity: 0.85 }]}
-            >
-              {state === 'claiming'
-                ? <ActivityIndicator size="small" color={C.alwaysDark} />
-                : <Text style={ss.claimBtnText}>Claim +{m.rewards.pace}</Text>}
-            </Pressable>
+              loading={state === 'claiming'}
+              variant="dark"
+              size="sm"
+              style={ss.claimBtn}
+            />
           </>
         ) : m.claimed ? (
           <View style={ss.claimedRow}>
-            <Check size={12} color={C.glow} weight="bold" />
+            <Check size={12} color={C.green} strokeWidth={2.5} />
             <Text style={ss.claimedText}>+{m.rewards.pace} PACE claimed</Text>
           </View>
         ) : (
           <>
-            <View style={[ss.rewardChip, { backgroundColor: `${accentColor}26` }]}>
+            <View style={[ss.rewardChip, { backgroundColor: `${accentColor}1A` }]}>
               <Text style={[ss.rewardChipText, { color: accentColor }]}>+{m.rewards.pace} PACE</Text>
             </View>
             <Pressable onPress={() => onSwap(m.id)} hitSlop={8} style={ss.swapLink}>
-              <Text style={ss.swapLinkText}>Swap</Text>
-              <CaretRight size={10} color="rgba(255,255,255,0.4)" weight="bold" />
+              <Text style={ss.swapLinkText}>Change</Text>
+              <ChevronRight size={12} color={C.red} strokeWidth={2} />
             </Pressable>
           </>
         )}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card: {
-      borderRadius: 20, padding: 16, overflow: 'hidden',
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 6,
+      borderRadius: 16, padding: 16, overflow: 'hidden',
+      backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border,
     },
-    shimmer: { position: 'absolute', top: 0, bottom: 0, width: 90, backgroundColor: 'rgba(255,255,255,0.06)', transform: [{ skewX: '-20deg' }] },
+    shimmer: { position: 'absolute', top: 0, bottom: 0, width: 90, backgroundColor: 'rgba(0,0,0,0.03)', transform: [{ skewX: '-20deg' }] },
 
     topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
     meta:   { flex: 1 },
-    title:  { fontFamily: Fonts.medium, fontSize: 14.5, color: C.alwaysLight, marginBottom: 2 },
-    source: { fontFamily: Fonts.regular, fontSize: 10.5, color: 'rgba(255,255,255,0.4)' },
+    title:  { fontFamily: Fonts.medium, fontSize: 14.5, color: C.t1, marginBottom: 2 },
+    source: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
 
     heroWrap:   { alignItems: 'flex-end' },
-    heroNum:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
-    heroTarget: { fontFamily: Fonts.regular, fontSize: 10.5, color: 'rgba(255,255,255,0.4)' },
+    heroNum:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1, fontVariant: ['tabular-nums'] },
+    heroTarget: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
 
-    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 12 },
-    readyHint:  { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.glow, letterSpacing: 0.2 },
+    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: C.border, paddingTop: 12 },
+    readyHint:  { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.gold, letterSpacing: 0.2 },
     retryHint:  { fontFamily: Fonts.regular, fontSize: 11, color: C.retryAmber },
     claimedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: C.glow },
-    claimBtn:   { backgroundColor: C.alwaysLight, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, minWidth: 90, alignItems: 'center' },
-    claimBtnText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysDark, letterSpacing: 0.3 },
+    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: C.green },
+    claimBtn:   { height: 34, paddingHorizontal: 14 },
 
     rewardChip: { borderRadius: 6, paddingHorizontal: 9, paddingVertical: 4 },
     rewardChipText: { fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 0.2 },
-    swapLink: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-    swapLinkText: { fontFamily: Fonts.medium, fontSize: 11.5, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.2 },
+    swapLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    swapLinkText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.red, letterSpacing: 0.2 },
   });
 }

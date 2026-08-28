@@ -32,8 +32,11 @@ export const Colors = {
   orange:  '#C25A00',
   orangeBg:'#FEF0E6',
 
-  // Leaderboard medals
+  // Leaderboard medals — also doubles as the Plus/premium accent (crown fill,
+  // upsell pill) so paid status reads as "gold", distinct from the amber
+  // warning tone used for stale-zone alerts.
   gold:    '#D4A200',
+  goldBg:  '#FBF3DC',
   silver:  '#9E9E9E',
   bronze:  '#A0522D',
 
@@ -101,8 +104,9 @@ export const DarkColors = {
   orange:  '#D97010',
   orangeBg:'#271200',
 
-  // Leaderboard medals
+  // Leaderboard medals — also doubles as the Plus/premium accent, see light-mode note
   gold:    '#D4A200',
+  goldBg:  '#2A2107',
   silver:  '#9E9E9E',
   bronze:  '#A0522D',
 

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { StoredRun } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
-import { requestPaceIntelligence } from '../../coach/services/coachService';
-import type { PaceInsightCard } from '../../coach/services/coachService';
+import { requestPaceIntelligence, requestWeeklyBrief } from '../../coach/services/coachService';
+import type { PaceInsightCard, WeeklyBriefPayload } from '../../coach/services/coachService';
 import type { PersonalRecord } from './useProfile';
 import { isoWeekStart } from '../utils/raceIntelligence';
 import { fmtPace } from '@mobile/shared/lib/formatters';
@@ -77,18 +77,35 @@ export interface WeeklyConsistency {
 }
 
 export function useIntelligence(runs: StoredRun[]) {
+  const hasRunHistory = runs.length > 0;
   const [insights, setInsights] = useState<PaceInsightCard[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(true);
   const [consistencyHistory, setConsistencyHistory] = useState<WeeklyConsistency[]>([]);
+  // Brand-new-user welcome message — same weekly_brief the Coach tab's own
+  // cold-start card reads (CoachBrief.tsx), so the copy lives in one place
+  // (the edge function) and both surfaces just render whatever it returns.
+  const [brief, setBrief] = useState<WeeklyBriefPayload | null>(null);
+  const [briefLoading, setBriefLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      setInsightsLoading(true);
       const session = await supabase.auth.getSession();
-      if (!session.data.session) { setInsightsLoading(false); return; }
+      if (!session.data.session) { setInsightsLoading(false); setBriefLoading(false); return; }
+      const token = session.data.session.access_token;
 
+      if (!hasRunHistory) {
+        // Nothing to analyse yet — skip the paid pace_intelligence/consistency
+        // calls entirely; the tab shows one welcome card instead.
+        setInsightsLoading(false);
+        setBrief(await requestWeeklyBrief(token));
+        setBriefLoading(false);
+        return;
+      }
+      setBriefLoading(false);
+
+      setInsightsLoading(true);
       const [insightResult] = await Promise.allSettled([
-        requestPaceIntelligence(session.data.session.access_token),
+        requestPaceIntelligence(token),
         supabase
           .rpc('get_consistency_history', {
             p_user_id: session.data.session.user.id,
@@ -102,11 +119,11 @@ export function useIntelligence(runs: StoredRun[]) {
       }
       setInsightsLoading(false);
     })();
-  }, []);
+  }, [hasRunHistory]);
 
   const personalRecords = useMemo(() => computePersonalRecordsLocal(runs), [runs]);
   const weeklyKm = useMemo(() => computeWeeklyKm(runs, 8), [runs]);
   const trendLabel = useMemo(() => computeTrendLabel(weeklyKm), [weeklyKm]);
 
-  return { insights, insightsLoading, personalRecords, weeklyKm, trendLabel, consistencyHistory };
+  return { insights, insightsLoading, personalRecords, weeklyKm, trendLabel, consistencyHistory, brief, briefLoading };
 }

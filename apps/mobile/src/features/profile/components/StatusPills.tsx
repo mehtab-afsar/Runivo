@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { StoredRun } from '@shared/services/store';
+import { Diamond } from 'lucide-react-native';
 import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
@@ -35,7 +36,7 @@ export function StatusPills({ streakDays, weekPace, runs }: Props) {
         <Text style={s.pillLabel}>streak</Text>
       </View>
       <View style={s.pill}>
-        <View style={s.pillIcon}><GlyphIcon glyph="⚡" size={16} /></View>
+        <View style={s.pillIcon}><Diamond size={16} color={C.gold} strokeWidth={2} fill={C.gold} /></View>
         <Text style={s.pillValue}>{weekPace}</Text>
         <Text style={s.pillLabel}>PACE this wk</Text>
       </View>

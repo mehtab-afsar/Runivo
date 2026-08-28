@@ -97,11 +97,8 @@ export function NutritionTab() {
   if (!profile) {
     return (
       <View style={ss.empty}>
-        <Text style={ss.emptyTitle}>Nutrition not set up</Text>
-        <Text style={ss.emptyText}>Set up your daily nutrition goals to start tracking.</Text>
-        <Pressable style={ss.btn} onPress={() => navigation.navigate('NutritionSetup')}>
-          <Text style={ss.btnText}>Set up nutrition</Text>
-        </Pressable>
+        <Text style={ss.emptyTitle}>Nutrition tracking isn't set up yet.</Text>
+        <Text style={ss.emptyText}>Set up your daily goals and your meals will show up here.</Text>
       </View>
     );
   }
@@ -222,8 +219,10 @@ function mkStyles(C: AppColors) {
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     btn: { backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 10 },
     btnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.5 },
-    empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 20 },
-    emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, marginBottom: 8 },
-    emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18, marginBottom: 20 },
+    // Generic empty-state card pattern used elsewhere in Profile (Stats/
+    // Territory/Overview tabs) — surface card, plain copy, no button.
+    empty: { backgroundColor: C.stone, borderRadius: 14, paddingVertical: 40, paddingHorizontal: 28, alignItems: 'center', gap: 8 },
+    emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black, textAlign: 'center' },
+    emptyText: { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textAlign: 'center', lineHeight: 18 },
   });
 }

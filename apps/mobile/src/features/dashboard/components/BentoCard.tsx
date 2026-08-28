@@ -1,14 +1,17 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Dimensions, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Calendar, Users, Trophy } from 'phosphor-react-native';
+import { Calendar, Users, Trophy } from 'lucide-react-native';
 import { WeeklyRing } from './WeeklyRing';
 import { DayArcRing } from './DayArcRing';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { FEATURES } from '../../../config/features';
 
 const { width: SW } = Dimensions.get('window');
-const HERO_W = (SW - Spacing.gutter * 2 - 10) * (1.15 / 2.15);
+// Full-width paging slide — the hero card no longer shares its row with the
+// quick-action column (that's now a chip row below), so the slide just fills
+// the card's own width (bento's gutter padding minus nothing else).
+const SLIDE_W = SW - Spacing.gutter * 2;
 
 const QUICK_ACTIONS = [
   { icon: Calendar, name: 'Events',      screen: 'Events' },
@@ -20,6 +23,9 @@ interface Props {
   weeklyKm:         number;
   goalKm:           number;
   runDays:          boolean[];
+  /** Lifetime run count — distinguishes "never run" from "slow week" in the
+   *  ring's empty state. Presentation-only; goal/streak logic is untouched. */
+  totalRuns:        number;
   ownedCount:       number;
   avgFreshness:     number;
   caloriesConsumed: number;
@@ -82,7 +88,7 @@ const ns = StyleSheet.create({
 });
 
 export function BentoCard({
-  weeklyKm, goalKm, runDays,
+  weeklyKm, goalKm, runDays, totalRuns,
   caloriesConsumed, calorieGoal, netCaloriesToday,
   onNavigate, onStartRun, onNutritionPress,
 }: Props) {
@@ -91,6 +97,7 @@ export function BentoCard({
   const [slide, setSlide] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const userScrollingRef = useRef(false);
+  const hasRunHistory = totalRuns > 0;
 
   useEffect(() => {
     if (!FEATURES.NUTRITION_TRACKER) return;
@@ -98,7 +105,7 @@ export function BentoCard({
       if (userScrollingRef.current) return;
       setSlide(prev => {
         const next = (prev + 1) % 2;
-        scrollRef.current?.scrollTo({ x: next * HERO_W, animated: true });
+        scrollRef.current?.scrollTo({ x: next * SLIDE_W, animated: true });
         return next;
       });
     }, 4000);
@@ -107,9 +114,11 @@ export function BentoCard({
 
   return (
     <View style={ss.bento}>
-      <View style={ss.bentoRow}>
-
-        <View style={ss.hero}>
+      {/* Ring/nutrition carousel card — its own card, visually separate from
+          Start Run below (a gap + the Start Run card's own background, not a
+          shared container with an internal divider). */}
+      <View style={ss.ringCard}>
+        <View style={ss.carouselWrap}>
           {FEATURES.NUTRITION_TRACKER ? (
             <>
               <ScrollView
@@ -121,23 +130,25 @@ export function BentoCard({
                 onScrollBeginDrag={() => { userScrollingRef.current = true; }}
                 onScrollEndDrag={() => { userScrollingRef.current = false; }}
                 onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
-                  const idx = Math.round(e.nativeEvent.contentOffset.x / HERO_W);
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / SLIDE_W);
                   setSlide(idx);
                 }}
                 style={{ flex: 1 }}
               >
                 {/* Slide 0 — Weekly Goal: pure black */}
-                <View style={[ss.slide, { width: HERO_W }]}>
+                <View style={[ss.slide, { width: SLIDE_W }]}>
                   <WeeklyRing
-                    weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays}
+                    weeklyKm={weeklyKm} goalKm={goalKm}
+                    hasRunHistory={hasRunHistory}
                     onPress={() => onNavigate('History')}
                   />
                 </View>
 
                 {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark.
                     The ring itself is the tap target (DayArcRing) — no outer Pressable,
-                    so its own press-bounce animation isn't fighting a nested one. */}
-                <View style={[ss.slide, { width: HERO_W, backgroundColor: '#1A120C' }]}>
+                    so its own press-bounce animation isn't fighting a nested one.
+                    Untouched — out of scope for this pass. */}
+                <View style={[ss.slide, { width: SLIDE_W, backgroundColor: '#1A120C' }]}>
                   <NutritionTile
                     caloriesConsumed={caloriesConsumed}
                     calorieGoal={calorieGoal}
@@ -157,62 +168,67 @@ export function BentoCard({
           ) : (
             // Nutrition tracking is off — no carousel, no fake calorie card to tap
             // through to a ComingSoon screen. Just the weekly-goal ring, full width.
-            <View style={[ss.slide, { width: HERO_W }]}>
+            <View style={[ss.slide, { width: SLIDE_W }]}>
               <WeeklyRing
-                weeklyKm={weeklyKm} goalKm={goalKm} runDays={runDays}
+                weeklyKm={weeklyKm} goalKm={goalKm}
+                hasRunHistory={hasRunHistory}
                 onPress={() => onNavigate('History')}
               />
             </View>
           )}
         </View>
-
-        {/* Right column */}
-        <View style={{ flex: 1, gap: 8 }}>
-          {QUICK_ACTIONS.map(({ icon: Icon, name, screen }) => (
-            <Pressable
-              key={name}
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onNavigate(screen); }}
-              style={ss.qa}
-            >
-              <View style={ss.qaIcon}><Icon size={16} color={C.alwaysDark} weight="light" /></View>
-              <Text style={ss.qaLabel}>{name}</Text>
-            </Pressable>
-          ))}
-        </View>
       </View>
 
-      <Pressable onPress={onStartRun} style={ss.startBtn}>
+      <Pressable onPress={onStartRun} style={ss.startCard}>
         <View style={ss.startLeft}>
           <View style={ss.startCircle}><Text style={ss.startPlay}>&#x25B6;</Text></View>
           <View><Text style={ss.startHint}>TAP TO BEGIN</Text><Text style={ss.startLabel}>Start run</Text></View>
         </View>
       </Pressable>
+
+      {/* Quick actions — one horizontal row of equal-width chips */}
+      <View style={ss.chipRow}>
+        {QUICK_ACTIONS.map(({ icon: Icon, name, screen }) => (
+          <Pressable
+            key={name}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); onNavigate(screen); }}
+            style={ss.chip}
+          >
+            <View style={ss.chipIcon}><Icon size={16} color={C.alwaysDark} strokeWidth={2} /></View>
+            <Text style={ss.chipLabel}>{name}</Text>
+          </Pressable>
+        ))}
+      </View>
     </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    bento:     { paddingHorizontal: Spacing.gutter, marginBottom: 28 },
-    bentoRow:  { flexDirection: 'row', gap: 10, marginBottom: 10 },
-    // Intentionally-dark hero (holds white-on-dark ring/nutrition content) — fixed in
-    // both themes via the alwaysDark token.
-    hero:      { flex: 1.15, height: 224, borderRadius: 16, backgroundColor: C.alwaysDark, overflow: 'hidden' },
-    slide:     { height: '100%', flex: 1 },
-    dots:      { position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 4 },
-    dot:       { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)' },
-    dotActive: { backgroundColor: '#fff', width: 14 },
-    // Quick-action tiles are elevated surfaces that must invert with the theme —
+    bento:        { paddingHorizontal: Spacing.gutter, marginBottom: 28 },
+    // Intentionally-dark cards (hold white-on-dark content) — fixed in both
+    // themes via the alwaysDark token. Two separate cards with a real gap
+    // between them, not one container with an internal divider.
+    ringCard:     { borderRadius: 24, backgroundColor: C.alwaysDark, overflow: 'hidden', marginBottom: 10 },
+    carouselWrap: { height: 210 },
+    slide:        { height: '100%', flex: 1 },
+    dots:         { position: 'absolute', bottom: 10, alignSelf: 'center', flexDirection: 'row', gap: 4 },
+    dot:          { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)' },
+    dotActive:    { backgroundColor: '#fff', width: 14 },
+
+    startCard:    { borderRadius: 16, backgroundColor: C.alwaysDark, paddingVertical: 16, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    startLeft:    { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    startCircle:  { width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+    startPlay:    { fontSize: 14, color: C.alwaysLight, marginLeft: 2 },
+    startHint:    { fontFamily: Fonts.medium, fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 },
+    startLabel:   { fontFamily: Fonts.medium, fontSize: 17, color: C.alwaysLight, lineHeight: 22 },
+
+    // Quick-action chips are elevated surfaces that must invert with the theme —
     // C.surface (light gray → dark gray), C.t1 label, white icon badge with a fixed
     // dark glyph (set in JSX above).
-    qa:        { flex: 1, padding: 15, borderRadius: 14, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    qaIcon:    { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysLight, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    qaLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, flex: 1 },
-    startBtn:  { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
-    startLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    startCircle:{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
-    startPlay: { fontSize: 14, color: '#fff', marginLeft: 2 },
-    startHint: { fontFamily: Fonts.medium, fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 },
-    startLabel:{ fontFamily: Fonts.medium, fontSize: 17, color: '#fff', lineHeight: 22 },
+    chipRow:      { flexDirection: 'row', gap: 8 },
+    chip:         { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 14, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, gap: 8 },
+    chipIcon:     { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysLight, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    chipLabel:    { fontFamily: Fonts.medium, fontSize: 11.5, color: C.t1 },
   });
 }

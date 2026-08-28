@@ -86,6 +86,10 @@ export default function ProfileScreen() {
     const span  = next - curr;
     return span > 0 ? Math.min(1, (paceTotalEarned - curr) / span) : 0;
   })();
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const rankCaption = runnerRank === 'sovereign'
+    ? `${capitalize(runnerRank)} · ${paceTotalEarned.toLocaleString()} PACE — top rank`
+    : `${capitalize(runnerRank)} → ${capitalize(RANK_ORDER[rankIdx + 1])} · ${paceTotalEarned.toLocaleString()} / ${(thresholds[RANK_ORDER[rankIdx + 1]] ?? 0).toLocaleString()} PACE`;
 
   if (loading) return <SafeAreaView style={[ss.root, ss.center]}><ActivityIndicator color={C.red} /></SafeAreaView>;
 
@@ -95,7 +99,7 @@ export default function ProfileScreen() {
         <ProfileHeader
           displayName={displayedName} username={player?.username} bio={bio} avatarColor={avatarColor} avatarUri={avatarUri}
           location={location} instagram={instagram} strava={strava}
-          runnerRank={runnerRank} rankPct={rankPct}
+          runnerRank={runnerRank} rankPct={rankPct} rankCaption={rankCaption}
           totalKm={totalKm} totalRuns={runs.length} thisWeekKm={thisWeekKm}
           totalTerritories={player?.totalTerritoriesClaimed ?? 0} totalAreaM2={totalAreaM2}
           weeklyGoalKm={weeklyGoalKm} followers={followers} following={following}

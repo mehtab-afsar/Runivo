@@ -22,6 +22,9 @@ interface ProfileHeaderProps {
   avatarUri?: string | null;
   runnerRank: string;
   rankPct: number;
+  /** e.g. "Strider → Chaser · 340 / 600 PACE" — computed by the caller from
+   *  the existing rank ladder (GAME_CONFIG.RUNNER_RANK_THRESHOLDS), not here. */
+  rankCaption: string;
   // kept for compat but not rendered in header
   totalKm: number;
   totalRuns: number;
@@ -46,7 +49,7 @@ interface ProfileHeaderProps {
 
 export function ProfileHeader({
   displayName, username, bio, avatarColor, avatarUri,
-  runnerRank, rankPct,
+  runnerRank, rankPct, rankCaption,
   followers, following,
   isOwnProfile = true,
   onEditPress, onSettingsPress, onFollowersPress, onFollowingPress,
@@ -118,6 +121,7 @@ export function ProfileHeader({
         <View style={[ss.rankBarFill, { flex: Math.max(0.01, rankPct) }]} />
         <View style={{ flex: Math.max(0, 1 - rankPct) }} />
       </View>
+      <Text style={ss.rankCaption}>{rankCaption}</Text>
     </View>
   );
 }
@@ -149,5 +153,6 @@ function mkStyles(C: AppColors) {
     settingsBtn:  { padding: 2, alignSelf: 'flex-start' },
     rankBarBg:    { height: 3, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
     rankBarFill:  { height: 3, backgroundColor: C.red },
+    rankCaption:  { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 6 },
   });
 }

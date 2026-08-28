@@ -4,7 +4,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun, StoredPlayer } from '@shared/services/store';
-import { AWARD_DEFINITIONS } from '@shared/constants/awards';
+import { AWARD_DEFINITIONS, AWARD_PROGRESS_TARGETS } from '@shared/constants/awards';
+import type { AwardId } from '@shared/types/game';
+import { Lock } from 'lucide-react-native';
 import { fmtDist, fmtDuration } from '@mobile/shared/lib/formatters';
 import { HeroCard } from './HeroCard';
 import { StatusPills } from './StatusPills';
@@ -66,7 +68,31 @@ export function OverviewTab({
   );
 
   const recentRuns = runs.slice(0, 3);
-  const topAwards  = earnedAwards.slice(0, 6);
+
+  // Closest-to-completing preview, not a trophy case — the full Awards tab is
+  // where earned badges live. Only awards with a real tracked progress value
+  // (AwardsTab's own km-based targets) can say how close you are, so those
+  // are the only candidates; pace-category awards are excluded on top of that
+  // since nothing in the app can currently grant them (no best-pace tracking).
+  const totalKm = useMemo(() => runs.reduce((s, r) => s + r.distanceMeters / 1000, 0), [runs]);
+  const monthKm = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    return runs.filter(r => r.startTime >= monthStart.getTime()).reduce((s, r) => s + r.distanceMeters / 1000, 0);
+  }, [runs]);
+
+  const featuredAwards = useMemo(() => {
+    const earnedSet = new Set(earnedAwards.map(a => a.awardId));
+    return (Object.keys(AWARD_PROGRESS_TARGETS) as AwardId[])
+      .filter(id => !earnedSet.has(id) && AWARD_DEFINITIONS[id].category !== 'pace')
+      .map(id => {
+        const target  = AWARD_PROGRESS_TARGETS[id]!;
+        const current = Math.min(id === 'monthly_100' ? monthKm : totalKm, target);
+        return { id, def: AWARD_DEFINITIONS[id], current, target };
+      })
+      .sort((a, b) => (b.current / b.target) - (a.current / a.target))
+      .slice(0, 3);
+  }, [earnedAwards, totalKm, monthKm]);
 
   return (
     <View>
@@ -77,48 +103,48 @@ export function OverviewTab({
         runs={runs}
       />
 
-      {/* Awards */}
-      {earnedAwards.length > 0 && (
+      {/* Awards — closest-to-completing preview, so this always has something
+          to show even before the user's earned anything. */}
+      {featuredAwards.length > 0 && (
         <>
-          <SectionHeader title="Awards" action="View all" onAction={onViewAllAwards} />
+          <SectionHeader title="Awards" action="See all →" onAction={onViewAllAwards} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.awardsScroll} contentContainerStyle={s.awardsContent}>
-            {topAwards.map(a => {
-              const def = AWARD_DEFINITIONS[a.awardId as keyof typeof AWARD_DEFINITIONS];
-              if (!def) return null;
-              return (
-                <View key={a.awardId} style={s.awardChip}>
-                  <View style={s.awardIconWrap}>
-                    <Text style={s.awardIcon}>{def.icon}</Text>
-                  </View>
-                  <Text style={s.awardLabel} numberOfLines={1}>{def.title}</Text>
+            {featuredAwards.map(a => (
+              <View key={a.id} style={s.awardChip}>
+                <View style={s.awardIconWrap}>
+                  <Lock size={16} color={C.t3} strokeWidth={2} />
                 </View>
-              );
-            })}
+                <Text style={s.awardLabel} numberOfLines={1}>{a.def.title}</Text>
+                <Text style={s.awardProgress}>{a.current.toFixed(0)} / {a.target} km</Text>
+              </View>
+            ))}
           </ScrollView>
         </>
       )}
 
       {/* Recent activity */}
-      {recentRuns.length > 0 && (
-        <>
-          <SectionHeader title="Recent Runs" action="View all" onAction={onViewAllActivity} />
-          {recentRuns.map(run => (
-            <Pressable
-              key={run.id}
-              style={s.runCard}
-              onPress={() => navigation.navigate('RunSummary', { runId: run.id })}
-            >
-              <View style={s.runLeft}>
-                <Text style={s.runDist}>{fmtDist(run.distanceMeters)} km</Text>
-                <Text style={s.runMeta}>{run.avgPace} /km  ·  {fmtDuration(run.durationSec)}</Text>
-              </View>
-              <View style={s.runRight}>
-                <Text style={s.runDate}>{relativeDate(run.startTime)}</Text>
-                <Text style={s.runArrow}>›</Text>
-              </View>
-            </Pressable>
-          ))}
-        </>
+      <SectionHeader title="Recent Runs" action={recentRuns.length > 0 ? 'View all' : undefined} onAction={onViewAllActivity} />
+      {recentRuns.length > 0 ? (
+        recentRuns.map(run => (
+          <Pressable
+            key={run.id}
+            style={s.runCard}
+            onPress={() => navigation.navigate('RunSummary', { runId: run.id })}
+          >
+            <View style={s.runLeft}>
+              <Text style={s.runDist}>{fmtDist(run.distanceMeters)} km</Text>
+              <Text style={s.runMeta}>{run.avgPace} /km  ·  {fmtDuration(run.durationSec)}</Text>
+            </View>
+            <View style={s.runRight}>
+              <Text style={s.runDate}>{relativeDate(run.startTime)}</Text>
+              <Text style={s.runArrow}>›</Text>
+            </View>
+          </Pressable>
+        ))
+      ) : (
+        <View style={s.runsEmptyCard}>
+          <Text style={s.runsEmptyText}>No runs logged yet — head to Home when you're ready.</Text>
+        </View>
       )}
 
       {/* Pinned run */}
@@ -168,9 +194,11 @@ function mkStyles(C: AppColors) {
 
     awardsScroll:   { marginBottom: 24 },
     awardsContent:  { gap: 10, paddingBottom: 4 },
-    awardChip:      { alignItems: 'center', gap: 6, width: 68 },
-    awardIconWrap:  { width: 48, height: 48, borderRadius: 12, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    awardIcon:      { fontSize: 24 },
+    // Dimmed/locked — this strip previews what's next, not what's earned;
+    // the full trophy case lives on the Awards tab.
+    awardChip:      { alignItems: 'center', gap: 6, width: 76, opacity: 0.7 },
+    awardIconWrap:  { width: 48, height: 48, borderRadius: 12, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    awardProgress:  { fontFamily: Fonts.regular, fontSize: 9.5, color: C.t3, fontVariant: ['tabular-nums'] },
     awardLabel:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t2, textAlign: 'center' },
 
     runCard:        { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, marginBottom: 8 },
@@ -180,5 +208,8 @@ function mkStyles(C: AppColors) {
     runRight:       { alignItems: 'flex-end', gap: 6 },
     runDate:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     runArrow:       { fontSize: 18, color: C.t3 },
+
+    runsEmptyCard:  { backgroundColor: C.stone, borderRadius: 14, padding: 18, alignItems: 'center', marginBottom: 8 },
+    runsEmptyText:  { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textAlign: 'center', lineHeight: 18 },
   });
 }

@@ -13,11 +13,14 @@ const AnimatedCircle = Animated.createAnimatedComponent(SvgCircle);
 interface Props {
   pct:   number; // 0–1
   color: string;
+  /** Unfilled-track color — defaults to a white-on-dark rgba, so pass a themed
+   *  token (e.g. `C.border`) explicitly when the ring sits on a light card. */
+  trackColor?: string;
   size?: number;
   children?: React.ReactNode;
 }
 
-export function MissionRing({ pct, color, size = 52, children }: Props) {
+export function MissionRing({ pct, color, trackColor = 'rgba(255,255,255,0.10)', size = 52, children }: Props) {
   const r      = size / 2 - 5;
   const circ   = 2 * Math.PI * r;
   const center = size / 2;
@@ -38,7 +41,7 @@ export function MissionRing({ pct, color, size = 52, children }: Props) {
   return (
     <View style={[ss.wrap, { width: size, height: size }]}>
       <Svg width={size} height={size}>
-        <SvgCircle cx={center} cy={center} r={r} stroke="rgba(255,255,255,0.10)" strokeWidth={strokeW} fill="none" />
+        <SvgCircle cx={center} cy={center} r={r} stroke={trackColor} strokeWidth={strokeW} fill="none" />
         {clamped > 0 && (
           <AnimatedCircle
             cx={center} cy={center} r={r}

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, type ViewStyle } from 'react-native';
 import { Fonts, useTheme, type AppColors } from '@theme';
 
 interface InsightStat {
@@ -23,9 +23,13 @@ interface InsightData {
 interface Props {
   type:    string;
   content: string;
+  /** Overrides the card's own maxWidth:'85%' (sized for chat-bubble layout,
+   *  where an avatar sits beside it) — pass e.g. { maxWidth: '100%' } when
+   *  reusing this card full-width outside the chat feed. */
+  style?: ViewStyle;
 }
 
-export function CoachMessageCard({ type, content }: Props) {
+export function CoachMessageCard({ type, content, style }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
 
@@ -34,7 +38,7 @@ export function CoachMessageCard({ type, content }: Props) {
     try { data = JSON.parse(content); } catch { /* fall through to raw text */ }
 
     return (
-      <View style={ss.card}>
+      <View style={[ss.card, style]}>
         {data.praise && <Text style={ss.praise}>{data.praise}</Text>}
         {data.headline && <Text style={ss.headline}>{data.headline}</Text>}
         {data.insights?.map((ins, i) => (

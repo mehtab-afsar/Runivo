@@ -3,7 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { getAllTerritories } from '@shared/services/store';
 import type { StoredTerritory } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
-import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
@@ -39,36 +40,47 @@ export function TerritoryTab() {
   if (owned.length === 0) {
     return (
       <View style={ss.empty}>
-        <Text style={ss.emptyTitle}>No territories yet</Text>
-        <Text style={ss.emptyText}>Complete your first run to claim zones and build your empire.</Text>
+        <Text style={ss.emptyHeadline}>No ground under your name yet.</Text>
+        <Text style={ss.emptyText}>Claim your first zone and it'll show up here.</Text>
       </View>
     );
   }
 
+  const totalAreaM2 = owned.reduce((s, t) => s + t.areaM2, 0);
   const sorted = [...owned].sort((a, b) => (b.claimedAt ?? 0) - (a.claimedAt ?? 0));
-  const recent = sorted.slice(0, 5);
 
   return (
     <View>
-      {/* Summary card */}
-      <View style={ss.summaryCard}>
-        <Text style={ss.zonesCount}>⬡ {owned.length}</Text>
-        <Text style={ss.zonesLabel}>Zones owned</Text>
+      {/* Header stat row */}
+      <View style={ss.statRow}>
+        <View style={ss.statBlock}>
+          <Text style={ss.statNum}>{owned.length}</Text>
+          <Text style={ss.statLabel}>{owned.length === 1 ? 'zone owned' : 'zones owned'}</Text>
+        </View>
+        <View style={ss.statDivider} />
+        <View style={ss.statBlock}>
+          <Text style={ss.statNum}>{formatArea(totalAreaM2)}</Text>
+          <Text style={ss.statLabel}>total claimed</Text>
+        </View>
       </View>
 
-      {/* Recent captures */}
-      <Text style={ss.sectionLabel}>Recent captures</Text>
-      <View style={ss.listCard}>
-        {recent.map((t, i) => (
-          <View key={t.id} style={[ss.zoneRow, i < recent.length - 1 && ss.zoneRowBorder]}>
-            <Text style={ss.hexIcon}>⬡</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={ss.zoneName}>Zone {t.id.slice(0, 8).toUpperCase()}</Text>
-              <Text style={ss.zoneTier}>{t.tier ?? 'Basic'}</Text>
+      {/* Zone grid */}
+      <View style={ss.grid}>
+        {sorted.map(t => {
+          const tc = TIER_CONFIG[t.tier] ?? TIER_CONFIG.patch;
+          return (
+            <View key={t.id} style={ss.zoneCard}>
+              <View style={[ss.swatch, { backgroundColor: tc.bg }]}>
+                <View style={[ss.swatchCore, { backgroundColor: tc.fg }]} />
+              </View>
+              <View style={[ss.tierBadge, { backgroundColor: tc.bg }]}>
+                <Text style={[ss.tierBadgeText, { color: tc.fg }]}>{tc.label}</Text>
+              </View>
+              <Text style={ss.zoneArea}>{formatArea(t.areaM2)}</Text>
+              <Text style={ss.zoneDate}>{t.claimedAt ? timeAgo(t.claimedAt) : '—'}</Text>
             </View>
-            <Text style={ss.zoneTime}>{t.claimedAt ? timeAgo(t.claimedAt) : '—'}</Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
@@ -76,24 +88,23 @@ export function TerritoryTab() {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    empty: { alignItems: 'center', paddingVertical: 40 },
-    emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, marginBottom: 6 },
-    emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
-    summaryCard: {
-      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
-      padding: 24, alignItems: 'center', marginBottom: 20,
-    },
-    zonesCount: { ...Type.metricLg, fontSize: 48, color: C.red, letterSpacing: -1 },
-    zonesLabel: { ...Type.overline, color: C.t3, marginTop: 4 },
-    sectionLabel: { ...Type.overline, color: C.t3, marginBottom: 10 },
-    listCard: {
-      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden',
-    },
-    zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-    zoneRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.border },
-    hexIcon: { fontSize: 20, color: C.red },
-    zoneName: { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    zoneTier: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textTransform: 'capitalize' },
-    zoneTime: { fontFamily: Fonts.light, fontSize: 11, color: C.t3 },
+    empty:        { backgroundColor: C.stone, borderRadius: 14, paddingVertical: 40, paddingHorizontal: 28, alignItems: 'center', gap: 8 },
+    emptyHeadline:{ fontFamily: Fonts.display, fontSize: 21, lineHeight: 26, color: C.black, textAlign: 'center' },
+    emptyText:    { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textAlign: 'center', lineHeight: 18 },
+
+    statRow:     { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, paddingVertical: 20, marginBottom: 20 },
+    statBlock:   { flex: 1, alignItems: 'center' },
+    statDivider: { width: 0.5, alignSelf: 'stretch', backgroundColor: C.border },
+    statNum:     { fontFamily: Fonts.semiBold, fontSize: 24, color: C.red, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+    statLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 4 },
+
+    grid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    zoneCard:    { width: '47%', backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center', gap: 6 },
+    swatch:      { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    swatchCore:  { width: 18, height: 18, borderRadius: 5 },
+    tierBadge:   { borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
+    tierBadgeText: { fontFamily: Fonts.semiBold, fontSize: 9.5, letterSpacing: 0.4 },
+    zoneArea:    { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginTop: 2 },
+    zoneDate:    { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
   });
 }

@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
-import { Bell, Lightning, Pulse, Fire, Crown } from 'phosphor-react-native';
+import { Pulse } from 'phosphor-react-native';
+import { ArrowRight } from 'lucide-react-native';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
@@ -18,6 +19,8 @@ import { BentoCard } from '../components/BentoCard';
 import { PACEStoreBanner } from '../components/PACEStoreBanner';
 import { DailyBonusCard } from '../components/DailyBonusCard';
 import { TerritoryCapBanner } from '../components/TerritoryCapBanner';
+import { DashboardHeader } from '../components/DashboardHeader';
+import { CommunityPulseCard } from '../components/CommunityPulseCard';
 import { DashboardTour } from '../components/DashboardTour';
 import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
 
@@ -83,48 +86,17 @@ export default function DashboardScreen() {
       <ScrollView style={s.fill} contentContainerStyle={{ paddingBottom: 100, paddingTop: insets.top }} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
-        <View style={s.header}>
-          {/* Left: greeting + name */}
-          <View style={{ flex: 1 }}>
-            <Text style={s.greeting}>{greeting.toUpperCase()}</Text>
-            <Text style={s.username}>{dash.player.username}</Text>
-          </View>
-
-          {/* Right: streak · TS · bell */}
-          <View style={s.headerRight}>
-            {/* Streak badge */}
-            <View style={s.badge}>
-              <Fire size={11} color={streakDays > 0 ? C.red : C.t3} weight="light" />
-              <Text style={s.badgeTxt}>{streakDays}</Text>
-            </View>
-
-            {/* Territory score badge */}
-            <View style={s.badge}>
-              <Text style={s.badgeTxt}>{tsDisplay.toLocaleString()}</Text>
-              <Text style={s.badgeSup}>TS</Text>
-            </View>
-
-            {/* Runivo Plus — always-visible entry point to the paywall/plan screen,
-                not buried in Settings. Gold+filled once subscribed, outline as an
-                upsell otherwise. */}
-            <Pressable
-              onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Subscription'); }}
-              style={[s.bellBtn, gate.isPremium && s.crownBtnActive]}
-            >
-              <Crown size={14} color={gate.isPremium ? C.gold : C.black} weight={gate.isPremium ? 'fill' : 'light'} />
-            </Pressable>
-
-            {/* Notifications bell */}
-            <Pressable onPress={() => { go('Notifications'); setUnreadCount(0); }} style={s.bellBtn}>
-              <Bell size={14} color={C.black} weight="light" />
-              {unreadCount > 0 && (
-                <View style={s.bellBadge}>
-                  <Text style={s.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
-            </Pressable>
-          </View>
-        </View>
+        <DashboardHeader
+          greeting={greeting.toUpperCase()}
+          username={dash.player.username}
+          streakDays={streakDays}
+          territoryScore={tsDisplay}
+          isPremium={gate.isPremium}
+          unreadCount={unreadCount}
+          onAvatarPress={() => navigation.navigate('Main', { screen: 'Profile' })}
+          onPlusPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate('Subscription'); }}
+          onBellPress={() => { go('Notifications'); setUnreadCount(0); }}
+        />
 
         {/* Sync error chip */}
         {dash.syncError && (
@@ -160,6 +132,7 @@ export default function DashboardScreen() {
         <View ref={bentoRef} collapsable={false}>
           <BentoCard
             weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal} runDays={dash.runDays}
+            totalRuns={dash.player.totalRuns}
             ownedCount={dash.ownedCount} avgFreshness={dash.avgFreshness}
             caloriesConsumed={dash.caloriesConsumed}
             calorieGoal={dash.calorieGoal}
@@ -190,14 +163,14 @@ export default function DashboardScreen() {
 
         {/* Missions */}
         <View style={s.section}>
-          <SectionHeader
-            title="Missions"
-            icon={<Lightning size={11} color={C.t3} weight="light" />}
-            action={{ label: 'Change →', onPress: () => go('Missions') }}
-            style={s.sectionHead}
-          />
           <View style={s.missionCard}>
-            <Text style={s.cardLabel}>TODAY'S CHALLENGE</Text>
+            <View style={s.missionCardHeader}>
+              <Text style={s.missionCardLabel}>Today's missions</Text>
+              <Pressable onPress={() => go('Missions')} hitSlop={8} style={s.missionChangeLink}>
+                <Text style={s.missionChangeTxt}>Change</Text>
+                <ArrowRight size={12} color={C.red} strokeWidth={2} />
+              </Pressable>
+            </View>
             {dash.missions.map((m, i) => (
               <MissionRow key={m.id} mission={m} isLast={i === dash.missions.length - 1} onClaim={dash.claimMission} />
             ))}
@@ -224,6 +197,11 @@ export default function DashboardScreen() {
             </View>
           </View>
         )}
+
+        <CommunityPulseCard
+          onOpenRoom={lobbyId => navigation.navigate('LobbyChat', { lobbyId })}
+          onOpenDiscover={() => navigation.navigate('Main', { screen: 'Feed' })}
+        />
       </ScrollView>
 
       <DashboardTour
@@ -242,26 +220,14 @@ function mkStyles(C: AppColors) {
     bonusToastWrap:  { position: 'absolute', left: 0, right: 0, zIndex: 50 },
     loadText:        { ...Type.displaySm, color: C.t1 },
 
-    // Header — editorial greeting with breathing room
-    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingTop: 24, marginBottom: 22 },
-    greeting:        { ...Type.overline, color: C.t3, marginBottom: 5 },
-    username:        { fontFamily: Fonts.display, fontSize: 30, color: C.t1, lineHeight: 34 },
-    headerRight:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    badge:           { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 10, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, borderRadius: 16 },
-    badgeTxt:        { ...Type.metricSm, fontSize: 13, color: C.t1 },
-    badgeSup:        { fontFamily: Fonts.medium, fontSize: 10, color: C.t3, letterSpacing: 0.4, marginTop: 2 },
-    bellBtn:         { width: 32, height: 32, borderRadius: 16, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    crownBtnActive:  { backgroundColor: C.amberBg, borderColor: 'rgba(212,162,0,0.35)' },
-    bellBadge:       { position: 'absolute', top: -3, right: -3, minWidth: 14, height: 14, borderRadius: 7, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.bg },
-    bellBadgeText:   { fontFamily: Fonts.bold, fontSize: 9, color: C.alwaysLight, lineHeight: 11 },
-
     // Content
     section:         { paddingHorizontal: Spacing.gutter, marginBottom: 28 },
     sectionHead:     { marginBottom: 12 },
-    // Fixed near-black bold card in both themes — not C.black, which is the "ink" token
-    // and inverts to near-white in dark mode (would strand the fixed-white text below).
-    missionCard:     { backgroundColor: C.alwaysDark, borderRadius: 20, padding: 18 },
-    cardLabel:       { ...Type.overline, color: 'rgba(255,255,255,0.35)', marginBottom: 14 },
+    missionCard:       { backgroundColor: C.card, borderRadius: 16, padding: 16, borderWidth: 0.5, borderColor: C.border },
+    missionCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+    missionCardLabel:  { ...Type.overline, color: C.t3 },
+    missionChangeLink: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    missionChangeTxt:  { ...Type.label, fontFamily: Fonts.semiBold, color: C.red },
     runsCard:        { backgroundColor: C.card, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     syncChip:        { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', backgroundColor: C.red, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginBottom: 10, gap: 4 },
     syncDot:         { fontSize: 8, color: C.alwaysLight, lineHeight: 12 },
