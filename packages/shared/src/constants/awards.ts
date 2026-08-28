@@ -28,3 +28,13 @@ export const AWARD_DEFINITIONS: Record<AwardId, {
   sub_4_30:           { title: 'Sub-4:30',           icon: '🚀',  description: 'Ran a kilometre in under 4:30/km',              category: 'pace' },
   monthly_100:        { title: 'Century Month',      icon: '📅',  description: '100km in a single calendar month',              category: 'distance' },
 };
+
+// Only these have a numeric progress signal today (AwardsTab's own km-based
+// getProgress()) — everything else is binary earned/not-earned with no
+// tracked "current" value to show a fraction for.
+export const AWARD_PROGRESS_TARGETS: Partial<Record<AwardId, number>> = {
+  km_100:      100,
+  km_500:      500,
+  km_1000:     1000,
+  monthly_100: 100,
+};

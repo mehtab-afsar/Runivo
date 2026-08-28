@@ -813,6 +813,17 @@ async function handleWeeklyBrief(
   const avgPace   = runList[Math.floor(runList.length / 2)]?.avg_pace ?? '–';
   const lastRunId = runList[0]?.id ?? null;
 
+  // True cold start — nothing to analyse yet. Return an honest empty state
+  // instead of asking Claude to manufacture encouragement from zero data;
+  // skip the cache write since there's nothing meaningful to cache.
+  if (totalRuns === 0) {
+    return {
+      headline: 'No runs yet — let\'s fix that.',
+      insights: [],
+      tip:      'Log your first run and I\'ll have real numbers to work with.',
+    };
+  }
+
   const hashInput = {
     lastRunId,
     totalRuns,

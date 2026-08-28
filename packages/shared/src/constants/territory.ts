@@ -10,7 +10,7 @@ export const RANK_COLORS: Record<string, { bg: string; fg: string }> = {
   pacer:    { bg: '#F1EFE8', fg: '#5F5E5A' },
   strider:  { bg: '#E6F1FB', fg: '#185FA5' },
   chaser:   { bg: '#EEEDFE', fg: '#3C3489' },
-  hunter:   { bg: '#FAEEDA', fg: '#854F0B' },
+  hunter:   { bg: '#FEF3C7', fg: '#B45309' },
   sovereign:{ bg: '#FCEBEB', fg: '#A32D2D' },
 };
 
