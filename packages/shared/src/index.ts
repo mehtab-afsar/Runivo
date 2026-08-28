@@ -8,7 +8,6 @@ export {
 export * from './services/missionStore';
 export * from './services/claimEngine';
 export * from './services/store';
-export * from './services/appleHealthService';
 export * from './services/pushNotificationService';
 export * from './services/supabase';
 export * from './services/auth';
@@ -16,7 +15,6 @@ export * from './services/profile';
 export * from './services/passiveIncome';
 export { calculatePersonalRecords, formatRecordValue, getRecordLabel } from './services/personalRecords';
 export type { PersonalRecord as PersonalRecordEntry } from './services/personalRecords';
-export * from './services/diamonds';
 export * from './services/sync';
 export * from './services/nutrition';
 

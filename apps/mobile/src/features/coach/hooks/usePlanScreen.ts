@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { supabase } from '@shared/services/supabase';
 import type { TrainingPlan, PlannedSession } from '@shared/types/game';
+import { computeConsistencyScore } from '../utils/consistencyScore';
 
 export type SessionStatus = 'planned' | 'completed' | 'missed';
 
@@ -127,12 +128,7 @@ export function usePlanScreen() {
       setSessions(withStatus);
 
       // Persist this week's consistency score to DB (fire-and-forget, enables trend history)
-      const runSessions    = withStatus.filter(s => s.type !== 'Rest');
-      const completedCount = withStatus.filter(s => s.status === 'completed' && s.type !== 'Rest').length;
-      const missedCount    = withStatus.filter(s => s.status === 'missed').length;
-      const score          = runSessions.length > 0
-        ? Math.round((completedCount / runSessions.length) * 100)
-        : 100;
+      const { score, runDaysHit, runDaysTarget, missedCount } = computeConsistencyScore(withStatus);
       const kmActual = (runs ?? []).reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
 
       const { data: profileData } = await supabase
@@ -145,8 +141,8 @@ export function usePlanScreen() {
         user_id:            session.user.id,
         week_start:         monday.toLocaleDateString('en-CA'),
         plan_id:            tp.id,
-        sessions_planned:   runSessions.length,
-        sessions_completed: completedCount,
+        sessions_planned:   runDaysTarget,
+        sessions_completed: runDaysHit,
         sessions_missed:    missedCount,
         km_actual:          parseFloat(kmActual.toFixed(2)),
         consistency_score:  score,

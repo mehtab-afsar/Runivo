@@ -12,8 +12,8 @@
         "simulator": true
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://mlmrqtbaerdhlvrhtnry.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1sbXJxdGJhZXJkaGx2cmh0bnJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjE4NTUsImV4cCI6MjA4ODYzNzg1NX0.0Pbr5_lza67yMrD2DUf_ruu3YZQojOl-txeX9BOxsqU"
       }
     },
     "preview": {
@@ -23,9 +23,9 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_SENTRY_DSN": "",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://mlmrqtbaerdhlvrhtnry.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1sbXJxdGJhZXJkaGx2cmh0bnJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjE4NTUsImV4cCI6MjA4ODYzNzg1NX0.0Pbr5_lza67yMrD2DUf_ruu3YZQojOl-txeX9BOxsqU",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://d1250c453f00db5b72dcc6b420bafd5e@o4511989240037376.ingest.us.sentry.io/4511989246722048",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "",
         "EXPO_PUBLIC_RC_API_KEY_IOS": "",
         "EXPO_PUBLIC_RC_API_KEY_ANDROID": ""
@@ -42,9 +42,9 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
-        "EXPO_PUBLIC_SENTRY_DSN": "",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://mlmrqtbaerdhlvrhtnry.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1sbXJxdGJhZXJkaGx2cmh0bnJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjE4NTUsImV4cCI6MjA4ODYzNzg1NX0.0Pbr5_lza67yMrD2DUf_ruu3YZQojOl-txeX9BOxsqU",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://d1250c453f00db5b72dcc6b420bafd5e@o4511989240037376.ingest.us.sentry.io/4511989246722048",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "",
         "EXPO_PUBLIC_RC_API_KEY_IOS": "",
         "EXPO_PUBLIC_RC_API_KEY_ANDROID": ""

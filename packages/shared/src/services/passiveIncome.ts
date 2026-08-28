@@ -31,12 +31,3 @@ export function collectLoginBonus(
 
   return { coinsEarned, updatedPlayer, alreadyCollected: false };
 }
-
-/** @deprecated Use collectLoginBonus instead. */
-export function collectPassiveIncome(
-  player: StoredPlayer,
-  ownedZoneCount: number
-): { coinsEarned: number; updatedPlayer: StoredPlayer } {
-  const { coinsEarned, updatedPlayer } = collectLoginBonus(player, ownedZoneCount);
-  return { coinsEarned, updatedPlayer };
-}

@@ -27,8 +27,3 @@ export const NOTIF_CONFIG: Record<string, NotifConfig> = {
   pace_cap:           { emoji: '💎', bg: '#FEF0EE', fg: '#D93518' },
   system:             { emoji: '📢', bg: '#F5F5F5', fg: '#555555' },
 };
-
-/** @deprecated use NOTIF_CONFIG */
-export const NOTIF_EMOJI: Record<string, string> = Object.fromEntries(
-  Object.entries(NOTIF_CONFIG).map(([k, v]) => [k, v.emoji])
-);

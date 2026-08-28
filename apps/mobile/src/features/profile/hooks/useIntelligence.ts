@@ -4,16 +4,10 @@ import { supabase } from '@shared/services/supabase';
 import { requestPaceIntelligence } from '../../coach/services/coachService';
 import type { PaceInsightCard } from '../../coach/services/coachService';
 import type { PersonalRecord } from './useProfile';
+import { isoWeekStart } from '../utils/raceIntelligence';
+import { fmtPace } from '@mobile/shared/lib/formatters';
 
 export type { PaceInsightCard };
-
-function isoWeekStart(d: Date): string {
-  const day = new Date(d);
-  const dow = day.getDay() === 0 ? 6 : day.getDay() - 1;
-  day.setDate(day.getDate() - dow);
-  day.setHours(0, 0, 0, 0);
-  return day.toISOString().slice(0, 10);
-}
 
 export function computeWeeklyKm(runs: StoredRun[], weeks: number): number[] {
   const map: Record<string, number> = {};
@@ -47,12 +41,6 @@ export function computeTrendLabel(weeklyKm: number[]): string {
   return `Consistent · ${recentAvg.toFixed(1)} km/wk avg`;
 }
 
-function fmtPaceSec(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = Math.round(sec % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
 export function computePersonalRecordsLocal(runs: StoredRun[]): PersonalRecord[] {
   if (runs.length === 0) return [];
   let longestKm = 0;
@@ -73,8 +61,8 @@ export function computePersonalRecordsLocal(runs: StoredRun[]): PersonalRecord[]
 
   return [
     { label: 'Longest run', value: longestKm > 0 ? `${longestKm.toFixed(1)} km` : '—' },
-    { label: 'Best pace', value: fastestPaceSec < Infinity ? `${fmtPaceSec(fastestPaceSec)}/km` : '—' },
-    { label: 'Best 5K pace', value: best5kPaceSec < Infinity ? `${fmtPaceSec(best5kPaceSec)}/km` : '—' },
+    { label: 'Best pace', value: fastestPaceSec < Infinity ? `${fmtPace(fastestPaceSec)}/km` : '—' },
+    { label: 'Best 5K pace', value: best5kPaceSec < Infinity ? `${fmtPace(best5kPaceSec)}/km` : '—' },
     { label: 'Most zones', value: mostZones > 0 ? String(mostZones) : '—' },
   ];
 }

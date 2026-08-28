@@ -3,6 +3,7 @@ import type { StoredRun, StoredShoe } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import { writeRunToHealth } from '@mobile/shared/services/healthService';
 import { estimateRunCalories } from '@shared/services/nutrition';
+import { haversineM } from '@shared/services/claimEngine';
 
 export async function fetchRunById(runId: string): Promise<StoredRun | null> {
   return (await getRunById(runId)) ?? null;
@@ -34,16 +35,6 @@ export async function saveRunToSupabase(run: StoredRun): Promise<void> {
 interface GpsPoint { lat: number; lng: number; timestamp?: number }
 export interface Split { km: number; pace: number }
 
-function haversineDist(a: [number, number], b: [number, number]): number {
-  const R = 6371;
-  const dLat = ((b[1] - a[1]) * Math.PI) / 180;
-  const dLng = ((b[0] - a[0]) * Math.PI) / 180;
-  const lat1 = (a[1] * Math.PI) / 180;
-  const lat2 = (b[1] * Math.PI) / 180;
-  const x = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-}
-
 /**
  * Splits are derived from each GPS point's real timestamp, not from the total run
  * duration spread proportionally across distance — the latter collapses every split
@@ -53,13 +44,12 @@ function haversineDist(a: [number, number], b: [number, number]): number {
  * were persisted on the route).
  */
 export function computeSplits(gpsPoints: GpsPoint[], totalDuration?: number): Split[] {
-  const coords: [number, number][] = gpsPoints.map(p => [p.lng, p.lat]);
-  if (coords.length < 2) return [];
+  if (gpsPoints.length < 2) return [];
 
   let cumDist = 0;
   const pts: { dist: number }[] = [{ dist: 0 }];
-  for (let i = 1; i < coords.length; i++) {
-    cumDist += haversineDist(coords[i - 1], coords[i]);
+  for (let i = 1; i < gpsPoints.length; i++) {
+    cumDist += haversineM(gpsPoints[i - 1], gpsPoints[i]) / 1000; // this function works in km throughout
     pts.push({ dist: cumDist });
   }
   const totalDist = cumDist;
