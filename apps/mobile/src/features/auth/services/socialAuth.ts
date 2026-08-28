@@ -1,5 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@shared/services/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -18,7 +20,7 @@ WebBrowser.maybeCompleteAuthSession();
  * code_verifier this client generated and kept locally. The origin check below is
  * defence in depth: nothing but our own redirect target should ever be parsed.
  */
-async function oauthFlow(provider: 'google' | 'apple'): Promise<void> {
+async function oauthFlow(provider: 'google'): Promise<void> {
   const redirectTo = makeRedirectUri({ scheme: 'runivo', path: 'auth/callback' });
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -51,4 +53,45 @@ async function oauthFlow(provider: 'google' | 'apple'): Promise<void> {
 }
 
 export const signInWithGoogle = (): Promise<void> => oauthFlow('google');
-export const signInWithApple  = (): Promise<void> => oauthFlow('apple');
+
+/**
+ * Sign in with Apple via the native AuthenticationServices flow — not the
+ * generic OAuth browser popup `signInWithGoogle` uses. Apple's App Review
+ * Guideline 4.8 / HIG require the native flow and the official Apple-rendered
+ * button specifically; the previous implementation routed Apple through the
+ * same in-app-browser OAuth path as Google, which is a known rejection
+ * pattern even though the OAuth destination was technically Apple's real
+ * consent page. Android/web keep using the OAuth path — Apple only requires
+ * the native flow on the native iOS app.
+ */
+export async function signInWithApple(): Promise<void> {
+  // Raw nonce kept locally; only its SHA-256 hash goes to Apple. Supabase's
+  // signInWithIdToken re-hashes the raw nonce we send it and compares against
+  // the (hashed) nonce claim baked into Apple's identityToken — this is what
+  // binds the token to this specific sign-in attempt (replay/CSRF defence).
+  const rawNonce = Crypto.randomUUID();
+  const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
+
+  let credential: AppleAuthentication.AppleAuthenticationCredential;
+  try {
+    credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+      nonce: hashedNonce,
+    });
+  } catch (err: any) {
+    if (err?.code === 'ERR_REQUEST_CANCELED') return; // user backed out — not an error
+    throw err;
+  }
+
+  if (!credential.identityToken) throw new Error('Apple sign-in returned no identity token');
+
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider: 'apple',
+    token:    credential.identityToken,
+    nonce:    rawNonce,
+  });
+  if (error) throw error;
+}

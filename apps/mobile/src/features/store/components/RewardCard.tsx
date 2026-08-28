@@ -58,7 +58,7 @@ function mkStyles(C: AppColors) {
     cardPremium:    { borderLeftWidth: 3, borderLeftColor: C.red },
     topRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
     brandCircle:    { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-    brandInitial:   { fontFamily: Fonts.display, fontSize: 22 },
+    brandInitial:   { fontFamily: Fonts.bold, fontSize: 18, letterSpacing: -0.3 },
     valueBadge:     { backgroundColor: C.redLo, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
     valueBadgeText: { fontFamily: Fonts.medium, fontSize: 11, color: C.red, textTransform: 'uppercase', letterSpacing: 0.5 },
     title:          { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black, marginBottom: 6 },

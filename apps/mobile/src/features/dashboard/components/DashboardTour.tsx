@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, Dimensions, Platform } from 'react-n
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { useCoachNav } from '@navigation/CoachNavContext';
 
 const SEEN_KEY = 'runivo:dashboardTourSeen';
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -30,10 +31,19 @@ interface DashboardTourProps {
 export function DashboardTour({ targets, active }: DashboardTourProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
+  const { setTourActive } = useCoachNav();
   const [checked, setChecked] = useState(false);
   const [visible, setVisible] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
+
+  // Keep the tab bar out of the way for the whole time the tour is up, and
+  // guarantee it comes back — both on normal finish and if this component
+  // unmounts mid-tour (e.g. the user navigates away some other way).
+  useEffect(() => {
+    setTourActive(visible);
+    return () => setTourActive(false);
+  }, [visible, setTourActive]);
 
   const steps: Step[] = useMemo(() => [
     { ref: targets.paceStore, title: 'Earn as you run', body: 'Every km earns PACE — spend it on real rewards in the store.' },

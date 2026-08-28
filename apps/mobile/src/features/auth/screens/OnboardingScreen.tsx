@@ -7,16 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import * as Notifications from 'expo-notifications';
 
 import { useOnboarding } from '../hooks/useOnboarding';
 import OnboardingProgress from '../components/OnboardingProgress';
 import GoalStep from '../components/GoalStep';
-import TargetStep from '../components/TargetStep';
 import ProfileStep from '../components/ProfileStep';
 import CityMapPreviewStep from '../components/CityMapPreviewStep';
 import FirstMissionStep from '../components/FirstMissionStep';
-import NotificationPermissionStep from '../components/NotificationPermissionStep';
+import PlanSelectionStep from '../components/PlanSelectionStep';
 import LaunchStep from '../components/LaunchStep';
 import type { OnboardingData } from '../types';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -154,33 +152,24 @@ export default function OnboardingScreen() {
 
   const handleNext = async () => {
     if (transitioning.current) return;
-    if (ob.step === 6) {
-      try {
-        const { status } = await Notifications.requestPermissionsAsync();
-        ob.update('notificationsEnabled', status === 'granted');
-      } catch {
-        ob.update('notificationsEnabled', false);
-      }
-    }
     ob.goNext();
   };
 
   const renderStep = () => {
     switch (ob.step) {
       case 1: return <GoalStep primaryGoal={ob.data.primaryGoal} onChange={v => ob.update('primaryGoal', v)} />;
-      case 2: return <ProfileStep data={ob.data} onChange={(k, v) => ob.update(k, v)} />;
-      case 3: return (
-        <TargetStep
+      case 2: return (
+        <ProfileStep
           data={ob.data}
+          onChange={(k, v) => ob.update(k, v)}
           selectedDays={ob.selectedDays}
           distKm={ob.distKm}
           weeklyKmDisplay={ob.weeklyKmDisplay}
           todayIdx={todayIdx}
           onToggleDay={ob.toggleDay}
-          onDistanceChange={v => ob.update('preferredDistance', v)}
         />
       );
-      case 4: return (
+      case 3: return (
         <CityMapPreviewStep
           onLocationCaptured={(loc, country) => {
             ob.update('lastKnownLocation', loc);
@@ -188,9 +177,9 @@ export default function OnboardingScreen() {
           }}
         />
       );
-      case 5: return <FirstMissionStep primaryGoal={ob.data.primaryGoal} />;
-      case 6: return <NotificationPermissionStep />;
-      case 7: return (
+      case 4: return <FirstMissionStep primaryGoal={ob.data.primaryGoal} />;
+      case 5: return <PlanSelectionStep plan={ob.data.plan} onSelectPlan={v => ob.update('plan', v)} />;
+      case 6: return (
         <LaunchStep
           weeklyKmDisplay={ob.weeklyKmDisplay}
           primaryGoal={ob.data.primaryGoal}
@@ -202,7 +191,7 @@ export default function OnboardingScreen() {
     }
   };
 
-  const isLast   = ob.step === 7;
+  const isLast   = ob.step === 6;
   const ctaLabel = isLast ? 'Start running  →' : 'Continue  →';
 
   return (
@@ -210,7 +199,7 @@ export default function OnboardingScreen() {
       <View style={ss.topBar} />
       <View style={{ height: insets.top }} />
 
-      {ob.step < 7 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
+      {ob.step < 6 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
 
       <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideX }] }]}>
         {renderStep()}

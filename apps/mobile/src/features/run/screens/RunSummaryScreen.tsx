@@ -27,6 +27,8 @@ import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
 import { useTheme, Colors, feedback, Type, Fonts, Spacing, type AppColors } from '@theme';
 import AwardUnlockSheet from '../components/AwardUnlockSheet';
+import { NotificationPrimeSheet } from '../components/NotificationPrimeSheet';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { RunnerRank } from '@shared/types/game';
 import { FEATURES } from '../../../config/features';
 
@@ -94,12 +96,32 @@ export default function RunSummaryScreen() {
   const [weightKg, setWeightKg]                       = useState(70);
   const [hasNutritionProfile, setHasNutritionProfile] = useState(false);
   const [showAward, setShowAward]                     = useState(false);
+  const [showNotifPrime, setShowNotifPrime]           = useState(false);
 
   useEffect(() => {
     getNutritionProfile().then(p => {
       if (p?.weightKg) { setWeightKg(p.weightKg); setHasNutritionProfile(true); }
     }).catch(() => {});
   }, []);
+
+  // Ask for notification permission here — once, contextually, tied to a real
+  // run — instead of a blank ask during onboarding setup. Delayed so it never
+  // stacks on top of the award-unlock celebration sheet.
+  const NOTIF_PRIME_KEY = 'runivo:notifPrimeSeen';
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    AsyncStorage.getItem(NOTIF_PRIME_KEY).then(seen => {
+      if (seen || cancelled) return;
+      timer = setTimeout(() => setShowNotifPrime(true), 3500);
+    }).catch(() => {});
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+  }, []);
+
+  const dismissNotifPrime = () => {
+    setShowNotifPrime(false);
+    AsyncStorage.setItem(NOTIF_PRIME_KEY, '1').catch(() => {});
+  };
 
   // ── Animation refs ────────────────────────────────────────────────────────
   const [paceDisplay, setPaceDisplay] = useState(0);
@@ -470,6 +492,8 @@ export default function RunSummaryScreen() {
         onClose={() => setShowAward(false)}
         awards={runData.newAwards ?? []}
       />
+
+      <NotificationPrimeSheet visible={showNotifPrime} onDismiss={dismissNotifPrime} />
     </View>
   );
 }

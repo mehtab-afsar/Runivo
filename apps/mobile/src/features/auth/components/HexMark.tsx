@@ -38,7 +38,7 @@ export default function HexMark({ size, color, fadedOpacity = 0.28, animate = fa
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <AnimatedPolyline
           points="50,4 10.2,27 10.2,73 50,96"
-          stroke={color} strokeWidth="5"
+          stroke={color} strokeWidth="9"
           strokeLinejoin="round" strokeLinecap="round"
           opacity={fadedOpacity} fill="none"
           strokeDasharray={PATH_LEN}
@@ -46,7 +46,7 @@ export default function HexMark({ size, color, fadedOpacity = 0.28, animate = fa
         />
         <AnimatedPolyline
           points="50,4 89.8,27 89.8,73 50,96"
-          stroke={color} strokeWidth="5"
+          stroke={color} strokeWidth="9"
           strokeLinejoin="round" strokeLinecap="round"
           fill="none"
           strokeDasharray={PATH_LEN}
@@ -60,13 +60,13 @@ export default function HexMark({ size, color, fadedOpacity = 0.28, animate = fa
     <Svg width={size} height={size} viewBox="0 0 100 100">
       <Polyline
         points="50,4 10.2,27 10.2,73 50,96"
-        stroke={color} strokeWidth="5"
+        stroke={color} strokeWidth="9"
         strokeLinejoin="round" strokeLinecap="round"
         opacity={fadedOpacity} fill="none"
       />
       <Polyline
         points="50,4 89.8,27 89.8,73 50,96"
-        stroke={color} strokeWidth="5"
+        stroke={color} strokeWidth="9"
         strokeLinejoin="round" strokeLinecap="round"
         fill="none"
       />

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable,
-  Platform, ActivityIndicator,
+  Platform, ActivityIndicator, Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -38,10 +38,11 @@ export default function SubscriptionScreen() {
   return (
     <View style={su.root}>
       <ScrollView contentContainerStyle={[su.scrollContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
-        {/* ── Hero — full-bleed dark, bleeds behind the status bar ───────────── */}
+        {/* ── Hero — full-bleed dark, one accent (gold), the real tagline as the
+             editorial moment instead of a generic "App Name + crown" pattern ── */}
         <LinearGradient
-          colors={['#3A2F0A', C.alwaysDark, C.alwaysDark]}
-          start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+          colors={['#201D19', C.alwaysDark]}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={su.hero}
         >
           <View style={[su.heroTop, { paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 6) }]}>
@@ -50,12 +51,12 @@ export default function SubscriptionScreen() {
             </Pressable>
           </View>
 
-          <View style={su.crownWrap}>
-            <View style={su.crownGlow} />
-            <Crown size={40} color={C.gold} weight="fill" />
+          <View style={su.kicker}>
+            <Crown size={12} color={C.gold} weight="fill" />
+            <Text style={su.kickerText}>RUNIVO PLUS</Text>
           </View>
-          <Text style={su.heroTitle}>Runivo Plus</Text>
-          <Text style={su.heroSub}>Own more of your city. Run smarter.</Text>
+          <Text style={su.heroTitle}>Own more{'\n'}of your city.</Text>
+          <Text style={su.heroSub}>Run smarter, claim faster, never hit a cap.</Text>
         </LinearGradient>
 
         <View style={su.content}>
@@ -101,28 +102,33 @@ export default function SubscriptionScreen() {
           )}
 
           <Text style={su.sectionLabel}>What's in Plus</Text>
-          <View style={su.grid}>
-            {FEATURES.map(f => (
-              <FeatureRow key={f.name} name={f.name} sub={f.sub} icon={f.icon} live={f.live} />
+          <View style={su.featureCard}>
+            {FEATURES.map((f, i) => (
+              <FeatureRow key={f.name} name={f.name} sub={f.sub} icon={f.icon} live={f.live} isLast={i === FEATURES.length - 1} />
             ))}
           </View>
 
           {!isPremium && (
-            <>
-              <Text style={su.sectionLabel}>On the free plan</Text>
-              <View style={su.freeLimitsRow}>
-                {FREE_LIMITS.map(l => (
-                  <View key={l} style={su.freeLimitChip}>
-                    <Text style={su.freeLimitText}>{l}</Text>
-                  </View>
-                ))}
-              </View>
-            </>
+            <Text style={su.freeLimitsText}>
+              Free plan: {FREE_LIMITS.join(' · ')}
+            </Text>
           )}
 
           <Text style={su.legal}>
             Cancel anytime. Subscription auto-renews unless cancelled at least 24 hours before the end of the trial or billing period.
           </Text>
+
+          {/* Apple requires Terms + Privacy visible on the same screen as the
+              purchase button, not just reachable from Settings. */}
+          <View style={su.legalLinksRow}>
+            <Pressable onPress={() => Linking.openURL('https://runivo.app/terms')} hitSlop={8}>
+              <Text style={su.legalLink}>Terms of Service</Text>
+            </Pressable>
+            <Text style={su.legalLinkSep}>·</Text>
+            <Pressable onPress={() => Linking.openURL('https://runivo.app/privacy')} hitSlop={8}>
+              <Text style={su.legalLink}>Privacy Policy</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </View>
@@ -134,22 +140,21 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   scrollContent: { paddingBottom: 60 },
 
   hero: {
-    alignItems: 'center', paddingBottom: 32,
+    alignItems: 'center', paddingBottom: 36, paddingHorizontal: 32,
     borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
-  heroTop: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, marginBottom: 4 },
+  heroTop: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, marginBottom: 18 },
   closeBtn: {
     width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  crownWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 14, marginTop: 6 },
-  crownGlow: {
-    position: 'absolute', width: 84, height: 84, borderRadius: 42,
-    backgroundColor: 'rgba(212,162,0,0.18)',
-  },
-  heroTitle: { fontFamily: Fonts.display, fontSize: 32, color: C.alwaysLight, marginBottom: 8 },
-  heroSub: { fontFamily: Fonts.regular, fontSize: 14, color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+  kicker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+  kickerText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.gold, letterSpacing: 2 },
+  // Thin Barlow, not the italic display face — a light, spacious weight
+  // instead of an editorial-serif or heavy-bold moment.
+  heroTitle: { fontFamily: Fonts.light, fontSize: 36, lineHeight: 40, letterSpacing: -0.3, color: C.alwaysLight, textAlign: 'center', marginBottom: 12 },
+  heroSub: { fontFamily: Fonts.regular, fontSize: 13.5, color: 'rgba(255,255,255,0.55)', textAlign: 'center' },
 
   content: { paddingHorizontal: Spacing.gutter, paddingTop: 20 },
 
@@ -165,15 +170,16 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   restoreBtn: { alignItems: 'center', paddingVertical: 12 },
   restoreText: { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textDecorationLine: 'underline' },
 
-  sectionLabel: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, marginTop: 22, marginBottom: 12 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-
-  freeLimitsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  freeLimitChip: {
-    backgroundColor: C.surface, borderRadius: Spacing.radius.full,
-    paddingHorizontal: 12, paddingVertical: 7, borderWidth: 1, borderColor: C.border,
+  sectionLabel: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.t3, letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 26, marginBottom: 4 },
+  featureCard: {
+    backgroundColor: C.card, borderRadius: Spacing.radius.lg, borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: 16, marginTop: 8,
   },
-  freeLimitText: { fontFamily: Fonts.medium, fontSize: 11.5, color: C.t2 },
+
+  freeLimitsText: { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t3, marginTop: 12, textAlign: 'center' },
 
   legal: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 16, marginTop: 24 },
+  legalLinksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10 },
+  legalLink: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t2, textDecorationLine: 'underline' },
+  legalLinkSep: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
 }); }

@@ -63,8 +63,9 @@ export default function PACEStoreScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-        {/* Balance hero */}
-        <View style={s.hero}>
+        {/* Wallet — balance, rank, and weekly progress as one unit instead
+            of two disconnected stacked blocks */}
+        <View style={s.walletCard}>
           <View style={s.balanceRow}>
             <Text style={s.balanceNum}>{paceBalance}</Text>
             <Text style={s.balanceUnit}> PACE</Text>
@@ -73,18 +74,19 @@ export default function PACEStoreScreen() {
             <Diamond size={10} color={rankColor.fg} weight="light" />
             <Text style={[s.rankBadgeText, { color: rankColor.fg }]}>{displayRank}</Text>
           </View>
-        </View>
 
-        {/* Weekly progress card */}
-        <View style={s.weekCard}>
-          <Text style={s.weekLabel}>THIS WEEK</Text>
+          <View style={s.walletDivider} />
+
+          <View style={s.weekRow}>
+            <Text style={s.weekLabel}>THIS WEEK</Text>
+            <Text style={s.weekNumbers}>{paceWeeklyEarned} / {capLimit} PACE</Text>
+          </View>
           <View style={s.progressBarBg}>
             <View style={[s.progressBarFill, { width: `${Math.round(weeklyPct * 100)}%` }]} />
           </View>
-          <Text style={s.weekNumbers}>{paceWeeklyEarned} / {capLimit} PACE</Text>
           {weeklyPct < 1
             ? <Text style={s.weekHint}>Run {Math.ceil((capLimit - paceWeeklyEarned) / GAME_CONFIG.PACE_PER_KM)}km more to hit your weekly cap</Text>
-            : <Text style={[s.weekHint, { color: C.amber }]}>Weekly cap reached — resets Monday 🎯</Text>}
+            : <Text style={[s.weekHint, { color: C.amber }]}>Weekly cap reached — resets Monday</Text>}
         </View>
 
         {/* Rewards catalog */}
@@ -135,18 +137,19 @@ function mkStyles(C: AppColors) {
     headerBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingVertical: 12 },
     backBtn:         { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     headerTitle:     { fontFamily: Fonts.medium, fontSize: 12, letterSpacing: 2, color: C.t3 },
-    hero:            { alignItems: 'center', paddingTop: 24, paddingBottom: 28 },
+    walletCard:      { alignItems: 'center', backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, paddingVertical: 24, paddingHorizontal: 18, marginHorizontal: Spacing.gutter, marginBottom: 12 },
     balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
-    balanceNum:      { fontFamily: Fonts.bold, fontSize: 52, color: C.black, lineHeight: 56, letterSpacing: -2, fontVariant: ['tabular-nums'] },
-    balanceUnit:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t3, lineHeight: 52, marginBottom: 4 },
+    balanceNum:      { fontFamily: Fonts.bold, fontSize: 48, color: C.black, lineHeight: 52, letterSpacing: -1.5, fontVariant: ['tabular-nums'] },
+    balanceUnit:     { fontFamily: Fonts.regular, fontSize: 17, color: C.t3, lineHeight: 48, marginBottom: 4 },
     rankBadge:       { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
     rankBadgeText:   { fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 0.5 },
-    weekCard:        { backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginHorizontal: Spacing.gutter, marginBottom: 12 },
-    weekLabel:       { ...Type.overline, color: C.t3, marginBottom: 8 },
-    progressBarBg:   { height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
+    walletDivider:   { alignSelf: 'stretch', height: 0.5, backgroundColor: C.border, marginVertical: 20 },
+    weekRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', marginBottom: 8 },
+    weekLabel:       { ...Type.overline, color: C.t3 },
+    progressBarBg:   { alignSelf: 'stretch', height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
     progressBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
-    weekNumbers:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 4, fontVariant: ['tabular-nums'] },
-    weekHint:        { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
+    weekNumbers:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black, fontVariant: ['tabular-nums'] },
+    weekHint:        { alignSelf: 'flex-start', fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
     featuredSection: { paddingHorizontal: Spacing.gutter, marginBottom: 12 },
     sectionLabel:    { fontFamily: Fonts.medium, fontSize: 11, color: C.t3, letterSpacing: 0.8, marginBottom: 12 },
     howWrap:         { marginHorizontal: Spacing.gutter, marginBottom: 4, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },

@@ -3,11 +3,14 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { mkD, type OnboardingD } from './onboardingStyles';
 import { useTheme, Fonts } from '@theme';
 
+// Step 6 (Launch) isn't represented here — OnboardingScreen only renders this
+// component while step < 6, same as the final step was excluded before.
 const CHAPTERS = [
   { label: 'Goal',    steps: [1] },
   { label: 'Profile', steps: [2] },
-  { label: 'Plan',    steps: [3, 4] },
-  { label: 'Setup',   steps: [5, 6] },
+  { label: 'Territory', steps: [3] },
+  { label: 'Mission',  steps: [4] },
+  { label: 'Plan',    steps: [5] },
 ];
 
 interface Props {

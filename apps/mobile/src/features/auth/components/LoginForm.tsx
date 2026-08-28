@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withDelay,
@@ -10,9 +10,11 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import HexMark from './HexMark';
 import type { LoginState } from '../hooks/useLogin';
 import { signInWithGoogle, signInWithApple } from '../services/socialAuth';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 
 const EASE = Easing.bezier(0.22, 0.68, 0, 1);
 
@@ -77,6 +79,7 @@ export default function LoginForm({
   onGoBack, onGoSignUp,
 }: Props) {
   const C = useTheme();
+  const isDark = useIsDark();
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
@@ -111,7 +114,10 @@ export default function LoginForm({
         <Pressable onPress={onGoBack} hitSlop={8}>
           <Text style={s.backText}>← Back</Text>
         </Pressable>
-        <Text style={s.logoWord}>run<Text style={s.logoRed}>ivo</Text></Text>
+        <View style={s.logoRow}>
+          <HexMark size={20} color={C.red} fadedOpacity={0.3} animate delay={80} />
+          <Text style={s.logoWord}>runivo</Text>
+        </View>
       </Animated.View>
 
       <ScrollView
@@ -206,12 +212,26 @@ export default function LoginForm({
               : <GoogleIcon />}
             <Text style={s.socialText}>Google</Text>
           </Pressable>
-          <Pressable style={s.socialBtn} onPress={() => handleSocialSignIn('apple')} disabled={!!socialLoading}>
-            {socialLoading === 'apple'
-              ? <ActivityIndicator size="small" color={C.t1} />
-              : <AppleIcon color={C.t1} />}
-            <Text style={s.socialText}>Apple</Text>
-          </Pressable>
+          {Platform.OS === 'ios' ? (
+            // Apple's App Review Guidelines require the native, Apple-rendered
+            // button for Sign in with Apple — not a custom-styled lookalike.
+            <View style={[s.socialBtn, s.appleNativeBtnWrap, socialLoading && { opacity: 0.5 }]} pointerEvents={socialLoading ? 'none' : 'auto'}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={isDark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={8}
+                style={s.appleNativeBtn}
+                onPress={() => handleSocialSignIn('apple')}
+              />
+            </View>
+          ) : (
+            <Pressable style={s.socialBtn} onPress={() => handleSocialSignIn('apple')} disabled={!!socialLoading}>
+              {socialLoading === 'apple'
+                ? <ActivityIndicator size="small" color={C.t1} />
+                : <AppleIcon color={C.t1} />}
+              <Text style={s.socialText}>Apple</Text>
+            </Pressable>
+          )}
         </Animated.View>
 
         <Animated.View style={[s.ctaWrap, ctaAnim]}>
@@ -250,8 +270,8 @@ function mkStyles(C: AppColors) {
 
     nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingBottom: 4 },
     backText:{ fontSize: 13, color: C.t2 },
-    logoWord:{ fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
-    logoRed: { color: C.red },
+    logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    logoWord:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1, letterSpacing: -0.2 },
 
     scroll:  { paddingHorizontal: 24 },
     hero:    { paddingTop: 52 },
@@ -280,6 +300,8 @@ function mkStyles(C: AppColors) {
     socialRow: { flexDirection: 'row', gap: 12 },
     socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 0.5, borderColor: C.border, borderRadius: 8, paddingVertical: 13 },
     socialText:{ fontSize: 13, color: C.t1 },
+    appleNativeBtnWrap: { flex: 1, height: 44, borderRadius: 8, overflow: 'hidden' },
+    appleNativeBtn: { width: '100%', height: 44 },
 
     // Fixed dark/light pair — the primary CTA is a bold "filled" pill regardless of
     // theme, not the adapting ink token (which would invert to near-white in dark

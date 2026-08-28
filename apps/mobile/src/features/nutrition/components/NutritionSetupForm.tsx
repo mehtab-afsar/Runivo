@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, type KeyboardTypeOptions } from 'react-native';
-import { Fire, Scales as Scale, Barbell, ForkKnife as UtensilsCrossed, Leaf, Fish, Moon } from 'phosphor-react-native';
+import { Fire, Scales as Scale, Barbell, ForkKnife as UtensilsCrossed, Leaf, Fish, Moon, GenderMale, GenderFemale } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { GoalOption } from './GoalOption';
 import { ActivityLevelPicker } from './ActivityLevelPicker';
@@ -68,7 +68,9 @@ export function NutritionSetupForm({ saving, goal, setGoal, activityLevel, setAc
       <View style={s.row}>
         {(['male', 'female'] as const).map(v => (
           <Pressable key={v} style={[s.opt, sex === v && s.optOn, { flex: 1 }]} onPress={() => setSex(v)}>
-            <Text style={{ fontSize: 18 }}>{v === 'male' ? '♂' : '♀'}</Text>
+            {v === 'male'
+              ? <GenderMale size={18} color={C.t2} weight="light" />
+              : <GenderFemale size={18} color={C.t2} weight="light" />}
             <Text style={[s.optLabel, sex === v && s.optLabelOn]}>{v.charAt(0).toUpperCase() + v.slice(1)}</Text>
           </Pressable>
         ))}

@@ -25,6 +25,24 @@ export interface QuickPrompt {
   message: string;
 }
 
+export interface WeeklyBriefPayload {
+  headline: string;
+  insights: string[];
+  tip:      string;
+  nutrition?: {
+    summary:    string;
+    connection: string;
+    priority:   string;
+  };
+}
+
+export interface PostRunPayload {
+  praise:    string;
+  analysis:  string;
+  suggestion: string;
+  recovery?: string;
+}
+
 // Edge function wraps all responses as { data: result }.
 // This helper extracts the actual reply and optional type tag.
 function parseReply(raw: unknown): { content: string; type?: string } {
@@ -59,11 +77,39 @@ export async function sendMessage(
 export async function fetchCachedTrainingPlan(userId: string): Promise<TrainingPlan | null> {
   const { data } = await supabase
     .from('ai_cache')
-    .select('value')
+    .select('payload')
     .eq('user_id', userId)
-    .eq('key', 'training_plan')
+    .eq('feature', 'training_plan')
     .maybeSingle();
-  return data?.value ?? null;
+  return (data?.payload as TrainingPlan | undefined) ?? null;
+}
+
+export async function requestWeeklyBrief(sessionToken: string): Promise<WeeklyBriefPayload | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-coach', {
+      body:    { feature: 'weekly_brief' },
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+    if (error || !data) return null;
+    const inner = (data as Record<string, unknown>).data ?? data;
+    return inner as WeeklyBriefPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function requestPostRunAnalysis(runId: string, sessionToken: string): Promise<PostRunPayload | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('ai-coach', {
+      body:    { feature: 'post_run', runId },
+      headers: { Authorization: `Bearer ${sessionToken}` },
+    });
+    if (error || !data) return null;
+    const inner = (data as Record<string, unknown>).data ?? data;
+    return inner as PostRunPayload | null;
+  } catch {
+    return null;
+  }
 }
 
 export async function requestTrainingPlan(goal: string, sessionToken: string): Promise<TrainingPlan> {

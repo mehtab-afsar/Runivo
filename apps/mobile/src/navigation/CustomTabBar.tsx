@@ -42,30 +42,31 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'ios' ? 16 : 8);
   const tabBarH = TAB_CONTENT_H + bottomPad;
 
-  const { coachActive } = useCoachNav();
+  const { coachActive, tourActive } = useCoachNav();
+  const hidden = coachActive || tourActive;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(slideAnim, {
-      toValue: coachActive ? tabBarH : 0,
-      duration: coachActive ? 280 : 220,
+      toValue: hidden ? tabBarH : 0,
+      duration: hidden ? 280 : 220,
       easing: Easing.bezier(0.4, 0, 0.2, 1),
       useNativeDriver: true,
     }).start();
-  }, [coachActive, tabBarH]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [hidden, tabBarH]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeRoute = state.routes[state.index];
   if (activeRoute.name === 'Run') return null;
-  if (coachActive) return null;
+  if (hidden) return null;
 
   return (
     <>
-      {/* Spacer so content behind tab bar isn't occluded. Hidden when coach is active. */}
-      {!coachActive && <View style={{ height: tabBarH }} />}
+      {/* Spacer so content behind tab bar isn't occluded. Hidden when coach/tour is active. */}
+      {!hidden && <View style={{ height: tabBarH }} />}
 
       <Animated.View
         style={[s.wrapper, { paddingBottom: bottomPad, transform: [{ translateY: slideAnim }] }]}
-        pointerEvents={coachActive ? 'none' : 'auto'}
+        pointerEvents={hidden ? 'none' : 'auto'}
       >
         <View style={s.topBorder} />
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
+  View, Text, StyleSheet, ScrollView, Pressable, Modal,
   SafeAreaView, ActivityIndicator, Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -15,7 +15,8 @@ import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import { useCoachNav } from '@navigation/CoachNavContext';
 import { useCoachChat } from '../hooks/useCoachChat';
 import { usePlanScreen } from '../hooks/usePlanScreen';
-import { getQuickPrompts } from '../services/coachService';
+import { requestPostRunAnalysis } from '../services/coachService';
+import { CoachBrief } from '../components/CoachBrief';
 import { CoachWelcome } from '../components/CoachWelcome';
 import { CoachSidebar } from '../components/CoachSidebar';
 import { PaceInsightCard } from '../components/PaceInsightCard';
@@ -54,6 +55,7 @@ export default function CoachScreen() {
 
   const [chatVisible,         setChatVisible]         = useState(false);
   const [capabilitiesVisible, setCapabilitiesVisible] = useState(false);
+  const [planFormVisible,     setPlanFormVisible]     = useState(false);
   const [staleZones,          setStaleZones]          = useState<TerritoryPolygon[]>([]);
   const [playerName,          setPlayerName]          = useState('Runner');
   const [paceWeeklyEarned,    setPaceWeeklyEarned]    = useState(0);
@@ -66,7 +68,8 @@ export default function CoachScreen() {
         if (!session) return;
         const uid = session.user.id;
 
-        getQuickPrompts(session.access_token).catch(() => {});
+        coach.loadBrief();
+        coach.loadQuickPrompts();
 
         const fetchProfile = async () => {
           try {
@@ -94,6 +97,11 @@ export default function CoachScreen() {
       }).catch(() => {});
 
       return () => setCoachActive(false);
+      // coach is a fresh object every render (useCoachChat isn't memoized) — the
+      // functions called above (loadBrief/loadQuickPrompts) are themselves stable,
+      // so depending on `coach` here would re-run this effect every render instead
+      // of only on focus.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [setCoachActive]),
   );
 
@@ -118,6 +126,30 @@ export default function CoachScreen() {
     setChatVisible(true);
   }, [coach]);
 
+  // Post-Run Debrief and Weekly Review both have a real structured backend feature
+  // (post_run / weekly_brief) — route them there and render as a card instead of
+  // letting them fall through to freeform coach_chat like every other capability.
+  const requestPostRunDebrief = useCallback(async () => {
+    setChatVisible(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data: lastRun } = await supabase
+      .from('runs')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!lastRun) return;
+    const payload = await requestPostRunAnalysis(lastRun.id, session.access_token);
+    if (payload) coach.showCard(payload);
+  }, [coach]);
+
+  const requestWeeklyReview = useCallback(() => {
+    setChatVisible(true);
+    if (coach.brief) coach.showCard(coach.brief);
+  }, [coach]);
+
   const handleCapabilitySelect = useCallback((message: string) => {
     if (message === 'habit_tracking') {
       setChatVisible(true);
@@ -129,8 +161,24 @@ export default function CoachScreen() {
       coach.requestNutritionCoach();
       return;
     }
+    if (message === 'Analyse my last run') {
+      requestPostRunDebrief();
+      return;
+    }
+    if (message === 'Give me my weekly review') {
+      requestWeeklyReview();
+      return;
+    }
     openChatWithPrompt(message);
-  }, [openChatWithPrompt, coach]);
+  }, [openChatWithPrompt, coach, requestPostRunDebrief, requestWeeklyReview]);
+
+  const handleGeneratePlan = useCallback(async () => {
+    const ok = await coach.generatePlan();
+    if (ok) {
+      await planData.reload();
+      setPlanFormVisible(false);
+    }
+  }, [coach, planData]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -153,12 +201,12 @@ export default function CoachScreen() {
       ) : !hasActivePlan ? (
         /* ── State A: no active plan ─────────────────────────────── */
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
-          <CoachWelcome
-            goalInput={coach.goalInput}
-            onGoalChange={coach.setGoalInput}
-            onGenerate={coach.generatePlan}
-            planLoading={coach.planLoading}
-            onOpenChat={() => setChatVisible(true)}
+          <CoachBrief
+            brief={coach.brief}
+            loading={coach.briefLoading}
+            onAskFollowUp={() => setChatVisible(true)}
+            onBuildPlan={() => setPlanFormVisible(true)}
+            onStartRun={() => navigation.navigate('Run' as never)}
           />
         </ScrollView>
       ) : (
@@ -209,7 +257,7 @@ export default function CoachScreen() {
               <Pressable
                 key={a.label}
                 style={({ pressed }) => [s.pill, { borderColor: C.border, backgroundColor: pressed ? C.mid : C.surface }]}
-                onPress={() => openChatWithPrompt(a.prompt)}
+                onPress={() => (a.prompt ? handleCapabilitySelect(a.prompt) : openChatWithPrompt(a.prompt))}
               >
                 <Text style={[s.pillLabel, { color: C.black }]}>{a.label}</Text>
               </Pressable>
@@ -253,6 +301,31 @@ export default function CoachScreen() {
         onClose={() => setCapabilitiesVisible(false)}
         onSelectCapability={handleCapabilitySelect}
       />
+
+      {/* Build-a-plan sheet — demoted from a forced gate to an explicit, secondary ask */}
+      <Modal visible={planFormVisible} animationType="slide" onRequestClose={() => setPlanFormVisible(false)} presentationStyle="pageSheet">
+        <SafeAreaView style={s.root}>
+          <View style={[s.header, { borderBottomColor: C.border }]}>
+            <Text style={[s.pillLabel, { color: C.black, fontFamily: Fonts.semiBold, fontSize: 15 }]}>Build a training plan</Text>
+            <Pressable
+              style={[s.closeBtn, { backgroundColor: C.stone, borderColor: C.border }]}
+              onPress={() => setPlanFormVisible(false)}
+              hitSlop={8}
+            >
+              <X size={16} color={C.t2} weight="light" />
+            </Pressable>
+          </View>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollContent}>
+            <CoachWelcome
+              goalInput={coach.goalInput}
+              onGoalChange={coach.setGoalInput}
+              onGenerate={handleGeneratePlan}
+              planLoading={coach.planLoading}
+              onOpenChat={() => { setPlanFormVisible(false); setChatVisible(true); }}
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }

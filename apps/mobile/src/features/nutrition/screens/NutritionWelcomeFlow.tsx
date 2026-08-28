@@ -8,7 +8,11 @@ import Animated, {
   useSharedValue, useAnimatedStyle, withSpring, withTiming,
   Easing,
 } from 'react-native-reanimated';
-import { CaretLeft, CaretRight } from 'phosphor-react-native';
+import {
+  CaretLeft, CaretRight, BowlFood, Target, ChartBar, Camera, Lightning,
+  TrendDown, Equals, TrendUp, Armchair, PersonSimpleWalk, PersonSimpleRun,
+  ForkKnife, Leaf, Plant, Avocado, StarAndCrescent, Fish, type Icon,
+} from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme, type AppColors } from '@theme';
 import { FontSize, Type, Fonts, Spacing } from '@theme';
@@ -57,7 +61,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
   return (
     <ScrollView contentContainerStyle={ss.screen} keyboardShouldPersistTaps="handled">
       <View style={ss.iconWrap}>
-        <Text style={ss.icon}>🥗</Text>
+        <BowlFood size={32} color={C.green} weight="light" />
       </View>
 
       <Text style={ss.headline}>Nutrition tracking,{'\n'}built for runners.</Text>
@@ -68,14 +72,14 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
       </Text>
 
       <View style={ss.featureList}>
-        {[
-          { icon: '🎯', text: 'Personalised calorie & macro targets' },
-          { icon: '📊', text: 'Track meals by type — breakfast, lunch, dinner, snacks' },
-          { icon: '📷', text: 'Scan barcodes or photos to log food instantly' },
-          { icon: '⚡', text: "See today's run burn next to what you've eaten" },
-        ].map(f => (
-          <View key={f.icon} style={ss.featureRow}>
-            <Text style={ss.featureIcon}>{f.icon}</Text>
+        {([
+          { Icon: Target,   text: 'Personalised calorie & macro targets' },
+          { Icon: ChartBar, text: 'Track meals by type — breakfast, lunch, dinner, snacks' },
+          { Icon: Camera,   text: 'Scan barcodes or photos to log food instantly' },
+          { Icon: Lightning,text: "See today's run burn next to what you've eaten" },
+        ] as Array<{ Icon: Icon; text: string }>).map(f => (
+          <View key={f.text} style={ss.featureRow}>
+            <View style={ss.featureIcon}><f.Icon size={18} color={C.t2} weight="light" /></View>
             <Text style={ss.featureText}>{f.text}</Text>
           </View>
         ))}
@@ -109,7 +113,6 @@ function mkWelcomeStyles(C: AppColors) {
       backgroundColor: C.greenBg,
       alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xxl,
     },
-    icon:        { fontSize: 32 },
     headline:    {
       fontFamily: Fonts.semiBold, fontSize: FontSize.title1, color: C.black,
       lineHeight: FontSize.title1 * 1.2, marginBottom: Spacing.md,
@@ -120,7 +123,7 @@ function mkWelcomeStyles(C: AppColors) {
     },
     featureList: { gap: Spacing.md, marginBottom: Spacing.xxl },
     featureRow:  { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-    featureIcon: { fontSize: 18, width: 28, textAlign: 'center' },
+    featureIcon: { width: 28, alignItems: 'center' },
     featureText: { fontFamily: Fonts.regular, fontSize: FontSize.callout, color: C.black, flex: 1 },
     disclaimerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm },
     checkbox: {
@@ -293,10 +296,10 @@ function mkBodyStatsStyles(C: AppColors) {
 
 // ─── Step 3: Goal ─────────────────────────────────────────────────────────────
 
-const GOAL_OPTIONS: { key: NutritionGoal; label: string; desc: string; icon: string }[] = [
-  { key: 'lose',     label: 'Lose weight',  desc: 'Calorie deficit to reduce body fat',       icon: '↓' },
-  { key: 'maintain', label: 'Stay healthy', desc: 'Balanced intake for your activity level',   icon: '=' },
-  { key: 'gain',     label: 'Build muscle', desc: 'Calorie surplus to support training',       icon: '↑' },
+const GOAL_OPTIONS: { key: NutritionGoal; label: string; desc: string; Icon: Icon; color: (C: AppColors) => string }[] = [
+  { key: 'lose',     label: 'Lose weight',  desc: 'Calorie deficit to reduce body fat',       Icon: TrendDown, color: C => C.orange },
+  { key: 'maintain', label: 'Stay healthy', desc: 'Balanced intake for your activity level',   Icon: Equals,   color: C => C.t2 },
+  { key: 'gain',     label: 'Build muscle', desc: 'Calorie surplus to support training',       Icon: TrendUp,   color: C => C.purple },
 ];
 
 function GoalStep({ onSelect }: { onSelect: (g: NutritionGoal) => void }) {
@@ -313,7 +316,7 @@ function GoalStep({ onSelect }: { onSelect: (g: NutritionGoal) => void }) {
             style={ss.option}
             onPress={() => { Haptics.selectionAsync(); onSelect(opt.key); }}
           >
-            <View style={ss.optIcon}><Text style={ss.optIconText}>{opt.icon}</Text></View>
+            <View style={ss.optIcon}><opt.Icon size={20} color={opt.color(C)} weight="light" /></View>
             <View style={ss.optBody}>
               <Text style={ss.optLabel}>{opt.label}</Text>
               <Text style={ss.optDesc}>{opt.desc}</Text>
@@ -328,11 +331,11 @@ function GoalStep({ onSelect }: { onSelect: (g: NutritionGoal) => void }) {
 
 // ─── Step 4: Activity ─────────────────────────────────────────────────────────
 
-const ACTIVITY_OPTIONS: { key: ActivityLevel; label: string; desc: string; icon: string }[] = [
-  { key: 'sedentary',   label: 'Mostly sitting',  desc: 'Desk job, minimal extra movement',     icon: '🪑' },
-  { key: 'light',       label: 'Light movement',  desc: 'Walks, some standing work',            icon: '🚶' },
-  { key: 'moderate',    label: 'Active day',      desc: 'On feet often, active role',           icon: '🏃' },
-  { key: 'very_active', label: 'Very active',     desc: 'Physical job or double sessions',      icon: '⚡' },
+const ACTIVITY_OPTIONS: { key: ActivityLevel; label: string; desc: string; Icon: Icon; color: (C: AppColors) => string }[] = [
+  { key: 'sedentary',   label: 'Mostly sitting',  desc: 'Desk job, minimal extra movement',     Icon: Armchair,        color: C => C.t2 },
+  { key: 'light',       label: 'Light movement',  desc: 'Walks, some standing work',            Icon: PersonSimpleWalk,color: C => C.t2 },
+  { key: 'moderate',    label: 'Active day',      desc: 'On feet often, active role',           Icon: PersonSimpleRun, color: C => C.orange },
+  { key: 'very_active', label: 'Very active',     desc: 'Physical job or double sessions',      Icon: Lightning,       color: C => C.red },
 ];
 
 function ActivityStep({ onSelect }: { onSelect: (a: ActivityLevel) => void }) {
@@ -349,7 +352,7 @@ function ActivityStep({ onSelect }: { onSelect: (a: ActivityLevel) => void }) {
             style={ss.option}
             onPress={() => { Haptics.selectionAsync(); onSelect(opt.key); }}
           >
-            <View style={ss.optIcon}><Text style={ss.optIconText}>{opt.icon}</Text></View>
+            <View style={ss.optIcon}><opt.Icon size={20} color={opt.color(C)} weight="light" /></View>
             <View style={ss.optBody}>
               <Text style={ss.optLabel}>{opt.label}</Text>
               <Text style={ss.optDesc}>{opt.desc}</Text>
@@ -381,7 +384,6 @@ function mkOptionStyles(C: AppColors) {
       backgroundColor: C.backgroundSecondary,
       alignItems: 'center', justifyContent: 'center',
     },
-    optIconText: { fontSize: 18 },
     optBody:     { flex: 1 },
     optLabel:    { fontFamily: Fonts.medium, fontSize: FontSize.subhead, color: C.black },
     optDesc:     { fontFamily: Fonts.regular, fontSize: FontSize.caption1, color: C.t2, marginTop: 2 },
@@ -390,13 +392,13 @@ function mkOptionStyles(C: AppColors) {
 
 // ─── Step 5: Diet ─────────────────────────────────────────────────────────────
 
-const DIET_OPTIONS: { key: DietType; label: string; icon: string }[] = [
-  { key: 'everything',  label: 'Everything',  icon: '🍽' },
-  { key: 'vegetarian',  label: 'Vegetarian',  icon: '🥗' },
-  { key: 'vegan',       label: 'Vegan',       icon: '🌱' },
-  { key: 'keto',        label: 'Keto',        icon: '🥑' },
-  { key: 'halal',       label: 'Halal',       icon: '☪️'  },
-  { key: 'pescatarian', label: 'Pescatarian', icon: '🐟' },
+const DIET_OPTIONS: { key: DietType; label: string; Icon: Icon; color: (C: AppColors) => string }[] = [
+  { key: 'everything',  label: 'Everything',  Icon: ForkKnife,      color: C => C.t2 },
+  { key: 'vegetarian',  label: 'Vegetarian',  Icon: Leaf,           color: C => C.green },
+  { key: 'vegan',       label: 'Vegan',       Icon: Plant,          color: C => C.green },
+  { key: 'keto',        label: 'Keto',        Icon: Avocado,        color: C => C.green },
+  { key: 'halal',       label: 'Halal',       Icon: StarAndCrescent,color: C => C.purple },
+  { key: 'pescatarian', label: 'Pescatarian', Icon: Fish,           color: C => C.blue },
 ];
 
 function DietStep({ onSelect }: { onSelect: (d: DietType) => void }) {
@@ -413,7 +415,7 @@ function DietStep({ onSelect }: { onSelect: (d: DietType) => void }) {
             style={ss.chip}
             onPress={() => { Haptics.selectionAsync(); onSelect(opt.key); }}
           >
-            <Text style={ss.chipIcon}>{opt.icon}</Text>
+            <opt.Icon size={22} color={opt.color(C)} weight="light" />
             <Text style={ss.chipLabel}>{opt.label}</Text>
           </Pressable>
         ))}
@@ -437,7 +439,6 @@ function mkDietStyles(C: AppColors) {
       borderWidth: 0.5, borderColor: C.border,
       padding: Spacing.md, alignItems: 'center', gap: Spacing.xs,
     },
-    chipIcon:  { fontSize: 28 },
     chipLabel: { fontFamily: Fonts.medium, fontSize: FontSize.footnote, color: C.black },
   });
 }

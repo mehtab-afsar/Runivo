@@ -6,9 +6,13 @@ import {
   requestTrainingPlan,
   requestHabitTracking,
   requestNutritionAnalysis,
+  requestWeeklyBrief,
   fetchCachedTrainingPlan,
+  getQuickPrompts,
   type CoachMessage,
   type TrainingPlan,
+  type WeeklyBriefPayload,
+  type QuickPrompt,
 } from '../services/coachService';
 
 export function useCoachChat() {
@@ -20,6 +24,9 @@ export function useCoachChat() {
   const [planLoading, setPlanLoading]   = useState(false);
   const [planOpen, setPlanOpen]         = useState(false);
   const [goalInput, setGoalInput]       = useState('');
+  const [brief, setBrief]               = useState<WeeklyBriefPayload | null>(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [quickPrompts, setQuickPrompts] = useState<QuickPrompt[]>([]);
   const lastSentMsgRef = useRef<string>('');
   // Replies that arrived live this session (vs. loaded from history on mount) —
   // MessageBubble uses this to decide which messages get the reveal animation,
@@ -67,8 +74,8 @@ export function useCoachChat() {
     }
   }, [inputText, sending]);
 
-  const generatePlan = useCallback(async () => {
-    if (!goalInput.trim() || planLoading) return;
+  const generatePlan = useCallback(async (): Promise<boolean> => {
+    if (!goalInput.trim() || planLoading) return false;
     setPlanLoading(true);
     setError(null);
     try {
@@ -76,8 +83,10 @@ export function useCoachChat() {
       if (!session) throw new Error('Not authenticated');
       const plan = await requestTrainingPlan(goalInput.trim(), session.access_token);
       setTrainingPlan(plan);
+      return true;
     } catch (e: unknown) {
       setError((e as Error)?.message ?? 'Failed to generate plan');
+      return false;
     } finally {
       setPlanLoading(false);
     }
@@ -123,6 +132,39 @@ export function useCoachChat() {
     }
   }, [sending]);
 
+  // Pushes a structured result (post_run/weekly_brief payload) straight into the
+  // message list as a rendered card — no coach_chat round-trip, no coach_messages
+  // insert. Mirrors how post_run/weekly_brief are cache-backed, not chat-log-backed.
+  const showCard = useCallback((payload: object, type = 'insight') => {
+    const msg: CoachMessage = {
+      id: `card-${Date.now()}`, role: 'assistant', content: JSON.stringify(payload), type,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, msg]);
+    setLiveMessageIds(prev => new Set(prev).add(msg.id));
+  }, []);
+
+  const loadBrief = useCallback(async () => {
+    setBriefLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const result = await requestWeeklyBrief(session.access_token);
+      setBrief(result);
+    } finally {
+      setBriefLoading(false);
+    }
+  }, []);
+
+  const loadQuickPrompts = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const prompts = await getQuickPrompts(session.access_token);
+      setQuickPrompts(prompts);
+    } catch { /* keep whatever's already loaded (or empty, falls back to static) */ }
+  }, []);
+
   const togglePlanOpen = useCallback(() => setPlanOpen(o => !o), []);
 
   const retryLastMessage = useCallback(() => {
@@ -139,11 +181,17 @@ export function useCoachChat() {
     planLoading,
     planOpen,
     goalInput,
+    brief,
+    briefLoading,
+    quickPrompts,
     sendMessage,
     retryLastMessage,
     generatePlan,
     requestHabitAnalysis,
     requestNutritionCoach,
+    showCard,
+    loadBrief,
+    loadQuickPrompts,
     setInputText,
     setGoalInput,
     togglePlanOpen,

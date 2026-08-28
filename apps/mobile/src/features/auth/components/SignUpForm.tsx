@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withDelay,
@@ -10,10 +10,11 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import HexMark from './HexMark';
 import type { SignUpState } from '../hooks/useSignUp';
 import { signInWithGoogle, signInWithApple } from '../services/socialAuth';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 
 const EASE = Easing.bezier(0.22, 0.68, 0, 1);
 
@@ -87,6 +88,7 @@ export default function SignUpForm({
   onGoBack, onGoLogin,
 }: Props) {
   const C = useTheme();
+  const isDark = useIsDark();
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
@@ -265,16 +267,30 @@ export default function SignUpForm({
               : <GoogleIcon />}
             <Text style={s.socialText}>Google</Text>
           </Pressable>
-          <Pressable
-            style={s.socialBtn}
-            onPress={() => handleSocialSignIn('apple')}
-            disabled={!!socialLoading}
-          >
-            {socialLoading === 'apple'
-              ? <ActivityIndicator size="small" color={C.t1} />
-              : <AppleIcon color={C.t1} />}
-            <Text style={s.socialText}>Apple</Text>
-          </Pressable>
+          {Platform.OS === 'ios' ? (
+            // Apple's App Review Guidelines require the native, Apple-rendered
+            // button for Sign in with Apple — not a custom-styled lookalike.
+            <View style={[s.socialBtn, s.appleNativeBtnWrap, socialLoading && { opacity: 0.5 }]} pointerEvents={socialLoading ? 'none' : 'auto'}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                buttonStyle={isDark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={8}
+                style={s.appleNativeBtn}
+                onPress={() => handleSocialSignIn('apple')}
+              />
+            </View>
+          ) : (
+            <Pressable
+              style={s.socialBtn}
+              onPress={() => handleSocialSignIn('apple')}
+              disabled={!!socialLoading}
+            >
+              {socialLoading === 'apple'
+                ? <ActivityIndicator size="small" color={C.t1} />
+                : <AppleIcon color={C.t1} />}
+              <Text style={s.socialText}>Apple</Text>
+            </Pressable>
+          )}
         </Animated.View>
 
         {/* CTA */}
@@ -363,6 +379,8 @@ function mkStyles(C: AppColors) {
     socialRow: { flexDirection: 'row', gap: 12 },
     socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 0.5, borderColor: C.border, borderRadius: 8, paddingVertical: 13 },
     socialText:{ fontSize: 13, color: C.t1 },
+    appleNativeBtnWrap: { flex: 1, height: 44, borderRadius: 8, overflow: 'hidden' },
+    appleNativeBtn: { width: '100%', height: 44 },
 
     // CTA — fixed dark/light pair, same reasoning as LoginForm's ctaBtn.
     ctaWrap:    { marginTop: 20 },

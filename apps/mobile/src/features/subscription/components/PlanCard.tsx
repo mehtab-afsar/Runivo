@@ -12,6 +12,9 @@ interface PlanCardProps {
   onSelect: () => void;
 }
 
+// Both plans get the identical selected treatment now — previously only
+// Annual got the dark+gold-glow card when picked, so choosing Monthly looked
+// like settling for the plain, unselected version of itself.
 export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -26,7 +29,7 @@ export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardP
       )}
       {isSelected && (
         <View style={ss.checkWrap}>
-          <SealCheck size={18} color={isAnnual ? C.gold : C.alwaysLight} weight="fill" />
+          <SealCheck size={18} color={C.gold} weight="fill" />
         </View>
       )}
       <Text style={[ss.planLabel, isSelected && ss.planLabelActive]}>{plan.label}</Text>
@@ -37,11 +40,11 @@ export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardP
     </>
   );
 
-  if (isSelected && isAnnual) {
+  if (isSelected) {
     return (
       <Pressable onPress={onSelect} style={ss.planBtnOuter}>
         <LinearGradient
-          colors={['#3A2F0A', C.alwaysDark]}
+          colors={['#2A2410', C.alwaysDark]}
           start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
           style={[ss.planBtn, ss.planBtnGlow]}
         >
@@ -52,10 +55,7 @@ export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardP
   }
 
   return (
-    <Pressable
-      style={[ss.planBtn, isSelected && ss.planBtnActive]}
-      onPress={onSelect}
-    >
+    <Pressable style={ss.planBtn} onPress={onSelect}>
       {inner}
     </Pressable>
   );
@@ -69,9 +69,8 @@ function mkStyles(C: AppColors) {
       borderWidth: 1, borderColor: C.border, padding: 16, alignItems: 'center',
       position: 'relative', minHeight: 116, justifyContent: 'center',
     },
-    planBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
     planBtnGlow: {
-      shadowColor: '#D4A200', shadowOpacity: 0.3, shadowRadius: 14,
+      shadowColor: C.gold, shadowOpacity: 0.25, shadowRadius: 14,
       shadowOffset: { width: 0, height: 4 }, elevation: 6,
     },
     checkWrap: { position: 'absolute', top: 10, right: 10 },

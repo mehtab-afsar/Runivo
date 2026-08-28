@@ -2,12 +2,13 @@
  * healthService — writes completed runs to Apple Health (iOS) or
  * Google Health Connect (Android).
  *
- * iOS:  react-native-health   (HealthKit)
- * Android: @kingstinct/react-native-healthkit is iOS-only; for Android we use
- *          react-native-health-connect (Health Connect API, Android 14+)
- *
- * Both SDKs are optional peer dependencies. If they are not installed or the
- * device doesn't support them, all calls are silent no-ops.
+ * iOS:     @kingstinct/react-native-healthkit (HealthKit) — a real, installed
+ *          hard dependency (see app.config.ts's plugin entry + Info.plist
+ *          strings). Its non-iOS build is a safe no-op module, so it's fine
+ *          to import statically rather than dynamically.
+ * Android: react-native-health-connect (Health Connect API, Android 14+) —
+ *          an optional peer dependency, dynamically imported below; a
+ *          silent no-op if not installed or the device doesn't support it.
  *
  * Usage (call once after a run finishes):
  *   await writeRunToHealth({ startTime, endTime, distanceMeters, calories })
@@ -17,6 +18,9 @@
  */
 
 import { Platform } from 'react-native';
+import * as HealthKit from '@kingstinct/react-native-healthkit';
+import { WorkoutActivityType, WorkoutTypeIdentifier } from '@kingstinct/react-native-healthkit';
+import type { ObjectTypeIdentifier, SampleTypeIdentifierWriteable } from '@kingstinct/react-native-healthkit';
 
 export interface HealthRun {
   startTime:      number;  // unix ms
@@ -34,99 +38,91 @@ export interface HealthWorkout {
 }
 
 // ── iOS — HealthKit ───────────────────────────────────────────────────────────
+// Was previously wired against `react-native-health`, a package that was never
+// actually installed — every call silently no-op'd behind a try/catch on the
+// dynamic import, despite the permission prompt and Connected Devices UI both
+// implying this worked. `@kingstinct/react-native-healthkit` is the real,
+// installed, already-configured (app.config.ts plugin + Info.plist strings)
+// package; this now actually calls it.
 
-let _appleHealth: { isAvailable: (cb: (e: object | null, a: boolean) => void) => void; initHealthKit: (perms: object, cb: (e: object | null) => void) => void; saveWorkout: (opts: object, cb: (e: object | null, r: object) => void) => void; getWorkouts: (opts: object, cb: (e: object | null, r: unknown[]) => void) => void } | null = null;
+const HEALTH_READ: ObjectTypeIdentifier[] = [
+  'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  'HKQuantityTypeIdentifierActiveEnergyBurned',
+  WorkoutTypeIdentifier,
+];
+const HEALTH_SHARE: SampleTypeIdentifierWriteable[] = [
+  'HKQuantityTypeIdentifierDistanceWalkingRunning',
+  'HKQuantityTypeIdentifierActiveEnergyBurned',
+  WorkoutTypeIdentifier,
+];
+
 let _appleHealthReady = false;
-
-async function getAppleHealth() {
-  if (!_appleHealth) {
-    try {
-      // Dynamic import so the module is optional
-      const mod = await import('react-native-health' as any);
-      _appleHealth = mod.default ?? mod;
-    } catch {
-      return null;
-    }
-  }
-  return _appleHealth;
-}
 
 async function initAppleHealth(): Promise<boolean> {
   if (_appleHealthReady) return true;
-  const AppleHealth = await getAppleHealth();
-  if (!AppleHealth) return false;
-
-  return new Promise(resolve => {
-    AppleHealth.isAvailable((err, available) => {
-      if (err || !available) { resolve(false); return; }
-
-      const permissions = {
-        permissions: {
-          read:  ['Running', 'DistanceWalkingRunning', 'ActiveEnergyBurned'],
-          write: ['Running', 'DistanceWalkingRunning', 'ActiveEnergyBurned'],
-        },
-      };
-
-      AppleHealth.initHealthKit(permissions, (initErr) => {
-        if (initErr) { resolve(false); return; }
-        _appleHealthReady = true;
-        resolve(true);
-      });
+  try {
+    if (!HealthKit.isHealthDataAvailable()) return false;
+    const granted = await HealthKit.requestAuthorization({
+      // HealthKit never reveals per-type read grants once the sheet is
+      // dismissed (same opacity the old callback-based API had) — a `true`
+      // here means the permission sheet completed, not that every type
+      // was individually granted.
+      toRead:  HEALTH_READ,
+      toShare: HEALTH_SHARE,
     });
-  });
+    _appleHealthReady = granted;
+    return granted;
+  } catch {
+    return false;
+  }
 }
 
 async function writeRunToAppleHealth(run: HealthRun): Promise<void> {
   const ok = await initAppleHealth();
   if (!ok) return;
 
-  const AppleHealth = await getAppleHealth();
-  if (!AppleHealth) return;
-
-  const opts = {
-    type:           'Running',
-    startDate:      new Date(run.startTime).toISOString(),
-    endDate:        new Date(run.endTime).toISOString(),
-    distance:       run.distanceMeters / 1000,  // HealthKit uses km
-    distanceUnit:   'km',
-    energyBurned:   run.calories ?? 0,
-    energyBurnedUnit: 'calorie',
-  };
-
-  return new Promise(resolve => {
-    AppleHealth.saveWorkout(opts, (err) => {
-      if (err) console.warn('[health] saveWorkout error:', err);
-      resolve();
-    });
-  });
+  try {
+    // saveWorkoutSample's `totals` are always meters/kilocalories natively
+    // (confirmed against the package's iOS Swift source) — no unit field to
+    // set, unlike react-native-health's distanceUnit option. The old dead
+    // code divided by 1000 assuming km; that conversion no longer applies.
+    await HealthKit.saveWorkoutSample(
+      WorkoutActivityType.running,
+      [],
+      new Date(run.startTime),
+      new Date(run.endTime),
+      { distance: run.distanceMeters, energyBurned: run.calories ?? 0 },
+    );
+  } catch (err) {
+    console.warn('[health] saveWorkoutSample error:', err);
+  }
 }
 
 async function readAppleHealthWorkouts(days: number): Promise<HealthWorkout[]> {
   const ok = await initAppleHealth();
   if (!ok) return [];
 
-  const AppleHealth = await getAppleHealth();
-  if (!AppleHealth) return [];
-
-  const startDate = new Date(Date.now() - days * 86_400_000).toISOString();
-
-  return new Promise(resolve => {
-    AppleHealth.getWorkouts(
-      { type: 'Running', startDate, endDate: new Date().toISOString() },
-      (err, results) => {
-        if (err || !Array.isArray(results)) { resolve([]); return; }
-        resolve(
-          results.map((r: any) => ({
-            startTime:      new Date(r.start).getTime(),
-            endTime:        new Date(r.end).getTime(),
-            distanceMeters: (r.distance ?? 0) * 1000,
-            calories:       r.calories,
-            source:         r.sourceName ?? 'Apple Health',
-          }))
-        );
-      }
-    );
-  });
+  try {
+    const workouts = await HealthKit.queryWorkoutSamples({
+      filter: {
+        workoutActivityType: WorkoutActivityType.running,
+        date: { startDate: new Date(Date.now() - days * 86_400_000), endDate: new Date() },
+      },
+      limit: 50,
+      ascending: false,
+    });
+    return workouts.map(w => ({
+      startTime:      w.startDate.getTime(),
+      endTime:        w.endDate.getTime(),
+      // Already meters/kcal — same units saveWorkoutSample writes, no conversion.
+      distanceMeters: w.totalDistance?.quantity ?? 0,
+      calories:       w.totalEnergyBurned?.quantity,
+      source:         w.sourceRevision?.source?.name ?? 'Apple Health',
+    }));
+  } catch (err) {
+    console.warn('[health] queryWorkoutSamples error:', err);
+    return [];
+  }
 }
 
 // ── Android — Health Connect ──────────────────────────────────────────────────

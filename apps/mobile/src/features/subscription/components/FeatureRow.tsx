@@ -1,54 +1,49 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { Icon } from 'phosphor-react-native';
-import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface FeatureRowProps {
   name: string;
   sub: string;
   icon: Icon;
   live: boolean;
+  isLast?: boolean;
 }
 
-export function FeatureRow({ name, sub, icon: IconComp, live }: FeatureRowProps) {
+// One flowing list, not a grid of bordered boxes — six near-identical little
+// cards in a 2-up wrap read like a SaaS pricing table. A single accent (gold,
+// reserved for Plus across the app) instead of red-icons/orange-badges/
+// gray-borders all competing at once.
+export function FeatureRow({ name, sub, icon: IconComp, live, isLast }: FeatureRowProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
-    <View style={[ss.card, !live && ss.cardSoon]}>
+    <View style={[ss.row, !isLast && ss.rowBorder]}>
       <View style={[ss.iconWrap, !live && ss.iconWrapSoon]}>
-        <IconComp size={18} color={live ? C.red : C.t3} weight="light" />
+        <IconComp size={17} color={live ? C.gold : C.t3} weight="light" />
       </View>
       <View style={ss.textWrap}>
-        <View style={ss.nameRow}>
-          <Text style={ss.name} numberOfLines={1}>{name}</Text>
-          {!live && (
-            <View style={ss.soonBadge}><Text style={ss.soonText}>SOON</Text></View>
-          )}
-        </View>
-        <Text style={ss.sub} numberOfLines={2}>{sub}</Text>
+        <Text style={ss.name}>{name}</Text>
+        <Text style={ss.sub}>{sub}</Text>
       </View>
+      {!live && <Text style={ss.soon}>Soon</Text>}
     </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card: {
-      flexDirection: 'row', gap: 10, alignItems: 'flex-start',
-      width: '48.5%', backgroundColor: C.card, borderRadius: Spacing.radius.md,
-      borderWidth: 1, borderColor: C.border, padding: 12, marginBottom: 10,
-    },
-    cardSoon: { opacity: 0.7 },
+    row: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, paddingVertical: 14 },
+    rowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.border },
     iconWrap: {
-      width: 32, height: 32, borderRadius: 9, backgroundColor: C.redLo,
-      alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      width: 34, height: 34, borderRadius: 17, backgroundColor: `${C.gold}1F`,
+      alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
     },
     iconWrapSoon: { backgroundColor: C.surface },
     textWrap: { flex: 1, minWidth: 0 },
-    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 },
-    name: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1, flexShrink: 1 },
-    sub:  { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t2, lineHeight: 14 },
-    soonBadge: { backgroundColor: C.orange, borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1 },
-    soonText:  { fontFamily: Fonts.bold, fontSize: 8, color: C.alwaysLight, letterSpacing: 0.4 },
+    name: { fontFamily: Fonts.semiBold, fontSize: 13.5, color: C.t1, marginBottom: 2 },
+    sub:  { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t2, lineHeight: 16 },
+    soon: { fontFamily: Fonts.medium, fontSize: 10.5, color: C.t3, marginTop: 2 },
   });
 }

@@ -28,6 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // root) would fail projectId validation, or building from the repo root
     // would ship a binary with none of the permission strings below.
     bundleIdentifier: 'com.mehtabafsar.runivo',
+    usesAppleSignIn: true,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
@@ -62,7 +63,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
-      backgroundColor: '#0A0A0A',
+      backgroundColor: '#FFFFFF',
     },
     permissions: [
       'android.permission.ACCESS_FINE_LOCATION',

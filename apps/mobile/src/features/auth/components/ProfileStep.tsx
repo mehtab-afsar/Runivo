@@ -1,93 +1,45 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, Animated } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Footprints, Person, Lightning, Fire, type Icon } from 'phosphor-react-native';
 import type { OnboardingData } from '../types';
-import { EXP_OPTIONS, AGES, HEIGHTS, WEIGHTS } from '../types';
+import { EXP_OPTIONS, DAY_LABELS, DIST_CHIPS } from '../types';
 import { mkD, mkShared, type OnboardingD } from './onboardingStyles';
 import { useTheme, Fonts } from '@theme';
 
-// ─── Drum Column ──────────────────────────────────────────────────────────────
+// ─── Stepper (age/height/weight) — same interaction as NutritionWelcomeFlow's
+// BodyStatsStep, reused here instead of the old drum-wheel pickers. ──────────
 
-const ITEM_H = 40;
-const VISIBLE = 3;
-
-function DrumColumn({ values, value, onSelect, label, unit, toggleEl }: {
-  values: number[];
-  value: number;
-  onSelect: (v: number) => void;
-  label: string;
-  unit?: string;
-  toggleEl?: React.ReactNode;
+function Stepper({
+  label, value, unit, onInc, onDec, min, max, s,
+}: {
+  label: string; value: number; unit: string;
+  onInc: () => void; onDec: () => void; min: number; max: number;
+  s: ReturnType<typeof mkStyles>;
 }) {
-  const C = useTheme();
-  const D = useMemo(() => mkD(C), [C]);
-  const ds = useMemo(() => mkDrumStyles(D), [D]);
-  const idx = values.indexOf(value);
-  const scrollRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    if (scrollRef.current && idx !== -1) {
-      scrollRef.current.scrollTo({ y: Math.max(0, idx - 1) * ITEM_H, animated: false });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   return (
-    <View style={ds.col}>
-      <View style={ds.colHeader}>
-        <Text style={ds.colLabel}>{label}</Text>
-        {unit && !toggleEl && <Text style={ds.colUnit}>{unit}</Text>}
-        {toggleEl}
-      </View>
-      <View style={ds.drumWrap}>
-        <View style={ds.band} pointerEvents="none" />
-        <ScrollView
-          ref={scrollRef}
-          showsVerticalScrollIndicator={false}
-          snapToInterval={ITEM_H}
-          decelerationRate="fast"
-          contentContainerStyle={{ paddingVertical: 1 * ITEM_H }}
-          style={{ height: VISIBLE * ITEM_H }}
+    <View style={s.statRow}>
+      <Text style={s.statLabel}>{label}</Text>
+      <View style={s.stepperRow}>
+        <Pressable
+          style={[s.stepBtn, value <= min && s.stepBtnDisabled]}
+          onPress={() => { if (value > min) { Haptics.selectionAsync(); onDec(); } }}
+          hitSlop={8}
         >
-          {values.map((v, i) => {
-            const sel = v === value;
-            return (
-              <Pressable
-                // Not `v`: unit-converted values (e.g. cm→ft rounded to 1 decimal)
-                // collapse several distinct inputs onto the same displayed number —
-                // this list never reorders/inserts, so the static index is safe and unique.
-                key={i}
-                style={[ds.item, { height: ITEM_H }]}
-                onPress={() => onSelect(v)}
-              >
-                <Text style={[ds.itemText, sel && ds.itemActive]}>
-                  {typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(1) : v}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        <View style={ds.fadeT} pointerEvents="none" />
-        <View style={ds.fadeB} pointerEvents="none" />
-      </View>
-    </View>
-  );
-}
-
-function UnitToggle({ options, value, onChange }: {
-  options: readonly string[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const C = useTheme();
-  const D = useMemo(() => mkD(C), [C]);
-  const s = useMemo(() => mkStyles(D), [D]);
-  return (
-    <View style={s.unitRow}>
-      {options.map(u => (
-        <Pressable key={u} style={[s.unitBtn, value === u && s.unitBtnSel]} onPress={() => onChange(u)}>
-          <Text style={[s.unitLabel, value === u && s.unitLabelSel]}>{u}</Text>
+          <Text style={[s.stepBtnText, value <= min && s.stepBtnTextDisabled]}>−</Text>
         </Pressable>
-      ))}
+        <View style={s.valueWrap}>
+          <Text style={s.valueNum}>{value}</Text>
+          <Text style={s.valueUnit}>{unit}</Text>
+        </View>
+        <Pressable
+          style={[s.stepBtn, value >= max && s.stepBtnDisabled]}
+          onPress={() => { if (value < max) { Haptics.selectionAsync(); onInc(); } }}
+          hitSlop={8}
+        >
+          <Text style={[s.stepBtnText, value >= max && s.stepBtnTextDisabled]}>+</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -102,24 +54,27 @@ const ICONS: Record<OnboardingData['experienceLevel'], IconComp> = {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  data: Pick<OnboardingData, 'experienceLevel' | 'gender' | 'age' | 'heightCm' | 'weightKg'>;
-  onChange: <K extends 'experienceLevel' | 'gender' | 'age' | 'heightCm' | 'weightKg'>(
+  data: Pick<OnboardingData, 'experienceLevel' | 'gender' | 'age' | 'heightCm' | 'weightKg' | 'preferredDistance'>;
+  onChange: <K extends 'experienceLevel' | 'gender' | 'age' | 'heightCm' | 'weightKg' | 'preferredDistance'>(
     key: K, val: OnboardingData[K]
   ) => void;
+  selectedDays: number[];
+  distKm: number;
+  weeklyKmDisplay: number;
+  todayIdx: number;
+  onToggleDay: (i: number) => void;
 }
 
-export default function ProfileStep({ data, onChange }: Props) {
+/** Merged "who you are + your weekly rhythm" — was two separate steps
+ * (Profile, Target); no dependency between the two so there's no reason
+ * they were a tap apart. */
+export default function ProfileStep({
+  data, onChange, selectedDays, distKm, weeklyKmDisplay, todayIdx, onToggleDay,
+}: Props) {
   const C = useTheme();
   const D = useMemo(() => mkD(C), [C]);
   const shared = useMemo(() => mkShared(C), [C]);
   const s = useMemo(() => mkStyles(D), [D]);
-  const [htUnit, setHtUnit] = useState<'cm' | 'ft'>('cm');
-  const [wtUnit, setWtUnit] = useState<'kg' | 'lbs'>('kg');
-
-  const htValues  = htUnit === 'cm' ? HEIGHTS : HEIGHTS.map(h => Math.round(h / 30.48 * 10) / 10);
-  const wtValues  = wtUnit === 'kg' ? WEIGHTS : WEIGHTS.map(w => Math.round(w * 2.205));
-  const htDisplay = htUnit === 'cm' ? data.heightCm : Math.round(data.heightCm / 30.48 * 10) / 10;
-  const wtDisplay = wtUnit === 'kg' ? data.weightKg : Math.round(data.weightKg * 2.205);
 
   const expAnims = useRef(EXP_OPTIONS.map(() => ({
     opacity: new Animated.Value(0),
@@ -139,7 +94,7 @@ export default function ProfileStep({ data, onChange }: Props) {
     <ScrollView contentContainerStyle={shared.stepContent} showsVerticalScrollIndicator={false}>
       <Text style={shared.eyebrow}>Who you are</Text>
       <Text style={shared.heroTitle}>Your profile.</Text>
-      <Text style={shared.subtitle}>Shapes training intensity and calorie estimates.</Text>
+      <Text style={shared.subtitle}>Shapes training intensity, calorie estimates, and your weekly plan.</Text>
 
       {/* Experience level */}
       <Text style={shared.fieldLabel}>Running experience</Text>
@@ -184,29 +139,78 @@ export default function ProfileStep({ data, onChange }: Props) {
         );
       })}
 
-      {/* Age / Height / Weight */}
-      <View style={s.drumsRow}>
-        <DrumColumn
-          label="Age" unit="yrs"
-          values={AGES} value={data.age}
-          onSelect={v => onChange('age', v)}
+      <View style={s.statCard}>
+        <Stepper s={s} label="Age" unit="yrs" value={data.age}
+          onInc={() => onChange('age', data.age + 1)} onDec={() => onChange('age', data.age - 1)}
+          min={16} max={100}
         />
-        <DrumColumn
-          label="Height"
-          values={htValues} value={htDisplay}
-          onSelect={v => onChange('heightCm', htUnit === 'cm' ? v : Math.round(v * 30.48))}
-          toggleEl={
-            <UnitToggle options={['cm', 'ft']} value={htUnit} onChange={v => setHtUnit(v as 'cm' | 'ft')} />
-          }
+        <View style={s.statDivider} />
+        <Stepper s={s} label="Height" unit="cm" value={data.heightCm}
+          onInc={() => onChange('heightCm', data.heightCm + 1)} onDec={() => onChange('heightCm', data.heightCm - 1)}
+          min={100} max={250}
         />
-        <DrumColumn
-          label="Weight"
-          values={wtValues} value={wtDisplay}
-          onSelect={v => onChange('weightKg', wtUnit === 'kg' ? v : Math.round(v / 2.205))}
-          toggleEl={
-            <UnitToggle options={['kg', 'lbs']} value={wtUnit} onChange={v => setWtUnit(v as 'kg' | 'lbs')} />
-          }
+        <View style={s.statDivider} />
+        <Stepper s={s} label="Weight" unit="kg" value={data.weightKg}
+          onInc={() => onChange('weightKg', data.weightKg + 1)} onDec={() => onChange('weightKg', data.weightKg - 1)}
+          min={30} max={250}
         />
+      </View>
+
+      {/* Weekly rhythm divider */}
+      <View style={s.divider} />
+      <Text style={shared.fieldLabel}>Your weekly rhythm</Text>
+
+      <View style={s.dayRow}>
+        {DAY_LABELS.map((d, i) => {
+          const sel     = selectedDays.includes(i);
+          const isToday = i === todayIdx;
+          return (
+            <Pressable
+              key={i}
+              style={[
+                s.dayTile,
+                sel     ? s.dayTileSel   :
+                isToday ? s.dayTileToday : s.dayTileUnsel,
+              ]}
+              onPress={() => { Haptics.selectionAsync(); onToggleDay(i); }}
+            >
+              <Text style={[s.dayLetter, sel ? s.dayLetterSel : isToday ? { color: D.red } : null]}>
+                {d[0]}
+              </Text>
+              <Text style={[s.dayLetterSub, sel ? s.dayLetterSubSel : isToday ? { color: D.red } : null]}>
+                {d.slice(1)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text style={[shared.fieldLabel, { marginTop: 20, marginBottom: 10 }]}>Typical run distance</Text>
+      <View style={s.distGrid}>
+        {DIST_CHIPS.map(c => {
+          const sel = data.preferredDistance === c.key;
+          return (
+            <Pressable
+              key={c.key}
+              style={[s.distChip, sel ? s.distChipSel : s.distChipUnsel]}
+              onPress={() => onChange('preferredDistance', c.key)}
+            >
+              <Text style={[s.distLabel, sel && s.distLabelSel]}>{c.label}</Text>
+              <Text style={[s.distSub,   sel && s.distSubSel  ]}>{c.sub}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={s.summaryCard}>
+        <Text style={s.summaryEyebrow}>WEEKLY GOAL</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+          <Text style={s.summaryNum}>{weeklyKmDisplay.toFixed(0)}</Text>
+          <Text style={s.summaryUnit}>km / week</Text>
+        </View>
+        <Text style={s.summarySub}>
+          {selectedDays.length} run{selectedDays.length !== 1 ? 's' : ''} · ~{distKm}km each
+        </Text>
       </View>
     </ScrollView>
   );
@@ -214,36 +218,56 @@ export default function ProfileStep({ data, onChange }: Props) {
 
 function mkStyles(D: OnboardingD) {
   return StyleSheet.create({
-    rule:       { height: 1, backgroundColor: D.div, marginBottom: 0 },
-    row:        { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
-    accent:     { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
+    rule:        { height: 1, backgroundColor: D.div, marginBottom: 0 },
+    row:         { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
+    accent:      { width: 2, height: 32, borderRadius: 1, backgroundColor: 'transparent' },
     accentActive:{ backgroundColor: D.red },
-    label:      { fontSize: 15, color: D.t2, flex: 1 },
-    labelSel:   { fontFamily: Fonts.medium, color: D.t1 },
-    sub:        { fontSize: 12, color: D.t3, marginTop: 2 },
-    dot:        { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
-    divider:    { height: 1, backgroundColor: D.div, marginVertical: 24 },
-    drumsRow:   { flexDirection: 'row', gap: 8, marginTop: 16 },
-    unitRow:    { flexDirection: 'row', backgroundColor: D.div, borderRadius: 6, padding: 2 },
-    unitBtn:    { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-    unitBtnSel: { backgroundColor: D.bg },
-    unitLabel:  { fontFamily: Fonts.medium, fontSize: 9, color: D.t3 },
-    unitLabelSel:{ color: D.red },
-  });
-}
+    label:       { fontSize: 15, color: D.t2, flex: 1 },
+    labelSel:    { fontFamily: Fonts.medium, color: D.t1 },
+    sub:         { fontSize: 12, color: D.t3, marginTop: 2 },
+    dot:         { width: 6, height: 6, borderRadius: 3, backgroundColor: D.red },
+    divider:     { height: 1, backgroundColor: D.div, marginVertical: 24 },
 
-function mkDrumStyles(D: OnboardingD) {
-  return StyleSheet.create({
-    col:       { flex: 1 },
-    colHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-    colLabel:  { fontFamily: Fonts.medium, fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-    colUnit:   { fontSize: 9, color: D.t3 },
-    drumWrap:  { backgroundColor: D.surf, borderRadius: 10, overflow: 'hidden', position: 'relative' },
-    band:      { position: 'absolute', top: 1 * ITEM_H, left: 0, right: 0, height: ITEM_H, borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, zIndex: 1 },
-    item:      { alignItems: 'center', justifyContent: 'center' },
-    itemText:  { fontSize: 15, color: D.t3 },
-    itemActive:{ fontFamily: Fonts.medium, fontSize: 18, color: D.t1 },
-    fadeT:     { position: 'absolute', top: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: D.surf },
-    fadeB:     { position: 'absolute', bottom: 0, left: 0, right: 0, height: ITEM_H * 0.8, backgroundColor: D.surf },
+    // Age/height/weight stepper card
+    statCard:    { marginTop: 14, backgroundColor: D.surf, borderRadius: 14, borderWidth: 0.5, borderColor: D.div, overflow: 'hidden' },
+    statDivider: { height: 0.5, backgroundColor: D.div, marginHorizontal: 16 },
+    statRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
+    statLabel:   { fontFamily: Fonts.medium, fontSize: 14, color: D.t1 },
+    stepperRow:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    stepBtn:     { width: 32, height: 32, borderRadius: 16, backgroundColor: D.bg, borderWidth: 0.5, borderColor: D.div, alignItems: 'center', justifyContent: 'center' },
+    stepBtnDisabled: { opacity: 0.35 },
+    stepBtnText: { fontFamily: Fonts.medium, fontSize: 18, lineHeight: 22, color: D.t1 },
+    stepBtnTextDisabled: { color: D.t3 },
+    valueWrap:   { flexDirection: 'row', alignItems: 'baseline', gap: 3, minWidth: 64, justifyContent: 'center' },
+    valueNum:    { fontFamily: Fonts.semiBold, fontSize: 18, color: D.t1, fontVariant: ['tabular-nums'] },
+    valueUnit:   { fontSize: 11, color: D.t3 },
+
+    // Day selector
+    dayRow:          { flexDirection: 'row', gap: 5 },
+    dayTile:         { paddingVertical: 12, borderRadius: 8, alignItems: 'center', gap: 3, flex: 1, borderWidth: 0.5 },
+    dayTileUnsel:    { borderColor: D.div, backgroundColor: 'transparent' },
+    dayTileToday:    { borderColor: D.red, backgroundColor: D.redLo },
+    dayTileSel:      { borderColor: D.alwaysDark, backgroundColor: D.alwaysDark },
+    dayLetter:       { fontSize: 12, color: D.t3 },
+    dayLetterSel:    { color: D.alwaysLight, fontFamily: Fonts.medium },
+    dayLetterSub:    { fontSize: 8, color: D.div },
+    dayLetterSubSel: { color: 'rgba(255,255,255,0.5)' },
+
+    // Distance chips
+    distGrid:        { flexDirection: 'row', gap: 8, marginBottom: 24 },
+    distChip:        { flex: 1, padding: 14, borderRadius: 8, borderWidth: 0.5, alignItems: 'flex-start' },
+    distChipUnsel:   { borderColor: D.div, backgroundColor: 'transparent' },
+    distChipSel:     { borderColor: D.alwaysDark, backgroundColor: D.alwaysDark },
+    distLabel:       { fontSize: 15, color: D.t1, marginBottom: 2 },
+    distLabelSel:    { color: D.alwaysLight },
+    distSub:         { fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
+    distSubSel:      { color: 'rgba(255,255,255,0.6)' },
+
+    // Weekly goal summary
+    summaryCard:     { borderTopWidth: 0.5, borderBottomWidth: 0.5, borderColor: D.div, paddingVertical: 24 },
+    summaryEyebrow:  { fontFamily: Fonts.medium, fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 10 },
+    summaryNum:      { fontFamily: Fonts.display, fontSize: 52, color: D.t1, lineHeight: 52 },
+    summaryUnit:     { fontSize: 14, color: D.t3 },
+    summarySub:      { fontSize: 13, color: D.t3, marginTop: 6 },
   });
 }
