@@ -1,11 +1,12 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Share } from 'react-native';
 import {
-  Heart, ChatCircle, Sparkle, DotsThree, ShareNetwork,
-  Trophy, Sword, ShieldWarning,
-} from 'phosphor-react-native';
+  Heart, MessageCircle, Share2, MoreHorizontal,
+  Trophy, Flag, TriangleAlert, Diamond,
+} from 'lucide-react-native';
 import Svg, { Polyline, Circle, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { Avatar } from '@mobile/shared/components/Avatar';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
 import { fetchPostLikers, reportPost } from '@features/social/services/feedService';
@@ -96,14 +97,46 @@ function mkRmStyles(C: AppColors) {
   });
 }
 
-function StatBlock({ value, label }: { value: string; label: string }) {
+function StatBlock({ value, label, icon }: { value: string; label: string; icon?: React.ReactNode }) {
   const C = useTheme();
   return (
-    <View style={{ gap: 1 }}>
-      <Text style={{ fontFamily: Fonts.semiBold, fontSize: 18, letterSpacing: -0.3, color: C.black, fontVariant: ['tabular-nums'] }}>{value}</Text>
+    <View style={{ gap: 1, flex: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+        {icon}
+        <Text style={{ fontFamily: Fonts.semiBold, fontSize: 16, letterSpacing: -0.3, color: C.black, fontVariant: ['tabular-nums'] }}>{value}</Text>
+      </View>
       <Text style={[Type.overline, { color: C.t3 }]}>{label}</Text>
     </View>
   );
+}
+
+// Territory claimed on a run post — a tier-colored swatch card, not a real
+// map thumbnail. get_feed only returns territoryTier/territoryAreaM2 (a
+// label + a number), never the polygon's actual coordinates, so there's
+// nothing to hand MapLibre/MiniTerritoryMap's ShapeSource — that would need
+// get_feed extended to also select the polygon, which is backend work this
+// pass doesn't do. This uses the same tier color mapping (TIER_CONFIG) the
+// real map thumbnails use elsewhere, just as a flat swatch instead of a shape.
+function TerritorySwatch({ tier, areaM2 }: { tier: string; areaM2: number | null }) {
+  const C  = useTheme();
+  const tc = TIER_CONFIG[tier] ?? TIER_CONFIG.patch;
+  const s  = useMemo(() => mkSwatchStyles(C), [C]);
+  return (
+    <View style={[s.swatch, { backgroundColor: tc.bg }]}>
+      <View style={[s.swatchCore, { backgroundColor: tc.fg }]} />
+      <Text style={[s.tierLabel, { color: tc.fg }]}>{tc.label}</Text>
+      {areaM2 != null && <Text style={s.areaLabel}>{formatArea(areaM2)}</Text>}
+    </View>
+  );
+}
+
+function mkSwatchStyles(C: AppColors) {
+  return StyleSheet.create({
+    swatch:     { flex: 1, aspectRatio: 1.4, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 4 },
+    swatchCore: { width: 22, height: 22, borderRadius: 6 },
+    tierLabel:  { fontFamily: Fonts.semiBold, fontSize: 10.5, letterSpacing: 0.4 },
+    areaLabel:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
+  });
 }
 
 function KudosStack({ postId, kudosCount }: { postId: string; kudosCount: number }) {
@@ -185,7 +218,25 @@ export const FeedPostCard = React.memo(function FeedPostCard({
   const tier = post.territoryTier ? (TIER_CONFIG[post.territoryTier] ?? TIER_CONFIG.patch) : null;
 
   return (
-    <View style={s.card}>
+    <View style={[
+      s.card,
+      post.postType === 'conquest' && s.cardConquest,
+      post.postType === 'attack' && s.cardAttack,
+    ]}>
+
+      {/* Type strip — conquest/attack only; run/milestone keep the plain header below */}
+      {post.postType === 'conquest' && (
+        <View style={[s.typeStrip, { backgroundColor: C.amberBg }]}>
+          <Flag size={13} color={C.amber} strokeWidth={2} />
+          <Text style={[s.typeStripText, { color: C.amber }]}>Conquest</Text>
+        </View>
+      )}
+      {post.postType === 'attack' && (
+        <View style={[s.typeStrip, { backgroundColor: C.redLo }]}>
+          <TriangleAlert size={13} color={C.red} strokeWidth={2} />
+          <Text style={[s.typeStripText, { color: C.red }]}>Under attack</Text>
+        </View>
+      )}
 
       {/* Header */}
       <View style={s.header}>
@@ -199,14 +250,14 @@ export const FeedPostCard = React.memo(function FeedPostCard({
           </View>
         </Pressable>
         <Pressable style={s.kebab} onPress={() => setSheetOpen(true)} hitSlop={10}>
-          <DotsThree size={18} color={C.t3} weight="bold" />
+          <MoreHorizontal size={18} color={C.t3} strokeWidth={2} />
         </Pressable>
       </View>
 
       {/* Body — differs by post type */}
       {post.postType === 'milestone' ? (
         <View style={[s.celebrate, { backgroundColor: C.greenBg }]}>
-          <Trophy size={22} color={C.green} weight="fill" />
+          <Trophy size={22} color={C.green} strokeWidth={2} />
           <Text style={[Type.displaySm, { color: C.black, marginTop: 6 }]}>
             New {tier?.label ?? 'zone'} claimed
           </Text>
@@ -215,9 +266,8 @@ export const FeedPostCard = React.memo(function FeedPostCard({
           )}
         </View>
       ) : post.postType === 'conquest' ? (
-        <View style={[s.celebrate, { backgroundColor: C.accentMuted }]}>
-          <Sword size={22} color={C.red} weight="fill" />
-          <Text style={[Type.displaySm, { color: C.black, marginTop: 6 }]}>
+        <View style={s.celebrate}>
+          <Text style={[Type.displaySm, { color: C.black }]}>
             Captured {post.stolenFromUsername ?? 'a rival'}'s territory
           </Text>
           {post.stolenAreaM2 != null && (
@@ -227,46 +277,43 @@ export const FeedPostCard = React.memo(function FeedPostCard({
           )}
         </View>
       ) : post.postType === 'attack' ? (
-        <View style={[s.celebrate, s.alert]}>
-          <ShieldWarning size={22} color={C.red} weight="fill" />
-          <Text style={[Type.displaySm, { color: C.black, marginTop: 6 }]}>
+        <View style={s.celebrate}>
+          <Text style={[Type.displaySm, { color: C.black }]}>
             {post.stolenFromUsername ?? 'A rival'} attacked your {tier?.label.toLowerCase() ?? 'territory'}
           </Text>
           {post.stolenAreaM2 != null && (
             <Text style={[s.celebrateSub, { color: C.t2 }]}>{formatArea(post.stolenAreaM2)} lost</Text>
           )}
           {onDefend && (
-            <Pressable style={s.defendBtn} onPress={onDefend}>
-              <Text style={s.defendBtnText}>Defend now →</Text>
-            </Pressable>
+            <PrimaryButton label="Defend now" onPress={onDefend} variant="dark" size="sm" style={s.defendBtn} />
           )}
         </View>
       ) : (
         <>
           {(post.routePoints?.length ?? 0) >= 5 && <RouteMapHero points={post.routePoints!} />}
-          <View style={s.statsRow}>
-            <StatBlock value={fmtDistShort(post.distanceM)} label="km" />
-            {post.avgPace ? <StatBlock value={`${post.avgPace}`} label="/km pace" /> : null}
-            {post.durationSec > 0 ? <StatBlock value={fmtTime(post.durationSec)} label="duration" /> : null}
-          </View>
-        </>
-      )}
 
-      {/* Badges (run posts only — other types fold their tier into the celebration copy above) */}
-      {post.postType === 'run' && (post.paceEarned > 0 || !!tier) && (
-        <View style={s.badges}>
-          {post.paceEarned > 0 && (
-            <View style={s.badgePace}>
-              <Sparkle size={9} color={C.green} weight="regular" />
-              <Text style={s.badgePaceText}>+{post.paceEarned} PACE</Text>
-            </View>
-          )}
+          {/* 4-column stat row — Distance / Pace / Time / PACE earned */}
+          <View style={s.statsRow}>
+            <StatBlock value={fmtDistShort(post.distanceM)} label="KM" />
+            {post.avgPace ? <StatBlock value={post.avgPace} label="/KM PACE" /> : null}
+            {post.durationSec > 0 ? <StatBlock value={fmtTime(post.durationSec)} label="TIME" /> : null}
+            {post.paceEarned > 0 ? (
+              <StatBlock
+                value={String(post.paceEarned)}
+                label="PACE"
+                icon={<Diamond size={11} color={C.gold} strokeWidth={2} fill={C.gold} />}
+              />
+            ) : null}
+          </View>
+
+          {/* Territory swatch — photo half omitted; no photo field exists on
+              FeedPost today, so there's never anything real to show there. */}
           {tier && (
-            <View style={[s.badgeTier, { backgroundColor: tier.bg }]}>
-              <Text style={[s.badgeTierText, { color: tier.fg }]}>{tier.label}</Text>
+            <View style={s.thumbRow}>
+              <TerritorySwatch tier={post.territoryTier!} areaM2={post.territoryAreaM2} />
             </View>
           )}
-        </View>
+        </>
       )}
 
       <KudosStack postId={post.id} kudosCount={post.kudosCount} />
@@ -277,16 +324,17 @@ export const FeedPostCard = React.memo(function FeedPostCard({
           <Heart
             size={16}
             color={post.hasKudos ? C.red : C.t2}
-            weight={post.hasKudos ? 'fill' : 'light'}
+            fill={post.hasKudos ? C.red : 'none'}
+            strokeWidth={1.75}
           />
           {post.kudosCount > 0 && <Text style={s.actionCount}>{post.kudosCount}</Text>}
         </Pressable>
         <Pressable style={s.actionBtn} onPress={onComment} testID="feed-comment-btn">
-          <ChatCircle size={16} color={C.t2} weight="light" />
+          <MessageCircle size={16} color={C.t2} strokeWidth={1.75} />
           {post.commentCount > 0 && <Text style={s.actionCount}>{post.commentCount}</Text>}
         </Pressable>
         <Pressable style={s.actionBtn} onPress={handleShare} testID="feed-share-btn">
-          <ShareNetwork size={16} color={C.t2} weight="light" />
+          <Share2 size={16} color={C.t2} strokeWidth={1.75} />
         </Pressable>
       </View>
 
@@ -305,23 +353,21 @@ export const FeedPostCard = React.memo(function FeedPostCard({
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card:         { backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    cardConquest: { borderLeftWidth: 3, borderLeftColor: C.amber },
+    cardAttack:   { borderLeftWidth: 3, borderLeftColor: C.red },
+    typeStrip:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8 },
+    typeStripText:{ fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase' },
     header:       { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
     headerTap:    { flex: 1, flexDirection: 'row', alignItems: 'center' },
     kebab:        { padding: 4 },
     userInfo:     { flex: 1, marginLeft: 10 },
     username:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
     subtitle:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
-    statsRow:     { flexDirection: 'row', alignItems: 'center', gap: 22, paddingHorizontal: 16, paddingBottom: 12, paddingTop: 4 },
-    celebrate:    { marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16, alignItems: 'flex-start' },
+    statsRow:     { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4 },
+    thumbRow:     { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 14, gap: 10 },
+    celebrate:    { marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16, alignItems: 'flex-start', backgroundColor: C.stone },
     celebrateSub: { fontFamily: Fonts.regular, fontSize: 12, marginTop: 4 },
-    alert:        { backgroundColor: C.redLo },
-    defendBtn:    { marginTop: 10, backgroundColor: C.red, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8 },
-    defendBtnText:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.white },
-    badges:       { flexDirection: 'row', gap: 5, paddingHorizontal: 16, paddingBottom: 10, flexWrap: 'wrap' },
-    badgePace:    { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.greenBg, borderRadius: 2, paddingHorizontal: 7, paddingVertical: 3 },
-    badgePaceText:{ fontFamily: Fonts.medium, fontSize: 10, color: C.green, letterSpacing: 0.4 },
-    badgeTier:    { borderRadius: 2, paddingHorizontal: 7, paddingVertical: 3 },
-    badgeTierText:{ fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.4 },
+    defendBtn:    { marginTop: 12, alignSelf: 'stretch' },
     actions:      { flexDirection: 'row', alignItems: 'center', gap: 18, paddingHorizontal: 16, paddingBottom: 14, paddingTop: 2 },
     actionBtn:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
     actionCount:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, fontVariant: ['tabular-nums'] },

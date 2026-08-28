@@ -131,7 +131,7 @@ export default function DashboardScreen() {
         {/* Bento card — slide 1: weekly km | slide 2: nutrition */}
         <View ref={bentoRef} collapsable={false}>
           <BentoCard
-            weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal} runDays={dash.runDays}
+            weeklyKm={dash.weeklyKm} goalKm={dash.weeklyGoal}
             totalRuns={dash.player.totalRuns}
             ownedCount={dash.ownedCount} avgFreshness={dash.avgFreshness}
             caloriesConsumed={dash.caloriesConsumed}

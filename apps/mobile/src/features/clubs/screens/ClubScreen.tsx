@@ -82,16 +82,20 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
   const [emoji, setEmoji]       = useState(BADGE_OPTIONS[0].emoji);
   const [policy, setPolicy]     = useState<JoinPolicy>('open');
   const [saving, setSaving]     = useState(false);
+  const [nameError, setNameError] = useState(false);
 
-  const isValid = name.trim().length >= 3 && name.trim().length <= 30;
+  const trimmedName = name.trim();
+  const isValid = trimmedName.length >= 3 && trimmedName.length <= 30;
 
   const handleCreate = async () => {
-    if (!isValid || saving) return;
+    if (saving) return;
+    if (trimmedName.length === 0) { setNameError(true); return; }
+    if (!isValid) return;
     setSaving(true);
     const ok = await onCreate(name, desc, emoji, policy);
     setSaving(false);
     if (ok) {
-      setName(''); setDesc(''); setEmoji(BADGE_OPTIONS[0].emoji); setPolicy('open');
+      setName(''); setDesc(''); setEmoji(BADGE_OPTIONS[0].emoji); setPolicy('open'); setNameError(false);
       onClose();
     } else {
       Alert.alert('Error', 'Could not create club. Please try again.');
@@ -152,16 +156,18 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
             {/* Club Name */}
             <Text style={cs.fieldLabel}>CLUB NAME <Text style={{ color: C.red }}>*</Text></Text>
             <TextInput
-              style={[cs.input, name.length > 0 && name.trim().length < 3 && cs.inputError]}
+              style={[cs.input, (nameError || (name.length > 0 && trimmedName.length < 3)) && cs.inputError]}
               value={name}
-              onChangeText={setName}
+              onChangeText={t => { setName(t); if (nameError) setNameError(false); }}
               placeholder="Enter a unique club name..."
               placeholderTextColor={C.t3}
               maxLength={30}
               autoCorrect={false}
             />
             <View style={cs.inputMeta}>
-              {name.length > 0 && name.trim().length < 3
+              {nameError
+                ? <Text style={cs.inputHintError}>Enter a club name</Text>
+                : name.length > 0 && trimmedName.length < 3
                 ? <Text style={cs.inputHintError}>At least 3 characters required</Text>
                 : <Text style={cs.inputHint}>{name.length}/30</Text>
               }
@@ -210,11 +216,11 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
           {/* CTAs */}
           <View style={cs.footer}>
             <Pressable
-              style={[cs.createBtn, !isValid && cs.createBtnDisabled]}
+              style={cs.createBtn}
               onPress={handleCreate}
-              disabled={!isValid || saving}
+              disabled={saving}
             >
-              <Text style={[cs.createBtnLabel, !isValid && cs.createBtnLabelDisabled]}>
+              <Text style={cs.createBtnLabel}>
                 {saving ? 'Creating...' : 'Create Club'}
               </Text>
             </Pressable>
@@ -265,9 +271,7 @@ function mkCsStyles(C: AppColors) {
     // Footer
     footer:            { paddingTop: 16, gap: 8 },
     createBtn:         { paddingVertical: 16, borderRadius: 16, backgroundColor: C.alwaysDark, alignItems: 'center' },
-    createBtnDisabled: { backgroundColor: C.stone },
     createBtnLabel:    { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 0.3 },
-    createBtnLabelDisabled: { color: C.t3 },
     cancelBtn:         { paddingVertical: 14, borderRadius: 16, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
     cancelBtnLabel:    { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
   });
@@ -390,6 +394,12 @@ export default function ClubScreen() {
         <View style={s.loader}><ActivityIndicator color={C.red} /></View>
       ) : tab === 'my_clubs' ? (
         <FlatList
+          // Distinct key from the rankings list below — they render at the same
+          // JSX position with different numColumns (2 vs. the default 1), and
+          // without a key React reuses the same FlatList instance across the
+          // tab switch instead of remounting, which RN's FlatList explicitly
+          // doesn't support ("Changing numColumns on the fly is not supported").
+          key="my-clubs-grid"
           data={myClubs}
           keyExtractor={c => c.id}
           numColumns={2}
@@ -412,7 +422,7 @@ export default function ClubScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Users size={28} color={C.red} weight="light" style={{ marginBottom: 8 }} />
-              <Text style={s.emptyTitle}>No clubs yet</Text>
+              <Text style={s.emptyTitleServe}>No pack to run with yet.</Text>
               <Text style={s.emptyText}>Switch to Rankings to join clubs, or tap + to create one.</Text>
               <Pressable style={s.emptyBtn} onPress={() => setShowCreate(true)}>
                 <Text style={s.emptyBtnLabel}>Create a club</Text>
@@ -422,6 +432,7 @@ export default function ClubScreen() {
         />
       ) : (
         <FlatList
+          key="rankings-list"
           data={filteredRanked ?? (rankedClubs.length > 3 ? rankedClubs.slice(3) : [])}
           keyExtractor={c => c.id}
           showsVerticalScrollIndicator={false}
@@ -453,8 +464,8 @@ export default function ClubScreen() {
           )}
           ListEmptyComponent={!filteredRanked ? (
             <View style={s.empty}>
-              <Text style={s.emptyTitle}>No clubs found</Text>
-              <Text style={s.emptyText}>Check back soon.</Text>
+              <Text style={s.emptyTitleServe}>Nobody's claimed the board yet.</Text>
+              <Text style={s.emptyText}>Finish a run and be the first name up here.</Text>
             </View>
           ) : null}
         />
@@ -517,6 +528,7 @@ function mkStyles(C: AppColors) {
     myClubPreview:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     empty:           { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 18 },
     emptyTitle:      { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 4 },
+    emptyTitleServe: { fontFamily: Fonts.display, fontSize: 17, lineHeight: 21, color: C.black, marginBottom: 4, textAlign: 'center' },
     emptyText:       { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', marginBottom: 12 },
     emptyBtn:        { backgroundColor: C.alwaysDark, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 4 },
     emptyBtnLabel:   { fontFamily: Fonts.medium, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.6 },

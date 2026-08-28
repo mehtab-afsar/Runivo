@@ -7,7 +7,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { MagnifyingGlass, Check, Plus, X } from 'phosphor-react-native';
+import { Search, Check, Plus, UserPlus, X } from 'lucide-react-native';
 import { useFeed } from '@features/social/hooks/useFeed';
 import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
@@ -19,7 +19,7 @@ import { fetchStories, type StoryGroup } from '@features/social/services/storySe
 import { supabase } from '@shared/services/supabase';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
-import type { FeedPost } from '@features/social/types';
+import type { FeedPost, SuggestedRunner } from '@features/social/types';
 import type { ClubFeedActivityItem } from '@features/clubs/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -35,7 +35,7 @@ export default function FeedScreen() {
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [stories, setStories]             = useState<StoryGroup[]>([]);
   const [searchVisible, setSearchVisible] = useState(false);
-  const [searchQuery, setSearchQuery]     = useState('');
+  const [runnerQuery, setRunnerQuery]     = useState('');
 
   const tabX = useRef(new Animated.Value(0)).current;
   const TAB_W = (width - 40) / 2;
@@ -79,11 +79,15 @@ export default function FeedScreen() {
   const posts = tab === 'following' ? followingPosts : discoverPosts;
   const hasMore = tab === 'following' ? followingHasMore : discoverHasMore;
 
-  const filteredPosts = useMemo(() => {
-    if (!searchQuery.trim()) return posts;
-    const q = searchQuery.trim().toLowerCase();
-    return posts.filter(p => p.username.toLowerCase().includes(q));
-  }, [posts, searchQuery]);
+  // Same runner list Discover's "Runners near you" strip already fetched
+  // (useFeed loads it on mount, not gated behind switching tabs) — typed
+  // query just filters it client-side rather than a third implementation
+  // of the same search.
+  const runnerResults = useMemo(() => {
+    if (!runnerQuery.trim()) return suggestedRunners;
+    const q = runnerQuery.trim().toLowerCase();
+    return suggestedRunners.filter(r => r.username.toLowerCase().includes(q));
+  }, [suggestedRunners, runnerQuery]);
 
   const handleDefend = useCallback(() => {
     navigation.navigate('TerritoryMap', { initialFilter: 'stale' });
@@ -133,8 +137,8 @@ export default function FeedScreen() {
                   {!isSelf && (
                     <Pressable style={s.followDot} onPress={() => toggleFollow(runner.id)}>
                       {isFollowing
-                        ? <Check size={9} color={C.white} weight="bold" />
-                        : <Plus  size={9} color={C.white} weight="bold" />}
+                        ? <Check size={9} color={C.white} strokeWidth={2.5} />
+                        : <Plus  size={9} color={C.white} strokeWidth={2.5} />}
                     </Pressable>
                   )}
                 </View>
@@ -178,7 +182,7 @@ export default function FeedScreen() {
           </Pressable>
         </View>
         <Pressable onPress={() => setSearchVisible(true)} hitSlop={10} style={s.searchIcon}>
-          <MagnifyingGlass size={19} color={C.t2} weight="light" />
+          <Search size={19} color={C.t2} strokeWidth={1.75} />
         </Pressable>
       </View>
 
@@ -186,7 +190,7 @@ export default function FeedScreen() {
         <FeedSkeleton />
       ) : (
         <FlatList
-          data={filteredPosts}
+          data={posts}
           keyExtractor={keyExtractor}
           renderItem={renderPost}
           showsVerticalScrollIndicator={false}
@@ -211,7 +215,7 @@ export default function FeedScreen() {
         onCommentPosted={onCommentPosted}
       />
 
-      {/* Search modal */}
+      {/* Runner search modal */}
       <Modal visible={searchVisible} animationType="slide" transparent={false} onRequestClose={() => setSearchVisible(false)}>
         <SafeAreaView style={s.searchModal}>
           <View style={s.searchHeader}>
@@ -219,27 +223,88 @@ export default function FeedScreen() {
               style={s.searchInput}
               placeholder="Search runners…"
               placeholderTextColor={C.t3}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
+              value={runnerQuery}
+              onChangeText={setRunnerQuery}
               autoFocus
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <Pressable onPress={() => { setSearchVisible(false); setSearchQuery(''); }} hitSlop={8}>
-              <X size={18} color={C.t2} weight="light" />
+            <Pressable onPress={() => { setSearchVisible(false); setRunnerQuery(''); }} hitSlop={8}>
+              <X size={18} color={C.t2} strokeWidth={1.75} />
             </Pressable>
           </View>
+          {!runnerQuery.trim() && (
+            <Text style={[Type.overline, s.suggestedLabel]}>Suggested</Text>
+          )}
           <FlatList
-            data={filteredPosts}
-            keyExtractor={keyExtractor}
-            renderItem={renderPost}
+            data={runnerResults}
+            keyExtractor={r => r.id}
+            renderItem={({ item }) => (
+              <RunnerRow
+                runner={item}
+                isFollowing={followingIds.includes(item.id)}
+                isSelf={item.id === userId}
+                onPress={() => { setSearchVisible(false); navigation.navigate('UserProfile', { userId: item.id, username: item.username }); }}
+                onFollow={() => toggleFollow(item.id)}
+              />
+            )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={s.list}
+            ListEmptyComponent={
+              runnerQuery.trim()
+                ? <Text style={s.searchEmpty}>No runners match "{runnerQuery.trim()}"</Text>
+                : null
+            }
           />
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
   );
+}
+
+// Same row for both the default "Suggested" list and typed-query results —
+// no separate layout for the two states.
+function RunnerRow({
+  runner, isFollowing, isSelf, onPress, onFollow,
+}: {
+  runner: SuggestedRunner;
+  isFollowing: boolean;
+  isSelf: boolean;
+  onPress: () => void;
+  onFollow: () => void;
+}) {
+  const C = useTheme();
+  const s = useMemo(() => mkRowStyles(C), [C]);
+  return (
+    <Pressable style={s.row} onPress={onPress}>
+      <Avatar name={runner.username} color={runner.avatarColor} size={44} uri={runner.avatarUrl} />
+      <View style={s.info}>
+        <Text style={s.name} numberOfLines={1}>{runner.username}</Text>
+        <Text style={s.score}>{runner.territoryScore} TS</Text>
+      </View>
+      {!isSelf && (
+        <Pressable
+          style={[s.followBtn, isFollowing && s.followBtnActive]}
+          onPress={onFollow}
+        >
+          {isFollowing
+            ? <Check size={13} color={C.t2} strokeWidth={2} />
+            : <UserPlus size={13} color={C.alwaysLight} strokeWidth={2} />}
+        </Pressable>
+      )}
+    </Pressable>
+  );
+}
+
+function mkRowStyles(C: AppColors) {
+  return StyleSheet.create({
+    row:          { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: Spacing.gutter, paddingVertical: 10 },
+    info:         { flex: 1 },
+    name:         { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
+    score:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
+    followBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    followBtnActive: { backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
+  });
 }
 
 function FooterSpinner({ C }: { C: AppColors }) {
@@ -273,5 +338,6 @@ function mkStyles(C: AppColors) {
     searchModal:  { flex: 1, backgroundColor: C.bg },
     searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
     searchInput:  { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.black, height: 36, backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 12 },
+    searchEmpty:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, textAlign: 'center', paddingTop: 40, paddingHorizontal: 32 },
   });
 }

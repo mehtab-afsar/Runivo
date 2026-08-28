@@ -180,8 +180,8 @@ export default function LeaderboardScreen() {
           ListHeaderComponent={podium}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Text style={s.emptyTitle}>No data yet</Text>
-              <Text style={s.emptyText}>Complete runs to appear on the leaderboard.</Text>
+              <Text style={s.emptyTitle}>Nobody's claimed the board yet.</Text>
+              <Text style={s.emptyText}>Finish a run and be the first name up here.</Text>
             </View>
           }
         />
@@ -217,7 +217,7 @@ function mkStyles(C: AppColors) {
     skeletonWrap:  { paddingTop: 8 },
     skeletonRow:   { height: 51, marginHorizontal: Spacing.gutter, marginBottom: 8, borderRadius: Spacing.radius.md },
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
-    emptyTitle:    { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, marginBottom: 6 },
+    emptyTitle:    { fontFamily: Fonts.display, fontSize: 20, lineHeight: 25, color: C.black, marginBottom: 6, textAlign: 'center' },
     emptyText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
     playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)', shadowColor: C.red, shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 3 },
     playerRank:    { fontFamily: Fonts.regular, fontSize: 13, color: C.red, width: 24, textAlign: 'center', fontVariant: ['tabular-nums'] },

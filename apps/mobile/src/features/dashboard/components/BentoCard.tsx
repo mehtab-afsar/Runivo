@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet, Dimensions, NativeScroll
 import * as Haptics from 'expo-haptics';
 import { Calendar, Users, Trophy } from 'lucide-react-native';
 import { WeeklyRing } from './WeeklyRing';
-import { DayArcRing } from './DayArcRing';
+import { HeroRing } from './HeroRing';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { FEATURES } from '../../../config/features';
 
@@ -22,7 +22,6 @@ const QUICK_ACTIONS = [
 interface Props {
   weeklyKm:         number;
   goalKm:           number;
-  runDays:          boolean[];
   /** Lifetime run count — distinguishes "never run" from "slow week" in the
    *  ring's empty state. Presentation-only; goal/streak logic is untouched. */
   totalRuns:        number;
@@ -46,33 +45,31 @@ function nutritionCaption(consumed: number, goal: number, remaining: number): st
 function NutritionTile({
   caloriesConsumed,
   calorieGoal,
-  runDays,
   onPress,
 }: {
   caloriesConsumed: number;
   calorieGoal: number;
   netCaloriesToday: number;
-  runDays: boolean[];
   onPress: () => void;
 }) {
   const remaining = Math.max(0, calorieGoal - caloriesConsumed);
-  const todayIdx  = (new Date().getDay() + 6) % 7;
+  const pct = calorieGoal > 0 ? Math.min(caloriesConsumed / calorieGoal, 1) : 0;
 
   return (
     <View style={ns.content}>
-      <DayArcRing
-        dayDone={runDays} todayIdx={todayIdx}
-        accentColor="#FF5326" gradientFrom="#E8B400" gradientTo="#FF5326" gradientId="nutritionRing"
-        onPress={onPress}
-      >
-        <View style={ns.kcalRow}>
-          <Text style={ns.kcal}>{caloriesConsumed.toLocaleString()}</Text>
+      <Pressable onPress={onPress}>
+        <HeroRing
+          size={76}
+          trackColor="rgba(255,255,255,0.15)"
+          pct={pct}
+          arcColor={caloriesConsumed > 0 ? '#000000' : undefined}
+        >
+          <View style={ns.kcalRow}>
+            <Text style={ns.kcal}>{caloriesConsumed.toLocaleString()}</Text>
+          </View>
           <Text style={ns.kcalUnit}>kcal</Text>
-        </View>
-        <Text style={ns.kcalSub}>
-          {remaining > 0 ? `${remaining.toLocaleString()} left` : 'goal hit'}
-        </Text>
-      </DayArcRing>
+        </HeroRing>
+      </Pressable>
       <Text style={ns.caption}>{nutritionCaption(caloriesConsumed, calorieGoal, remaining)}</Text>
     </View>
   );
@@ -81,14 +78,13 @@ function NutritionTile({
 const ns = StyleSheet.create({
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 10 },
   kcalRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  kcal:    { fontFamily: Fonts.light, fontSize: 34, color: '#fff', letterSpacing: -1.2, lineHeight: 36, fontVariant: ['tabular-nums'] },
-  kcalUnit:{ fontFamily: Fonts.light, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 3 },
-  kcalSub: { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 },
+  kcal:    { fontFamily: Fonts.light, fontSize: 22, color: '#fff', letterSpacing: -0.8, lineHeight: 24, fontVariant: ['tabular-nums'] },
+  kcalUnit:{ fontFamily: Fonts.light, fontSize: 10, color: 'rgba(255,255,255,0.4)' },
   caption: { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', paddingHorizontal: 20 },
 });
 
 export function BentoCard({
-  weeklyKm, goalKm, runDays, totalRuns,
+  weeklyKm, goalKm, totalRuns,
   caloriesConsumed, calorieGoal, netCaloriesToday,
   onNavigate, onStartRun, onNutritionPress,
 }: Props) {
@@ -144,16 +140,12 @@ export function BentoCard({
                   />
                 </View>
 
-                {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark.
-                    The ring itself is the tap target (DayArcRing) — no outer Pressable,
-                    so its own press-bounce animation isn't fighting a nested one.
-                    Untouched — out of scope for this pass. */}
+                {/* Slide 1 — Nutrition: warm near-black, distinct from slide 0's pure dark. */}
                 <View style={[ss.slide, { width: SLIDE_W, backgroundColor: '#1A120C' }]}>
                   <NutritionTile
                     caloriesConsumed={caloriesConsumed}
                     calorieGoal={calorieGoal}
                     netCaloriesToday={netCaloriesToday}
-                    runDays={runDays}
                     onPress={onNutritionPress}
                   />
                 </View>
