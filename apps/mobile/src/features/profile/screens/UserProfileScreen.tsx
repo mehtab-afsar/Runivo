@@ -3,13 +3,19 @@ import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIn
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { UserPlus, Check, MapPin, ArrowLeft } from 'phosphor-react-native';
+import { UserPlus, Check, MapPin, ArrowLeft, DotsThree, Prohibit } from 'phosphor-react-native';
+import RunnerSafetySheet from '@features/social/components/RunnerSafetySheet';
+import { fetchRelation, unblockUser } from '@features/social/services/safetyService';
 import { supabase } from '@shared/services/supabase';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { toggleFollowService } from '@features/social/services/feedService';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { RunnerRankBadge } from '@mobile/shared/components/RunnerRankBadge';
 import { fetchAwards } from '../services/profileService';
+import { fetchRunnerActivities } from '../services/runnerActivitiesService';
+import { SportFilterBar, ThisWeekCard, StatsCard, RecentActivities } from '../components/ProfileActivity';
+import type { SportFilter } from '../utils/profileStats';
+import type { StoredRun } from '@shared/services/store';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { RunnerRank } from '@shared/types/game';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -40,12 +46,19 @@ export default function UserProfileScreen() {
   const route = useRoute<Route>();
   const { userId, username } = route.params;
 
+  const [activities, setActivities] = useState<StoredRun[] | null>(null);
+  const [sport, setSport] = useState<SportFilter>('all');
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [awards, setAwards] = useState<{ awardId: string; unlockedAt: string }[]>([]);
+  // Block / mute state and the "…" menu.
+  const [relation, setRelation] = useState({ blocked: false, muted: false });
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => { fetchRelation(userId).then(setRelation).catch(() => {}); }, [userId]);
+  useEffect(() => { fetchRunnerActivities(userId).then(setActivities).catch(() => setActivities([])); }, [userId]);
 
   useEffect(() => {
     async function load() {
@@ -108,10 +121,14 @@ export default function UserProfileScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>{resolvedUsername}</Text>
-        <View style={{ width: 32 }} />
+        {isOwnProfile ? <View style={{ width: 32 }} /> : (
+          <Pressable onPress={() => setMenuOpen(true)} style={s.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="More options">
+            <DotsThree size={20} color={C.t1} weight="bold" />
+          </Pressable>
+        )}
       </View>
 
       {loading ? (
@@ -157,7 +174,20 @@ export default function UserProfileScreen() {
 
             {/* Follow action — Message removed until messaging actually ships;
                 a permanently-disabled button was worse than no button. */}
-            {!isOwnProfile && (
+            {!isOwnProfile && relation.blocked && (
+              <View style={s.blockedBox}>
+                <Prohibit size={16} color={C.t2} weight="regular" />
+                <Text style={s.blockedTxt}>You blocked {resolvedUsername}. Neither of you sees the other.</Text>
+                <Pressable
+                  onPress={() => unblockUser(userId).then(() => setRelation(r => ({ ...r, blocked: false }))).catch(() => {})}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                >
+                  <Text style={s.blockedAction}>Unblock</Text>
+                </Pressable>
+              </View>
+            )}
+            {!isOwnProfile && !relation.blocked && (
               <View style={s.actions}>
                 <Pressable
                   style={[s.followBtn, isFollowing && s.followingBtn]}
@@ -200,6 +230,16 @@ export default function UserProfileScreen() {
                 ))}
               </View>
 
+              {/* The same sections as your own profile, built from what they let you see. */}
+              {activities && activities.length > 0 && (
+                <View style={s.sections}>
+                  <SportFilterBar value={sport} onChange={setSport} />
+                  <ThisWeekCard runs={activities} sport={sport} />
+                  <StatsCard runs={activities} sport={sport} />
+                  <RecentActivities runs={activities} sport={sport} emptyText="Nothing to show for this sport." />
+                </View>
+              )}
+
               {/* Awards — public read (unlike runs/GPS, which stay owner-only) */}
               <View style={s.awardsSection}>
                 <Text style={s.awardsHeading}>Awards</Text>
@@ -224,6 +264,17 @@ export default function UserProfileScreen() {
           )}
         </ScrollView>
       )}
+      {!isOwnProfile && (
+        <RunnerSafetySheet
+          visible={menuOpen}
+          userId={userId}
+          username={resolvedUsername}
+          blocked={relation.blocked}
+          muted={relation.muted}
+          onClose={() => setMenuOpen(false)}
+          onChange={next => { setRelation(next); if (next.blocked) setIsFollowing(false); }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -232,7 +283,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
+    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 12 },
     backBtn:      { width: 32 },
     title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     profileSection:{ alignItems: 'center', padding: 24, gap: 6 },
@@ -245,22 +296,26 @@ function mkStyles(C: AppColors) {
     socialLabel:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     socialDot:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
     actions:      { flexDirection: 'row', gap: 10, marginTop: 16 },
+    blockedBox:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, backgroundColor: C.surface, alignSelf: 'stretch' },
+    blockedTxt:  { flex: 1, fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2 },
+    blockedAction: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
     followBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 18, paddingVertical: 10 },
     followingBtn: { backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
     followBtnLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
     followingBtnLabel:{ color: C.black },
-    statsGrid:    { flexDirection: 'row', marginHorizontal: 20, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    statsGrid:    { flexDirection: 'row', marginHorizontal: 18, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     statCell:     { flex: 1, alignItems: 'center', paddingVertical: 16, borderRightWidth: 0.5, borderRightColor: C.border },
     statValue:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, letterSpacing: -0.5 },
-    statLabel:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
-    awardsSection:{ marginHorizontal: 20, marginTop: 20, marginBottom: 24 },
-    awardsHeading:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.black, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 },
+    statLabel:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
+    sections:     { marginHorizontal: 18, marginTop: 16, gap: 12 },
+    awardsSection:{ marginHorizontal: 18, marginTop: 20, marginBottom: 24 },
+    awardsHeading:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.black,  marginBottom: 10 },
     awardsEmpty:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
     awardsGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     awardChip:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 10, paddingVertical: 7, maxWidth: 160 },
     awardIcon:    { fontSize: 16 },
     awardTitle:   { fontFamily: Fonts.medium, fontSize: 11, color: C.black, flexShrink: 1 },
-    privateNotice:     { marginHorizontal: 20, alignItems: 'center', backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, paddingVertical: 32, paddingHorizontal: 20 },
+    privateNotice:     { marginHorizontal: 18, alignItems: 'center', backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, paddingVertical: 32, paddingHorizontal: 20 },
     privateNoticeTitle:{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, marginBottom: 4 },
     privateNoticeText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });

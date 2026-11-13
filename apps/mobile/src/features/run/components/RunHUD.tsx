@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { useTheme, useIsDark, Type, Fonts, type AppColors } from '@theme';
+import { territoryPalette } from '@theme/territory';
 import { convertKm, convertPaceStringPerKm } from '@mobile/shared/lib/formatters';
 
 interface RunHUDProps {
@@ -9,52 +10,78 @@ interface RunHUDProps {
   elapsed: number;
   liveAreaM2?: number;
   unit?: 'km' | 'mi';
+  /** Shown after "Distance ·" in the eyebrow, e.g. "Running" / "Paused". */
+  stateLabel?: string;
+  /** Current lap (whole km/mi + 1) and its pace, shown on the right. */
+  lap?: { n: number; pace: string } | null;
+  /** Pace on foot, average speed on a ride. */
+  metric?: 'pace' | 'speed';
+  /** The zone column: off for rides, which don't claim. */
+  showZone?: boolean;
 }
 
 function formatElapsed(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
+  const s = Math.floor(seconds % 60);
   if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km' }: RunHUDProps) {
+function formatArea(m2: number): string {
+  if (m2 >= 100_000) return `${(m2 / 1_000_000).toFixed(2)} km²`;
+  return `${Math.round(m2).toLocaleString()} m²`;
+}
+
+export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km', stateLabel, lap, metric = 'pace', showZone = true }: RunHUDProps) {
   const C = useTheme();
+  const zone = territoryPalette(useIsDark());
   const ss = useMemo(() => mkStyles(C), [C]);
   const displayDistance = convertKm(distance, unit);
   const displayPace = convertPaceStringPerKm(pace, unit);
+  const hasArea = !!liveAreaM2 && liveAreaM2 > 0;
+  const speed = elapsed > 0 ? displayDistance / (elapsed / 3600) : 0;
+
   return (
     <View style={ss.container}>
       {/*
-        maxFontSizeMultiplier caps below are deliberate, not a Dynamic Type
-        opt-out: this HUD is read one-handed, mid-stride, in a fixed-height
-        panel. Uncapped iOS accessibility text sizes (up to ~3x) would blow the
-        72px hero number and the bordered tri-column row well past this
-        container and off-screen. Capping still lets these grow ~20-30% for
-        larger accessibility sizes, matching Apple's own HIG allowance for
-        capping large numeric displays specifically (unlike ordinary body/label
-        text elsewhere in the app, which is intentionally left uncapped).
+        maxFontSizeMultiplier caps are deliberate: this panel is read mid-stride
+        in a fixed-height sheet. Capping still lets numbers grow ~20-30% for
+        larger accessibility sizes (Apple HIG allows capping large numerics).
       */}
-      <View style={ss.distanceBlock}>
-        <Text style={ss.distanceValue} maxFontSizeMultiplier={1.2}>{displayDistance.toFixed(2)}</Text>
-        <Text style={ss.distanceUnit} maxFontSizeMultiplier={1.2}>{unit}</Text>
-      </View>
-      <View style={ss.secondaryStats}>
-        <View style={ss.secondaryStat}>
-          <Text style={ss.secondaryValue} maxFontSizeMultiplier={1.3}>{formatElapsed(elapsed)}</Text>
-          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>TIME</Text>
-        </View>
-        <View style={[ss.secondaryStat, ss.secondaryStatMid]}>
-          <Text style={ss.secondaryValue} maxFontSizeMultiplier={1.3}>{displayPace}</Text>
-          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>PACE /{unit.toUpperCase()}</Text>
-        </View>
-        <View style={ss.secondaryStat}>
-          <Text style={[ss.secondaryValue, { color: C.green }]} maxFontSizeMultiplier={1.3}>
-            {liveAreaM2 && liveAreaM2 > 0 ? `~${Math.round(liveAreaM2).toLocaleString()}` : '—'}
+      <View style={ss.topRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={ss.eyebrow} maxFontSizeMultiplier={1.3}>
+            Distance{stateLabel ? ` · ${stateLabel}` : ''}
           </Text>
-          <Text style={ss.secondaryLabel} maxFontSizeMultiplier={1.3}>ZONE M²</Text>
+          <View style={ss.distanceBlock}>
+            <Text style={ss.distanceValue} maxFontSizeMultiplier={1.15}>{displayDistance.toFixed(2)}</Text>
+            <Text style={ss.distanceUnit} maxFontSizeMultiplier={1.2}>{unit}</Text>
+          </View>
         </View>
+        {lap && (
+          <View style={ss.lap}>
+            <Text style={ss.lapLabel} maxFontSizeMultiplier={1.2}>Lap {lap.n}{metric === 'speed' ? ` · ${unit}/h` : ''}</Text>
+            <Text style={ss.lapPace} maxFontSizeMultiplier={1.2}>{lap.pace}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={ss.stats}>
+        <View style={ss.stat}>
+          <Text style={ss.statValue} maxFontSizeMultiplier={1.3}>{metric === 'speed' ? (speed > 0 ? speed.toFixed(1) : '0.0') : displayPace}</Text>
+          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>{metric === 'speed' ? `Speed ${unit}/h` : `Pace /${unit}`}</Text>
+        </View>
+        <View style={[ss.stat, ss.statDivided]}>
+          <Text style={ss.statValue} maxFontSizeMultiplier={1.3}>{formatElapsed(elapsed)}</Text>
+          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>Time</Text>
+        </View>
+        {showZone && <View style={[ss.stat, ss.statDivided]}>
+          <Text style={[ss.statValue, hasArea && { color: zone.own }]} maxFontSizeMultiplier={1.3}>
+            {hasArea ? formatArea(liveAreaM2!).replace(/ (k?m²)$/, '') : '—'}
+          </Text>
+          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>{hasArea && liveAreaM2! >= 100_000 ? 'Zone km²' : 'Zone m²'}</Text>
+        </View>}
       </View>
     </View>
   );
@@ -62,18 +89,20 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    // Rounded where this panel meets the map above it (the one visual seam that
-    // actually reads); square below, where it sits flush against the pacer/
-    // controls bar sharing the same alwaysDark background.
-    container:        { backgroundColor: C.alwaysDark, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingTop: 24, paddingBottom: 16, paddingHorizontal: 24 },
-    distanceBlock:    { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginBottom: 16 },
-    distanceValue:    { ...Type.metricXL, color: C.alwaysLight, letterSpacing: -2, lineHeight: 76 },
-    distanceUnit:     { fontFamily: Fonts.light, fontSize: 22, color: 'rgba(255,255,255,0.4)' },
-    secondaryStats:   { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 14 },
-    secondaryStat:    { flex: 1, alignItems: 'center' },
-    secondaryStatMid: { borderLeftWidth: 0.5, borderRightWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
-    // Sized for a one-handed glance mid-run (was 20 / 8px @ 35% — illegible while moving).
-    secondaryValue:   { ...Type.metricMd, color: C.alwaysLight },
-    secondaryLabel:   { fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 1, color: 'rgba(255,255,255,0.55)', marginTop: 4 },
+    container:     { backgroundColor: C.card, paddingTop: 0, paddingHorizontal: 20 },
+    // stats: no bottom rule; the loop row sits under it in the sheet.
+    topRow:        { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+    eyebrow:       { ...Type.labelSm, color: C.t2 },
+    distanceBlock: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 6 },
+    distanceValue: { fontFamily: Fonts.numeric, fontSize: 96, lineHeight: 84, letterSpacing: -1, color: C.t1, fontVariant: ['tabular-nums'] },
+    distanceUnit:  { fontFamily: Fonts.bold, fontSize: 22, letterSpacing: -0.5, color: C.t3 },
+    lap:           { alignItems: 'flex-end', paddingBottom: 10 },
+    lapLabel:      { ...Type.labelSm, color: C.t2 },
+    lapPace:       { fontFamily: Fonts.numeric, fontSize: 24, lineHeight: 24, color: C.t1, marginTop: 4, fontVariant: ['tabular-nums'] },
+    stats:         { flexDirection: 'row', marginTop: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border },
+    stat:          { flex: 1, paddingVertical: 12 },
+    statDivided:   { borderLeftWidth: 1, borderColor: C.border, paddingLeft: 14 },
+    statValue:     { fontFamily: Fonts.numeric, fontSize: 28, lineHeight: 26, color: C.t1, fontVariant: ['tabular-nums'] },
+    statLabel:     { ...Type.labelSm, color: C.t2, marginTop: 5 },
   });
 }

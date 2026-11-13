@@ -93,7 +93,7 @@ export default function FollowingScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Following</Text>
         <View style={{ width: 32 }} />
@@ -155,7 +155,7 @@ export default function FollowingScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
-    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
+    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
     backBtn:      { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
     title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     searchWrap:   { paddingHorizontal: Spacing.gutter, paddingBottom: 8 },
@@ -166,7 +166,7 @@ function mkStyles(C: AppColors) {
     name:         { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
     handle:       { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     rankBadge:    { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    rankText:     { fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.3 },
+    rankText:     { fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 0.3 },
     unfollowBtn:  { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8, borderWidth: 0.5, borderColor: C.border },
     unfollowText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
     empty:        { alignItems: 'center', paddingVertical: 40 },

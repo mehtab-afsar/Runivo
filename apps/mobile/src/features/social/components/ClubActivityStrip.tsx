@@ -45,13 +45,13 @@ export function ClubActivityStrip({ items, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    section:  { backgroundColor: C.bg, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    label:    { color: C.t3, paddingHorizontal: Spacing.gutter, marginBottom: 10 },
-    scroll:   { paddingHorizontal: 20, gap: 10 },
-    chip:     { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.stone, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, width: 190, borderWidth: 0.5, borderColor: C.border },
+    section:  { backgroundColor: C.bg, paddingTop: 6, paddingBottom: 14 },
+    label:    { color: C.t2, paddingHorizontal: Spacing.gutter, marginBottom: 10 },
+    scroll:   { paddingHorizontal: 12, gap: 10 },
+    chip:     { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, width: 210 },
     badge:    { fontSize: 18 },
-    text:     { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
+    text:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t1 },
     username: { fontFamily: Fonts.semiBold },
-    clubName: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
+    clubName: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, marginTop: 2 },
   });
 }

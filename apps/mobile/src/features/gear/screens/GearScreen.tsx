@@ -41,7 +41,7 @@ export default function GearScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Gear</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -70,7 +70,7 @@ export default function GearScreen() {
           keyExtractor={item => item.id}
           renderItem={({ item }) => {
             if (item.isHeader) {
-              return <Text style={s.sectionLabel}>RETIRED</Text>;
+              return <Text style={s.sectionLabel}>Retired</Text>;
             }
             return (
               <ShoeCard

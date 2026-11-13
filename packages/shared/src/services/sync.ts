@@ -12,6 +12,7 @@
  */
 
 import { supabase } from './supabase';
+import { isPlus } from '../engine/entitlements';
 
 // ----------------------------------------------------------------
 // AI COACH ENABLEMENT — the app's own FEATURES.AI_COACH flag, mirrored here.
@@ -146,18 +147,18 @@ export async function pushProfile(): Promise<void> {
     // migration addressed. The client still computes and stores these locally (for the
     // offline-friendly immediate post-run UI) and PULLS the server's authoritative value
     // via pullProfile() — it must just never push them.
-    //
-    // pace_weekly_reset_at and runner_rank are NOT touched by apply_pace_adjustment —
-    // they're legitimately client-computed (checkAndResetWeeklyPace() / computeRunnerRank()
-    // in useGameEngine.ts) and safe to push as-is.
-    pace_weekly_reset_at: player.paceWeeklyResetAt ?? new Date().toISOString(),
-    runner_rank:         player.runnerRank         ?? 'pacer',
+    // pace_weekly_reset_at and runner_rank are server-owned too: credit_pace_capped
+    // resets the week and sets the rank. Pushing them let a client reset its own cap.
     // City rank / rival proximity — only sent once a location has actually been
     // captured (onboarding grant or post-run); never overwrites with an empty value.
     ...(player.lastKnownLocation && {
       last_known_location: `SRID=4326;POINT(${player.lastKnownLocation.lng} ${player.lastKnownLocation.lat})`,
     }),
     ...(player.country && { country: player.country }),
+    // IANA zone so reminders, fading-zone alerts and campaigns arrive at the
+    // runner's local hour (run_hourly_notifications). The server falls back
+    // to UTC for anything it doesn't recognise.
+    ...(deviceTimeZone() && { timezone: deviceTimeZone() }),
     // Onboarding prefs + biometrics
     ...(profile && {
       // Biometrics (migration 013)
@@ -236,6 +237,7 @@ export async function pullProfile(): Promise<void> {
     paceWeeklyEarned:   typeof data.pace_weekly_earned === 'number' ? data.pace_weekly_earned  : (existing?.paceWeeklyEarned  ?? 0),
     paceWeeklyResetAt:  data.pace_weekly_reset_at ?? existing?.paceWeeklyResetAt ?? new Date().toISOString(),
     runnerRank:         (data.runner_rank as RunnerRank | undefined) ?? existing?.runnerRank ?? 'pacer',
+    subscriptionTier:   typeof data.subscription_tier === 'string' ? data.subscription_tier : (existing?.subscriptionTier ?? 'free'),
     territoryScore:     existing?.territoryScore ?? 0,
     largestTierAchieved: existing?.largestTierAchieved,
     earnedAwardIds:      existing?.earnedAwardIds,
@@ -290,6 +292,15 @@ function rdpSimplify(
 // share the one in-flight push instead of starting a second one.
 let _pushUnsyncedRunsInFlight: Promise<void> | null = null;
 
+function deviceTimeZone(): string | null {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof tz === 'string' && tz.includes('/') ? tz : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Push all locally unsynced runs to Supabase. */
 export async function pushUnsyncedRuns(): Promise<void> {
   if (_pushUnsyncedRunsInFlight) return _pushUnsyncedRunsInFlight;
@@ -304,7 +315,9 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
   if (!user) return;
 
   const allRuns = await getRuns();
-  const unsynced = allRuns.filter(r => !r.synced);
+  // Also retry runs that uploaded but were never scored: the server is
+  // idempotent per run, so a retry can never pay twice.
+  const unsynced = allRuns.filter(r => !r.synced || r.serverProcessed === false);
   if (unsynced.length === 0) return;
 
   for (const run of unsynced) {
@@ -312,7 +325,11 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
     // intermediate points (1800-point run → ~60-120 points, ~95% size reduction).
     const simplifiedPoints = rdpSimplify(run.gpsPoints);
 
-    const { error } = await supabase.from('runs').upsert({
+    // A run already uploaded is only retried for scoring: runs are immutable
+    // (there is no UPDATE policy), so re-sending it as an upsert hit RLS and
+    // failed every later sync. First uploads use ON CONFLICT DO NOTHING so a
+    // row that landed before a crash doesn't fail the same way.
+    const { error } = run.synced ? { error: null } : await supabase.from('runs').upsert({
       id: run.id,
       user_id: user.id,
       activity_type: run.activityType,
@@ -328,10 +345,10 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
       coins_earned: run.coinsEarned ?? 0,
       enemy_captured: run.enemyCaptured ?? 0,
       pre_run_level: run.preRunLevel ?? 1,
-    }, { onConflict: 'id' });
+    }, { onConflict: 'id', ignoreDuplicates: true });
 
     if (!error) {
-      await saveRun({ ...run, synced: true });
+      await saveRun({ ...run, synced: true, serverProcessed: run.serverProcessed === true ? true : false });
       // Invoke territory processing on the server (PostGIS steal/claim logic).
       // Runs fire-and-forget: failure here doesn't block the sync — PACE adjustment
       // from stolen zones will be credited on the next successful sync.
@@ -350,15 +367,14 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
             },
           });
           if (result && typeof result.paceAdjustment === 'number') {
-            const player = await getPlayer();
-            if (player) {
-              // Delta reconciliation: server returns the authoritative total.
-              // Apply only the difference to avoid double-crediting the optimistic
-              // PACE already credited by useGameEngine at run end.
-              const clientCredited = run.xpEarned ?? 0;
-              const serverAuthoritative = result.paceAdjustment;
-              const delta = serverAuthoritative - clientCredited;
-              if (delta !== 0) {
+            const serverPace = result.paceAdjustment as number;
+            const latestRun = (await getRunById(run.id)) ?? run;
+            // Apply the correction once: after this the run carries the server's
+            // number, so a retry or replay finds nothing left to correct.
+            if (latestRun.serverProcessed !== true) {
+              const delta = serverPace - (latestRun.xpEarned ?? 0);
+              const player = await getPlayer();
+              if (player && delta !== 0) {
                 await savePlayer({
                   ...player,
                   paceBalance:      Math.max(0, (player.paceBalance      ?? 0) + delta),
@@ -366,12 +382,35 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
                   paceWeeklyEarned: Math.max(0, (player.paceWeeklyEarned ?? 0) + delta),
                 });
               }
+              await saveRun({
+                ...latestRun,
+                synced: true,
+                serverProcessed: true,
+                xpEarned: serverPace,
+                ...(typeof result.verifiedDistanceKm === 'number' && { verifiedDistanceKm: result.verifiedDistanceKm }),
+                ...(typeof result.territoryAreaM2 === 'number' && { claimedAreaM2: result.claimedAreaM2 ?? 0, territoryAreaM2: result.territoryAreaM2 }),
+                // What the server decided, for the run summary and the paywall moments.
+                serverResult: {
+                  newZones:            Number(result.newZonesClaimed) || 0,
+                  stolenZones:         Number(result.rivalZonesStolen) || 0,
+                  paceCapped:          result.paceCapped === true,
+                  territoryCapReached: result.territoryCapReached === true,
+                  streakDays:          Number(result.streakDays) || 0,
+                },
+              });
             }
+            // The optimistic zone drawn at run end is replaced by the server's
+            // real shape; keeping both counted the same ground twice.
+            const optimistic = (await getTerritoryPolygons()).filter(t => t.runId === run.id && !t.synced);
+            for (const t of optimistic) await deleteTerritory(t.id);
           }
 
           // Auto post-run debrief — fire-and-forget, non-blocking. Gated on
           // _aiCoachEnabled: see setAiCoachEnabled() above.
-          if (_aiCoachEnabled) (async () => {
+          // AI stays in Plus (PRD): only Plus runners get the auto debrief; the
+          // server refuses it for everyone else anyway (ai-coach → 402).
+          const tierForDebrief = (await getPlayer())?.subscriptionTier;
+          if (_aiCoachEnabled && isPlus(tierForDebrief)) (async () => {
             try {
               const { data: debriefData } = await supabase.functions.invoke('ai-coach', {
                 body: { feature: 'post_run', runId: run.id },
@@ -466,11 +505,29 @@ export async function pullRuns(limit = 50): Promise<void> {
       gpsPoints,
       territoriesClaimed: row.territories_claimed,
       territoriesFortified: row.territories_fortified,
-      xpEarned: row.xp_earned,
+      // Once the server has scored a run, its PACE and measured ground live on
+      // the local record; the runs row still holds the app's first guess.
+      xpEarned: local?.serverProcessed === true ? local.xpEarned : row.xp_earned,
       coinsEarned: row.coins_earned,
       enemyCaptured: row.enemy_captured ?? 0,
       preRunLevel: row.pre_run_level ?? 1,
       synced: true,
+      serverProcessed: local?.serverProcessed,
+      verifiedDistanceKm: local?.verifiedDistanceKm,
+      territoryAreaM2: local?.territoryAreaM2,
+      claimedAreaM2: local?.claimedAreaM2,
+      serverResult: local?.serverResult,
+      title: row.title ?? null,
+      description: row.description ?? null,
+      privateNotes: row.private_notes ?? null,
+      perceivedEffort: row.perceived_effort ?? null,
+      visibility: local?.visibility,
+      excluded: row.excluded ?? false,
+      photoPaths: row.photo_paths ?? [],
+      integrityStatus: row.integrity_status ?? 'ok',
+      heartRateAvg: row.avg_hr ?? local?.heartRateAvg,
+      heartRateMax: row.max_hr ?? local?.heartRateMax,
+      integrityReason: row.integrity_reason ?? null,
     });
   }
 }
@@ -538,7 +595,10 @@ export async function pullTerritories(): Promise<void> {
     });
   }
 
-  const stale = ownExisting.filter(t => t.synced && !serverIds.has(t.id));
+  const serverRunIds = new Set((data ?? []).map(row => row.run_id).filter(Boolean));
+  const stale = ownExisting.filter(t =>
+    (t.synced && !serverIds.has(t.id)) ||
+    (!t.synced && t.runId && serverRunIds.has(t.runId)));
   for (const t of stale) {
     await deleteTerritory(t.id);
   }
@@ -892,6 +952,9 @@ export async function createFeedPost(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
+  // The full route goes to the server, which trims it to the runner's map
+  // visibility before storing (feed_posts_blur_route). Trimming here as well
+  // would trim twice: the server measures from whatever ends it receives.
   const { error } = await supabase.from('feed_posts').insert({
     user_id:             user.id,
     run_id:              runId,

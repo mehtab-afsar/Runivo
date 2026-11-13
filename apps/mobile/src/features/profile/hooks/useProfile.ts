@@ -118,7 +118,7 @@ export function useProfile() {
     weekStart.setHours(0, 0, 0, 0);
     return runs
       .filter(r => r.startTime >= weekStart.getTime())
-      .reduce((s, r) => s + r.distanceMeters / 1000, 0);
+      .filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0);
   }, [runs]);
 
   const pickAvatar = useCallback(async () => {

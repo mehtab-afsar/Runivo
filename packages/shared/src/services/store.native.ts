@@ -265,6 +265,11 @@ export async function getRunById(id: string): Promise<StoredRun | undefined> {
   return row ? JSON.parse(row.data) as StoredRun : undefined;
 }
 
+export async function deleteRun(id: string): Promise<void> {
+  await ready();
+  _db.runSync('DELETE FROM runs WHERE id = ?', id);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Territories
 // ─────────────────────────────────────────────────────────────────────────────

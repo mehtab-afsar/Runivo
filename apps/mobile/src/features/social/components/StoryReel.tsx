@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { avatarColor } from '@shared/lib/avatarUtils';
 import type { StoryGroup } from '@features/social/services/storyService';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { RunnerFace } from '@mobile/shared/components/RunnerFace';
 
 interface Props {
   groups:   StoryGroup[];
@@ -22,13 +22,11 @@ export function StoryReel({ groups, onPress }: Props) {
       style={s.root}
     >
       {groups.map((g, i) => {
-        const bg      = avatarColor(g.userName);
-        const initial = g.userName.slice(0, 1).toUpperCase();
         return (
           <Pressable key={g.userId} style={s.item} onPress={() => onPress(g, i)}>
-            <View style={[s.ring, { borderColor: bg }]}>
-              <View style={[s.avatar, { backgroundColor: bg }]}>
-                <Text style={s.initial}>{initial}</Text>
+            <View style={s.ring}>
+              <View style={[s.avatar, { overflow: 'hidden' }]}>
+                <RunnerFace seed={g.userName} size={54} />
               </View>
             </View>
             <Text style={s.name} numberOfLines={1}>{g.userName}</Text>
@@ -41,12 +39,13 @@ export function StoryReel({ groups, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    root:    { borderBottomWidth: 0.5, borderBottomColor: C.border },
-    list:    { paddingHorizontal: 16, paddingVertical: 12, gap: 14 },
-    item:    { alignItems: 'center', gap: 5, width: 58 },
-    ring:    { width: 54, height: 54, borderRadius: 27, borderWidth: 2, padding: 2 },
-    avatar:  { flex: 1, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+    root:    { marginBottom: 4 },
+    // 54pt faces ringed in red with a 2pt gap, as in the mock.
+    list:    { paddingHorizontal: 18, paddingVertical: 6, gap: 12 },
+    item:    { alignItems: 'center', gap: 4, width: 62 },
+    ring:    { width: 62, height: 62, borderRadius: 31, borderWidth: 2, borderColor: C.red, padding: 2 },
+    avatar:  { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
     initial: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.white },
-    name:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t2, width: 58, textAlign: 'center' },
+    name:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t1, width: 62, textAlign: 'center' },
   });
 }

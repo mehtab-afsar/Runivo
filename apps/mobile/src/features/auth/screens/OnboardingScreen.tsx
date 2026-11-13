@@ -1,239 +1,198 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import {
-  View, StyleSheet, Pressable, Text,
-  ActivityIndicator, Animated, Dimensions,
-} from 'react-native';
+/**
+ * Onboarding, PRD order: location → why do you run → your running now →
+ * health app (optional) → about you (optional) → name and photo → find your
+ * people (optional) → alerts → first mission. Never a paywall here.
+ * Goal: out on a first run within 24 hours, with PaceX knowing enough to coach.
+ */
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-
-import { useOnboarding } from '../hooks/useOnboarding';
-import OnboardingProgress from '../components/OnboardingProgress';
-import GoalStep from '../components/GoalStep';
-import ProfileStep from '../components/ProfileStep';
-import CityMapPreviewStep from '../components/CityMapPreviewStep';
-import FirstMissionStep from '../components/FirstMissionStep';
-import PlanSelectionStep from '../components/PlanSelectionStep';
-import LaunchStep from '../components/LaunchStep';
-import type { OnboardingData } from '../types';
+import { subscribeToPush } from '@shared/services/pushNotificationService';
+import { track } from '@shared/services/analytics';
 import { useTheme, Fonts, type AppColors } from '@theme';
-
-const todayIdx = (new Date().getDay() + 6) % 7;
-const { width: SCREEN_W } = Dimensions.get('window');
+import { useOnboarding } from '../hooks/useOnboarding';
+import { ONBOARDING_STEPS } from '../types';
+import OnboardingProgress from '../components/OnboardingProgress';
+import CityMapPreviewStep, { type LocationPhase } from '../components/CityMapPreviewStep';
+import GoalStep from '../components/GoalStep';
+import WatchStep from '../components/WatchStep';
+import RunningNowStep from '../components/RunningNowStep';
+import HealthStep from '../components/HealthStep';
+import AboutYouStep from '../components/AboutYouStep';
+import IdentityStep from '../components/IdentityStep';
+import PeopleStep from '../components/PeopleStep';
+import NotificationsStep from '../components/NotificationsStep';
+import FirstMissionStep from '../components/FirstMissionStep';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-// ─── Loading quotes ───────────────────────────────────────────────────────────
-
-const GOAL_QUOTES: Record<string, string[]> = {
-  get_fit: [
-    "Your city awaits its new conqueror.",
-    "Territories don't claim themselves.",
-    "The streets you know are about to become yours.",
-    "Every run is a border redrawn.",
-  ],
-  lose_weight: [
-    "Every zone is a calorie that never knew what hit it.",
-    "The best weight to lose? The distance between you and a territory.",
-    "Running to something. Not from it.",
-    "Your map is about to get a lot more colourful.",
-  ],
-  run_faster: [
-    "Speed is territory claimed per second.",
-    "Faster runners. Wider empires.",
-    "The clock is ticking. So is your territory.",
-    "Personal bests are made one conquest at a time.",
-  ],
-  explore: [
-    "The best routes haven't been discovered yet — by you.",
-    "Every corner is a potential conquest.",
-    "Explorer mode: activated.",
-    "Maps are better when they're yours.",
-  ],
-  compete: [
-    "Someone, somewhere, is already defending their turf.",
-    "Champions don't wait. They conquer.",
-    "The leaderboard has your name. It just doesn't know it yet.",
-    "Your rivals haven't heard of you yet.",
-  ],
-};
-
-const LEVEL_QUOTES: Record<string, string[]> = {
-  new:         ["Every empire started with a single step.", "The world's greatest runners all had a first run."],
-  casual:      ["Casual pace. Serious territory.", "Consistency beats intensity. Every zone counts."],
-  regular:     ["You know the drill. Now own the streets.", "Routine runners build the biggest empires."],
-  competitive: ["Elite mode: on.", "Your pace. Your rules. Your empire.", "The territory won't defend itself."],
-};
-
-function getQuotes(goal: OnboardingData['primaryGoal'], level: OnboardingData['experienceLevel']): string[] {
-  return [
-    ...(GOAL_QUOTES[goal] ?? GOAL_QUOTES.get_fit),
-    ...(LEVEL_QUOTES[level] ?? []),
-  ];
-}
-
-// ─── Loading overlay ──────────────────────────────────────────────────────────
-
-function LoadingOverlay({ visible, goal, level }: {
-  visible: boolean;
-  goal: OnboardingData['primaryGoal'];
-  level: OnboardingData['experienceLevel'];
-}) {
-  const C = useTheme();
-  const lo = useMemo(() => mkLoadingStyles(C), [C]);
-  const opacity = useRef(new Animated.Value(0)).current;
-  const quotes  = useRef(getQuotes(goal, level)).current;
-  const [qIdx, setQIdx]         = useState(() => Math.floor(Math.random() * quotes.length));
-  const [quoteOpacity] = useState(() => new Animated.Value(1));
-
-  useEffect(() => {
-    if (!visible) return;
-    Animated.timing(opacity, { toValue: 1, duration: 350, useNativeDriver: true }).start();
-
-    const cycle = setInterval(() => {
-      Animated.timing(quoteOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-        setQIdx(i => (i + 1) % quotes.length);
-        Animated.timing(quoteOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
-      });
-    }, 2800);
-
-    return () => clearInterval(cycle);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
-
-  if (!visible) return null;
-
-  return (
-    <Animated.View style={[lo.root, { opacity }]}>
-      <View style={lo.inner}>
-        <ActivityIndicator color={C.t3} size="small" style={{ marginBottom: 32 }} />
-        <Text style={lo.eyebrow}>Setting up your profile</Text>
-        <Animated.Text style={[lo.quote, { opacity: quoteOpacity }]}>
-          "{quotes[qIdx]}"
-        </Animated.Text>
-      </View>
-    </Animated.View>
-  );
-}
-
-function mkLoadingStyles(C: AppColors) {
-  return StyleSheet.create({
-    root:   { ...StyleSheet.absoluteFillObject, backgroundColor: C.bg, zIndex: 50, alignItems: 'center', justifyContent: 'center' },
-    inner:  { paddingHorizontal: 40, alignItems: 'center' },
-    eyebrow:{ fontFamily: Fonts.medium, fontSize: 9, color: C.t3, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 20 },
-    quote:  { fontFamily: Fonts.display, fontSize: 22, color: C.t1, textAlign: 'center', lineHeight: 30 },
-  });
-}
-
-// ─── Screen ───────────────────────────────────────────────────────────────────
+const { width: SCREEN_W } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const C = useTheme();
-  const ss = useMemo(() => mkStyles(C), [C]);
-  const ob = useOnboarding(() => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }));
+  const s = useMemo(() => mkStyles(C), [C]);
+  const ob = useOnboarding();
+  const [locationPhase, setLocationPhase] = useState<LocationPhase>('prime');
+  const [asking, setAsking] = useState(false);
 
+  useEffect(() => { track('onboarding_started'); }, []);
+
+  // Slide between steps.
   const slideX = useRef(new Animated.Value(0)).current;
-  const prevStep = useRef(ob.step);
-  const transitioning = useRef(false);
-
+  const prev = useRef(ob.index);
   useEffect(() => {
-    if (prevStep.current === ob.step) return;
-    const goingForward = ob.step > prevStep.current;
-    prevStep.current = ob.step;
-    transitioning.current = true;
-    slideX.setValue(goingForward ? SCREEN_W : -SCREEN_W);
-    Animated.timing(slideX, { toValue: 0, duration: 240, useNativeDriver: true }).start(() => {
-      transitioning.current = false;
-    });
-  }, [ob.step, slideX]);
+    if (prev.current === ob.index) return;
+    const forward = ob.index > prev.current;
+    prev.current = ob.index;
+    slideX.setValue(forward ? SCREEN_W * 0.25 : -SCREEN_W * 0.25);
+    Animated.timing(slideX, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+  }, [ob.index, slideX]);
 
-  const handleNext = async () => {
-    if (transitioning.current) return;
-    ob.goNext();
+  async function finish() {
+    const ok = await ob.submit();
+    if (!ok) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    // Training for a race: end on the plan builder (distance, date, target), Home underneath.
+    if (ob.data.goal === 'race') {
+      navigation.reset({ index: 1, routes: [{ name: 'Main', params: { screen: 'Dashboard' } }, { name: 'PlanBuilder', params: { fromOnboarding: true } }] });
+      return;
+    }
+    // Straight to the Run tab: the first mission is one tap away.
+    navigation.reset({ index: 0, routes: [{ name: 'Main', params: { screen: 'Run' } }] });
+  }
+
+  async function turnOnAlerts() {
+    setAsking(true);
+    try {
+      const result = await subscribeToPush();
+      ob.update('notificationsEnabled', result === 'granted');
+      track('onboarding_notifications', { result });
+    } finally {
+      setAsking(false);
+      ob.goNext();
+    }
+  }
+
+  // Footer button per step.
+  let cta: { label: string; onPress: () => void; disabled?: boolean } = {
+    label: 'Continue', onPress: () => { ob.goNext(); }, disabled: !ob.canContinue(),
   };
+  if (ob.stepKey === 'location') {
+    cta = locationPhase === 'prime' || locationPhase === 'asking'
+      ? { label: 'Allow location', onPress: () => setLocationPhase('asking'), disabled: locationPhase === 'asking' }
+      : { label: 'Continue', onPress: () => { ob.goNext(); } };
+  } else if (ob.stepKey === 'notifications') {
+    cta = { label: 'Turn on alerts', onPress: turnOnAlerts, disabled: asking };
+  } else if (ob.stepKey === 'mission') {
+    cta = { label: ob.data.goal === 'race' ? 'Build my plan' : 'Start run', onPress: finish };
+  }
+  const busy = ob.loading || asking;
 
   const renderStep = () => {
-    switch (ob.step) {
-      case 1: return <GoalStep primaryGoal={ob.data.primaryGoal} onChange={v => ob.update('primaryGoal', v)} />;
-      case 2: return (
-        <ProfileStep
-          data={ob.data}
-          onChange={(k, v) => ob.update(k, v)}
-          selectedDays={ob.selectedDays}
-          distKm={ob.distKm}
-          weeklyKmDisplay={ob.weeklyKmDisplay}
-          todayIdx={todayIdx}
-          onToggleDay={ob.toggleDay}
-        />
-      );
-      case 3: return (
-        <CityMapPreviewStep
-          onLocationCaptured={(loc, country) => {
-            ob.update('lastKnownLocation', loc);
-            ob.update('country', country);
-          }}
-        />
-      );
-      case 4: return <FirstMissionStep primaryGoal={ob.data.primaryGoal} />;
-      case 5: return <PlanSelectionStep plan={ob.data.plan} onSelectPlan={v => ob.update('plan', v)} />;
-      case 6: return (
-        <LaunchStep
-          weeklyKmDisplay={ob.weeklyKmDisplay}
-          primaryGoal={ob.data.primaryGoal}
-          experienceLevel={ob.data.experienceLevel}
-          error={ob.error}
-        />
-      );
-      default: return null;
+    const d = ob.data;
+    switch (ob.stepKey) {
+      case 'location':
+        return (
+          <CityMapPreviewStep
+            phase={locationPhase}
+            onPhase={setLocationPhase}
+            onLocationCaptured={(loc, country) => { ob.update('lastKnownLocation', loc); ob.update('country', country); }}
+          />
+        );
+      case 'goal':
+        return <GoalStep goal={d.goal} onChange={g => ob.update('goal', g)} />;
+      case 'running':
+        return (
+          <RunningNowStep
+            runsPerWeek={d.runsPerWeek} usualKm={d.usualKm} fiveKInput={d.fiveKInput} weeklyTargetKm={ob.weeklyTargetKm}
+            onRuns={n => ob.update('runsPerWeek', n)} onKm={km => ob.update('usualKm', km)} onFiveK={v => ob.update('fiveKInput', v)}
+          />
+        );
+      case 'health':
+        return (
+          <HealthStep
+            consent={d.healthConsent} baseline={d.healthBaseline}
+            onChange={(c, b) => { ob.update('healthConsent', c); ob.update('healthBaseline', b); }}
+          />
+        );
+      case 'watch':
+        return <WatchStep />;
+      case 'about':
+        return (
+          <AboutYouStep
+            ageRange={d.ageRange} gender={d.gender} heightCm={d.heightCm} weightKg={d.weightKg}
+            onAge={v => ob.update('ageRange', v)} onGender={v => ob.update('gender', v)}
+            onHeight={v => ob.update('heightCm', v)} onWeight={v => ob.update('weightKg', v)}
+          />
+        );
+      case 'identity':
+        return (
+          <IdentityStep
+            username={d.username} avatarUri={d.avatarUri} serverError={ob.error}
+            onUsername={v => ob.update('username', v)} onAvatar={uri => ob.update('avatarUri', uri)}
+          />
+        );
+      case 'people':
+        return <PeopleStep username={d.username} />;
+      case 'notifications':
+        return <NotificationsStep />;
+      case 'mission':
+        return <FirstMissionStep goal={d.goal} weeklyTargetKm={ob.weeklyTargetKm} />;
     }
   };
 
-  const isLast   = ob.step === 6;
-  const ctaLabel = isLast ? 'Start running  →' : 'Continue  →';
+  const skipLabel = ob.stepKey === 'notifications' ? 'Not now' : 'Skip for now';
 
   return (
-    <View style={ss.root}>
-      <View style={ss.topBar} />
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={{ height: insets.top }} />
+      <OnboardingProgress
+        index={ob.index}
+        total={ob.total}
+        label={ONBOARDING_STEPS[ob.index].label}
+        onBack={ob.goBack}
+      />
 
-      {ob.step < 6 && <OnboardingProgress step={ob.step} onBack={ob.goBack} />}
-
-      <Animated.View style={[{ flex: 1 }, { transform: [{ translateX: slideX }] }]}>
+      <Animated.View style={[s.body, { transform: [{ translateX: slideX }] }]}>
         {renderStep()}
       </Animated.View>
 
-      <View style={[ss.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) + 4 }]}>
+        {ob.stepKey === 'mission' && !!ob.error && <Text style={s.error}>{ob.error}</Text>}
         <Pressable
-          style={[ss.cta, (!ob.canContinue() || ob.loading) && ss.ctaDisabled]}
-          onPress={isLast ? ob.submit : handleNext}
-          disabled={!ob.canContinue() || ob.loading}
+          accessibilityRole="button"
+          style={({ pressed }) => [s.cta, (cta.disabled || busy) && s.ctaOff, pressed && s.pressed]}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); cta.onPress(); }}
+          disabled={cta.disabled || busy}
         >
-          <Text style={ss.ctaLabel}>{ctaLabel}</Text>
+          {busy ? <ActivityIndicator color={C.alwaysLight} /> : <Text style={s.ctaText}>{cta.label}</Text>}
         </Pressable>
+        {ob.optional && (
+          <Pressable onPress={ob.skip} hitSlop={8} style={s.skip} accessibilityRole="button">
+            <Text style={s.skipText}>{skipLabel}</Text>
+          </Pressable>
+        )}
       </View>
-
-      {/* Full-screen loading overlay with cycling quotes — shown after "Start running" */}
-      <LoadingOverlay
-        visible={ob.loading}
-        goal={ob.data.primaryGoal}
-        level={ob.data.experienceLevel}
-      />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    root:        { flex: 1, backgroundColor: C.bg },
-    topBar:      { height: 2, backgroundColor: C.red },
-    footer:      { paddingHorizontal: 24, paddingTop: 12 },
-    // Fixed dark/light pair — filled CTA pill, not the adapting ink token (see
-    // LoginForm.tsx's ctaBtn for why).
-    cta:         { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 17, alignItems: 'center', justifyContent: 'center' },
-    ctaDisabled: { opacity: 0.4 },
-    ctaLabel:    { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight, letterSpacing: 0.8 },
+    root:     { flex: 1, backgroundColor: C.bg },
+    body:     { flex: 1 },
+    footer:   { paddingHorizontal: 22, paddingTop: 10 },
+    cta:      { height: 54, borderRadius: 999, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+    ctaOff:   { opacity: 0.4 },
+    pressed:  { opacity: 0.92, transform: [{ scale: 0.985 }] },
+    ctaText:  { fontFamily: Fonts.semiBold, fontSize: 16, color: C.alwaysLight },
+    skip:     { alignItems: 'center', paddingTop: 14, paddingBottom: 2 },
+    skipText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t2 },
+    error:    { fontFamily: Fonts.medium, fontSize: 13, color: C.red, textAlign: 'center', marginBottom: 10 },
   });
 }

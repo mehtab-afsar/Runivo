@@ -52,7 +52,7 @@ export function Footer() {
               <p style={{ fontSize: 10, letterSpacing: '0.12em', color: 'var(--t3)', fontFamily: 'var(--font-body)', fontWeight: 600, marginBottom: 16, textTransform: 'uppercase' }}>
                 Company
               </p>
-              {([['Support', '/support']] as [string, string][]).map(([label, href]) => (
+              {([['Partners', '/partners'], ['Support', '/support']] as [string, string][]).map(([label, href]) => (
                 <Link key={href} href={href} style={{ display: 'block', fontSize: 13, color: 'var(--t2)', fontFamily: 'var(--font-body)', marginBottom: 10 }}>{label}</Link>
               ))}
             </div>

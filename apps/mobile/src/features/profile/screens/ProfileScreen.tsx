@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -7,46 +7,19 @@ import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import { GAME_CONFIG } from '@shared/services/config';
 import { useProfile } from '../hooks/useProfile';
 import { ProfileHeader } from '../components/ProfileHeader';
-import { OverviewTab } from '../components/OverviewTab';
-import { ActivityFeedTab } from '../components/ActivityFeedTab';
-import { IntelligenceTab } from '../components/IntelligenceTab';
-import { TerritoryTab } from '../components/TerritoryTab';
-import { StatsTab } from '../components/StatsTab';
-import { NutritionTab } from '../components/NutritionTab';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import { AwardsTab } from '../components/AwardsTab';
-import type { ProfileTab } from '../types';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
-import { FEATURES } from '../../../config/features';
+import { ProfileMockSections } from '../components/ProfileMockSections';
+import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
+import { getTerritoryPolygons } from '@shared/services/store';
+import { fetchClubs } from '@features/clubs/services/clubService';
+import {
+  SportFilterBar, ThisWeekCard, StatsCard, RecentActivities, BestEfforts, TerritoryCard,
+} from '../components/ProfileActivity';
+import type { SportFilter } from '../utils/profileStats';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-// 'gear' isn't a ProfileTab — it has no in-page content, it jumps straight to
-// the full standalone Gear screen (retire/delete/default/foot-scan), which is
-// already built and was simply unreachable from anywhere in the app. Keeping
-// shoe management there instead of duplicating a second copy of it here.
-const ALL_TABS: { key: ProfileTab | 'gear'; label: string }[] = [
-  { key: 'overview',      label: 'Overview' },
-  { key: 'activity',      label: 'Activity' },
-  { key: 'stats',         label: 'Stats' },
-  { key: 'territory',     label: 'Territory' },
-  { key: 'intelligence',  label: 'Intelligence' },
-  { key: 'awards',        label: 'Awards' },
-  { key: 'nutrition',     label: 'Nutrition' },
-  { key: 'gear',          label: 'Gear' },
-];
-
-// Each of these tabs is gated behind a feature flag that's currently off in
-// production — hidden here rather than shown-then-ComingSoon'd, since a
-// horizontal tab strip has no room for a "SOON" treatment the way the bottom
-// tab bar does, and there's no legitimate always-on content to show for the
-// nutrition tab (unlike, say, RunSummaryScreen's calorie estimate) once its
-// tracker is disabled.
-const TABS = ALL_TABS.filter(t =>
-  (t.key !== 'intelligence' || FEATURES.AI_COACH) &&
-  (t.key !== 'gear' || FEATURES.GEAR_TRACKING) &&
-  (t.key !== 'nutrition' || FEATURES.NUTRITION_TRACKER),
-);
 
 export default function ProfileScreen() {
   const C = useTheme();
@@ -61,8 +34,6 @@ export default function ProfileScreen() {
     editAvatarUri, pickAvatar,
     startEdit, saveEdit, cancelEdit,
     earnedAwards,
-    statsData, statsPeriod, setStatsPeriod,
-    pinnedRunId, pinRun,
     refreshCounts,
   } = useProfile();
 
@@ -71,8 +42,22 @@ export default function ProfileScreen() {
   // Profile tab regains focus.
   useFocusEffect(useCallback(() => { refreshCounts(); }, [refreshCounts]));
 
+  // Zones held right now (not lifetime claims) and clubs joined, for the
+  // stat row, the Plus zone-cap card and the Clubs row.
+  const gate = useFeatureGate();
+  // Strava-style: one sport filter drives This week, Statistics and Recent.
+  const [sport, setSport] = useState<SportFilter>('all');
+  const [zonesHeld, setZonesHeld] = useState<number | null>(null);
+  const [clubCount, setClubCount] = useState<number | null>(null);
+  const playerId = player?.id;
+  useEffect(() => {
+    if (!playerId) return;
+    getTerritoryPolygons(playerId).then(z => setZonesHeld(z.length)).catch(() => {});
+    fetchClubs(playerId).then(cs => setClubCount(cs.filter(c => c.joined).length)).catch(() => {});
+  }, [playerId]);
+
   const displayedName = displayName || player?.username || 'Runner';
-  const totalKm = runs.reduce((s, r) => s + r.distanceMeters / 1000, 0);
+  const totalKm = runs.filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0);
 
   const runnerRank = player?.runnerRank ?? 'pacer';
   const paceTotalEarned = player?.paceTotalEarned ?? 0;
@@ -95,13 +80,14 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={ss.root}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         <ProfileHeader
           displayName={displayedName} username={player?.username} bio={bio} avatarColor={avatarColor} avatarUri={avatarUri}
           location={location} instagram={instagram} strava={strava}
           runnerRank={runnerRank} rankPct={rankPct} rankCaption={rankCaption}
           totalKm={totalKm} totalRuns={runs.length} thisWeekKm={thisWeekKm}
-          totalTerritories={player?.totalTerritoriesClaimed ?? 0} totalAreaM2={totalAreaM2}
+          totalTerritories={zonesHeld ?? player?.totalTerritoriesClaimed ?? 0} totalAreaM2={totalAreaM2}
+          paceTotalEarned={paceTotalEarned}
           weeklyGoalKm={weeklyGoalKm} followers={followers} following={following}
           onEditPress={startEdit} onNotificationsPress={() => navigation.navigate('Notifications')}
           onSettingsPress={() => navigation.navigate('Settings')}
@@ -110,50 +96,58 @@ export default function ProfileScreen() {
           onTerritoryPress={() => setTab('territory')}
         />
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={ss.tabsScroll} contentContainerStyle={ss.tabsContent}>
-          {TABS.map(t => (
-            <Pressable
-              key={t.key}
-              style={[ss.tab, tab === t.key && ss.tabActive]}
-              onPress={() => t.key === 'gear' ? navigation.navigate('Gear') : setTab(t.key)}
-            >
-              <Text style={[ss.tabLabel, tab === t.key && ss.tabLabelActive]}>{t.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        <View style={ss.sections}>
+          <SportFilterBar value={sport} onChange={setSport} />
+          <ThisWeekCard runs={runs} sport={sport} weeklyGoalKm={weeklyGoalKm} />
+          <StatsCard runs={runs} sport={sport} />
+          <RecentActivities
+            runs={runs}
+            sport={sport}
+            onOpen={r => navigation.navigate('RunSummary', { runId: r.id, activityType: r.activityType })}
+            onAll={() => navigation.navigate('History')}
+          />
+          {(sport === 'all' || sport === 'run') && <BestEfforts records={personalRecords} />}
+          <TerritoryCard
+            zonesHeld={zonesHeld ?? 0}
+            areaM2={totalAreaM2}
+            lifetimeClaims={player?.totalTerritoriesClaimed ?? 0}
+            onOpen={() => navigation.navigate('Main', { screen: 'Map' })}
+          />
+          <Pressable style={ss.linkCard} onPress={() => navigation.navigate('YearInRunivo')} accessibilityRole="button">
+            <View style={{ flex: 1 }}>
+              <Text style={ss.linkTitle}>Your {new Date().getFullYear()} in Runivo</Text>
+              <Text style={ss.linkSub}>Distance, zones, steals and your best month</Text>
+            </View>
+            <Text style={ss.linkChev}>›</Text>
+          </Pressable>
+          <Pressable style={ss.linkCard} onPress={() => navigation.navigate('MyRewards')} accessibilityRole="button">
+            <View style={{ flex: 1 }}>
+              <Text style={ss.linkTitle}>My rewards</Text>
+              <Text style={ss.linkSub}>Codes you redeemed with PACE</Text>
+            </View>
+            <Text style={ss.linkChev}>›</Text>
+          </Pressable>
+        </View>
 
-        <View style={ss.content}>
-          {tab === 'overview' && (
-            <OverviewTab
-              runs={runs}
-              thisWeekKm={thisWeekKm}
-              player={player}
-              earnedAwards={earnedAwards}
-              pinnedRunId={pinnedRunId}
-              onViewAllActivity={() => setTab('activity')}
-              onViewAllAwards={() => setTab('awards')}
-              onPinRun={pinRun}
-            />
-          )}
-          {tab === 'activity' && <ActivityFeedTab runs={runs} isOwn />}
-          {tab === 'stats' && (
-            <StatsTab
-              personalRecords={personalRecords}
-              totalRuns={runs.length}
-              totalKm={totalKm}
-              totalTerritories={player?.totalTerritoriesClaimed ?? 0}
-              streakDays={player?.streakDays ?? 0}
-              runs={runs}
-              statsData={statsData}
-              statsPeriod={statsPeriod}
-              onPeriodChange={setStatsPeriod}
-            />
-          )}
-          {tab === 'territory' && <TerritoryTab />}
-          {tab === 'intelligence' && FEATURES.AI_COACH && (
-            <IntelligenceTab runs={runs} personalRecords={personalRecords} />
-          )}
-          {tab === 'awards' && (
+        <ProfileMockSections
+          hideBest
+          runs={runs}
+          earnedAwards={earnedAwards}
+          personalRecords={personalRecords}
+          zonesHeld={zonesHeld ?? 0}
+          zoneLimit={gate.territoryLimit}
+          isPlus={gate.isPremium}
+          clubCount={clubCount}
+          onSeeAllAwards={() => setTab(t => (t === 'awards' ? 'overview' : 'awards'))}
+          onUpgrade={() => navigation.navigate('Subscription', { reason: 'zone_limit' })}
+          onClubs={() => navigation.navigate('Club')}
+          onConnected={() => navigation.navigate('ConnectedDevices')}
+          onPrivacy={() => navigation.navigate('Settings')}
+        />
+
+        {/* "See all" on the awards card opens the full grid here. */}
+        {tab === 'awards' && (
+          <View style={ss.content}>
             <AwardsTab
               earnedAwards={earnedAwards}
               totalKm={totalKm}
@@ -162,13 +156,13 @@ export default function ProfileScreen() {
               paceTotalEarned={player?.paceTotalEarned ?? 0}
               runs={runs}
             />
-          )}
-          {tab === 'nutrition' && <NutritionTab />}
-        </View>
+          </View>
+        )}
       </ScrollView>
 
       {isEditing && (
         <EditProfileSheet
+          username={player?.username}
           editName={editName} setEditName={setEditName}
           editBio={editBio} setEditBio={setEditBio}
           editColor={editColor} setEditColor={setEditColor}
@@ -187,12 +181,22 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     center: { alignItems: 'center', justifyContent: 'center' },
-    content: { paddingHorizontal: Spacing.gutter, paddingTop: 20, paddingBottom: 40 },
-    tabsScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.bg },
-    tabsContent: { paddingHorizontal: Spacing.gutter },
-    tab: { paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-    tabActive: { borderBottomColor: C.black },
-    tabLabel: { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
-    tabLabelActive: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.black },
+    content: { paddingHorizontal: Spacing.gutter, paddingTop: 16, paddingBottom: 40 },
+    sections: { paddingHorizontal: 18, gap: 12, marginBottom: 12 },
+    linkCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 16, padding: 16 },
+    linkTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    linkSub: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
+    linkChev: { fontFamily: Fonts.regular, fontSize: 22, color: C.t3 },
+    tabsScroll: { backgroundColor: C.bg, marginTop: 4 },
+    moreLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, paddingHorizontal: Spacing.gutter, marginTop: 22, marginBottom: 8 },
+    tabsContent: { paddingHorizontal: Spacing.gutter, gap: 8 },
+    // Segmented pills: active one is ink, the rest quiet outlines.
+    tab: {
+      height: 36, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
+      borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
+    },
+    tabActive: { backgroundColor: C.t1, borderColor: C.t1 },
+    tabLabel: { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
+    tabLabelActive: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.bg },
   });
 }

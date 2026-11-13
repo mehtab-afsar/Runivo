@@ -57,6 +57,10 @@ export interface StoredSettings {
   weeklySummary: boolean;
   runReminders: boolean;
   territoryAlerts: boolean;
+  /** Festive offers, partner drops and city events (notification campaigns). */
+  offersEnabled?: boolean;
+  /** Paywall moment → ISO week it was last shown ("2026-W46"); at most once a week each. */
+  paywallShown?: Partial<Record<'zone_limit' | 'pace_cap' | 'debrief', string>>;
   // Sound & Haptics
   soundEnabled: boolean;
   hapticEnabled: boolean;
@@ -81,6 +85,19 @@ export interface StoredSettings {
   beatPacerAccent: boolean;
   // Map
   mapStyle?: 'Standard' | 'Dark' | 'Light' | 'Terrain' | 'Satellite';
+  // Map visibility (20261112000001_map_visibility.sql): metres hidden at each
+  // end of every route others see, and "hide all maps". The server enforces
+  // both; this copy lets the share card follow the same rule offline.
+  mapHideRadiusM?: 200 | 400 | 800 | 1600;
+  mapHideAll?: boolean;
+  /** Private places, a local copy for the share card (the server is the authority). */
+  privatePlaces?: { id: string; label: string; lat: number; lng: number; radiusM: number }[];
+  hideFromLeaderboards?: boolean;
+  hideZonesFromMap?: boolean;
+  /** Training: remind the day before each session at this hour (local); null = off. */
+  planReminderHour?: number | null;
+  /** Spoken cues during runs (km splits, loop, zones, workout steps). Default on. */
+  voiceCues?: boolean;
 }
 
 export const DEFAULT_SETTINGS: StoredSettings = {
@@ -111,6 +128,22 @@ export const DEFAULT_SETTINGS: StoredSettings = {
 
 export interface StoredRun {
   id: string;
+  /** false while the server still has to score this run (territory + PACE); retried on next sync. */
+  serverProcessed?: boolean;
+  /** Server-verified distance (km), once scored. */
+  verifiedDistanceKm?: number;
+  /** Server-measured ground: the run's whole shape, and the part that was new land. */
+  territoryAreaM2?: number;
+  claimedAreaM2?: number;
+  /** The server's verdict once scored (process-run-territory). */
+  serverResult?: {
+    newZones: number;
+    stolenZones: number;
+    paceCapped: boolean;
+    /** Free runner at the 10-zone limit: this run's loop was not claimed. */
+    territoryCapReached: boolean;
+    streakDays: number;
+  };
   activityType: string;
   startTime: number;
   endTime: number;
@@ -124,6 +157,8 @@ export interface StoredRun {
     speed: number;
     accuracy: number;
     altitude: number;
+    /** Heart rate at this sample, from a watch (bpm). */
+    hr?: number;
   }[];
   elevationGainM?: number;
   territoriesClaimed: string[];
@@ -135,10 +170,23 @@ export interface StoredRun {
   synced: boolean;
   shoeId?: string;
   heartRateAvg?: number;     // bpm, from wearable
+  heartRateMax?: number;     // bpm, from wearable
   caloriesBurned?: number;   // kcal, from wearable
   importSource?: string;     // 'apple_health' | 'garmin' | 'coros' | 'polar'
   externalId?: string;       // platform workout ID, prevents duplicate imports
   rivalZonesStolen?: number; // populated after process-run-territory resolves
+  // Edited on the activity (20261112000004_activity_edit.sql).
+  title?: string | null;
+  description?: string | null;
+  privateNotes?: string | null;
+  perceivedEffort?: number | null;
+  visibility?: 'everyone' | 'followers' | 'only_me';
+  // 20261113000001: "Don't count this" and photo storage paths (feed bucket).
+  excluded?: boolean;
+  photoPaths?: string[];
+  // 20261113000003: GPS checks keep a run off leaderboards until cleared.
+  integrityStatus?: 'ok' | 'flagged' | 'appealed' | 'cleared';
+  integrityReason?: 'teleport' | 'vehicle' | null;
 }
 
 export interface StoredTerritory {
@@ -177,6 +225,8 @@ export interface StoredPlayer {
   paceTotalEarned?: number;
   paceWeeklyEarned?: number;
   paceWeeklyResetAt?: string;  // ISO
+  /** profiles.subscription_tier, read on pull: 'free' | 'premium' | 'admin'. Sets the weekly PACE cap. */
+  subscriptionTier?: string;
   runnerRank?: RunnerRank;
   territoryScore?: number;
   largestTierAchieved?: TerritoryTier;
@@ -432,6 +482,11 @@ export async function getRunsSince(sinceMs: number): Promise<StoredRun[]> {
 export async function getRunById(id: string): Promise<StoredRun | undefined> {
   const db = await getDB();
   return idbSafe(() => db.get('runs', id), undefined, 'getRunById');
+}
+
+export async function deleteRun(id: string): Promise<void> {
+  const db = await getDB();
+  await idbSafe(() => db.delete('runs', id), undefined, 'deleteRun');
 }
 
 export async function saveTerritories(territories: StoredTerritory[]): Promise<void> {

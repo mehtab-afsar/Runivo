@@ -57,7 +57,7 @@ export default function FootScanScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.back}>
-          <ArrowLeft size={18} color={C.t1} weight="light" />
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Foot Scan</Text>
         <View style={{ width: 36 }} />
@@ -143,6 +143,6 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   resultCard:      { width: '100%', borderRadius: 12, padding: 16, gap: 8 },
   resultHeader:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
   resultTitle:     { fontFamily: Fonts.semiBold, fontSize: 14, flex: 1 },
-  resultLabel:     { fontFamily: Fonts.semiBold, fontSize: 12, letterSpacing: 0.8 },
+  resultLabel:     { fontFamily: Fonts.semiBold, fontSize: 12 },
   resultBody:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, lineHeight: 20 },
 }); }

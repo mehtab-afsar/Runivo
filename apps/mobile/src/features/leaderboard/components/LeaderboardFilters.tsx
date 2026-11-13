@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { TrendUp, NavigationArrow, Lightning, Globe, Flag, CaretDown } from 'phosphor-react-native';
+import { TrendUp, NavigationArrow, Lightning, Globe, Flag, CaretDown, Users as UsersIcon, ShieldChevron as ShieldIcon, MapPin as PinIcon } from 'phosphor-react-native';
 import type { LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
+import { useAreaNames } from '../hooks/useAreaNames';
 import { useTheme, Type, Fonts, Spacing, haptic, type AppColors } from '@theme';
 import { BottomSheet } from '@mobile/shared/components/BottomSheet';
 
@@ -12,6 +13,8 @@ interface Props {
   onTabChange: (t: LeaderboardTab) => void;
   onTimeFrameChange: (tf: LeaderboardTimeFrame) => void;
   onScopeChange: (s: LeaderboardScope) => void;
+  /** 'pill' = the "This week · Global" chip (header); 'segment' = Territory / Distance / PACE. */
+  part: 'pill' | 'segment';
 }
 
 const METRIC_TABS: { value: LeaderboardTab; label: string; Icon: typeof TrendUp }[] = [
@@ -21,58 +24,67 @@ const METRIC_TABS: { value: LeaderboardTab; label: string; Icon: typeof TrendUp 
 ];
 
 const TIMEFRAMES: { value: LeaderboardTimeFrame; label: string }[] = [
-  { value: 'week',  label: 'This Week'  },
-  { value: 'month', label: 'This Month' },
-  { value: 'all',   label: 'All Time'   },
+  { value: 'week',  label: 'This week'  },
+  { value: 'month', label: 'This month' },
+  { value: 'all',   label: 'All time'   },
 ];
 
 const SCOPE_DEFS: { value: LeaderboardScope; label: string; Icon: typeof Globe }[] = [
   { value: 'global',   label: 'Global',   Icon: Globe },
   { value: 'national', label: 'National', Icon: Flag  },
+  { value: 'following', label: 'Following', Icon: UsersIcon },
+  { value: 'clubs',    label: 'My clubs', Icon: ShieldIcon },
+  { value: 'city',     label: 'Near you', Icon: PinIcon },
+  { value: 'area',     label: 'Neighbourhood', Icon: PinIcon },
 ];
 
 // Collapses the old 3 stacked pill rows (metric / timeframe / scope) into one:
 // a segmented metric switch (the dimension people actually flip between) plus
 // a single "This Week · Global" chip that opens a sheet for the other two —
 // the board is visible on first paint instead of three rows down.
-export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeFrameChange, onScopeChange }: Props) {
+export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeFrameChange, onScopeChange, part }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const timeFrameLabel = TIMEFRAMES.find(t => t.value === timeFrame)?.label ?? 'This Week';
-  const scopeLabel = SCOPE_DEFS.find(sc => sc.value === scope)?.label ?? 'Global';
+  const timeFrameLabel = TIMEFRAMES.find(t => t.value === timeFrame)?.label ?? 'This week';
+  const names = useAreaNames();
+  // Local boards take the place's name when the phone knows it.
+  const labelFor = (v: LeaderboardScope, fallback: string) =>
+    v === 'city' && names.city ? names.city : v === 'area' && names.area ? names.area : fallback;
+  const scopeLabel = labelFor(scope, SCOPE_DEFS.find(sc => sc.value === scope)?.label ?? 'Global');
 
   return (
     <>
-      <View style={s.bar}>
+      {part === 'segment' ? (
         <View style={s.seg}>
           {METRIC_TABS.map(t => {
             const active = tab === t.value;
-            const Icon = t.Icon;
             return (
               <Pressable
                 key={t.value}
                 style={[s.segItem, active && s.segItemActive]}
                 onPress={() => { if (!active) { haptic.light(); onTabChange(t.value); } }}
                 hitSlop={4}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
               >
-                <Icon size={13} color={active ? C.red : C.t3} weight={active ? 'fill' : 'light'} />
                 <Text style={[s.segLabel, active && s.segLabelActive]}>{t.label}</Text>
               </Pressable>
             );
           })}
         </View>
-
+      ) : (
         <Pressable
           style={s.scopeChip}
           onPress={() => { haptic.light(); setSheetOpen(true); }}
           hitSlop={4}
+          accessibilityRole="button"
         >
           <Text style={s.scopeChipText} numberOfLines={1}>{timeFrameLabel} · {scopeLabel}</Text>
-          <CaretDown size={9} color={C.t3} weight="bold" />
+          <CaretDown size={10} color={C.t2} weight="bold" />
         </Pressable>
-      </View>
+      )}
 
       <BottomSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} maxHeight={0.42}>
         <View style={s.sheetContent}>
@@ -104,7 +116,7 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
                   onPress={() => { haptic.light(); onScopeChange(sc.value); }}
                 >
                   <Icon size={13} color={active ? C.red : C.t3} weight={active ? 'fill' : 'light'} />
-                  <Text style={[s.sheetPillLabel, active && s.sheetPillLabelActive]}>{sc.label}</Text>
+                  <Text style={[s.sheetPillLabel, active && s.sheetPillLabelActive]}>{labelFor(sc.value, sc.label)}</Text>
                 </Pressable>
               );
             })}
@@ -121,30 +133,26 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    bar: {
-      flexDirection: 'row', alignItems: 'center', gap: 8,
-      paddingHorizontal: Spacing.gutter, marginBottom: 10,
-    },
     seg: {
-      flex: 1, flexDirection: 'row', backgroundColor: C.surface,
-      borderRadius: Spacing.radius.md, padding: 3, gap: 2,
+      flexDirection: 'row', backgroundColor: '#E9E7E2',
+      borderRadius: 999, padding: 3, marginHorizontal: 18, marginBottom: 12,
     },
     segItem: {
-      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: 4, paddingVertical: 7, borderRadius: Spacing.radius.sm - 2,
+      flex: 1, alignItems: 'center', justifyContent: 'center',
+      height: 32, borderRadius: 999,
     },
     segItemActive: {
       backgroundColor: C.card,
-      shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2,
+      shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2,
     },
-    segLabel:       { fontFamily: Fonts.medium, fontSize: 11, color: C.t3 },
-    segLabelActive: { color: C.red },
+    segLabel:       { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },
+    segLabelActive: { color: C.t1 },
     scopeChip: {
-      flexDirection: 'row', alignItems: 'center', gap: 5,
-      backgroundColor: C.surface, borderRadius: Spacing.radius.md,
-      paddingHorizontal: 10, paddingVertical: 9, maxWidth: 128,
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: C.card, borderRadius: 999, borderWidth: 1, borderColor: C.border,
+      paddingHorizontal: 12, height: 30,
     },
-    scopeChipText: { fontFamily: Fonts.medium, fontSize: 11, color: C.t2 },
+    scopeChipText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     sheetContent:  { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl },
     sheetLabel:    { ...Type.overline, color: C.t3, marginBottom: 10 },
     sheetRow:      { flexDirection: 'row', gap: 8 },

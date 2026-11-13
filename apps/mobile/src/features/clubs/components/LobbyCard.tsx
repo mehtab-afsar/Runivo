@@ -45,13 +45,12 @@ export function LobbyCard({ room, onPress }: Props) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card: {
-      backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5,
-      borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
+      backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
     },
     roomIcon: { width: 48, height: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    roomName: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, marginBottom: 2 },
-    roomDesc: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
-    activityText: { fontFamily: Fonts.regular, fontSize: 10, color: C.red, marginTop: 4 },
+    roomName: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, marginBottom: 2 },
+    roomDesc: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    activityText: { fontFamily: Fonts.medium, fontSize: 12, color: C.red },
     chevron: { fontFamily: Fonts.regular, fontSize: 22, color: C.t3, flexShrink: 0 },
   });
 }

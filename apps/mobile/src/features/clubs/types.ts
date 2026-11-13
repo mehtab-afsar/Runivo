@@ -7,6 +7,17 @@ export interface Club {
   total_km: number;
   join_policy: string;
   joined: boolean;
+  /** Rounded km from the runner, when the club is near them. */
+  distance_km?: number | null;
+  /** Approximate area name the owner set, if any. */
+  city?: string | null;
+}
+
+/** Clubs for the "Near you" list: nearby ones, or the most popular as a fallback. */
+export interface NearbyClubs {
+  clubs: Club[];
+  /** false when the list is the popular fallback (no location, or nothing close). */
+  nearby: boolean;
 }
 
 export interface LobbyRoom {

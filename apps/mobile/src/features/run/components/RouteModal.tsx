@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
-import { X } from 'phosphor-react-native';
+import { X, Check } from 'phosphor-react-native';
 import type { StoredSavedRoute } from '@shared/services/store';
 import type { NearbyRoute } from '@shared/services/sync';
 import RouteCard from './RouteCard';
@@ -15,6 +15,9 @@ interface RouteModalProps {
   selectedRouteName: string | null;
   bottomInset: number;
   onSelectRoute: (name: string, gpsPoints: { lat: number; lng: number }[]) => void;
+  /** Today's planned session, if there is one (R1). */
+  todaySession?: { id: string; title: string; summary: string } | null;
+  onSelectWorkout?: (s: { id: string; title: string }) => void;
   onClearRoute: () => void;
   onFindNearby: () => void;
   onClose: () => void;
@@ -22,7 +25,7 @@ interface RouteModalProps {
 
 export default function RouteModal({
   visible, savedRoutes, nearbyRoutes, nearbyLoading, gpsReady,
-  selectedRouteName, bottomInset, onSelectRoute, onClearRoute, onFindNearby, onClose,
+  selectedRouteName, bottomInset, onSelectRoute, onClearRoute, onFindNearby, onClose, todaySession, onSelectWorkout,
 }: RouteModalProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -32,8 +35,8 @@ export default function RouteModal({
       <View style={[ss.sheet, { paddingBottom: Math.max(bottomInset, 16) }]}>
         <View style={ss.header}>
           <View>
-            <Text style={ss.title}>Routes</Text>
-            <Text style={ss.sub}>Choose a route to follow</Text>
+            <Text style={ss.title}>Follow</Text>
+            <Text style={ss.sub}>A route, or today's workout</Text>
           </View>
           <Pressable style={ss.closeBtn} onPress={onClose}>
             <X size={14} color={C.muted} weight="regular" />
@@ -50,6 +53,21 @@ export default function RouteModal({
                 <Text style={{ fontFamily: Fonts.light, fontSize: 11, color: C.red, opacity: 0.7 }}>Tap to remove route</Text>
               </View>
             </Pressable>
+          )}
+
+          {todaySession && onSelectWorkout && (
+            <>
+              <Text style={ss.section}>Today's workout</Text>
+              <Pressable style={ss.clearRow} onPress={() => { onSelectWorkout(todaySession); onClose(); }} accessibilityRole="button">
+                <View style={[ss.routeIcon, { backgroundColor: C.t1 }]}>
+                  <Check size={14} color={C.bg} weight="bold" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 }}>{todaySession.title}</Text>
+                  <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: C.t2 }} numberOfLines={2}>{todaySession.summary}</Text>
+                </View>
+              </Pressable>
+            </>
           )}
 
           <Text style={ss.section}>My Routes</Text>

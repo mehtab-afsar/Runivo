@@ -3,67 +3,50 @@ import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform } f
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import { useLeaderboard } from '../hooks/useLeaderboard';
-import { EntryRow } from '../components/EntryRow';
+import { EntryRow, splitValue } from '../components/EntryRow';
 import { LeaderboardFilters } from '../components/LeaderboardFilters';
 import type { LeaderboardEntry } from '../types';
-import { avatarColor } from '@shared/lib/avatarUtils';
-import { Seal, Medal, ArrowLeft } from 'phosphor-react-native';
-import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { ArrowLeft } from 'phosphor-react-native';
+import { useTheme, Fonts, type AppColors } from '@theme';
+import { RunnerFace } from '@mobile/shared/components/RunnerFace';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 // Module-level for a stable identity across renders.
 const keyExtractor = (e: LeaderboardEntry) => String(e.rank);
 
-// Podium: [2nd, 1st, 3rd] order, heights: [50, 70, 36]
-function Podium({ entries, unit, currentUserId: _currentUserId }: { entries: LeaderboardEntry[]; unit: string; currentUserId?: string }) {
+// Podium: No.2 · No.1 (black, taller) · No.3 as cards, like the mock.
+function Podium({ entries, unit }: { entries: LeaderboardEntry[]; unit: string }) {
   const C = useTheme();
   const ps = useMemo(() => mkPsStyles(C), [C]);
   if (entries.length < 3) return null;
   const order = [entries[1], entries[0], entries[2]];
-  const ranks = [2, 1, 3];
-  const heights = [50, 70, 36];
-  const avatarSizes = [36, 44, 30];
-  const medalColors = [C.silver, C.gold, C.bronze];
-  const fmtVal = (v: number) =>
-    unit === 'km'     ? `${v.toFixed(1)} km`
-    : unit === 'PACE' ? `${v} PACE`
-    : `${Intl.NumberFormat().format(Math.round(v))} TS`;
 
   return (
     <View style={ps.wrap}>
-      {order.map((entry, i) => (
-        <View key={entry.rank} style={[ps.slot, i === 1 && ps.slotCenter]}>
-          {i === 1
-            ? <Seal size={16} color={C.gold} weight="light" style={{ marginBottom: 4 }} />
-            : <Medal size={14} color={medalColors[i]} weight="light" style={{ marginBottom: 4 }} />
-          }
-          <View style={[ps.avatar, { width: avatarSizes[i], height: avatarSizes[i], borderRadius: avatarSizes[i] / 2, backgroundColor: avatarColor(entry.name), borderColor: medalColors[i] }]}>
-            <Text style={[ps.avatarText, { fontSize: avatarSizes[i] * 0.45 }]}>{entry.name.slice(0, 1).toUpperCase()}</Text>
-          </View>
-          <Text style={[ps.name, i === 1 && ps.nameFirst]} numberOfLines={1}>{entry.name}</Text>
-          {entry.isPlayer && (
-            <View style={ps.youBadge}><Text style={ps.youText}>YOU</Text></View>
-          )}
-          <Text style={ps.val}>{fmtVal(entry.value)}</Text>
-          {i === 1 ? (
-            <LinearGradient
-              colors={['#3A2F0A', C.alwaysDark]}
-              start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
-              style={[ps.block, { height: heights[i] }, ps.blockFirst]}
-            >
-              <Text style={[ps.rankNum, { color: C.alwaysLight }]}>#{ranks[i]}</Text>
-            </LinearGradient>
-          ) : (
-            <View style={[ps.block, { height: heights[i], backgroundColor: C.stone }]}>
-              <Text style={[ps.rankNum, { color: C.t2 }]}>#{ranks[i]}</Text>
+      {order.map((entry, i) => {
+        const v = splitValue(entry.value, unit);
+        const first = i === 1;
+        const size = first ? 50 : 40;
+        // Heights as in the mock: No.1 166, No.2 140, No.3 126 — content sits at the bottom.
+        const h = first ? 166 : i === 0 ? 140 : 126;
+        return (
+          <View key={entry.rank} style={[ps.card, { height: h }, first ? ps.cardFirst : ps.cardSide]}>
+            <View style={[ps.ring, first && { borderColor: C.red }, { width: size + 8, height: size + 8, borderRadius: (size + 8) / 2 }]}>
+              <View style={[ps.avatar, { width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }]}>
+                <RunnerFace seed={entry.name} size={size} />
+              </View>
             </View>
-          )}
-        </View>
-      ))}
+            <Text style={[ps.name, first && ps.nameFirst]} numberOfLines={1}>{entry.isPlayer ? 'You' : entry.name}</Text>
+            <Text style={[ps.val, first && ps.valFirst]} numberOfLines={1} adjustsFontSizeToFit>
+              {v.num}{unit !== 'TS' ? <Text style={[ps.valUnit, first && ps.valUnitFirst]}> {v.suffix}</Text> : null}
+            </Text>
+            <Text style={[ps.rankLabel, first && ps.rankLabelFirst]}>No. {entry.rank}</Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -92,19 +75,21 @@ function SkeletonRows() {
 
 function mkPsStyles(C: AppColors) {
   return StyleSheet.create({
-    wrap:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, gap: 4 },
-    slot:       { flex: 1, alignItems: 'center', gap: 3 },
-    slotCenter: { flex: 1.2 },
-    avatar:     { borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-    avatarText: { fontFamily: Fonts.semiBold, color: C.white },
-    name:       { fontFamily: Fonts.regular, fontSize: 10, color: C.black, textAlign: 'center' },
-    nameFirst:  { fontFamily: Fonts.semiBold, fontSize: 11 },
-    val:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', fontVariant: ['tabular-nums'] },
-    youBadge:   { backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 2 },
-    youText:    { fontFamily: Fonts.semiBold, fontSize: 10, color: C.red, letterSpacing: 0.5 },
-    block:      { width: '100%', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    blockFirst: { shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: -3 }, elevation: 3 },
-    rankNum:    { fontFamily: Fonts.semiBold, fontSize: 11 },
+    wrap:          { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 18, paddingBottom: 12, gap: 8 },
+    card:          { flex: 1, alignItems: 'center', justifyContent: 'flex-end', borderRadius: 16, padding: 12, gap: 6 },
+    cardSide:      { backgroundColor: C.card },
+    cardFirst:     { backgroundColor: C.alwaysDark, flex: 1.15 },
+    ring:          { borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+    avatar:        { alignItems: 'center', justifyContent: 'center' },
+    avatarText:    { fontFamily: Fonts.semiBold, color: C.alwaysLight },
+    name:          { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t1 },
+    nameFirst:     { color: C.alwaysLight },
+    val:           { fontFamily: Fonts.numeric, fontSize: 22, lineHeight: 22, color: C.t1, fontVariant: ['tabular-nums'] },
+    valFirst:      { fontSize: 28, lineHeight: 28, color: C.alwaysLight },
+    valUnit:       { fontFamily: Fonts.medium, fontSize: 11, color: C.t2 },
+    valUnitFirst:  { color: 'rgba(255,255,255,0.6)' },
+    rankLabel:     { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
+    rankLabelFirst:{ color: '#FFB59F' },
   });
 }
 
@@ -117,10 +102,12 @@ export default function LeaderboardScreen() {
   // Current player's entry (for sticky footer if rank > 3)
   const playerEntry = entries.find(e => e.isPlayer);
   const playerOutsideTop3 = playerEntry && playerEntry.rank > 3;
-  const fmtVal = (v: number) =>
-    unit === 'km'     ? `${v.toFixed(1)} km`
-    : unit === 'PACE' ? `${v} PACE`
-    : `${Intl.NumberFormat().format(Math.round(v))} TS`;
+  const playerVal = playerEntry ? splitValue(playerEntry.value, unit) : null;
+  // "380 behind No. 13" — only when the runner above is on the loaded page.
+  const above = playerEntry ? entries.find(e => e.rank === playerEntry.rank - 1) : undefined;
+  const gapLine = playerEntry && above
+    ? `${splitValue(Math.max(0, above.value - playerEntry.value), unit).num}${unit === 'TS' ? '' : ` ${splitValue(0, unit).suffix}`} behind No. ${above.rank}`
+    : '';
 
   // Stable identities so the memoised EntryRow can bail out. The podium was
   // previously constructed inline as a JSX element on every render, remounting
@@ -130,34 +117,41 @@ export default function LeaderboardScreen() {
       navigation.navigate('UserProfile', { userId: entry.userId, username: entry.name }),
     [navigation],
   );
+  const listData = entries.length < 3 ? entries : entries.slice(3);
+  const lastIndex = listData.length - 1;
   const renderItem = useCallback(
-    ({ item }: { item: LeaderboardEntry }) => (
-      <EntryRow entry={item} unit={unit} onPress={item.isPlayer ? undefined : openProfile} />
+    ({ item, index }: { item: LeaderboardEntry; index: number }) => (
+      <EntryRow
+        entry={item}
+        unit={unit}
+        onPress={item.isPlayer ? undefined : openProfile}
+        position={lastIndex === 0 ? 'only' : index === 0 ? 'first' : index === lastIndex ? 'last' : 'middle'}
+      />
     ),
-    [unit, openProfile],
+    [unit, openProfile, lastIndex],
   );
   const podium = useMemo(
-    () => <Podium entries={entries} unit={unit} currentUserId={currentUserId} />,
-    [entries, unit, currentUserId],
+    () => <Podium entries={entries} unit={unit} />,
+    [entries, unit],
   );
 
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8} accessibilityLabel="Back">
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Leaderboard</Text>
-        <View style={{ width: 32 }} />
+        <LeaderboardFilters
+          part="pill"
+          tab={tab} timeFrame={timeFrame} scope={scope}
+          onTabChange={setTab} onTimeFrameChange={setTimeFrame} onScopeChange={setScope}
+        />
       </View>
-
       <LeaderboardFilters
-        tab={tab}
-        timeFrame={timeFrame}
-        scope={scope}
-        onTabChange={setTab}
-        onTimeFrameChange={setTimeFrame}
-        onScopeChange={setScope}
+        part="segment"
+        tab={tab} timeFrame={timeFrame} scope={scope}
+        onTabChange={setTab} onTimeFrameChange={setTimeFrame} onScopeChange={setScope}
       />
 
       {loading ? (
@@ -168,7 +162,7 @@ export default function LeaderboardScreen() {
           // slice(3) on a 1-2 entry array is empty, so the podium's own null-return
           // combined with an empty list rendered "No data yet" even when there WAS
           // data. Show every entry in the list until there are enough for a podium.
-          data={entries.length < 3 ? entries : entries.slice(3)}
+          data={listData}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           contentContainerStyle={s.list}
@@ -187,20 +181,18 @@ export default function LeaderboardScreen() {
         />
       )}
 
-      {/* Sticky current-player card — shown when player is ranked outside top 3 */}
+      {/* Sticky "You" bar — shown when the runner is outside the top 3 */}
       {!loading && playerOutsideTop3 && playerEntry && (
         <View style={s.playerFooter}>
           <Text style={s.playerRank}>{playerEntry.rank}</Text>
           <View style={s.playerAvatar}>
-            <Text style={s.playerAvatarText}>{playerEntry.name.charAt(0).toUpperCase()}</Text>
+            <RunnerFace seed={playerEntry.name} size={34} />
           </View>
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={s.playerName}>{playerEntry.name}</Text>
-            <View style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 2, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)' }}>
-              <Text style={{ fontFamily: Fonts.medium, fontSize: 10, color: C.red, textTransform: 'uppercase' }}>You</Text>
-            </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.playerName} numberOfLines={1}>You</Text>
+            {!!gapLine && <Text style={s.playerLvl} numberOfLines={1}>{gapLine}</Text>}
           </View>
-          <Text style={s.playerValue}>{fmtVal(playerEntry.value)}</Text>
+          <Text style={s.playerValue}>{playerVal?.num}{unit !== 'TS' ? <Text style={s.playerUnit}> {playerVal?.suffix}</Text> : null}</Text>
         </View>
       )}
     </SafeAreaView>
@@ -210,21 +202,22 @@ export default function LeaderboardScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title: { fontFamily: Fonts.semiBold, fontSize: 24, color: C.black },
-    list:          { paddingBottom: 100 },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
+    backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    title: { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
+    list:          { paddingBottom: 120 },
     skeletonWrap:  { paddingTop: 8 },
-    skeletonRow:   { height: 51, marginHorizontal: Spacing.gutter, marginBottom: 8, borderRadius: Spacing.radius.md },
+    skeletonRow:   { height: 60, marginHorizontal: 12, marginBottom: 8, borderRadius: 18 },
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
-    emptyTitle:    { fontFamily: Fonts.display, fontSize: 20, lineHeight: 25, color: C.black, marginBottom: 6, textAlign: 'center' },
-    emptyText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
-    playerFooter:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 18, marginTop: 1, marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: C.redLo, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.25)', shadowColor: C.red, shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 3 },
-    playerRank:    { fontFamily: Fonts.regular, fontSize: 13, color: C.red, width: 24, textAlign: 'center', fontVariant: ['tabular-nums'] },
-    playerAvatar:  { width: 28, height: 28, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
-    playerAvatarText: { fontFamily: Fonts.medium, fontSize: 10, color: C.alwaysLight },
-    playerName:    { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
-    playerLvl:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
-    playerValue:   { fontFamily: Fonts.regular, fontSize: 14, color: C.black, letterSpacing: -0.3, fontVariant: ['tabular-nums'] },
+    emptyTitle:    { fontFamily: Fonts.bold, fontSize: 20, lineHeight: 25, color: C.t1, marginBottom: 6, textAlign: 'center' },
+    emptyText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
+    playerFooter:  { position: 'absolute', left: 14, right: 14, bottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: C.red, borderRadius: 20, shadowColor: C.red, shadowOpacity: 0.45, shadowRadius: 12, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
+    playerRank:    { fontFamily: Fonts.numeric, fontSize: 24, color: C.alwaysLight, width: 30 },
+    playerAvatar:  { width: 34, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+    playerAvatarText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
+    playerName:    { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
+    playerLvl:     { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.85)' },
+    playerValue:   { fontFamily: Fonts.numeric, fontSize: 22, color: C.alwaysLight },
+    playerUnit:    { fontFamily: Fonts.medium, fontSize: 11, color: 'rgba(255,255,255,0.8)' },
   });
 }

@@ -2,6 +2,11 @@ import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+/** Runivo Plus: 'premium' or the internal 'admin' tier (entitlements.isPlus). */
+function isPlusTier(tier: string | null | undefined): boolean {
+  return tier === 'premium' || tier === 'admin';
+}
+
 type Feature = 'weekly_brief' | 'post_run' | 'training_plan' | 'coach_chat' | 'nutrition_insights' | 'quick_prompts' | 'territory_strategy' | 'adapt_plan' | 'pace_intelligence' | 'habit_tracking' | 'food_scan';
 
 interface RequestBody {
@@ -108,6 +113,18 @@ interface UserContext {
   runnerRank: string;
   paceWeeklyEarned: number;
   paceWeeklyCapLimit: number;
+  /** What the runner told us in onboarding (goal, level, tone, baseline). */
+  runner: {
+    goal: string | null;
+    tone: string;
+    experience: string | null;
+    weeklyRuns: number | null;
+    declaredWeeklyKm: number | null;
+    usualDistanceKm: number | null;
+    recent5kSeconds: number | null;
+    ageRange: string | null;
+    healthBaseline: unknown;
+  };
   planCompliance: PlanCompliance | null;
   nutrition: {
     dailyGoalKcal: number;
@@ -131,6 +148,28 @@ interface UserContext {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** One line on who the runner is, from onboarding. Read by every prompt. */
+function runnerProfileLine(ctx: UserContext): string {
+  const r = ctx.runner;
+  const parts: string[] = [];
+  if (r.goal) parts.push(`Goal: ${r.goal}`);
+  if (r.experience) parts.push(`level: ${r.experience}`);
+  if (r.weeklyRuns) parts.push(`${r.weeklyRuns} runs/week`);
+  if (r.usualDistanceKm) parts.push(`usual run ${r.usualDistanceKm} km`);
+  if (r.declaredWeeklyKm) parts.push(`weekly target ${r.declaredWeeklyKm} km`);
+  if (r.recent5kSeconds) {
+    const m = Math.floor(r.recent5kSeconds / 60), sec = String(r.recent5kSeconds % 60).padStart(2, '0');
+    parts.push(`recent 5K ${m}:${sec}`);
+  }
+  if (r.ageRange) parts.push(`age ${r.ageRange}`);
+  let line = `RUNNER: ${parts.length ? parts.join(', ') : 'no onboarding answers yet'}. Coach in a ${r.tone} tone.`;
+  // New runners have little history here; use the imported baseline instead.
+  if (ctx.runs90d.length < 5 && r.healthBaseline) {
+    line += `\nIMPORTED 90-DAY BASELINE (health app, consented): ${JSON.stringify(r.healthBaseline).slice(0, 600)}`;
+  }
+  return line;
+}
 function todayISODate(): string {
   return new Date().toISOString().split('T')[0];
 }
@@ -489,7 +528,7 @@ async function buildUserContext(
       .limit(100),
     supabase
       .from('profiles')
-      .select('runner_rank, pace_weekly_earned, pace_total_earned, subscription_tier, territory_score, streak_days')
+      .select('runner_rank, pace_weekly_earned, pace_total_earned, subscription_tier, territory_score, streak_days, primary_goal, experience_level, weekly_frequency, weekly_goal_km, usual_distance_km, recent_5k_seconds, pacex_tone, age_range, health_baseline, health_consent_at')
       .eq('id', userId)
       .single(),
     supabase
@@ -621,7 +660,13 @@ async function buildUserContext(
 
   // ── Territory ────────────────────────────────────────────────────────────────
   const polygonRows  = (polygonsRes.data ?? []) as { area_m2: number; freshness: number; last_defended_at: string; tier: string }[];
-  const profileRow   = profileRes.data as { runner_rank: string | null; pace_weekly_earned: number | null; pace_total_earned: number | null; subscription_tier: string | null; territory_score: number | null; streak_days: number | null } | null;
+  const profileRow   = profileRes.data as {
+    runner_rank: string | null; pace_weekly_earned: number | null; pace_total_earned: number | null;
+    subscription_tier: string | null; territory_score: number | null; streak_days: number | null;
+    primary_goal: string | null; experience_level: string | null; weekly_frequency: number | null;
+    weekly_goal_km: number | null; usual_distance_km: number | null; recent_5k_seconds: number | null;
+    pacex_tone: string | null; age_range: string | null; health_baseline: unknown; health_consent_at: string | null;
+  } | null;
 
   const MS_PER_DAY  = 86_400_000;
   const now         = Date.now();
@@ -642,7 +687,7 @@ async function buildUserContext(
   }
 
   const avgFreshness       = totalArea > 0 ? Math.round(weightedFresh / totalArea) : 100;
-  const isPremium          = profileRow?.subscription_tier === 'premium';
+  const isPremium          = isPlusTier(profileRow?.subscription_tier);
   const paceWeeklyCapLimit = isPremium ? 150 : 100;
 
   // ── Nutrition ────────────────────────────────────────────────────────────────
@@ -786,6 +831,18 @@ async function buildUserContext(
     runnerRank:         profileRow?.runner_rank ?? 'pacer',
     paceWeeklyEarned:   profileRow?.pace_weekly_earned ?? 0,
     paceWeeklyCapLimit,
+    runner: {
+      goal:             profileRow?.primary_goal ?? null,
+      tone:             profileRow?.pacex_tone ?? 'encouraging',
+      experience:       profileRow?.experience_level ?? null,
+      weeklyRuns:       profileRow?.weekly_frequency ?? null,
+      declaredWeeklyKm: profileRow?.weekly_goal_km ?? null,
+      usualDistanceKm:  profileRow?.usual_distance_km ?? null,
+      recent5kSeconds:  profileRow?.recent_5k_seconds ?? null,
+      ageRange:         profileRow?.age_range ?? null,
+      // Health data is used only while consent stands.
+      healthBaseline:   profileRow?.health_consent_at ? profileRow.health_baseline : null,
+    },
     planCompliance,
     nutrition,
     shoes: (shoesRes.data ?? []).map((s: { brand: string; model: string; nickname: string | null; total_km: number; max_km: number; is_default: boolean }) => ({
@@ -893,6 +950,7 @@ Nutrition last 7 days:
       role:    'user',
       content: `Runner data — last 8 weeks:
 Total: ${totalKm.toFixed(1)} km across ${totalRuns} runs. Weekly avg: ${ctx.weeklyKm} km/wk.
+${runnerProfileLine(ctx)}
 Avg pace: ${avgPace}/km. Trend: ${ctx.trend}.
 Pace zones: ${ctx.paceZones.easy}% easy / ${ctx.paceZones.moderate}% moderate / ${ctx.paceZones.tempo}% tempo / ${ctx.paceZones.hard}% hard.
 ${prLine}
@@ -1025,6 +1083,7 @@ Add a "recovery" field: a specific 2-sentence recovery prescription. Sentence 1:
       content: `Post-run feedback.
 This run: ${distKm} in ${dur}, pace ${pace}/km. Effort zone: ${zoneName}.
 Recent avg pace (last 4 weeks): ${avgRecentPace}/km.
+${runnerProfileLine(ctx)}
 ${isPR ? '★ THIS IS A NEW PERSONAL RECORD (fastest pace in last 90 days).' : ''}
 ${recoveryInstruction}
 
@@ -1092,6 +1151,7 @@ async function handleTrainingPlan(
       role:    'user',
       content: `Create a 4-week running training plan.
 Current weekly avg: ${ctx.weeklyKm} km/week.
+${runnerProfileLine(ctx)}
 Pace zones: ${ctx.paceZones.easy}% easy / ${ctx.paceZones.moderate}% moderate / ${ctx.paceZones.tempo}% tempo / ${ctx.paceZones.hard}% hard.
 Easy pace: ~${ctx.easyPace}/km. Tempo pace: ~${ctx.tempoPace}/km.
 ${ctx.prs.longestRun > 0 ? `Longest run ever: ${ctx.prs.longestRun} km.` : ''}
@@ -1242,6 +1302,7 @@ ECONOMY (never mention XP, coins, energy, or levels):
 
 == RUNNER PROFILE ==
 Rank: ${ctx.runnerRank} | PACE this week: ${ctx.paceWeeklyEarned} / ${ctx.paceWeeklyCapLimit}
+${runnerProfileLine(ctx)}
 Last 90 days: ${ctx.totalKm90d} km across ${ctx.runs90d.length} runs. Weekly avg: ${ctx.weeklyKm} km/wk.
 Pace trend: ${ctx.trend}.
 
@@ -1426,6 +1487,7 @@ async function handlePaceIntelligence(
 RUNNER: ${ctx.totalKm90d.toFixed(1)} km in 90 days, ${recentRuns.length} runs, trend: ${ctx.trend}
 EASY PACE: ${ctx.easyPace} /km, TEMPO: ${ctx.tempoPace} /km
 WEEKLY AVG (last 8 weeks): ${ctx.weeklyKm.toFixed(1)} km/wk
+${runnerProfileLine(ctx)}
 BEST: longest ${ctx.prs.longestRun.toFixed(1)} km, fastest pace ${ctx.prs.fastestPace ?? 'N/A'}
 
 Generate 3 insight cards. Each must cite SPECIFIC numbers from the data. Do not be generic.
@@ -1724,6 +1786,18 @@ Deno.serve(async (req) => {
       await supabase.from('coach_messages').insert({ user_id: user.id, role: 'user', content: message ?? '' });
       await supabase.from('coach_messages').insert({ user_id: user.id, role: 'assistant', content: SAFE_REDIRECT_MESSAGE });
       return new Response(JSON.stringify({ data: SAFE_REDIRECT_MESSAGE }), {
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // AI stays in Plus (PRD "Running costs"): every feature below calls Claude,
+    // so free runners are refused here, before any cost. The red-flag safety
+    // reply above stays free: safety is never charged for. 'admin' counts as Plus.
+    const { data: tierRow } = await supabase
+      .from('profiles').select('subscription_tier').eq('id', user.id).single();
+    if (!isPlusTier((tierRow as { subscription_tier: string | null } | null)?.subscription_tier)) {
+      return new Response(JSON.stringify({ error: 'plus_required' }), {
+        status: 402,
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       });
     }

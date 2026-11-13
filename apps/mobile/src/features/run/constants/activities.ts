@@ -28,9 +28,9 @@ export const ACTIVITIES: ActivityMeta[] = [
   { id: 'sprint',        label: 'Sprint',     icon: Lightning,     color: '#DC2626', bg: '#FEE2E2' },
   { id: 'walk',          label: 'Walk',       icon: Footprints,    color: '#059669', bg: '#D1FAE5' },
   { id: 'hike',          label: 'Hike',       icon: Mountains,     color: '#B45309', bg: '#FEF3C7' },
-  { id: 'trail_run',     label: 'Trail',      icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
+  { id: 'trail_run',     label: 'Trail run',  icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
   { id: 'trail',         label: 'Trail',      icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
-  { id: 'cycle',         label: 'Cycle',      icon: Bicycle,       color: '#0284C7', bg: '#E0F2FE' },
+  { id: 'cycle',         label: 'Ride',       icon: Bicycle,       color: '#0284C7', bg: '#E0F2FE' },
   { id: 'interval',      label: 'Intervals',  icon: Timer,         color: '#7C3AED', bg: '#EDE9FE' },
   { id: 'tempo',         label: 'Tempo',      icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
   { id: 'long_run',      label: 'Long Run',   icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
@@ -55,9 +55,36 @@ export function activityMetaFor(id: ActivityType): ActivityMeta {
 }
 
 /**
- * What the picker actually offers. `trail` is kept in ACTIVITIES/BY_ID purely so a
- * run already recorded with that id (RunSetupSheet's old 7-item list used it) still
- * resolves to a real label/icon instead of falling back to "Run" — but it's the same
- * concept as `trail_run`, so it isn't offered twice as a selectable option.
+ * The sports the record screen offers, Strava-style. On-foot sports play the
+ * territory game (claim zones, earn PACE, move the streak); a ride is recorded
+ * with speed instead of pace and plays no part in the game — the same rule as
+ * ENGINE.TERRITORY_ACTIVITIES on the server.
  */
-export const SELECTABLE_ACTIVITIES = ACTIVITIES.filter(a => a.id !== 'trail');
+export interface Sport {
+  id: ActivityType;
+  label: string;
+  icon: Icon;
+  /** "Start run" / "Run done." */
+  verb: string;
+  /** "Distance · Running" */
+  gerund: string;
+  /** Claims zones and earns PACE. */
+  claims: boolean;
+  /** Live metric: pace (min/km) on foot, speed (km/h) on a bike. */
+  metric: 'pace' | 'speed';
+}
+
+export const SPORTS: Sport[] = [
+  { id: 'run',       label: 'Run',       icon: Pulse,         verb: 'run',  gerund: 'Running', claims: true,  metric: 'pace' },
+  { id: 'trail_run', label: 'Trail run', icon: TreeEvergreen, verb: 'run',  gerund: 'Running', claims: true,  metric: 'pace' },
+  { id: 'walk',      label: 'Walk',      icon: Footprints,    verb: 'walk', gerund: 'Walking', claims: true,  metric: 'pace' },
+  { id: 'hike',      label: 'Hike',      icon: Mountains,     verb: 'hike', gerund: 'Hiking',  claims: true,  metric: 'pace' },
+  { id: 'cycle',     label: 'Ride',      icon: Bicycle,       verb: 'ride', gerund: 'Riding',  claims: false, metric: 'speed' },
+];
+
+export function sportFor(id: string | null | undefined): Sport {
+  return SPORTS.find(s => s.id === id) ?? (id === 'trail' ? SPORTS[1] : SPORTS[0]);
+}
+
+/** @deprecated the old 18-item picker; kept so older imports compile. */
+export const SELECTABLE_ACTIVITIES = ACTIVITIES.filter(a => SPORTS.some(s => s.id === a.id));

@@ -110,15 +110,15 @@ function mkStyles(C: AppColors) {
   backdrop:    { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 90 },
   sheet:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 91, overflow: 'hidden' },
   handle:      { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 12, marginBottom: 4 },
-  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 0.5 },
   headerTitle: { fontFamily: Fonts.semiBold, fontSize: 15 },
   xRed:        { fontFamily: Fonts.bold },
   grid:        { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
   capCard:     { width: '47%', borderRadius: 12, borderWidth: 0.5, padding: 12, gap: 4 },
   capEmoji:    { fontSize: 22, marginBottom: 4 },
   capName:     { fontFamily: Fonts.medium, fontSize: 12 },
-  capDesc:     { fontFamily: Fonts.regular, fontSize: 10, lineHeight: 14 },
+  capDesc:     { fontFamily: Fonts.regular, fontSize: 11, lineHeight: 14 },
   pill:        { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
-  pillText:    { fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.3 },
+  pillText:    { fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 0.3 },
   });
 }

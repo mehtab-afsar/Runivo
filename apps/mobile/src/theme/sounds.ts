@@ -1,10 +1,10 @@
 /**
- * Sound system — uses expo-av (already installed).
+ * Sound system — uses expo-audio (already installed).
  * REQUIRED: Place 10 MP3 files in apps/mobile/assets/sounds/ before building.
  * Free sources: Mixkit.co (no attribution), Freesound.org (CC0 filter).
  * All playback is wrapped in try/catch — a missing or corrupt file never crashes the app.
  */
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 
 const SOUND_FILES = {
   gps_locked:   require('../../assets/sounds/gps_locked.mp3'),
@@ -21,14 +21,13 @@ const SOUND_FILES = {
 
 type SoundName = keyof typeof SOUND_FILES;
 
-const cache: Partial<Record<SoundName, Audio.Sound>> = {};
+const cache: Partial<Record<SoundName, AudioPlayer>> = {};
 let soundEnabled = true;
 export function setSoundEnabled(enabled: boolean) { soundEnabled = enabled; }
 
-async function getSound(name: SoundName): Promise<Audio.Sound> {
+function getSound(name: SoundName): AudioPlayer {
   if (!cache[name]) {
-    const { sound } = await Audio.Sound.createAsync(SOUND_FILES[name]);
-    cache[name] = sound;
+    cache[name] = createAudioPlayer(SOUND_FILES[name]);
   }
   return cache[name]!;
 }
@@ -36,17 +35,17 @@ async function getSound(name: SoundName): Promise<Audio.Sound> {
 export async function playSound(name: SoundName): Promise<void> {
   if (!soundEnabled) return;
   try {
-    const sound = await getSound(name);
-    await sound.setPositionAsync(0);
-    await sound.playAsync();
+    const sound = getSound(name);
+    await sound.seekTo(0);
+    sound.play();
   } catch { /* never throw — audio failure must not affect the run */ }
 }
 
 export async function preloadSounds(): Promise<void> {
   try {
-    await Audio.setAudioModeAsync({ playsInSilentModeIOS: false, staysActiveInBackground: false });
-    await Promise.allSettled(
-      (Object.keys(SOUND_FILES) as SoundName[]).map(name => getSound(name))
-    );
+    await setAudioModeAsync({ playsInSilentMode: false, shouldPlayInBackground: false });
+    (Object.keys(SOUND_FILES) as SoundName[]).forEach(name => {
+      try { getSound(name); } catch { /* skip a bad file */ }
+    });
   } catch { /* ignore — app works without preloaded sounds */ }
 }

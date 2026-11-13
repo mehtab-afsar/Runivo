@@ -1,630 +1,257 @@
 /**
- * claimEngine.test.ts — the code that mints PACE and claims territory.
+ * claimEngine.test.ts — the app-facing contract for territory and PACE.
  *
- * This file was previously untested despite being the most consequential logic
- * in the repo: it decides how much currency a run earns, what land it claims,
- * and whether a rival's territory can be taken. Several shipped bugs have
- * originated here (streak bonus diverging from the server, loop-fill capping
- * the wrong polygon, collinear hull points producing self-intersecting rings),
- * so the tests below deliberately pin the *boundaries* and the *anti-cheat
- * gates*, not just the happy path.
- *
- * Pure functions only — no mocks required.
+ * The rules themselves are pinned in ../engine/runEngine.test.ts (and the
+ * database side in supabase/tests/v1_integrity.test.sql). These tests check
+ * that the functions the app calls give the same answers the server pays.
  */
-
-import { describe, it, expect } from 'vitest';
-import { GAME_CONFIG } from './config';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
-  haversineM,
-  filterGPSPoints,
-  stripFastSegments,
-  kalmanSmooth,
-  polygonAreaM2,
-  buildCorridorPolygon,
-  buildConvexHull,
-  shouldLoopFill,
-  rdpSimplify,
-  computeTier,
   buildTerritoryPolygon,
   calculateRunPACE,
   computeFreshness,
-  computeTerritoryScore,
   computeRunnerRank,
-  estimateLiveArea,
-  isNearRivalTerritory,
+  computeTerritoryScore,
+  computeTier,
   detectLoopClose,
-  type ValidGPSPoint,
+  estimateLiveArea,
+  haversineM,
+  isNearRivalTerritory,
+  kalmanSmooth,
+  polygonAreaM2,
 } from './claimEngine';
+import { computeRunPace, buildTerritoryShape, verifiedDistance, isOnFoot } from '../engine/runEngine';
 import type { TerritoryPolygon } from '../types/game';
 
-// ── Fixtures ──────────────────────────────────────────────────────────────────
+// ── Fixtures: metre offsets around Hyde Park, one fix every 2 s at ~3 m/s ────
 
-interface RawPt {
-  lat: number; lng: number; timestamp: number;
-  speed: number; accuracy: number; altitude: number;
-}
+const LAT0 = 51.507;
+const LNG0 = -0.165;
+const M_LAT = 111_250;
+const M_LNG = 111_250 * Math.cos((LAT0 * Math.PI) / 180);
 
-/** A straight north-bound run: `n` points spaced `stepDeg` of latitude apart. */
-function straightRun(n = 25, stepDeg = 0.0002, overrides: Partial<RawPt> = {}): RawPt[] {
-  return Array.from({ length: n }, (_, i) => ({
-    lat: i * stepDeg,
-    lng: 0,
-    timestamp: 1_700_000_000_000 + i * 10_000,
-    speed: 3,
-    accuracy: 5,
-    altitude: 10,
-    ...overrides,
-  }));
-}
-
-/**
- * A closed square loop — the final point returns exactly to the origin, so
- * start/end coincide and the loop-close gate passes. Closing the loop matters:
- * without the final point the trace ends one side-segment short of the start,
- * and `shouldLoopFill` bails on the distance check before it ever evaluates the
- * area cap — which silently makes any area-cap assertion vacuously true.
- */
-function squareLoopRun(perSide = 6, sizeDeg = 0.001): RawPt[] {
-  const pts: RawPt[] = [];
+function trace(corners: [number, number][], stepM = 6) {
+  const pts: { lat: number; lng: number; timestamp: number; speed: number; accuracy: number; altitude: number }[] = [];
   let t = 1_700_000_000_000;
-  const push = (lat: number, lng: number) => {
-    pts.push({ lat, lng, timestamp: (t += 10_000), speed: 3, accuracy: 5, altitude: 10 });
-  };
-  for (let i = 0; i < perSide; i++) push(0, (i / perSide) * sizeDeg);            // east along lat 0
-  for (let i = 0; i < perSide; i++) push((i / perSide) * sizeDeg, sizeDeg);      // north along lng=size
-  for (let i = 0; i < perSide; i++) push(sizeDeg, sizeDeg - (i / perSide) * sizeDeg); // west
-  for (let i = 0; i < perSide; i++) push(sizeDeg - (i / perSide) * sizeDeg, 0);  // south
-  push(0, 0);                                                                    // close the loop
+  const push = (x: number, y: number) =>
+    pts.push({ lat: LAT0 + y / M_LAT, lng: LNG0 + x / M_LNG, timestamp: (t += 2000), speed: 3, accuracy: 5, altitude: 10 });
+  push(...corners[0]);
+  for (let i = 1; i < corners.length; i++) {
+    const [x0, y0] = corners[i - 1], [x1, y1] = corners[i];
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / stepM));
+    for (let k = 1; k <= n; k++) push(x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n);
+  }
   return pts;
 }
 
-const valid = (p: RawPt): ValidGPSPoint => ({ lat: p.lat, lng: p.lng, timestamp: p.timestamp, speed: p.speed });
+const square200 = () => trace([[0, 0], [200, 0], [200, 200], [0, 200], [0, 0]]);
+// 600 m out and 600 m back along the same street.
+const outAndBack600 = () => trace([[0, 0], [600, 0], [0, 0]]);
 
-// ── haversineM ────────────────────────────────────────────────────────────────
+function zone(over: Partial<TerritoryPolygon> = {}): TerritoryPolygon {
+  return {
+    id: 'z', runId: 'r', ownerId: 'u', ownerName: 'me', polygon: [[0, 0], [0, 1], [1, 1], [0, 0]],
+    areaM2: 10_000, freshness: 100, lastDefendedAt: new Date().toISOString(), claimedAt: new Date().toISOString(),
+    isLoopFill: false, tier: 'block', synced: true, ...over,
+  };
+}
 
-describe('haversineM', () => {
-  it('measures one degree of latitude as ~111.2 km', () => {
-    expect(haversineM({ lat: 0, lng: 0 }, { lat: 1, lng: 0 })).toBeCloseTo(111_195, -2);
-  });
-
-  it('returns 0 for identical points', () => {
-    expect(haversineM({ lat: 51.5, lng: -0.12 }, { lat: 51.5, lng: -0.12 })).toBe(0);
-  });
-
-  it('is symmetric', () => {
-    const a = { lat: 51.5, lng: -0.12 };
-    const b = { lat: 51.51, lng: -0.13 };
-    expect(haversineM(a, b)).toBeCloseTo(haversineM(b, a), 9);
-  });
-
-  it('shrinks longitude distance at higher latitude', () => {
-    const atEquator = haversineM({ lat: 0, lng: 0 }, { lat: 0, lng: 1 });
-    const atSixty   = haversineM({ lat: 60, lng: 0 }, { lat: 60, lng: 1 });
-    expect(atSixty).toBeLessThan(atEquator * 0.55); // cos(60°) = 0.5
-  });
-});
-
-// ── filterGPSPoints (accuracy gate + anti-spoof variance check) ───────────────
-
-describe('filterGPSPoints', () => {
-  it('keeps points within the accuracy threshold', () => {
-    expect(filterGPSPoints(straightRun(25))).toHaveLength(25);
-  });
-
-  it('drops points worse than GPS_ACCURACY_THRESHOLD_M', () => {
-    const pts = straightRun(25);
-    pts[3].accuracy = GAME_CONFIG.GPS_ACCURACY_THRESHOLD_M + 1;
-    pts[7].accuracy = 999;
-    expect(filterGPSPoints(pts)).toHaveLength(23);
-  });
-
-  it('returns nothing when fewer than 4 accurate points survive', () => {
-    expect(filterGPSPoints(straightRun(3))).toEqual([]);
-  });
-
-  it('rejects a stationary trace as GPS spoofing (variance floor)', () => {
-    // Every point identical => zero variance => must be rejected outright,
-    // otherwise a spoofer could sit still and farm territory.
-    const stationary = straightRun(30, 0);
-    expect(filterGPSPoints(stationary)).toEqual([]);
-  });
-
-  it('strips accuracy/altitude from the returned shape', () => {
-    const [first] = filterGPSPoints(straightRun(25));
-    expect(first).toEqual({
-      lat: expect.any(Number), lng: expect.any(Number),
-      timestamp: expect.any(Number), speed: expect.any(Number),
-    });
-  });
-});
-
-// ── stripFastSegments (speed gate) ────────────────────────────────────────────
-
-describe('stripFastSegments', () => {
-  it('keeps a single segment when every point is under the speed cap', () => {
-    const segs = stripFastSegments(straightRun(25).map(valid));
-    expect(segs).toHaveLength(1);
-    expect(segs[0]).toHaveLength(25);
-  });
-
-  it('splits the run where speed exceeds MAX_RUN_SPEED_MS', () => {
-    const pts = straightRun(25).map(valid);
-    pts[12].speed = GAME_CONFIG.MAX_RUN_SPEED_MS + 0.1; // e.g. in a car
-    const segs = stripFastSegments(pts);
-    expect(segs).toHaveLength(2);
-    expect(segs[0]).toHaveLength(12);
-    expect(segs[1]).toHaveLength(12);
-  });
-
-  it('discards fragments shorter than 3 points', () => {
-    const pts = straightRun(10).map(valid);
-    pts[1].speed = 99; // leaves a 1-point fragment before the break
-    const segs = stripFastSegments(pts);
-    expect(segs).toHaveLength(1);
-    expect(segs[0]).toHaveLength(8);
-  });
-
-  it('returns no segments when the whole trace is too fast', () => {
-    expect(stripFastSegments(straightRun(25, 0.0002, { speed: 30 }).map(valid))).toEqual([]);
-  });
-});
-
-// ── kalmanSmooth ──────────────────────────────────────────────────────────────
-
-describe('kalmanSmooth', () => {
-  it('returns an empty array for empty input', () => {
-    expect(kalmanSmooth([])).toEqual([]);
-  });
-
-  it('preserves point count and non-positional fields', () => {
-    const input = straightRun(25).map(valid);
-    const out = kalmanSmooth(input);
-    expect(out).toHaveLength(input.length);
-    expect(out[5].timestamp).toBe(input[5].timestamp);
-    expect(out[5].speed).toBe(input[5].speed);
-  });
-
-  it('pulls a single outlier back toward the trend', () => {
-    const input = straightRun(25).map(valid);
-    const spikeIndex = 12;
-    input[spikeIndex] = { ...input[spikeIndex], lat: input[spikeIndex].lat + 0.01 };
-    const out = kalmanSmooth(input);
-    // Smoothed position must sit well below the raw spike.
-    expect(out[spikeIndex].lat).toBeLessThan(input[spikeIndex].lat);
-  });
-});
-
-// ── polygonAreaM2 ─────────────────────────────────────────────────────────────
-
-describe('polygonAreaM2', () => {
-  it('computes the area of a known square', () => {
-    // 0.001° per side at the equator ≈ 111.32 m => ≈ 12,392 m²
-    const square: [number, number][] = [[0, 0], [0.001, 0], [0.001, 0.001], [0, 0.001], [0, 0]];
-    expect(polygonAreaM2(square)).toBeCloseTo(12_392, -2);
-  });
-
-  it('is independent of winding direction', () => {
-    const cw: [number, number][]  = [[0, 0], [0.001, 0], [0.001, 0.001], [0, 0.001], [0, 0]];
-    const ccw: [number, number][] = [...cw].reverse();
-    expect(polygonAreaM2(ccw)).toBeCloseTo(polygonAreaM2(cw), 6);
-  });
-
-  it('returns 0 for degenerate rings', () => {
-    expect(polygonAreaM2([])).toBe(0);
-    expect(polygonAreaM2([[0, 0]])).toBe(0);
-    expect(polygonAreaM2([[0, 0], [1, 1]])).toBe(0);
-  });
-
-  it('stays precise far from the origin (no catastrophic cancellation)', () => {
-    // Same square translated to London — relative-coordinate maths must keep
-    // the result stable rather than losing precision to large absolute values.
-    const lat = 51.5, lng = -0.12;
-    const square: [number, number][] = [
-      [lng, lat], [lng + 0.001, lat], [lng + 0.001, lat + 0.001], [lng, lat + 0.001], [lng, lat],
-    ];
-    const expected = 111.32 * (111.32 * Math.cos(lat * Math.PI / 180));
-    expect(polygonAreaM2(square)).toBeCloseTo(expected, -2);
-  });
-});
-
-// ── buildCorridorPolygon ──────────────────────────────────────────────────────
-
-describe('buildCorridorPolygon', () => {
-  it('returns an empty ring for fewer than 2 points', () => {
-    expect(buildCorridorPolygon([])).toEqual([]);
-    expect(buildCorridorPolygon(straightRun(1).map(valid))).toEqual([]);
-  });
-
-  it('produces a closed ring', () => {
-    const ring = buildCorridorPolygon(straightRun(10).map(valid));
-    expect(ring.length).toBeGreaterThan(3);
-    expect(ring[0]).toEqual(ring[ring.length - 1]);
-  });
-
-  it('produces an area consistent with length × 2·width', () => {
-    const pts = straightRun(10, 0.0002).map(valid); // 9 gaps × ~22.26 m ≈ 200 m
-    const ring = buildCorridorPolygon(pts, 12);
-    const lengthM = haversineM(pts[0], pts[pts.length - 1]);
-    // Corridor is ±12 m around the trace, so ≈ length × 24 m.
-    expect(polygonAreaM2(ring)).toBeCloseTo(lengthM * 24, -3);
-  });
-
-  it('scales with the width parameter', () => {
-    const pts = straightRun(10).map(valid);
-    const narrow = polygonAreaM2(buildCorridorPolygon(pts, 6));
-    const wide   = polygonAreaM2(buildCorridorPolygon(pts, 12));
-    expect(wide).toBeCloseTo(narrow * 2, -2);
-  });
-
-  it('skips hairpin interior points instead of self-intersecting', () => {
-    // Out-and-back along the same line: the turn is a 180° hairpin. Without the
-    // miter guard the offset flips side at the apex and the ribbon bow-ties.
-    const out  = straightRun(6, 0.0002).map(valid);
-    const back = out.slice(0, -1).reverse().map((p, i) => ({ ...p, timestamp: p.timestamp + 100_000 + i }));
-    const ring = buildCorridorPolygon([...out, ...back]);
-    expect(polygonAreaM2(ring)).toBeGreaterThan(0);
-  });
-});
-
-// ── buildConvexHull ───────────────────────────────────────────────────────────
-
-describe('buildConvexHull', () => {
-  it('wraps a point cloud in its hull, dropping interior points', () => {
-    const pts: ValidGPSPoint[] = [
-      { lat: 0, lng: 0, timestamp: 0, speed: 1 },
-      { lat: 0, lng: 1, timestamp: 1, speed: 1 },
-      { lat: 1, lng: 1, timestamp: 2, speed: 1 },
-      { lat: 1, lng: 0, timestamp: 3, speed: 1 },
-      { lat: 0.5, lng: 0.5, timestamp: 4, speed: 1 }, // interior — must be excluded
-    ];
-    const hull = buildConvexHull(pts);
-    expect(hull).not.toContainEqual([0.5, 0.5]);
-    expect(hull[0]).toEqual(hull[hull.length - 1]); // closed
-  });
-
-  it('handles collinear points without producing a self-intersecting ring', () => {
-    // Equal-angle points from the pivot exercise the distance tie-break.
-    const pts: ValidGPSPoint[] = [
-      { lat: 0, lng: 0, timestamp: 0, speed: 1 },
-      { lat: 0, lng: 1, timestamp: 1, speed: 1 },
-      { lat: 0, lng: 2, timestamp: 2, speed: 1 },
-      { lat: 1, lng: 1, timestamp: 3, speed: 1 },
-    ];
-    const hull = buildConvexHull(pts);
-    expect(hull[0]).toEqual(hull[hull.length - 1]);
-    expect(polygonAreaM2(hull)).toBeGreaterThan(0);
-  });
-
-  it('degrades gracefully for fewer than 3 points', () => {
-    const two: ValidGPSPoint[] = [
-      { lat: 0, lng: 0, timestamp: 0, speed: 1 },
-      { lat: 1, lng: 1, timestamp: 1, speed: 1 },
-    ];
-    expect(buildConvexHull(two)).toHaveLength(3); // [a, b, a]
-  });
-});
-
-// ── shouldLoopFill ────────────────────────────────────────────────────────────
-
-describe('shouldLoopFill', () => {
-  const loopPts = squareLoopRun().map(valid);
-  const hull = buildConvexHull(loopPts);
-
-  it('fills a closed loop of reasonable size', () => {
-    expect(shouldLoopFill(loopPts, hull)).toBe(true);
-  });
-
-  it('refuses when there are too few GPS points', () => {
-    expect(shouldLoopFill(loopPts.slice(0, GAME_CONFIG.MIN_GPS_POINTS - 1), hull)).toBe(false);
-  });
-
-  it('refuses when start and end are too far apart to be a loop', () => {
-    const openRun = straightRun(25, 0.0005).map(valid); // ~2.7 km end-to-end
-    expect(shouldLoopFill(openRun, buildConvexHull(openRun))).toBe(false);
-  });
-
-  it('refuses when the enclosed area exceeds LOOP_MAX_AREA_M2', () => {
-    // Cap must be tested against the polygon actually claimed (the hull) —
-    // a huge loop must not be claimable in one run.
-    const bigLoop = squareLoopRun(6, 0.05).map(valid);
-    const bigHull = buildConvexHull(bigLoop);
-    expect(polygonAreaM2(bigHull)).toBeGreaterThan(GAME_CONFIG.LOOP_MAX_AREA_M2);
-    expect(shouldLoopFill(bigLoop, bigHull)).toBe(false);
-  });
-
-  it('refuses a zero-area polygon', () => {
-    expect(shouldLoopFill(loopPts, [[0, 0], [0, 0], [0, 0]])).toBe(false);
-  });
-});
-
-// ── rdpSimplify ───────────────────────────────────────────────────────────────
-
-describe('rdpSimplify', () => {
-  it('leaves very small rings untouched', () => {
-    const tiny: [number, number][] = [[0, 0], [0, 1], [1, 1], [0, 0]];
-    expect(rdpSimplify(tiny)).toEqual(tiny);
-  });
-
-  it('removes near-collinear intermediate points', () => {
-    const noisyLine: [number, number][] = [
-      [0, 0], [0.0001, 0], [0.0002, 0], [0.0003, 0], [0.0004, 0], [0.001, 0.001], [0, 0],
-    ];
-    expect(rdpSimplify(noisyLine).length).toBeLessThan(noisyLine.length);
-  });
-
-  it('keeps the ring closed', () => {
-    const ring = buildCorridorPolygon(straightRun(20).map(valid));
-    const simplified = rdpSimplify(ring);
-    expect(simplified[0]).toEqual(simplified[simplified.length - 1]);
-  });
-});
-
-// ── computeTier (must mirror the server's computeTierFromArea) ────────────────
-
-describe('computeTier', () => {
-  it.each([
-    [0, 'patch'], [4_999, 'patch'],
-    [5_000, 'block'], [49_999, 'block'],
-    [50_000, 'district'], [199_999, 'district'],
-    [200_000, 'quarter'], [499_999, 'quarter'],
-    [500_000, 'domain'], [10_000_000, 'domain'],
-  ] as const)('classifies %i m² as %s', (area, tier) => {
-    expect(computeTier(area)).toBe(tier);
-  });
-});
-
-// ── buildTerritoryPolygon (the full pipeline + its refusal gates) ─────────────
+// ── Territory ─────────────────────────────────────────────────────────────────
 
 describe('buildTerritoryPolygon', () => {
-  it('claims a corridor for a straight run', () => {
-    const result = buildTerritoryPolygon(straightRun(25, 0.0002), 'run');
-    expect(result).not.toBeNull();
-    expect(result!.isLoopFill).toBe(false);
-    expect(result!.areaM2).toBeGreaterThan(0);
-    expect(result!.polygon[0]).toEqual(result!.polygon[result!.polygon.length - 1]);
+  it('a 200 m square loop claims its inside, about what PostGIS measures (50,099 m²)', () => {
+    const r = buildTerritoryPolygon(square200(), 'run')!;
+    expect(r.isLoopFill).toBe(true);
+    expect(Math.abs(r.areaM2 - 50_099) / 50_099).toBeLessThan(0.04);
+    expect(r.tier).toBe(computeTier(r.areaM2));
   });
 
-  it('fills the interior for a closed loop', () => {
-    const result = buildTerritoryPolygon(squareLoopRun(), 'run');
-    expect(result).not.toBeNull();
-    expect(result!.isLoopFill).toBe(true);
-    // Enclosed area must dwarf a mere corridor around the same path.
-    expect(result!.areaM2).toBeGreaterThan(5_000);
+  it('an out-and-back claims only the strip, measured once (PostGIS: 14,859 m²)', () => {
+    const r = buildTerritoryPolygon(outAndBack600(), 'run')!;
+    expect(r.isLoopFill).toBe(false);
+    expect(Math.abs(r.areaM2 - 14_859) / 14_859).toBeLessThan(0.05);
   });
 
-  it('claims nothing for non-run activities', () => {
-    expect(buildTerritoryPolygon(straightRun(25), 'cycle')).toBeNull();
-    expect(buildTerritoryPolygon(straightRun(25), 'walk')).toBeNull();
+  it('matches the shared engine exactly', () => {
+    const pts = square200();
+    expect(buildTerritoryPolygon(pts, 'run')!.areaM2).toBe(buildTerritoryShape(pts, 'run')!.estimatedAreaM2);
   });
 
-  it('claims nothing below MIN_GPS_POINTS', () => {
-    expect(buildTerritoryPolygon(straightRun(GAME_CONFIG.MIN_GPS_POINTS - 1), 'run')).toBeNull();
+  it('claims on foot (walks and hikes too) but not on a bike, and nothing under 200 m', () => {
+    expect(buildTerritoryPolygon(square200(), 'walk')).not.toBeNull();
+    expect(buildTerritoryPolygon(square200(), 'hike')).not.toBeNull();
+    expect(buildTerritoryPolygon(square200(), 'cycle')).toBeNull();
+    expect(buildTerritoryPolygon(square200(), 'ride')).toBeNull();
+    expect(buildTerritoryPolygon(trace([[0, 0], [150, 0]]), 'run')).toBeNull();
   });
 
-  it('claims nothing below MIN_TERRITORY_DIST_M', () => {
-    // 25 points spaced ~1.1 m apart — enough points, nowhere near enough distance.
-    expect(buildTerritoryPolygon(straightRun(25, 0.00001), 'run')).toBeNull();
+  it('pays no PACE for rides', () => {
+    const base = { distanceKm: 20, newZonesClaimed: 1, stolenZones: 1, streakDays: 7, streakAdvanced: true, paceWeeklyEarned: 0, tier: 'free' };
+    expect(calculateRunPACE({ ...base, activityType: 'cycle' }).paceEarned).toBe(0);
+    expect(calculateRunPACE({ ...base, activityType: 'walk' }).paceEarned).toBeGreaterThan(0);
+    expect(calculateRunPACE(base).paceEarned).toBeGreaterThan(0);
   });
 
-  it('claims nothing from a spoofed stationary trace', () => {
-    expect(buildTerritoryPolygon(straightRun(30, 0), 'run')).toBeNull();
-  });
-
-  it('claims nothing when the entire trace exceeds the speed cap', () => {
-    expect(buildTerritoryPolygon(straightRun(25, 0.0002, { speed: 30 }), 'run')).toBeNull();
-  });
-
-  it('assigns a tier consistent with the area it computed', () => {
-    const result = buildTerritoryPolygon(squareLoopRun(), 'run')!;
-    expect(result.tier).toBe(computeTier(result.areaM2));
+  it('draws a closed ring', () => {
+    const ring = buildTerritoryPolygon(square200(), 'run')!.polygon;
+    expect(ring[0]).toEqual(ring[ring.length - 1]);
+    expect(polygonAreaM2(ring)).toBeGreaterThan(40_000);
   });
 });
 
-// ── calculateRunPACE (currency minting) ──────────────────────────────────────
+describe('computeTier', () => {
+  it('uses the server thresholds', () => {
+    expect(computeTier(4_999)).toBe('patch');
+    expect(computeTier(5_000)).toBe('block');
+    expect(computeTier(50_000)).toBe('district');
+    expect(computeTier(200_000)).toBe('quarter');
+    expect(computeTier(500_000)).toBe('domain');
+  });
+});
+
+// ── PACE ──────────────────────────────────────────────────────────────────────
 
 describe('calculateRunPACE', () => {
-  const base = {
-    distanceKm: 0, newZonesClaimed: 0, stolenZones: 0,
-    streakDays: 0, paceWeeklyEarned: 0, isPremium: false,
-  };
+  const base = { newZonesClaimed: 0, stolenZones: 0, streakDays: 0, paceWeeklyEarned: 0 };
 
-  it('awards 1 PACE per whole kilometre and ignores the remainder', () => {
-    expect(calculateRunPACE({ ...base, distanceKm: 5.9 }).breakdown.fromDistance).toBe(5);
+  it.each([
+    [0.04, 0], [0.9, 0], [1.0, 1], [1.99, 1], [5.0, 5], [10.4, 10], [21.1, 21],
+  ])('%s km pays %s PACE for distance', (km, pace) => {
+    expect(calculateRunPACE({ ...base, distanceKm: km }).breakdown.fromDistance).toBe(pace);
   });
 
-  it('awards per new zone and per stolen zone', () => {
-    const r = calculateRunPACE({ ...base, newZonesClaimed: 2, stolenZones: 3 });
-    expect(r.breakdown.fromNewZones).toBe(2 * GAME_CONFIG.PACE_PER_NEW_ZONE);
-    expect(r.breakdown.fromStolenZones).toBe(3 * GAME_CONFIG.PACE_PER_STOLEN_ZONE);
+  it('pays 5 per new zone and 10 per stolen zone on runs of 200 m or more', () => {
+    const r = calculateRunPACE({ ...base, distanceKm: 3, newZonesClaimed: 1, stolenZones: 2 });
+    expect(r.breakdown).toEqual({ fromDistance: 3, fromNewZones: 5, fromStolenZones: 20, fromStreak: 0 });
+    expect(r.paceEarned).toBe(28);
   });
 
-  it('pays the streak bonus only on 7-day milestones — matching the server', () => {
-    // The server (process-run-territory) awards this only when streakDays % 7 === 0.
-    // A client that paid it on every streak day showed +3 PACE that silently
-    // vanished on sync and tripped the anti-cheat discrepancy log.
-    for (const streakDays of [7, 14, 21, 70]) {
-      expect(calculateRunPACE({ ...base, streakDays }).breakdown.fromStreak)
-        .toBe(GAME_CONFIG.PACE_STREAK_BONUS);
-    }
-    for (const streakDays of [0, 1, 3, 6, 8, 13]) {
-      expect(calculateRunPACE({ ...base, streakDays }).breakdown.fromStreak).toBe(0);
-    }
-  });
-
-  it('sums the breakdown into paceEarned when under the cap', () => {
-    const r = calculateRunPACE({ ...base, distanceKm: 5, newZonesClaimed: 1, stolenZones: 1, streakDays: 7 });
-    const { fromDistance, fromNewZones, fromStolenZones, fromStreak } = r.breakdown;
-    expect(r.paceEarned).toBe(fromDistance + fromNewZones + fromStolenZones + fromStreak);
-    expect(r.cappedAt).toBeUndefined();
-  });
-
-  it('clamps to the free weekly cap and reports where it capped', () => {
-    const r = calculateRunPACE({
-      ...base, distanceKm: 100, paceWeeklyEarned: GAME_CONFIG.PACE_WEEKLY_CAP_FREE - 5,
-    });
-    expect(r.paceEarned).toBe(5);
-    expect(r.cappedAt).toBe(GAME_CONFIG.PACE_WEEKLY_CAP_FREE);
-  });
-
-  it('gives premium runners the higher weekly cap', () => {
-    const params = { ...base, distanceKm: 500, paceWeeklyEarned: 0 };
-    expect(calculateRunPACE({ ...params, isPremium: false }).paceEarned)
-      .toBe(GAME_CONFIG.PACE_WEEKLY_CAP_FREE);
-    expect(calculateRunPACE({ ...params, isPremium: true }).paceEarned)
-      .toBe(GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM);
-  });
-
-  it('never awards negative PACE once the cap is already exhausted', () => {
-    const r = calculateRunPACE({
-      ...base, distanceKm: 10, paceWeeklyEarned: GAME_CONFIG.PACE_WEEKLY_CAP_FREE + 50,
-    });
+  it('pays nothing for zones on a run under 200 m', () => {
+    const r = calculateRunPACE({ ...base, distanceKm: 0.15, newZonesClaimed: 1, stolenZones: 1 });
     expect(r.paceEarned).toBe(0);
   });
 
-  it('earns nothing from a zero-distance, zero-zone run', () => {
-    expect(calculateRunPACE(base).paceEarned).toBe(0);
+  it('pays the streak bonus only when the run moved the streak to a multiple of 7', () => {
+    expect(calculateRunPACE({ ...base, distanceKm: 2, streakDays: 7, streakAdvanced: true }).breakdown.fromStreak).toBe(3);
+    expect(calculateRunPACE({ ...base, distanceKm: 2, streakDays: 7, streakAdvanced: false }).breakdown.fromStreak).toBe(0);
+    expect(calculateRunPACE({ ...base, distanceKm: 2, streakDays: 8, streakAdvanced: true }).breakdown.fromStreak).toBe(0);
+  });
+
+  it('caps free runners at 100 a week and premium at 150', () => {
+    const free = calculateRunPACE({ ...base, distanceKm: 20, paceWeeklyEarned: 90 });
+    expect(free.paceEarned).toBe(10);
+    expect(free.cappedAt).toBe(100);
+    const premium = calculateRunPACE({ ...base, distanceKm: 20, paceWeeklyEarned: 90, tier: 'premium' });
+    expect(premium.paceEarned).toBe(20);
+    expect(premium.cappedAt).toBeUndefined();
+    expect(calculateRunPACE({ ...base, distanceKm: 20, paceWeeklyEarned: 145, tier: 'admin' }).paceEarned).toBe(5);
+  });
+
+  it('agrees with the engine the server runs', () => {
+    const app = calculateRunPACE({ distanceKm: 7.3, newZonesClaimed: 1, stolenZones: 1, streakDays: 14, streakAdvanced: true, paceWeeklyEarned: 40, tier: 'free' });
+    const server = computeRunPace({ distanceM: 7_300, newZones: 1, stolenZones: 1, streakAdvanced: true, streakDays: 14, weeklyEarned: 40, tier: 'free' });
+    expect(app.paceEarned).toBe(server.total);
   });
 });
 
-// ── computeFreshness ──────────────────────────────────────────────────────────
+// ── Freshness, score, rank ────────────────────────────────────────────────────
 
-describe('computeFreshness', () => {
-  const daysAgo = (n: number) => new Date(Date.now() - n * GAME_CONFIG.MS_PER_DAY).toISOString();
+describe('freshness and score', () => {
+  // Frozen clock: decay is floored, so a millisecond between "now" in the test
+  // and "now" in computeFreshness would turn 100 into 99.
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-06T12:00:00Z')); });
+  afterEach(() => { vi.useRealTimers(); });
+  const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString();
 
-  it('leaves freshly defended territory at full strength', () => {
+  it('decays 10 a day, floored, never below 0', () => {
     expect(computeFreshness(daysAgo(0), 100)).toBe(100);
+    expect(computeFreshness(daysAgo(2.5), 100)).toBe(75);
+    expect(computeFreshness(daysAgo(2.55), 100)).toBe(74);
+    expect(computeFreshness(daysAgo(30), 100)).toBe(0);
   });
 
-  it('decays by FRESHNESS_DECAY_PER_DAY per elapsed day', () => {
-    expect(computeFreshness(daysAgo(3), 100)).toBe(100 - 3 * GAME_CONFIG.FRESHNESS_DECAY_PER_DAY);
+  it('fresh zones score more than fading ones of the same size', () => {
+    const fresh = computeTerritoryScore([zone()]);
+    const fading = computeTerritoryScore([zone({ lastDefendedAt: daysAgo(5) })]);
+    expect(fresh).toBeGreaterThan(fading);
   });
 
-  it('floors at zero rather than going negative', () => {
-    expect(computeFreshness(daysAgo(365), 100)).toBe(0);
+  it('does not decay twice when told the zones are already decayed', () => {
+    const z = zone({ freshness: 50, lastDefendedAt: daysAgo(5) });
+    expect(computeTerritoryScore([z], true)).toBeGreaterThan(computeTerritoryScore([z], false));
   });
 
-  it('decays from the stored value, not from 100', () => {
-    expect(computeFreshness(daysAgo(2), 50)).toBe(50 - 2 * GAME_CONFIG.FRESHNESS_DECAY_PER_DAY);
-  });
-});
-
-// ── computeTerritoryScore ─────────────────────────────────────────────────────
-
-describe('computeTerritoryScore', () => {
-  const poly = (areaM2: number, freshness: number, daysSinceDefended: number): TerritoryPolygon => ({
-    id: `t-${areaM2}-${freshness}`,
-    runId: 'r1',
-    ownerId: 'u1',
-    ownerName: 'Runner',
-    polygon: [[0, 0], [0, 1], [1, 1], [0, 0]],
-    areaM2,
-    freshness,
-    lastDefendedAt: new Date(Date.now() - daysSinceDefended * GAME_CONFIG.MS_PER_DAY).toISOString(),
-    claimedAt: new Date().toISOString(),
-    isLoopFill: false,
-    tier: 'block',
-    synced: true,
-  } as TerritoryPolygon);
-
-  it('scores an empty portfolio as zero', () => {
-    expect(computeTerritoryScore([])).toBe(0);
-  });
-
-  it('scales a fully fresh zone by TS_FRESHNESS_SCALE_MAX', () => {
-    expect(computeTerritoryScore([poly(1000, 100, 0)]))
-      .toBeCloseTo(1000 * GAME_CONFIG.TS_FRESHNESS_SCALE_MAX, 6);
-  });
-
-  it('scales a fully stale zone by TS_FRESHNESS_SCALE_MIN', () => {
-    expect(computeTerritoryScore([poly(1000, 0, 0)], true))
-      .toBeCloseTo(1000 * GAME_CONFIG.TS_FRESHNESS_SCALE_MIN, 6);
-  });
-
-  it('does not double-apply decay when alreadyDecayed is true', () => {
-    // The territory map pre-decays for display; passing those values through
-    // without this flag produced a lower score than the dashboard's for the
-    // same data.
-    const stale = [poly(1000, 100, 5)];
-    expect(computeTerritoryScore(stale, true)).toBeGreaterThan(computeTerritoryScore(stale, false));
-  });
-
-  it('sums across multiple zones', () => {
-    const score = computeTerritoryScore([poly(1000, 100, 0), poly(2000, 100, 0)]);
-    expect(score).toBeCloseTo(3000 * GAME_CONFIG.TS_FRESHNESS_SCALE_MAX, 6);
+  it('ranks by lifetime PACE', () => {
+    expect(computeRunnerRank(0)).toBe('pacer');
+    expect(computeRunnerRank(200)).toBe('strider');
+    expect(computeRunnerRank(600)).toBe('chaser');
+    expect(computeRunnerRank(1_500)).toBe('hunter');
+    expect(computeRunnerRank(4_000)).toBe('sovereign');
   });
 });
 
-// ── computeRunnerRank ─────────────────────────────────────────────────────────
+// ── Live HUD ──────────────────────────────────────────────────────────────────
 
-describe('computeRunnerRank', () => {
-  const t = GAME_CONFIG.RUNNER_RANK_THRESHOLDS;
-
-  it.each([
-    [0, 'pacer'], [t.strider - 1, 'pacer'],
-    [t.strider, 'strider'], [t.chaser - 1, 'strider'],
-    [t.chaser, 'chaser'], [t.hunter - 1, 'chaser'],
-    [t.hunter, 'hunter'], [t.sovereign - 1, 'hunter'],
-    [t.sovereign, 'sovereign'], [t.sovereign * 10, 'sovereign'],
-  ])('ranks %i total PACE as %s', (pace, rank) => {
-    expect(computeRunnerRank(pace as number)).toBe(rank);
+describe('live HUD', () => {
+  it('the live estimate grows with the run and ends at the finished claim', () => {
+    const pts = square200();
+    const early = estimateLiveArea(pts.slice(0, 20), 'run');
+    const late = estimateLiveArea(pts, 'run');
+    expect(early).toBeGreaterThan(0);
+    expect(late).toBeGreaterThan(early);
+    expect(late).toBe(buildTerritoryPolygon(pts, 'run')!.areaM2);
   });
 
-  it('never drops below pacer for nonsensical input', () => {
-    expect(computeRunnerRank(-100)).toBe('pacer');
-  });
-});
-
-// ── Live HUD estimators ───────────────────────────────────────────────────────
-
-describe('estimateLiveArea', () => {
-  it('estimates a positive area for an in-progress run', () => {
-    expect(estimateLiveArea(straightRun(25).map(valid), 'run')).toBeGreaterThan(0);
+  it('shows nothing for rides', () => {
+    expect(estimateLiveArea(square200(), 'cycle')).toBe(0);
+    expect(estimateLiveArea(square200(), 'walk')).toBeGreaterThan(0);
   });
 
-  it('reports nothing for non-run activities', () => {
-    expect(estimateLiveArea(straightRun(25).map(valid), 'cycle')).toBe(0);
+  it('spots a closed loop from the trace, not just start/end', () => {
+    // Lollipop: 300 m stem, then a 200 m square that closes far from the start.
+    const pts = trace([[0, 0], [0, 300], [200, 300], [200, 500], [0, 500], [0, 300]]);
+    const last = pts[pts.length - 1];
+    expect(detectLoopClose(last, pts[0], 1_100)).toBe(false);
+    expect(detectLoopClose(last, pts[0], 1_100, pts)).toBe(true);
   });
 
-  it('reports nothing before enough points exist', () => {
-    expect(estimateLiveArea(straightRun(3).map(valid), 'run')).toBe(0);
+  it('needs 200 m before a loop counts', () => {
+    const pts = square200();
+    expect(detectLoopClose(pts[pts.length - 1], pts[0], 150, pts)).toBe(false);
   });
 
-  it('reports nothing when every point is above the speed cap', () => {
-    expect(estimateLiveArea(straightRun(25, 0.0002, { speed: 30 }).map(valid), 'run')).toBe(0);
+  it('flags rival zones within ~100 m', () => {
+    const rival = zone({ polygon: [[LNG0, LAT0], [LNG0 + 0.0005, LAT0], [LNG0, LAT0 + 0.0005], [LNG0, LAT0]] });
+    expect(isNearRivalTerritory(LAT0 + 0.0003, LNG0, [rival])).toBe(true);
+    expect(isNearRivalTerritory(LAT0 + 0.01, LNG0, [rival])).toBe(false);
   });
 });
 
-describe('isNearRivalTerritory', () => {
-  const rival = {
-    polygon: [[0.0, 0.0], [0.0, 0.001], [0.001, 0.001], [0.0, 0.0]],
-  } as unknown as TerritoryPolygon;
-
-  it('detects proximity to a rival vertex', () => {
-    expect(isNearRivalTerritory(0.0001, 0.0001, [rival])).toBe(true);
+describe('helpers', () => {
+  it('haversine: 0.001° of latitude is ~111 m', () => {
+    expect(haversineM({ lat: 51.5, lng: 0 }, { lat: 51.501, lng: 0 })).toBeCloseTo(111.2, 0);
   });
 
-  it('reports no rivals when far away', () => {
-    expect(isNearRivalTerritory(10, 10, [rival])).toBe(false);
-  });
-
-  it('reports no rivals for an empty cache', () => {
-    expect(isNearRivalTerritory(0, 0, [])).toBe(false);
+  it('trail smoothing keeps point count and stays close to the route', () => {
+    const pts = outAndBack600();
+    const smooth = kalmanSmooth(pts);
+    expect(smooth).toHaveLength(pts.length);
+    expect(haversineM(smooth[10], pts[10])).toBeLessThan(30);
   });
 });
 
-describe('detectLoopClose', () => {
-  const origin = { lat: 0, lng: 0 };
-
-  it('detects a closed loop once the minimum distance has been run', () => {
-    expect(detectLoopClose(origin, origin, GAME_CONFIG.MIN_TERRITORY_DIST_M)).toBe(true);
+describe('activity types', () => {
+  it('treats run, trail run, walk and hike as on foot; rides are not', () => {
+    for (const a of ['run', 'trail_run', 'trail', 'walk', 'hike']) expect(isOnFoot(a)).toBe(true);
+    expect(isOnFoot('cycle')).toBe(false);
+    expect(isOnFoot(undefined)).toBe(true);
   });
 
-  it('does not fire before the minimum run distance — standing at the start is not a loop', () => {
-    expect(detectLoopClose(origin, origin, GAME_CONFIG.MIN_TERRITORY_DIST_M - 1)).toBe(false);
-  });
-
-  it('does not fire while still far from the start', () => {
-    const farAway = { lat: 0.01, lng: 0 }; // ~1.1 km north
-    expect(detectLoopClose(farAway, origin, 5_000)).toBe(false);
+  it('keeps riding-speed GPS for rides but drops it for runs', () => {
+    // 2 km in 2 minutes: 16.7 m/s, a fast ride and impossible on foot.
+    const t0 = 1_700_000_000_000;
+    const pts = Array.from({ length: 21 }, (_, i) => ({ lat: 51.5, lng: -0.1 + (i * 100) / 69_400, timestamp: t0 + i * 6_000 }));
+    expect(verifiedDistance(pts, 120, 'cycle').distanceM).toBeGreaterThan(1_900);
+    expect(verifiedDistance(pts, 120, 'run').distanceM).toBeLessThan(1_000);
   });
 });

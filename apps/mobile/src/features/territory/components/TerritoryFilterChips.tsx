@@ -1,43 +1,41 @@
 import React, { useMemo } from 'react';
-import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
+import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { TerritoryFilter } from '../types';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
+import { territoryPalette } from '@theme/territory';
 
 interface Props {
   activeFilter: TerritoryFilter;
-  staleCount:   number;
+  counts:       { mine: number; rivals: number; stale: number };
   onSelect:     (filter: TerritoryFilter) => void;
 }
 
-const FILTERS: { id: TerritoryFilter; label: (n: number) => string }[] = [
-  { id: 'all',    label: ()  => 'All'                          },
-  { id: 'mine',   label: ()  => 'Mine'                         },
-  { id: 'rivals', label: ()  => 'Rivals'                       },
-  { id: 'stale',  label: n  => n > 0 ? `Stale ⚠ ${n}` : 'Stale' },
-];
-
-export function TerritoryFilterChips({ activeFilter, staleCount, onSelect }: Props) {
+/** "All · Mine 9 · Rivals 48 · Fading 2", each with the map's colour dot. */
+export function TerritoryFilterChips({ activeFilter, counts, onSelect }: Props) {
   const C = useTheme();
+  const z = territoryPalette(useIsDark());
   const ss = useMemo(() => mkStyles(C), [C]);
+  const filters: { id: TerritoryFilter; label: string; dot?: string }[] = [
+    { id: 'all',    label: 'All' },
+    { id: 'mine',   label: `Mine ${counts.mine}`,     dot: z.own },
+    { id: 'rivals', label: `Rivals ${counts.rivals}`, dot: z.rival },
+    { id: 'stale',  label: `Fading ${counts.stale}` },
+  ];
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={ss.row}
-      style={{ flex: 1 }}
-    >
-      {FILTERS.map(f => {
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ss.row}>
+      {filters.map(f => {
         const active = activeFilter === f.id;
         return (
           <Pressable
             key={f.id}
             style={[ss.pill, active && ss.pillActive]}
             onPress={() => { onSelect(f.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
           >
-            <Text style={[ss.label, active && ss.labelActive]}>
-              {f.label(staleCount)}
-            </Text>
+            {!!f.dot && <View style={[ss.dot, { backgroundColor: f.dot }]} />}
+            <Text style={[ss.label, active && ss.labelActive]}>{f.label}</Text>
           </Pressable>
         );
       })}
@@ -47,10 +45,11 @@ export function TerritoryFilterChips({ activeFilter, staleCount, onSelect }: Pro
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    row:        { gap: 6, paddingRight: 8 },
-    pill:       { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.50)' },
-    pillActive: { backgroundColor: C.red },
-    label:      { fontFamily: Fonts.regular, fontSize: 13, color: C.alwaysLight },
-    labelActive:{ fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
+    row:        { gap: 8, paddingRight: 8 },
+    pill:       { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+    pillActive: { backgroundColor: C.t1, borderColor: C.t1 },
+    dot:        { width: 8, height: 8, borderRadius: 2 },
+    label:      { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    labelActive:{ color: C.card },
   });
 }

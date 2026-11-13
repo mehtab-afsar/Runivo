@@ -1,11 +1,16 @@
+import { locationGranted } from '@mobile/shared/location/devicePosition';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@shared/services/supabase';
-import { fetchClubs, joinClub, leaveClub, createClub, requestToJoinClub } from '@features/clubs/services/clubService';
+import { fetchClubs, fetchClubsNear, lastKnownPositionIfAllowed, joinClub, leaveClub, createClub, requestToJoinClub } from '@features/clubs/services/clubService';
 import type { Club } from '@features/clubs/types';
 
 export function useClubs() {
   const [clubs, setClubs] = useState<Club[]>([]);
+  // "Near you": closest clubs, or the popular fallback (nearby = false).
+  const [nearClubs, setNearClubs] = useState<Club[]>([]);
+  const [nearby, setNearby] = useState(false);
+  const [locationOn, setLocationOn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,8 +20,15 @@ export function useClubs() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id ?? null);
-      const data = await fetchClubs(user?.id ?? null);
+      const [data, near, granted] = await Promise.all([
+        fetchClubs(user?.id ?? null),
+        lastKnownPositionIfAllowed().then(pos => fetchClubsNear(pos, 5)),
+        locationGranted(),
+      ]);
+      setLocationOn(granted);
       setClubs(data);
+      setNearClubs(near.clubs);
+      setNearby(near.nearby);
     } catch { /* offline */ }
     setLoading(false);
     setRefreshing(false);
@@ -36,11 +48,10 @@ export function useClubs() {
     }
     const { error } = await joinClub(club.id, userId);
     if (error) { Alert.alert('Something went wrong', 'Please try again.'); return; }
-    setClubs((prev) =>
-      prev.map((c) =>
-        c.id === club.id ? { ...c, joined: true, member_count: c.member_count + 1 } : c,
-      ),
-    );
+    const markJoined = (prev: Club[]) =>
+      prev.map((c) => (c.id === club.id ? { ...c, joined: true, member_count: c.member_count + 1 } : c));
+    setClubs(markJoined);
+    setNearClubs(markJoined);
   }, [userId]);
 
   const handleLeaveClub = useCallback(async (club: Club) => {
@@ -52,13 +63,14 @@ export function useClubs() {
         style: 'destructive',
         onPress: async () => {
           await leaveClub(club.id, userId);
-          setClubs((prev) =>
+          const markLeft = (prev: Club[]) =>
             prev.map((c) =>
               c.id === club.id
                 ? { ...c, joined: false, member_count: Math.max(0, c.member_count - 1) }
                 : c,
-            ),
-          );
+            );
+          setNearClubs(markLeft);
+          setClubs(markLeft);
         },
       },
     ]);
@@ -94,6 +106,9 @@ export function useClubs() {
 
   return {
     clubs,
+    nearClubs,
+    nearby,
+    locationOn,
     filteredClubs,
     loading,
     refreshing,

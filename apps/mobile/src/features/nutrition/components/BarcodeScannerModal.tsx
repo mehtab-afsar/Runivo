@@ -169,7 +169,7 @@ const s = StyleSheet.create({
   // permission screen
   permText:    { color: Colors.alwaysLight, fontFamily: Fonts.regular, fontSize: 15, textAlign: 'center', margin: 32 },
   permBtn:     {
-    backgroundColor: '#D93518', borderRadius: 10, paddingVertical: 14,
+    backgroundColor: '#FF4518', borderRadius: 10, paddingVertical: 14,
     paddingHorizontal: 28, alignSelf: 'center',
   },
   permBtnLabel: { color: Colors.alwaysLight, fontFamily: Fonts.semiBold, fontSize: 15 },

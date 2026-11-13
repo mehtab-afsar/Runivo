@@ -1,89 +1,49 @@
-import React, { useRef, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { Footprints, MapTrifold, Fire, Heart, Lightning, Compass, Sword, Shield, Clock, type Icon } from 'phosphor-react-native';
-import type { OnboardingData } from '../types';
-import { mkD, mkShared, type OnboardingD } from './onboardingStyles';
+import React, { useMemo } from 'react';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { Flag } from 'lucide-react-native';
+import { RUNNING_GOALS, type RunningGoal } from '@shared/engine/onboarding';
 import { useTheme, Fonts } from '@theme';
+import { mkStep } from './onboardingStyles';
 
-type IconComp = Icon;
-
-interface Mission {
-  title: string;
-  pace: number;
-  Icon: IconComp;
-}
-
-const MISSIONS: Record<OnboardingData['primaryGoal'], Mission[]> = {
-  get_fit:     [{ title: 'Run 3 km', pace: 90, Icon: Footprints }, { title: 'Claim 5 territories', pace: 125, Icon: MapTrifold }, { title: '3-day streak', pace: 150, Icon: Fire }],
-  lose_weight: [{ title: 'Burn 300 cal', pace: 90, Icon: Fire }, { title: 'Run 5 km this week', pace: 150, Icon: Footprints }, { title: 'Log a meal', pace: 50, Icon: Heart }],
-  run_faster:  [{ title: 'Sub-6 min/km run', pace: 120, Icon: Lightning }, { title: 'Complete a tempo run', pace: 150, Icon: Clock }, { title: 'Beat your last pace', pace: 100, Icon: Sword }],
-  explore:     [{ title: 'Visit 3 new streets', pace: 90, Icon: Compass }, { title: 'Claim 10 zones', pace: 150, Icon: MapTrifold }, { title: 'Run a loop route', pace: 100, Icon: Footprints }],
-  compete:     [{ title: 'Capture an enemy zone', pace: 150, Icon: Sword }, { title: 'Reach top 10 local', pace: 200, Icon: Lightning }, { title: 'Defend your territory', pace: 120, Icon: Shield }],
-};
-
-interface Props {
-  primaryGoal: OnboardingData['primaryGoal'];
-}
-
-export default function FirstMissionStep({ primaryGoal }: Props) {
+/** The last screen: one mission, one button (Start run, in the footer). */
+export default function FirstMissionStep({ goal, weeklyTargetKm }: { goal: RunningGoal | null; weeklyTargetKm: number }) {
   const C = useTheme();
-  const D = useMemo(() => mkD(C), [C]);
-  const shared = useMemo(() => mkShared(C), [C]);
-  const s = useMemo(() => mkStyles(D), [D]);
-  const missions = MISSIONS[primaryGoal];
-
-  const anims = useRef(missions.map(() => ({
-    opacity:    new Animated.Value(0),
-    translateY: new Animated.Value(16),
-  }))).current;
-
-  useEffect(() => {
-    Animated.stagger(100, anims.map(({ opacity, translateY }) =>
-      Animated.parallel([
-        Animated.timing(opacity,    { toValue: 1, duration: 360, useNativeDriver: true }),
-        Animated.spring(translateY, { toValue: 0, damping: 22,   useNativeDriver: true }),
-      ])
-    )).start();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
+  const s = useMemo(() => mkStep(C), [C]);
+  const goalLabel = RUNNING_GOALS.find(g => g.key === goal)?.label ?? 'Get fit';
   return (
-    <View style={shared.stepContent}>
-      <Text style={shared.eyebrow}>First challenge</Text>
-      <Text style={shared.heroTitle}>Your first{'\n'}mission.</Text>
-      <Text style={shared.subtitle}>Chosen for your goal. Complete it in your first week.</Text>
+    <ScrollView contentContainerStyle={s.content}>
+      <Text style={s.eyebrow}>Your first mission</Text>
+      <Text style={s.title}>Claim your{'\n'}first zone</Text>
+      <Text style={s.sub}>Run a loop of at least 1 km. Close it and the streets inside are yours.</Text>
 
-      <View style={s.rule} />
+      <View style={[st.mission, { backgroundColor: C.alwaysDark }]}>
+        <View style={[st.flag, { backgroundColor: C.red }]}>
+          <Flag size={22} color={C.alwaysLight} strokeWidth={2.2} />
+        </View>
+        <Text style={[st.big, { color: C.alwaysLight }]}>1 km loop</Text>
+        <Text style={[st.small, { color: 'rgba(255,255,255,0.65)' }]}>Back to where you started · +5 PACE for the new zone</Text>
+      </View>
 
-      {missions.map((m, i) => {
-        const { Icon } = m;
-        return (
-          <Animated.View
-            key={m.title}
-            style={{ opacity: anims[i].opacity, transform: [{ translateY: anims[i].translateY }] }}
-          >
-            <View style={s.card}>
-              <View style={s.iconWrap}>
-                <Icon size={16} color={D.red} weight="light" />
-              </View>
-              <Text style={s.cardTitle}>{m.title}</Text>
-              <View style={s.paceBadge}>
-                <Text style={s.paceText}>+{m.pace} PACE</Text>
-              </View>
-            </View>
-          </Animated.View>
-        );
-      })}
-    </View>
+      <View style={st.row}>
+        <View style={[s.statCard, st.half]}>
+          <Text style={s.statUnit}>Weekly target</Text>
+          <Text style={[s.statNum, { fontSize: 32 }]}>{weeklyTargetKm} <Text style={s.statUnit}>km</Text></Text>
+        </View>
+        <View style={[s.statCard, st.half]}>
+          <Text style={s.statUnit}>Your goal</Text>
+          <Text style={[st.goal, { color: C.t1 }]} numberOfLines={2}>{goalLabel}</Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
-function mkStyles(D: OnboardingD) {
-  return StyleSheet.create({
-    rule:      { height: 1, backgroundColor: D.div, marginBottom: 0 },
-    card:      { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, borderBottomWidth: 0.5, borderBottomColor: D.div },
-    iconWrap:  { width: 32, height: 32, borderRadius: 8, backgroundColor: D.redLo, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    cardTitle: { fontSize: 14, color: D.t1, flex: 1 },
-    paceBadge: { borderRadius: 4, backgroundColor: D.redLo, paddingHorizontal: 8, paddingVertical: 3 },
-    paceText:  { fontFamily: Fonts.medium, fontSize: 11, color: D.red },
-  });
-}
+const st = StyleSheet.create({
+  mission: { borderRadius: 22, padding: 20, marginTop: 4 },
+  flag:    { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  big:     { fontFamily: Fonts.hero, fontSize: 40, lineHeight: 40, textTransform: 'uppercase' },
+  small:   { fontFamily: Fonts.regular, fontSize: 14, marginTop: 6 },
+  row:     { flexDirection: 'row', gap: 10, marginTop: 10 },
+  half:    { flex: 1, marginTop: 0 },
+  goal:    { fontFamily: Fonts.semiBold, fontSize: 18, marginTop: 6 },
+});

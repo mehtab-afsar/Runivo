@@ -76,7 +76,7 @@ export function AwardsTab({
   const monthKm = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    return runs.filter(r => r.startTime >= monthStart.getTime()).reduce((sum, r) => sum + r.distanceMeters / 1000, 0);
+    return runs.filter(r => r.startTime >= monthStart.getTime()).filter(r => !r.excluded).reduce((sum, r) => sum + r.distanceMeters / 1000, 0);
   }, [runs]);
 
   // Every card gets a progress bar + "{current}/{target}" — awards with a
@@ -177,10 +177,10 @@ function mkStyles(C: AppColors) {
     cardTitle: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
     cardTitleEarned: { fontFamily: Fonts.semiBold, color: C.black },
     cardDesc: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', lineHeight: 15 },
-    cardDate: { fontFamily: Fonts.regular, fontSize: 10, color: C.gold, marginTop: 2 },
+    cardDate: { fontFamily: Fonts.regular, fontSize: 11, color: C.gold, marginTop: 2 },
 
     progressMini: { height: 3, width: '100%', backgroundColor: C.mid, borderRadius: 2, flexDirection: 'row', overflow: 'hidden', marginTop: 4 },
     progressMiniFill: { height: 3, borderRadius: 2 },
-    progressMiniLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    progressMiniLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
   });
 }

@@ -3,7 +3,8 @@ import {
   View, Text, Pressable, StyleSheet, Platform, Animated, Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { House as Home, Rss, User, Play, type Icon } from 'phosphor-react-native';
+import { Play } from 'phosphor-react-native';
+import { House, Hexagon, Menu, UserRound, type LucideIcon } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -13,22 +14,23 @@ import { useCoachNav } from './CoachNavContext';
 const TAB_ENABLED: Record<string, boolean> = {
   Dashboard: FEATURES.DASHBOARD,
   Feed:      FEATURES.SOCIAL_FEED,
+  Map:       true,
   Run:       FEATURES.RUN_TRACKING,
-  Coach:     FEATURES.AI_COACH,
   Profile:   FEATURES.PROFILE,
 };
 
-type NonRunIcon = 'Home' | 'Rss' | 'PaceX' | 'User';
-const ICON_MAP: Record<Exclude<NonRunIcon, 'PaceX'>, Icon> = {
-  Home, Rss, User,
+type NonRunIcon = 'Home' | 'Rss' | 'PaceX' | 'User' | 'Map';
+// Mock tab icons: house, hexagon (a zone), three lines (feed), person.
+const ICON_MAP: Record<Exclude<NonRunIcon, 'PaceX'>, LucideIcon> = {
+  Home: House, Rss: Menu, User: UserRound, Map: Hexagon,
 };
 
 const TAB_META: { label: string; icon: NonRunIcon | 'Run' }[] = [
-  { label: 'HOME',    icon: 'Home'  },
-  { label: 'FEED',    icon: 'Rss'   },
-  { label: 'RUN',     icon: 'Run'   },
-  { label: 'PACE',    icon: 'PaceX' },
-  { label: 'PROFILE', icon: 'User'  },
+  { label: 'Home', icon: 'Home' },
+  { label: 'Map',  icon: 'Map'  },
+  { label: 'Run',  icon: 'Run'  },
+  { label: 'Feed', icon: 'Rss'  },
+  { label: 'You',  icon: 'User' },
 ];
 
 // Approximate tab bar content height (excluding safe area padding).
@@ -102,19 +104,13 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                   <View style={[s.runCircle, focused && s.runCircleActive]}>
                     <Play size={20} color={C.alwaysLight} weight="fill" />
                   </View>
-                  <Text
-                    style={[s.label, s.labelActive, { color: C.red }]} maxFontSizeMultiplier={1.2}
-                    accessibilityElementsHidden importantForAccessibility="no"
-                  >
-                    {meta.label}
-                  </Text>
                 </Pressable>
               );
             }
 
             const isPaceX  = meta.icon === 'PaceX';
             const enabled  = TAB_ENABLED[route.name] !== false;
-            const color    = enabled && focused ? C.red : C.t3;
+            const color    = enabled && focused ? C.t1 : C.t3;
             const IconComp = isPaceX ? null : ICON_MAP[meta.icon as Exclude<NonRunIcon, 'PaceX'>];
 
             return (
@@ -128,7 +124,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                   // the Pressable's accessibilityLabel (meta.label) instead, so this
                   // decorative glyph itself must not also be announced.
                   ? <Text style={{ fontFamily: Fonts.bold, fontSize: 22, color, lineHeight: 26 }} maxFontSizeMultiplier={1.2} accessibilityElementsHidden importantForAccessibility="no">X</Text>
-                  : <IconComp size={22} color={color} weight={focused ? 'regular' : 'light'} />
+                  : <IconComp size={20} color={color} strokeWidth={1.8} />
                 }
                 {enabled ? (
                   <Text
@@ -157,21 +153,20 @@ function mkStyles(C: AppColors) {
       // No overflow:hidden here — the floating red Run button (runCircle) pokes
       // above this view via a negative margin, and clipping would cut it off.
       // A rounded background still renders correctly without it.
-      position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.bg,
-      borderTopLeftRadius: 26, borderTopRightRadius: 26,
-      shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: -4 },
+      position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.95)',
     },
     // Inset past the rounded corners so the hairline doesn't poke out past the curve.
-    topBorder:       { height: 0.5, backgroundColor: C.border, marginHorizontal: 26 },
-    row:             { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 6 },
+    topBorder:       { height: 1, backgroundColor: C.border },
+    row:             { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 10, paddingHorizontal: 8 },
     tab:             { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 4 },
     // 10px tracked-uppercase floor — 9px system font was both illegible and an SF leak.
-    label:           { fontFamily: Fonts.regular, fontSize: 10, letterSpacing: 1 },
+    label:           { fontFamily: Fonts.medium, fontSize: 10 },
     labelActive:     { fontFamily: Fonts.medium },
     soonBadge:       { backgroundColor: C.orange, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
-    soonText:        { fontFamily: Fonts.bold, fontSize: 10, color: C.alwaysLight, letterSpacing: 0.5 },
-    runOuter:        { flex: 1, alignItems: 'center', gap: 5, paddingBottom: 4 },
-    runCircle:       { width: 54, height: 54, borderRadius: 27, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: -20, shadowColor: C.red, shadowOpacity: 0.38, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+    soonText:        { fontFamily: Fonts.bold, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.5 },
+    runOuter:        { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 2 },
+    // 58pt button with a 5pt ring in the page colour, as in the mock.
+    runCircle:       { width: 68, height: 68, borderRadius: 34, borderWidth: 5, borderColor: C.bg, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: -27, shadowColor: C.red, shadowOpacity: 0.45, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
     runCircleActive: { shadowOpacity: 0.55, shadowRadius: 16 },
   });
 }

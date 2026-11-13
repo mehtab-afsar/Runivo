@@ -16,6 +16,8 @@ export interface RunEvent {
   time: string;
   location: string;
   distance?: string;
+  /** Raw distance in metres, for "Train for this". */
+  distanceM?: number;
   participants: number;
   organizer?: string;
   source: EventSource;

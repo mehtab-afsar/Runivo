@@ -8,6 +8,8 @@ export default defineConfig({
     include: [
       'packages/shared/src/**/*.test.ts',
       'apps/mobile/src/**/*.test.ts',
+      // Pure helpers of edge functions (no Deno APIs).
+      'supabase/functions/**/*.test.ts',
     ],
     exclude: [
       '**/node_modules/**',

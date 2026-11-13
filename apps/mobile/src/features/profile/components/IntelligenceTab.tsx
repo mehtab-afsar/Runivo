@@ -63,10 +63,10 @@ function mkChartStyles(C: AppColors) {
     chartCard: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16 },
     bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 112 },
     barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: 112 },
-    barKm: { fontFamily: Fonts.light, fontSize: 10, color: C.t3, marginBottom: 2 },
+    barKm: { fontFamily: Fonts.light, fontSize: 11, color: C.t3, marginBottom: 2 },
     barTrack: { width: '100%', height: 80, justifyContent: 'flex-end', flexDirection: 'column' },
     barFill: { borderRadius: 3, width: '100%' },
-    barLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4 },
+    barLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 4 },
     barLabelActive: { fontFamily: Fonts.medium, color: C.red },
   });
 }
@@ -114,7 +114,7 @@ function mkZonesStyles(C: AppColors) {
     zoneRow:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
     zoneLeft:     { width: 72 },
     zoneLabel:    { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
-    zoneRange:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    zoneRange:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     zoneBarWrap:  { flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, flexDirection: 'row', overflow: 'hidden' },
     zoneBarFill:  { height: 6, backgroundColor: C.red, borderRadius: 3 },
     zoneTime:     { fontFamily: Fonts.light, fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
@@ -158,7 +158,7 @@ function mkRaceStyles(C: AppColors) {
     card:  { flex: 1, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, alignItems: 'center' },
     val:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
     label: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
-    note:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
+    note:  { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
   });
 }
 
@@ -212,12 +212,12 @@ function mkConsistencyStyles(C: AppColors) {
     barCol:        { flex: 1, alignItems: 'center', height: 80 },
     barTrack:      { width: '100%', flex: 1, flexDirection: 'column' },
     barFill:       { borderRadius: 3, width: '100%' },
-    barLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4, textAlign: 'center' },
+    barLabel:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 4, textAlign: 'center' },
     barLabelActive:{ fontFamily: Fonts.medium, color: C.red },
     statsRow:      { flexDirection: 'row', borderTopWidth: 0.5, borderTopColor: C.border, paddingTop: 10, gap: 0 },
     stat:          { flex: 1, alignItems: 'center' },
     statVal:       { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black, fontVariant: ['tabular-nums'] },
-    statLbl:       { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+    statLbl:       { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
   });
 }
 
@@ -277,7 +277,7 @@ export function IntelligenceTab({ runs, personalRecords }: Props) {
             <Text style={s.insightEmptyText}>Log your first run to unlock Pace intelligence.</Text>
           </View>
         )}
-        <Pressable onPress={() => navigation.navigate('Main', { screen: 'Coach' })} hitSlop={8} style={s.coachLinkWrap}>
+        <Pressable onPress={() => navigation.navigate('Coach')} hitSlop={8} style={s.coachLinkWrap}>
           <Text style={s.coachLink}>Ask Pace on the Coach tab →</Text>
         </Pressable>
       </View>

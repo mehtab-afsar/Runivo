@@ -10,7 +10,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { GAME_CONFIG } from './config';
-import { collectLoginBonus, collectPassiveIncome } from './passiveIncome';
+import { collectLoginBonus } from './passiveIncome';
 import type { StoredPlayer } from './store';
 
 const PER_ZONE = GAME_CONFIG.LOGIN_BONUS_COINS_PER_TERRITORY;
@@ -91,10 +91,3 @@ describe('collectLoginBonus', () => {
   });
 });
 
-describe('collectPassiveIncome (deprecated alias)', () => {
-  it('delegates to collectLoginBonus', () => {
-    const { coinsEarned, updatedPlayer } = collectPassiveIncome(player(), 4);
-    expect(coinsEarned).toBe(4 * PER_ZONE);
-    expect(updatedPlayer.lastLoginBonusDate).toBe(today);
-  });
-});

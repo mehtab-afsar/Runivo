@@ -13,13 +13,13 @@ export const Spacing = {
   '4xl': 40,
 
   /** Standard horizontal screen gutter — use for every screen-level container. */
-  gutter: 20,
+  gutter: 18,
 
   radius: {
     xs:   6,
     sm:   10,
     md:   12,
-    lg:   14,
+    lg:   16,
     xl:   20,
     full: 999,
   },

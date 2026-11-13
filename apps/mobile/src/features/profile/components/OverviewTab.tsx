@@ -74,11 +74,11 @@ export function OverviewTab({
   // (AwardsTab's own km-based targets) can say how close you are, so those
   // are the only candidates; pace-category awards are excluded on top of that
   // since nothing in the app can currently grant them (no best-pace tracking).
-  const totalKm = useMemo(() => runs.reduce((s, r) => s + r.distanceMeters / 1000, 0), [runs]);
+  const totalKm = useMemo(() => runs.filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0), [runs]);
   const monthKm = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    return runs.filter(r => r.startTime >= monthStart.getTime()).reduce((s, r) => s + r.distanceMeters / 1000, 0);
+    return runs.filter(r => r.startTime >= monthStart.getTime()).filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0);
   }, [runs]);
 
   const featuredAwards = useMemo(() => {
@@ -176,20 +176,20 @@ export function OverviewTab({
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 4 },
-    sectionTitle:   { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    sectionAction:  { fontFamily: Fonts.regular, fontSize: 12, color: C.red },
+    sectionTitle:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    sectionAction:  { fontFamily: Fonts.medium, fontSize: 13, color: C.red },
 
-    pinnedCard:     { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, marginBottom: 24, overflow: 'hidden' },
+    pinnedCard:     { backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, marginBottom: 24, overflow: 'hidden' },
     pinnedMain:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
-    pinnedDist:     { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, letterSpacing: -0.5 },
+    pinnedDist:     { fontFamily: Fonts.numeric, fontSize: 32, lineHeight: 32, color: C.t1, fontVariant: ['tabular-nums'] },
     pinnedMeta:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 3 },
     pinnedDate:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     pinnedArrow:    { fontSize: 20, color: C.t3 },
     unpinRow:       { borderTopWidth: 0.5, borderTopColor: C.border, paddingVertical: 11, alignItems: 'center' },
     unpinText:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
 
-    pinnedEmpty:     { backgroundColor: C.stone, borderRadius: 14, padding: 20, marginBottom: 24, alignItems: 'center', gap: 6 },
-    pinnedEmptyTitle:{ fontFamily: Fonts.medium, fontSize: 14, color: C.black },
+    pinnedEmpty:     { backgroundColor: C.stone, borderRadius: 16, padding: 20, marginBottom: 24, alignItems: 'center', gap: 6 },
+    pinnedEmptyTitle:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     pinnedEmptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 17 },
 
     awardsScroll:   { marginBottom: 24 },
@@ -197,19 +197,19 @@ function mkStyles(C: AppColors) {
     // Dimmed/locked — this strip previews what's next, not what's earned;
     // the full trophy case lives on the Awards tab.
     awardChip:      { alignItems: 'center', gap: 6, width: 76, opacity: 0.7 },
-    awardIconWrap:  { width: 48, height: 48, borderRadius: 12, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    awardProgress:  { fontFamily: Fonts.regular, fontSize: 9.5, color: C.t3, fontVariant: ['tabular-nums'] },
-    awardLabel:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t2, textAlign: 'center' },
+    awardIconWrap:  { width: 52, height: 52, borderRadius: 26, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    awardProgress:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, fontVariant: ['tabular-nums'] },
+    awardLabel:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, textAlign: 'center' },
 
-    runCard:        { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, marginBottom: 8 },
+    runCard:        { backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, marginBottom: 8 },
     runLeft:        { gap: 3 },
-    runDist:        { fontFamily: Fonts.semiBold, fontSize: 17, color: C.black, letterSpacing: -0.3 },
+    runDist:        { fontFamily: Fonts.numeric, fontSize: 24, lineHeight: 26, color: C.t1, fontVariant: ['tabular-nums'] },
     runMeta:        { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
     runRight:       { alignItems: 'flex-end', gap: 6 },
     runDate:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     runArrow:       { fontSize: 18, color: C.t3 },
 
-    runsEmptyCard:  { backgroundColor: C.stone, borderRadius: 14, padding: 18, alignItems: 'center', marginBottom: 8 },
-    runsEmptyText:  { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textAlign: 'center', lineHeight: 18 },
+    runsEmptyCard:  { backgroundColor: C.stone, borderRadius: 16, padding: 18, alignItems: 'center', marginBottom: 8 },
+    runsEmptyText:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
   });
 }

@@ -1,130 +1,171 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { MapPin } from 'phosphor-react-native';
+/**
+ * Location (while using the app): ask with the reason first, then show the
+ * runner's own neighbourhood with the real zones and rivals around them.
+ * PRD: "This is the moment they get it." Background ("Always") location is
+ * asked later, on the first run, when they lock the screen.
+ */
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Linking, Pressable, ScrollView } from 'react-native';
+import { MapPin } from 'lucide-react-native';
 import * as Location from 'expo-location';
-import { track } from '@shared/services/analytics';
-import { mkD, type OnboardingD } from './onboardingStyles';
-import { useTheme, Fonts } from '@theme';
-import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
-
 import ML from '@maplibre/maplibre-react-native';
+import { track } from '@shared/services/analytics';
+import { supabase } from '@shared/services/supabase';
+import { fetchRivalPolygons } from '@features/territory/services/territoryService';
 import { MapStyleUrl } from '@theme/maps';
+import { territoryPalette, territoryLayerStyles } from '@theme/territory';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
+import { mkStep } from './onboardingStyles';
+import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 
-const DARK_STYLE = MapStyleUrl.darkMatter;
-const LONDON: [number, number] = [-0.1278, 51.5074];
+export type LocationPhase = 'prime' | 'asking' | 'granted' | 'denied';
 
 interface Props {
-  onLocationCaptured?: (loc: { lat: number; lng: number }, country: string | null) => void;
+  phase: LocationPhase;
+  onPhase: (p: LocationPhase) => void;
+  onLocationCaptured: (loc: { lat: number; lng: number }, country: string | null) => void;
 }
 
-export default function CityMapPreviewStep({ onLocationCaptured }: Props) {
-  const C = useTheme();
-  const D = useMemo(() => mkD(C), [C]);
-  const ss = useMemo(() => mkStyles(D), [D]);
-  // Priming screen shown first — the OS location dialog only fires once the
-  // user has actually seen why it's being asked, rather than cold-prompting
-  // on step mount. Priming screens are documented to lift grant rates.
-  const [primed, setPrimed] = useState(false);
-  const [coord, setCoord] = useState<[number, number] | null>(null);
-  // MapLibre's native user-location layer raises an NSException from
-  // -[MLRNNativeUserLocation setMap:] if it is attached without location
-  // authorization, which aborts the process. Rendering it unconditionally meant
-  // tapping "Don't Allow" on this step hard-crashed the app on a real device,
-  // not just the simulator. Only mount it once permission is actually granted.
-  const [locationGranted, setLocationGranted] = useState(false);
+/** About 1.5 km around the runner. */
+const SPAN_DEG = 0.014;
 
+export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured }: Props) {
+  const C = useTheme();
+  const isDark = useIsDark();
+  const baseStyle = useRunivoMapStyle(isDark ? MapStyleUrl.darkMatter : MapStyleUrl.positron);
+  const step = useMemo(() => mkStep(C), [C]);
+  const s = useMemo(() => mkStyles(C), [C]);
+  const zoneStyles = useMemo(() => territoryLayerStyles(territoryPalette(isDark)), [isDark]);
+  const [coord, setCoord] = useState<[number, number] | null>(null);
+  const [zones, setZones] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [rivals, setRivals] = useState(0);
+
+  // The OS prompt only fires once they've read why (footer "Allow location").
   useEffect(() => {
-    if (!primed) return;
+    if (phase !== 'asking') return;
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { setCoord(LONDON); return; }
-      setLocationGranted(true);
-      // No lat/lng in properties — just the grant event itself.
+      if (status !== 'granted') { onPhase('denied'); track('location_permission_denied'); return; }
       track('location_permission_granted');
-
       const last = await Location.getLastKnownPositionAsync();
-      const pos  = last ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest });
+      const pos = last ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const { latitude, longitude } = pos.coords;
       setCoord([longitude, latitude]);
-
-      // Best-effort: report the real (permission-granted) position up so onboarding
-      // can persist it as the player's last known location for city-rank/leaderboard
-      // proximity. Never blocks the map preview itself.
+      onPhase('granted');
       try {
         const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
-        onLocationCaptured?.({ lat: latitude, lng: longitude }, address?.country ?? null);
+        onLocationCaptured({ lat: latitude, lng: longitude }, address?.isoCountryCode ?? address?.country ?? null);
       } catch {
-        onLocationCaptured?.({ lat: latitude, lng: longitude }, null);
+        onLocationCaptured({ lat: latitude, lng: longitude }, null);
       }
-    })().catch(() => setCoord(LONDON));
-  }, [primed]); // eslint-disable-line react-hooks/exhaustive-deps
+      // The real zones around them. Best effort: an empty map still makes the point.
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const polys = await fetchRivalPolygons({
+          minLat: latitude - SPAN_DEG, maxLat: latitude + SPAN_DEG,
+          minLng: longitude - SPAN_DEG, maxLng: longitude + SPAN_DEG,
+        }, user?.id ?? '');
+        setRivals(new Set(polys.map(p => p.ownerId)).size);
+        setZones({
+          type: 'FeatureCollection',
+          features: polys.filter(p => p.polygon.length >= 4).map(p => ({
+            type: 'Feature',
+            geometry: { type: 'Polygon', coordinates: [p.polygon] },
+            properties: { isOwn: false, freshness: p.freshness, isNew: false },
+          })),
+        });
+      } catch { setZones({ type: 'FeatureCollection', features: [] }); }
+    })().catch(() => onPhase('denied'));
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!primed) {
+  if (phase === 'prime' || phase === 'asking') {
     return (
-      <View style={ss.primeWrap}>
-        <View style={ss.primeIcon}>
-          <MapPin size={28} color={D.red} weight="light" />
+      <ScrollView contentContainerStyle={step.content}>
+        <Text style={step.eyebrow}>Your area</Text>
+        <Text style={step.title}>Your streets{'\n'}are the board</Text>
+        <Text style={step.sub}>
+          Runivo uses your location while you’re running to draw your route and claim ground. We never show where you live, and live sharing is off unless you turn it on.
+        </Text>
+        <View style={[step.card, { alignItems: 'flex-start' }]}>
+          <View style={[step.cardIcon, step.cardIconOn]}><MapPin size={22} color={C.red} strokeWidth={2} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={step.cardTitle}>Next, your phone will ask</Text>
+            <Text style={step.cardSub}>Choose “Allow while using the app”. That’s all Runivo needs to start.</Text>
+          </View>
         </View>
-        <Text style={ss.primeEyebrow}>One quick thing</Text>
-        <Text style={ss.primeTitle}>We use your route to claim territory in real time.</Text>
-        <Text style={ss.primeSub}>Your next screen shows exactly what that looks like — your phone will ask to confirm.</Text>
-        <View style={ss.primeCta}>
-          <PrimaryButton label="Continue" onPress={() => setPrimed(true)} variant="dark" fullWidth />
-        </View>
-      </View>
+        {phase === 'asking' && <ActivityIndicator color={C.red} style={{ marginTop: 18 }} />}
+      </ScrollView>
     );
   }
 
-  const center = coord ?? LONDON;
+  if (phase === 'denied') {
+    return (
+      <ScrollView contentContainerStyle={step.content}>
+        <Text style={step.eyebrow}>Your area</Text>
+        <Text style={step.title}>Location is off</Text>
+        <Text style={step.sub}>
+          Without it Runivo can’t draw your route or claim zones. You can carry on now and turn it on in Settings before your first run.
+        </Text>
+        <Pressable onPress={() => Linking.openSettings()} style={[step.chip, step.chipOn, { alignSelf: 'flex-start' }]} accessibilityRole="button">
+          <Text style={[step.chipText, step.chipTextOn]}>Open Settings</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
 
   return (
-    <View style={ss.container}>
+    <View style={s.container}>
       {coord ? (
         <ML.MapView
           style={{ flex: 1 }}
-          mapStyle={DARK_STYLE}
-          zoomEnabled={false}
-          scrollEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          logoEnabled={false}
-          attributionEnabled
+          mapStyle={baseStyle}
+          zoomEnabled={false} scrollEnabled={false} rotateEnabled={false} pitchEnabled={false}
+          logoEnabled={false} attributionEnabled
         >
-          <ML.Camera centerCoordinate={center} zoomLevel={14} animationDuration={0} />
-          {locationGranted && <ML.UserLocation visible renderMode="native" />}
+          <ML.Camera centerCoordinate={coord} zoomLevel={14.2} animationDuration={0} />
+          {zones && zones.features.length > 0 && (
+            <ML.ShapeSource id="onb-zones" shape={zones}>
+              <ML.FillLayer id="onb-zone-fill" style={zoneStyles.fill as any} />
+              <ML.LineLayer id="onb-zone-line" style={zoneStyles.line as any} />
+            </ML.ShapeSource>
+          )}
+          <ML.UserLocation visible renderMode="native" />
         </ML.MapView>
       ) : (
-        <View style={ss.loading}>
-          <ActivityIndicator size="large" color={D.red} />
-        </View>
+        <View style={s.loading}><ActivityIndicator color={C.red} /></View>
       )}
 
-      <View style={ss.textOverlay}>
-        <Text style={ss.overlayEyebrow}>Your empire</Text>
-        <Text style={ss.overlayTitle}>Your city awaits.</Text>
-        <Text style={ss.overlaySub}>Every run claims new ground. Start anywhere.</Text>
+      <View style={s.sheet}>
+        <Text style={step.eyebrow}>Around you</Text>
+        {zones == null ? (
+          <ActivityIndicator color={C.red} style={{ alignSelf: 'flex-start' }} />
+        ) : zones.features.length > 0 ? (
+          <>
+            <Text style={s.big}>{zones.features.length} {zones.features.length === 1 ? 'zone' : 'zones'} nearby</Text>
+            <Text style={s.body}>
+              {rivals} {rivals === 1 ? 'runner holds' : 'runners hold'} ground within about a kilometre. Faded ones are easy to take.
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={s.big}>Nobody owns this yet</Text>
+            <Text style={s.body}>No one has claimed your streets. The first loop you close here is yours.</Text>
+          </>
+        )}
       </View>
     </View>
   );
 }
 
-function mkStyles(D: OnboardingD) {
+function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    // Fixed dark — matches DARK_STYLE, the map's own always-dark style, shown
-    // briefly before tiles load. Not tied to the app theme.
-    container:      { flex: 1, backgroundColor: D.alwaysDark },
-    loading:        { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    textOverlay:    { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: D.bg, paddingHorizontal: 24, paddingTop: 20, paddingBottom: 16 },
-    overlayEyebrow: { fontFamily: Fonts.medium, fontSize: 9, color: D.red, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 6 },
-    overlayTitle:   { fontFamily: Fonts.display, fontSize: 28, color: D.t1, marginBottom: 8, lineHeight: 30 },
-    overlaySub:     { fontSize: 13, color: D.t2, lineHeight: 19 },
-
-    // Priming screen
-    primeWrap:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-    primeIcon:    { width: 56, height: 56, borderRadius: 28, backgroundColor: D.redLo, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-    primeEyebrow: { fontFamily: Fonts.medium, fontSize: 10, color: D.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 },
-    primeTitle:   { fontFamily: Fonts.display, fontSize: 26, color: D.t1, textAlign: 'center', lineHeight: 32, marginBottom: 10 },
-    primeSub:     { fontSize: 14, color: D.t2, textAlign: 'center', lineHeight: 20, maxWidth: 280, marginBottom: 32 },
-    primeCta:     { width: '100%' },
+    container: { flex: 1, backgroundColor: C.bg },
+    loading:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    sheet:     {
+      position: 'absolute', left: 14, right: 14, bottom: 12, backgroundColor: C.card, borderRadius: 22, padding: 18,
+      shadowColor: '#14120F', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6,
+    },
+    big:       { fontFamily: Fonts.hero, fontSize: 34, lineHeight: 34, textTransform: 'uppercase', color: C.t1 },
+    body:      { fontFamily: Fonts.regular, fontSize: 14.5, lineHeight: 20, color: C.t2, marginTop: 6 },
   });
 }

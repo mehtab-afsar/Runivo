@@ -1,59 +1,73 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
-import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
+import { useTheme, Fonts, type AppColors } from '@theme';
+import { avatarColor } from '@shared/lib/avatarUtils';
 import type { Club } from '../types';
-import { getClubTier } from '../clubTier';
 
 interface Props {
   club: Club;
+  /** Rank by total km among all clubs (1-based). */
   rank?: number;
+  /** The runner's top club gets the black hero card; the rest are white cards. */
+  variant?: 'hero' | 'card';
   onPress: () => void;
 }
 
-/**
- * "My clubs" card — compact, two-up grid tile.
- *
- * Used to be a full-width editorial hero (26px display name, stats row,
- * ~180px tall) — with more than one or two clubs it read as an endless
- * stack of near-identical black slabs. This is a tile: badge, name, tier,
- * two stats, sized so two sit side by side — a dashboard of your clubs,
- * not a feed of them.
- */
-export const ClubHeroCard = React.memo(function ClubHeroCard({ club, rank, onPress }: Props) {
+/** Up to three initials, e.g. "Hyde Park Hustlers" → "HPH". */
+export function clubInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const letters = words.length > 1 ? words.map(w => w[0]) : [...(words[0] ?? '?')].slice(0, 2);
+  return letters.slice(0, 3).join('').toUpperCase();
+}
+
+export function ClubInitialsTile({ name, size = 52 }: { name: string; size?: number }) {
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: size * 0.27, backgroundColor: avatarColor(name),
+      alignItems: 'center', justifyContent: 'center',
+    }}>
+      <Text style={{ fontFamily: Fonts.bold, fontSize: size * 0.3, color: '#FFFFFF' }}>{clubInitials(name)}</Text>
+    </View>
+  );
+}
+
+function rankLine(rank: number | undefined, city: string | null | undefined): string | null {
+  if (!rank) return null;
+  return city ? `No. ${rank} in ${city}` : `No. ${rank} overall`;
+}
+
+/** A club the runner belongs to, as in the design: hero for the top club, white card for the rest. */
+export const ClubHeroCard = React.memo(function ClubHeroCard({ club, rank, variant = 'hero', onPress }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
-  const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(club.badge_emoji);
-  const tier = getClubTier(club.total_km);
+  const meta = `${club.member_count} ${club.member_count === 1 ? 'member' : 'members'} · ${Math.round(club.total_km).toLocaleString()} km`;
+  const standing = rankLine(rank, club.city);
+
+  if (variant === 'card') {
+    return (
+      <Pressable style={({ pressed }) => [s.card, pressed && s.pressed]} onPress={onPress}
+        accessibilityRole="button" accessibilityLabel={`${club.name}, ${meta}`}>
+        <ClubInitialsTile name={club.name} size={44} />
+        <View style={{ flex: 1 }}>
+          <Text style={s.cardName} numberOfLines={1}>{club.name}</Text>
+          <Text style={s.cardMeta} numberOfLines={1}>{standing ? `${meta} · ${standing}` : meta}</Text>
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
-    <Pressable
-      style={({ pressed }) => [s.card, pressed && s.pressed]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${club.name}, ${club.member_count} members`}
-    >
-      <View style={s.topRow}>
-        <View style={s.badge}>
-          <BadgeIcon size={16} color={badgeColor} weight="light" />
+    <Pressable style={({ pressed }) => [s.hero, pressed && s.pressed]} onPress={onPress}
+      accessibilityRole="button" accessibilityLabel={`${club.name}, ${meta}`}>
+      {standing && (
+        <View style={s.rankChip}><Text style={s.rankText}>{standing}</Text></View>
+      )}
+      <View style={s.heroRow}>
+        <ClubInitialsTile name={club.name} size={52} />
+        <View style={{ flex: 1 }}>
+          <Text style={s.heroName} numberOfLines={1}>{club.name}</Text>
+          <Text style={s.heroMeta} numberOfLines={1}>{meta}</Text>
         </View>
-        {rank !== undefined && (
-          <Text style={s.rank}><Text style={s.rankHash}>#</Text>{rank}</Text>
-        )}
-      </View>
-
-      <Text style={s.name} numberOfLines={1}>{club.name}</Text>
-      <View style={[s.tierChip, { backgroundColor: tier.bg }]}>
-        <Text style={[s.tierText, { color: tier.fg }]}>{tier.label}</Text>
-      </View>
-
-      <View style={s.statsRow}>
-        <Text style={s.statValue}>{club.member_count}</Text>
-        <Text style={s.statLabel}>{club.member_count === 1 ? 'member' : 'members'}</Text>
-      </View>
-      <View style={s.statsRow}>
-        <Text style={s.statValue}>{Math.round(club.total_km).toLocaleString()}</Text>
-        <Text style={s.statLabel}>km</Text>
       </View>
     </Pressable>
   );
@@ -61,25 +75,18 @@ export const ClubHeroCard = React.memo(function ClubHeroCard({ club, rank, onPre
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card: {
-      flex: 1,
-      backgroundColor: C.alwaysDark,
-      borderRadius: Spacing.radius.lg,
-      padding: 14,
+    hero:     { backgroundColor: C.alwaysDark, borderRadius: 16, padding: 16, gap: 14 },
+    pressed:  { opacity: 0.92, transform: [{ scale: 0.99 }] },
+    rankChip: { alignSelf: 'flex-start', backgroundColor: C.red, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    rankText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysLight },
+    heroRow:  { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    heroName: { fontFamily: Fonts.bold, fontSize: 21, lineHeight: 22, color: C.alwaysLight, letterSpacing: -0.5 },
+    heroMeta: { fontFamily: Fonts.regular, fontSize: 12.5, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+    card:     {
+      flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderRadius: 16, padding: 16,
+      shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1,
     },
-    pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
-
-    topRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-    badge:   { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    rank:    { fontFamily: Fonts.semiBold, fontSize: 13, color: C.red },
-    rankHash:{ fontFamily: Fonts.medium, fontSize: 10, color: 'rgba(255,255,255,0.4)' },
-
-    name:    { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight, marginBottom: 6 },
-    tierChip:{ alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 12 },
-    tierText:{ fontFamily: Fonts.bold, fontSize: 9, letterSpacing: 0.6, textTransform: 'uppercase' },
-
-    statsRow:  { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-    statValue: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
-    statLabel: { fontFamily: Fonts.regular, fontSize: 10.5, color: 'rgba(255,255,255,0.45)' },
+    cardName: { fontFamily: Fonts.bold, fontSize: 19, lineHeight: 20, color: C.t1, letterSpacing: -0.45 },
+    cardMeta: { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, marginTop: 4 },
   });
 }

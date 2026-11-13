@@ -92,12 +92,21 @@ export const MAP_STYLE_IDS: MapStyleId[] = MAP_STYLES.map(s => s.id);
 
 const BY_ID: Record<string, string> = Object.fromEntries(MAP_STYLES.map(s => [s.id, s.url]));
 
+/** Extra map styles are part of Runivo Plus (PRD "Free vs Runivo Plus"). */
+export const PLUS_MAP_STYLE_IDS: ReadonlySet<MapStyleId> = new Set<MapStyleId>(['Terrain', 'Satellite']);
+
+export function isPlusMapStyle(idOrUrl: string | null | undefined): boolean {
+  if (!idOrUrl) return false;
+  return MAP_STYLES.some(s => PLUS_MAP_STYLE_IDS.has(s.id) && (s.id === idOrUrl || s.url === idOrUrl));
+}
+
 /**
  * Resolve a persisted `settings.mapStyle` value to a style URL/JSON.
  * `isDark` only matters when the user has never explicitly picked a style —
  * an explicit choice (including a light one, e.g. Satellite/Terrain) always wins.
  */
-export function mapStyleUrlFor(id: string | undefined | null, isDark = false): string {
-  if (id && BY_ID[id]) return BY_ID[id];
+export function mapStyleUrlFor(id: string | undefined | null, isDark = false, plus = true): string {
+  // A saved Plus style falls back to the default once Plus has lapsed.
+  if (id && BY_ID[id] && (plus || !isPlusMapStyle(id))) return BY_ID[id];
   return isDark ? MapStyleUrl.darkMatter : MapStyleUrl.positron;
 }

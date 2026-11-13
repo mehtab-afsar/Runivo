@@ -1,3 +1,4 @@
+import { sportFor } from '@features/run/constants/activities';
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { fmtDist, fmtDuration } from '@mobile/shared/lib/formatters';
@@ -28,7 +29,7 @@ export const RecentRunRow = React.memo(function RecentRunRow({ run, isLast, onPr
       onPress={() => onPress(run)}
     >
       <View style={{ flex: 1 }}>
-        <Text style={ss.type}>{(run.activityType ?? 'run').toUpperCase()}</Text>
+        <Text style={ss.type}>{sportFor(run.activityType).label.toUpperCase()}</Text>
         <Text style={ss.date}>{relativeDate(run.startTime)}</Text>
       </View>
       <View style={ss.stats}>

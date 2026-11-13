@@ -89,9 +89,9 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   catBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
   catLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
   catLabelActive: { color: C.alwaysLight, fontFamily: Fonts.medium },
-  hint: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4 },
+  hint: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 4 },
   error: { fontFamily: Fonts.regular, fontSize: 12, color: C.red, marginTop: 8 },
   saveBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   saveBtnDisabled: { opacity: 0.4 },
-  saveLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
+  saveLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
 }); }

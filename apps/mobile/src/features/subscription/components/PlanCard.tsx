@@ -1,7 +1,5 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SealCheck } from 'phosphor-react-native';
 import type { Plan } from '../types';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
@@ -12,77 +10,52 @@ interface PlanCardProps {
   onSelect: () => void;
 }
 
-// Both plans get the identical selected treatment now — previously only
-// Annual got the dark+gold-glow card when picked, so choosing Monthly looked
-// like settling for the plain, unselected version of itself.
 export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const isAnnual = plan.id === 'annual';
-
-  const inner = (
-    <>
-      {plan.badge && (
-        <View style={[ss.planBadge, isSelected && ss.planBadgeSelected]}>
-          <Text style={[ss.planBadgeText, isSelected && ss.planBadgeTextSelected]}>{plan.badge}</Text>
-        </View>
-      )}
-      {isSelected && (
-        <View style={ss.checkWrap}>
-          <SealCheck size={18} color={C.gold} weight="fill" />
-        </View>
-      )}
-      <Text style={[ss.planLabel, isSelected && ss.planLabelActive]}>{plan.label}</Text>
-      <Text style={[ss.planPrice, isSelected && ss.planPriceActive]}>{displayPrice}</Text>
-      <Text style={[ss.planPeriod, isSelected && ss.planPeriodActive]}>
-        {isAnnual ? 'per month, billed yearly' : plan.period}
-      </Text>
-    </>
-  );
-
-  if (isSelected) {
-    return (
-      <Pressable onPress={onSelect} style={ss.planBtnOuter}>
-        <LinearGradient
-          colors={['#2A2410', C.alwaysDark]}
-          start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
-          style={[ss.planBtn, ss.planBtnGlow]}
-        >
-          {inner}
-        </LinearGradient>
-      </Pressable>
-    );
-  }
+  // No made-up per-month figure: the store's annual price speaks for itself.
+  const perMonth = null as string | null;
 
   return (
-    <Pressable style={ss.planBtn} onPress={onSelect}>
-      {inner}
+    <Pressable
+      onPress={onSelect}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: isSelected }}
+      style={[ss.card, isSelected && ss.cardSelected]}
+    >
+      <View style={ss.top}>
+        <View style={[ss.radio, isSelected && ss.radioOn]}>{isSelected && <View style={ss.radioDot} />}</View>
+        <Text style={ss.label}>{plan.label}</Text>
+        {plan.trialDays > 0 && (
+          <View style={ss.trial}><Text style={ss.trialText}>{plan.trialDays}-day free trial</Text></View>
+        )}
+      </View>
+      <View style={ss.priceRow}>
+        <Text style={ss.price}>{displayPrice}</Text>
+        <Text style={ss.period}>{plan.period}</Text>
+      </View>
+      <Text style={ss.note}>{perMonth ?? (plan.id === 'annual' ? 'Billed yearly' : 'Billed monthly, no trial')}</Text>
     </Pressable>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    planBtnOuter: { flex: 1 },
-    planBtn: {
-      flex: 1, backgroundColor: C.card, borderRadius: Spacing.radius.lg,
-      borderWidth: 1, borderColor: C.border, padding: 16, alignItems: 'center',
-      position: 'relative', minHeight: 116, justifyContent: 'center',
+    card: {
+      flex: 1, backgroundColor: C.card, borderRadius: Spacing.radius.lg, padding: 14,
+      borderWidth: 1.5, borderColor: C.border,
     },
-    planBtnGlow: {
-      shadowColor: C.gold, shadowOpacity: 0.25, shadowRadius: 14,
-      shadowOffset: { width: 0, height: 4 }, elevation: 6,
-    },
-    checkWrap: { position: 'absolute', top: 10, right: 10 },
-    planBadge: { position: 'absolute', top: -9, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2 },
-    planBadgeSelected: { backgroundColor: C.gold, borderColor: C.gold },
-    planBadgeText: { fontFamily: Fonts.bold, fontSize: 9.5, color: C.t2, letterSpacing: 0.5 },
-    planBadgeTextSelected: { color: C.alwaysDark },
-    planLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginBottom: 6, marginTop: 8 },
-    planLabelActive: { color: 'rgba(255,255,255,0.6)' },
-    planPrice: { fontFamily: Fonts.bold, fontSize: 24, color: C.t1, letterSpacing: -0.5 },
-    planPriceActive: { color: C.alwaysLight },
-    planPeriod: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3, marginTop: 2, textAlign: 'center' },
-    planPeriodActive: { color: 'rgba(255,255,255,0.45)' },
+    cardSelected: { borderColor: C.red, backgroundColor: C.card },
+    top:       { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    radio:     { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: C.t3, alignItems: 'center', justifyContent: 'center' },
+    radioOn:   { borderColor: C.red },
+    radioDot:  { width: 9, height: 9, borderRadius: 5, backgroundColor: C.red },
+    label:     { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
+    trial:     { backgroundColor: C.redLo, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+    trialText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.red },
+    priceRow:  { flexDirection: 'row', alignItems: 'flex-end', marginTop: 12 },
+    price:     { fontFamily: Fonts.numeric, fontSize: 32, lineHeight: 34, color: C.t1, fontVariant: ['tabular-nums'] },
+    period:    { fontFamily: Fonts.medium, fontSize: 13, color: C.t2, marginLeft: 2, marginBottom: 4 },
+    note:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 4 },
   });
 }

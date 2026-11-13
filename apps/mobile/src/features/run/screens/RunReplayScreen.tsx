@@ -1,10 +1,11 @@
+import { territoryPalette } from '@theme/territory';
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { Play, Pause, ArrowCounterClockwise, CaretLeft } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors, useIsDark } from '@theme';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
@@ -24,6 +25,7 @@ function paceStr(p: number) {
 
 export default function RunReplayScreen() {
   const C = useTheme();
+  const zone = territoryPalette(useIsDark());
   const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
@@ -152,7 +154,7 @@ export default function RunReplayScreen() {
           <MapLibreGL.ShapeSource id="replay-full" shape={fullGeoJSON}>
             <MapLibreGL.LineLayer
               id="replay-full-line"
-              style={{ lineColor: '#6B7280', lineWidth: 2, lineOpacity: 0.35, lineCap: 'round', lineJoin: 'round' }}
+              style={{ lineColor: zone.ghost, lineWidth: 2, lineOpacity: 0.35, lineCap: 'round', lineJoin: 'round' }}
             />
           </MapLibreGL.ShapeSource>
 
@@ -161,11 +163,11 @@ export default function RunReplayScreen() {
             <MapLibreGL.ShapeSource id="replay-run" shape={runGeoJSON}>
               <MapLibreGL.LineLayer
                 id="replay-run-glow"
-                style={{ lineColor: '#D93518', lineWidth: 8, lineOpacity: 0.2, lineCap: 'round', lineJoin: 'round' }}
+                style={{ lineColor: zone.trailGlow, lineWidth: 8, lineOpacity: 0.2, lineCap: 'round', lineJoin: 'round' }}
               />
               <MapLibreGL.LineLayer
                 id="replay-run-line"
-                style={{ lineColor: '#D93518', lineWidth: 3, lineOpacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
+                style={{ lineColor: zone.trail, lineWidth: 3, lineOpacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
               />
             </MapLibreGL.ShapeSource>
           )}
@@ -178,7 +180,7 @@ export default function RunReplayScreen() {
             />
             <MapLibreGL.CircleLayer
               id="replay-dot-inner"
-              style={{ circleRadius: 6, circleColor: '#D93518', circleOpacity: 1 }}
+              style={{ circleRadius: 6, circleColor: zone.trail, circleOpacity: 1 }}
             />
           </MapLibreGL.ShapeSource>
       </MapLibreGL.MapView>
@@ -237,7 +239,7 @@ function mkStyles(C: AppColors) {
     hudStats:     { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
     statItem:     { alignItems: 'center' },
     statValue:    { fontFamily: Fonts.semiBold, fontSize: 18, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
-    statLabel:    { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.8 },
+    statLabel:    { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.5)' },
     controls:     { backgroundColor: '#0F0F0F', paddingTop: 16, paddingHorizontal: 20 },
     scrubberWrap: { paddingVertical: 12 },
     scrubberTrack: { height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, position: 'relative' },

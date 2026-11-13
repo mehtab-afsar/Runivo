@@ -11,13 +11,15 @@ const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 // controls are captcha + per-account rate limiting in the Supabase dashboard (see
 // the captchaToken parameter on signIn). Kept here because it costs nothing and
 // stops casual online guessing.
-const FREE_ATTEMPTS  = 3;
+// Dev builds (__DEV__) skip the lockout and reset cooldown so testing isn't throttled;
+// release builds keep both.
+const FREE_ATTEMPTS  = __DEV__ ? Infinity : 3;
 const BACKOFF_BASE_S = 5;   // 5s, 10s, 20s, 40s … capped
 const BACKOFF_MAX_S  = 300;
 
 // Password reset was likewise unthrottled — repeated presses fired
 // resetPasswordForEmail back to back, an email-bomb vector against any known address.
-const RESET_COOLDOWN_S = 60;
+const RESET_COOLDOWN_S = __DEV__ ? 0 : 60;
 
 export interface LoginState {
   email: string;

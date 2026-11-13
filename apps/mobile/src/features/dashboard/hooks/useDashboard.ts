@@ -4,8 +4,8 @@ import { fetchDashboardData } from '../services/dashboardService';
 import type { StoredRun } from '@shared/services/store';
 import type { TerritoryPolygon } from '@shared/types/game';
 import type { Mission } from '@shared/services/missions';
-import { GAME_CONFIG } from '@shared/services/config';
 import { computeFreshness, computeTerritoryScore } from '@shared/services/claimEngine';
+import { weeklyCapFor } from '@shared/engine/runEngine';
 import { supabase } from '@shared/services/supabase';
 import { claimMissionReward } from '@shared/services/missionStore';
 import { estimateRunCalories } from '@shared/services/nutrition';
@@ -18,13 +18,16 @@ export function useDashboard() {
   const [recentRuns, setRecentRuns]   = useState<StoredRun[]>([]);
   const [weeklyKm, setWeeklyKm]       = useState(0);
   const [runDays, setRunDays]         = useState<boolean[]>(Array(7).fill(false));
+  const [dayKm, setDayKm]             = useState<number[]>(Array(7).fill(0));
+  const [avatarUrl, setAvatarUrl]     = useState<string | null>(null);
   const [weeklyGoal, setWeeklyGoal]   = useState(20);
   const [caloriesConsumed, setCaloriesConsumed] = useState(0);
   const [calorieGoal, setCalorieGoal]           = useState(2000);
   const [weightKg, setWeightKg]                 = useState(70);
   const [hasRunToday, setHasRunToday] = useState(false);
   const [cityRank, setCityRank]       = useState<number | null>(null);
-  const [isPremium, setIsPremium]     = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
+  const isPremium = subscriptionTier === 'premium' || subscriptionTier === 'admin';
   const [refreshing, setRefreshing]   = useState(false);
   const [syncError, setSyncError]     = useState(false);
   const [claimingId, setClaimingId]   = useState<string | null>(null);
@@ -36,6 +39,7 @@ export function useDashboard() {
     setRecentRuns(data.recentRuns);
     setWeeklyKm(data.weeklyKm);
     setRunDays(data.runDays);
+    setDayKm(data.dayKm);
     setWeeklyGoal(data.weeklyGoal);
     setCaloriesConsumed(data.caloriesConsumed);
     setCalorieGoal(data.calorieGoal);
@@ -59,10 +63,11 @@ export function useDashboard() {
   const fetchSubscriptionTier = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from('profiles')
-      .select('subscription_tier')
+      .select('subscription_tier, avatar_url')
       .eq('id', userId)
       .single();
-    setIsPremium(!!data?.subscription_tier && data.subscription_tier !== 'free');
+    setSubscriptionTier(typeof data?.subscription_tier === 'string' ? data.subscription_tier : 'free');
+    setAvatarUrl(typeof data?.avatar_url === 'string' && data.avatar_url ? data.avatar_url : null);
   }, []);
 
   useEffect(() => {
@@ -111,27 +116,29 @@ export function useDashboard() {
     }
   }, [reloadPlayer]);
 
-  const weeklyCapLimit = isPremium ? GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM : GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
+  const weeklyCapLimit = weeklyCapFor(subscriptionTier);
 
   const pacePct = useMemo(() => {
     const earned = player?.paceWeeklyEarned ?? 0;
     return weeklyCapLimit > 0 ? Math.min(100, (earned / weeklyCapLimit) * 100) : 0;
   }, [player?.paceWeeklyEarned, weeklyCapLimit]);
 
-  const { ownedCount, staleCount, avgFreshness, totalAreaM2, territoryScore } = useMemo(() => {
+  const { ownedCount, staleCount, avgFreshness, totalAreaM2, territoryScore, lowestFreshness } = useMemo(() => {
     const owned = player ? territories.filter(t => t.ownerId === player.id) : [];
     const count = owned.length;
-    if (count === 0) return { ownedCount: 0, staleCount: 0, avgFreshness: 0, totalAreaM2: 0, territoryScore: 0 };
+    if (count === 0) return { ownedCount: 0, staleCount: 0, avgFreshness: 0, totalAreaM2: 0, territoryScore: 0, lowestFreshness: 100 };
 
     let freshSum = 0;
     let areaSum  = 0;
     let stale    = 0;
+    let lowest   = 100;
 
     for (const t of owned) {
       const fresh = computeFreshness(t.lastDefendedAt, t.freshness);
       freshSum += fresh;
       areaSum  += t.areaM2;
       if (fresh < 40) stale++;
+      if (fresh < lowest) lowest = fresh;
     }
 
     return {
@@ -140,6 +147,7 @@ export function useDashboard() {
       avgFreshness:   Math.round(freshSum / count),
       totalAreaM2:    Math.round(areaSum),
       territoryScore: computeTerritoryScore(owned),
+      lowestFreshness: lowest,
     };
   }, [territories, player]);
 
@@ -163,6 +171,9 @@ export function useDashboard() {
     recentRuns,
     weeklyKm,
     runDays,
+    dayKm,
+    avatarUrl,
+    lowestFreshness,
     weeklyGoal,
     caloriesConsumed,
     calorieGoal,

@@ -2,14 +2,15 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
 import type { TerritoryPolygon } from '@shared/types/game';
-import { useTheme, Type, Spacing, type AppColors } from '@theme';
+import { useTheme, useIsDark, Type, Spacing, type AppColors } from '@theme';
+import { territoryPalette, territoryLayerStyles, isNewCapture } from '@theme/territory';
+import { computeFreshness } from '@shared/services/claimEngine';
 
 import ML from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
 import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
+import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 
-const D_RED  = '#C8391A';
-const D_GRAY = '#CCCCCC';
 const MAP_H  = 180;
 interface Props {
   territories: TerritoryPolygon[];
@@ -50,18 +51,22 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
     return computeCentroid(owned);
   }, [owned, userCoord]);
 
+  const isDark = useIsDark();
+  const baseStyle = useRunivoMapStyle(isDark ? MapStyleUrl.darkMatter : MapStyleUrl.positron);
+  const zoneStyles = useMemo(() => territoryLayerStyles(territoryPalette(isDark)), [isDark]);
+
   const geojson = useMemo(() => ({
     type: 'FeatureCollection' as const,
     features: [
       ...owned.map(t => ({
         type: 'Feature' as const,
         geometry: { type: 'Polygon' as const, coordinates: [t.polygon] },
-        properties: { color: D_RED },
+        properties: { isOwn: true, freshness: computeFreshness(t.lastDefendedAt, t.freshness), isNew: isNewCapture(t.claimedAt) },
       })),
       ...others.map(t => ({
         type: 'Feature' as const,
         geometry: { type: 'Polygon' as const, coordinates: [t.polygon] },
-        properties: { color: D_GRAY },
+        properties: { isOwn: false, freshness: computeFreshness(t.lastDefendedAt, t.freshness), isNew: false },
       })),
     ],
   }), [owned, others]);
@@ -70,7 +75,7 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
     <Pressable style={ss.container} onPress={onPress}>
       <ML.MapView
         style={{ flex: 1 }}
-        mapStyle={MapStyleUrl.positron}
+        mapStyle={baseStyle}
         zoomEnabled={false}
         scrollEnabled={false}
         rotateEnabled={false}
@@ -82,8 +87,10 @@ export function MiniTerritoryMap({ territories, ownerId, onPress }: Props) {
         {locationGranted && <ML.UserLocation visible renderMode="native" />}
         {geojson.features.length > 0 && (
           <ML.ShapeSource id="miniHexes" shape={geojson}>
-            <ML.FillLayer id="miniHexFill" style={{ fillColor: ['get', 'color'], fillOpacity: 0.3 }} />
-            <ML.LineLayer id="miniHexLine" style={{ lineColor: ['get', 'color'], lineWidth: 1, lineOpacity: 0.6 }} />
+            <ML.LineLayer id="miniNewHalo" style={zoneStyles.newHalo as any} filter={zoneStyles.newFilter as any} />
+            <ML.FillLayer id="miniHexFill" style={zoneStyles.fill as any} />
+            <ML.LineLayer id="miniHexLine" style={zoneStyles.line as any} />
+            <ML.LineLayer id="miniFading" style={zoneStyles.fadingLine as any} filter={zoneStyles.fadingFilter as any} />
           </ML.ShapeSource>
         )}
       </ML.MapView>

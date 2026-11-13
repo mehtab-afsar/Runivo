@@ -78,8 +78,8 @@ function NutritionTile({
 const ns = StyleSheet.create({
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 14, gap: 10 },
   kcalRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  kcal:    { fontFamily: Fonts.light, fontSize: 22, color: '#fff', letterSpacing: -0.8, lineHeight: 24, fontVariant: ['tabular-nums'] },
-  kcalUnit:{ fontFamily: Fonts.light, fontSize: 10, color: 'rgba(255,255,255,0.4)' },
+  kcal:    { fontFamily: Fonts.numeric, fontSize: 22, color: '#fff', letterSpacing: -0.8, lineHeight: 24, fontVariant: ['tabular-nums'] },
+  kcalUnit:{ fontFamily: Fonts.light, fontSize: 11, color: 'rgba(255,255,255,0.4)' },
   caption: { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', paddingHorizontal: 20 },
 });
 
@@ -174,7 +174,7 @@ export function BentoCard({
       <Pressable onPress={onStartRun} style={ss.startCard}>
         <View style={ss.startLeft}>
           <View style={ss.startCircle}><Text style={ss.startPlay}>&#x25B6;</Text></View>
-          <View><Text style={ss.startHint}>TAP TO BEGIN</Text><Text style={ss.startLabel}>Start run</Text></View>
+          <View><Text style={ss.startHint}>Tap to begin</Text><Text style={ss.startLabel}>Start run</Text></View>
         </View>
       </Pressable>
 
@@ -212,7 +212,7 @@ function mkStyles(C: AppColors) {
     startLeft:    { flexDirection: 'row', alignItems: 'center', gap: 12 },
     startCircle:  { width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
     startPlay:    { fontSize: 14, color: C.alwaysLight, marginLeft: 2 },
-    startHint:    { fontFamily: Fonts.medium, fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 },
+    startHint:    { fontFamily: Fonts.medium, fontSize: 11, color: 'rgba(255,255,255,0.45)' },
     startLabel:   { fontFamily: Fonts.medium, fontSize: 17, color: C.alwaysLight, lineHeight: 22 },
 
     // Quick-action chips are elevated surfaces that must invert with the theme —

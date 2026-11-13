@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
-import { Pause, Play, Square } from 'phosphor-react-native';
+import { Pause, Play, UsersThree } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface RunControlsProps {
@@ -8,25 +8,46 @@ interface RunControlsProps {
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
+  /** Left round button: show or hide friends running live on the map. */
+  onFriends?: () => void;
+  friendsShown?: boolean;
 }
 
-export default function RunControls({ isPaused, onPause, onResume, onStop }: RunControlsProps) {
+export default function RunControls({ isPaused, onPause, onResume, onStop, onFriends, friendsShown = true }: RunControlsProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <View style={ss.controls}>
+      {onFriends && (
+        <Pressable
+          style={({ pressed }) => [ss.sideBtn, !friendsShown && ss.sideBtnOff, pressed && ss.pressed]}
+          onPress={onFriends}
+          accessibilityRole="button"
+          accessibilityLabel={friendsShown ? 'Hide friends on the map' : 'Show friends on the map'}
+        >
+          <UsersThree size={22} color={friendsShown ? C.t1 : C.t3} weight="regular" />
+        </Pressable>
+      )}
       <Pressable
-        style={ss.secondaryControl}
+        style={({ pressed }) => [ss.pauseBtn, pressed && ss.pressed]}
         onPress={isPaused ? onResume : onPause}
+        accessibilityRole="button"
+        accessibilityLabel={isPaused ? 'Resume run' : 'Pause run'}
       >
         {isPaused
-          ? <Play size={22} color={C.alwaysLight} weight="regular" />
-          : <Pause size={22} color={C.alwaysLight} weight="regular" />}
-        <Text style={ss.secondaryControlLabel}>{isPaused ? 'Resume' : 'Pause'}</Text>
+          ? <Play size={18} color={C.bg} weight="fill" />
+          : <Pause size={18} color={C.bg} weight="fill" />}
+        <Text style={ss.pauseTxt}>{isPaused ? 'Resume' : 'Pause'}</Text>
       </Pressable>
 
-      <Pressable style={ss.finishBtn} onPress={onStop} testID="run-finish-btn">
-        <Square size={22} color={C.white} weight="regular" />
+      <Pressable
+        style={({ pressed }) => [ss.finishBtn, pressed && ss.pressed]}
+        onPress={onStop}
+        testID="run-finish-btn"
+        accessibilityRole="button"
+        accessibilityLabel="Finish run"
+      >
+        <View style={ss.finishSquare} />
       </Pressable>
     </View>
   );
@@ -34,22 +55,13 @@ export default function RunControls({ isPaused, onPause, onResume, onStop }: Run
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    controls: {
-      backgroundColor: C.alwaysDark,
-      flexDirection: 'row', alignItems: 'center',
-      justifyContent: 'center', gap: 24,
-      paddingTop: 20, paddingHorizontal: 24,
-    },
-    finishBtn: {
-      width: 64, height: 64, borderRadius: 32,
-      backgroundColor: C.red, alignItems: 'center', justifyContent: 'center',
-      shadowColor: C.red, shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
-    },
-    secondaryControl: {
-      alignItems: 'center', gap: 4, padding: 12,
-      borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)',
-    },
-    secondaryControlLabel: { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.5)' },
+    controls:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    sideBtn:      { width: 52, height: 52, borderRadius: 26, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    sideBtnOff:   { backgroundColor: C.bg },
+    pauseBtn:     { flex: 1, height: 60, borderRadius: 30, backgroundColor: C.t1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    pauseTxt:     { fontFamily: Fonts.semiBold, fontSize: 15, color: C.bg },
+    finishBtn:    { width: 52, height: 52, borderRadius: 26, backgroundColor: C.redLo, alignItems: 'center', justifyContent: 'center' },
+    finishSquare: { width: 14, height: 14, borderRadius: 3, backgroundColor: C.red },
+    pressed:      { opacity: 0.85, transform: [{ scale: 0.98 }] },
   });
 }

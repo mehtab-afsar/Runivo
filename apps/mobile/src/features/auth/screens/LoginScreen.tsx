@@ -1,31 +1,10 @@
 import React from 'react';
-import { View, KeyboardAvoidingView, Platform } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useLogin } from '../hooks/useLogin';
-import LoginForm from '../components/LoginForm';
-import { useTheme } from '@theme';
+import AuthScreen from './AuthScreen';
+// Installs the magic-link handler at app launch (the navigator imports this
+// screen up front), so a sign-in link that cold-starts the app still works.
+import '../services/magicLink';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-
+/** "I already have an account" → the passwordless sign-in flow. */
 export default function LoginScreen() {
-  const navigation = useNavigation<Nav>();
-  const login = useLogin();
-  const C = useTheme();
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <LoginForm
-          {...login}
-          onGoBack={() => navigation.goBack()}
-          onGoSignUp={() => navigation.navigate('SignUp')}
-        />
-      </KeyboardAvoidingView>
-    </View>
-  );
+  return <AuthScreen mode="login" />;
 }

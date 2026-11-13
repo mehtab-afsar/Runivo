@@ -6,6 +6,7 @@ import {
   subscribeToMessages,
 } from '@features/clubs/services/lobbyChatService';
 import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
+import { fetchMyBlockedIds } from '@features/social/services/safetyService';
 
 export function useLobbyChat(lobbyId: string) {
   const [messages, setMessages] = useState<LobbyMessage[]>([]);
@@ -14,9 +15,12 @@ export function useLobbyChat(lobbyId: string) {
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const seenIds = useRef(new Set<string>());
+  // Messages from runners you blocked are not shown (they stay in the room for others).
+  const blockedIds = useRef(new Set<string>());
+  useEffect(() => { fetchMyBlockedIds().then(ids => { blockedIds.current = ids; setMessages(prev => prev.filter(m => !ids.has(m.userId))); }).catch(() => {}); }, []);
 
   const addMessage = useCallback((msg: LobbyMessage) => {
-    if (seenIds.current.has(msg.id)) return;
+    if (seenIds.current.has(msg.id) || blockedIds.current.has(msg.userId)) return;
     seenIds.current.add(msg.id);
     setMessages(prev => [...prev, msg]);
   }, []);
@@ -34,7 +38,7 @@ export function useLobbyChat(lobbyId: string) {
     fetchMessages(lobbyId)
       .then((msgs) => {
         msgs.forEach(m => seenIds.current.add(m.id));
-        setMessages(msgs);
+        setMessages(msgs.filter(m => !blockedIds.current.has(m.userId)));
       })
       .catch(() => setError('Could not load messages. Check your connection.'))
       .finally(() => setLoading(false));
@@ -60,5 +64,14 @@ export function useLobbyChat(lobbyId: string) {
     setSending(false);
   }, [inputText, sending, lobbyId]);
 
-  return { messages, loading, error, inputText, setInputText, sending, sendMessage };
+  /** Drop a message from the list (after it was deleted). */
+  const removeMessage = useCallback((id: string) => setMessages(prev => prev.filter(m => m.id !== id)), []);
+
+  /** Hide everything from a runner you just blocked, now and as new messages arrive. */
+  const removeMessagesFrom = useCallback((userId: string) => {
+    blockedIds.current.add(userId);
+    setMessages(prev => prev.filter(m => m.userId !== userId));
+  }, []);
+
+  return { messages, loading, error, inputText, setInputText, sending, sendMessage, removeMessage, removeMessagesFrom };
 }

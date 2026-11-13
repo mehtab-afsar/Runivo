@@ -16,13 +16,17 @@ interface CardProps {
  */
 export function Card({ children, style }: CardProps) {
   const C = useTheme();
-  return <View style={[styles.card, { backgroundColor: C.card, borderColor: C.border }, style]}>{children}</View>;
+  return <View style={[styles.card, { backgroundColor: C.card }, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
   card: {
     borderRadius: Spacing.radius.lg,
-    borderWidth: 0.5,
+    shadowColor: '#14120F',
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
     padding: Spacing.lg,
   },
 });

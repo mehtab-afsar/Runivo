@@ -1,40 +1,24 @@
-import React, { useRef, useState, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
+import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { MapPin, Stack } from 'phosphor-react-native';
+import { MapPin } from 'phosphor-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useTheme, Fonts, Colors, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
+import { territoryPalette, territoryLayerStyles } from '@theme/territory';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTerritoryMap } from '../hooks/useTerritoryMap';
 import { TerritoryFilterChips } from '../components/TerritoryFilterChips';
 import { TerritoryBottomSheet } from '../components/TerritoryBottomSheet';
-import { TerritoryStatsBar } from '../components/TerritoryStatsBar';
+import { MapSearchBar } from '../components/MapSearchBar';
+import PlanLoopSheet from '../components/PlanLoopSheet';
+import { fetchClubTerritory } from '@features/clubs/services/clubService';
+import type { LoopPlan } from '@shared/engine/planLoop';
+import { GAME_CONFIG } from '@shared/services/config';
 
 import { MAP_STYLES } from '@theme/maps';
 import ML from '@maplibre/maplibre-react-native';
-import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
-
-const ACCENT = '#D93518';
-
-const territoryFillStyle = {
-  fillColor: ['case',
-    ['all', ['==', ['get', 'isOwn'], true], ['>=', ['get', 'freshness'], 70]], ACCENT,
-    ['all', ['==', ['get', 'isOwn'], true], ['>=', ['get', 'freshness'], 40]], '#D4785A',
-    ['all', ['==', ['get', 'isOwn'], true], ['<',  ['get', 'freshness'], 40]], Colors.retryAmber,
-    '#6B7FA3',
-  ],
-  fillOpacity: ['case', ['==', ['get', 'isOwn'], true], 0.40, 0.25],
-} as any;
-
-const territoryLineStyle = {
-  lineColor:   ['case', ['==', ['get', 'isOwn'], true], ACCENT, '#8899BB'],
-  lineWidth:   ['case', ['==', ['get', 'isOwn'], true], 2.0, 1.0],
-  lineOpacity: 0.8,
-} as any;
-
-const selectedFillStyle = { fillColor: ACCENT, fillOpacity: 0.55 };
+import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -45,21 +29,49 @@ export default function TerritoryMapScreen() {
   const navigation = useNavigation<Nav>();
   const route  = useRoute<RouteProp<RootStackParamList, 'TerritoryMap'>>();
   const initialFilter = route.params?.initialFilter;
+  const clubId = route.params?.clubId;
+  const clubName = route.params?.clubName;
+  // Club ground (C2): every member's zones, drawn over the map.
+  const [clubShape, setClubShape] = useState<any>(null);
+  useEffect(() => {
+    if (!clubId) return;
+    fetchClubTerritory(clubId).then(zs => {
+      setClubShape({ type: 'FeatureCollection', features: zs.map(z => ({ type: 'Feature', properties: { id: z.id }, geometry: { type: 'Polygon', coordinates: [z.ring] } })) });
+      const pts = zs.flatMap(z => z.ring);
+      if (pts.length) {
+        const lngs = pts.map(p => p[0]), lats = pts.map(p => p[1]);
+        cameraRef.current?.fitBounds([Math.max(...lngs), Math.max(...lats)], [Math.min(...lngs), Math.min(...lats)], [120, 40, 160, 40], 700);
+      }
+    }).catch(() => {});
+  }, [clubId]);
 
   const {
     ownPolygons, rivalPolygons, geoJSON, activeFilter, setActiveFilter,
     selectedPolygon, setSelectedPolygon, stats, isLoadingRivals,
-    defaultCenter, handleBboxChange,
+    defaultCenter, handleBboxChange, locationStatus, requestLocation,
   } = useTerritoryMap(initialFilter);
+  const [locationCardDismissed, setLocationCardDismissed] = useState(false);
+  // Plan a loop (M2)
+  const [planOpen, setPlanOpen] = useState(false);
+  const [loop, setLoop] = useState<LoopPlan | null>(null);
+  const loopZones = useMemo(() => ownPolygons.map(p => ({ ring: p.polygon, fading: p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT })), [ownPolygons]);
+  const loopShape = useMemo(() => loop && ({
+    type: 'Feature' as const, properties: {},
+    geometry: { type: 'LineString' as const, coordinates: loop.points.map(p => [p.lng, p.lat]) },
+  }), [loop]);
+  const showLocationCard = locationStatus !== 'granted' && !locationCardDismissed;
 
   const cameraRef = useRef<any>(null);
-  const [styleIdx, setStyleIdx] = useState(0);
-  const locationGranted = useLocationGranted();
+  const isDark = useIsDark();
+  const zoneStyles = useMemo(() => territoryLayerStyles(territoryPalette(isDark)), [isDark]);
+  // Dark mode opens on the dark basemap; the picker still cycles every style.
+  const [styleIdx] = useState(() => (isDark ? 1 : 0));
+  const baseStyle = useRunivoMapStyle(MAP_STYLES[styleIdx].url);
+  // Follows the screen's own permission state, so the dot appears as soon as
+  // the runner allows location from the card below.
+  const locationGranted = locationStatus === 'granted';
 
-  const cycleMapStyle = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setStyleIdx(prev => (prev + 1) % MAP_STYLES.length);
-  };
+
 
   const selectedFilter: any = selectedPolygon
     ? ['==', ['get', 'id'], selectedPolygon.id]
@@ -83,10 +95,14 @@ export default function TerritoryMapScreen() {
     const feat = e.features?.[0];
     if (!feat) { setSelectedPolygon(null); return; }
     const p = feat.properties as any;
+    const ring: [number, number][] = feat.geometry?.coordinates?.[0] ?? [];
+    const center: [number, number] | undefined = ring.length
+      ? [ring.reduce((a, c) => a + c[0], 0) / ring.length, ring.reduce((a, c) => a + c[1], 0) / ring.length]
+      : undefined;
     setSelectedPolygon({
       id: p.id, ownerId: p.ownerId, ownerName: p.ownerName,
       isOwn: p.isOwn, freshness: p.freshness, tier: p.tier,
-      areaM2: p.areaM2, claimedAt: p.claimedAt, isLoopFill: p.isLoopFill,
+      areaM2: p.areaM2, claimedAt: p.claimedAt, isLoopFill: p.isLoopFill, center, ring,
     });
   }
 
@@ -96,7 +112,7 @@ export default function TerritoryMapScreen() {
     <View style={ss.container}>
       <ML.MapView
         style={ss.map}
-        mapStyle={MAP_STYLES[styleIdx].url}
+        mapStyle={baseStyle}
         onRegionDidChange={handleRegionChange}
         logoEnabled={false}
         attributionEnabled
@@ -107,50 +123,124 @@ export default function TerritoryMapScreen() {
           zoomLevel={13}
           animationDuration={0}
         />
-        {locationGranted && <ML.UserLocation visible={true} />}
+        {/* Native dot: MapLibre's JS-animated puck breaks on React Native 0.83 (see patches/). */}
+        {locationGranted && <ML.UserLocation visible renderMode="native" />}
         {geoJSON.features.length > 0 && (
           <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
-            <ML.FillLayer id="territory-fill" style={territoryFillStyle} />
-            <ML.LineLayer id="territory-line" style={territoryLineStyle} />
-            <ML.FillLayer id="territory-selected" style={selectedFillStyle} filter={selectedFilter} />
+            <ML.LineLayer id="territory-new-halo" style={zoneStyles.newHalo as any} filter={zoneStyles.newFilter as any} />
+            <ML.FillLayer id="territory-fill" style={zoneStyles.fill as any} />
+            <ML.LineLayer id="territory-line" style={zoneStyles.line as any} />
+            <ML.LineLayer id="territory-fading" style={zoneStyles.fadingLine as any} filter={zoneStyles.fadingFilter as any} />
+            <ML.LineLayer id="territory-selected" style={zoneStyles.selectedLine as any} filter={selectedFilter} />
+          </ML.ShapeSource>
+        )}
+        {clubShape && (
+          <ML.ShapeSource id="club-ground" shape={clubShape}>
+            <ML.FillLayer id="club-ground-fill" style={{ fillColor: '#7A5AF8', fillOpacity: 0.28 } as any} />
+            <ML.LineLayer id="club-ground-line" style={{ lineColor: '#7A5AF8', lineWidth: 2 } as any} />
+          </ML.ShapeSource>
+        )}
+        {loopShape && (
+          <ML.ShapeSource id="planned-loop" shape={loopShape}>
+            <ML.LineLayer id="planned-loop-line" style={{ lineColor: C.t1, lineWidth: 4, lineDasharray: [1.5, 1.2], lineCap: 'round', lineJoin: 'round' } as any} />
           </ML.ShapeSource>
         )}
       </ML.MapView>
 
-      <View style={[ss.topOverlay, { top: insets.top + 12 }]}>
+      <View style={[ss.topOverlay, { top: Math.max(18, insets.top) }]}>
+        <View style={ss.searchRow}>
+          <View style={{ flex: 1 }}>
+            <MapSearchBar
+              onFound={coord => cameraRef.current?.setCamera({ centerCoordinate: coord, zoomLevel: 15, animationDuration: 900 })}
+            />
+          </View>
+        </View>
         <TerritoryFilterChips
           activeFilter={activeFilter}
-          staleCount={stats.staleCount}
+          counts={{ mine: ownPolygons.length, rivals: rivalPolygons.length, stale: stats.staleCount }}
           onSelect={setActiveFilter}
         />
-        <Pressable style={ss.styleBtn} onPress={cycleMapStyle}>
-          <Stack size={18} color={C.alwaysLight} weight="light" />
-        </Pressable>
       </View>
 
-      {isEmpty && (
+      {showLocationCard && (
         <View style={ss.emptyState}>
-          <MapPin size={48} color="rgba(255,255,255,0.5)" weight="light" />
-          <Text style={ss.emptyTitle}>No territories yet</Text>
-          <Text style={ss.emptyBody}>Start a run to claim your first zone</Text>
-          <Pressable style={ss.emptyBtn}
-            onPress={() => navigation.navigate('Main', { screen: 'Run' })}>
-            <Text style={ss.emptyBtnText}>Start a run →</Text>
+          <MapPin size={40} color={C.red} weight="fill" />
+          <Text style={ss.emptyTitle}>See the zones on your streets</Text>
+          <Text style={ss.emptyBody}>
+            Runivo uses your location to show the zones and rivals around you, and to claim ground when you run.
+            It's only used while the app is open.
+          </Text>
+          {locationStatus === 'denied' ? (
+            <Pressable style={ss.emptyBtn} onPress={() => Linking.openSettings()}>
+              <Text style={ss.emptyBtnText}>Open Settings</Text>
+            </Pressable>
+          ) : (
+            <Pressable style={ss.emptyBtn} onPress={requestLocation}>
+              <Text style={ss.emptyBtnText}>Turn on location</Text>
+            </Pressable>
+          )}
+          <Pressable onPress={() => setLocationCardDismissed(true)} hitSlop={8}>
+            <Text style={ss.notNow}>Not now</Text>
           </Pressable>
         </View>
       )}
 
-      {selectedPolygon ? (
+      {isEmpty && !showLocationCard && (
+        <View style={ss.emptyState}>
+          <MapPin size={40} color={C.red} weight="fill" />
+          <Text style={ss.emptyTitle}>No zones yet</Text>
+          <Text style={ss.emptyBody}>Run a loop to claim the ground inside it. Any run of 200 m or more claims the street you ran.</Text>
+          <Pressable style={ss.emptyBtn}
+            onPress={() => navigation.navigate('Main', { screen: 'Run' })}>
+            <Text style={ss.emptyBtnText}>Start a run</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {clubShape && (
+        <View style={[ss.clubBanner, { bottom: Math.max(insets.bottom, 16) + 130 }]}>
+          <Text style={ss.clubBannerTxt}>{clubName ?? 'Club'} · {clubShape.features.length} zones</Text>
+        </View>
+      )}
+      {!planOpen && !selectedPolygon && locationGranted && (
+        <Pressable style={[ss.planBtn, { bottom: Math.max(insets.bottom, 16) + 76 }]} onPress={() => setPlanOpen(true)} accessibilityRole="button">
+          <Text style={ss.planBtnTxt}>Plan a loop</Text>
+        </Pressable>
+      )}
+      {planOpen && (
+        <PlanLoopSheet
+          zones={loopZones}
+          bottomInset={insets.bottom + 60}
+          onPlan={p => {
+            setLoop(p);
+            if (p) {
+              const lats = p.points.map(q => q.lat), lngs = p.points.map(q => q.lng);
+              cameraRef.current?.fitBounds([Math.max(...lngs), Math.max(...lats)], [Math.min(...lngs), Math.min(...lats)], [60, 40, 340, 40], 600);
+            }
+          }}
+          onStart={p => { setPlanOpen(false); setLoop(null); navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', ghostRoutePoints: p.points }); }}
+          onClose={() => setPlanOpen(false)}
+        />
+      )}
+
+      {/* As in the mock: no stats strip; tapping a zone opens its sheet. */}
+      {selectedPolygon && (
         <TerritoryBottomSheet
           polygon={selectedPolygon}
           onClose={() => setSelectedPolygon(null)}
-          onDefend={() => { setSelectedPolygon(null); navigation.navigate('Main', { screen: 'Run' }); }}
-        />
-      ) : (
-        <TerritoryStatsBar
-          stats={stats}
-          isLoadingRivals={isLoadingRivals}
-          bottomInset={insets.bottom}
+          onDefend={(name) => {
+            const z = selectedPolygon;
+            setSelectedPolygon(null);
+            // Start a run aimed at this zone: direction and distance on the live screen.
+            if (z.ring && z.ring.length >= 4) {
+              navigation.navigate('ActiveRun', {
+                autoStart: false, activityType: 'run',
+                targetZone: { id: z.id, name, ring: z.ring, mode: z.isOwn ? 'defend' : 'attack' },
+              });
+            } else {
+              navigation.navigate('Main', { screen: 'Run' });
+            }
+          }}
         />
       )}
     </View>
@@ -159,14 +249,20 @@ export default function TerritoryMapScreen() {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:    { flex: 1, backgroundColor: C.alwaysDark },
+    clubBanner: { position: 'absolute', alignSelf: 'center', paddingHorizontal: 14, height: 32, borderRadius: 16, backgroundColor: '#7A5AF8', justifyContent: 'center' },
+    clubBannerTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: '#FFFFFF' },
+    planBtn:    { position: 'absolute', alignSelf: 'center', height: 44, paddingHorizontal: 20, borderRadius: 22, backgroundColor: C.t1, justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 4 },
+    planBtnTxt: { fontFamily: Fonts.semiBold, fontSize: 14.5, color: C.bg },
+    container:    { flex: 1, backgroundColor: C.bg },
     map:          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-    topOverlay:   { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
-    styleBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' },
-    emptyState:   { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', gap: 12, padding: 40 },
-    emptyTitle:   { fontFamily: Fonts.semiBold, fontSize: 22, color: C.alwaysLight },
-    emptyBody:    { fontFamily: Fonts.regular, fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center' },
-    emptyBtn:     { backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24 },
-    emptyBtnText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
+    topOverlay:   { position: 'absolute', left: 14, right: 14, gap: 10 },
+    searchRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    styleBtn:     { width: 48, height: 48, borderRadius: 24, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
+    emptyState:   { position: 'absolute', left: 18, right: 18, top: '30%', alignItems: 'center', backgroundColor: C.card, borderRadius: 20, gap: 8, paddingVertical: 24, paddingHorizontal: 22, shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+    emptyTitle:   { fontFamily: Fonts.bold, fontSize: 22, lineHeight: 24, letterSpacing: -0.5, color: C.t1, textAlign: 'center' },
+    emptyBody:    { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2, textAlign: 'center', marginBottom: 8 },
+    emptyBtn:     { backgroundColor: C.red, borderRadius: 999, height: 46, justifyContent: 'center', paddingHorizontal: 26 },
+    emptyBtnText: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
+    notNow:       { fontFamily: Fonts.medium, fontSize: 14, color: C.t2, marginTop: 4 },
   });
 }

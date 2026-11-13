@@ -1,87 +1,50 @@
-import React, { useRef, useEffect, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
-import { mkD, type OnboardingD } from './onboardingStyles';
-import { useTheme, Fonts } from '@theme';
-
-// Step 6 (Launch) isn't represented here — OnboardingScreen only renders this
-// component while step < 6, same as the final step was excluded before.
-const CHAPTERS = [
-  { label: 'Goal',    steps: [1] },
-  { label: 'Profile', steps: [2] },
-  { label: 'Territory', steps: [3] },
-  { label: 'Mission',  steps: [4] },
-  { label: 'Plan',    steps: [5] },
-];
+import React, { useMemo } from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { ArrowLeft } from 'lucide-react-native';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
-  step: number;
+  index: number;
+  total: number;
+  label: string;
   onBack: () => void;
 }
 
-export default function OnboardingProgress({ step, onBack }: Props) {
+/** Back, "Your running · 3 of 9", and a segmented bar. Skipping lives in the footer. */
+export default function OnboardingProgress({ index, total, label, onBack }: Props) {
   const C = useTheme();
-  const D = useMemo(() => mkD(C), [C]);
-  const s = useMemo(() => mkStyles(D), [D]);
-  const fillAnims = useRef(CHAPTERS.map(() => new Animated.Value(0))).current;
-
-  useEffect(() => {
-    const targets = CHAPTERS.map(chapter => {
-      const chapterEnd = chapter.steps[chapter.steps.length - 1];
-      const chapterStart = chapter.steps[0];
-      if (step > chapterEnd) return 1;
-      if (step >= chapterStart) return (step - chapterStart) / chapter.steps.length;
-      return 0;
-    });
-    Animated.parallel(
-      fillAnims.map((anim, i) =>
-        Animated.timing(anim, { toValue: targets[i], duration: 300, useNativeDriver: false })
-      )
-    ).start();
-  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  const s = useMemo(() => mkStyles(C), [C]);
   return (
-    <>
+    <View>
       <View style={s.header}>
-        {step > 1 ? (
-          <Pressable onPress={onBack} hitSlop={8}>
-            <Text style={s.backText}>← Back</Text>
+        {index > 0 ? (
+          <Pressable onPress={onBack} hitSlop={8} style={s.back} accessibilityRole="button" accessibilityLabel="Back">
+            <ArrowLeft size={16} color={C.t1} strokeWidth={1.8} />
           </Pressable>
-        ) : <View style={{ minWidth: 48 }} />}
-        <View style={{ flex: 1 }} />
+        ) : <View style={s.spacer} />}
+        <Text style={s.step} accessibilityRole="text">
+          <Text style={s.stepStrong}>{label}</Text>{`  ·  ${index + 1} of ${total}`}
+        </Text>
+        <View style={s.spacer} />
       </View>
-
-      <View style={s.chaptersRow}>
-        {CHAPTERS.map((chapter, ci) => {
-          const isActive = step >= chapter.steps[0];
-          return (
-            <View key={ci} style={s.chapterCol}>
-              <View style={s.trackBg}>
-                <Animated.View
-                  style={[s.trackFill, {
-                    width: fillAnims[ci].interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-                  }]}
-                />
-              </View>
-              <Text style={[s.chapterLabel, isActive && s.chapterLabelActive]}>
-                {chapter.label}
-              </Text>
-            </View>
-          );
-        })}
+      <View style={s.bars} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: total, now: index + 1 }}>
+        {Array.from({ length: total }).map((_, i) => (
+          <View key={i} style={[s.bar, i <= index && s.barOn]} />
+        ))}
       </View>
-    </>
+    </View>
   );
 }
 
-function mkStyles(D: OnboardingD) {
+function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    header:              { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 10 },
-    backText:            { fontSize: 13, color: D.t2 },
-    chaptersRow:         { flexDirection: 'row', gap: 6, paddingHorizontal: 24, paddingBottom: 12 },
-    chapterCol:          { flex: 1, alignItems: 'center' },
-    trackBg:             { width: '100%', height: 2, backgroundColor: D.div, borderRadius: 1, overflow: 'hidden', marginBottom: 5 },
-    trackFill:           { height: '100%', backgroundColor: D.red, borderRadius: 1 },
-    chapterLabel:        { fontFamily: Fonts.medium, fontSize: 9, color: D.t3, textTransform: 'uppercase', letterSpacing: 1 },
-    chapterLabelActive:  { color: D.red },
+    header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 8 },
+    back:       { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    spacer:     { width: 40, height: 40 },
+    step:       { fontFamily: Fonts.medium, fontSize: 13, color: C.t3 },
+    stepStrong: { fontFamily: Fonts.semiBold, color: C.t1 },
+    bars:       { flexDirection: 'row', gap: 4, paddingHorizontal: 18, paddingBottom: 12 },
+    bar:        { flex: 1, height: 5, borderRadius: 3, backgroundColor: C.border },
+    barOn:      { backgroundColor: C.red },
   });
 }

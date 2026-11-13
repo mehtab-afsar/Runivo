@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Pressable, Dimensions, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, withSpring, useAnimatedStyle, runOnJS,
@@ -23,12 +23,21 @@ export function BottomSheet({
   const C = useTheme();
   const translateY = useSharedValue(SCREEN_H);
   const sheetH     = SCREEN_H * maxHeight;
+  // Only mounted while open (or closing). A closed sheet used to stay in the
+  // tree parked off-screen by its transform; when that transform didn't apply
+  // it sat visible at the bottom of the screen, ignoring taps.
+  const [mounted, setMounted] = useState(visible);
 
   useEffect(() => {
-    translateY.value = withSpring(visible ? 0 : SCREEN_H, {
-      damping: 28, stiffness: 260,
-    });
-  }, [visible]);
+    if (visible) {
+      setMounted(true);
+      translateY.value = withSpring(0, { damping: 28, stiffness: 260 });
+      return;
+    }
+    translateY.value = withSpring(SCREEN_H, { damping: 28, stiffness: 260 });
+    const t = setTimeout(() => setMounted(false), 320);
+    return () => clearTimeout(t);
+  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const panGesture = Gesture.Pan()
     .onUpdate(e => {
@@ -47,14 +56,11 @@ export function BottomSheet({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: visible ? 1 : 0,
-    pointerEvents: (visible ? 'auto' : 'none') as 'auto' | 'none',
-  }));
+  if (!mounted) return null;
 
   return (
     <>
-      <Animated.View style={[styles.overlay, overlayStyle]}>
+      <Animated.View style={[styles.overlay, { opacity: visible ? 1 : 0 }]} pointerEvents={visible ? 'auto' : 'none'}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
       </Animated.View>
       <Animated.View

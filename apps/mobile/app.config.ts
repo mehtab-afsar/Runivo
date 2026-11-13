@@ -147,6 +147,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         recordAudioAndroid: false,
       },
     ],
+    // Add to calendar for events (E2). Runivo only adds events you choose.
+    [
+      'expo-calendar',
+      {
+        calendarPermission: 'Runivo adds the events you choose to your calendar.',
+        remindersPermission: false,
+      },
+    ],
+    // Live Activity on the lock screen and Dynamic Island during a run (L2).
+    // Creates the widget extension target and an App Group
+    // (group.<bundleIdentifier>); frequentUpdates lets the run update every few seconds.
+    ['expo-widgets', { frequentUpdates: true, widgets: [] }],
     [
       'expo-image-picker',
       {

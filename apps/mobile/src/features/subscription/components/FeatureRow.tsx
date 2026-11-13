@@ -44,6 +44,6 @@ function mkStyles(C: AppColors) {
     textWrap: { flex: 1, minWidth: 0 },
     name: { fontFamily: Fonts.semiBold, fontSize: 13.5, color: C.t1, marginBottom: 2 },
     sub:  { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t2, lineHeight: 16 },
-    soon: { fontFamily: Fonts.medium, fontSize: 10.5, color: C.t3, marginTop: 2 },
+    soon: { fontFamily: Fonts.medium, fontSize: 11.5, color: C.t3, marginTop: 2 },
   });
 }

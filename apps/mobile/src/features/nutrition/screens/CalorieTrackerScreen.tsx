@@ -36,7 +36,7 @@ function WeeklyChart({ weekKcals, weekAvg, goal, weekDates, C }: {
   return (
     <View style={wc.card}>
       <View style={wc.cardHead}>
-        <Text style={wc.cardTitle}>THIS WEEK</Text>
+        <Text style={wc.cardTitle}>This week</Text>
         {weekAvg > 0 && <Text style={wc.avg}>avg {weekAvg} kcal</Text>}
       </View>
       {/* Goal line label */}
@@ -286,7 +286,7 @@ export default function CalorieTrackerScreen() {
 
             {/* Macro summary card */}
             <View style={s.macroCard}>
-              <Text style={s.cardTitle}>TODAY'S MACROS</Text>
+              <Text style={s.cardTitle}>Today's macros</Text>
               {[
                 { label: 'Protein', consumed: proteinConsumed, goal: profile.proteinGoalG, pct: proteinPct, color: C.blue, unit: 'g' },
                 { label: 'Carbs',   consumed: carbsConsumed,   goal: profile.carbsGoalG,   pct: carbsPct,   color: C.amber, unit: 'g' },
@@ -307,7 +307,7 @@ export default function CalorieTrackerScreen() {
             {/* Weekly stats card */}
             {weekAvg > 0 && (
               <View style={s.statsCard}>
-                <Text style={s.cardTitle}>WEEKLY STATS</Text>
+                <Text style={s.cardTitle}>Weekly stats</Text>
                 <View style={s.statsRow}>
                   <View style={s.statItem}>
                     <Text style={s.statValue}>{weekAvg.toLocaleString()}</Text>
@@ -334,7 +334,7 @@ export default function CalorieTrackerScreen() {
               <View style={s.aiCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <Sparkle size={12} color={C.purple} weight="light" />
-                  <Text style={[s.cardTitle, { color: C.purple, marginBottom: 0 }]}>RUNIVO INTELLIGENCE</Text>
+                  <Text style={[s.cardTitle, { color: C.purple, marginBottom: 0 }]}>Runivo intelligence</Text>
                 </View>
                 {aiLoading && !aiInsights ? (
                   <ActivityIndicator color={C.red} style={{ marginVertical: 8 }} />
@@ -383,12 +383,12 @@ function mkWcStyles(C: AppColors) { return StyleSheet.create({
   barTrack:   { height: CHART_H, width: '100%', position: 'relative', justifyContent: 'flex-end' },
   bar:        { width: '100%', borderRadius: 2, minHeight: 2 },
   goalLine:   { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(173,173,173,0.4)' },
-  dayLabel:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textTransform: 'uppercase' },
+  dayLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3},
   dayLabelActive: { color: C.red, fontFamily: Fonts.semiBold },
   legend:     { flexDirection: 'row', gap: 12, marginTop: 8 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot:  { width: 6, height: 6, borderRadius: 3 },
-  legendText: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+  legendText: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
 }); }
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
@@ -409,13 +409,13 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   tabBar:       { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
   tabBtn:       { flex: 1, paddingVertical: 9, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabBtnActive: { borderBottomColor: C.red },
-  tabLabel:     { fontFamily: Fonts.regular, fontSize: 11, letterSpacing: 0.8, color: C.t3 },
+  tabLabel:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
   tabLabelActive:{ fontFamily: Fonts.semiBold, color: C.red },
   dateStripScroll: { flexGrow: 0, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
   dateStrip:    { paddingHorizontal: 12, paddingVertical: 8, flexDirection: 'row', gap: 4 },
   dateBtn:      { alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, gap: 2 },
   dateBtnActive:{ backgroundColor: C.alwaysDark },
-  dateDayLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.6 },
+  dateDayLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3},
   dateDayLabelActive: { color: C.alwaysLight },
   dateDayNum:   { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black },
   dateDayNumActive: { color: C.alwaysLight },
@@ -440,7 +440,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   statItem:     { flex: 1, alignItems: 'center' },
   statDivider:  { width: 0.5, height: 32, backgroundColor: C.border },
   statValue:    { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, fontVariant: ['tabular-nums'] },
-  statLabel:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+  statLabel:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
   aiCard:       { backgroundColor: 'rgba(139,92,246,0.10)', borderRadius: 14, borderWidth: 0.5, borderColor: 'rgba(90,58,138,0.15)', padding: 14, gap: 10 },
   aiRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   aiIcon:       { fontSize: 20, lineHeight: 24 },

@@ -37,9 +37,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   ArrowLeft, Pencil, X, AlertCircle, ShieldAlert, ShoppingBag,
-  ChevronUp, ChevronDown,
+  Handshake, BarChart3, BellRing,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import StoreSection from './sections/StoreSection';
+import PartnersSection from './sections/PartnersSection';
+import ReportsSection from './sections/ReportsSection';
+import CampaignsSection from './sections/CampaignsSection';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,7 +81,16 @@ interface PromoRow {
   created_at: string;
 }
 
-type AdminTab = 'events' | 'promotions' | 'store';
+type AdminTab = 'events' | 'promotions' | 'store' | 'partners' | 'reports' | 'campaigns';
+
+const NAV: { id: AdminTab; label: string; Icon: typeof Calendar }[] = [
+  { id: 'partners',   label: 'Partners',   Icon: Handshake   },
+  { id: 'store',      label: 'PACE Store', Icon: ShoppingBag },
+  { id: 'reports',    label: 'Reports',    Icon: BarChart3   },
+  { id: 'campaigns',  label: 'Campaigns',  Icon: BellRing    },
+  { id: 'events',     label: 'Events',     Icon: Calendar    },
+  { id: 'promotions', label: 'Promotions', Icon: Megaphone   },
+];
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -756,321 +769,6 @@ create policy "Admin full access" on promotions
   );
 }
 
-// ─── PACE Store section ───────────────────────────────────────────────────────
-
-interface StoreRow {
-  id: string;
-  brand: string;
-  title: string;
-  description: string;
-  pace_cost: number;
-  tier: 'entry' | 'mid' | 'premium';
-  brand_color: string;
-  brand_initial: string;
-  value_label: string;
-  category: string;
-  status: 'available' | 'coming_soon' | 'sold_out' | 'hidden';
-  sort_order: number;
-  expires_at: string | null;
-}
-
-const EMPTY_STORE = {
-  brand: '', brand_initial: '', brand_color: '#534AB7',
-  title: '', description: '', value_label: '',
-  category: 'gear', tier: 'entry', status: 'available',
-  pace_cost: '', sort_order: '0', expires_at: '',
-};
-
-const STATUS_BADGE: Record<StoreRow['status'], string> = {
-  available:   'text-green-700 bg-green-50 border border-green-100',
-  coming_soon: 'text-blue-700 bg-blue-50 border border-blue-100',
-  sold_out:    'text-orange-700 bg-orange-50 border border-orange-100',
-  hidden:      'text-gray-400 bg-gray-50 border border-gray-100',
-};
-
-function StoreSection() {
-  const [rewards, setRewards] = useState<StoreRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [form, setForm] = useState(EMPTY_STORE);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('pace_store_rewards')
-      .select('*')
-      .order('sort_order', { ascending: true });
-    setRewards((data ?? []) as StoreRow[]);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const upd = (k: keyof typeof form, v: string) => setForm(p => ({ ...p, [k]: v }));
-
-  const openNew = () => { setForm(EMPTY_STORE); setEditId(null); setError(''); setShowForm(true); };
-
-  const openEdit = (r: StoreRow) => {
-    setForm({
-      brand:         r.brand,
-      brand_initial: r.brand_initial,
-      brand_color:   r.brand_color,
-      title:         r.title,
-      description:   r.description,
-      value_label:   r.value_label,
-      category:      r.category,
-      tier:          r.tier,
-      status:        r.status,
-      pace_cost:     String(r.pace_cost),
-      sort_order:    String(r.sort_order),
-      expires_at:    r.expires_at ? new Date(r.expires_at).toISOString().slice(0, 16) : '',
-    });
-    setEditId(r.id);
-    setError('');
-    setShowForm(true);
-  };
-
-  const cancel = () => { setShowForm(false); setEditId(null); setError(''); };
-
-  const canSave =
-    form.brand.trim().length > 0 &&
-    form.brand_initial.trim().length === 1 &&
-    form.title.trim().length >= 3 &&
-    form.description.trim().length > 0 &&
-    form.value_label.trim().length > 0 &&
-    parseInt(form.pace_cost) > 0;
-
-  const save = async () => {
-    if (!canSave) return;
-    setSaving(true);
-    setError('');
-    const payload = {
-      brand:         form.brand.trim(),
-      brand_initial: form.brand_initial.trim().charAt(0),
-      brand_color:   form.brand_color.trim(),
-      title:         form.title.trim(),
-      description:   form.description.trim(),
-      value_label:   form.value_label.trim(),
-      category:      form.category,
-      tier:          form.tier,
-      status:        form.status,
-      pace_cost:     parseInt(form.pace_cost),
-      sort_order:    parseInt(form.sort_order) || 0,
-      expires_at:    form.expires_at ? new Date(form.expires_at).toISOString() : null,
-    };
-    const { error: err } = editId
-      ? await supabase.from('pace_store_rewards').update(payload).eq('id', editId)
-      : await supabase.from('pace_store_rewards').insert(payload);
-    if (err) { setError(err.message); setSaving(false); return; }
-    await load();
-    cancel();
-    setSaving(false);
-  };
-
-  const del = async (id: string) => {
-    setDeletingId(id);
-    const { error: err } = await supabase.from('pace_store_rewards').delete().eq('id', id);
-    if (err) { setError(err.message); setDeletingId(null); return; }
-    setRewards(prev => prev.filter(r => r.id !== id));
-    setDeletingId(null);
-  };
-
-  const reorder = async (row: StoreRow, dir: 'up' | 'down') => {
-    const sorted = [...rewards].sort((a, b) => a.sort_order - b.sort_order);
-    const idx = sorted.findIndex(r => r.id === row.id);
-    const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const swap = sorted[swapIdx];
-    const results = await Promise.all([
-      supabase.from('pace_store_rewards').update({ sort_order: swap.sort_order }).eq('id', row.id),
-      supabase.from('pace_store_rewards').update({ sort_order: row.sort_order }).eq('id', swap.id),
-    ]);
-    const err = results.find(r => r.error)?.error;
-    if (err) { setError(err.message); return; }
-    await load();
-  };
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">PACE Store</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{rewards.length} rewards · {rewards.filter(r => r.status === 'available').length} available</p>
-        </div>
-        <button
-          onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-semibold shadow-sm active:scale-95 transition-transform"
-        >
-          <Plus className="w-4 h-4" strokeWidth={2.5} />
-          Add Reward
-        </button>
-      </div>
-
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="mb-6 p-5 rounded-2xl border border-[#C8391A]/20 bg-[#FFF8F6]"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-gray-900">{editId ? 'Edit Reward' : 'New Reward'}</h3>
-              <button onClick={cancel} className="w-7 h-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center">
-                <X className="w-3.5 h-3.5 text-gray-400" />
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Brand name *</label>
-                <input type="text" value={form.brand} onChange={e => upd('brand', e.target.value)} placeholder="e.g. Brooks" maxLength={60} className={inputClass} />
-              </div>
-              <div className="flex gap-2">
-                <div style={{ width: 72 }}>
-                  <label className={labelClass}>Initial *</label>
-                  <input type="text" value={form.brand_initial} onChange={e => upd('brand_initial', e.target.value.charAt(0))} placeholder="B" maxLength={1} className={inputClass} />
-                </div>
-                <div className="flex-1">
-                  <label className={labelClass}>Brand color *</label>
-                  <input type="text" value={form.brand_color} onChange={e => upd('brand_color', e.target.value)} placeholder="#0084D6" maxLength={7} className={inputClass} />
-                </div>
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Reward title *</label>
-                <input type="text" value={form.title} onChange={e => upd('title', e.target.value)} placeholder="e.g. 20% off Brooks Running" maxLength={100} className={inputClass} />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={labelClass}>Description *</label>
-                <textarea value={form.description} onChange={e => upd('description', e.target.value)} placeholder="What does the runner get? Include any restrictions." rows={2} maxLength={400} className={`${inputClass} resize-none`} />
-              </div>
-              <div>
-                <label className={labelClass}>Value label *</label>
-                <input type="text" value={form.value_label} onChange={e => upd('value_label', e.target.value)} placeholder="e.g. 20% off" maxLength={30} className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>PACE cost *</label>
-                <input type="number" value={form.pace_cost} onChange={e => upd('pace_cost', e.target.value)} placeholder="75" min="1" className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Category</label>
-                <select value={form.category} onChange={e => upd('category', e.target.value)} className={inputClass}>
-                  {['gear','nutrition','tech','events'].map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Tier</label>
-                <select value={form.tier} onChange={e => upd('tier', e.target.value)} className={inputClass}>
-                  <option value="entry">Entry (cheap)</option>
-                  <option value="mid">Mid</option>
-                  <option value="premium">Premium</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Status</label>
-                <select value={form.status} onChange={e => upd('status', e.target.value)} className={inputClass}>
-                  <option value="available">Available — redeemable</option>
-                  <option value="coming_soon">Coming Soon — visible, locked</option>
-                  <option value="sold_out">Sold Out — code pool exhausted</option>
-                  <option value="hidden">Hidden — not visible in app</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Sort order <span className="normal-case font-normal tracking-normal text-gray-300">Lower = first</span></label>
-                <input type="number" value={form.sort_order} onChange={e => upd('sort_order', e.target.value)} placeholder="0" min="0" className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Expires at <span className="normal-case font-normal tracking-normal text-gray-300">Optional</span></label>
-                <input type="datetime-local" value={form.expires_at} onChange={e => upd('expires_at', e.target.value)} className={inputClass} />
-              </div>
-            </div>
-            {error && (
-              <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-100">
-                <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                <p className="text-xs text-red-500">{error}</p>
-              </div>
-            )}
-            <div className="flex gap-2 mt-4">
-              <button onClick={cancel} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-500 bg-white">Cancel</button>
-              <button onClick={save} disabled={!canSave || saving} className="flex-1 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-transform">
-                {saving ? 'Saving…' : editId ? 'Update Reward' : 'Create Reward'}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(200,57,26,0.15)', borderTopColor: '#C8391A' }} />
-        </div>
-      ) : rewards.length === 0 ? (
-        <div className="text-center py-16">
-          <ShoppingBag className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">No rewards yet. Add your first one.</p>
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-4 py-3">Brand / Reward</th>
-                <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-4 py-3 hidden sm:table-cell">Cost</th>
-                <th className="text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-4 py-3 hidden sm:table-cell">Status</th>
-                <th className="text-right text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-50">
-              {rewards.map((r, idx) => (
-                <tr key={r.id} className={r.status === 'hidden' ? 'opacity-40' : ''}>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold" style={{ backgroundColor: r.brand_color }}>
-                        {r.brand_initial}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900 leading-tight text-sm">{r.title}</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{r.brand} · {r.category}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-700 hidden sm:table-cell whitespace-nowrap">
-                    {r.pace_cost} <span className="text-gray-300 font-normal text-xs">PACE</span>
-                  </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${STATUS_BADGE[r.status]}`}>
-                      {r.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => reorder(r, 'up')} disabled={idx === 0} className="w-7 h-7 rounded-lg border border-gray-100 bg-white flex items-center justify-center hover:border-gray-300 transition-colors disabled:opacity-30">
-                        <ChevronUp className="w-3 h-3 text-gray-400" />
-                      </button>
-                      <button onClick={() => reorder(r, 'down')} disabled={idx === rewards.length - 1} className="w-7 h-7 rounded-lg border border-gray-100 bg-white flex items-center justify-center hover:border-gray-300 transition-colors disabled:opacity-30">
-                        <ChevronDown className="w-3 h-3 text-gray-400" />
-                      </button>
-                      <button onClick={() => openEdit(r)} className="w-7 h-7 rounded-lg border border-gray-100 bg-white flex items-center justify-center hover:border-gray-300 transition-colors">
-                        <Pencil className="w-3 h-3 text-gray-400" />
-                      </button>
-                      <button onClick={() => del(r.id)} disabled={deletingId === r.id} className="w-7 h-7 rounded-lg border border-red-100 bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors disabled:opacity-40">
-                        {deletingId === r.id ? <div className="w-3 h-3 rounded-full border border-red-300 border-t-transparent animate-spin" /> : <Trash2 className="w-3 h-3 text-red-400" />}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main Admin page ──────────────────────────────────────────────────────────
 
 type AccessState = 'loading' | 'granted' | 'denied' | 'signed_out';
@@ -1202,11 +900,7 @@ export default function AdminPage() {
       <div className="flex min-h-[calc(100vh-65px)]">
         {/* Sidebar */}
         <aside className="w-52 flex-shrink-0 border-r border-gray-100 bg-white pt-6 px-3 hidden sm:block">
-          {([
-            { id: 'events',     label: 'Events',     Icon: Calendar    },
-            { id: 'promotions', label: 'Promotions', Icon: Megaphone   },
-            { id: 'store',      label: 'PACE Store', Icon: ShoppingBag },
-          ] as { id: AdminTab; label: string; Icon: typeof Calendar }[]).map(item => (
+          {NAV.map(item => (
             <button
               key={item.id}
               onClick={() => setTab(item.id)}
@@ -1224,11 +918,7 @@ export default function AdminPage() {
 
         {/* Mobile tab bar */}
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-100 flex">
-          {([
-            { id: 'events',     label: 'Events',     Icon: Calendar    },
-            { id: 'promotions', label: 'Promotions', Icon: Megaphone   },
-            { id: 'store',      label: 'PACE Store', Icon: ShoppingBag },
-          ] as { id: AdminTab; label: string; Icon: typeof Calendar }[]).map(item => (
+          {NAV.map(item => (
             <button
               key={item.id}
               onClick={() => setTab(item.id)}
@@ -1255,6 +945,9 @@ export default function AdminPage() {
               {tab === 'events'     && <EventsSection />}
               {tab === 'promotions' && <PromotionsSection />}
               {tab === 'store'      && <StoreSection />}
+              {tab === 'partners'   && <PartnersSection />}
+              {tab === 'reports'    && <ReportsSection />}
+              {tab === 'campaigns'  && <CampaignsSection />}
             </motion.div>
           </AnimatePresence>
         </main>

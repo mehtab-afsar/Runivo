@@ -21,6 +21,7 @@ function toRunEvent(e: Record<string, unknown>): RunEvent {
     time: fmtEventTime(e.starts_at as string),
     location: (e.location_name as string) ?? 'TBD',
     distance: e.distance_m ? `${fmtDistShort(e.distance_m as number)} km` : undefined,
+    distanceM: (e.distance_m as number | null) ?? undefined,
     participants: (e.participant_count as number) ?? 0,
     organizer: (e.organizer as string) ?? undefined,
     source: (e.source as RunEvent['source']) ?? 'hosted',

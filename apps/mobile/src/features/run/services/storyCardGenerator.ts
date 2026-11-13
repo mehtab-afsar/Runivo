@@ -38,7 +38,8 @@ function buildSVGRoutePath(points: { lat: number; lng: number }[], w: number, h:
   return `M ${pts.join(' L ')}`;
 }
 
-export function buildStoryDataUrl(data: StoryCardData): string {
+/** The story card as raw SVG markup (400 × 700). Rendered to PNG by PngCapture for sharing. */
+export function buildStorySvg(data: StoryCardData): string {
   const { distance, duration, pace, paceEarned, heading, actionType, route } = data;
 
   const accentColor = actionType === 'attack' ? '#D93518'
@@ -96,7 +97,11 @@ export function buildStoryDataUrl(data: StoryCardData): string {
   <text x="200" y="660" font-family="sans-serif" font-size="10" fill="#C8C4C0" text-anchor="middle" letter-spacing="2">tracked on runivo</text>
 </svg>`;
 
-  const b64 = btoa(unescape(encodeURIComponent(svg)));
+  return svg;
+}
+
+export function buildStoryDataUrl(data: StoryCardData): string {
+  const b64 = btoa(unescape(encodeURIComponent(buildStorySvg(data))));
   return `data:image/svg+xml;base64,${b64}`;
 }
 

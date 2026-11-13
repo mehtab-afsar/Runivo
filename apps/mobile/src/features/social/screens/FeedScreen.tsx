@@ -9,6 +9,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { Search, Check, Plus, UserPlus, X } from 'lucide-react-native';
 import { useFeed } from '@features/social/hooks/useFeed';
+import { fetchStolenZone } from '@features/social/services/feedService';
 import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
 import { EmptyFeed } from '@features/social/components/EmptyFeed';
@@ -38,7 +39,8 @@ export default function FeedScreen() {
   const [runnerQuery, setRunnerQuery]     = useState('');
 
   const tabX = useRef(new Animated.Value(0)).current;
-  const TAB_W = (width - 40) / 2;
+  // Three segments as in the mock: Following · Discover · Clubs (Clubs opens the Clubs screen).
+  const TAB_W = (width - 36 - 6) / 3;
 
   const {
     followingPosts,
@@ -58,6 +60,7 @@ export default function FeedScreen() {
     refresh,
     onCommentPosted,
     deletePost,
+    muteAuthor,
   } = useFeed();
 
   useEffect(() => {
@@ -89,8 +92,18 @@ export default function FeedScreen() {
     return suggestedRunners.filter(r => r.username.toLowerCase().includes(q));
   }, [suggestedRunners, runnerQuery]);
 
-  const handleDefend = useCallback(() => {
-    navigation.navigate('TerritoryMap', { initialFilter: 'stale' });
+  // "Take it back": straight to a run.
+  // Defend: run straight at the zone that was taken; fall back to the Run tab.
+  const handleDefend = useCallback(async (post: FeedPost) => {
+    const zone = await fetchStolenZone(post.id).catch(() => null);
+    if (zone) {
+      navigation.navigate('ActiveRun', {
+        autoStart: false, activityType: 'run',
+        targetZone: { id: zone.id, name: 'back your zone', ring: zone.ring, mode: 'attack' },
+      });
+    } else {
+      navigation.navigate('Main', { screen: 'Run' });
+    }
   }, [navigation]);
 
   const renderPost = useCallback(({ item }: { item: FeedPost }) => (
@@ -101,9 +114,10 @@ export default function FeedScreen() {
       onComment={() => setCommentPostId(item.id)}
       onUserPress={() => navigation.navigate('UserProfile', { userId: item.userId, username: item.username })}
       onDelete={() => deletePost(item.id)}
-      onDefend={item.postType === 'attack' ? handleDefend : undefined}
+      onMuteAuthor={() => muteAuthor(item.userId)}
+      onDefend={item.postType === 'attack' ? () => { void handleDefend(item); } : undefined}
     />
-  ), [toggleKudos, navigation, userId, deletePost, handleDefend]);
+  ), [toggleKudos, navigation, userId, deletePost, handleDefend, muteAuthor]);
 
   const keyExtractor = useCallback((item: FeedPost) => item.id, []);
 
@@ -143,7 +157,7 @@ export default function FeedScreen() {
                   )}
                 </View>
                 <Text style={s.runnerName} numberOfLines={1}>{runner.username.split(' ')[0]}</Text>
-                <Text style={s.runnerScore}>{runner.territoryScore} TS</Text>
+                <Text style={s.runnerScore}>{Intl.NumberFormat().format(runner.territoryScore)}</Text>
               </Pressable>
             );
           })}
@@ -170,20 +184,26 @@ export default function FeedScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      {/* Header */}
+      {/* Header: title + runner search (there's no direct-messages feature to link yet) */}
+      <View style={s.titleRow}>
+        <Text style={s.title}>Feed</Text>
+        <Pressable onPress={() => setSearchVisible(true)} hitSlop={10} style={s.searchIcon} accessibilityLabel="Search runners">
+          <Search size={16} color={C.t1} strokeWidth={1.8} />
+        </Pressable>
+      </View>
       <View style={s.header}>
         <View style={s.pillTrack}>
-          <Animated.View style={[s.pillActive, { width: TAB_W - 6, transform: [{ translateX: tabX }] }]} />
+          <Animated.View style={[s.pillActive, { width: TAB_W, transform: [{ translateX: tabX }] }]} />
           <Pressable style={s.tabItem} onPress={() => switchTab('following')}>
             <Text style={[s.tabLabel, tab === 'following' && s.tabLabelActive]}>Following</Text>
           </Pressable>
           <Pressable style={s.tabItem} onPress={() => switchTab('discover')}>
             <Text style={[s.tabLabel, tab === 'discover' && s.tabLabelActive]}>Discover</Text>
           </Pressable>
+          <Pressable style={s.tabItem} onPress={() => navigation.navigate('Club')}>
+            <Text style={s.tabLabel}>Clubs</Text>
+          </Pressable>
         </View>
-        <Pressable onPress={() => setSearchVisible(true)} hitSlop={10} style={s.searchIcon}>
-          <Search size={19} color={C.t2} strokeWidth={1.75} />
-        </Pressable>
       </View>
 
       {loading ? (
@@ -280,7 +300,7 @@ function RunnerRow({
       <Avatar name={runner.username} color={runner.avatarColor} size={44} uri={runner.avatarUrl} />
       <View style={s.info}>
         <Text style={s.name} numberOfLines={1}>{runner.username}</Text>
-        <Text style={s.score}>{runner.territoryScore} TS</Text>
+        <Text style={s.score}>{Intl.NumberFormat().format(runner.territoryScore)} territory score</Text>
       </View>
       {!isSelf && (
         <Pressable
@@ -317,27 +337,29 @@ function FooterSpinner({ C }: { C: AppColors }) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:           { flex: 1, backgroundColor: C.bg },
-    header:         { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingBottom: 12, paddingTop: Platform.OS === 'android' ? 12 : 4 },
-    pillTrack:      { flex: 1, flexDirection: 'row', position: 'relative', backgroundColor: C.stone, borderRadius: 999, padding: 3, height: 40 },
-    pillActive:     { position: 'absolute', top: 3, bottom: 3, left: 3, backgroundColor: C.card, borderRadius: 999, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+    titleRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 18 : 8, paddingBottom: 12 },
+    title:          { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1 },
+    header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 12 },
+    pillTrack:      { flex: 1, flexDirection: 'row', position: 'relative', backgroundColor: '#E9E7E2', borderRadius: 999, padding: 3, height: 38 },
+    pillActive:     { position: 'absolute', top: 3, bottom: 3, left: 3, backgroundColor: C.card, borderRadius: 999, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
     tabItem:        { flex: 1, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
-    tabLabel:       { fontFamily: Fonts.medium, fontSize: 13, color: C.t3 },
-    tabLabelActive: { fontFamily: Fonts.semiBold, color: C.black },
-    searchIcon:     { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    list:           { paddingBottom: 100 },
+    tabLabel:       { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },
+    tabLabelActive: { color: C.t1 },
+    searchIcon:     { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    list:           { paddingTop: 4, paddingBottom: 100 },
     // Suggested runners
-    suggestedSection: { backgroundColor: C.bg, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    suggestedLabel:   { color: C.t3, paddingHorizontal: Spacing.gutter, marginBottom: 14 },
-    suggestedScroll:  { paddingHorizontal: 20, gap: 10 },
+    suggestedSection: { backgroundColor: C.card, marginHorizontal: 18, marginBottom: 12, borderRadius: 16, paddingTop: 16, paddingBottom: 14 },
+    suggestedLabel:   { color: C.t2, paddingHorizontal: 14, marginBottom: 12 },
+    suggestedScroll:  { paddingHorizontal: 14, gap: 12 },
     runnerCard:       { alignItems: 'center', gap: 5, minWidth: 68 },
     runnerAvatarWrap: { position: 'relative' },
-    followDot:        { position: 'absolute', bottom: -1, right: -1, width: 18, height: 18, borderRadius: 9, backgroundColor: C.alwaysDark, borderWidth: 1.5, borderColor: C.white, alignItems: 'center', justifyContent: 'center' },
-    runnerName:       { fontFamily: Fonts.regular, fontSize: 11, color: C.black, textAlign: 'center' },
-    runnerScore:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', marginTop: -2 },
+    followDot:        { position: 'absolute', bottom: -1, right: -1, width: 20, height: 20, borderRadius: 10, backgroundColor: C.red, borderWidth: 2, borderColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    runnerName:       { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t1, textAlign: 'center' },
+    runnerScore:      { fontFamily: Fonts.numeric, fontSize: 14, color: C.t2, textAlign: 'center', marginTop: -2 },
     // Search modal
     searchModal:  { flex: 1, backgroundColor: C.bg },
     searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    searchInput:  { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.black, height: 36, backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 12 },
+    searchInput:  { flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: C.t1, height: 42, backgroundColor: C.card, borderRadius: 999, paddingHorizontal: 16 },
     searchEmpty:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, textAlign: 'center', paddingTop: 40, paddingHorizontal: 32 },
   });
 }

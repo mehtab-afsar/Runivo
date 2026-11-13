@@ -1,3 +1,4 @@
+import { isNewCapture } from '@theme/territory';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
@@ -23,18 +24,32 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
   const [deviceLocation, setDeviceLocation]   = useState<[number, number] | null>(null);
   const [currentUserId, setCurrentUserId]     = useState('');
   const bboxDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [locationStatus, setLocationStatus]   = useState<'granted' | 'undetermined' | 'denied'>('undetermined');
+
+  const centreOnDevice = useCallback(async () => {
+    try {
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setDeviceLocation([loc.coords.longitude, loc.coords.latitude]);
+    } catch { /* no fix yet; the map keeps its default centre */ }
+  }, []);
 
   useEffect(() => {
     (async () => {
       const player = await getPlayer();
       if (player?.id) setCurrentUserId(player.id);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setDeviceLocation([loc.coords.longitude, loc.coords.latitude]);
-      }
+      // Never prompt on open: the screen explains why first (see
+      // TerritoryMapScreen's location card) and asks only when tapped.
+      const perm = await Location.getForegroundPermissionsAsync();
+      setLocationStatus(perm.status === 'granted' ? 'granted' : perm.canAskAgain ? 'undetermined' : 'denied');
+      if (perm.status === 'granted') await centreOnDevice();
     })();
-  }, []);
+  }, [centreOnDevice]);
+
+  const requestLocation = useCallback(async () => {
+    const { status, canAskAgain } = await Location.requestForegroundPermissionsAsync();
+    setLocationStatus(status === 'granted' ? 'granted' : canAskAgain ? 'undetermined' : 'denied');
+    if (status === 'granted') await centreOnDevice();
+  }, [centreOnDevice]);
 
   const loadOwnPolygons = useCallback(async () => {
     if (!currentUserId) return;
@@ -90,6 +105,7 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
           areaM2:     p.areaM2,
           isLoopFill: p.isLoopFill,
           claimedAt:  p.claimedAt,
+          isNew:      p.ownerId === currentUserId && isNewCapture(p.claimedAt),
         },
       })),
   }), [visiblePolygons, currentUserId]);
@@ -137,5 +153,7 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
     handleBboxChange,
     currentUserId,
     loadOwnPolygons,
+    locationStatus,
+    requestLocation,
   };
 }

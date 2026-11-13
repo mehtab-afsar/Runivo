@@ -77,6 +77,6 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   stats:   { flex: 1, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
   stat:    { alignItems: 'center', gap: 2 },
   statVal: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, fontVariant: ['tabular-nums'] },
-  statLabel:{ fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textTransform: 'uppercase', letterSpacing: 0.5 },
+  statLabel:{ fontFamily: Fonts.regular, fontSize: 11, color: C.t3},
   divider: { width: 0.5, height: 28, backgroundColor: C.mid },
 }); }

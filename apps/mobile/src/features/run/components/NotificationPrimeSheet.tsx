@@ -67,7 +67,7 @@ function mkStyles(C: AppColors) {
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
     sheet:   { backgroundColor: C.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
     handle:  { width: 36, height: 3, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 20 },
-    eyebrow: { fontFamily: Fonts.medium, fontSize: 10, color: C.red, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 },
+    eyebrow: { fontFamily: Fonts.medium, fontSize: 11, color: C.red, marginBottom: 8 },
     title:   { fontFamily: Fonts.display, fontSize: 24, color: C.t1, marginBottom: 8 },
     sub:     { fontSize: 13, color: C.t2, lineHeight: 19 },
     row:     { flexDirection: 'row', alignItems: 'center', gap: 12 },

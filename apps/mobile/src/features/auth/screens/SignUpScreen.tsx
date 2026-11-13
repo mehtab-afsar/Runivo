@@ -1,40 +1,11 @@
-import React, { useMemo } from 'react';
-import { View, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useSignUp } from '../hooks/useSignUp';
-import SignUpForm from '../components/SignUpForm';
-import { useTheme, type AppColors } from '@theme';
+import React from 'react';
+import AuthScreen from './AuthScreen';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
-
+/**
+ * "Get started" → the same flow as sign-in: the first passwordless sign-in
+ * creates the account. The older email + password sign-up stays reachable
+ * from there ("Use a password instead").
+ */
 export default function SignUpScreen() {
-  const navigation = useNavigation<Nav>();
-  const signUp = useSignUp();
-  const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
-
-  return (
-    <View style={s.root}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <SignUpForm
-          {...signUp}
-          emailExists={signUp.emailExists}
-          rateLimitSeconds={signUp.rateLimitSeconds}
-          onGoBack={() => navigation.goBack()}
-          onGoLogin={() => navigation.navigate('Login')}
-        />
-      </KeyboardAvoidingView>
-    </View>
-  );
-}
-
-function mkStyles(C: AppColors) {
-  return StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.bg },
-  });
+  return <AuthScreen mode="signup" />;
 }

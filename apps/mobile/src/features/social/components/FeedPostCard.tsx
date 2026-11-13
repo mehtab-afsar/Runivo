@@ -1,17 +1,16 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, Share } from 'react-native';
-import {
-  Heart, MessageCircle, Share2, MoreHorizontal,
-  Trophy, Flag, TriangleAlert, Diamond,
-} from 'lucide-react-native';
-import Svg, { Polyline, Circle, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
+import { View, Text, StyleSheet, Pressable, Share, Image, ScrollView } from 'react-native';
+import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
+import Svg, { Polyline, Polygon, Circle } from 'react-native-svg';
+import { CityBackdrop } from '@mobile/shared/components/CityBackdrop';
 import { Avatar } from '@mobile/shared/components/Avatar';
-import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
+import { avatarColor } from '@shared/lib/avatarUtils';
 import { fmtDistShort } from '@mobile/shared/lib/formatters';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
 import { fetchPostLikers, reportPost } from '@features/social/services/feedService';
 import type { FeedPost, PostLiker } from '@features/social/types';
-import { useTheme, Fonts, Type, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
+import { territoryPalette } from '@theme/territory';
 import PostActionsSheet from './PostActionsSheet';
 
 function timeAgo(iso: string) {
@@ -45,47 +44,53 @@ function buildShareMessage(post: FeedPost): string {
 }
 
 const MAP_W = 375;
-const MAP_H = 140;
-const PAD   = 16;
+const MAP_H = 150;
+const STEAL_MAP_H = 170;
+const PAD   = 22;
 
-function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
+type HeroKind = 'run' | 'claim' | 'steal';
+
+/** Route thumbnail over a drawn city, as on the mock's feed cards. */
+function RouteMapHero({ points, seed, kind }: { points: { lat: number; lng: number }[]; seed: string; kind: HeroKind }) {
+  const H = kind === 'steal' ? STEAL_MAP_H : MAP_H;
   const C  = useTheme();
+  const zone = territoryPalette(useIsDark());
   const rm = useMemo(() => mkRmStyles(C), [C]);
 
-  const lats  = points.map(p => p.lat);
-  const lngs  = points.map(p => p.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const rangeW = maxLng - minLng || 0.0001;
-  const rangeH = maxLat - minLat || 0.0001;
-  const scale  = Math.min((MAP_W - PAD * 2) / rangeW, (MAP_H - PAD * 2) / rangeH);
+  const geo = useMemo(() => {
+    const lats  = points.map(p => p.lat);
+    const lngs  = points.map(p => p.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    // Longitude degrees shrink with latitude; correct so loops aren't stretched.
+    const kx = Math.cos(((minLat + maxLat) / 2) * Math.PI / 180);
+    const rangeW = (maxLng - minLng) * kx || 0.0001;
+    const rangeH = maxLat - minLat || 0.0001;
+    const scale  = Math.min((MAP_W - PAD * 2) / rangeW, (H - PAD * 2) / rangeH);
+    const offX = (MAP_W - rangeW * scale) / 2, offY = (H - rangeH * scale) / 2;
+    const pts = points.map(p => ({
+      x: offX + (p.lng - minLng) * kx * scale,
+      y: H - offY - (p.lat - minLat) * scale,
+    }));
+    const first = pts[0], last = pts[pts.length - 1];
+    const diag = Math.hypot(rangeW * scale, rangeH * scale);
+    const closed = Math.hypot(first.x - last.x, first.y - last.y) < Math.max(18, diag * 0.15);
+    return { poly: pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '), start: first, closed };
+  }, [points, H]);
 
-  const pts = points.map(p => ({
-    x: PAD + (p.lng - minLng) * scale,
-    y: MAP_H - PAD - (p.lat - minLat) * scale,
-  }));
-  const poly  = pts.map(p => `${p.x},${p.y}`).join(' ');
-  const start = pts[0];
-  const end   = pts[pts.length - 1];
+  const stroke = kind === 'run' ? C.t1 : zone.trail;
+  const fill   = kind === 'run' ? '#FFFFFF' : zone.trail;
+  const fillOpacity = kind === 'run' ? 0.55 : 0.18;
 
   return (
     <View style={rm.wrap}>
-      <Svg width="100%" height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid meet">
-        <Defs>
-          <LinearGradient id="routeStroke" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0"   stopColor={C.orange} />
-            <Stop offset="1"   stopColor={C.red} />
-          </LinearGradient>
-          <LinearGradient id="fadeBottom" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0.55" stopColor={C.surface} stopOpacity="0" />
-            <Stop offset="1"    stopColor={C.surface} stopOpacity="1" />
-          </LinearGradient>
-        </Defs>
-        <Polyline points={poly} fill="none" stroke="url(#routeStroke)" strokeWidth="7" strokeOpacity="0.18" strokeLinecap="round" strokeLinejoin="round" />
-        <Polyline points={poly} fill="none" stroke="url(#routeStroke)" strokeWidth="3"   strokeLinecap="round" strokeLinejoin="round" />
-        <Circle cx={start.x} cy={start.y} r="5" fill={C.green} stroke="#fff" strokeWidth="1.5" />
-        <Circle cx={end.x}   cy={end.y}   r="5" fill={C.red}   stroke="#fff" strokeWidth="1.5" />
-        <Rect x="0" y="0" width={MAP_W} height={MAP_H} fill="url(#fadeBottom)" />
+      <Svg width="100%" height={H} viewBox={`0 0 ${MAP_W} ${H}`} preserveAspectRatio="xMidYMid slice">
+        <CityBackdrop width={MAP_W} height={H} seed={seed} />
+        {geo.closed
+          ? <Polygon points={geo.poly} fill={fill} fillOpacity={fillOpacity} stroke={stroke} strokeWidth={kind === 'steal' ? 2.5 : 3}
+              strokeDasharray={kind === 'steal' ? '6 4' : undefined} strokeLinejoin="round" />
+          : <Polyline points={geo.poly} fill="none" stroke={stroke} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />}
+        <Circle cx={geo.start.x} cy={geo.start.y} r="5" fill="#FFFFFF" stroke={stroke} strokeWidth="2.5" />
       </Svg>
     </View>
   );
@@ -93,50 +98,21 @@ function RouteMapHero({ points }: { points: { lat: number; lng: number }[] }) {
 
 function mkRmStyles(C: AppColors) {
   return StyleSheet.create({
-    wrap: { backgroundColor: C.surface, overflow: 'hidden', borderTopWidth: 0.5, borderTopColor: C.border },
+    wrap: { backgroundColor: C.bg, overflow: 'hidden' },
   });
 }
 
-function StatBlock({ value, label, icon }: { value: string; label: string; icon?: React.ReactNode }) {
+function StatBlock({ value, label, icon, color }: { value: string; label: string; icon?: React.ReactNode; color?: string }) {
   const C = useTheme();
   return (
     <View style={{ gap: 1, flex: 1 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
         {icon}
-        <Text style={{ fontFamily: Fonts.semiBold, fontSize: 16, letterSpacing: -0.3, color: C.black, fontVariant: ['tabular-nums'] }}>{value}</Text>
+        <Text style={{ fontFamily: Fonts.numeric, fontSize: 24, lineHeight: 24, color: color ?? C.t1, fontVariant: ['tabular-nums'] }}>{value}</Text>
       </View>
-      <Text style={[Type.overline, { color: C.t3 }]}>{label}</Text>
+      <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 3 }}>{label}</Text>
     </View>
   );
-}
-
-// Territory claimed on a run post — a tier-colored swatch card, not a real
-// map thumbnail. get_feed only returns territoryTier/territoryAreaM2 (a
-// label + a number), never the polygon's actual coordinates, so there's
-// nothing to hand MapLibre/MiniTerritoryMap's ShapeSource — that would need
-// get_feed extended to also select the polygon, which is backend work this
-// pass doesn't do. This uses the same tier color mapping (TIER_CONFIG) the
-// real map thumbnails use elsewhere, just as a flat swatch instead of a shape.
-function TerritorySwatch({ tier, areaM2 }: { tier: string; areaM2: number | null }) {
-  const C  = useTheme();
-  const tc = TIER_CONFIG[tier] ?? TIER_CONFIG.patch;
-  const s  = useMemo(() => mkSwatchStyles(C), [C]);
-  return (
-    <View style={[s.swatch, { backgroundColor: tc.bg }]}>
-      <View style={[s.swatchCore, { backgroundColor: tc.fg }]} />
-      <Text style={[s.tierLabel, { color: tc.fg }]}>{tc.label}</Text>
-      {areaM2 != null && <Text style={s.areaLabel}>{formatArea(areaM2)}</Text>}
-    </View>
-  );
-}
-
-function mkSwatchStyles(C: AppColors) {
-  return StyleSheet.create({
-    swatch:     { flex: 1, aspectRatio: 1.4, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 4 },
-    swatchCore: { width: 22, height: 22, borderRadius: 6 },
-    tierLabel:  { fontFamily: Fonts.semiBold, fontSize: 10.5, letterSpacing: 0.4 },
-    areaLabel:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
-  });
 }
 
 function KudosStack({ postId, kudosCount }: { postId: string; kudosCount: number }) {
@@ -148,7 +124,7 @@ function KudosStack({ postId, kudosCount }: { postId: string; kudosCount: number
     let alive = true;
     if (kudosCount > 0) {
       fetchPostLikers(postId, 3)
-        .then(l => { if (alive) setLikers(l); })
+        .then(l => { if (alive) setLikers(l.filter((x, i) => l.findIndex(y => y.id === x.id) === i)); })
         .catch(() => { if (alive) setLikers([]); });
     }
     return () => { alive = false; };
@@ -190,6 +166,8 @@ interface Props {
   onComment: () => void;
   onUserPress?: () => void;
   onDelete: () => void;
+  /** Mute this post's author. */
+  onMuteAuthor?: () => void;
   onDefend?: () => void;
 }
 
@@ -197,16 +175,17 @@ interface Props {
 // FeedScreen already uses a useCallback renderItem — without memo here that win
 // was cancelled, and every keystroke in the search box re-rendered every card.
 export const FeedPostCard = React.memo(function FeedPostCard({
-  post, currentUserId, onKudos, onComment, onUserPress, onDelete, onDefend,
+  post, currentUserId, onKudos, onComment, onUserPress, onDelete, onDefend, onMuteAuthor,
 }: Props) {
   const C = useTheme();
+  const zone = territoryPalette(useIsDark());
   const s = useMemo(() => mkStyles(C), [C]);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const showRank = post.runnerRank && post.runnerRank !== 'pacer';
   const isOwnPost = currentUserId != null && post.userId === currentUserId;
   const activitySuffix = post.postType === 'run' && post.activityType !== 'run'
-    ? ` · ${post.activityType === 'long_run' ? 'Long run' : post.activityType[0].toUpperCase() + post.activityType.slice(1)}`
+    ? ` · ${post.activityType === 'long_run' ? 'Long run' : post.activityType === 'cycle' ? 'Ride' : post.activityType === 'trail_run' ? 'Trail run' : post.activityType[0].toUpperCase() + post.activityType.slice(1)}`
     : '';
 
   const handleShare = useCallback(() => {
@@ -216,126 +195,158 @@ export const FeedPostCard = React.memo(function FeedPostCard({
   const handleReport = useCallback(() => reportPost(post.id, 'inappropriate').catch(() => {}), [post.id]);
 
   const tier = post.territoryTier ? (TIER_CONFIG[post.territoryTier] ?? TIER_CONFIG.patch) : null;
+  const zoneTier = post.zoneTier ? (TIER_CONFIG[post.zoneTier] ?? null) : tier;
+  const rankLabel = post.runnerRank ? post.runnerRank[0].toUpperCase() + post.runnerRank.slice(1) : null;
+  const othersLine = post.hasKudos
+    ? (post.kudosCount > 1 ? `You and ${post.kudosCount - 1} other${post.kudosCount - 1 === 1 ? '' : 's'}` : 'You')
+    : null;
 
+  // ── Steal ("kofi.k stole a zone from you") and conquest cards ─────────────
+  if (post.postType === 'attack' || post.postType === 'conquest') {
+    const attack = post.postType === 'attack';
+    // On an attack post the author is you; the rival is stolen_from.
+    const who = attack ? (post.stolenFromUsername ?? 'A rival') : post.username;
+    const line = attack
+      ? 'stole a zone from you'
+      : `took a zone from ${post.stolenFromUsername ?? 'a rival'}`;
+    return (
+      <View style={s.card}>
+        <View style={s.header}>
+          <Pressable style={s.headerTap} onPress={attack ? undefined : onUserPress}>
+            {attack
+              ? <Avatar name={who} color={avatarColor(who)} size={36} uri={null} />
+              : <Avatar name={post.username} color={post.avatarColor} size={36} uri={post.avatarUrl} />}
+            <View style={s.userInfo}>
+              <Text style={s.headline} numberOfLines={2}><Text style={s.username}>{who}</Text> {line}</Text>
+              <Text style={s.subtitle}>{timeAgo(post.createdAt)}{zoneTier ? ` · ${zoneTier.label}` : ''}</Text>
+            </View>
+          </Pressable>
+          <Pressable style={s.kebab} onPress={() => setSheetOpen(true)} hitSlop={10}>
+            <MoreHorizontal size={18} color={C.t3} strokeWidth={2} />
+          </Pressable>
+        </View>
+        {(post.routePoints?.length ?? 0) >= 5 && (
+          <RouteMapHero points={post.routePoints!} seed={post.id} kind="steal" />
+        )}
+        <View style={s.stealFoot}>
+          {post.stolenAreaM2 != null ? (
+            <Text style={s.stealText}>
+              <Text style={[s.stealArea, { color: attack ? zone.rival : zone.own }]}>
+                {attack ? '' : '+'}{formatArea(post.stolenAreaM2)}
+              </Text>
+              {attack ? ' taken' : ' captured'}
+            </Text>
+          ) : <View />}
+          {attack && onDefend && (
+            <Pressable style={[s.takeBack, { backgroundColor: zone.own }]} onPress={onDefend} accessibilityRole="button">
+              <Text style={s.takeBackText}>Take it back</Text>
+            </Pressable>
+          )}
+        </View>
+        <PostActionsSheet visible={sheetOpen} isOwnPost={isOwnPost} onClose={() => setSheetOpen(false)} onShare={handleShare} onDelete={onDelete} onReport={handleReport} onMute={onMuteAuthor} authorName={post.username} />
+      </View>
+    );
+  }
+
+  // ── Milestone ("ana_runs claimed a District", black tier chip) ────────────
+  if (post.postType === 'milestone') {
+    return (
+      <View style={s.card}>
+        <View style={[s.header, s.headerCompact]}>
+          <Pressable style={s.headerTap} onPress={onUserPress}>
+            <Avatar name={post.username} color={post.avatarColor} size={36} uri={post.avatarUrl} />
+            <View style={s.userInfo}>
+              <Text style={s.headline} numberOfLines={2}>
+                <Text style={s.username}>{post.username}</Text> claimed {tier ? `a ${tier.label}` : 'a new zone'}
+              </Text>
+              <Text style={s.subtitle}>
+                {timeAgo(post.createdAt)}{post.territoryAreaM2 != null ? ` · ${formatArea(post.territoryAreaM2)}, biggest yet` : ''}
+              </Text>
+            </View>
+          </Pressable>
+          {tier && <View style={s.darkChip}><Text style={s.darkChipText}>{tier.label}</Text></View>}
+        </View>
+        {(post.routePoints?.length ?? 0) >= 5 && (
+          <RouteMapHero points={post.routePoints!} seed={post.id} kind="claim" />
+        )}
+        <PostActionsSheet visible={sheetOpen} isOwnPost={isOwnPost} onClose={() => setSheetOpen(false)} onShare={handleShare} onDelete={onDelete} onReport={handleReport} onMute={onMuteAuthor} authorName={post.username} />
+      </View>
+    );
+  }
+
+  // ── Run ───────────────────────────────────────────────────────────────────
   return (
-    <View style={[
-      s.card,
-      post.postType === 'conquest' && s.cardConquest,
-      post.postType === 'attack' && s.cardAttack,
-    ]}>
-
-      {/* Type strip — conquest/attack only; run/milestone keep the plain header below */}
-      {post.postType === 'conquest' && (
-        <View style={[s.typeStrip, { backgroundColor: C.amberBg }]}>
-          <Flag size={13} color={C.amber} strokeWidth={2} />
-          <Text style={[s.typeStripText, { color: C.amber }]}>Conquest</Text>
-        </View>
-      )}
-      {post.postType === 'attack' && (
-        <View style={[s.typeStrip, { backgroundColor: C.redLo }]}>
-          <TriangleAlert size={13} color={C.red} strokeWidth={2} />
-          <Text style={[s.typeStripText, { color: C.red }]}>Under attack</Text>
-        </View>
-      )}
-
-      {/* Header */}
+    <View style={s.card}>
       <View style={s.header}>
         <Pressable style={s.headerTap} onPress={onUserPress}>
-          <Avatar name={post.username} color={post.avatarColor} size={40} uri={post.avatarUrl} />
+          <Avatar name={post.username} color={post.avatarColor} size={36} uri={post.avatarUrl} />
           <View style={s.userInfo}>
             <Text style={s.username}>{post.username}</Text>
             <Text style={s.subtitle}>
-              {showRank ? `${post.runnerRank} · ${timeAgo(post.createdAt)}` : timeAgo(post.createdAt)}{activitySuffix}
+              {timeAgo(post.createdAt)}{activitySuffix}
+              {post.visibility === 'followers' ? ' · Followers' : post.visibility === 'only_me' ? ' · Only you' : ''}
             </Text>
           </View>
         </Pressable>
+        {showRank && rankLabel && <View style={s.lightChip}><Text style={s.lightChipText}>{rankLabel}</Text></View>}
         <Pressable style={s.kebab} onPress={() => setSheetOpen(true)} hitSlop={10}>
           <MoreHorizontal size={18} color={C.t3} strokeWidth={2} />
         </Pressable>
       </View>
 
-      {/* Body — differs by post type */}
-      {post.postType === 'milestone' ? (
-        <View style={[s.celebrate, { backgroundColor: C.greenBg }]}>
-          <Trophy size={22} color={C.green} strokeWidth={2} />
-          <Text style={[Type.displaySm, { color: C.black, marginTop: 6 }]}>
-            New {tier?.label ?? 'zone'} claimed
-          </Text>
-          {post.territoryAreaM2 != null && (
-            <Text style={[s.celebrateSub, { color: C.t2 }]}>Largest territory yet · {formatArea(post.territoryAreaM2)}</Text>
-          )}
+      {(!!post.title || !!post.description) && (
+        <View style={s.textBlock}>
+          {!!post.title && <Text style={s.postTitle} numberOfLines={2}>{post.title}</Text>}
+          {!!post.description && <Text style={s.postBody} numberOfLines={4}>{post.description}</Text>}
         </View>
-      ) : post.postType === 'conquest' ? (
-        <View style={s.celebrate}>
-          <Text style={[Type.displaySm, { color: C.black }]}>
-            Captured {post.stolenFromUsername ?? 'a rival'}'s territory
-          </Text>
-          {post.stolenAreaM2 != null && (
-            <Text style={[s.celebrateSub, { color: C.t2 }]}>
-              {formatArea(post.stolenAreaM2)}{tier ? ` · ${tier.label}` : ''}
-            </Text>
-          )}
-        </View>
-      ) : post.postType === 'attack' ? (
-        <View style={s.celebrate}>
-          <Text style={[Type.displaySm, { color: C.black }]}>
-            {post.stolenFromUsername ?? 'A rival'} attacked your {tier?.label.toLowerCase() ?? 'territory'}
-          </Text>
-          {post.stolenAreaM2 != null && (
-            <Text style={[s.celebrateSub, { color: C.t2 }]}>{formatArea(post.stolenAreaM2)} lost</Text>
-          )}
-          {onDefend && (
-            <PrimaryButton label="Defend now" onPress={onDefend} variant="dark" size="sm" style={s.defendBtn} />
-          )}
-        </View>
-      ) : (
-        <>
-          {(post.routePoints?.length ?? 0) >= 5 && <RouteMapHero points={post.routePoints!} />}
-
-          {/* 4-column stat row — Distance / Pace / Time / PACE earned */}
-          <View style={s.statsRow}>
-            <StatBlock value={fmtDistShort(post.distanceM)} label="KM" />
-            {post.avgPace ? <StatBlock value={post.avgPace} label="/KM PACE" /> : null}
-            {post.durationSec > 0 ? <StatBlock value={fmtTime(post.durationSec)} label="TIME" /> : null}
-            {post.paceEarned > 0 ? (
-              <StatBlock
-                value={String(post.paceEarned)}
-                label="PACE"
-                icon={<Diamond size={11} color={C.gold} strokeWidth={2} fill={C.gold} />}
-              />
-            ) : null}
-          </View>
-
-          {/* Territory swatch — photo half omitted; no photo field exists on
-              FeedPost today, so there's never anything real to show there. */}
-          {tier && (
-            <View style={s.thumbRow}>
-              <TerritorySwatch tier={post.territoryTier!} areaM2={post.territoryAreaM2} />
-            </View>
-          )}
-        </>
       )}
 
-      <KudosStack postId={post.id} kudosCount={post.kudosCount} />
+      {post.photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.photoRow}
+          accessibilityLabel={`${post.photos.length} photo${post.photos.length > 1 ? 's' : ''}`}
+        >
+          {post.photos.map(uri => (
+            <Image
+              key={uri}
+              source={{ uri }}
+              style={[s.photo, post.photos.length === 1 && s.photoSolo]}
+              accessibilityIgnoresInvertColors
+            />
+          ))}
+        </ScrollView>
+      )}
 
-      {/* Actions */}
+      <View style={s.statsRow}>
+        <StatBlock value={fmtDistShort(post.distanceM)} label="km" />
+        {post.avgPace ? <StatBlock value={post.avgPace} label="/km" /> : null}
+        {tier ? <StatBlock value="+1" label="Zones" color={zone.own} /> : (post.durationSec > 0 ? <StatBlock value={fmtTime(post.durationSec)} label="Time" /> : null)}
+        {post.paceEarned > 0 ? <StatBlock value={`+${post.paceEarned}`} label="PACE" /> : null}
+      </View>
+
+      {(post.routePoints?.length ?? 0) >= 5 && (
+        <RouteMapHero
+          points={post.routePoints!}
+          seed={post.id}
+          kind={post.territoryAreaM2 ? 'claim' : 'run'}
+        />
+      )}
+
       <View style={s.actions}>
-        <Pressable style={s.actionBtn} onPress={onKudos} testID="feed-like-btn">
-          <Heart
-            size={16}
-            color={post.hasKudos ? C.red : C.t2}
-            fill={post.hasKudos ? C.red : 'none'}
-            strokeWidth={1.75}
-          />
-          {post.kudosCount > 0 && <Text style={s.actionCount}>{post.kudosCount}</Text>}
+        <Pressable style={s.actionBtn} onPress={onKudos} testID="feed-like-btn" accessibilityLabel="Kudos">
+          <Heart size={16} color={post.hasKudos ? C.red : C.t2} fill={post.hasKudos ? C.red : 'none'} strokeWidth={1.8} />
+          {post.kudosCount > 0 && <Text style={[s.actionCount, post.hasKudos && { color: C.red, fontFamily: Fonts.bold }]}>{post.kudosCount}</Text>}
         </Pressable>
-        <Pressable style={s.actionBtn} onPress={onComment} testID="feed-comment-btn">
-          <MessageCircle size={16} color={C.t2} strokeWidth={1.75} />
+        <Pressable style={s.actionBtn} onPress={onComment} testID="feed-comment-btn" accessibilityLabel="Comments">
+          <MessageCircle size={16} color={C.t2} strokeWidth={1.8} />
           {post.commentCount > 0 && <Text style={s.actionCount}>{post.commentCount}</Text>}
         </Pressable>
-        <Pressable style={s.actionBtn} onPress={handleShare} testID="feed-share-btn">
-          <Share2 size={16} color={C.t2} strokeWidth={1.75} />
-        </Pressable>
+        <View style={{ flex: 1 }} />
+        {othersLine
+          ? <Text style={s.othersText} numberOfLines={1}>{othersLine}</Text>
+          : <KudosStack postId={post.id} kudosCount={post.kudosCount} />}
       </View>
 
       <PostActionsSheet
@@ -345,6 +356,8 @@ export const FeedPostCard = React.memo(function FeedPostCard({
         onShare={handleShare}
         onDelete={onDelete}
         onReport={handleReport}
+        onMute={onMuteAuthor}
+        authorName={post.username}
       />
     </View>
   );
@@ -352,24 +365,34 @@ export const FeedPostCard = React.memo(function FeedPostCard({
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:         { backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    cardConquest: { borderLeftWidth: 3, borderLeftColor: C.amber },
-    cardAttack:   { borderLeftWidth: 3, borderLeftColor: C.red },
-    typeStrip:    { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 8 },
-    typeStripText:{ fontFamily: Fonts.semiBold, fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase' },
-    header:       { flexDirection: 'row', alignItems: 'center', padding: 16, paddingBottom: 14 },
+    card:         { backgroundColor: C.card, marginHorizontal: 18, marginBottom: 12, borderRadius: 16, overflow: 'hidden', shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+    header:       { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
+    headerCompact:{ paddingBottom: 14 },
     headerTap:    { flex: 1, flexDirection: 'row', alignItems: 'center' },
     kebab:        { padding: 4 },
     userInfo:     { flex: 1, marginLeft: 10 },
-    username:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    subtitle:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
-    statsRow:     { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4 },
-    thumbRow:     { flexDirection: 'row', paddingHorizontal: 16, paddingBottom: 14, gap: 10 },
-    celebrate:    { marginHorizontal: 16, marginBottom: 12, borderRadius: 14, padding: 16, alignItems: 'flex-start', backgroundColor: C.stone },
-    celebrateSub: { fontFamily: Fonts.regular, fontSize: 12, marginTop: 4 },
-    defendBtn:    { marginTop: 12, alignSelf: 'stretch' },
-    actions:      { flexDirection: 'row', alignItems: 'center', gap: 18, paddingHorizontal: 16, paddingBottom: 14, paddingTop: 2 },
-    actionBtn:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    actionCount:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, fontVariant: ['tabular-nums'] },
+    headline:     { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 18, color: C.t1 },
+    username:     { fontFamily: Fonts.semiBold, fontSize: 14, lineHeight: 18, color: C.t1 },
+    photoRow:     { gap: 6, paddingHorizontal: 16, paddingBottom: 12 },
+    photo:        { width: 220, height: 165, borderRadius: 12, backgroundColor: C.surface },
+    photoSolo:    { width: 320, height: 220 },
+    subtitle:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
+    textBlock:    { paddingHorizontal: 16, paddingBottom: 10, gap: 4 },
+    postTitle:    { fontFamily: Fonts.semiBold, fontSize: 16, lineHeight: 21, color: C.t1 },
+    postBody:     { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2 },
+    lightChip:    { backgroundColor: '#F0EEE9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    lightChipText:{ fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.t1 },
+    darkChip:     { backgroundColor: C.alwaysDark, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    darkChipText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysLight },
+    statsRow:     { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 14, paddingBottom: 12 },
+    stealFoot:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
+    stealText:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    stealArea:    { fontFamily: Fonts.semiBold },
+    takeBack:     { borderRadius: 999, paddingHorizontal: 12, height: 34, justifyContent: 'center' },
+    takeBackText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.alwaysLight },
+    actions:      { flexDirection: 'row', alignItems: 'center', gap: 18, paddingHorizontal: 14, paddingVertical: 12 },
+    actionBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    actionCount:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
+    othersText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, flexShrink: 1 },
   });
 }

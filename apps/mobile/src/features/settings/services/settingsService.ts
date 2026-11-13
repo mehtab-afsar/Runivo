@@ -20,6 +20,7 @@ export async function persistSettings(settings: StoredSettings): Promise<void> {
       territory_alerts_enabled: settings.territoryAlerts,
       announce_achievements_enabled: settings.announceAchievements,
       weekly_summary_enabled: settings.weeklySummary,
+      offers_enabled: settings.offersEnabled ?? true,
       profile_visibility: settings.privacy,
       live_run_sharing_enabled: settings.liveRunSharingEnabled,
     }).eq('id', session.user.id);

@@ -11,7 +11,7 @@ import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Play, X } from 'phosphor-react-native';
+import { Play, X, ShieldCheck } from 'phosphor-react-native';
 import * as Location from 'expo-location';
 import { useActiveRun }          from '../hooks/useActiveRun';
 import { postRunSync, createFeedPost } from '@shared/services/sync';
@@ -32,16 +32,31 @@ import ActiveRunMapView   from '../components/ActiveRunMapView';
 import { useLiveFriendRuns } from '../hooks/useLiveFriendRuns';
 import { useBeatPacer }   from '../hooks/useBeatPacer';
 import { computeRouteProgress, type RouteProgress } from '../utils/routeNavigation';
-import { useTheme, feedback, Type, Fonts, type AppColors } from '@theme';
+import { useTheme, useIsDark, feedback, Type, Fonts, type AppColors } from '@theme';
+import { territoryPalette } from '@theme/territory';
 import {
   estimateLiveArea,
   detectLoopClose,
   isNearRivalTerritory,
+  haversineM,
 } from '@shared/services/claimEngine';
 import { GAME_CONFIG } from '@shared/services/config';
+import { ENGINE } from '@shared/engine/runEngine';
+import { sportFor } from '../constants/activities';
 import { useAuth } from '@shared/hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TerritoryPolygon } from '@shared/types/game';
+import { useWorkoutMode } from '@features/training/hooks/useWorkoutMode';
+import WorkoutPanel from '@features/training/components/WorkoutPanel';
+import TargetZoneChip from '../components/TargetZoneChip';
+import { useVoiceCues } from '../hooks/useVoiceCues';
+import { startRunActivity, updateRunActivity, endRunActivity } from '../live/runLiveActivity';
+import { startAndSendSafetyShare, pushSafetyPosition, endSafetyShare, isSharing } from '../services/safetyShare';
+import type { RunActivityProps } from '../live/RunActivityWidget';
+import { targetProgress, routeThroughZone } from '@shared/engine/targetZone';
+import LoopCoachCard, { useLoopCoach } from '../components/LoopCoachCard';
+import { recordRunAgainstPlan } from '@features/training/services/planService';
+import { fmtDuration } from '@shared/engine/training';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
@@ -54,16 +69,42 @@ function fmtTime(sec: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+function fmtPaceSecs(secPerUnit: number): string {
+  if (!Number.isFinite(secPerUnit) || secPerUnit <= 0 || secPerUnit > 60 * 30) return '–:––';
+  const m = Math.floor(secPerUnit / 60);
+  const sec = Math.round(secPerUnit % 60);
+  return sec === 60 ? `${m + 1}:00` : `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function fmtArea(m2: number): string {
+  return m2 >= 100_000 ? `${(m2 / 1_000_000).toFixed(2)} km²` : `${Math.round(m2).toLocaleString()} m²`;
+}
+
 export default function ActiveRunScreen() {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
+  const zone = territoryPalette(useIsDark());
   const insets = useSafeAreaInsets();
   const nav = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const ghostRoutePoints = route.params?.ghostRoutePoints;
+  // Defend / Attack (M1): no route given, so draw one out to the zone, around it and back
+  // from the first position we know.
+  const [zoneRoute, setZoneRoute] = useState<{ lat: number; lng: number }[] | null>(null);
+  useEffect(() => {
+    const z = route.params?.targetZone;
+    if (!z || route.params?.ghostRoutePoints) return;
+    Location.getLastKnownPositionAsync().then(fix => {
+      if (fix) setZoneRoute(routeThroughZone({ lat: fix.coords.latitude, lng: fix.coords.longitude }, z));
+    }).catch(() => {});
+  }, [route.params?.targetZone, route.params?.ghostRoutePoints]);
+  const ghostRoutePoints = route.params?.ghostRoutePoints ?? zoneRoute ?? undefined;
   const activityType = route.params?.activityType ?? 'run';
+  // Rides are tracked only: no loop, no zone, speed instead of pace.
+  const sport = sportFor(activityType);
   const mapStyle = route.params?.mapStyle;
   const run  = useActiveRun(activityType);
+  const coach = useLoopCoach(sportFor(activityType).claims && run.isRunning && !route.params?.sessionId, run.distance);
+  const workout = useWorkoutMode(route.params?.sessionId, run.isRunning && !run.isPaused, run.elapsed, run.distance);
   const liveFriends = useLiveFriendRuns();
   const { showToast } = useToast();
   const { user } = useAuth();
@@ -79,6 +120,11 @@ export default function ActiveRunScreen() {
   // closes (the in-the-moment "you claimed a zone" payoff that was previously deferred
   // entirely to the post-run summary).
   const [claimEvent,    setClaimEvent]    = useState<{ type: string; paceEarned?: number } | null>(null);
+  const [friendsShown,  setFriendsShown]  = useState(true);
+  const [sharingLive,   setSharingLive]   = useState(false);
+  const lapStartRef  = useRef({ idx: 0, elapsed: 0, dist: 0 });
+  const farthestRef  = useRef(0);
+  useEffect(() => { getSettings().then(st => setSharingLive(!!st?.liveRunSharingEnabled)).catch(() => {}); }, []);
   const [countdown,     setCountdown]     = useState<number | null>(null);
   const rivalPolygonsRef = useRef<TerritoryPolygon[]>([]);
 
@@ -93,6 +139,14 @@ export default function ActiveRunScreen() {
     }
   }, [run]);
 
+  // Arriving from a Start button: begin straight away (countdown still applies).
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!route.params?.autoStart || autoStarted.current || run.isRunning) return;
+    autoStarted.current = true;
+    handleStartPress();
+  }, [route.params?.autoStart, run.isRunning, handleStartPress]);
+
   // Load rival polygons once at run start — rivals don't change mid-run
   useEffect(() => {
     const uid = user?.id;
@@ -102,7 +156,7 @@ export default function ActiveRunScreen() {
     }).catch(() => {});
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update live area estimate every 30s. gpsPoints is read from a ref (updated by the
+  // Update live area estimate every 15s (same shape rules as the finished run). gpsPoints is read from a ref (updated by the
   // effect below) rather than a dependency — run.gpsPoints is a new array reference on
   // almost every render while running, which previously tore down and recreated this
   // interval before its 30s callback ever had a chance to fire, leaving the live
@@ -115,7 +169,7 @@ export default function ActiveRunScreen() {
     const id = setInterval(() => {
       const pts = gpsPointsRef.current.map(p => ({ ...p }));
       setLiveAreaM2(estimateLiveArea(pts, activityType));
-    }, 30_000);
+    }, 15_000);
     return () => clearInterval(id);
   }, [run.isRunning, activityType]);
 
@@ -123,10 +177,13 @@ export default function ActiveRunScreen() {
   useEffect(() => {
     if (!run.isRunning || run.gpsPoints.length < 2) return;
     const last = run.gpsPoints[run.gpsPoints.length - 1];
-    setSpeedWarning(last.speed > GAME_CONFIG.MAX_RUN_SPEED_MS);
+    setSpeedWarning(last.speed > (sport.claims ? GAME_CONFIG.MAX_RUN_SPEED_MS : ENGINE.MAX_RIDE_SEGMENT_SPEED_MS));
     const first = run.gpsPoints[0];
-    setLoopClosing(detectLoopClose(last, first, run.distance * 1000));
-    setNearRival(isNearRivalTerritory(last.lat, last.lng, rivalPolygonsRef.current));
+    // Same test as the finished run: back near any earlier part of the route.
+    if (sport.claims) {
+      setLoopClosing(detectLoopClose(last, first, run.distance * 1000, run.gpsPoints));
+      setNearRival(isNearRivalTerritory(last.lat, last.lng, rivalPolygonsRef.current));
+    }
     // Ghost route progress
     if (ghostRoutePoints && ghostRoutePoints.length >= 2) {
       setRouteProgress(computeRouteProgress(last.lat, last.lng, ghostRoutePoints));
@@ -213,6 +270,15 @@ export default function ActiveRunScreen() {
     }
     if (result.run) {
       const { id: runId, distanceMeters } = result.run;
+      // Tick off the matching plan session (on-foot only; best-effort, never blocks).
+      if (sportFor(activityType).claims) {
+        recordRunAgainstPlan({ runId, startTime: result.run.startTime ?? Date.now(), distanceKm: distanceMeters / 1000, durationSec: Math.round(run.elapsed) })
+          .then(({ session, fasterFiveK }) => {
+            if (fasterFiveK) showToast({ message: `You're getting faster: plan paces updated (5K ${fmtDuration(fasterFiveK)})`, type: 'success', duration: 6000 });
+            else if (session) showToast({ message: `Plan: ${session.title} done`, type: 'success' });
+          })
+          .catch(() => {});
+      }
       // CRITICAL PATH (adjacent to finishRun/postRunSync): funnel events, fired after
       // sync so they can't add latency to it. No GPS/lat-lng in properties — ever.
       track('run_completed', {
@@ -245,14 +311,14 @@ export default function ActiveRunScreen() {
         },
       ).catch(() => {});
     }
-    nav.replace('RunSummary', buildRunSummaryParams(result as Parameters<typeof buildRunSummaryParams>[0]));
-  }, [run, nav, showToast]);
+    nav.replace('RunSummary', { ...buildRunSummaryParams(result as Parameters<typeof buildRunSummaryParams>[0]), activityType });
+  }, [run, nav, showToast, activityType]);
 
   const handleFinish = useCallback(() => {
     if (run.distance * 1000 < GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M && run.elapsed < GAME_CONFIG.MIN_MEANINGFUL_RUN_DURATION_S) {
-      Alert.alert('End Run?', "You haven't run far enough. End anyway?", [
-        { text: 'Keep Running', style: 'cancel' },
-        { text: 'End Run', style: 'destructive', onPress: doFinish },
+      Alert.alert(`End ${sport.verb}?`, "You haven't gone far enough to save it. End anyway?", [
+        { text: 'Keep going', style: 'cancel' },
+        { text: `End ${sport.verb}`, style: 'destructive', onPress: doFinish },
       ]);
       return;
     }
@@ -261,9 +327,9 @@ export default function ActiveRunScreen() {
 
   const handleBack = useCallback(() => {
     if (!run.isRunning) { nav.goBack(); return; }
-    Alert.alert('Cancel Run?', 'Your run will be lost.', [
-      { text: 'Keep Running', style: 'cancel' },
-      { text: 'Cancel', style: 'destructive', onPress: () => {
+    Alert.alert(`Discard this ${sport.verb}?`, `Your ${sport.verb} so far will be lost.`, [
+      { text: 'Keep going', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: () => {
         // Remove the crash-recovery checkpoint so the user isn't prompted to
         // restore a cancelled run on next app launch.
         const cpKey = `${run.gpsCheckpointPrefix}${run.activeRunId}`;
@@ -271,62 +337,188 @@ export default function ActiveRunScreen() {
         nav.goBack();
       }},
     ]);
-  }, [run.isRunning, run.activeRunId, run.gpsCheckpointPrefix, nav]);
+  }, [run.isRunning, run.activeRunId, run.gpsCheckpointPrefix, nav, sport.verb]);
+
+  const stateLabel = !run.isRunning ? 'Ready' : run.isPaused ? 'Paused' : sport.gerund;
+
+  // ── Lap (each whole km/mi) and its pace ─────────────────────────────────────
+  const unitKm = distanceUnit === 'mi' ? 1.609344 : 1;
+  const unitDist = run.distance / unitKm;
+  const lapIdx = Math.floor(unitDist);
+  if (lapIdx !== lapStartRef.current.idx) {
+    lapStartRef.current = { idx: lapIdx, elapsed: run.elapsed, dist: lapIdx };
+  }
+  const lapCovered = unitDist - lapStartRef.current.dist;
+  const lapSecs = run.elapsed - lapStartRef.current.elapsed;
+  const lap = run.isRunning && unitDist >= 1 && lapCovered > 0.05
+    ? { n: lapIdx + 1, pace: sport.metric === 'speed' ? `${(lapCovered / Math.max(1, lapSecs) * 3600).toFixed(1)}` : fmtPaceSecs(lapSecs / lapCovered) }
+    : null;
+
+  // ── Close the loop: distance back to the start, once the run can claim ─────
+  const pts = run.gpsPoints;
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  const toStartM = first && last ? haversineM(last, first) : 0;
+  if (toStartM > farthestRef.current) farthestRef.current = toStartM;
+  const loopRow: { label: string; detail: string; pct: number } | null = !sport.claims || !run.isRunning || pts.length < 2 ? null
+    : run.distance * 1000 < GAME_CONFIG.MIN_TERRITORY_DIST_M
+      ? {
+          label: 'Run 200 m to start claiming',
+          detail: `${Math.max(0, Math.round(GAME_CONFIG.MIN_TERRITORY_DIST_M - run.distance * 1000))} m to go`,
+          pct: (run.distance * 1000) / GAME_CONFIG.MIN_TERRITORY_DIST_M,
+        }
+      : loopClosing
+        ? { label: 'Loop closed', detail: liveAreaM2 > 0 ? `${fmtArea(liveAreaM2)} on finish` : 'The ground inside is yours on finish', pct: 1 }
+        : {
+            label: 'Close the loop to claim',
+            detail: `${toStartM >= 1000 ? `${(toStartM / 1000).toFixed(1)} km` : `${Math.round(toStartM)} m`} to go${liveAreaM2 > 0 ? ` · ${fmtArea(liveAreaM2)}` : ''}`,
+            pct: farthestRef.current > 0 ? 1 - toStartM / farthestRef.current : 0,
+          };
+
+  // ── Live sharing + nearest friend ──────────────────────────────────────────
+  const nearestFriend = useMemo(() => {
+    if (!last || liveFriends.length === 0) return null;
+    return liveFriends
+      .map(f => ({ f, m: haversineM(last, { lat: f.lat, lng: f.lng }) }))
+      .sort((a, b) => a.m - b.m)[0];
+  }, [liveFriends, last?.lat, last?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // One banner at a time, most urgent first. Colour follows what it's about:
+  // your loop is your zone colour, a rival is rival blue.
+  const banner: { text: string; tone: 'own' | 'rival' | 'warn' | 'good' } | null =
+    !run.isRunning ? null
+    : speedWarning ? { text: sport.claims ? "Too fast. This stretch won't earn territory" : "Too fast for a ride. This stretch won't count", tone: 'warn' }
+    : loopClosing ? { text: 'Loop closing. Keep going to fill the zone', tone: 'own' }
+    : nearRival ? { text: 'Rival territory ahead', tone: 'rival' }
+    : isOffRoute ? { text: 'Off route. Head back to the dashed line', tone: 'warn' }
+    : isNearRouteEnd ? { text: `Almost there. ${Math.round(routeProgress!.distanceRemainingM)} m to go`, tone: 'good' }
+    : null;
+  // Voice coach (L1): km splits, loop, banners, workout steps, target zone.
+  const lastPt = run.gpsPoints.length ? run.gpsPoints[run.gpsPoints.length - 1] : null;
+  const targetZone = route.params?.targetZone;
+  useVoiceCues({
+    running: run.isRunning && !run.isPaused,
+    ride: activityType === 'cycle',
+    distanceKm: run.distance,
+    elapsedSec: run.elapsed,
+    toStartM: loopRow && !loopClosing ? toStartM : null,
+    farthestM: farthestRef.current,
+    banner: banner && !banner.text.startsWith('Loop closing') ? banner.text : null,
+    workout,
+    targetInside: targetZone && lastPt ? targetProgress(lastPt, targetZone).inside : null,
+  });
+
+  // Lock screen / Dynamic Island (L2): started with the run, ended when this screen goes.
+  const liveProps: RunActivityProps = {
+    sport: sport.label,
+    distance: unitDist.toFixed(2),
+    unit: distanceUnit,
+    time: fmtTime(Math.round(run.elapsed)),
+    pace: activityType === 'cycle'
+      ? `${run.elapsed > 0 ? ((run.distance / run.elapsed) * 3600).toFixed(1) : '0.0'} km/h`
+      : `${run.pace} /${distanceUnit}`,
+    status: run.isPaused ? 'Paused'
+      : workout && !workout.progress.done ? workout.progress.step.label
+      : loopClosing ? 'Loop closing'
+      : 'Recording',
+  };
+  useEffect(() => {
+    if (run.isRunning) void startRunActivity(liveProps);
+  }, [run.isRunning]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (run.isRunning) updateRunActivity(liveProps, run.isPaused);
+  }); // every render; throttled inside
+  useEffect(() => () => { void endRunActivity(); void endSafetyShare(); }, []);
+
+  // Safety link: positions every 15 s while it's on.
+  const [safetyOn, setSafetyOn] = useState(isSharing());
+  const sendSafetyLink = async () => {
+    try {
+      await startAndSendSafetyShare(run.activeRunId ?? `run-${Date.now()}`, activityType, sport.verb);
+      setSafetyOn(true);
+      if (lastPt) pushSafetyPosition(lastPt, run.distance * 1000, run.elapsed, true);
+    } catch {
+      Alert.alert("Couldn't create the link", 'Check your connection and try again.');
+    }
+  };
+  useEffect(() => {
+    if (safetyOn && lastPt && run.isRunning) pushSafetyPosition(lastPt, run.distance * 1000, run.elapsed);
+  });
+
+  const bannerColor = banner?.tone === 'own' ? zone.own
+    : banner?.tone === 'rival' ? zone.rival
+    : banner?.tone === 'good' ? C.green
+    : zone.ownFading;
 
   return (
-    <View style={[ss.root, { paddingTop: insets.top }]}>
-      <View style={ss.header}>
-        <Pressable onPress={handleBack} style={ss.back} hitSlop={12}><X size={16} color={C.t2} weight="regular" /></Pressable>
-        <Text style={ss.title}>{!run.isRunning ? 'Ready to Run' : run.isPaused ? 'Paused' : 'Running'}</Text>
-        <View style={{ width: 36 }} />
-      </View>
-
+    <View style={ss.root}>
       <View style={ss.map}>
-        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} closestIdx={routeProgress?.closestIdx ?? 0} mapStyle={mapStyle} liveFriends={liveFriends} />
+        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} closestIdx={routeProgress?.closestIdx ?? 0} mapStyle={mapStyle} liveFriends={friendsShown ? liveFriends : []} />
+
+        <View style={[ss.topBar, { top: insets.top + 8 }]}>
+          <Pressable onPress={handleBack} style={ss.iconPill} hitSlop={12} accessibilityLabel={run.isRunning ? 'Cancel run' : 'Close'}>
+            <X size={16} color={C.t1} weight="bold" />
+          </Pressable>
+          {run.isRunning && sharingLive && run.gpsLocked ? (
+            <View style={ss.pill}>
+              <View style={[ss.pillDot, { backgroundColor: C.green }]} />
+              <Text style={ss.pillTxt}>Sharing live</Text>
+            </View>
+          ) : run.isRunning ? (
+            <View style={ss.pill}>
+              <View style={[ss.pillDot, { backgroundColor: run.gpsLocked ? C.green : C.amber }]} />
+              <Text style={ss.pillTxt}>{run.gpsLocked ? 'GPS locked' : 'Finding GPS'}</Text>
+            </View>
+          ) : (
+            <View style={ss.pill}><Text style={ss.pillTxt}>Ready to {sport.verb}</Text></View>
+          )}
+          {nearestFriend && friendsShown ? (
+            <View style={ss.pill}>
+              <View style={[ss.friendDot, { backgroundColor: nearestFriend.f.avatarColor }]}>
+                <Text style={ss.friendInitial}>{(nearestFriend.f.username[0] ?? '?').toUpperCase()}</Text>
+              </View>
+              <Text style={ss.pillTxt} numberOfLines={1}>
+                {nearestFriend.f.username} · {nearestFriend.m >= 1000 ? `${(nearestFriend.m / 1000).toFixed(1)} km` : `${Math.round(nearestFriend.m)} m`}
+              </Text>
+            </View>
+          ) : run.isRunning ? (
+            <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
+          ) : <View style={{ width: 36 }} />}
+        </View>
+
+        {/* Safety link (R2): share your live position with anyone, no app needed. */}
+        {run.isRunning && (
+          <Pressable
+            style={[ss.pill, ss.safetyPill, { top: insets.top + 54 }, safetyOn && { backgroundColor: C.green }]}
+            onPress={sendSafetyLink}
+            accessibilityRole="button"
+            accessibilityLabel={safetyOn ? 'Safety link on. Send it again' : 'Share a live safety link'}
+          >
+            <ShieldCheck size={14} color={safetyOn ? C.alwaysLight : C.t1} weight={safetyOn ? 'fill' : 'bold'} />
+            <Text style={[ss.pillTxt, safetyOn && { color: C.alwaysLight }]}>{safetyOn ? 'Safety link on' : 'Safety link'}</Text>
+          </Pressable>
+        )}
+
         {run.isRunning && !run.gpsLocked && (
           <View style={ss.gpsAcquiring}>
             <ActivityIndicator size="small" color={C.red} />
-            <Text style={ss.gpsAcquiringText}>Acquiring GPS…</Text>
-            <Text style={ss.gpsAcquiringSub}>Move outside for better signal</Text>
+            <Text style={ss.gpsAcquiringText}>Finding GPS…</Text>
+            <Text style={ss.gpsAcquiringSub}>Step outside for a better signal</Text>
           </View>
         )}
-        {run.isRunning && (
-          <View style={ss.gpsTag}>
-            <View style={ss.gpsDot} />
-            <Text style={ss.gpsTxt}>GPS Active · {run.gpsPoints.length} pts</Text>
-          </View>
-        )}
-      </View>
 
-      {/* Live territory banners */}
-      {run.gpsError && (
-        <View style={ss.errBanner}><Text style={ss.errTxt}>{run.gpsError}</Text></View>
-      )}
-      {run.isRunning && speedWarning && (
-        <View style={[ss.banner, ss.bannerRed]}>
-          <Text style={ss.bannerTxt}>Too fast — this segment won't earn territory</Text>
+        <View style={ss.bannerStack} pointerEvents="none">
+          {run.gpsError && (
+            <View style={[ss.banner, { borderLeftColor: C.red }]}><Text style={ss.bannerTxt}>{run.gpsError}</Text></View>
+          )}
+          {banner && (
+            <View style={[ss.banner, { borderLeftColor: bannerColor }]}>
+              <View style={[ss.bannerDot, { backgroundColor: bannerColor }]} />
+              <Text style={ss.bannerTxt}>{banner.text}</Text>
+            </View>
+          )}
         </View>
-      )}
-      {run.isRunning && loopClosing && !speedWarning && (
-        <View style={[ss.banner, ss.bannerTeal]}>
-          <Text style={ss.bannerTxt}>Loop closing — keep going to fill the zone</Text>
-        </View>
-      )}
-      {run.isRunning && nearRival && !speedWarning && !loopClosing && (
-        <View style={[ss.banner, ss.bannerAmber]}>
-          <Text style={ss.bannerTxt}>Rival territory ahead</Text>
-        </View>
-      )}
-      {run.isRunning && isOffRoute && (
-        <View style={[ss.banner, ss.bannerAmber]}>
-          <Text style={ss.bannerTxt}>Off route — return to the dashed line</Text>
-        </View>
-      )}
-      {run.isRunning && isNearRouteEnd && (
-        <View style={[ss.banner, ss.bannerGreen]}>
-          <Text style={ss.bannerTxt}>Almost done! {Math.round(routeProgress!.distanceRemainingM)}m to go</Text>
-        </View>
-      )}
+      </View>
 
       {/* One-shot capture reward, center-screen, self-dismissing */}
       <ClaimToast event={claimEvent} onDismiss={() => setClaimEvent(null)} />
@@ -342,38 +534,68 @@ export default function ActiveRunScreen() {
         />
       )}
 
-      <RunHUD
-        distance={run.distance}
-        pace={run.pace}
-        elapsed={run.elapsed}
-        liveAreaM2={run.isRunning ? liveAreaM2 : undefined}
-        unit={distanceUnit}
-      />
+      <View style={[ss.sheet, { paddingBottom: insets.bottom + 14 }]}>
+        <View style={ss.grab} />
+        {coach.show && !route.params?.targetZone && <LoopCoachCard onDismiss={coach.dismiss} />}
+        {route.params?.targetZone && (
+          <TargetZoneChip
+            zone={route.params.targetZone}
+            position={run.gpsPoints.length ? run.gpsPoints[run.gpsPoints.length - 1] : null}
+            running={run.isRunning && !run.isPaused}
+          />
+        )}
+        {workout && run.isRunning && <WorkoutPanel view={workout} />}
+        <RunHUD
+          distance={run.distance}
+          pace={run.pace}
+          elapsed={run.elapsed}
+          liveAreaM2={run.isRunning ? liveAreaM2 : undefined}
+          metric={sport.metric}
+          showZone={sport.claims}
+          unit={distanceUnit}
+          stateLabel={stateLabel}
+          lap={lap}
+        />
 
-      {ghostRoutePoints && routeProgress && run.isRunning && (
-        <View style={ss.routeRemaining}>
-          <Text style={ss.routeRemainingTxt}>
-            {routeProgress.distanceRemainingM >= 1000
-              ? `${fmtDistShort(routeProgress.distanceRemainingM)} km left`
-              : `${Math.round(routeProgress.distanceRemainingM)} m left`}
-          </Text>
+        {loopRow && (
+          <View style={ss.loopRow}>
+            <View style={ss.loopHead}>
+              <Text style={ss.loopLabel}>{loopRow.label}</Text>
+              <Text style={ss.loopDetail}><Text style={{ color: zone.own, fontFamily: Fonts.bold }}>{loopRow.detail.split(' · ')[0]}</Text>{loopRow.detail.includes(' · ') ? ` · ${loopRow.detail.split(' · ').slice(1).join(' · ')}` : ''}</Text>
+            </View>
+            <View style={ss.loopTrack}>
+              <View style={[ss.loopFill, { width: `${Math.round(Math.min(1, Math.max(0, loopRow.pct)) * 100)}%`, backgroundColor: zone.own }]} />
+            </View>
+          </View>
+        )}
+
+        {ghostRoutePoints && routeProgress && run.isRunning && (
+          <View style={ss.metaRow}>
+            <Text style={ss.metaTxt}>
+              {routeProgress.distanceRemainingM >= 1000
+                ? `${fmtDistShort(routeProgress.distanceRemainingM)} km left on route`
+                : `${Math.round(routeProgress.distanceRemainingM)} m left on route`}
+            </Text>
+          </View>
+        )}
+
+        <View style={ss.controls}>
+          {!run.isRunning
+            ? (
+              <Pressable style={({ pressed }) => [ss.startBtn, pressed && { opacity: 0.9 }]} onPress={handleStartPress} accessibilityRole="button" accessibilityLabel={`Start ${sport.verb}`}>
+                <Play size={20} color={C.white} weight="fill" />
+                <Text style={ss.startTxt}>Start {sport.verb}</Text>
+              </Pressable>
+            )
+            : !run.isPaused
+              ? <RunControls
+                  isPaused={false} onPause={run.pauseRun} onResume={run.resumeRun} onStop={handleFinish}
+                  onFriends={liveFriends.length > 0 ? () => setFriendsShown(v => !v) : undefined}
+                  friendsShown={friendsShown}
+                />
+              : <View style={{ height: 60 }} />
+          }
         </View>
-      )}
-
-      {run.isRunning && (
-        <View style={ss.pacerSection}>
-          <Text style={ss.pacerLabel}>BEAT PACER</Text>
-          <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
-        </View>
-      )}
-
-      <View style={[ss.controls, { paddingBottom: insets.bottom + 16 }]}>
-        {!run.isRunning
-          ? <Pressable style={ss.startBtn} onPress={handleStartPress}><Play size={28} color={C.white} weight="fill" /></Pressable>
-          : !run.isPaused
-            ? <RunControls isPaused={false} onPause={run.pauseRun} onResume={run.resumeRun} onStop={handleFinish} />
-            : <View style={{ height: 72 }} />
-        }
       </View>
 
       {/* Pause overlay — tap to resume */}
@@ -384,7 +606,7 @@ export default function ActiveRunScreen() {
       {/* Pause card */}
       <Animated.View style={[ss.pauseCard, { paddingBottom: insets.bottom + 16 }, pauseCardStyle]}>
         <View style={ss.pauseHandle} />
-        <Text style={ss.pauseTitle}>PAUSED</Text>
+        <Text style={ss.pauseTitle}>Paused</Text>
         <Text style={ss.pauseTime}>{fmtTime(run.elapsed)}</Text>
         <View style={ss.pauseStats}>
           <View style={ss.pauseStat}>
@@ -394,13 +616,15 @@ export default function ActiveRunScreen() {
           <View style={ss.pauseStatDivider} />
           <View style={ss.pauseStat}>
             <Text style={ss.pauseStatVal}>{run.pace}</Text>
-            <Text style={ss.pauseStatLbl}>avg pace</Text>
+            <Text style={ss.pauseStatLbl}>Avg pace</Text>
           </View>
         </View>
         <Pressable style={ss.resumeBtn} onPress={run.resumeRun}>
+          <Play size={16} color={C.bg} weight="fill" />
           <Text style={ss.resumeBtnTxt}>Resume</Text>
         </Pressable>
         <Pressable style={ss.pauseFinishBtn} onPress={handleFinish}>
+          <View style={ss.finishSquare} />
           <Text style={ss.pauseFinishBtnTxt}>Finish run</Text>
         </Pressable>
       </Animated.View>
@@ -409,7 +633,7 @@ export default function ActiveRunScreen() {
         <FinishConfirmSheet
           distance={run.distance}
           elapsed={run.elapsed}
-          territoriesClaimed={0}
+          verb={sport.verb}
           bottomInset={insets.bottom}
           onKeepRunning={() => setShowConfirm(false)}
           onFinish={doFinish}
@@ -419,53 +643,57 @@ export default function ActiveRunScreen() {
   );
 }
 
-// Style-layer-only token sweep (fonts → Fonts/Type, hex → theme tokens); no logic changed.
-// The pastel status banners now use theme tokens so they invert correctly in dark mode
-// (previously hardcoded light pastels stranded the inverting C.black text).
 function mkStyles(C: AppColors) {
+  const floating = {
+    backgroundColor: C.card, borderRadius: 999,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3,
+  } as const;
   return StyleSheet.create({
     root:        { flex: 1, backgroundColor: C.bg },
-    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-    back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    title:       { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, letterSpacing: 0.3 },
     map:         { flex: 1, overflow: 'hidden' },
-    gpsTag:      { position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-    gpsDot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
-    gpsTxt:      { fontFamily: Fonts.medium, fontSize: 10, color: C.white },
-    errBanner:   { backgroundColor: C.redLo, padding: 10, alignItems: 'center' },
-    errTxt:      { ...Type.labelSm, color: C.red },
-    banner:      { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, paddingHorizontal: 16 },
-    bannerRed:   { backgroundColor: C.redLo },
-    bannerTeal:  { backgroundColor: C.greenBg },
-    bannerAmber:      { backgroundColor: C.amberBg },
-    bannerGreen:      { backgroundColor: C.greenBg },
-    bannerTxt:        { ...Type.caption, color: C.t1 },
-    routeRemaining:    { alignItems: 'center', paddingVertical: 4, backgroundColor: C.alwaysDark },
-    routeRemainingTxt: { ...Type.caption, color: 'rgba(255,255,255,0.55)' },
-    gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 8, backgroundColor: 'rgba(0,0,0,0.75)', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16 },
-    gpsAcquiringText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
-    gpsAcquiringSub:  { ...Type.caption, color: 'rgba(255,255,255,0.6)' },
-    pacerSection: { backgroundColor: C.alwaysDark, alignItems: 'center', paddingTop: 8, paddingBottom: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
-    pacerLabel:   { ...Type.overline, color: 'rgba(255,255,255,0.4)', marginBottom: 4 },
-    controls:    { backgroundColor: C.alwaysDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, paddingTop: 20, paddingHorizontal: 24 },
-    startBtn:    { width: 72, height: 72, borderRadius: 36, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
+    topBar:      { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    iconPill:    { ...floating, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    safetyPill:   { position: 'absolute', right: 14, flexDirection: 'row', alignItems: 'center', gap: 6 },
+    pill:        { ...floating, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30 },
+    pillDot:     { width: 7, height: 7, borderRadius: 4 },
+    pillTxt:     { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 14, elevation: 6 },
+    gpsAcquiringText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
+    gpsAcquiringSub:  { ...Type.caption, color: C.t2 },
+    bannerStack: { position: 'absolute', left: 16, right: 16, bottom: 28, gap: 8 },
+    banner:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.card, borderRadius: 14, borderLeftWidth: 4, paddingVertical: 11, paddingHorizontal: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3 },
+    bannerDot:   { width: 8, height: 8, borderRadius: 4 },
+    bannerTxt:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, flex: 1 },
+    sheet:       { backgroundColor: C.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, marginTop: -18, paddingTop: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 8 },
+    grab:        { width: 38, height: 5, borderRadius: 5, backgroundColor: '#DEDCD6', alignSelf: 'center', marginBottom: 14 },
+    friendDot:   { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
+    friendInitial: { fontFamily: Fonts.bold, fontSize: 10, color: '#fff' },
+    loopRow:     { paddingHorizontal: 20, paddingTop: 14 },
+    loopHead:    { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+    loopLabel:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    loopDetail:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
+    loopTrack:   { height: 8, borderRadius: 9, backgroundColor: '#ECEAE5', overflow: 'hidden', marginTop: 8 },
+    loopFill:    { height: 8, borderRadius: 9 },
+    metaRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12 },
+    metaTxt:     { ...Type.caption, color: C.t2 },
+    controls:    { paddingHorizontal: 20, paddingTop: 18 },
+    startBtn:    { height: 60, borderRadius: 30, backgroundColor: C.red, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
+    startTxt:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.white },
     // Pause card
     pauseOverlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 10 },
     pauseCard:         { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, paddingHorizontal: 24, zIndex: 11, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 20 },
-    pauseHandle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 20 },
-    pauseTitle:        { ...Type.overline, letterSpacing: 1.4, color: C.t3, textAlign: 'center', marginBottom: 8 },
-    pauseTime:         { fontFamily: Fonts.light, fontSize: 52, color: C.t1, textAlign: 'center', letterSpacing: -2, lineHeight: 56, marginBottom: 16, fontVariant: ['tabular-nums'] },
-    pauseStats:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 24, marginBottom: 24 },
+    pauseHandle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 18 },
+    pauseTitle:        { ...Type.overline, color: C.t2, textAlign: 'center', marginBottom: 4 },
+    pauseTime:         { fontFamily: Fonts.numeric, fontSize: 72, color: C.t1, textAlign: 'center', letterSpacing: -1, lineHeight: 72, marginBottom: 14, fontVariant: ['tabular-nums'] },
+    pauseStats:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 28, marginBottom: 22 },
     pauseStat:         { alignItems: 'center', gap: 2 },
-    pauseStatVal:      { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1, fontVariant: ['tabular-nums'] },
-    pauseStatLbl:      { ...Type.overline, color: C.t3, letterSpacing: 0.6 },
-    pauseStatDivider:  { width: 1, height: 32, backgroundColor: C.border },
-    resumeBtn:         { backgroundColor: C.alwaysDark, borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginBottom: 10 },
-    resumeBtnTxt:      { ...Type.button, fontSize: 16, color: C.alwaysLight },
-    pauseFinishBtn:    { paddingVertical: 12, alignItems: 'center' },
-    // t3 (~1.9:1 contrast) is too low for a tappable button label the user must
-    // read to end their run — t2 keeps it visually secondary vs. Resume above
-    // while staying legible.
-    pauseFinishBtnTxt: { ...Type.bodySm, fontSize: 14, color: C.t2 },
+    pauseStatVal:      { fontFamily: Fonts.numeric, fontSize: 30, color: C.t1, fontVariant: ['tabular-nums'] },
+    pauseStatLbl:      { ...Type.caption, color: C.t2 },
+    pauseStatDivider:  { width: StyleSheet.hairlineWidth, height: 32, backgroundColor: C.border },
+    resumeBtn:         { backgroundColor: C.t1, borderRadius: 30, height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10 },
+    resumeBtnTxt:      { fontFamily: Fonts.semiBold, fontSize: 16, color: C.bg },
+    pauseFinishBtn:    { height: 52, borderRadius: 26, backgroundColor: C.redLo, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    finishSquare:      { width: 12, height: 12, borderRadius: 3, backgroundColor: C.red },
+    pauseFinishBtnTxt: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.red },
   });
 }

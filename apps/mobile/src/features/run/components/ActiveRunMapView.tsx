@@ -10,9 +10,11 @@ import type { LiveFriendRunner } from '../hooks/useLiveFriendRuns';
 import { LiveFriendMarker } from './LiveFriendMarker';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import { territoryPalette } from '@theme/territory';
 import { mapStyleUrlFor } from '@theme/maps';
 import { useIsDark, useTheme } from '@theme';
 import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
+import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 
 const styles = StyleSheet.create({
   map: { flex: 1 },
@@ -47,10 +49,12 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
   // own theme default), so the live map never disagrees with the screen before it.
   // Falling back here is theme-driven, not the old "is it nighttime" clock check.
   const resolvedStyle = mapStyle || mapStyleUrlFor(undefined, isDark);
+  const baseStyle = useRunivoMapStyle(resolvedStyle);
   // Ghost-route gray needs a different value per basemap: a mid-light gray reads
   // fine on the near-black dark basemap, but nearly disappears at low opacity
   // against the pale positron/voyager basemaps — darken it there for contrast.
-  const ghostColor = isDark ? '#9CA3AF' : '#6B7280';
+  const zone = territoryPalette(isDark);
+  const ghostColor = zone.ghost;
 
   // Kalman-smoothed display path — keeps raw gpsPoints for distance/territory calculation
   const displayPath = useMemo(() => {
@@ -98,7 +102,7 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
   return (
     <MapLibreGL.MapView
       style={styles.map}
-      mapStyle={resolvedStyle}
+      mapStyle={baseStyle}
       logoEnabled={false}
       attributionEnabled
       compassEnabled={false}
@@ -147,11 +151,11 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
         <MapLibreGL.ShapeSource id="gps-trail" shape={trailGeoJSON}>
           <MapLibreGL.LineLayer
             id="trail-glow"
-            style={{ lineColor: C.red, lineWidth: 6, lineOpacity: 0.25, lineCap: 'round', lineJoin: 'round' }}
+            style={{ lineColor: zone.trailGlow, lineWidth: 6, lineOpacity: 0.25, lineCap: 'round', lineJoin: 'round' }}
           />
           <MapLibreGL.LineLayer
             id="trail-line"
-            style={{ lineColor: C.red, lineWidth: 3, lineOpacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
+            style={{ lineColor: zone.trail, lineWidth: 3, lineOpacity: 0.9, lineCap: 'round', lineJoin: 'round' }}
           />
         </MapLibreGL.ShapeSource>
       )}
@@ -165,7 +169,7 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
           />
           <MapLibreGL.CircleLayer
             id="start-circle-inner"
-            style={{ circleRadius: 5, circleColor: '#1A6B40', circleOpacity: 1 }}
+            style={{ circleRadius: 5, circleColor: C.t1, circleOpacity: 1 }}
           />
         </MapLibreGL.ShapeSource>
       )}

@@ -8,7 +8,8 @@ export interface PersonalRecord {
 }
 
 export async function calculatePersonalRecords(): Promise<PersonalRecord[]> {
-  const runs = await getRuns();
+  // Best efforts are running records: a ride or a walk must never set a 5K.
+  const runs = (await getRuns()).filter(r => !['walk', 'hike', 'cycle'].includes(r.activityType ?? 'run') && !r.excluded);
 
   if (runs.length === 0) return [];
 

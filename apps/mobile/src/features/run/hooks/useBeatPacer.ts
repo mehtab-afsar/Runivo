@@ -2,7 +2,7 @@
  * useBeatPacer — metronome hook for the Beat Pacer feature.
  * Plays a click sound at a BPM derived from the target pace.
  * Uses a 25ms scheduler loop with 100ms lookahead (Web Audio style).
- * expo-av handles sound playback; AppState pauses/resumes on background.
+ * expo-audio handles sound playback; AppState pauses/resumes on background.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
@@ -10,7 +10,7 @@ import { getSettings, saveSettings } from '@shared/services/store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let Audio: any = null;
-try { Audio = require('expo-av').Audio; } catch { /* native module not available */ }
+try { Audio = require('expo-audio'); } catch { /* native module not available */ }
 
 // ── BPM table (pace string → BPM) ─────────────────────────────────────────────
 const BPM_TABLE: [string, number][] = [
@@ -115,16 +115,16 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
         // false for feedback.runStart(), which fires right as a run (and this
         // pacer) starts. On a muted phone that leaves the click scheduling
         // correctly and the HUD dot pulsing, but no sound ever actually plays.
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+        await Audio.setAudioModeAsync({ playsInSilentMode: true });
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { sound: s } = await Audio.Sound.createAsync(require('../../../shared/audio/files/click.wav'));
+        const s = Audio.createAudioPlayer(require('../../../shared/audio/files/click.wav'));
         sound = s;
         soundRef.current = s;
       } catch {
         // Sound file not present — pacer still schedules but plays nothing
       }
     })();
-    return () => { sound?.unloadAsync().catch(() => {}); };
+    return () => { try { sound?.remove(); } catch { /* ignore */ } };
   }, []);
 
   // AppState: stop ticks when backgrounded
@@ -144,8 +144,8 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
     const s = soundRef.current;
     if (!s) return;
     try {
-      await s.setPositionAsync(0);
-      await s.playAsync();
+      await s.seekTo(0);
+      s.play();
     } catch { /* ignore */ }
   }, []);
 
@@ -190,7 +190,7 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
       // Re-assert silent-mode playback right as ticking starts — feedback.runStart()
       // (theme/sounds.ts) sets playsInSilentModeIOS: false around the same moment a
       // run begins, and whichever call lands last wins for the whole audio session.
-      Audio.setAudioModeAsync({ playsInSilentModeIOS: true }).catch(() => {});
+      Audio.setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
     }
     const s = await getSettings();
     await saveSettings({ ...s, beatPacerEnabled: enabled });

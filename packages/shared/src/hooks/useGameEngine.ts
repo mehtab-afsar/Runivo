@@ -17,9 +17,10 @@ import {
   buildTerritoryPolygon,
   calculateRunPACE,
   computeRunnerRank,
-  buildCorridorPolygon,
   polygonAreaM2,
 } from '../services/claimEngine';
+import { canClaimZone } from '../engine/entitlements';
+import { corridorRing, updateStreak, paceWeekStartMs, isOnFoot, type LngLat } from '../engine/runEngine';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
 import { updateMissionsAfterRun } from '../services/missionStore';
 
@@ -133,10 +134,7 @@ export function bufferPath(
   radiusM: number,
 ): [number, number][] {
   if (points.length < 2) return [];
-  return buildCorridorPolygon(
-    points.map(p => ({ ...p, timestamp: 0, speed: 0 })),
-    radiusM,
-  );
+  return corridorRing(points.map(p => [p.lng, p.lat] as LngLat), radiusM);
 }
 
 export { polygonAreaM2 };
@@ -197,34 +195,28 @@ export function useGameEngine() {
       const freshPlayer = (await getPlayer()) ?? player;
 
       // 1. Build territory polygon client-side
-      const buildResult = buildTerritoryPolygon(runData.gpsPoints, runData.activityType);
+      // A free runner already holding 10 zones claims nothing (the server
+      // refuses it too, territoryCapReached), so don't draw or pay for one.
+      const ownedBefore = (await getTerritoryPolygons(freshPlayer.id)).length;
+      const buildResult = canClaimZone(ownedBefore, freshPlayer.subscriptionTier)
+        ? buildTerritoryPolygon(runData.gpsPoints, runData.activityType)
+        : null;
 
-      // 2. Save run to local store
+      // 2. Streak — the server's rule: only the day's first meaningful run
+      // moves it. The app uses the runner's local day for instant feedback;
+      // pullProfile() brings back the server's (UTC) value after sync.
       const today = localDateString();
-      const yesterday = localDateString(new Date(Date.now() - GAME_CONFIG.MS_PER_DAY));
-      const oldStreak = freshPlayer.streakDays;
-      // A session that didn't cover real distance doesn't count toward streak/PACE,
-      // regardless of how long it lasted — a distance floor, not an OR with duration.
-      // (ActiveRunScreen's "haven't run far enough" nag and PostRunInsightsCard use
-      // the AND form deliberately — they're just warning the user before they end
-      // early, not gating credit, so a while spent moving slowly is fine there.) The
-      // credit gate needs the stricter distance-only floor: `!(distance < X AND
-      // duration < Y)` is equivalent to `distance >= X OR duration >= Y`, so a long,
-      // near-stationary session (GPS drift over 30+ min) satisfied the duration half
-      // alone and still farmed a streak bump with ~0 real distance. A run that fails
-      // this check keeps whatever streak/lastRunDate the player already had; it just
-      // doesn't get credit.
-      const meetsMinimumEffort = runData.distanceMeters >= GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M;
-      let newStreak = oldStreak;
-      let newLastRunDate = freshPlayer.lastRunDate;
-      if (meetsMinimumEffort) {
-        if (freshPlayer.lastRunDate === yesterday) {
-          newStreak += 1;
-        } else if (freshPlayer.lastRunDate !== today) {
-          newStreak = 1;
-        }
-        newLastRunDate = today;
-      }
+      // Rides don't move the running streak (server rule, see isOnFoot).
+      const meetsMinimumEffort = isOnFoot(runData.activityType)
+        && runData.distanceMeters >= GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M;
+      const streak = updateStreak({
+        streakDays: freshPlayer.streakDays,
+        lastRunDay: freshPlayer.lastRunDate,
+        today,
+        meaningful: meetsMinimumEffort,
+      });
+      const newStreak = streak.streakDays;
+      const newLastRunDate = streak.lastRunDay;
 
       const missionResult = await updateMissionsAfterRun({
         distanceKm:          runData.distanceMeters / 1000,
@@ -242,13 +234,21 @@ export function useGameEngine() {
       // delta reconciliation reads this value back to avoid double-crediting the
       // server-authoritative amount on top of what was already credited here.
       const distanceKm = runData.distanceMeters / 1000;
+      // A new PACE week starts Monday 00:00 UTC; count from zero if the stored
+      // total belongs to last week.
+      const weekStart = paceWeekStartMs(Date.now());
+      const weeklyEarned = freshPlayer.paceWeeklyResetAt && Date.parse(freshPlayer.paceWeeklyResetAt) >= weekStart
+        ? (freshPlayer.paceWeeklyEarned ?? 0)
+        : 0;
       const paceResult = calculateRunPACE({
         distanceKm,
-        newZonesClaimed: buildResult ? 1 : 0,
-        stolenZones:     0,
-        streakDays:      meetsMinimumEffort ? newStreak : 0,
-        paceWeeklyEarned: freshPlayer.paceWeeklyEarned ?? 0,
-        isPremium:       false,
+        newZonesClaimed:  buildResult ? 1 : 0,
+        stolenZones:      0,
+        streakDays:       newStreak,
+        streakAdvanced:   streak.advanced,
+        paceWeeklyEarned: weeklyEarned,
+        tier:             freshPlayer.subscriptionTier ?? 'free',
+        activityType:     runData.activityType,
       });
 
       const run: StoredRun = {
@@ -302,7 +302,8 @@ export function useGameEngine() {
         lastRunDate:             newLastRunDate,
         paceBalance:             (freshPlayer.paceBalance ?? 0) + paceResult.paceEarned,
         paceTotalEarned:         newPaceTotalEarned,
-        paceWeeklyEarned:        (freshPlayer.paceWeeklyEarned ?? 0) + paceResult.paceEarned,
+        paceWeeklyEarned:        weeklyEarned + paceResult.paceEarned,
+        paceWeeklyResetAt:       weeklyEarned === 0 ? new Date(weekStart).toISOString() : freshPlayer.paceWeeklyResetAt,
         runnerRank:              newRunnerRank,
       };
 

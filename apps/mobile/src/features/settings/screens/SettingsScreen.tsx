@@ -3,17 +3,25 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView,
   Platform, Switch, Alert, Linking,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Crown, ArrowLeft } from 'phosphor-react-native';
+import { ArrowLeft } from 'phosphor-react-native';
 import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
-import { SegmentedControl, PillCycle } from '../components/SettingToggle';
+import { SignInMethodsSection } from '../components/SignInMethodsSection';
+import { SegmentedControl } from '../components/SettingToggle';
+import { rescheduleSessionReminders, DEFAULT_REMINDER_HOUR } from '@features/training/services/sessionReminders';
+import { getCachedPlan } from '@features/training/services/planService';
+import { getSpeech } from '@mobile/shared/lib/optionalNative';
+import { resetVoiceCuesSetting } from '@features/run/hooks/useVoiceCues';
+
+const REMINDER_OPTIONS: { label: string; hour: number | null }[] = [
+  { label: 'Off', hour: null }, { label: '12 pm', hour: 12 }, { label: '6 pm', hour: 18 }, { label: '8 pm', hour: 20 },
+];
 import { RowChevron } from '@mobile/shared/components/RowChevron';
-import { useTheme, setSoundEnabled, setHapticEnabled, Fonts, Spacing, type AppColors } from '@theme';
+import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { useAuth } from '@shared/hooks/useAuth';
 import { resetPassword } from '@shared/services/auth';
 
@@ -25,8 +33,7 @@ export default function SettingsScreen() {
   const navigation = useNavigation<Nav>();
   const {
     settings, updateSetting, signOut,
-    cycleCountdown, cycleDifficulty, cycleBeatPacerPace,
-    clearHistory, deleteAccount,
+    deleteAccount,
   } = useSettings();
   const sw = { trackColor: { true: C.black, false: C.border }, thumbColor: C.white };
   const { user } = useAuth();
@@ -35,7 +42,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Settings</Text>
         <View style={{ width: 32 }} />
@@ -77,30 +84,16 @@ export default function SettingsScreen() {
           </Pressable>
         </SettingSection>
 
+        {/* ── Sign-in methods: Apple, Google, phone, email on one account ── */}
+        <SignInMethodsSection />
+
         {/* ── Appearance ── */}
-        <SettingSection title="Appearance">
+        <SettingSection title="Units">
           <SettingRow label="Distance unit">
             <SegmentedControl
               options={['km', 'mi']}
               value={settings.distanceUnit}
               onChange={v => updateSetting({ distanceUnit: v as 'km' | 'mi' })}
-            />
-          </SettingRow>
-          <SettingRow label="Dark Mode">
-            <Switch
-              value={settings.darkMode}
-              onValueChange={v => updateSetting({ darkMode: v })}
-              {...sw}
-            />
-          </SettingRow>
-          <SettingRow label="Map Style">
-            <PillCycle
-              value={settings.mapStyle ?? 'Standard'}
-              onPress={() => {
-                const opts = ['Standard', 'Dark', 'Light', 'Terrain', 'Satellite'];
-                const idx = opts.indexOf(settings.mapStyle ?? 'Standard');
-                updateSetting({ mapStyle: opts[(idx + 1) % opts.length] as any });
-              }}
             />
           </SettingRow>
         </SettingSection>
@@ -110,52 +103,60 @@ export default function SettingsScreen() {
           <SettingRow label="Push notifications" sub="Master toggle for all notifications">
             <Switch value={settings.notificationsEnabled} onValueChange={v => updateSetting({ notificationsEnabled: v })} {...sw} />
           </SettingRow>
-          <SettingRow label="Run reminders" sub="Nudges when you haven't run in a while">
+          <SettingRow label="Run reminders" sub="Streak at risk, and a nudge after a few quiet days">
             <Switch value={settings.runReminders} onValueChange={v => updateSetting({ runReminders: v })} {...sw} />
           </SettingRow>
-          <SettingRow label="Territory alerts" sub="Zone captures and attacks">
+          <SettingRow label="Territory alerts" sub="Attacks, captures, and zones about to fade">
             <Switch value={settings.territoryAlerts} onValueChange={v => updateSetting({ territoryAlerts: v })} {...sw} />
           </SettingRow>
-          <SettingRow label="Announce achievements">
+          <SettingRow label="Achievements and PACE" sub="Rank ups and your weekly PACE cap">
             <Switch value={settings.announceAchievements} onValueChange={v => updateSetting({ announceAchievements: v })} {...sw} />
           </SettingRow>
-          <SettingRow label="Weekly summary">
+          <SettingRow label="Training sessions" sub="A reminder the day before each session in your plan">
+            <SegmentedControl
+              options={REMINDER_OPTIONS.map(o => o.label)}
+              value={REMINDER_OPTIONS.find(o => o.hour === (settings.planReminderHour === undefined ? DEFAULT_REMINDER_HOUR : settings.planReminderHour))?.label ?? '6 pm'}
+              onChange={label => {
+                const hour = REMINDER_OPTIONS.find(o => o.label === label)?.hour ?? null;
+                Promise.resolve(updateSetting({ planReminderHour: hour }))
+                  .then(() => getCachedPlan())
+                  .then(ap => rescheduleSessionReminders(ap?.plan ?? null))
+                  .catch(() => {});
+              }}
+            />
+          </SettingRow>
+          <SettingRow label="Weekly summary" sub="Monday morning, your week in review">
             <Switch value={settings.weeklySummary} onValueChange={v => updateSetting({ weeklySummary: v })} {...sw} />
           </SettingRow>
-        </SettingSection>
-
-        {/* ── Sound & Haptics ── */}
-        <SettingSection title="Sound & Haptics">
-          <SettingRow label="Sound effects">
-            <Switch value={settings.soundEnabled} onValueChange={v => { updateSetting({ soundEnabled: v }); setSoundEnabled(v); }} {...sw} />
-          </SettingRow>
-          <SettingRow label="Haptic feedback">
-            <Switch value={settings.hapticEnabled} onValueChange={v => { updateSetting({ hapticEnabled: v }); setHapticEnabled(v); }} {...sw} />
+          <SettingRow label="Offers and events" sub="Festive challenges and partner rewards">
+            <Switch value={settings.offersEnabled ?? true} onValueChange={v => updateSetting({ offersEnabled: v })} {...sw} />
           </SettingRow>
         </SettingSection>
 
         {/* ── Run ── */}
-        <SettingSection title="Run Settings">
-          <SettingRow label="Auto-pause" sub="Pause tracking when you stop moving">
-            <Switch value={settings.autoPause} onValueChange={v => updateSetting({ autoPause: v })} {...sw} />
-          </SettingRow>
-          <SettingRow label="GPS accuracy" sub="High accuracy uses more battery">
-            <SegmentedControl
-              options={['Standard', 'High']}
-              value={settings.gpsAccuracy === 'high' ? 'High' : 'Standard'}
-              onChange={v => updateSetting({ gpsAccuracy: v === 'High' ? 'high' : 'standard' })}
+        <SettingSection title="During a run">
+          <SettingRow label="Voice cues" sub={getSpeech() ? 'Each km, the loop closing, zones and workout steps' : 'Available after the next app update'}>
+            <Switch
+              value={settings.voiceCues !== false}
+              onValueChange={v => { Promise.resolve(updateSetting({ voiceCues: v })).then(resetVoiceCuesSetting).catch(() => {}); }}
+              disabled={!getSpeech()}
+              {...sw}
             />
-          </SettingRow>
-          <SettingRow label="Countdown">
-            <PillCycle value={`${settings.countdownSeconds}s`} onPress={cycleCountdown} />
-          </SettingRow>
-          <SettingRow label="Live run sharing" sub="Mutual friends see your avatar move on the map while you run — off between runs">
-            <Switch value={settings.liveRunSharingEnabled} onValueChange={v => updateSetting({ liveRunSharingEnabled: v })} {...sw} />
           </SettingRow>
         </SettingSection>
 
+        <SettingSection title="Privacy">
+          <Pressable style={s.linkRow} onPress={() => navigation.navigate('Privacy')} accessibilityRole="button">
+            <View style={{ flex: 1 }}>
+              <Text style={s.linkLabel}>Privacy controls</Text>
+              <Text style={s.linkSub}>Who sees activities, map visibility, private places, leaderboards, zones, blocking, export</Text>
+            </View>
+            <RowChevron />
+          </Pressable>
+        </SettingSection>
+
         {/* ── Data & Privacy ── */}
-        <SettingSection title="Data & Privacy">
+        <SettingSection title="Legal">
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/privacy')}>
             <Text style={s.linkLabel}>Privacy Policy</Text>
             <RowChevron />
@@ -169,47 +170,6 @@ export default function SettingsScreen() {
             <RowChevron />
           </Pressable>
         </SettingSection>
-
-        {/* ── About ── */}
-        <SettingSection title="About">
-          <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/help')}>
-            <Text style={s.linkLabel}>Help & FAQ</Text>
-            <RowChevron />
-          </Pressable>
-          <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/bug-report')}>
-            <Text style={s.linkLabel}>Report a Bug</Text>
-            <RowChevron />
-          </Pressable>
-          <View style={s.linkRow}>
-            <Text style={s.linkLabel}>App Version</Text>
-            <Text style={s.versionText}>v1.0.0</Text>
-          </View>
-        </SettingSection>
-
-        {/* ── Premium card ── */}
-        <Pressable style={s.premiumCard} onPress={() => navigation.navigate('Subscription')}>
-          <LinearGradient colors={['#111111', '#1A0A06']} style={s.premiumGradient}>
-            <View style={s.premiumTopRow}>
-              <View style={s.premiumBrand}>
-                <Crown size={14} color={C.gold} weight="fill" />
-                <Text style={s.premiumBrandLabel}>RUNIVO PLUS</Text>
-              </View>
-              <View style={s.premiumBadge}><Text style={s.premiumBadgeTxt}>PLUS</Text></View>
-            </View>
-            <Text style={s.premiumTagline}>Dominate more territory.{'\n'}Run smarter.</Text>
-            {['Unlimited territory zones', 'AI Coach', 'Territory alerts'].map(f => (
-              <View key={f} style={s.premiumFeature}>
-                <Text style={s.premiumFeatureDot}>✦</Text>
-                <Text style={s.premiumFeatureTxt}>{f}</Text>
-              </View>
-            ))}
-            <View style={s.premiumDivider} />
-            <View style={s.premiumBottomRow}>
-              <Text style={s.premiumPrice}>From $4.99/mo after free trial</Text>
-              <View style={s.premiumCTA}><Text style={s.premiumCTATxt}>Upgrade →</Text></View>
-            </View>
-          </LinearGradient>
-        </Pressable>
 
         {/* ── Sign Out ── */}
         <View style={s.signOutWrap}>
@@ -226,7 +186,7 @@ export default function SettingsScreen() {
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
-  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
   backBtn:     { width: 32 },
   title:       { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   scroll:      { paddingBottom: 40 },
@@ -239,12 +199,12 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   premiumGradient:   { padding: 18 },
   premiumTopRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   premiumBrand:      { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  premiumBrandLabel: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight, letterSpacing: 1.5 },
+  premiumBrandLabel: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight },
   premiumBadge:      { backgroundColor: C.gold, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
-  premiumBadgeTxt:   { fontFamily: Fonts.semiBold, fontSize: 10, color: C.alwaysDark, letterSpacing: 1 },
+  premiumBadgeTxt:   { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysDark },
   premiumTagline:    { fontFamily: Fonts.light, fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 14, lineHeight: 20 },
   premiumFeature:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  premiumFeatureDot: { fontFamily: Fonts.regular, fontSize: 10, color: C.gold },
+  premiumFeatureDot: { fontFamily: Fonts.regular, fontSize: 11, color: C.gold },
   premiumFeatureTxt: { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.85)' },
   premiumDivider:    { height: 0.5, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 14 },
   premiumBottomRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -254,6 +214,6 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   // Sign out
   signOutWrap: { paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 8 },
   signOutBtn:  { borderWidth: 0.5, borderColor: C.red, borderRadius: 8, paddingVertical: 13, alignItems: 'center' },
-  signOutLabel:{ fontFamily: Fonts.medium, fontSize: 13, color: C.red, letterSpacing: 1 },
-  version:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', paddingBottom: 8 },
+  signOutLabel:{ fontFamily: Fonts.medium, fontSize: 13, color: C.red },
+  version:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', paddingBottom: 8 },
 }); }

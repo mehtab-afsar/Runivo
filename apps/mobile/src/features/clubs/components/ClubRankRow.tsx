@@ -73,7 +73,7 @@ export const ClubRankRow = React.memo(function ClubRankRow({
             hitSlop={6}
             accessibilityLabel={`Leave ${club.name}`}
           >
-            <Text style={s.joinedText}>JOINED</Text>
+            <Text style={s.joinedText}>Joined</Text>
           </Pressable>
         ) : (
           <Pressable
@@ -85,7 +85,7 @@ export const ClubRankRow = React.memo(function ClubRankRow({
             }
           >
             <Text style={s.joinText}>
-              {club.join_policy === 'open' ? 'JOIN' : 'REQUEST'}
+              {club.join_policy === 'open' ? 'Join' : 'Request'}
             </Text>
           </Pressable>
         )}
@@ -101,7 +101,7 @@ function mkStyles(C: AppColors) {
       paddingVertical: 14, paddingHorizontal: Spacing.gutter,
       backgroundColor: C.card,
     },
-    rowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.border },
+    rowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
     pressed:   { backgroundColor: C.surface },
 
     rank:       { ...Type.metricMd, fontSize: 26, lineHeight: 28, width: 34, textAlign: 'center' },
@@ -120,12 +120,12 @@ function mkStyles(C: AppColors) {
     meta:     { ...Type.caption, color: C.t2, flexShrink: 1 },
 
     right:    { alignItems: 'flex-end', gap: 6 },
-    km:       { ...Type.metricSm, fontSize: 15, color: C.t1 },
+    km:       { ...Type.metricSm, fontSize: 20, lineHeight: 22, color: C.t1 },
     kmUnit:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
 
-    joinPill:   { backgroundColor: C.accent, borderRadius: Spacing.radius.full, paddingHorizontal: 12, paddingVertical: 5 },
-    joinText:   { fontFamily: Fonts.bold, fontSize: 10, letterSpacing: 0.8, color: C.alwaysLight },
-    joinedPill: { backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, borderRadius: Spacing.radius.full, paddingHorizontal: 12, paddingVertical: 5 },
-    joinedText: { fontFamily: Fonts.bold, fontSize: 10, letterSpacing: 0.8, color: C.t2 },
+    joinPill:   { backgroundColor: C.red, borderRadius: Spacing.radius.full, paddingHorizontal: 14, paddingVertical: 6 },
+    joinText:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.alwaysLight },
+    joinedPill: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: Spacing.radius.full, paddingHorizontal: 14, paddingVertical: 6 },
+    joinedText: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2 },
   });
 }

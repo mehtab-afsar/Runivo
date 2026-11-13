@@ -48,10 +48,10 @@ function mkStyles(C: AppColors) {
     headline:  { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black, flex: 1 },
     csWrap:    { alignItems: 'center', flexShrink: 0 },
     csNum:     { fontFamily: Fonts.semiBold, fontSize: 22, color: C.black, lineHeight: 24, fontVariant: ['tabular-nums'] },
-    csLabel:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.6 },
+    csLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, letterSpacing: 0.6 },
     body:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 18 },
     paceRow:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-    paceLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.4, fontVariant: ['tabular-nums'] },
+    paceLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, letterSpacing: 0.4, fontVariant: ['tabular-nums'] },
     barTrack:  { flex: 1, height: 3, backgroundColor: C.mid, borderRadius: 2, flexDirection: 'row', overflow: 'hidden' },
     barFill:   { backgroundColor: C.red, borderRadius: 2 },
   });

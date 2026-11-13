@@ -20,19 +20,18 @@ WebBrowser.maybeCompleteAuthSession();
  * code_verifier this client generated and kept locally. The origin check below is
  * defence in depth: nothing but our own redirect target should ever be parsed.
  */
-async function oauthFlow(provider: 'google'): Promise<void> {
-  const redirectTo = makeRedirectUri({ scheme: 'runivo', path: 'auth/callback' });
+export const OAUTH_REDIRECT = (): string => makeRedirectUri({ scheme: 'runivo', path: 'auth/callback' });
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo, skipBrowserRedirect: true },
-  });
-  if (error) throw error;
-  if (!data.url) throw new Error('No OAuth URL returned');
-
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+/**
+ * Opens a Supabase OAuth URL in the system auth session and finishes it:
+ * checks the redirect origin, surfaces provider errors, exchanges the single-use
+ * PKCE code. Shared by sign-in and by linking a provider to the signed-in user.
+ * Returns false when the runner backed out.
+ */
+export async function completeOAuthInBrowser(url: string, redirectTo: string): Promise<boolean> {
+  const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
   // 'cancel' / 'dismiss' — user backed out; not an error.
-  if (result.type !== 'success') return;
+  if (result.type !== 'success') return false;
 
   const returned = new URL(result.url);
   const expected = new URL(redirectTo);
@@ -50,25 +49,31 @@ async function oauthFlow(provider: 'google'): Promise<void> {
 
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
   if (exchangeError) throw exchangeError;
+  return true;
+}
+
+async function oauthFlow(provider: 'google'): Promise<void> {
+  const redirectTo = OAUTH_REDIRECT();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+  if (error) throw error;
+  if (!data.url) throw new Error('No OAuth URL returned');
+
+  await completeOAuthInBrowser(data.url, redirectTo);
 }
 
 export const signInWithGoogle = (): Promise<void> => oauthFlow('google');
 
 /**
- * Sign in with Apple via the native AuthenticationServices flow — not the
- * generic OAuth browser popup `signInWithGoogle` uses. Apple's App Review
- * Guideline 4.8 / HIG require the native flow and the official Apple-rendered
- * button specifically; the previous implementation routed Apple through the
- * same in-app-browser OAuth path as Google, which is a known rejection
- * pattern even though the OAuth destination was technically Apple's real
- * consent page. Android/web keep using the OAuth path — Apple only requires
- * the native flow on the native iOS app.
+ * Native Apple credential with a nonce: the raw nonce stays here, only its
+ * SHA-256 hash goes to Apple. Supabase re-hashes the raw nonce and compares it
+ * with the hashed claim in Apple's identityToken, binding the token to this
+ * attempt (replay/CSRF defence). Null when the runner backed out.
  */
-export async function signInWithApple(): Promise<void> {
-  // Raw nonce kept locally; only its SHA-256 hash goes to Apple. Supabase's
-  // signInWithIdToken re-hashes the raw nonce we send it and compares against
-  // the (hashed) nonce claim baked into Apple's identityToken — this is what
-  // binds the token to this specific sign-in attempt (replay/CSRF defence).
+export async function nativeAppleCredential(): Promise<{ token: string; nonce: string } | null> {
   const rawNonce = Crypto.randomUUID();
   const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
 
@@ -82,16 +87,28 @@ export async function signInWithApple(): Promise<void> {
       nonce: hashedNonce,
     });
   } catch (err: any) {
-    if (err?.code === 'ERR_REQUEST_CANCELED') return; // user backed out — not an error
+    if (err?.code === 'ERR_REQUEST_CANCELED') return null; // user backed out — not an error
     throw err;
   }
 
   if (!credential.identityToken) throw new Error('Apple sign-in returned no identity token');
+  return { token: credential.identityToken, nonce: rawNonce };
+}
 
+/**
+ * Sign in with Apple via the native AuthenticationServices flow — not the
+ * generic OAuth browser popup `signInWithGoogle` uses. Apple's App Review
+ * Guideline 4.8 / HIG require the native flow and the official Apple-rendered
+ * button specifically. Android/web keep using the OAuth path — Apple only
+ * requires the native flow on the native iOS app.
+ */
+export async function signInWithApple(): Promise<void> {
+  const cred = await nativeAppleCredential();
+  if (!cred) return;
   const { error } = await supabase.auth.signInWithIdToken({
     provider: 'apple',
-    token:    credential.identityToken,
-    nonce:    rawNonce,
+    token:    cred.token,
+    nonce:    cred.nonce,
   });
   if (error) throw error;
 }

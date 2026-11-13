@@ -13,7 +13,7 @@ interface SectionHeaderProps {
 
 /**
  * The app-wide section eyebrow: tracked-uppercase overline + optional trailing action.
- * Use this instead of hand-rolling `fontSize: 11, letterSpacing: 1` rows per screen.
+ * Use this instead of hand-rolling `fontSize: 11` rows per screen.
  */
 export function SectionHeader({ title, icon, action, style }: SectionHeaderProps) {
   const C = useTheme();
@@ -21,7 +21,7 @@ export function SectionHeader({ title, icon, action, style }: SectionHeaderProps
     <View style={[styles.row, style]}>
       <View style={styles.titleRow}>
         {icon}
-        <Text style={[Type.overline, { color: C.t3 }]}>{title}</Text>
+        <Text style={[Type.overline, { color: C.t2 }]}>{title}</Text>
       </View>
       {action && (
         <Pressable onPress={action.onPress} hitSlop={8}>

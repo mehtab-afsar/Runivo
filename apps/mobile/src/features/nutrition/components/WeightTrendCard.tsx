@@ -20,7 +20,7 @@ export function WeightTrendCard({ logs, onLogWeight }: WeightTrendCardProps) {
   if (logs.length === 0) {
     return (
       <View style={s.card}>
-        <Text style={s.cardTitle}>WEIGHT</Text>
+        <Text style={s.cardTitle}>Weight</Text>
         <Text style={s.emptyText}>No weigh-ins logged yet.</Text>
         <Pressable style={s.logBtn} onPress={onLogWeight}>
           <Text style={s.logBtnLabel}>+ Log weight</Text>
@@ -56,7 +56,7 @@ export function WeightTrendCard({ logs, onLogWeight }: WeightTrendCardProps) {
   return (
     <View style={s.card}>
       <View style={s.headRow}>
-        <Text style={s.cardTitle}>WEIGHT</Text>
+        <Text style={s.cardTitle}>Weight</Text>
         <Pressable onPress={onLogWeight} hitSlop={8}>
           <Text style={s.logLink}>+ Log</Text>
         </Pressable>

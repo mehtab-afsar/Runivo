@@ -10,18 +10,11 @@ import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import {
-  Barlow_300Light,
-  Barlow_400Regular,
-  Barlow_500Medium,
-  Barlow_600SemiBold,
-  Barlow_700Bold,
-} from '@expo-google-fonts/barlow';
-import { PlayfairDisplay_400Regular_Italic } from '@expo-google-fonts/playfair-display';
-import {
-  DMSans_300Light,
-  DMSans_400Regular,
-  DMSans_500Medium,
-} from '@expo-google-fonts/dm-sans';
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+} from '@expo-google-fonts/geist';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -40,6 +33,7 @@ import { initAnalytics, identify, track } from '@shared/services/analytics';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import { useSettings, SettingsProvider } from './src/features/settings/context/SettingsContext';
 import { preloadSounds, setSoundEnabled } from './src/theme/sounds';
+import { loadRunivoMapStyle } from './src/theme/runivoMapStyle';
 import { setHapticEnabled } from './src/theme/haptics';
 
 initSentry();
@@ -70,6 +64,7 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
 
   useEffect(() => {
     preloadSounds().catch(() => {});
+    loadRunivoMapStyle();
     setAiCoachEnabled(FEATURES.AI_COACH);
   }, []);
 
@@ -166,7 +161,8 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
   // Native Expo splash stays while fonts load; custom SplashView takes over after
   if (!fontsReady) return null;
 
-  const isDark    = settings.darkMode;
+  // v1 ships the mock's light design only; the saved dark-mode choice is kept for later.
+  const isDark    = false;
   const authReady = !loading && !checkingOnboarding;
 
   return (
@@ -190,15 +186,15 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    Barlow_300Light,
-    Barlow_400Regular,
-    Barlow_500Medium,
-    Barlow_600SemiBold,
-    Barlow_700Bold,
-    PlayfairDisplay_400Regular_Italic,
-    DMSans_300Light,
-    DMSans_400Regular,
-    DMSans_500Medium,
+    Geist_400Regular,
+    Geist_500Medium,
+    Geist_600SemiBold,
+    Geist_700Bold,
+    // Archivo at 68% width / 850 weight, cut from Archivo's variable font
+    // (OFL, assets/fonts/Archivo-OFL.txt): headlines and big numbers.
+    ArchivoDisplay:  require('./assets/fonts/ArchivoDisplay.ttf'),
+    // Archivo 100% width / 900: the runivo wordmark.
+    ArchivoWordmark: require('./assets/fonts/ArchivoWordmark.ttf'),
   });
 
   return (

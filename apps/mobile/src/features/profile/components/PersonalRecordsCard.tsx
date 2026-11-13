@@ -42,7 +42,7 @@ function mkStyles(C: AppColors) {
       borderColor: C.border,
       padding: 12,
     },
-    prLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginBottom: 4 },
+    prLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginBottom: 4 },
     prValue: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
     emptyText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
   });

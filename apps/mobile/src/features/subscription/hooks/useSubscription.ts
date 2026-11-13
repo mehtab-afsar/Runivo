@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@shared/services/supabase';
 import type { SubscriptionTier } from '../types';
+import { isPlus } from '@shared/engine/entitlements';
 import {
   getAvailablePackages,
   purchaseProduct,
@@ -88,7 +89,7 @@ export function useSubscription() {
     }
   }, []);
 
-  const isPremium = currentTier != null && currentTier !== 'free';
+  const isPremium = isPlus(currentTier);
 
   return {
     currentTier,

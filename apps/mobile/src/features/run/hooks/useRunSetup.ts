@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getCachedPlan, localToday } from '@features/training/services/planService';
+import { sessionOn } from '@shared/engine/training';
 import { Animated, PanResponder } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,6 +12,7 @@ import type { StoredSavedRoute } from '@shared/services/store';
 import { findRoutesNearby, type NearbyRoute } from '@shared/services/sync';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { ActivityType } from '../types';
+import { getLastSport, setLastSport } from '../constants/lastSport';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -22,19 +25,30 @@ export interface GpsState {
 
 export interface IntelStats { enemy: number; neutral: number; weak: number }
 
-const SHEET_COLLAPSED = 240;
-const SHEET_EXPANDED  = 420;
+// v1: the sheet holds the sport chips, the rule line and Start.
+const SHEET_COLLAPSED = 292;
+const SHEET_EXPANDED  = 292;
 
 export function useRunSetup() {
   const navigation = useNavigation<Nav>();
 
-  const [activityType, setActivityType] = useState<ActivityType>('run');
+  const [activityType, setActivityTypeState] = useState<ActivityType>('run');
+  useEffect(() => { getLastSport().then(setActivityTypeState); }, []);
+  const setActivityType = useCallback((t: ActivityType) => { setActivityTypeState(t); setLastSport(t); }, []);
   const [gps, setGps] = useState<GpsState>({ status: 'searching', accuracy: null, lat: null, lng: null });
   const [intel, setIntel] = useState<IntelStats>({ enemy: 0, neutral: 0, weak: 0 });
   const [savedRoutes, setSavedRoutes]   = useState<StoredSavedRoute[]>([]);
   const [nearbyRoutes, setNearbyRoutes] = useState<NearbyRoute[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
-  const [selectedRoute, setSelectedRoute] = useState<{ name: string; gpsPoints: { lat: number; lng: number }[] } | null>(null);
+  // What the run follows (R1): a route (saved or nearby), or today's planned session.
+  const [selectedRoute, setSelectedRoute] = useState<{ name: string; gpsPoints?: { lat: number; lng: number }[]; sessionId?: string } | null>(null);
+  const [todaySession, setTodaySession] = useState<{ id: string; title: string; summary: string } | null>(null);
+  useEffect(() => {
+    getCachedPlan().then(ap => {
+      const s = ap ? sessionOn(ap.plan, localToday()) : null;
+      setTodaySession(s && s.status === 'planned' ? { id: s.id, title: s.title, summary: s.summary } : null);
+    }).catch(() => {});
+  }, []);
   const [showActivityModal, setShowActivityModal] = useState(false);
   const [showRouteModal, setShowRouteModal]       = useState(false);
 
@@ -113,9 +127,12 @@ export function useRunSetup() {
     if (gps.status !== 'ready') return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     navigation.navigate('ActiveRun', {
+      // The setup screen's Start is the start: no second tap on the live screen.
+      autoStart: true,
       activityType: activityType,
       ...(mapStyle ? { mapStyle } : {}),
       ...(selectedRoute?.gpsPoints ? { ghostRoutePoints: selectedRoute.gpsPoints } : {}),
+      ...(selectedRoute?.sessionId ? { sessionId: selectedRoute.sessionId } : {}),
       // Hands off the setup screen's already-resolved pacer state so the live
       // run's separate useBeatPacer() instance can start on its first render
       // instead of waiting on an async settings read — see useBeatPacer.ts.
@@ -127,7 +144,7 @@ export function useRunSetup() {
     activityType, setActivityType,
     gps, intel,
     savedRoutes, nearbyRoutes, nearbyLoading,
-    selectedRoute, setSelectedRoute,
+    selectedRoute, setSelectedRoute, todaySession,
     showActivityModal, setShowActivityModal,
     showRouteModal,
     sheetAnim, panResponder,

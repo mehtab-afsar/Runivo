@@ -266,7 +266,7 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   candidateRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: T.card, borderRadius: 14, borderWidth: 0.5, borderColor: T.border, paddingVertical: 12, paddingHorizontal: 14 },
   cardIconBox:     { width: 34, height: 34, borderRadius: 10, backgroundColor: T.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   cardTitle:       { fontFamily: Fonts.medium, fontSize: 13.5, color: T.black, marginBottom: 3 },
-  sourceCaption:   { fontFamily: Fonts.regular, fontSize: 10.5, color: T.t3 },
+  sourceCaption:   { fontFamily: Fonts.regular, fontSize: 11.5, color: T.t3 },
   rewardChip:      { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: T.goldBg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5 },
   rewardValue:     { fontFamily: Fonts.semiBold, fontSize: 11.5, color: T.gold, fontVariant: ['tabular-nums'] },
 }); }

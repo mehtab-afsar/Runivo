@@ -53,7 +53,7 @@ function mkStyles(C: AppColors) {
     dotEnabled:  { backgroundColor: C.white },
     bpm:         { fontFamily: Fonts.semiBold, fontSize: 13, color: 'rgba(255,255,255,0.6)', fontVariant: ['tabular-nums'] },
     bpmEnabled:  { color: C.white },
-    unit:        { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.55)', marginRight: 2 },
+    unit:        { fontFamily: Fonts.regular, fontSize: 11, color: 'rgba(255,255,255,0.55)', marginRight: 2 },
     unitEnabled: { color: 'rgba(255,255,255,0.7)' },
   });
 }

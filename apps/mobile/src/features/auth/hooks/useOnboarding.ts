@@ -1,93 +1,119 @@
 import { useState, useCallback } from 'react';
-import { computeWeeklyGoal } from '@shared/services/profile';
-import { saveOnboardingData } from '../services/onboardingService';
-import type { OnboardingData, OnboardingStep } from '../types';
-import { DIST_CHIPS } from '../types';
+import { parseFiveKTime, validateUsername, startingWeeklyTargetKm } from '@shared/engine/onboarding';
+import { track } from '@shared/services/analytics';
+import { saveOnboardingData, saveIdentity } from '../services/onboardingService';
+import { ONBOARDING_STEPS, type OnboardingData, type OnboardingStepKey } from '../types';
 
 const DEFAULT_DATA: OnboardingData = {
-  age: 25, gender: '',
-  heightCm: 170, weightKg: 70,
-  experienceLevel: 'casual', primaryGoal: 'get_fit',
-  weeklyFrequency: 3, preferredDistance: '5k',
-  distanceUnit: 'km', notificationsEnabled: true, plan: 'free',
+  lastKnownLocation: null, country: null,
+  goal: null,
+  runsPerWeek: 3, usualKm: 5, fiveKInput: '',
+  healthConsent: false, healthBaseline: null,
+  ageRange: null, gender: null, heightCm: null, weightKg: null,
+  username: '', avatarUri: null,
+  notificationsEnabled: false,
+  distanceUnit: 'km',
 };
 
 export interface OnboardingState {
-  step: OnboardingStep;
+  index: number;
+  stepKey: OnboardingStepKey;
+  total: number;
+  optional: boolean;
   data: OnboardingData;
-  selectedDays: number[];
   loading: boolean;
   error: string;
-  weeklyKmDisplay: number;
-  weeklyGoalKm: number;
-  distKm: number;
+  weeklyTargetKm: number;
   update: <K extends keyof OnboardingData>(key: K, val: OnboardingData[K]) => void;
-  toggleDay: (i: number) => void;
   canContinue: () => boolean;
-  goNext: () => void;
+  goNext: () => Promise<void>;
+  skip: () => void;
   goBack: () => void;
-  setStep: (s: OnboardingStep) => void;
-  submit: () => Promise<void>;
+  submit: () => Promise<boolean>;
 }
 
-export function useOnboarding(onComplete: () => void): OnboardingState {
-  const [step, setStep] = useState<OnboardingStep>(1);
+export function useOnboarding(): OnboardingState {
+  const [index, setIndex] = useState(0);
   const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
-  const [selectedDays, setSelectedDays] = useState([1, 3, 5]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const distKm = DIST_CHIPS.find(d => d.key === data.preferredDistance)?.km ?? 5;
-  const weeklyKmDisplay = selectedDays.length * distKm;
-  const weeklyGoalKm = computeWeeklyGoal(data.weeklyFrequency, data.preferredDistance);
+  const step = ONBOARDING_STEPS[index];
+  const weeklyTargetKm = startingWeeklyTargetKm({
+    runsPerWeek: data.runsPerWeek,
+    usualKm: data.usualKm,
+    goal: data.goal ?? 'get_fit',
+    healthAvgWeeklyKm: data.healthConsent ? data.healthBaseline?.avgWeeklyKm : null,
+  });
 
   const update = useCallback(<K extends keyof OnboardingData>(key: K, val: OnboardingData[K]) => {
+    setError('');
     setData(prev => ({ ...prev, [key]: val }));
   }, []);
 
-  const toggleDay = useCallback((i: number) => {
-    setSelectedDays(prev => {
-      const next = prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i];
-      const clamped = next.length === 0 ? [i] : next;
-      setData(d => ({ ...d, weeklyFrequency: clamped.length }));
-      return clamped;
-    });
-  }, []);
-
   const canContinue = useCallback(() => {
-    if (step === 2) return data.gender !== '';
-    return true;
-  }, [step, data.gender]);
+    switch (step.key) {
+      case 'goal':     return data.goal != null;
+      case 'running':  return parseFiveKTime(data.fiveKInput).ok;
+      case 'identity': return validateUsername(data.username).ok;
+      default:         return true;
+    }
+  }, [step.key, data.goal, data.fiveKInput, data.username]);
 
-  const goNext = useCallback(() => {
-    if (step < 6) setStep((step + 1) as OnboardingStep);
+  const advance = useCallback(() => {
+    track('onboarding_step_done', { step: step.key, index });
+    setIndex(i => Math.min(i + 1, ONBOARDING_STEPS.length - 1));
+  }, [step.key, index]);
+
+  const goNext = useCallback(async () => {
+    if (!canContinue() || loading) return;
+    if (step.key === 'identity') {
+      setLoading(true); setError('');
+      try {
+        await saveIdentity(data.username, data.avatarUri);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not save your name.');
+        return;
+      } finally {
+        setLoading(false);
+      }
+    }
+    advance();
+  }, [canContinue, loading, step.key, data.username, data.avatarUri, advance]);
+
+  const skip = useCallback(() => {
+    if (!step.optional) return;
+    track('onboarding_step_skipped', { step: step.key });
+    if (step.key === 'about') {
+      setData(d => ({ ...d, ageRange: null, gender: null, heightCm: null, weightKg: null }));
+    }
+    if (step.key === 'health') {
+      setData(d => ({ ...d, healthConsent: false, healthBaseline: null }));
+    }
+    setIndex(i => Math.min(i + 1, ONBOARDING_STEPS.length - 1));
   }, [step]);
 
   const goBack = useCallback(() => {
-    if (step > 1) setStep((step - 1) as OnboardingStep);
-  }, [step]);
-
-  // canContinue overrides: step 2 (Profile, merged with the old Target step)
-  // requires gender selection. Step 5 (PlanSelection) is always continuable —
-  // the step manages its own CTA (purchase button / free-confirm sheet).
+    setError('');
+    setIndex(i => Math.max(0, i - 1));
+  }, []);
 
   const submit = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      await saveOnboardingData(data, weeklyGoalKm);
-      onComplete();
+      await saveOnboardingData(data);
+      return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Setup failed. Please try again.');
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [data, weeklyGoalKm, onComplete]);
+  }, [data]);
 
   return {
-    step, data, selectedDays, loading, error,
-    weeklyKmDisplay, weeklyGoalKm, distKm,
-    update, toggleDay, canContinue, goNext, goBack,
-    setStep: (s) => setStep(s),
-    submit,
+    index, stepKey: step.key, total: ONBOARDING_STEPS.length, optional: step.optional,
+    data, loading, error, weeklyTargetKm,
+    update, canContinue, goNext, skip, goBack, submit,
   };
 }

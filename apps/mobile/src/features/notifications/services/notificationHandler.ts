@@ -16,10 +16,15 @@
  *   /clubs                   → Clubs screen
  *   /feed                    → Feed screen
  *   /lobby                   → Lobby screen
+ *   /run                     → Run tab (streak at risk, run reminder)
+ *   /territory-map[?filter=stale] → Map, optionally on fading zones
+ *   /store                   → PACE Store (cap alerts, campaigns)
+ *   /history                 → History (weekly summary)
  *   / or unknown             → no-op (app opens to current screen)
  */
 
 import * as Notifications from 'expo-notifications';
+import { resolveNotificationRoute } from './notificationRoutes';
 import type { NavigationContainerRef } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -30,26 +35,8 @@ type NavProp = NativeStackNavigationProp<RootStackParamList>;
 type AnyNav = { navigate: (screen: string, params?: unknown) => void };
 
 function applyRoute(nav: AnyNav, actionUrl: string): void {
-  const url = actionUrl ?? '/';
-
-  if (url.startsWith('/run/summary/')) { nav.navigate('History'); return; }
-  if (url === '/notifications') { nav.navigate('Notifications'); return; }
-  if (url === '/missions')      { nav.navigate('Missions');      return; }
-  if (url === '/leaderboard')   { nav.navigate('Leaderboard');   return; }
-  // Follow-notification action_url is '/profile/<uuid>' (notify_follow() trigger) —
-  // this used to only match the bare '/profile' path, so tapping a "started
-  // following you" push silently no-opped instead of opening their profile.
-  if (url.startsWith('/profile/')) {
-    const followerId = url.slice('/profile/'.length).split(/[/?]/)[0];
-    if (followerId) { nav.navigate('UserProfile', { userId: followerId }); return; }
-  }
-  if (url === '/profile')       { nav.navigate('Main');          return; }
-  if (url === '/events')        { nav.navigate('Events');        return; }
-  if (url === '/clubs')         { nav.navigate('Club');          return; }
-  if (url === '/feed')          { nav.navigate('Main');          return; }
-  if (url === '/lobby')         { nav.navigate('Lobby');         return; }
-  if (url === '/history')       { nav.navigate('History');       return; }
-  // /territory/:hexId and unknown paths — no navigation
+  const route = resolveNotificationRoute(actionUrl);
+  if (route) nav.navigate(route.screen, route.params);
 }
 
 /** Navigate from a notification action_url using a screen navigation prop. */

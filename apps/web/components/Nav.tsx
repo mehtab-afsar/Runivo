@@ -26,6 +26,13 @@ export function Nav() {
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <Link href="/partners" style={{
+          fontSize: 13, color: 'var(--t3)',
+          fontFamily: 'var(--font-body)',
+          letterSpacing: '0.01em',
+        }}>
+          Partners
+        </Link>
         <Link href="/support" style={{
           fontSize: 13, color: 'var(--t3)',
           fontFamily: 'var(--font-body)',

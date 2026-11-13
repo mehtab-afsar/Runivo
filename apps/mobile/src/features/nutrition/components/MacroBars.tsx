@@ -58,5 +58,5 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   track: { height: 5, backgroundColor: C.mid, borderRadius: 3, overflow: 'hidden', marginBottom: 5 },
   fill:  { height: '100%', borderRadius: 3 },
   value: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.t1, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  goal:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+  goal:  { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
 }); }

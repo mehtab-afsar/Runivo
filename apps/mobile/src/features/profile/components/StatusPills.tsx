@@ -55,14 +55,13 @@ function mkStyles(C: AppColors) {
     pill: {
       flex: 1,
       backgroundColor: C.card,
-      borderRadius: 12,
-      borderWidth: 0.5,
-      borderColor: C.border,
+      borderRadius: 16,
+      shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1,
       padding: 12,
       alignItems: 'center',
     },
     pillIcon: { marginBottom: 4 },
-    pillValue: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-    pillLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+    pillValue: { fontFamily: Fonts.numeric, fontSize: 26, lineHeight: 28, color: C.t1, fontVariant: ['tabular-nums'] },
+    pillLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 2 },
   });
 }

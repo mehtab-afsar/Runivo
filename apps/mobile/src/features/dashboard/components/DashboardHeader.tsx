@@ -93,7 +93,7 @@ function mkStyles(C: AppColors) {
     statSeg:        { flexDirection: 'row', alignItems: 'center', gap: 4 },
     statDivider:    { width: 0.5, height: 16, backgroundColor: C.border, marginHorizontal: 9 },
     statTxt:        { ...Type.metricSm, fontSize: 13, color: C.t1 },
-    statSup:        { fontFamily: Fonts.medium, fontSize: 10, color: C.t3, letterSpacing: 0.4, marginTop: 2, marginLeft: 1 },
+    statSup:        { fontFamily: Fonts.medium, fontSize: 11, color: C.t3, letterSpacing: 0.4, marginTop: 2, marginLeft: 1 },
 
     bellBtn:        { width: 32, height: 32, borderRadius: 16, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     bellDot:        { position: 'absolute', top: 7, right: 8, width: 6, height: 6, borderRadius: 3, backgroundColor: C.red, borderWidth: 1, borderColor: C.card },

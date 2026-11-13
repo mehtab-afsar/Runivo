@@ -8,12 +8,13 @@ export interface PostRunInsights {
   recovery?: string;
 }
 
-export function usePostRunInsights(runId: string | null | undefined) {
+/** `enabled` is false for free runners: the AI debrief is a Plus feature and the server refuses it (402). */
+export function usePostRunInsights(runId: string | null | undefined, enabled = true) {
   const [insights, setInsights] = useState<PostRunInsights | null>(null);
   const [loading, setLoading]   = useState(false);
 
   useEffect(() => {
-    if (!runId) return;
+    if (!runId || !enabled) return;
     let cancelled = false;
     setLoading(true);
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -31,7 +32,7 @@ export function usePostRunInsights(runId: string | null | undefined) {
         .catch(() => { if (!cancelled) setLoading(false); });
     });
     return () => { cancelled = true; };
-  }, [runId]);
+  }, [runId, enabled]);
 
   return { insights, loading };
 }

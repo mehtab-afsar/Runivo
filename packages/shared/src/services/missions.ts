@@ -78,7 +78,11 @@ export const MISSION_TEMPLATES: Omit<Mission, 'id' | 'current' | 'completed' | '
 const UNTRACKED_MISSION_TYPES = new Set<MissionType>(['capture_enemy', 'speed_run', 'defend_zone', 'steal_rival']);
 export const ACTIVE_MISSION_TEMPLATES = MISSION_TEMPLATES.filter(m => !UNTRACKED_MISSION_TYPES.has(m.type));
 
-export const GOAL_TO_CATEGORY: Record<'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete', GoalCategory> = {
+export const GOAL_TO_CATEGORY: Record<'get_fit' | 'race' | 'social' | 'lose_weight' | 'run_faster' | 'explore' | 'compete', GoalCategory> = {
+  // v1 onboarding goals: race training leans on pace work, running with
+  // people on routes worth sharing.
+  race:        'speed',
+  social:      'explorer',
   lose_weight: 'weight_loss',
   run_faster:  'speed',
   get_fit:     'endurance',
@@ -132,7 +136,7 @@ export function generateDailyMissions(
 }
 
 export function generateBlueprint(
-  primaryGoal: 'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete',
+  primaryGoal: keyof typeof GOAL_TO_CATEGORY,
   missionDifficulty: 'easy' | 'mixed' | 'hard' = 'mixed',
   date: Date = new Date(),
 ): Mission[] {

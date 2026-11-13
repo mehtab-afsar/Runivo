@@ -1,3 +1,4 @@
+import { muteUser as muteUserService } from '../services/safetyService';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@shared/services/supabase';
 import {
@@ -11,6 +12,12 @@ import {
 import { fetchMyClubActivity } from '@features/clubs/services/clubService';
 import type { FeedPost, SuggestedRunner } from '@features/social/types';
 import type { ClubFeedActivityItem } from '@features/clubs/types';
+
+/** Pages can overlap when new posts land between fetches; keep the first copy. */
+function uniqById<T extends { id: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter(i => (seen.has(i.id) ? false : (seen.add(i.id), true)));
+}
 
 type Tab = 'following' | 'discover';
 
@@ -46,11 +53,11 @@ export function useFeed() {
       });
 
       if (isDiscover) {
-        setDiscoverPosts(prev => refresh ? posts : [...prev, ...posts]);
+        setDiscoverPosts(prev => uniqById(refresh ? posts : [...prev, ...posts]));
         setDiscoverCursor(nextCursor);
         setDiscoverHasMore(nextCursor !== null);
       } else {
-        setFollowingPosts(prev => refresh ? posts : [...prev, ...posts]);
+        setFollowingPosts(prev => uniqById(refresh ? posts : [...prev, ...posts]));
         setFollowingCursor(nextCursor);
         setFollowingHasMore(nextCursor !== null);
       }
@@ -64,7 +71,7 @@ export function useFeed() {
       fetchMyClubActivity().catch(() => []),
     ]);
     setFollowingIds(followIds);
-    setSuggestedRunners(suggested.filter(r => r.id !== uid));
+    setSuggestedRunners(uniqById(suggested.filter(r => r.id !== uid)));
     setClubActivity(myClubActivity);
 
     await loadTab('following', true, uid);
@@ -147,7 +154,7 @@ export function useFeed() {
         fetchSuggestedRunners(uid),
       ]);
       setFollowingIds(followIds);
-      setSuggestedRunners(suggested.filter(r => r.id !== uid));
+      setSuggestedRunners(uniqById(suggested.filter(r => r.id !== uid)));
     }
     await loadTab(tab, true);
     setRefreshing(false);
@@ -156,6 +163,20 @@ export function useFeed() {
   const onCommentPosted = useCallback((postId: string) => {
     updateBothLists(postId, p => ({ ...p, commentCount: p.commentCount + 1 }));
   }, []);
+
+  // Mute: their posts leave both lists now; the server keeps them out from here on.
+  const muteAuthor = useCallback(async (authorId: string) => {
+    const prevFollowing = followingPosts;
+    const prevDiscover  = discoverPosts;
+    setFollowingPosts(prev => prev.filter(p => p.userId !== authorId));
+    setDiscoverPosts(prev => prev.filter(p => p.userId !== authorId));
+    try {
+      await muteUserService(authorId);
+    } catch {
+      setFollowingPosts(prevFollowing);
+      setDiscoverPosts(prevDiscover);
+    }
+  }, [followingPosts, discoverPosts]);
 
   const deletePost = useCallback(async (postId: string) => {
     const prevFollowing = followingPosts;
@@ -190,5 +211,6 @@ export function useFeed() {
     refresh,
     onCommentPosted,
     deletePost,
+    muteAuthor,
   };
 }

@@ -1,27 +1,25 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue, withTiming, useAnimatedStyle,
-} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CaretLeft, CaretDown, Diamond } from 'phosphor-react-native';
+import { X } from 'lucide-react-native';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import * as Haptics from 'expo-haptics';
-import { GAME_CONFIG } from '@shared/services/config';
-import { RANK_COLORS } from '@shared/constants/territory';
 import { usePACEStore } from '../hooks/usePACEStore';
 import { RewardCard } from '../components/RewardCard';
+import { RewardTile } from '../components/RewardTile';
+import type { Reward } from '../types';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const HOW_ROWS = [
-  '+1 PACE per km',
-  '+5 PACE per new zone',
-  '+10 PACE per rival zone stolen',
-  '+3 PACE streak day bonus',
+/** Store chips, in the mock's order. Only categories that have rewards are shown. */
+const CATEGORY_CHIPS: { key: Reward['category']; label: string }[] = [
+  { key: 'gear',      label: 'Gear' },
+  { key: 'nutrition', label: 'Fuel' },
+  { key: 'events',    label: 'Races' },
+  { key: 'tech',      label: 'Tech' },
 ];
 
 export default function PACEStoreScreen() {
@@ -29,134 +27,162 @@ export default function PACEStoreScreen() {
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const { paceBalance, paceWeeklyEarned, capLimit, weeklyPct, runnerRank, rewards } = usePACEStore();
+  const { paceBalance, paceWeeklyEarned, capLimit, weeklyPct, runnerRank, rewards, refresh } = usePACEStore();
+  // Back from a reward: pick up its new state (redeemed, code, stock left).
+  useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
-  const rankColor   = RANK_COLORS[runnerRank] ?? RANK_COLORS.pacer;
+  const [category, setCategory] = useState<Reward['category'] | 'all'>('all');
+  const chips = useMemo(
+    () => CATEGORY_CHIPS.filter(c => rewards.some(r => r.category === c.key)),
+    [rewards],
+  );
+  const shown = category === 'all' ? rewards : rewards.filter(r => r.category === category);
+  const [featured, ...rest] = shown;
   const displayRank = runnerRank.charAt(0).toUpperCase() + runnerRank.slice(1);
 
-  const [howOpen, setHowOpen] = useState(false);
-  const howMaxH = useSharedValue(0);
-  const chevronRotate = useSharedValue(0);
-
-  const howAnimStyle = useAnimatedStyle(() => ({ maxHeight: howMaxH.value, overflow: 'hidden' }));
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${chevronRotate.value}deg` }],
-  }));
-
-  function toggleHow() {
-    const opening = !howOpen;
-    setHowOpen(opening);
-    howMaxH.value       = withTiming(opening ? 300 : 0, { duration: 220 });
-    chevronRotate.value = withTiming(opening ? 180 : 0, { duration: 220 });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }
+  const open = (reward: Reward) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    navigation.navigate('RewardDetail', { rewardId: reward.id, reward });
+  };
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
-      {/* Header bar */}
       <View style={s.headerBar}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={s.backBtn}>
-          <CaretLeft size={20} color={C.black} weight="light" />
+        <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={s.closeBtn} accessibilityLabel="Close">
+          <X size={18} color={C.t1} strokeWidth={2.2} />
         </Pressable>
-        <Text style={s.headerTitle}>PACE STORE</Text>
-        <View style={s.backBtn} />
+        <View style={s.headerRight}>
+          <Pressable style={s.mineBtn} onPress={() => navigation.navigate('MyRewards')} accessibilityRole="button" hitSlop={6}>
+            <Text style={s.mineTxt}>My rewards</Text>
+          </Pressable>
+          <View style={s.rankChip}>
+            <Text style={s.rankChipText}>{displayRank}</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-        {/* Wallet — balance, rank, and weekly progress as one unit instead
-            of two disconnected stacked blocks */}
-        <View style={s.walletCard}>
+        {/* Balance */}
+        <View style={s.balanceBlock}>
+          <Text style={s.eyebrow}>PACE Store</Text>
           <View style={s.balanceRow}>
-            <Text style={s.balanceNum}>{paceBalance}</Text>
-            <Text style={s.balanceUnit}> PACE</Text>
+            <Text style={s.balanceNum} adjustsFontSizeToFit numberOfLines={1}>{paceBalance.toLocaleString()}</Text>
+            <Text style={s.balanceUnit}>PACE</Text>
           </View>
-          <View style={[s.rankBadge, { backgroundColor: rankColor.bg }]}>
-            <Diamond size={10} color={rankColor.fg} weight="light" />
-            <Text style={[s.rankBadgeText, { color: rankColor.fg }]}>{displayRank}</Text>
-          </View>
+        </View>
 
-          <View style={s.walletDivider} />
-
+        {/* Earned this week */}
+        <View style={s.weekCard}>
           <View style={s.weekRow}>
-            <Text style={s.weekLabel}>THIS WEEK</Text>
-            <Text style={s.weekNumbers}>{paceWeeklyEarned} / {capLimit} PACE</Text>
+            <Text style={s.weekLabel}>Earned this week</Text>
+            <Text style={s.weekNumbers}>
+              <Text style={s.weekStrong}>{paceWeeklyEarned}</Text> / {capLimit} · resets Monday
+            </Text>
           </View>
           <View style={s.progressBarBg}>
             <View style={[s.progressBarFill, { width: `${Math.round(weeklyPct * 100)}%` }]} />
           </View>
-          {weeklyPct < 1
-            ? <Text style={s.weekHint}>Run {Math.ceil((capLimit - paceWeeklyEarned) / GAME_CONFIG.PACE_PER_KM)}km more to hit your weekly cap</Text>
-            : <Text style={[s.weekHint, { color: C.amber }]}>Weekly cap reached — resets Monday</Text>}
         </View>
 
-        {/* Rewards catalog */}
-        {rewards.length > 0 && (
-          <View style={s.featuredSection}>
-            <Text style={s.sectionLabel}>{rewards.length === 1 ? 'FEATURED REWARD' : 'REWARDS'}</Text>
-            <View style={{ gap: 10 }}>
-              {rewards.map(r => (
-                <RewardCard
-                  key={r.id}
-                  reward={r}
-                  onPress={reward => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    navigation.navigate('RewardDetail', { rewardId: reward.id, reward });
-                  }}
-                />
-              ))}
-            </View>
+        {/* Categories */}
+        {chips.length > 1 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
+            {[{ key: 'all' as const, label: 'All' }, ...chips].map(c => {
+              const active = category === c.key;
+              return (
+                <Pressable
+                  key={c.key}
+                  onPress={() => setCategory(c.key)}
+                  style={[s.chip, active && s.chipActive]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[s.chipText, active && s.chipTextActive]}>{c.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {/* Featured + grid */}
+        {featured && (
+          <View style={s.section}>
+            <RewardCard reward={featured} onPress={open} />
+          </View>
+        )}
+        {rest.length > 0 && (
+          <View style={s.grid}>
+            {rest.map(r => (
+              <View key={r.id} style={s.gridCell}>
+                <RewardTile reward={r} onPress={open} />
+              </View>
+            ))}
           </View>
         )}
 
-        {/* How do I earn PACE? collapsible */}
-        <View style={s.howWrap}>
-          <Pressable style={s.howHeader} onPress={toggleHow}>
-            <Text style={s.howHeaderText}>How do I earn PACE?</Text>
-            <Animated.View style={chevronStyle}>
-              <CaretDown size={16} color={C.black} weight="light" />
-            </Animated.View>
-          </Pressable>
-          <Animated.View style={howAnimStyle}>
-            <View style={s.howContent}>
-              {HOW_ROWS.map(row => (
-                <View key={row} style={s.howRow}>
-                  <Text style={s.howRowText}>{row}</Text>
-                </View>
-              ))}
-            </View>
-          </Animated.View>
+        {/* How you earn PACE */}
+        <View style={s.howCard}>
+          <Text style={s.howTitle}>How you earn PACE</Text>
+          <HowRow label="Every km you run" value="+1" color={C.t1} styles={s} />
+          <HowRow label="Claim a new zone" value="+5" color={C.red} styles={s} />
+          <HowRow label="Steal a rival's zone" value="+10" color={C.blue} styles={s} />
+          <HowRow label="Keep your streak" value="+3" color={C.t1} styles={s} last />
         </View>
       </ScrollView>
     </View>
   );
 }
 
+function HowRow({ label, value, color, styles: s, last }: {
+  label: string; value: string; color: string; styles: ReturnType<typeof mkStyles>; last?: boolean;
+}) {
+  return (
+    <View style={[s.howRow, !last && s.howRowBorder]}>
+      <Text style={s.howLabel}>{label}</Text>
+      <Text style={[s.howValue, { color }]}>{value}</Text>
+    </View>
+  );
+}
+
 function mkStyles(C: AppColors) {
+  const card = {
+    backgroundColor: C.card, borderRadius: Spacing.radius.lg,
+    shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1,
+  } as const;
   return StyleSheet.create({
     root:            { flex: 1, backgroundColor: C.bg },
-    headerBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingVertical: 12 },
-    backBtn:         { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    headerTitle:     { fontFamily: Fonts.medium, fontSize: 12, letterSpacing: 2, color: C.t3 },
-    walletCard:      { alignItems: 'center', backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, paddingVertical: 24, paddingHorizontal: 18, marginHorizontal: Spacing.gutter, marginBottom: 12 },
-    balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 12 },
-    balanceNum:      { fontFamily: Fonts.bold, fontSize: 48, color: C.black, lineHeight: 52, letterSpacing: -1.5, fontVariant: ['tabular-nums'] },
-    balanceUnit:     { fontFamily: Fonts.regular, fontSize: 17, color: C.t3, lineHeight: 48, marginBottom: 4 },
-    rankBadge:       { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-    rankBadgeText:   { fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 0.5 },
-    walletDivider:   { alignSelf: 'stretch', height: 0.5, backgroundColor: C.border, marginVertical: 20 },
-    weekRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch', marginBottom: 8 },
-    weekLabel:       { ...Type.overline, color: C.t3 },
-    progressBarBg:   { alignSelf: 'stretch', height: 6, backgroundColor: C.border, borderRadius: 3, overflow: 'hidden', marginBottom: 8 },
-    progressBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
-    weekNumbers:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black, fontVariant: ['tabular-nums'] },
-    weekHint:        { alignSelf: 'flex-start', fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
-    featuredSection: { paddingHorizontal: Spacing.gutter, marginBottom: 12 },
-    sectionLabel:    { fontFamily: Fonts.medium, fontSize: 11, color: C.t3, letterSpacing: 0.8, marginBottom: 12 },
-    howWrap:         { marginHorizontal: Spacing.gutter, marginBottom: 4, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
-    howHeader:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14 },
-    howHeaderText:   { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    howContent:      { paddingHorizontal: 14, paddingBottom: 14 },
-    howRow:          { paddingVertical: 6, borderTopWidth: 0.5, borderTopColor: C.border },
-    howRowText:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    headerRight:     { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    mineBtn:         { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: C.card, justifyContent: 'center' },
+    mineTxt:         { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    headerBar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 8, paddingBottom: 12 },
+    closeBtn:        { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
+    rankChip:        { backgroundColor: C.t1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    rankChipText:    { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.bg },
+    balanceBlock:    { paddingHorizontal: 18, marginBottom: 12 },
+    eyebrow:         { ...Type.labelSm, color: C.t2 },
+    balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 },
+    balanceNum:      { fontFamily: Fonts.numeric, fontSize: 84, lineHeight: 76, color: C.t1, fontVariant: ['tabular-nums'], flexShrink: 1 },
+    balanceUnit:     { fontFamily: Fonts.bold, fontSize: 22, letterSpacing: -0.5, color: C.red, paddingBottom: 8 },
+    weekCard:        { ...card, paddingHorizontal: 16, paddingVertical: 14, marginHorizontal: 18, marginBottom: 12 },
+    weekRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    weekLabel:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    weekNumbers:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
+    weekStrong:      { fontFamily: Fonts.bold, color: C.t1 },
+    progressBarBg:   { height: 8, backgroundColor: '#ECEAE5', borderRadius: 9, overflow: 'hidden' },
+    progressBarFill: { height: 8, backgroundColor: C.red, borderRadius: 9 },
+    chips:           { paddingHorizontal: 18, gap: 8, marginBottom: 12 },
+    chip:            { height: 30, paddingHorizontal: 12, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    chipActive:      { backgroundColor: C.t1, borderColor: C.t1 },
+    chipText:        { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    chipTextActive:  { color: C.bg },
+    section:         { paddingHorizontal: 18, marginBottom: 12 },
+    grid:            { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 13, marginBottom: 2 },
+    gridCell:        { width: '50%', paddingHorizontal: 5, marginBottom: 10 },
+    howCard:         { ...card, marginHorizontal: 18, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 6 },
+    howTitle:        { ...Type.labelSm, color: C.t2, paddingTop: 10, paddingBottom: 4 },
+    howRow:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+    howRowBorder:    { borderBottomWidth: 1, borderBottomColor: C.border },
+    howLabel:        { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
+    howValue:        { fontFamily: Fonts.numeric, fontSize: 20, lineHeight: 20, fontVariant: ['tabular-nums'] },
   });
 }

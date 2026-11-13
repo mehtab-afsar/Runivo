@@ -17,6 +17,8 @@ export interface DashboardData {
   recentRuns: StoredRun[];
   weeklyKm: number;
   runDays: boolean[];
+  /** km per day this calendar week, Monday first. */
+  dayKm: number[];
   weeklyGoal: number;
   caloriesConsumed: number;
   calorieGoal: number;
@@ -37,13 +39,22 @@ export async function fetchDashboardData(_userId: string): Promise<DashboardData
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
   const weekRuns = allRuns.filter(r => r.startTime >= weekAgo);
   const weeklyKm =
-    Math.round(weekRuns.reduce((s, r) => s + r.distanceMeters / 1000, 0) * 10) / 10;
+    Math.round(weekRuns.filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0) * 10) / 10;
 
   const todayMon = (new Date().getDay() + 6) % 7;
   const runDays = Array(7).fill(false) as boolean[];
   weekRuns.forEach(r => {
     const idx = (new Date(r.startTime).getDay() + 6) % 7;
     if (now - r.startTime < (todayMon + 1) * 86_400_000) runDays[idx] = true;
+  });
+
+  // This calendar week (Monday 00:00 local) for the bar chart.
+  const monday = new Date(); monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - todayMon);
+  const dayKm = Array(7).fill(0) as number[];
+  allRuns.filter(r => r.startTime >= monday.getTime()).forEach(r => {
+    const idx = (new Date(r.startTime).getDay() + 6) % 7;
+    dayKm[idx] += r.distanceMeters / 1000;
   });
 
   let caloriesConsumed = 0;
@@ -73,6 +84,7 @@ export async function fetchDashboardData(_userId: string): Promise<DashboardData
     recentRuns,
     weeklyKm,
     runDays,
+    dayKm,
     weeklyGoal,
     caloriesConsumed,
     calorieGoal,

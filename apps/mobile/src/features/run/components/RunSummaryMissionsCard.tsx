@@ -37,7 +37,7 @@ export default function RunSummaryMissionsCard({ completedMissions }: Props) {
 
   return (
     <View style={[ss.card]}>
-      <Text style={ss.label}>MISSIONS COMPLETED</Text>
+      <Text style={ss.label}>Missions completed</Text>
       {completedMissions.map((m, i) => {
         const template = ACTIVE_MISSION_TEMPLATES.find(t => t.title === m.title);
         const pace = template?.rewards.pace ?? 0;
@@ -46,7 +46,7 @@ export default function RunSummaryMissionsCard({ completedMissions }: Props) {
           <View key={m.id} style={[ss.row, i > 0 && ss.rowBorder]}>
             <View style={[ss.iconBox, state === 'claimed' && ss.iconBoxDone]}>
               {state === 'claimed'
-                ? <Check size={14} color={C.glow} weight="bold" />
+                ? <Check size={14} color={C.green} weight="bold" />
                 : <Text style={ss.emoji}>{template?.icon ?? '🎯'}</Text>}
             </View>
             <View style={{ flex: 1 }}>
@@ -62,7 +62,7 @@ export default function RunSummaryMissionsCard({ completedMissions }: Props) {
                 style={({ pressed }) => [ss.claimBtn, pressed && { opacity: 0.85 }]}
               >
                 {state === 'claiming'
-                  ? <ActivityIndicator size="small" color={C.alwaysDark} />
+                  ? <ActivityIndicator size="small" color={C.bg} />
                   : <Text style={ss.claimBtnText}>{state === 'retry' ? 'Retry' : `Claim +${pace}`}</Text>}
               </Pressable>
             )}
@@ -75,17 +75,17 @@ export default function RunSummaryMissionsCard({ completedMissions }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:      { marginHorizontal: Spacing.gutter, marginBottom: 12, borderRadius: 12, padding: 16, backgroundColor: C.alwaysDark },
-    label:     { ...Type.overline, letterSpacing: 1.5, color: 'rgba(255,255,255,0.45)', marginBottom: 10 },
+    card:      { marginHorizontal: Spacing.gutter, marginBottom: 12, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: C.card, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 },
+    label:     { ...Type.overline, color: C.t2, marginBottom: 6 },
     row:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-    rowBorder: { borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)' },
-    iconBox:   { width: 30, height: 30, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    iconBoxDone: { backgroundColor: 'rgba(26,107,64,0.3)' },
-    emoji:     { fontSize: 14 },
-    title:     { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
-    retryHint: { fontFamily: Fonts.light, fontSize: 10.5, color: C.retryAmber, marginTop: 2 },
-    claimedText: { fontFamily: Fonts.medium, fontSize: 12, color: C.glow },
-    claimBtn:  { backgroundColor: C.alwaysLight, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8, minWidth: 84, alignItems: 'center' },
-    claimBtnText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysDark, letterSpacing: 0.3 },
+    rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+    iconBox:   { width: 36, height: 36, borderRadius: 12, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    iconBoxDone: { backgroundColor: C.greenBg },
+    emoji:     { fontSize: 16 },
+    title:     { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
+    retryHint: { fontFamily: Fonts.regular, fontSize: 12, color: C.amber, marginTop: 2 },
+    claimedText: { fontFamily: Fonts.numeric, fontSize: 18, color: C.green, fontVariant: ['tabular-nums'] },
+    claimBtn:  { backgroundColor: C.t1, borderRadius: 999, paddingHorizontal: 14, height: 34, minWidth: 88, alignItems: 'center', justifyContent: 'center' },
+    claimBtnText: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.bg },
   });
 }

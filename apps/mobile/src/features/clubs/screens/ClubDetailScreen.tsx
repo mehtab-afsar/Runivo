@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
   KeyboardAvoidingView, Platform, ActivityIndicator, Modal,
-  TextInput, ScrollView,
+  TextInput, ScrollView, Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Users, Pulse, ClipboardText, Check, X, type Icon } from 'phosphor-react-native';
+import { ArrowLeft, ClipboardText, Check, X } from 'phosphor-react-native';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
 import { ChatInput } from '@features/clubs/components/ChatInput';
+import ClubRunsTab from '@features/clubs/components/ClubRunsTab';
+import ClubTerritoryTab from '@features/clubs/components/ClubTerritoryTab';
 import {
   fetchClubMembers,
   fetchClubActivity,
@@ -22,11 +24,20 @@ import {
   updateClubDescription,
   updateClubBadge,
   getOrCreateClubLobby,
+  reportClubMessage,
+  deleteClubMessage,
+  removeClubMember,
+  fetchClubReports,
+  fetchClubOwnerId,
+  type ChatReport,
+  type ChatReportReason,
 } from '@features/clubs/services/clubService';
+import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
 import type { ClubMember, ActivityItem, JoinRequest } from '@features/clubs/types';
 import { supabase } from '@shared/services/supabase';
-import { avatarColor } from '@shared/lib/avatarUtils';
-import { useTheme, Fonts, Type, type AppColors } from '@theme';
+import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
+import { RunnerFace } from '@mobile/shared/components/RunnerFace';
+import { ClubInitialsTile } from '../components/ClubHeroCard';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
@@ -44,28 +55,27 @@ const ACTION_LABELS: Record<string, string> = {
   leveled_up: 'leveled up',
 };
 
-type DetailTab = 'chat' | 'members' | 'leaderboard' | 'activity' | 'admin';
+type DetailTab = 'chat' | 'runs' | 'ground' | 'members' | 'leaderboard' | 'activity' | 'admin';
 
-function MemberRow({ member, rank, onPress }: { member: ClubMember; rank?: number; onPress: () => void }) {
+function MemberRow({ member, rank, onPress, onLongPress }: { member: ClubMember; rank?: number; onPress: () => void; onLongPress?: () => void }) {
   const C = useTheme();
   const mr = useMemo(() => mkMrStyles(C), [C]);
-  const bg = avatarColor(member.username);
   return (
-    <Pressable style={mr.row} onPress={onPress}>
+    <Pressable style={mr.row} onPress={onPress} onLongPress={onLongPress} delayLongPress={350}>
       {rank !== undefined && (
-        <Text style={mr.rank}>{rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `${rank + 1}`}</Text>
+        <Text style={[mr.rank, rank < 3 && mr.rankTop]}>{rank + 1}</Text>
       )}
-      <View style={[mr.avatar, { backgroundColor: bg }]}>
-        <Text style={mr.avatarText}>{member.username.slice(0, 2).toUpperCase()}</Text>
+      <View style={[mr.avatar, { overflow: 'hidden' }]}>
+        <RunnerFace seed={member.username} size={38} />
       </View>
       <View style={{ flex: 1 }}>
         <View style={mr.nameRow}>
           <Text style={mr.name}>{member.username}</Text>
           {member.role === 'admin' && (
-            <View style={mr.adminBadge}><Text style={mr.adminText}>ADMIN</Text></View>
+            <View style={mr.adminBadge}><Text style={mr.adminText}>Admin</Text></View>
           )}
         </View>
-        <Text style={mr.meta}>Lv. {member.level} · {member.total_km.toFixed(0)} km</Text>
+        <Text style={mr.meta}>Lv. {member.level}</Text>
       </View>
       <Text style={mr.kmVal}>{member.total_km.toFixed(0)}<Text style={mr.kmUnit}> km</Text></Text>
     </Pressable>
@@ -74,24 +84,24 @@ function MemberRow({ member, rank, onPress }: { member: ClubMember; rank?: numbe
 
 function mkMrStyles(C: AppColors) {
   return StyleSheet.create({
-    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
-    rank:      { width: 28, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 13, color: C.t2 },
+    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 12, marginBottom: 6 },
+    rank:      { width: 30, textAlign: 'center', fontFamily: Fonts.numeric, fontSize: 22, lineHeight: 24, color: C.t2, fontVariant: ['tabular-nums'] },
+    rankTop:   { color: C.red },
     avatar:    { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     avatarText:{ fontFamily: Fonts.bold, fontSize: 12, color: C.white },
     nameRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    name:      { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    adminBadge:{ backgroundColor: 'rgba(217,53,24,0.12)', borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
-    adminText: { fontFamily: Fonts.semiBold, fontSize: 10, color: C.red, letterSpacing: 0.4 },
+    name:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
+    adminBadge:{ backgroundColor: C.redLo, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
+    adminText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.red },
     meta:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
-    kmVal:     { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, fontVariant: ['tabular-nums'] },
-    kmUnit:    { fontFamily: Fonts.light, fontSize: 11, color: C.t3 },
+    kmVal:     { fontFamily: Fonts.numeric, fontSize: 22, lineHeight: 24, color: C.t1, fontVariant: ['tabular-nums'] },
+    kmUnit:    { fontFamily: Fonts.medium, fontSize: 11, color: C.t3 },
   });
 }
 
 function ActivityRow({ item }: { item: ActivityItem }) {
   const C = useTheme();
   const ar = useMemo(() => mkArStyles(C), [C]);
-  const bg = avatarColor(item.username);
   const label = ACTION_LABELS[item.action] ?? item.action;
   const timeAgo = (() => {
     const diff = Date.now() - new Date(item.time).getTime();
@@ -104,8 +114,8 @@ function ActivityRow({ item }: { item: ActivityItem }) {
 
   return (
     <View style={ar.row}>
-      <View style={[ar.avatar, { backgroundColor: bg }]}>
-        <Text style={ar.avatarText}>{item.username.slice(0, 1).toUpperCase()}</Text>
+      <View style={[ar.avatar, { overflow: 'hidden' }]}>
+        <RunnerFace seed={item.username} size={32} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={ar.text}>
@@ -120,12 +130,12 @@ function ActivityRow({ item }: { item: ActivityItem }) {
 
 function mkArStyles(C: AppColors) {
   return StyleSheet.create({
-    row:       { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.border },
+    row:       { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: C.border },
     avatar:    { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 },
     avatarText:{ fontFamily: Fonts.bold, fontSize: 11, color: C.white },
-    text:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, lineHeight: 18 },
-    username:  { fontFamily: Fonts.semiBold, color: C.black },
-    time:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+    text:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 19 },
+    username:  { fontFamily: Fonts.semiBold, color: C.t1 },
+    time:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
   });
 }
 
@@ -159,10 +169,12 @@ export default function ClubDetailScreen() {
   const [description, setDescription] = useState<string>(initialDesc ?? '');
   const [savingDesc, setSavingDesc] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [reports, setReports] = useState<ChatReport[]>([]);
 
   // Resolves to '' until the club's lobby id loads — useLobbyChat's fetch/subscribe
   // are harmless no-ops against an empty id (no row can match) until then.
-  const { messages, loading: chatLoading, inputText, setInputText, sending, sendMessage } = useLobbyChat(clubLobbyId ?? '');
+  const { messages, loading: chatLoading, inputText, setInputText, sending, sendMessage, removeMessage } = useLobbyChat(clubLobbyId ?? '');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -176,6 +188,7 @@ export default function ClubDetailScreen() {
         .eq('user_id', user.id)
         .maybeSingle();
       if (data) setCurrentUserRole(data.role as 'admin' | 'member');
+      fetchClubOwnerId(clubId).then(setOwnerId).catch(() => {});
 
       const lobbyId = await getOrCreateClubLobby(clubId, clubName, user.id);
       setClubLobbyId(lobbyId);
@@ -218,8 +231,9 @@ export default function ClubDetailScreen() {
   const loadRequests = useCallback(async () => {
     setRequestsLoading(true);
     try {
-      const data = await fetchJoinRequests(clubId);
+      const [data, rep] = await Promise.all([fetchJoinRequests(clubId), fetchClubReports(clubId).catch(() => [])]);
       setJoinRequests(data);
+      setReports(rep);
     } catch { /* offline */ }
     setRequestsLoading(false);
   }, [clubId]);
@@ -230,6 +244,86 @@ export default function ClubDetailScreen() {
     else if (tab === 'activity') loadActivity();
     else if (tab === 'admin') loadRequests();
   }, [tab, loadMembers, loadLeaderboard, loadActivity, loadRequests]);
+
+  // ── Moderation ──────────────────────────────────────────────────────────
+  const isModerator = currentUserRole === 'admin' || (!!ownerId && ownerId === currentUserId);
+  const isOwner = !!ownerId && ownerId === currentUserId;
+  // Moderators need roles in chat (who can be removed) before opening the Members tab.
+  useEffect(() => { if (isModerator) loadMembers(); }, [isModerator, loadMembers]);
+  const canRemove = (userId: string, role?: string) =>
+    isModerator && userId !== currentUserId && userId !== ownerId && (role !== 'admin' || isOwner);
+
+  const confirmRemove = (userId: string, username: string) => {
+    Alert.alert(
+      `Remove ${username}?`,
+      `They leave ${clubName} and can't rejoin unless an admin lets them back.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove', style: 'destructive', onPress: async () => {
+            try {
+              await removeClubMember(clubId, userId);
+              setMembers(m => m.filter(x => x.id !== userId));
+              setLeaderboard(m => m.filter(x => x.id !== userId));
+              setReports(r => r.filter(x => x.authorId !== userId));
+            } catch (e) {
+              Alert.alert("Couldn't remove", e instanceof Error ? e.message : 'Try again.');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const confirmDeleteMessage = (id: string) => {
+    Alert.alert('Delete this message?', 'It is removed for everyone in the club.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            await deleteClubMessage(id);
+            removeMessage(id);
+            setReports(r => r.filter(x => x.messageId !== id));
+          } catch {
+            Alert.alert("Couldn't delete", 'Check your connection and try again.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const reportMessage = (id: string) => {
+    const send = async (reason: ChatReportReason) => {
+      try {
+        await reportClubMessage(id, reason);
+        Alert.alert('Thanks for reporting', "The club's admins will review it.");
+      } catch (e) {
+        Alert.alert("Couldn't report", e instanceof Error && e.message.includes('too many') ? 'You have sent a lot of reports today. Try again tomorrow.' : 'Try again.');
+      }
+    };
+    Alert.alert('Report message', 'Why are you reporting it?', [
+      { text: 'Spam', onPress: () => send('spam') },
+      { text: 'Harassment', onPress: () => send('harassment') },
+      { text: 'Inappropriate', onPress: () => send('inappropriate') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const messageOptions = (m: LobbyMessage) => {
+    if (m.userId === currentUserId) {
+      Alert.alert('Your message', undefined, [
+        { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteMessage(m.id) },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+      return;
+    }
+    const role = members.find(x => x.id === m.userId)?.role;
+    const buttons: Parameters<typeof Alert.alert>[2] = [{ text: 'Report message', onPress: () => reportMessage(m.id) }];
+    if (isModerator) buttons.push({ text: 'Delete message', style: 'destructive', onPress: () => confirmDeleteMessage(m.id) });
+    if (canRemove(m.userId, role)) buttons.push({ text: `Remove ${m.userName}`, style: 'destructive', onPress: () => confirmRemove(m.userId, m.userName) });
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(m.userName, m.message.length > 80 ? `${m.message.slice(0, 80)}…` : m.message, buttons);
+  };
 
   const handleSaveDesc = async () => {
     setSavingDesc(true);
@@ -257,47 +351,37 @@ export default function ClubDetailScreen() {
 
   const tabs: { key: DetailTab; label: string }[] = [
     { key: 'chat', label: 'Chat' },
+    { key: 'runs', label: 'Runs' },
+    { key: 'ground', label: 'Territory' },
     { key: 'members', label: 'Members' },
-    { key: 'leaderboard', label: 'Top' },
-    { key: 'activity', label: 'Activity' },
+    { key: 'leaderboard', label: 'Board' },
     ...(currentUserRole === 'admin' ? [{ key: 'admin' as DetailTab, label: 'Admin' }] : []),
   ];
 
   return (
     <SafeAreaView style={s.root}>
-      {/* Header */}
+      {/* Header: back, club tile, name and member line — as in the mock */}
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={20} color={C.t2} weight="light" />
+        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityLabel="Back">
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
-        <View style={s.headerCenter}>
-          <View style={s.emoji}><BadgeIcon size={26} color={badgeColor} weight="light" /></View>
-          <View>
-            <Text style={s.title} numberOfLines={1}>{clubName}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Users size={10} color={C.t3} weight="light" />
-              <Text style={s.subtitle}>{memberCount} · </Text>
-              <Pulse size={10} color={C.t3} weight="light" />
-              <Text style={s.subtitle}>{totalKm.toFixed(0)} km</Text>
-            </View>
-          </View>
+        <ClubInitialsTile name={clubName} size={38} />
+        <View style={{ flex: 1 }}>
+          <Text style={s.title} numberOfLines={1}>{clubName}</Text>
+          <Text style={s.subLine} numberOfLines={1}>
+            {memberCount} {memberCount === 1 ? 'member' : 'members'} · {Math.round(totalKm).toLocaleString()} km
+            {currentUserRole === 'admin' ? ' · admin' : ''}
+          </Text>
         </View>
-        <View style={{ width: 32 }} />
       </View>
 
-      {/* Tab bar */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={s.tabScroll}
-        contentContainerStyle={s.tabBar}
-      >
+      <View style={s.seg}>
         {tabs.map(t => (
-          <Pressable key={t.key} style={[s.tabBtn, tab === t.key && s.tabBtnActive]} onPress={() => setTab(t.key)}>
-            <Text style={[s.tabLabel, tab === t.key && s.tabLabelActive]}>{t.label}</Text>
+          <Pressable key={t.key} style={[s.segItem, tab === t.key && s.segItemOn]} onPress={() => setTab(t.key)}>
+            <Text style={[s.segLabel, tab === t.key && s.segLabelOn]}>{t.label}</Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
 
       {/* Chat tab */}
       {tab === 'chat' && (
@@ -320,14 +404,22 @@ export default function ClubDetailScreen() {
               data={messages}
               keyExtractor={msg => msg.id}
               renderItem={({ item }) => (
-                <ChatBubble message={item} isOwn={item.userId === currentUserId} />
+                <ChatBubble message={item} isOwn={item.userId === currentUserId} onLongPress={() => messageOptions(item)} />
               )}
               contentContainerStyle={{ paddingVertical: 12 }}
               showsVerticalScrollIndicator={false}
             />
           )}
-          <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} />
+          <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} placeholder={`Message ${clubName}`} />
         </KeyboardAvoidingView>
+      )}
+
+      {/* Club runs (C1) */}
+      {tab === 'runs' && <ClubRunsTab clubId={clubId} canSchedule={isModerator} />}
+
+      {/* Club territory (C2) */}
+      {tab === 'ground' && (
+        <ClubTerritoryTab clubId={clubId} onOpenMap={() => navigation.navigate('TerritoryMap', { clubId, clubName })} />
       )}
 
       {/* Members tab */}
@@ -342,10 +434,12 @@ export default function ClubDetailScreen() {
               <MemberRow
                 member={item}
                 onPress={() => navigation.navigate('UserProfile', { userId: item.id, username: item.username })}
+                onLongPress={canRemove(item.id, item.role) ? () => confirmRemove(item.id, item.username) : undefined}
               />
             )}
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}
+            ListHeaderComponent={isModerator ? <Text style={s.sectionLabel}>Long press a member to remove them</Text> : null}
             ListEmptyComponent={
               <View style={s.empty}>
                 <Text style={s.emptyTitle}>No members found</Text>
@@ -373,7 +467,7 @@ export default function ClubDetailScreen() {
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
-              <Text style={s.sectionLabel}>RANKED BY TOTAL KM</Text>
+              <Text style={s.sectionLabel}>Ranked by total km</Text>
             }
             ListEmptyComponent={
               <View style={s.empty}>
@@ -396,7 +490,7 @@ export default function ClubDetailScreen() {
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
-              <Text style={s.sectionLabel}>RECENT ACTIVITY</Text>
+              <Text style={s.sectionLabel}>Recent activity</Text>
             }
             ListEmptyComponent={
               <View style={s.empty}>
@@ -413,7 +507,7 @@ export default function ClubDetailScreen() {
       {tab === 'admin' && (
         <ScrollView contentContainerStyle={s.adminContent} showsVerticalScrollIndicator={false}>
           {/* Description edit */}
-          <Text style={s.sectionLabel}>CLUB DESCRIPTION</Text>
+          <Text style={s.sectionLabel}>Club description</Text>
           <View style={s.adminCard}>
             <TextInput
               style={s.descInput}
@@ -430,7 +524,7 @@ export default function ClubDetailScreen() {
               disabled={savingDesc}
             >
               {savingDesc ? (
-                <ActivityIndicator size="small" color={C.white} />
+                <ActivityIndicator size="small" color={C.alwaysLight} />
               ) : (
                 <Text style={s.saveBtnText}>Save</Text>
               )}
@@ -438,18 +532,42 @@ export default function ClubDetailScreen() {
           </View>
 
           {/* Badge emoji edit */}
-          <Text style={[s.sectionLabel, { marginTop: 20 }]}>CLUB BADGE</Text>
+          <Text style={[s.sectionLabel, { marginTop: 20 }]}>Club badge</Text>
           <View style={s.adminCard}>
             <View style={s.badgeRow}>
               <View style={s.bigEmoji}><BadgeIcon size={40} color={badgeColor} weight="light" /></View>
               <Pressable style={s.changeBtn} onPress={() => setShowEmojiPicker(true)}>
-                <Text style={s.changeBtnText}>Change Badge</Text>
+                <Text style={s.changeBtnText}>Change badge</Text>
               </Pressable>
             </View>
           </View>
 
+          {/* Reported messages */}
+          <Text style={[s.sectionLabel, { marginTop: 20 }]}>Reported messages</Text>
+          {reports.length === 0 ? (
+            <View style={s.adminCard}><Text style={s.noRequestsText}>Nothing reported</Text></View>
+          ) : reports.map(rep => (
+            <View key={rep.messageId} style={[s.adminCard, { marginBottom: 6 }]}>
+              <Text style={s.reqName}>{rep.authorUsername}</Text>
+              <Text style={s.reportText} numberOfLines={3}>{rep.content}</Text>
+              <Text style={s.reqTime}>
+                {rep.reports} report{rep.reports > 1 ? 's' : ''} · {rep.reasons.join(', ')}
+              </Text>
+              <View style={s.reportActions}>
+                <Pressable style={s.reportBtn} onPress={() => confirmDeleteMessage(rep.messageId)} accessibilityRole="button">
+                  <Text style={s.reportBtnTxt}>Delete message</Text>
+                </Pressable>
+                {canRemove(rep.authorId, members.find(x => x.id === rep.authorId)?.role) && (
+                  <Pressable style={s.reportBtn} onPress={() => confirmRemove(rep.authorId, rep.authorUsername)} accessibilityRole="button">
+                    <Text style={[s.reportBtnTxt, { color: C.red }]}>Remove {rep.authorUsername}</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          ))}
+
           {/* Join requests */}
-          <Text style={[s.sectionLabel, { marginTop: 20 }]}>JOIN REQUESTS</Text>
+          <Text style={[s.sectionLabel, { marginTop: 20 }]}>Join requests</Text>
           {requestsLoading ? (
             <ActivityIndicator color={C.red} style={{ marginTop: 16 }} />
           ) : joinRequests.length === 0 ? (
@@ -459,8 +577,8 @@ export default function ClubDetailScreen() {
           ) : (
             joinRequests.map(req => (
               <View key={req.id} style={s.requestRow}>
-                <View style={[s.reqAvatar, { backgroundColor: avatarColor(req.username) }]}>
-                  <Text style={s.reqAvatarText}>{req.username.slice(0, 1).toUpperCase()}</Text>
+                <View style={[s.reqAvatar, { overflow: 'hidden' }]}>
+                  <RunnerFace seed={req.username} size={34} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.reqName}>{req.username}</Text>
@@ -482,7 +600,7 @@ export default function ClubDetailScreen() {
       <Modal visible={showEmojiPicker} transparent animationType="fade" onRequestClose={() => setShowEmojiPicker(false)}>
         <Pressable style={s.overlay} onPress={() => setShowEmojiPicker(false)}>
           <View style={s.badgePickerSheet}>
-            <Text style={s.pickerLabel}>Choose Badge</Text>
+            <Text style={s.pickerLabel}>Choose a badge</Text>
             <View style={s.badgeGrid}>
               {BADGE_EMOJIS.map(emoji => {
                 const { icon: PickIcon, color: pickColor } = getEmojiIcon(emoji);
@@ -503,50 +621,66 @@ export default function ClubDetailScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:        { flex: 1, backgroundColor: C.bg },
-    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn:     { width: 32 },
+    header:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
+    backBtn:     { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
+    subLine:     { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, marginTop: 1 },
+    seg:         { flexDirection: 'row', backgroundColor: C.border, borderRadius: 999, padding: 4, marginHorizontal: Spacing.gutter, marginBottom: 8 },
+    segItem:     { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 999 },
+    segItemOn:   { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+    segLabel:    { fontFamily: Fonts.medium, fontSize: 14, color: C.t2 },
+    segLabelOn:  { fontFamily: Fonts.semiBold, color: C.t1 },
     backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-    headerCenter:{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' },
-    emoji:       { alignItems: 'center', justifyContent: 'center' },
-    title:       { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
-    subtitle:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+    hero:        { marginHorizontal: Spacing.gutter, marginBottom: 12, backgroundColor: C.alwaysDark, borderRadius: Spacing.radius.xl, padding: 18 },
+    heroTop:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    emoji:       { width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.10)', alignItems: 'center', justifyContent: 'center' },
+    title:       { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1, letterSpacing: -0.2 },
+    heroRole:    { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight, opacity: 0.6, marginTop: 2 },
+    heroStats:   { flexDirection: 'row', gap: 12, marginTop: 18 },
+    heroStat:    { flex: 1 },
+    heroStatLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 5, opacity: 0.6 },
+    subtitle:    { fontFamily: Fonts.medium, fontSize: 12, color: C.alwaysLight },
+    heroNum:     { fontFamily: Fonts.numeric, fontSize: 36, lineHeight: 38, color: C.alwaysLight, marginTop: 2, fontVariant: ['tabular-nums'] },
     // Tab bar
-    tabScroll:   { flexGrow: 0, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    tabBar:      { flexDirection: 'row', paddingHorizontal: 4 },
-    tabBtn:      { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-    tabBtnActive:{ borderBottomColor: C.red },
-    tabLabel:    { fontFamily: Fonts.regular, fontSize: 12, letterSpacing: 0.8, color: C.t3 },
-    tabLabelActive: { fontFamily: Fonts.semiBold, color: C.red },
+    tabScroll:   { flexGrow: 0, backgroundColor: C.bg },
+    tabBar:      { flexDirection: 'row', paddingHorizontal: Spacing.gutter, gap: 8, paddingBottom: 6 },
+    tabBtn:      { height: 36, paddingHorizontal: 16, justifyContent: 'center', borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
+    tabBtnActive:{ backgroundColor: C.t1, borderColor: C.t1 },
+    tabLabel:    { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
+    tabLabelActive: { fontFamily: Fonts.semiBold, color: C.bg },
     // Common
     loader:      { flex: 1, alignItems: 'center', justifyContent: 'center' },
     empty:       { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
-    emptyTitle:  { fontFamily: Fonts.semiBold, fontSize: 18, color: C.black },
-    emptyText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
-    listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
-    sectionLabel:{ ...Type.overline, color: C.t3, marginBottom: 10 },
+    emptyTitle:  { fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
+    emptyText:   { ...Type.bodySm, color: C.t2, textAlign: 'center' },
+    listContent: { paddingHorizontal: Spacing.gutter, paddingTop: 12, paddingBottom: 100 },
+    sectionLabel:{ fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, marginBottom: 10 },
     // Admin
-    adminContent:{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100, gap: 0 },
-    adminCard:   { backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 14, marginBottom: 4 },
-    descInput:   { fontFamily: Fonts.regular, fontSize: 13, color: C.black, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
-    saveBtn:     { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
+    adminContent:{ paddingHorizontal: Spacing.gutter, paddingTop: 16, paddingBottom: 100, gap: 0 },
+    adminCard:   { backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 14, marginBottom: 4 },
+    descInput:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
+    saveBtn:     { marginTop: 10, backgroundColor: C.red, borderRadius: 999, height: 44, justifyContent: 'center', alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
-    saveBtnText: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.alwaysLight },
+    saveBtnText: { ...Type.button, fontSize: 14, color: C.alwaysLight },
     badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
     bigEmoji:    { alignItems: 'center', justifyContent: 'center' },
-    changeBtn:   { backgroundColor: C.stone, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 0.5, borderColor: C.border },
-    changeBtnText: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
+    changeBtn:   { backgroundColor: C.card, borderRadius: 999, paddingHorizontal: 16, height: 38, justifyContent: 'center', borderWidth: 1, borderColor: C.border },
+    changeBtnText: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    reportText:  { fontFamily: Fonts.regular, fontSize: 14, color: C.t1, marginTop: 4, lineHeight: 20 },
+    reportActions: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
+    reportBtn:   { height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: C.border, justifyContent: 'center' },
+    reportBtnTxt:{ fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     noRequestsText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center' },
-    requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 12, borderWidth: 0.5, borderColor: C.border, padding: 12, marginBottom: 6 },
+    requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 12, marginBottom: 6 },
     reqAvatar:   { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
     reqAvatarText: { fontFamily: Fonts.bold, fontSize: 12, color: C.white },
-    reqName:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    reqTime:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+    reqName:     { fontFamily: Fonts.medium, fontSize: 13, color: C.t1 },
+    reqTime:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     approveBtn:  { width: 34, height: 34, borderRadius: 17, backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: C.green, alignItems: 'center', justifyContent: 'center' },
     approveBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.green },
     rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: C.red, alignItems: 'center', justifyContent: 'center' },
     rejectBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.red },
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-    pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, letterSpacing: 0.4 },
+    pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     // Badge picker
     badgePickerSheet: { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
     badgeGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },

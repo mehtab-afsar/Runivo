@@ -8,8 +8,8 @@ const ACTIVITY_LABELS: Record<string, { emoji: string; label: string }> = {
   run:       { emoji: '🏃', label: 'Run' },
   walk:      { emoji: '🚶', label: 'Walk' },
   hike:      { emoji: '⛰️', label: 'Hike' },
-  trail_run: { emoji: '🌲', label: 'Trail' },
-  cycle:     { emoji: '🚴', label: 'Cycle' },
+  trail_run: { emoji: '🌲', label: 'Trail run' },
+  cycle:     { emoji: '🚴', label: 'Ride' },
   interval:  { emoji: '⚡', label: 'Interval' },
   tempo:     { emoji: '💨', label: 'Tempo' },
   race:      { emoji: '🏅', label: 'Race' },
@@ -39,6 +39,8 @@ export const RunItem = React.memo(function RunItem({ run, onPress }: Props) {
           <Text style={s.activityBadge}>{activity.emoji} {activity.label}</Text>
           <Text style={s.date}>{fmtShortDate(run.startTime)}</Text>
         </View>
+        {!!run.title && <Text style={s.runTitle} numberOfLines={1}>{run.title}</Text>}
+        {run.excluded && <Text style={s.notCounted}>Not counted in stats</Text>}
         <Text style={s.dist}>{fmtDist(run.distanceMeters)} km</Text>
         <View style={s.pills}>
           <View style={s.pill}><Text style={s.pillText}>{fmtDuration(run.durationSec)}</Text></View>
@@ -58,11 +60,13 @@ function mkStyles(C: AppColors) {
     card:        { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
     topRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     activityBadge:{ fontFamily: Fonts.medium, fontSize: 11, color: C.t2 },
-    date:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    date:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     dist:        { fontFamily: Fonts.semiBold, fontSize: 22, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+    runTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, marginTop: 6 },
+    notCounted: { fontFamily: Fonts.medium, fontSize: 11.5, color: C.t3, marginTop: 1 },
     pills:       { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
     pill:        { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 0.5, borderColor: C.border },
-    pillText:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
+    pillText:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
     pillRed:     { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.2)' },
     pillTextRed: { color: C.red },
   });

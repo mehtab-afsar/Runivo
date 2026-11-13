@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import React from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Colors, Fonts } from '@theme';
 
 interface Props {
   onSignUp: () => void;
@@ -8,45 +9,34 @@ interface Props {
 }
 
 export default function LandingActions({ onSignUp, onSignIn }: Props) {
-  const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
-
   return (
     <View style={s.wrap}>
-      <Pressable style={s.btnPrimary} onPress={onSignUp}>
-        <Text style={s.btnPrimaryLabel}>CREATE ACCOUNT</Text>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [s.primary, pressed && s.pressed]}
+        onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); onSignUp(); }}
+      >
+        <Text style={s.primaryLabel}>Create account</Text>
       </Pressable>
-      <Pressable style={s.btnSecondary} onPress={onSignIn}>
-        <Text style={s.btnSecondaryLabel}>SIGN IN</Text>
+      <Pressable
+        accessibilityRole="button"
+        style={({ pressed }) => [s.secondary, pressed && s.pressed]}
+        onPress={onSignIn}
+      >
+        <Text style={s.secondaryLabel}>I already have an account</Text>
       </Pressable>
-      <Text style={s.footer}>Free to start · No credit card required</Text>
     </View>
   );
 }
 
-function mkStyles(C: AppColors) {
-  return StyleSheet.create({
-    wrap: {
-      paddingHorizontal: 28,
-      paddingBottom: Platform.OS === 'ios' ? 36 : 28,
-      gap: 0,
-    },
-    btnPrimary: {
-      backgroundColor: C.alwaysDark, borderRadius: 4,
-      paddingVertical: 15, alignItems: 'center', marginBottom: 14,
-    },
-    btnPrimaryLabel: {
-      fontFamily: Fonts.medium, fontSize: 12,
-      color: C.alwaysLight, letterSpacing: 1.2,
-    },
-    btnSecondary: { alignItems: 'center', paddingVertical: 6, marginBottom: 16 },
-    btnSecondaryLabel: {
-      fontFamily: Fonts.regular, fontSize: 12,
-      color: C.t2, letterSpacing: 0.8,
-    },
-    footer: {
-      fontFamily: Fonts.regular, fontSize: 10,
-      color: C.t3, textAlign: 'center',
-    },
-  });
-}
+const s = StyleSheet.create({
+  wrap:           { gap: 10 },
+  primary:        { height: 52, borderRadius: 999, backgroundColor: Colors.red, alignItems: 'center', justifyContent: 'center' },
+  primaryLabel:   { fontFamily: Fonts.semiBold, fontSize: 15, color: '#FFFFFF' },
+  secondary:      {
+    height: 52, borderRadius: 999, backgroundColor: '#FFFFFF',
+    borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center',
+  },
+  secondaryLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.t1 },
+  pressed:        { transform: [{ scale: 0.985 }], opacity: 0.92 },
+});

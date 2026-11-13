@@ -79,7 +79,7 @@ function mkStyles(C: AppColors, compact: boolean) {
   return StyleSheet.create({
     row:          { flexDirection: 'row', gap: 4, justifyContent: 'space-between' },
     cell:         { width: cellW, height: cellH, borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, gap: 4 },
-    dayLabel:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.3 },
-    sessionLabel: { fontFamily: Fonts.medium, fontSize: 10, textAlign: 'center' },
+    dayLabel:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, letterSpacing: 0.3 },
+    sessionLabel: { fontFamily: Fonts.medium, fontSize: 11, textAlign: 'center' },
   });
 }

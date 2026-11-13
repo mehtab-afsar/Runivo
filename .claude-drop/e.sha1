@@ -1,0 +1,14 @@
+d71bdd7890478c00c93c3d870b67928efad15dda  apps/mobile/src/features/history/components/RunItem.tsx
+799492365caf3e27c4421eabc23fbe98c6609178  apps/mobile/src/features/profile/components/ProfileActivity.tsx
+22b6307056eb39bdbbf7c2d7cdd024f1428509ab  apps/mobile/src/features/run/components/EditActivitySheet.tsx
+be4b526774e0dd2dc7ed726f910dfd93cb8c0701  apps/mobile/src/features/run/screens/RunSummaryScreen.tsx
+6ccf8097668dc2f09d36b840dea5cbcfe2e597c5  apps/mobile/src/features/run/services/activityEditService.ts
+1bad36e5012005976f358ea8140bc6ecd98fe0d2  apps/mobile/src/features/settings/screens/SettingsScreen.tsx
+23aa5658dc2c04206a8765771b15ee099fe670ff  apps/mobile/src/features/social/components/FeedPostCard.tsx
+c751e88b86a24c025d722ec599596d2abd6f185b  apps/mobile/src/features/social/services/feedService.ts
+7f014a656b708d48e83816b44d03d75dada090f6  apps/mobile/src/features/social/types.ts
+b42e33a9cf103b087f05ad4230117c3b96b152fa  packages/shared/src/services/store.native.ts
+7d8f816e850c5113cca7d0bd9b3718a23f28d603  packages/shared/src/services/store.ts
+237acd2da81b3748901905efdcb274e4539cfae8  packages/shared/src/services/sync.ts
+58d49016b04e9fbc3738324d24a3da6ddc697964  supabase/migrations/20261112000004_activity_edit.sql
+7ba6b61fbd5a90e621809d2a4f07eeeecee1f15c  supabase/tests/activity_edit.test.sql

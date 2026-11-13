@@ -1,7 +1,7 @@
 /**
- * sounds.native.ts — real expo-av implementation.
+ * sounds.native.ts — real expo-audio implementation.
  * Lazily loads MP3 assets, unloads on background, persists enabled/volume.
- * Audio is imported dynamically so a missing ExponentAV native module is
+ * Audio is imported dynamically so a missing ExpoAudio native module is
  * silently swallowed rather than crashing the app on startup.
  */
 import { AppState, type AppStateStatus } from 'react-native';
@@ -11,8 +11,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 let AudioModule: any = null;
 try {
   // Dynamic require so missing native module doesn't crash import
-  AudioModule = require('expo-av').Audio;
-} catch { /* expo-av not available — sounds disabled */ }
+  AudioModule = require('expo-audio');
+} catch { /* expo-audio not available — sounds disabled */ }
 
 export type SoundName =
   | 'claim' | 'enemy_zone' | 'own_zone' | 'tick'
@@ -74,8 +74,9 @@ class SoundManager {
     if (!src) return null;
     try {
       if (!AudioModule) return null;
-      await AudioModule.setAudioModeAsync({ playsInSilentModeIOS: true });
-      const { sound } = await AudioModule.Sound.createAsync(src, { volume: this.volume });
+      await AudioModule.setAudioModeAsync({ playsInSilentMode: true });
+      const sound = AudioModule.createAudioPlayer(src);
+      sound.volume = this.volume;
       this.sounds[name] = sound;
       return sound;
     } catch {
@@ -89,15 +90,15 @@ class SoundManager {
     if (!sound) return;
     try {
       const vol = volumeOverride ?? this.volume;
-      await sound.setVolumeAsync(Math.max(0, Math.min(1, vol)));
-      await sound.setPositionAsync(0);
-      await sound.playAsync();
+      sound.volume = Math.max(0, Math.min(1, vol));
+      await sound.seekTo(0);
+      sound.play();
     } catch { /* ignore */ }
   }
 
   private async unloadAll() {
     for (const name of Object.keys(this.sounds) as SoundName[]) {
-      try { await this.sounds[name]?.unloadAsync(); } catch { /* ignore */ }
+      try { this.sounds[name]?.remove(); } catch { /* ignore */ }
     }
     this.sounds = {};
   }
@@ -112,7 +113,7 @@ class SoundManager {
     this.volume = Math.max(0, Math.min(1, volume));
     AsyncStorage.setItem(VOLUME_KEY, String(this.volume)).catch(() => {});
     for (const sound of Object.values(this.sounds)) {
-      sound?.setVolumeAsync(this.volume).catch(() => {});
+      try { if (sound) sound.volume = this.volume; } catch { /* ignore */ }
     }
   }
 

@@ -1,16 +1,14 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Linking } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SealCheck, CaretRight } from 'phosphor-react-native';
+import { BadgeCheck, ChevronRight } from 'lucide-react-native';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 interface CurrentPlanBadgeProps {
   tier: string;
 }
 
-// iOS/Android both keep subscription management in the platform Store, not
-// inside the app itself (App Store Review requires this) — deep-link there
-// rather than build a redundant in-app cancel flow.
+// Subscription management lives in the platform store, not in the app
+// (App Store Review requires this), so deep-link there.
 function openManageSubscription() {
   const url = Platform.OS === 'ios'
     ? 'itms-apps://apps.apple.com/account/subscriptions'
@@ -21,47 +19,38 @@ function openManageSubscription() {
 export function CurrentPlanBadge({ tier }: CurrentPlanBadgeProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const label = tier === 'admin' ? 'Runivo Team' : 'Runivo Plus';
+  const label = tier === 'admin' ? 'Runivo team' : 'Runivo Plus';
 
   return (
-    <LinearGradient
-      colors={['#3A2F0A', C.alwaysDark]}
-      start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={ss.card}
-    >
-      <View style={ss.iconWrap}>
-        <SealCheck size={22} color={C.gold} weight="fill" />
+    <View style={ss.card}>
+      <View style={ss.row}>
+        <View style={ss.icon}><BadgeCheck size={20} color={C.red} strokeWidth={2.2} /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={ss.title}>You're on {label}</Text>
+          <Text style={ss.sub}>Unlimited zones, a 150 PACE weekly cap, PaceX and event hosting are unlocked.</Text>
+        </View>
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={ss.title}>You're a {label} member</Text>
-        <Text style={ss.sub}>Unlimited territory, higher PACE cap, and event hosting are unlocked.</Text>
-      </View>
-
       {tier !== 'admin' && (
-        <Pressable onPress={openManageSubscription} style={ss.manageRow}>
+        <Pressable onPress={openManageSubscription} style={ss.manage} accessibilityRole="link">
           <Text style={ss.manageText}>Manage subscription</Text>
-          <CaretRight size={12} color="rgba(255,255,255,0.5)" weight="bold" />
+          <ChevronRight size={16} color={C.t2} />
         </Pressable>
       )}
-    </LinearGradient>
+    </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card: {
-      borderRadius: Spacing.radius.lg, padding: 20, marginBottom: 8,
-      shadowColor: '#D4A200', shadowOpacity: 0.25, shadowRadius: 16,
-      shadowOffset: { width: 0, height: 6 }, elevation: 6,
+    card:       { backgroundColor: C.card, borderRadius: Spacing.radius.lg, padding: 16, borderWidth: 1.5, borderColor: C.red },
+    row:        { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+    icon:       { width: 36, height: 36, borderRadius: 10, backgroundColor: C.redLo, alignItems: 'center', justifyContent: 'center' },
+    title:      { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    sub:        { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: C.t2, marginTop: 3 },
+    manage:     {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border,
     },
-    iconWrap: { marginBottom: 10 },
-    title: { fontFamily: Fonts.semiBold, fontSize: 17, color: C.alwaysLight, marginBottom: 5 },
-    sub: { fontFamily: Fonts.regular, fontSize: 12.5, color: 'rgba(255,255,255,0.6)', lineHeight: 18 },
-    manageRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start',
-      marginTop: 16, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.12)', paddingTop: 14, width: '100%',
-      justifyContent: 'space-between',
-    },
-    manageText: { fontFamily: Fonts.medium, fontSize: 12.5, color: 'rgba(255,255,255,0.75)' },
+    manageText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
   });
 }

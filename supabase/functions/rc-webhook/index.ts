@@ -6,37 +6,29 @@
  *
  * Configure in RevenueCat dashboard:
  *   Webhook URL: https://<project>.supabase.co/functions/v1/rc-webhook
- *   Authorization header: Bearer <SUPABASE_ANON_KEY>
+ *   Authorization header: Bearer <RC_WEBHOOK_SECRET>
  *
  * Required env vars (auto-set by Supabase Edge Runtime):
  *   SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  *
- * Optional env var:
- *   RC_WEBHOOK_SECRET — if set, validates the Authorization header value
+ * Required env var:
+ *   RC_WEBHOOK_SECRET — the Authorization header must be "Bearer <secret>"
  *
- * Entitlement → tier mapping:
- *   any active paid entitlement (runivo_plus / territory_lord / empire_builder)
- *   → 'premium'  (subscription_tier is constrained to 'free'|'premium', migration 042)
+ * Event → tier rules live in ../_shared/rcTier.ts (unit-tested): purchases,
+ * renewals and transfers grant 'premium'; only EXPIRATION downgrades
+ * (CANCELLATION and BILLING_ISSUE keep Plus until the period ends); 'admin'
+ * profiles are never changed.
  */
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { decideTierUpdates, usersInEvent, type RCEvent } from '../_shared/rcTier.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
-
-// Entitlement identifiers that grant premium (any one is sufficient).
-const PAID_ENTITLEMENTS = ['runivo_plus', 'territory_lord', 'empire_builder'];
-
-type RCEvent = {
-  type: string;
-  app_user_id: string;
-  product_id: string;
-  entitlement_ids?: string[];
-};
 
 serve(async (req) => {
   if (req.method !== 'POST') {
@@ -66,52 +58,46 @@ serve(async (req) => {
   }
 
   const event = payload.event;
-  if (!event?.app_user_id) {
+  const userIds = usersInEvent(event ?? {});
+  if (!event || userIds.length === 0) {
     return new Response('Missing app_user_id', { status: 400 });
   }
 
-  const userId = event.app_user_id;
-  const eventType = event.type ?? '';
-
-  // Determine the new tier based on the event
-  let newTier: string | null = null;
-
-  const activeEntitlements = event.entitlement_ids ?? [];
-
-  // Any active paid entitlement maps to 'premium' (the column only allows
-  // 'free'|'premium' since migration 042; the old three-tier strings violated the
-  // CHECK constraint, so those UPDATEs failed and no one ever became premium).
-  if (activeEntitlements.some(e => PAID_ENTITLEMENTS.includes(e))) {
-    newTier = 'premium';
-  } else if (
-    eventType === 'CANCELLATION' ||
-    eventType === 'EXPIRATION' ||
-    eventType === 'BILLING_ISSUE'
-  ) {
-    newTier = 'free';
+  // Current tiers first: admins are never touched, and unchanged rows are skipped.
+  const { data: rows, error: readError } = await supabase
+    .from('profiles')
+    .select('id, subscription_tier')
+    .in('id', userIds);
+  if (readError) {
+    console.error('[rc-webhook] DB read error:', readError.message);
+    return new Response('DB error', { status: 500 });
+  }
+  const currentTiers: Record<string, string | null> = {};
+  for (const r of (rows ?? []) as { id: string; subscription_tier: string | null }[]) {
+    currentTiers[r.id] = r.subscription_tier;
   }
 
-  if (newTier === null) {
-    // Unhandled event type — acknowledge without action
-    return new Response(JSON.stringify({ ok: true, action: 'ignored' }), {
+  const updates = decideTierUpdates(event, currentTiers);
+  if (updates.length === 0) {
+    return new Response(JSON.stringify({ ok: true, action: 'ignored', type: event.type ?? '' }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({ subscription_tier: newTier, updated_at: new Date().toISOString() })
-    .eq('id', userId);
-
-  if (error) {
-    console.error('[rc-webhook] DB update error:', error.message);
-    return new Response('DB error', { status: 500 });
+  for (const u of updates) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ subscription_tier: u.tier, updated_at: new Date().toISOString() })
+      .eq('id', u.userId);
+    if (error) {
+      console.error('[rc-webhook] DB update error:', error.message);
+      return new Response('DB error', { status: 500 });
+    }
+    // Structured log — see stripe-webhook's identical fix for rationale.
+    console.log({ source: 'rc-webhook', userId: u.userId, newTier: u.tier, eventType: event.type });
   }
 
-  // Structured log — see stripe-webhook's identical fix for rationale.
-  console.log({ source: 'rc-webhook', userId, newTier, eventType });
-
-  return new Response(JSON.stringify({ ok: true, tier: newTier }), {
+  return new Response(JSON.stringify({ ok: true, updates }), {
     headers: { 'Content-Type': 'application/json' },
   });
 });

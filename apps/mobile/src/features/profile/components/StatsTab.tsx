@@ -6,7 +6,7 @@ import type { PersonalRecord } from '../hooks/useProfile';
 import type { StoredRun } from '@shared/services/store';
 import type { ProfileStats } from '@shared/types/game';
 import { isoWeekStart, parsePaceSec, fmtTime, riegelPredict } from '../utils/raceIntelligence';
-import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 // Below this many logged runs, a 4-bucket pace-effort breakdown is mostly
 // noise (one run fills one bucket to 100%) — hidden rather than shown
@@ -172,14 +172,14 @@ function PeriodSelector({ value, onChange }: {
           key={p.key}
           onPress={() => onChange(p.key)}
           style={{
-            paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-            backgroundColor: value === p.key ? C.alwaysDark : C.stone,
-            borderWidth: 0.5, borderColor: value === p.key ? C.alwaysDark : C.border,
+            height: 34, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999,
+            backgroundColor: value === p.key ? C.t1 : C.card,
+            borderWidth: 1, borderColor: value === p.key ? C.t1 : C.border,
           }}
         >
           <Text style={{
-            fontFamily: value === p.key ? Fonts.medium : Fonts.regular,
-            fontSize: 11, color: value === p.key ? C.white : C.t2,
+            fontFamily: value === p.key ? Fonts.semiBold : Fonts.medium,
+            fontSize: 13, color: value === p.key ? C.bg : C.t2,
           }}>
             {p.label}
           </Text>
@@ -263,45 +263,45 @@ export function StatsTab({ personalRecords, totalRuns, totalKm, totalTerritories
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    section: { ...Type.overline, color: C.t3, marginBottom: 10, marginTop: 20 },
+    section: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, marginBottom: 10, marginTop: 22 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 
-    empty:        { backgroundColor: C.stone, borderRadius: 14, paddingVertical: 40, paddingHorizontal: 28, alignItems: 'center', gap: 8 },
-    emptyHeadline:{ fontFamily: Fonts.display, fontSize: 21, lineHeight: 26, color: C.black, textAlign: 'center' },
-    emptyText:    { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textAlign: 'center', lineHeight: 18 },
+    empty:        { backgroundColor: C.stone, borderRadius: 16, paddingVertical: 40, paddingHorizontal: 28, alignItems: 'center', gap: 8 },
+    emptyHeadline:{ fontFamily: Fonts.display, fontSize: 21, lineHeight: 26, color: C.t1, textAlign: 'center' },
+    emptyText:    { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', lineHeight: 18 },
 
     // Weekly chart
     chartCard: {
-      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16,
+      backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 16,
     },
     bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 80 + 32 },
     barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: 80 + 32 },
-    barKm: { fontFamily: Fonts.light, fontSize: 10, color: C.t3, marginBottom: 2 },
+    barKm: { fontFamily: Fonts.light, fontSize: 11, color: C.t3, marginBottom: 2 },
     barTrack: { width: '100%', height: 80, justifyContent: 'flex-end', flexDirection: 'column' },
-    barFill: { borderRadius: 3, width: '100%' },
-    barLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 4 },
+    barFill: { borderRadius: 6, width: '100%' },
+    barLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 4 },
     barLabelActive: { fontFamily: Fonts.medium, color: C.red },
 
     // Pace zones
     zonesCard: {
-      backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 16, gap: 12,
+      backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 16, gap: 12,
     },
     zoneRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     zoneLeft: { width: 72 },
-    zoneLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.black },
-    zoneRange: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
-    zoneBarWrap: { flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, flexDirection: 'row', overflow: 'hidden' },
-    zoneBarFill: { height: 6, backgroundColor: C.red, borderRadius: 3 },
-    zoneTime: { fontFamily: Fonts.light, fontSize: 11, color: C.t2, width: 32, textAlign: 'right' },
+    zoneLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.t1 },
+    zoneRange: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+    zoneBarWrap: { flex: 1, height: 8, backgroundColor: C.border, borderRadius: 4, flexDirection: 'row', overflow: 'hidden' },
+    zoneBarFill: { height: 8, backgroundColor: C.red, borderRadius: 4 },
+    zoneTime: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, width: 36, textAlign: 'right', fontVariant: ['tabular-nums'] },
 
     // Race predictions
     predictionsGrid: { flexDirection: 'row', gap: 8 },
     predictCard: {
-      flex: 1, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border,
+      flex: 1, backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1,
       padding: 14, alignItems: 'center',
     },
-    predictVal: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.black, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-    predictLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.black, marginTop: 2 },
-    predictNote: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 1 },
+    predictVal: { fontFamily: Fonts.numeric, fontSize: 26, lineHeight: 28, color: C.t1, fontVariant: ['tabular-nums'] },
+    predictLabel: { fontFamily: Fonts.medium, fontSize: 11, color: C.t1, marginTop: 2 },
+    predictNote: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
   });
 }

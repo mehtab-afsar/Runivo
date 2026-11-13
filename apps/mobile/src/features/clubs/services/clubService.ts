@@ -1,6 +1,8 @@
+import { positionIfAllowed } from '@mobile/shared/location/devicePosition';
 import { supabase } from '@shared/services/supabase';
 import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
-import type { Club, ActivityItem, ClubFeedActivityItem, ClubMember, JoinRequest } from '@features/clubs/types';
+import * as Location from 'expo-location';
+import type { Club, NearbyClubs, ActivityItem, ClubFeedActivityItem, ClubMember, JoinRequest } from '@features/clubs/types';
 
 export async function fetchClubs(userId: string | null): Promise<Club[]> {
   const { data: clubsData } = await supabase
@@ -29,6 +31,59 @@ export async function fetchClubs(userId: string | null): Promise<Club[]> {
     join_policy: c.join_policy ?? 'open',
     joined: joinedSet.has(c.id),
   }));
+}
+
+/**
+ * The device's last known position, only if location is already allowed.
+ * Never prompts: asking is onboarding's and run setup's job.
+ */
+export async function lastKnownPositionIfAllowed(): Promise<{ lat: number; lng: number } | null> {
+  return positionIfAllowed();
+}
+
+/**
+ * Closest clubs (server-side, rounded distances, no coordinates), or the most
+ * popular clubs when there's no position or nothing within the radius.
+ */
+export async function fetchClubsNear(
+  position: { lat: number; lng: number } | null,
+  limit = 20,
+): Promise<NearbyClubs> {
+  const { data, error } = await supabase.rpc('clubs_near', {
+    p_lat: position?.lat ?? null,
+    p_lng: position?.lng ?? null,
+    p_radius_km: 15,
+    p_limit: limit,
+  });
+  if (error || !Array.isArray(data)) return { clubs: [], nearby: false };
+  const rows = data as {
+    id: string; name: string; description: string | null; badge_emoji: string | null; join_policy: string | null;
+    member_count: number | null; total_km: number | string | null; city: string | null;
+    distance_km: number | string | null; nearby: boolean; joined: boolean;
+  }[];
+  return {
+    nearby: rows.length > 0 && rows.every(r => r.nearby),
+    clubs: rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      badge_emoji: r.badge_emoji ?? '🏃',
+      member_count: r.member_count ?? 0,
+      total_km: Number(r.total_km ?? 0),
+      join_policy: r.join_policy ?? 'open',
+      joined: !!r.joined,
+      distance_km: r.distance_km == null ? null : Number(r.distance_km),
+      city: r.city,
+    })),
+  };
+}
+
+/** Club owners: move the club's point to a public meeting spot. */
+export async function setClubLocation(clubId: string, lat: number, lng: number, city?: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('set_club_location', {
+    p_club_id: clubId, p_lat: lat, p_lng: lng, p_city: city ?? null,
+  });
+  return !error && data === true;
 }
 
 export async function joinClub(clubId: string, userId: string): Promise<{ error: unknown }> {
@@ -273,4 +328,96 @@ export async function updateClubDescription(clubId: string, description: string)
 /** Update club badge emoji (admin/owner only). */
 export async function updateClubBadge(clubId: string, badgeEmoji: string): Promise<void> {
   await supabase.from('clubs').update({ badge_emoji: badgeEmoji }).eq('id', clubId);
+}
+
+// ── Moderation (20261113000001) ─────────────────────────────────────────────
+export type ChatReportReason = 'spam' | 'harassment' | 'inappropriate' | 'other';
+
+export interface ChatReport {
+  messageId: string;
+  content: string;
+  authorId: string;
+  authorUsername: string;
+  reports: number;
+  reasons: string[];
+  lastReported: string;
+}
+
+export async function reportClubMessage(messageId: string, reason: ChatReportReason): Promise<void> {
+  const { error } = await supabase.rpc('report_club_message', { p_message_id: messageId, p_reason: reason });
+  if (error) throw new Error(error.message);
+}
+
+/** Author, or a club owner/admin. */
+export async function deleteClubMessage(messageId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_club_message', { p_message_id: messageId });
+  if (error) throw new Error(error.message);
+}
+
+/** Removes the member and bars them from rejoining. */
+export async function removeClubMember(clubId: string, userId: string): Promise<void> {
+  const { error } = await supabase.rpc('remove_club_member', { p_club_id: clubId, p_user_id: userId });
+  if (error) throw new Error(error.message);
+}
+
+export async function fetchClubReports(clubId: string): Promise<ChatReport[]> {
+  const { data, error } = await supabase.rpc('get_club_reports', { p_club_id: clubId });
+  if (error) throw new Error(error.message);
+  type Row = { message_id: string; content: string; author_id: string; author_username: string | null; reports: number | string; reasons: string[] | null; last_reported: string };
+  return ((data ?? []) as Row[]).map(r => ({
+    messageId: r.message_id, content: r.content, authorId: r.author_id, authorUsername: r.author_username ?? 'Runner',
+    reports: Number(r.reports), reasons: r.reasons ?? [], lastReported: r.last_reported,
+  }));
+}
+
+export async function fetchClubOwnerId(clubId: string): Promise<string | null> {
+  const { data } = await supabase.from('clubs').select('owner_id').eq('id', clubId).maybeSingle();
+  return (data?.owner_id as string | null) ?? null;
+}
+
+// ── Club runs (C1) and club territory (C2), 20261113000008 ─────────────────
+export interface ClubRun { id: string; title: string; description: string | null; startsAt: string; location: string | null; distanceM: number | null; going: number; isGoing: boolean; route: { lat: number; lng: number }[] | null }
+
+export async function fetchClubRuns(clubId: string): Promise<ClubRun[]> {
+  const { data, error } = await supabase.rpc('get_club_events', { p_club_id: clubId });
+  if (error) throw new Error(error.message);
+  type Row = { id: string; title: string; description: string | null; starts_at: string; location_name: string | null; distance_m: number | null; participant_count: number; going: boolean; route_points: { lat: number; lng: number }[] | null };
+  return ((data ?? []) as Row[]).map(r => ({ id: r.id, title: r.title, description: r.description, startsAt: r.starts_at, location: r.location_name, distanceM: r.distance_m, going: r.participant_count, isGoing: r.going, route: r.route_points && r.route_points.length >= 2 ? r.route_points : null }));
+}
+
+/** At most 1,500 evenly spaced points (the server's limit), lat/lng only. */
+function thinRoute(pts: { lat: number; lng: number }[]): { lat: number; lng: number }[] {
+  const step = Math.max(1, Math.ceil(pts.length / 1500));
+  const out = pts.filter((_, i) => i % step === 0).map(p => ({ lat: p.lat, lng: p.lng }));
+  const last = pts[pts.length - 1];
+  if (last && out[out.length - 1] !== last) out.push({ lat: last.lat, lng: last.lng });
+  return out.slice(0, 1500);
+}
+
+export async function scheduleClubRun(clubId: string, run: { title: string; startsAt: Date; location: string; distanceKm?: number | null; description?: string; weeks: number; route?: { lat: number; lng: number }[] | null }): Promise<number> {
+  const { data, error } = await supabase.rpc('create_club_event', {
+    p_club_id: clubId, p_title: run.title, p_starts_at: run.startsAt.toISOString(), p_location: run.location,
+    p_distance_m: run.distanceKm ? Math.round(run.distanceKm * 1000) : null, p_description: run.description ?? null, p_weeks: run.weeks,
+    p_route: run.route && run.route.length >= 2 ? thinRoute(run.route) : null,
+  });
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
+export interface ClubZone { id: string; ownerId: string; ownerName: string; ring: [number, number][]; areaM2: number; freshness: number }
+
+export async function fetchClubTerritory(clubId: string): Promise<ClubZone[]> {
+  const { data, error } = await supabase.rpc('get_club_territory', { p_club_id: clubId });
+  if (error) throw new Error(error.message);
+  type Row = { id: string; owner_id: string; owner_name: string | null; polygon_coords: [number, number][] | null; area_m2: number; freshness: number };
+  return ((data ?? []) as Row[]).filter(r => (r.polygon_coords?.length ?? 0) >= 4)
+    .map(r => ({ id: r.id, ownerId: r.owner_id, ownerName: r.owner_name ?? 'Runner', ring: r.polygon_coords!, areaM2: r.area_m2, freshness: r.freshness }));
+}
+
+export async function fetchClubTerritoryRank(clubId: string): Promise<{ rank: number; of: number } | null> {
+  const { data, error } = await supabase.rpc('get_club_territory_board', { p_limit: 200 });
+  if (error) return null;
+  const rows = (data ?? []) as { club_id: string; rank: number }[];
+  const me = rows.find(r => r.club_id === clubId);
+  return me ? { rank: me.rank, of: rows.length } : null;
 }

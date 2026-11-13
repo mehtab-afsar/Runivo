@@ -44,7 +44,7 @@ export function CoachBrief({ brief, loading, onAskFollowUp, onBuildPlan, onStart
 
       {coldStart ? (
         <View style={s.card}>
-          <Text style={s.eyebrow}>READY WHEN YOU ARE</Text>
+          <Text style={s.eyebrow}>Ready when you are</Text>
           <Text style={s.headline}>{brief.headline}</Text>
           <Text style={s.tip}>{brief.tip}</Text>
           <Pressable style={[s.primaryBtn, { backgroundColor: C.alwaysDark }]} onPress={onStartRun}>
@@ -54,7 +54,7 @@ export function CoachBrief({ brief, loading, onAskFollowUp, onBuildPlan, onStart
         </View>
       ) : (
         <View style={s.card}>
-          <Text style={s.eyebrow}>SINCE YOUR LAST FEW RUNS</Text>
+          <Text style={s.eyebrow}>Since your last few runs</Text>
           <Text style={s.headline}>{brief.headline}</Text>
           {brief.insights.map((ins, i) => (
             <View key={i} style={s.insightRow}>
@@ -87,7 +87,7 @@ function mkStyles(C: AppColors) {
     wrap:            { paddingHorizontal: Spacing.gutter, paddingTop: 24, gap: 16 },
     wordmarkRow:     { alignItems: 'center', marginBottom: 4 },
     card:            { backgroundColor: C.card, borderRadius: 16, padding: 18, gap: 10, borderWidth: 0.5, borderColor: C.border },
-    eyebrow:         { ...Type.overline, color: C.t3, letterSpacing: 1.4 },
+    eyebrow:         { ...Type.overline, color: C.t3 },
     headline:        { fontFamily: Fonts.display, fontSize: 24, lineHeight: 29, color: C.black, marginBottom: 2 },
     tip:             { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, lineHeight: 20 },
     insightRow:      { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },

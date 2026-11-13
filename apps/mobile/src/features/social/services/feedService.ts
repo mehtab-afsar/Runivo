@@ -1,4 +1,5 @@
 import { supabase } from '@shared/services/supabase';
+import { photoUrl } from '@features/run/services/activityEditService';
 import type { FeedPost, SuggestedRunner, Comment, PostLiker } from '../types';
 
 function mapRow(row: any): FeedPost {
@@ -26,6 +27,10 @@ function mapRow(row: any): FeedPost {
     zoneTier:           row.zone_tier ?? null,
     stolenFromUserId:   row.stolen_from_user_id ?? null,
     createdAt:          row.created_at,
+    title:              row.title ?? null,
+    description:        row.content ?? null,
+    visibility:         row.visibility ?? 'everyone',
+    photos:             ((row.photo_paths as string[] | null) ?? []).map(photoUrl),
   };
 }
 
@@ -135,4 +140,17 @@ export async function fetchPostLikers(postId: string, lim = 3): Promise<PostLike
     avatarUrl:   r.avatar_url ?? null,
     avatarColor: r.avatar_color ?? '#888888',
   }));
+}
+
+/**
+ * The zone a steal post is about, ready to run to (Defend). Null when the
+ * zone can't be found (deleted, or an old post without a link).
+ */
+export async function fetchStolenZone(postId: string): Promise<{ id: string; ring: [number, number][]; ownerName: string | null } | null> {
+  const { data: post } = await supabase.from('feed_posts').select('stolen_territory_id').eq('id', postId).maybeSingle();
+  const zoneId = post?.stolen_territory_id as string | null | undefined;
+  if (!zoneId) return null;
+  const { data: z } = await supabase.from('territory_polygons').select('id, polygon_coords, owner_name').eq('id', zoneId).maybeSingle();
+  const ring = (z?.polygon_coords as [number, number][] | null) ?? [];
+  return z && ring.length >= 4 ? { id: z.id as string, ring, ownerName: (z.owner_name as string | null) ?? null } : null;
 }

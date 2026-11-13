@@ -31,7 +31,7 @@ function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCa
   weekStart.setHours(0, 0, 0, 0);
 
   const weekRuns = runs.filter(r => r.startTime >= weekStart.getTime());
-  const thisWeekKm = weekRuns.reduce((s, r) => s + r.distanceMeters / 1000, 0);
+  const thisWeekKm = weekRuns.filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0);
 
   // Compute last 8 previous weeks max
   let maxPrevWeekKm = 0;
@@ -42,14 +42,14 @@ function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCa
     wEnd.setDate(wEnd.getDate() - (i - 1) * 7);
     const km = runs
       .filter(r => r.startTime >= wStart.getTime() && r.startTime < wEnd.getTime())
-      .reduce((s, r) => s + r.distanceMeters / 1000, 0);
+      .filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0);
     if (km > maxPrevWeekKm) maxPrevWeekKm = km;
   }
 
   if (thisWeekKm > maxPrevWeekKm && thisWeekKm > 0 && maxPrevWeekKm > 0) {
     return {
       kind: 'stats',
-      eyebrow: 'NEW HIGH',
+      eyebrow: 'New high',
       bigNumber: thisWeekKm.toFixed(1),
       bigUnit: 'km this week',
       subline: `Your biggest week yet — ${maxPrevWeekKm.toFixed(1)} km was your previous best`,
@@ -60,7 +60,7 @@ function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCa
   if (streakDays >= 7 && streakDays % 7 === 0) {
     return {
       kind: 'stats',
-      eyebrow: 'MILESTONE',
+      eyebrow: 'Milestone',
       bigNumber: String(streakDays),
       bigUnit: 'day streak',
       subline: `${thisWeekKm.toFixed(1)} km covered this week`,
@@ -70,7 +70,7 @@ function computeHeroCard(runs: StoredRun[], player: StoredPlayer | null): HeroCa
 
   return {
     kind: 'stats',
-    eyebrow: 'THIS WEEK',
+    eyebrow: 'This week',
     bigNumber: thisWeekKm.toFixed(1),
     bigUnit: 'km',
     subline: `${weekRuns.length} run${weekRuns.length !== 1 ? 's' : ''} · ${streakDays > 0 ? `${streakDays}-day streak` : 'Keep it up'}`,
@@ -126,7 +126,7 @@ function mkStyles(C: AppColors) {
       // token and inverts to near-white in dark mode (would strand the fixed-white
       // text/overlays below against a now-light background).
       backgroundColor: C.alwaysDark,
-      borderRadius: 16,
+      borderRadius: 20,
       padding: 20,
       marginBottom: 12,
     },
@@ -142,17 +142,16 @@ function mkStyles(C: AppColors) {
       marginBottom: 8,
     },
     bigNumber: {
-      fontFamily: Fonts.semiBold,
-      fontSize: 42,
+      fontFamily: Fonts.numeric,
+      fontSize: 64,
       color: C.alwaysLight,
-      letterSpacing: -1,
-      lineHeight: 48,
+      lineHeight: 62,
       fontVariant: ['tabular-nums'],
     },
     bigUnit: {
-      fontFamily: Fonts.regular,
-      fontSize: 13,
-      color: 'rgba(255,255,255,0.5)',
+      fontFamily: Fonts.semiBold,
+      fontSize: 15,
+      color: C.red,
     },
     subline: {
       fontFamily: Fonts.regular,
@@ -171,13 +170,13 @@ function mkStyles(C: AppColors) {
       alignItems: 'center',
       gap: 4,
       backgroundColor: 'rgba(255,255,255,0.10)',
-      borderRadius: 4,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
     },
     badgeText: {
       fontFamily: Fonts.medium,
-      fontSize: 10,
+      fontSize: 11,
       color: 'rgba(255,255,255,0.8)',
     },
     emptyHeadline: {
@@ -188,7 +187,7 @@ function mkStyles(C: AppColors) {
     },
     emptyCaption: {
       fontFamily: Fonts.regular,
-      fontSize: 12.5,
+      fontSize: 13,
       lineHeight: 18,
       color: 'rgba(255,255,255,0.55)',
       marginTop: 6,

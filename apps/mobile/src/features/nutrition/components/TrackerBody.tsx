@@ -56,5 +56,5 @@ export function TrackerBody({ profile, calorieGoal, entries, consumed, pct, prot
 function mkStyles(C: AppColors) { return StyleSheet.create({
   card: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   logBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
-  logBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
+  logBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
 }); }

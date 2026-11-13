@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { useTheme, useIsDark, Type, Fonts, type AppColors } from '@theme';
+import { territoryPalette } from '@theme/territory';
 
 export interface Split { km: number; pace: number }
 
@@ -14,57 +15,61 @@ function formatPace(paceMinPerKm: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+/** Bar per km: taller is faster, the fastest km is in your colour. */
 export default function SplitsList({ splits }: SplitsListProps) {
   const C = useTheme();
+  const zone = territoryPalette(useIsDark());
   const ss = useMemo(() => mkStyles(C), [C]);
 
   if (splits.length === 0) return null;
 
-  const avg = splits.reduce((s, x) => s + x.pace, 0) / splits.length;
   const max = Math.max(...splits.map(s => s.pace));
   const min = Math.min(...splits.map(s => s.pace));
-  const paceRange = max - min || 1;
-
-  const barColor = (pace: number) => {
-    if (pace <= avg - 0.2) return C.green;
-    if (pace >= avg + 0.2) return C.red;
-    return C.amber;
-  };
+  const range = max - min || 1;
+  const fastestIdx = splits.findIndex(s => s.pace === min);
+  // Label every km up to 12 splits, then thin the axis so labels never collide.
+  const labelEvery = splits.length <= 12 ? 1 : Math.ceil(splits.length / 8);
 
   return (
-    <View style={ss.container}>
+    <View style={ss.card}>
       <View style={ss.header}>
-        {['KM', 'PACE BAR', 'PACE'].map(h => (
-          <Text key={h} style={[ss.headerCell, h === 'PACE BAR' && { flex: 1 }]}>{h}</Text>
+        <Text style={ss.title}>Splits</Text>
+        <Text style={ss.meta}>
+          Fastest, km {splits[fastestIdx].km}: <Text style={ss.metaStrong}>{formatPace(min)}</Text>
+        </Text>
+      </View>
+      <View style={ss.chart}>
+        {splits.map((s, i) => {
+          const h = 30 + ((max - s.pace) / range) * 70;
+          return (
+            <View key={i} style={ss.col} accessibilityLabel={`Kilometre ${s.km}, ${formatPace(s.pace)} per km`}>
+              <View style={[ss.bar, { height: `${h}%`, backgroundColor: i === fastestIdx ? zone.own : C.t1, opacity: i === fastestIdx ? 1 : 0.85 }]} />
+            </View>
+          );
+        })}
+      </View>
+      <View style={ss.axis}>
+        {splits.map((s, i) => (
+          <Text key={i} style={[ss.axisLbl, i === fastestIdx && { color: zone.own }]}>
+            {i % labelEvery === 0 || i === fastestIdx ? s.km : ''}
+          </Text>
         ))}
       </View>
-      {splits.map((s, i) => {
-        const color = barColor(s.pace);
-        const barWidth = 20 + ((s.pace - min) / paceRange) * 80;
-        return (
-          <View key={i} style={[ss.row, i < splits.length - 1 && { borderBottomWidth: 0.5, borderBottomColor: C.mid }]}>
-            <Text style={ss.km}>{s.km}</Text>
-            <View style={ss.barContainer}>
-              <View style={[ss.bar, { width: `${barWidth}%`, backgroundColor: color }]} />
-            </View>
-            <Text style={[ss.pace, { color }]}>{formatPace(s.pace)}<Text style={ss.paceUnit}>/km</Text></Text>
-          </View>
-        );
-      })}
     </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:   { backgroundColor: C.card, borderRadius: 4, overflow: 'hidden' },
-    header:      { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    headerCell:  { ...Type.overline, color: C.t3, width: 32 },
-    row:         { flexDirection: 'row', paddingHorizontal: 14, paddingVertical: 9, alignItems: 'center' },
-    km:          { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, width: 32, fontVariant: ['tabular-nums'] },
-    barContainer:{ flex: 1, height: 6, backgroundColor: C.mid, borderRadius: 3, overflow: 'hidden', marginHorizontal: 8 },
-    bar:         { height: '100%', borderRadius: 3 },
-    pace:        { fontFamily: Fonts.light, fontSize: 13, width: 56, textAlign: 'right', fontVariant: ['tabular-nums'] },
-    paceUnit:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+    card:       { backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 },
+    header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    title:      { ...Type.overline, color: C.t2 },
+    meta:       { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+    metaStrong: { fontFamily: Fonts.semiBold, color: C.t1 },
+    chart:      { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 64, marginTop: 12 },
+    col:        { flex: 1, height: '100%', justifyContent: 'flex-end' },
+    bar:        { width: '100%', borderRadius: 4 },
+    axis:       { flexDirection: 'row', gap: 6, marginTop: 6 },
+    axisLbl:    { flex: 1, textAlign: 'center', fontFamily: Fonts.medium, fontSize: 11, color: C.t3, fontVariant: ['tabular-nums'] },
   });
 }

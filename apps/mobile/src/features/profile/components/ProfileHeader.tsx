@@ -1,18 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
-import { Gear, Pencil } from 'phosphor-react-native';
+import { GAME_CONFIG } from '@shared/services/config';
 import { Avatar } from '@mobile/shared/components/Avatar';
-import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
-import { useTheme, Fonts, type AppColors } from '@theme';
-import { RANK_COLORS } from '@shared/constants/territory';
-
-const RANK_EMOJIS: Record<string, string> = {
-  pacer: '🚶',
-  strider: '🏃',
-  chaser: '👥',
-  hunter: '🎯',
-  sovereign: '⭐',
-};
+import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 interface ProfileHeaderProps {
   displayName: string;
@@ -30,6 +20,8 @@ interface ProfileHeaderProps {
   totalRuns: number;
   totalTerritories: number;
   totalAreaM2: number;
+  /** Lifetime PACE, shown in the stat row. */
+  paceTotalEarned?: number;
   thisWeekKm: number;
   weeklyGoalKm: number;
   followers: number;
@@ -47,112 +39,158 @@ interface ProfileHeaderProps {
   strava?: string;
 }
 
+const RANK_ORDER = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'] as const;
+const RANK_THRESHOLDS = GAME_CONFIG.RUNNER_RANK_THRESHOLDS as Record<string, number>;
+
+function fmtNum(n: number): string {
+  return Math.round(n).toLocaleString();
+}
+
 export function ProfileHeader({
   displayName, username, bio, avatarColor, avatarUri,
   runnerRank, rankPct, rankCaption,
-  followers, following,
+  totalKm, totalRuns, totalTerritories, paceTotalEarned,
+  followers, following, location,
   isOwnProfile = true,
-  onEditPress, onSettingsPress, onFollowersPress, onFollowingPress,
+  onEditPress, onFollowersPress, onFollowingPress, onTerritoryPress,
 }: ProfileHeaderProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
-  const rankColor = RANK_COLORS[runnerRank] ?? RANK_COLORS.pacer;
-  const rankEmoji = RANK_EMOJIS[runnerRank] ?? '🚶';
   const displayRank = runnerRank.charAt(0).toUpperCase() + runnerRank.slice(1);
+  const rankIdx = Math.max(0, RANK_ORDER.indexOf(runnerRank as typeof RANK_ORDER[number]));
+  const nextRankKey = RANK_ORDER[rankIdx + 1];
+  const nextRank = nextRankKey ? nextRankKey.charAt(0).toUpperCase() + nextRankKey.slice(1) : null;
+  const toNext = nextRankKey ? Math.max(0, (RANK_THRESHOLDS[nextRankKey] ?? 0) - (paceTotalEarned ?? 0)) : 0;
 
   return (
     <View style={ss.header}>
-      {/* Avatar + Info side-by-side */}
+      {/* Top actions */}
+      {isOwnProfile && (
+        <View style={ss.topBar}>
+          <Pressable style={ss.pill} onPress={onEditPress} hitSlop={6}>
+            <Text style={ss.pillText}>Edit profile</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Avatar + name */}
       <View style={ss.row}>
-        <Pressable onPress={isOwnProfile ? onEditPress : undefined} style={ss.avatarWrap}>
+        <Pressable onPress={isOwnProfile ? onEditPress : undefined} style={ss.avatarRing}>
           {avatarUri ? (
             <Image source={{ uri: avatarUri }} style={ss.avatarImg} />
           ) : (
-            <Avatar name={displayName} color={avatarColor} size={72} />
-          )}
-          {isOwnProfile && (
-            <View style={ss.avatarEditBadge}>
-              <Pencil size={10} color={C.alwaysLight} weight="bold" />
-            </View>
+            <Avatar name={displayName} seed={username} color={avatarColor} size={76} />
           )}
         </Pressable>
 
         <View style={ss.infoBlock}>
           <Text style={ss.displayName} numberOfLines={1}>{displayName}</Text>
-
-          <View style={ss.rankLine}>
-            {!!username && <Text style={ss.rankUsername}>@{username}  ·  </Text>}
-            <GlyphIcon glyph={rankEmoji} size={12} />
-            <Text style={[ss.rankName, { color: rankColor.fg }]}>{displayRank}</Text>
-          </View>
-
-          {/* Followers / Following */}
-          <View style={ss.socialLine}>
-            <Pressable onPress={onFollowingPress} hitSlop={8}>
-              <Text style={ss.socialText}>
-                <Text style={ss.socialNum}>{following}</Text>
-                <Text style={ss.socialLabel}> following</Text>
-              </Text>
+          <Text style={ss.meta} numberOfLines={1}>
+            {[username ? `@${username}` : null, location || null].filter(Boolean).join(' · ')}
+          </Text>
+          {/* Following / Followers, each opening its list — as on Strava. */}
+          <View style={ss.follows}>
+            <Pressable onPress={onFollowingPress} hitSlop={6} disabled={!onFollowingPress} accessibilityRole="button">
+              <Text style={ss.followTxt}><Text style={ss.followNum}>{following}</Text> Following</Text>
             </Pressable>
-            <Text style={ss.socialDot}> · </Text>
-            <Pressable onPress={onFollowersPress} hitSlop={8}>
-              <Text style={ss.socialText}>
-                <Text style={ss.socialNum}>{followers}</Text>
-                <Text style={ss.socialLabel}> followers</Text>
-              </Text>
+            <Pressable onPress={onFollowersPress} hitSlop={6} disabled={!onFollowersPress} accessibilityRole="button">
+              <Text style={ss.followTxt}><Text style={ss.followNum}>{followers}</Text> {followers === 1 ? 'Follower' : 'Followers'}</Text>
             </Pressable>
           </View>
-
-          {!!bio && (
-            <Text style={ss.bio} numberOfLines={2} maxFontSizeMultiplier={1}>{bio}</Text>
-          )}
         </View>
-
-        {/* Settings icon top-right */}
-        {isOwnProfile && (
-          <Pressable style={ss.settingsBtn} onPress={onSettingsPress} hitSlop={8}>
-            <Gear size={20} color={C.black} weight="light" />
-          </Pressable>
-        )}
       </View>
 
-      {/* Rank progress bar — full width below the row */}
-      <View style={ss.rankBarBg}>
-        <View style={[ss.rankBarFill, { flex: Math.max(0.01, rankPct) }]} />
-        <View style={{ flex: Math.max(0, 1 - rankPct) }} />
+      {!!bio && <Text style={ss.bio} numberOfLines={3} maxFontSizeMultiplier={1.2}>{bio}</Text>}
+
+      {/* Rank card */}
+      <View style={ss.card}>
+        <View style={ss.rankTop}>
+          <View style={ss.rankChip}>
+            <Text style={ss.rankChipText}>{displayRank}</Text>
+          </View>
+          <Text style={ss.rankCaption} numberOfLines={1}>
+            {nextRank ? <>{toNext.toLocaleString()} PACE to <Text style={ss.rankCaptionStrong}>{nextRank}</Text></> : rankCaption}
+          </Text>
+        </View>
+        <View style={ss.barBg}>
+          <View style={[ss.barFill, { width: `${Math.round(Math.max(0.02, Math.min(1, rankPct)) * 100)}%` }]} />
+        </View>
+        <View style={ss.ladder}>
+          {RANK_ORDER.map((r, i) => (
+            <Text key={r} style={[ss.ladderStep, i === rankIdx && ss.ladderStepOn]}>
+              {r.charAt(0).toUpperCase() + r.slice(1)}
+            </Text>
+          ))}
+        </View>
       </View>
-      <Text style={ss.rankCaption}>{rankCaption}</Text>
+
+      {/* Numbers */}
+      <View style={[ss.card, ss.statRow]}>
+        <View style={ss.stat}>
+          <Text style={ss.statNum}>{totalKm > 0 && totalKm < 10 ? totalKm.toFixed(1) : fmtNum(totalKm)}</Text>
+          <Text style={ss.statLabel}>km</Text>
+        </View>
+        <View style={[ss.stat, ss.statDivider]}>
+          <Text style={ss.statNum}>{fmtNum(totalRuns)}</Text>
+          <Text style={ss.statLabel}>Activities</Text>
+        </View>
+        <Pressable style={[ss.stat, ss.statDivider]} onPress={onTerritoryPress} disabled={!onTerritoryPress}>
+          <Text style={[ss.statNum, { color: C.red }]}>{fmtNum(totalTerritories)}</Text>
+          <Text style={ss.statLabel}>Zones</Text>
+        </Pressable>
+        <View style={[ss.stat, ss.statDivider]}>
+          <Text style={ss.statNum}>{fmtNum(paceTotalEarned ?? 0)}</Text>
+          <Text style={ss.statLabel}>PACE</Text>
+        </View>
+      </View>
     </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    header:          { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
-    row:             { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginBottom: 14 },
-    avatarWrap:      { position: 'relative' },
-    avatarImg:       { width: 72, height: 72, borderRadius: 36 },
-    avatarEditBadge: {
-      position: 'absolute', bottom: 0, right: 0,
-      width: 22, height: 22, borderRadius: 11,
-      backgroundColor: C.alwaysDark,
-      borderWidth: 2, borderColor: C.bg,
-      alignItems: 'center', justifyContent: 'center',
+    header:       { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 0, gap: 12 },
+    topBar:       { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
+    pill:         {
+      flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12,
+      borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
     },
-    infoBlock:    { flex: 1, gap: 4 },
-    displayName:  { fontFamily: Fonts.semiBold, fontSize: 17, color: C.black, letterSpacing: -0.2 },
-    rankLine:     { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    rankUsername: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
-    rankName:     { fontFamily: Fonts.medium, fontSize: 12 },
-    socialLine:   { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-    socialText:   {},
-    socialNum:    { fontFamily: Fonts.semiBold, fontSize: 12, color: C.black },
-    socialLabel:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
-    socialDot:    { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
-    bio:          { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, lineHeight: 17, marginTop: 3 },
-    settingsBtn:  { padding: 2, alignSelf: 'flex-start' },
-    rankBarBg:    { height: 3, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden', flexDirection: 'row' },
-    rankBarFill:  { height: 3, backgroundColor: C.red },
-    rankCaption:  { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 6 },
+    pillText:     { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    iconBtn:      {
+      width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+      borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
+    },
+    row:          { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    avatarRing:   { padding: 3, borderRadius: 43, borderWidth: 2, borderColor: C.red },
+    avatarImg:    { width: 76, height: 76, borderRadius: 38 },
+    infoBlock:    { flex: 1 },
+    displayName:  { fontFamily: Fonts.bold, fontSize: 24, lineHeight: 26, letterSpacing: -0.6, color: C.t1 },
+    meta:         { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 17, color: C.t2, marginTop: 5 },
+    follows:      { flexDirection: 'row', gap: 16, marginTop: 6 },
+    followTxt:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    followNum:    { fontFamily: Fonts.semiBold, color: C.t1 },
+    socialLine:   { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 2 },
+    socialNum:    { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    socialLabel:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    bio:          { ...Type.bodySm, color: C.t2 },
+    card:         {
+      backgroundColor: C.card, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 18,
+      shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    },
+    rankTop:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    rankChip:     { backgroundColor: C.t1, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    rankCaptionStrong: { fontFamily: Fonts.bold, color: C.t1 },
+    rankChipText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.bg },
+    rankCaption:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, flexShrink: 1, textAlign: 'right' },
+    barBg:        { height: 8, backgroundColor: '#ECEAE5', borderRadius: 9, overflow: 'hidden', marginTop: 12 },
+    barFill:      { height: 8, backgroundColor: C.red, borderRadius: 9 },
+    ladder:       { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+    ladderStep:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
+    ladderStepOn: { color: C.t1 },
+    statRow:      { flexDirection: 'row', paddingHorizontal: 4, paddingVertical: 14 },
+    stat:         { flex: 1, alignItems: 'center' },
+    statDivider:  { borderLeftWidth: 1, borderLeftColor: C.border },
+    statNum:      { fontFamily: Fonts.numeric, fontSize: 28, lineHeight: 26, color: C.t1, fontVariant: ['tabular-nums'] },
+    statLabel:    { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 4 },
   });
 }

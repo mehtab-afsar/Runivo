@@ -103,8 +103,8 @@ function mkStyles(C: AppColors) {
     swatch:      { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
     swatchCore:  { width: 18, height: 18, borderRadius: 5 },
     tierBadge:   { borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
-    tierBadgeText: { fontFamily: Fonts.semiBold, fontSize: 9.5, letterSpacing: 0.4 },
+    tierBadgeText: { fontFamily: Fonts.semiBold, fontSize: 11.5, letterSpacing: 0.4 },
     zoneArea:    { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginTop: 2 },
-    zoneDate:    { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
+    zoneDate:    { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t3 },
   });
 }

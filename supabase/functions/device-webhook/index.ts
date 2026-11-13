@@ -11,6 +11,8 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createHmac } from 'node:crypto';
+import { matchConnection } from './match.ts';
+import { extractTrack, plausible, runivoSport, type TrackPoint } from './track.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -31,6 +33,11 @@ interface NormalisedActivity {
   elevationGainM: number | null;
   hrvMs:          number | null;
   caloriesKcal:   number | null;
+  /** Who it belongs to, as the provider says (Garmin: userId + userAccessToken). */
+  providerUserId?: string | null;
+  providerToken?:  string | null;
+  /** GPS track when the provider sent one (Garmin activity details). */
+  track?: TrackPoint[];
 }
 
 // ─── Normalisers ──────────────────────────────────────────────────────────────
@@ -38,7 +45,14 @@ interface NormalisedActivity {
 // Garmin sends an array under activityFiles or activities key
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normaliseGarmin(payload: any): NormalisedActivity[] {
-  const activities = payload.activities ?? payload.activityFiles ?? [];
+  // Activity details pushes carry the GPS samples next to a summary.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const details = (payload.activityDetails ?? []).map((d: any) => ({
+    ...(d.summary ?? {}), activityId: d.activityId ?? d.summary?.activityId,
+    userId: d.userId ?? d.summary?.userId, userAccessToken: d.userAccessToken ?? d.summary?.userAccessToken,
+    __samples: d.samples ?? [],
+  }));
+  const activities = [...(payload.activities ?? payload.activityFiles ?? []), ...details];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return activities.map((a: any) => ({
     externalId:     String(a.activityId ?? a.activity_id),
@@ -52,6 +66,9 @@ function normaliseGarmin(payload: any): NormalisedActivity[] {
     elevationGainM: a.totalElevationGainInMeters ?? null,
     hrvMs:          null,  // Garmin HRV comes via a separate HRV API
     caloriesKcal:   a.activeKilocalories ?? a.calories ?? null,
+    providerUserId: a.userId != null ? String(a.userId) : null,
+    providerToken:  a.userAccessToken != null ? String(a.userAccessToken) : null,
+    track:          a.__samples ? extractTrack({ samples: a.__samples }, a.startTimeInSeconds ?? null) : [],
   }));
 }
 
@@ -153,10 +170,16 @@ async function matchOrEnrichRun(
     return runId;
   }
 
-  // No match → only create run if it's a running activity with sufficient distance
-  const RUNNING_TYPES = ['running', 'run', 'trail_running', 'track_running', 'RUNNING'];
-  if (!RUNNING_TYPES.some(t => activity.activityType.includes(t))) return null;
+  // No match → create a run for sports we record, with sufficient distance.
+  // The service role skips validate_run_distance, so the same ceilings are applied here (X3).
+  const sport = runivoSport(activity.activityType);
+  if (!sport) return null;
   if (activity.distanceM < 500) return null;
+  if (!plausible(activity.distanceM, activity.durationSec, sport)) {
+    console.warn(`[device-webhook] implausible ${sport}: ${activity.distanceM} m in ${activity.durationSec} s`);
+    return null;
+  }
+  const track = activity.track ?? [];
 
   const { data: newRun } = await supabase
     .from('runs')
@@ -165,6 +188,10 @@ async function matchOrEnrichRun(
       distance_m:      activity.distanceM,
       duration_sec:    activity.durationSec,
       started_at:      activity.startedAt,
+      finished_at:     new Date(new Date(activity.startedAt).getTime() + activity.durationSec * 1000).toISOString(),
+      activity_type:   sport,
+      // The integrity trigger (B7) checks this track like a phone run's.
+      gps_points:      track.length ? track : null,
       avg_hr:          activity.avgHr,
       max_hr:          activity.maxHr,
       avg_cadence:     activity.avgCadence,
@@ -177,7 +204,35 @@ async function matchOrEnrichRun(
     .select('id')
     .single();
 
+  if (newRun?.id && track.length >= 10) {
+    await playTheGame(newRun.id, userId, track, sport, activity);
+  }
   return newRun?.id ?? null;
+}
+
+/**
+ * Score a new watch run exactly like a phone run: process-run-territory
+ * verifies distance, applies the speed and teleport rules, claims or steals
+ * zones and pays PACE. Called internally with the service key.
+ */
+async function playTheGame(runId: string, userId: string, track: TrackPoint[], sport: string, a: NormalisedActivity): Promise<void> {
+  try {
+    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/process-run-territory`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        'x-runivo-internal': 'device-webhook',
+      },
+      body: JSON.stringify({
+        runId, userId, activityType: sport, gpsPoints: track,
+        distanceKm: a.distanceM / 1000, durationSec: a.durationSec, clientPaceEarned: 0,
+      }),
+    });
+    if (!res.ok) console.warn(`[device-webhook] territory for ${runId}: ${res.status} ${await res.text()}`);
+  } catch (err) {
+    console.warn('[device-webhook] territory call failed:', err);
+  }
 }
 
 // ─── Main ──────────────────────────────────────────────────────────────────────
@@ -233,25 +288,36 @@ Deno.serve(async (req) => {
     return new Response('Could not parse payload', { status: 422, headers: CORS });
   }
 
-  // ── Resolve user from device connection ───────────────────────────────────
-  // Garmin sends a userId in the payload; Coros/Polar use a registered webhook per user.
-  // For now, find user by provider_user_id stored in metadata.
+  // ── Resolve the owner of each activity ────────────────────────────────────
+  // One webhook serves every user, so each activity is matched to the single
+  // connection whose token or provider user id it carries (./match.ts).
+  // Unmatched or ambiguous activities are dropped, never assigned to someone else.
   const results: Array<{ externalId: string; runId: string | null }> = [];
+  const skipped: Array<{ externalId: string; reason: string }> = [];
+
+  const { data: connections } = await supabase
+    .from('device_connections')
+    .select('user_id, metadata, secrets')
+    .eq('device_type', provider)
+    .eq('status', 'connected');
 
   for (const activity of activities) {
     try {
-      // Look up user by provider user ID stored in metadata
-      const { data: connections } = await supabase
-        .from('device_connections')
-        .select('user_id, metadata')
-        .eq('device_type', provider)
-        .eq('status', 'connected');
-
-      if (!connections || connections.length === 0) continue;
-
-      // For multi-user webhooks (Garmin), match by provider userId in payload
-      // For now process first connected user (per-user webhook assumption for Coros/Polar)
-      const userId = connections[0].user_id as string;
+      const match = matchConnection(connections ?? [], activity);
+      if (!match.ok) {
+        skipped.push({ externalId: activity.externalId, reason: match.reason });
+        console.warn(`[device-webhook] ${provider} activity ${activity.externalId} skipped: ${match.reason}`);
+        continue;
+      }
+      const userId = match.userId;
+      if (match.learnProviderUserId) {
+        const row = (connections ?? []).find(c => c.user_id === userId);
+        await supabase
+          .from('device_connections')
+          .update({ metadata: { ...(row?.metadata ?? {}), provider_user_id: match.learnProviderUserId } })
+          .eq('user_id', userId)
+          .eq('device_type', provider);
+      }
 
       // Upsert activity record
       await supabase.from('device_activities').upsert({
@@ -268,7 +334,9 @@ Deno.serve(async (req) => {
         elevation_gain_m: activity.elevationGainM,
         hrv_ms:           activity.hrvMs,
         calories_kcal:    activity.caloriesKcal,
-        raw_payload:      payload,
+        // Only this activity, without the access token: the push body holds
+        // every user's activities and tokens.
+        raw_payload:      { provider, activity: { ...activity, providerToken: undefined } },
       }, { onConflict: 'device_type,external_id' });
 
       // Match or create run
@@ -297,7 +365,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ processed: results.length, results }), {
+  return new Response(JSON.stringify({ processed: results.length, results, skipped }), {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 });

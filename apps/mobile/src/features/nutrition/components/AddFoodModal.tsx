@@ -281,7 +281,7 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
             {/* Recent foods — one tap to repeat something already logged */}
             {recentFoods.length > 0 && (
               <>
-                <Text style={s.sectionLabel}>RECENT</Text>
+                <Text style={s.sectionLabel}>Recent</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipsContent}>
                   {recentFoods.map(f => (
                     <Pressable key={f.name} style={s.chip} onPress={() => logRecentFood(f)}>
@@ -294,7 +294,7 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
             )}
 
             {/* Quick-add chips */}
-            <Text style={s.sectionLabel}>QUICK ADD</Text>
+            <Text style={s.sectionLabel}>Quick add</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chips} contentContainerStyle={s.chipsContent}>
               {QUICK_ADDS.map(q => (
                 <Pressable key={q.name} style={s.chip} onPress={() => logQuickAdd(q)}>
@@ -393,17 +393,17 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   mealRow:     { flexDirection: 'row', gap: 6, marginTop: 14, marginBottom: 4 },
   mealBtn:     { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', gap: 2 },
   mealBtnActive:  { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-  mealLabel:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
+  mealLabel:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
   mealLabelActive:{ color: C.alwaysLight },
   chips:       { flexGrow: 0 },
   chipsContent:{ flexDirection: 'row', gap: 6 },
   chip:        { backgroundColor: C.card, borderRadius: 8, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', gap: 2 },
   chipName:    { fontFamily: Fonts.medium, fontSize: 11, color: C.t1 },
-  chipKcal:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+  chipKcal:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
   fieldLabel:  { ...Type.overline, color: C.t3, marginTop: 10, marginBottom: 4 },
   input:       { backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
   row:         { flexDirection: 'row', gap: 8, marginTop: 4 },
   addBtn:      { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   addBtnDisabled: { opacity: 0.4 },
-  addBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
+  addBtnLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
 }); }

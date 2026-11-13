@@ -45,7 +45,7 @@ export function ShoeCard({ shoe, kmRun, onSetDefault, onRetire, onDelete }: Shoe
           <View style={s.categoryRow}>
             <Text style={s.category}>{CATEGORY_LABELS[shoe.category]}</Text>
             {pct >= 1 && !shoe.isRetired && (
-              <View style={[s.statusBadge, s.badgeRed]}><Text style={[s.statusLabel, { color: C.red }]}>REPLACE</Text></View>
+              <View style={[s.statusBadge, s.badgeRed]}><Text style={[s.statusLabel, { color: C.red }]}>Replace</Text></View>
             )}
             {pct >= 0.85 && pct < 1 && !shoe.isRetired && (
               <View style={[s.statusBadge, s.badgeAmber]}><Text style={[s.statusLabel, { color: C.amber }]}>WORN</Text></View>
@@ -91,19 +91,19 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 },
   name: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
   defaultBadge: { backgroundColor: C.greenBg, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
-  defaultLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.green, textTransform: 'uppercase', letterSpacing: 0.5 },
+  defaultLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.green},
   model: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, marginBottom: 1 },
   categoryRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  category: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+  category: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
   statusBadge: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 },
   badgeRed: { backgroundColor: C.redLo },
   badgeAmber: { backgroundColor: C.amberBg },
-  statusLabel: { fontFamily: Fonts.medium, fontSize: 10, letterSpacing: 0.5 },
+  statusLabel: { fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 0.5 },
   mileageRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   mileage: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, fontVariant: ['tabular-nums'] },
   remaining: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, fontVariant: ['tabular-nums'] },
   retiredBadge: { backgroundColor: C.surface, borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 8, marginBottom: 4 },
-  retiredLabel: { fontFamily: Fonts.regular, fontSize: 10, color: C.t2, textTransform: 'uppercase', letterSpacing: 0.5 },
+  retiredLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2},
   actions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border },
   deleteBtn: { backgroundColor: C.redLo, borderColor: C.red + '44' },

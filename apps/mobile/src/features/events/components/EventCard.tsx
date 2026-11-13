@@ -1,101 +1,104 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
-import { Calendar, MapPin, Users, Bookmark, ArrowSquareOut, Check } from 'phosphor-react-native';
+import Svg, { Path } from 'react-native-svg';
+import { ExternalLink } from 'lucide-react-native';
 import type { RunEvent } from '../types';
 import { DISCIPLINE_LABEL } from '../types';
-import { useTheme, Fonts, Type, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
+import { CityBackdrop } from '@mobile/shared/components/CityBackdrop';
+import { RunnerFace } from '@mobile/shared/components/RunnerFace';
 
 interface Props {
   event: RunEvent;
   joined: boolean;
   onJoin: () => void;
   onPress?: () => void;
+  /** The first hosted card gets the map header, as in the mock. */
+  featured?: boolean;
 }
 
-export function EventCard({ event, joined, onJoin, onPress }: Props) {
+/** "Sat 8 Nov · 8:00" */
+function whenLine(iso: string): string {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const time = d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit' });
+  return `${day} · ${time}`;
+}
+
+const MAP_W = 320, MAP_H = 110;
+
+export function EventCard({ event, joined, onJoin, onPress, featured }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
-  const [bookmarked, setBookmarked] = useState(false);
-  const isCurated = event.source === 'curated';
-  const categoryLabel = event.discipline
-    ? DISCIPLINE_LABEL[event.discipline]
-    : event.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const curated = event.source === 'curated';
+  const kind = event.discipline ? DISCIPLINE_LABEL[event.discipline] : null;
+
+  if (curated) {
+    const meta = [whenLine(event.startsAt), event.distance, "sign-up on the organiser's site"].filter(Boolean).join(' · ');
+    return (
+      <Pressable style={s.card} onPress={onPress}>
+        <View style={s.curatedTop}>
+          <View style={s.curatedChip}><Text style={s.curatedChipText}>Curated · {kind ?? 'Official race'}</Text></View>
+          <ExternalLink size={16} color={C.t2} strokeWidth={1.8} />
+        </View>
+        <Text style={s.title}>{event.title}</Text>
+        <Text style={s.meta}>{meta}</Text>
+        <Pressable
+          style={s.outlineBtn}
+          onPress={() => event.registrationUrl && Linking.openURL(event.registrationUrl)}
+          disabled={!event.registrationUrl}
+          accessibilityRole="link"
+        >
+          <Text style={s.outlineBtnText}>Register on organiser site</Text>
+        </Pressable>
+      </Pressable>
+    );
+  }
+
+  const meta = [event.location, event.distance && `${event.distance} group loop`, event.organizer && `hosted by ${event.organizer}`]
+    .filter(Boolean).join(' · ');
+  const going = event.participants;
+  const rsvp = (
+    <Pressable
+      style={[s.rsvp, featured ? s.rsvpSolid : s.rsvpOutline, joined && s.rsvpJoined]}
+      onPress={onJoin}
+      accessibilityRole="button"
+    >
+      <Text style={[s.rsvpText, featured && !joined ? { color: '#fff' } : null]}>{joined ? 'Going' : 'RSVP'}</Text>
+    </Pressable>
+  );
 
   return (
-    <Pressable style={s.row} onPress={onPress}>
-      {/* Top row: category + pills | bookmark */}
-      <View style={s.topRow}>
-        <View style={s.pills}>
-          <Text style={s.categoryText}>{categoryLabel}</Text>
-          {event.distance && (
-            <View style={s.distPill}>
-              <Text style={s.distPillText}>{event.distance}</Text>
-            </View>
-          )}
-          {isCurated ? (
-            <View style={s.externalPill}>
-              <ArrowSquareOut size={9} color={C.t3} weight="bold" />
-              <Text style={s.externalPillText}>{event.sourceName ?? 'External'}</Text>
-            </View>
-          ) : joined && (
-            <View style={s.joinedPill}>
-              <Text style={s.joinedPillText}>Joined</Text>
-            </View>
-          )}
+    <Pressable style={[s.card, featured && { paddingTop: 0, overflow: 'hidden' }]} onPress={onPress}>
+      {featured && (
+        <View style={s.mapWrap}>
+          <Svg width="100%" height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid slice">
+            <CityBackdrop width={MAP_W} height={MAP_H} seed={event.id} />
+            <Path d="M30 14C82 -6 168 0 196 26L210 104C182 128 98 132 46 112Z" fill="none" stroke={C.red} strokeWidth={4} strokeLinejoin="round" />
+          </Svg>
+          <View style={s.mapChip}><Text style={s.mapChipText}>Hosted · In-app RSVP</Text></View>
         </View>
-        <Pressable
-          onPress={e => { e.stopPropagation(); setBookmarked(b => !b); }}
-          hitSlop={8}
-        >
-          <Bookmark
-            size={14}
-            color={bookmarked ? C.red : C.t3}
-            weight={bookmarked ? 'fill' : 'light'}
-          />
-        </Pressable>
+      )}
+      <View style={featured ? s.featuredBody : s.compactRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.when}>{whenLine(event.startsAt)}</Text>
+          <Text style={s.title}>{event.title}</Text>
+          <Text style={s.meta}>{featured ? meta : [event.location, event.distance, `${going} going`].filter(Boolean).join(' · ')}</Text>
+        </View>
+        {!featured && rsvp}
       </View>
-
-      {/* Title */}
-      <Text style={s.title} numberOfLines={2}>{event.title}</Text>
-
-      {/* Meta row */}
-      <View style={s.metaRow}>
-        <View style={s.metaItem}>
-          <Calendar size={10} color={C.t3} weight="light" />
-          <Text style={s.metaText}>{event.date}</Text>
-        </View>
-        <View style={s.metaItem}>
-          <MapPin size={10} color={C.t3} weight="light" />
-          <Text style={s.metaText}>{event.location}</Text>
-        </View>
-        {!isCurated && (
-          <View style={s.metaItem}>
-            <Users size={10} color={C.t3} weight="light" />
-            <Text style={s.metaText}>{event.participants.toLocaleString()}</Text>
+      {featured && (
+        <View style={s.footer}>
+          <View style={s.faces}>
+            {[0, 1, 2].slice(0, Math.max(1, Math.min(3, going))).map(i => (
+              <View key={i} style={[s.face, i > 0 && { marginLeft: -8 }]}>
+                <RunnerFace seed={`${event.id}-${i}`} size={24} />
+              </View>
+            ))}
+            <Text style={s.going}>{going} going</Text>
           </View>
-        )}
-      </View>
-
-      {/* Quick action — one tap, no need to open the detail sheet */}
-      {isCurated ? (
-        event.registrationUrl && (
-          <Pressable
-            style={s.quickBtn}
-            onPress={e => { e.stopPropagation(); Linking.openURL(event.registrationUrl!); }}
-          >
-            <Text style={s.quickBtnText}>Register</Text>
-            <ArrowSquareOut size={11} color={C.alwaysLight} weight="bold" />
-          </Pressable>
-        )
-      ) : (
-        <Pressable
-          style={[s.quickBtn, joined && s.quickBtnJoined]}
-          onPress={e => { e.stopPropagation(); onJoin(); }}
-        >
-          {joined
-            ? <><Check size={11} color={C.green} weight="bold" /><Text style={[s.quickBtnText, s.quickBtnTextJoined]}>Joined</Text></>
-            : <Text style={s.quickBtnText}>Join</Text>}
-        </Pressable>
+          {rsvp}
+        </View>
       )}
     </Pressable>
   );
@@ -103,23 +106,28 @@ export function EventCard({ event, joined, onJoin, onPress }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    row:           { backgroundColor: C.card, paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    topRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    pills:         { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' },
-    categoryText:  { ...Type.overline, color: C.t3 },
-    distPill:      { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: C.redLo },
-    distPillText:  { fontFamily: Fonts.medium, fontSize: 10, color: C.red },
-    joinedPill:    { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: C.greenBg },
-    joinedPillText:{ fontFamily: Fonts.medium, fontSize: 10, color: C.green },
-    externalPill:  { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10, backgroundColor: C.stone },
-    externalPillText: { fontFamily: Fonts.medium, fontSize: 10, color: C.t3 },
-    title:         { fontFamily: Fonts.medium, fontSize: 15, color: C.black, marginBottom: 10, lineHeight: 20 },
-    metaRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 14, rowGap: 4, marginBottom: 12 },
-    metaItem:      { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    metaText:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
-    quickBtn:      { flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 6, backgroundColor: C.alwaysDark, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 7 },
-    quickBtnJoined:{ backgroundColor: C.greenBg },
-    quickBtnText:  { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysLight, letterSpacing: 0.2 },
-    quickBtnTextJoined: { color: C.green },
+    card:         { backgroundColor: C.card, borderRadius: 18, padding: 16, marginHorizontal: 18, marginBottom: 12 },
+    mapWrap:      { marginHorizontal: -16, marginBottom: 14, height: MAP_H, overflow: 'hidden' },
+    mapChip:      { position: 'absolute', left: 12, top: 12, backgroundColor: C.t1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+    mapChipText:  { fontFamily: Fonts.semiBold, fontSize: 11, color: '#fff' },
+    featuredBody: {},
+    compactRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    when:         { fontFamily: Fonts.medium, fontSize: 12.5, color: C.red, marginBottom: 4 },
+    title:        { fontFamily: Fonts.bold, fontSize: 19, letterSpacing: -0.4, color: C.t1, marginBottom: 4 },
+    meta:         { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: C.t2 },
+    footer:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+    faces:        { flexDirection: 'row', alignItems: 'center' },
+    face:         { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: C.card, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+    going:        { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginLeft: 8 },
+    rsvp:         { borderRadius: 999, paddingHorizontal: 16, height: 34, justifyContent: 'center', alignItems: 'center' },
+    rsvpSolid:    { backgroundColor: C.red },
+    rsvpOutline:  { borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
+    rsvpJoined:   { backgroundColor: C.card, borderWidth: 1, borderColor: C.t1 },
+    rsvpText:     { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    curatedTop:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+    curatedChip:  { backgroundColor: C.bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    curatedChipText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.t1 },
+    outlineBtn:   { marginTop: 14, height: 44, borderRadius: 999, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    outlineBtnText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
   });
 }

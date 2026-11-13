@@ -119,11 +119,11 @@ function mkStyles(C: AppColors) {
     topRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
     meta:   { flex: 1 },
     title:  { fontFamily: Fonts.medium, fontSize: 14.5, color: C.t1, marginBottom: 2 },
-    source: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
+    source: { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t3 },
 
     heroWrap:   { alignItems: 'flex-end' },
     heroNum:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1, fontVariant: ['tabular-nums'] },
-    heroTarget: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
+    heroTarget: { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t3 },
 
     footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: C.border, paddingTop: 12 },
     readyHint:  { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.gold, letterSpacing: 0.2 },

@@ -71,13 +71,13 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   title: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, flex: 1 },
   kcal: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, fontVariant: ['tabular-nums'] },
-  chevron: { fontSize: 10, color: C.t3 },
+  chevron: { fontSize: 11, color: C.t3 },
   entry: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
     borderTopWidth: 0.5, borderTopColor: C.border,
   },
   entryName: { fontFamily: Fonts.regular, fontSize: 12, color: C.t1, marginBottom: 1 },
-  entryMacros: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
+  entryMacros: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
   entryKcal: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, fontVariant: ['tabular-nums'] },
   entryChevron: { fontFamily: Fonts.regular, fontSize: 14, color: C.t3, marginLeft: 6 },
   addBtn: {

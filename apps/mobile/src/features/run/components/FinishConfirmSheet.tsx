@@ -13,25 +13,26 @@ function fmt(s: number): string {
 interface FinishConfirmSheetProps {
   distance: number;
   elapsed: number;
-  territoriesClaimed: number;
+  /** "run" / "walk" / "ride" — names the activity in the title. */
+  verb?: string;
   bottomInset: number;
   onKeepRunning: () => void;
   onFinish: () => void;
 }
 
 export default function FinishConfirmSheet({
-  distance, elapsed, territoriesClaimed, bottomInset, onKeepRunning, onFinish,
+  distance, elapsed, verb = 'run', bottomInset, onKeepRunning, onFinish,
 }: FinishConfirmSheetProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
     <Pressable style={ss.overlay} onPress={onKeepRunning}>
       <Pressable style={[ss.sheet, { paddingBottom: bottomInset + 16 }]}>
-        <Text style={ss.title}>End Run?</Text>
-        <Text style={ss.sub}>{distance.toFixed(2)} km · {fmt(elapsed)} · {territoriesClaimed} territories</Text>
+        <Text style={ss.title}>Finish {verb}?</Text>
+        <Text style={ss.sub}>{distance.toFixed(2)} km · {fmt(elapsed)}</Text>
         <View style={ss.actions}>
           <Pressable style={ss.cancel} onPress={onKeepRunning}>
-            <Text style={ss.cancelText}>Keep Running</Text>
+            <Text style={ss.cancelText}>Keep going</Text>
           </Pressable>
           <Pressable style={ss.finish} onPress={onFinish}>
             <Text style={ss.finishText}>Finish</Text>

@@ -117,7 +117,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:        { flex: 1 },
     inner:       { flex: 1 },
-    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 0.5 },
+    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 0.5 },
     pace:        { fontFamily: Fonts.semiBold, fontSize: 20 },
     x:           { fontFamily: Fonts.bold, fontSize: 21 },
     closeBtn:    { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },

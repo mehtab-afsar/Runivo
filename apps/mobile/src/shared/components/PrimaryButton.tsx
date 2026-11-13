@@ -93,7 +93,7 @@ export function PrimaryButton({
 }
 
 const styles = StyleSheet.create({
-  btn:       { borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
+  btn:       { borderRadius: 999, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   fullWidth: { alignSelf: 'stretch' },
   pressed:   { opacity: 0.85, transform: [{ scale: 0.98 }] },
 });

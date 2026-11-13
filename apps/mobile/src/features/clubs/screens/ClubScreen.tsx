@@ -24,6 +24,7 @@ import type { Club } from '@features/clubs/types';
 import { useTheme, Colors, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { ClubRankRow } from '../components/ClubRankRow';
 import { ClubHeroCard } from '../components/ClubHeroCard';
+import { NearbyClubsSection } from '../components/NearbyClubsSection';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ClubTab = 'my_clubs' | 'rankings';
@@ -40,7 +41,7 @@ const SCOPES: { value: RankingScope; label: string }[] = [
 ];
 
 const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; label: string }[] = [
-  { emoji: '🏃',  Icon: Pulse,          color: '#D93518', bg: '#FDE8E4', label: 'Runner'    },
+  { emoji: '🏃',  Icon: Pulse,          color: '#FF4518', bg: '#FDE8E4', label: 'Runner'    },
   { emoji: '🔥',  Icon: Fire,           color: '#EA580C', bg: '#FFEDD5', label: 'Fire'      },
   { emoji: '⚡',  Icon: Lightning,      color: Colors.gold, bg: '#FEF9C3', label: 'Lightning' },
   { emoji: '🏆',  Icon: Trophy,         color: Colors.gold, bg: '#FEF3C7', label: 'Trophy'    },
@@ -48,7 +49,7 @@ const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; lab
   { emoji: '🛡️', Icon: Shield,         color: '#059669', bg: '#D1FAE5', label: 'Shield'    },
   { emoji: '🧭',  Icon: NavigationArrow,color: '#475569', bg: '#F1F5F9', label: 'Compass'   },
   { emoji: '💪',  Icon: Barbell,        color: Colors.purple, bg: '#EDE9FE', label: 'Strong'    },
-  { emoji: '🎯',  Icon: Target,         color: '#D93518', bg: '#FDE8E4', label: 'Target'    },
+  { emoji: '🎯',  Icon: Target,         color: '#FF4518', bg: '#FDE8E4', label: 'Target'    },
   { emoji: '🏅',  Icon: Medal,          color: '#B45309', bg: '#FEF3C7', label: 'Medal'     },
   { emoji: '🚀',  Icon: Rocket,         color: Colors.purple, bg: '#EDE9FE', label: 'Rocket'    },
   { emoji: '🌟',  Icon: Star,           color: Colors.gold, bg: '#FEF9C3', label: 'Star'      },
@@ -120,7 +121,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
 
           <ScrollView style={{ flexGrow: 0 }} showsVerticalScrollIndicator={false}>
             {/* Badge */}
-            <Text style={cs.fieldLabel}>BADGE</Text>
+            <Text style={cs.fieldLabel}>Badge</Text>
             {(() => {
               const selected = BADGE_OPTIONS.find(b => b.emoji === emoji) ?? BADGE_OPTIONS[0];
               const SelIcon = selected.Icon;
@@ -154,7 +155,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
             </ScrollView>
 
             {/* Club Name */}
-            <Text style={cs.fieldLabel}>CLUB NAME <Text style={{ color: C.red }}>*</Text></Text>
+            <Text style={cs.fieldLabel}>Club name <Text style={{ color: C.red }}>*</Text></Text>
             <TextInput
               style={[cs.input, (nameError || (name.length > 0 && trimmedName.length < 3)) && cs.inputError]}
               value={name}
@@ -174,7 +175,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
             </View>
 
             {/* Description */}
-            <Text style={cs.fieldLabel}>DESCRIPTION <Text style={{ color: C.t3, textTransform: 'none', letterSpacing: 0 }}>(optional)</Text></Text>
+            <Text style={cs.fieldLabel}>Description <Text style={{ color: C.t3, textTransform: 'none', letterSpacing: 0 }}>(optional)</Text></Text>
             <TextInput
               style={[cs.input, cs.inputMulti]}
               value={desc}
@@ -188,7 +189,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
             <Text style={cs.inputHint}>{desc.length}/100</Text>
 
             {/* Join Policy */}
-            <Text style={cs.fieldLabel}>JOIN POLICY</Text>
+            <Text style={cs.fieldLabel}>Join policy</Text>
             <View style={cs.policyCol}>
               {JOIN_POLICIES.map(p => {
                 const PIco = p.Icon;
@@ -240,39 +241,39 @@ function mkCsStyles(C: AppColors) {
     sheet:             { backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12 },
     handle:            { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
     sheetHeader:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottomWidth: 0.5, borderBottomColor: C.border, paddingBottom: 14 },
-    sheetTitle:        { fontFamily: Fonts.display, fontSize: 20, color: C.black },
+    sheetTitle:        { fontFamily: Fonts.display, fontSize: 20, color: C.t1 },
     closeBtn:          { width: 30, height: 30, borderRadius: 15, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: C.border },
-    fieldLabel:        { ...Type.overline, color: C.t3, marginTop: 16, marginBottom: 8 },
+    fieldLabel:        { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, marginTop: 16, marginBottom: 8 },
     // Badge preview row
     badgePreviewRow:   { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12, backgroundColor: C.surface, borderRadius: 14, padding: 12, borderWidth: 0.5, borderColor: C.border },
     badgePreview:      { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    badgePreviewLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black },
+    badgePreviewLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
     badgePreviewSub:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     // Badge grid
     badgeGrid:         { paddingBottom: 4, gap: 8 },
     badgeBtn:          { width: 44, height: 44, borderRadius: 12, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     badgeBtnDot:       { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2 },
     // Inputs
-    input:             { borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black, backgroundColor: C.card },
+    input:             { borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.t1, backgroundColor: C.card },
     inputMulti:        { minHeight: 72, textAlignVertical: 'top', paddingTop: 12 },
     inputError:        { borderColor: C.red, backgroundColor: C.redLo },
     inputMeta:         { flexDirection: 'row', marginTop: 4 },
-    inputHint:         { fontFamily: Fonts.regular, fontSize: 10, color: C.t3 },
-    inputHintError:    { fontFamily: Fonts.regular, fontSize: 10, color: C.red },
+    inputHint:         { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
+    inputHintError:    { fontFamily: Fonts.regular, fontSize: 11, color: C.red },
     // Policy cards (vertical)
     policyCol:         { gap: 8, marginBottom: 4 },
-    policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 0.5, borderColor: C.border, borderRadius: 14, padding: 14, backgroundColor: C.card },
-    policyCardActive:  { borderColor: C.border, backgroundColor: C.surface },
+    policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.border, borderRadius: 16, padding: 14, backgroundColor: C.card },
+    policyCardActive:  { borderColor: C.t1, backgroundColor: C.card },
     policyIconBox:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    policyLabel:       { fontFamily: Fonts.semiBold, fontSize: 13, color: C.black },
-    policyLabelActive: { color: C.black },
+    policyLabel:       { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    policyLabelActive: { color: C.t1 },
     policyDesc:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
     policyDescActive:  { color: C.t2 },
     // Footer
     footer:            { paddingTop: 16, gap: 8 },
-    createBtn:         { paddingVertical: 16, borderRadius: 16, backgroundColor: C.alwaysDark, alignItems: 'center' },
-    createBtnLabel:    { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 0.3 },
-    cancelBtn:         { paddingVertical: 14, borderRadius: 16, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, alignItems: 'center' },
+    createBtn:         { height: Spacing.height.buttonPrimary, justifyContent: 'center', borderRadius: 999, backgroundColor: C.red, alignItems: 'center' },
+    createBtnLabel:    { ...Type.button, color: C.alwaysLight },
+    cancelBtn:         { height: 48, justifyContent: 'center', borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center' },
     cancelBtnLabel:    { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
   });
 }
@@ -283,7 +284,7 @@ export default function ClubScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { filteredClubs, clubs, loading, refreshing, searchQuery, setSearchQuery, joinClub, leaveClub, createClub, refresh } = useClubs();
+  const { filteredClubs, clubs, nearClubs, nearby, locationOn, loading, refreshing, joinClub, leaveClub, createClub, refresh } = useClubs();
   const [tab, setTab] = useState<ClubTab>('my_clubs');
   const [rankScope, setRankScope] = useState<RankingScope>('international');
   const [scopeSheetOpen, setScopeSheetOpen] = useState(false);
@@ -337,7 +338,7 @@ export default function ClubScreen() {
       <View style={s.podiumHeader}>
         <MapPin size={12} color="rgba(255,255,255,0.4)" weight="light" />
         <Text style={s.podiumHeading}>
-          {rankScope === 'local' ? 'Top Clubs Locally' : rankScope === 'national' ? 'Top Clubs Nationally' : 'Top Clubs Worldwide'}
+          {rankScope === 'local' ? 'Top clubs near you' : rankScope === 'national' ? 'Top clubs nationally' : 'Top clubs worldwide'}
         </Text>
       </View>
       <View style={s.podiumRow}>
@@ -355,10 +356,10 @@ export default function ClubScreen() {
               <View style={[s.podiumAvatar, { width: avatarSizes[idx], height: avatarSizes[idx], borderRadius: avatarSizes[idx] * 0.25, backgroundColor: bg + '40', borderWidth: idx === 1 ? 1.5 : 0, borderColor: C.gold }]}>
                 <BIco size={avatarSizes[idx] * 0.44} color={bColor} weight="light" />
               </View>
-              <Text style={[s.podiumName, { fontSize: idx === 1 ? 12 : 10 }]} numberOfLines={1}>{club.name}</Text>
+              <Text style={[s.podiumName, { fontSize: idx === 1 ? 13 : 11 }]} numberOfLines={1}>{club.name}</Text>
               <Text style={s.podiumMeta}>{club.total_km.toFixed(0)} km</Text>
               <View style={[s.podiumBlock, { height: podiumHeights[idx] }]}>
-                <Text style={s.podiumRank}>#{ranks[idx]}</Text>
+                <Text style={s.podiumRank}>{ranks[idx]}</Text>
               </View>
             </Pressable>
           );
@@ -371,11 +372,12 @@ export default function ClubScreen() {
     <SafeAreaView style={s.root}>
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Clubs</Text>
         <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)} testID="clubs-create-btn">
-          <Plus size={16} color={C.t1} weight="bold" />
+          <Plus size={14} color={C.t1} weight="bold" />
+          <Text style={s.createTriggerText}>Create</Text>
         </Pressable>
       </View>
 
@@ -388,6 +390,10 @@ export default function ClubScreen() {
             </Text>
           </Pressable>
         ))}
+        {/* Lobby: the one open room for every runner (Global Runners), as in the mock. */}
+        <Pressable style={s.tabBtn} onPress={() => navigation.navigate('LobbyChat', { lobbyId: 'global' })}>
+          <Text style={s.tabLabel}>Lobby</Text>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -399,23 +405,29 @@ export default function ClubScreen() {
           // without a key React reuses the same FlatList instance across the
           // tab switch instead of remounting, which RN's FlatList explicitly
           // doesn't support ("Changing numColumns on the fly is not supported").
-          key="my-clubs-grid"
+          key="my-clubs-list"
           data={myClubs}
           keyExtractor={c => c.id}
-          numColumns={2}
-          columnWrapperStyle={s.myClubGridRow}
-          renderItem={({ item }) => (
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          renderItem={({ item, index }) => (
             <ClubHeroCard
               club={item}
+              variant={index === 0 ? 'hero' : 'card'}
               rank={rankedClubs.findIndex(c => c.id === item.id) + 1 || undefined}
               onPress={() => goToDetail(item)}
             />
           )}
           contentContainerStyle={s.myClubList}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={s.searchWrap}>
-              <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search clubs..." />
+          ListFooterComponent={
+            <View style={{ marginTop: myClubs.length > 0 ? 22 : 0 }}>
+              <NearbyClubsSection
+                clubs={nearClubs.filter(c => !c.joined)}
+                nearby={nearby}
+                locationOn={locationOn}
+                onPress={goToDetail}
+                onJoin={joinClub}
+              />
             </View>
           }
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
@@ -423,7 +435,7 @@ export default function ClubScreen() {
             <View style={s.empty}>
               <Users size={28} color={C.red} weight="light" style={{ marginBottom: 8 }} />
               <Text style={s.emptyTitleServe}>No pack to run with yet.</Text>
-              <Text style={s.emptyText}>Switch to Rankings to join clubs, or tap + to create one.</Text>
+              <Text style={s.emptyText}>Join a club below, find more in Rankings, or create your own.</Text>
               <Pressable style={s.emptyBtn} onPress={() => setShowCreate(true)}>
                 <Text style={s.emptyBtnLabel}>Create a club</Text>
               </Pressable>
@@ -504,41 +516,44 @@ export default function ClubScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:            { flex: 1, backgroundColor: C.bg },
-    header:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 10, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    backBtn:         { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:           { fontFamily: Fonts.display, fontSize: 20, color: C.black },
-    createTrigger:   { width: 28, height: 28, borderRadius: 14, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    header:          { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12, backgroundColor: C.bg },
+    backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
+    title:           { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
+    createTrigger:   { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+    createTriggerText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     // Tabs - match web (black underline active)
-    tabBar:          { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.mid },
-    tabBtn:          { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 1.5, borderBottomColor: 'transparent' },
-    tabBtnActive:    { borderBottomColor: C.black },
-    tabLabel:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
-    tabLabelActive:  { fontFamily: Fonts.medium, color: C.black },
+    // Segmented control: one rounded track, active segment is a raised card.
+    tabBar:          { flexDirection: 'row', marginHorizontal: 18, marginBottom: 4, padding: 3, borderRadius: 999, backgroundColor: '#E9E7E2' },
+    tabBtn:          { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
+    tabBtnActive:    { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+    tabLabel:        { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },
+    tabLabelActive:  { color: C.t1 },
     loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    myClubsHeading:  { ...Type.headline, color: C.t1, marginBottom: 8 },
     // My Clubs tab — 2-column grid
-    searchWrap:      { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
+    searchWrap:      { paddingTop: 10, paddingBottom: 6 },
     myClubList:      { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 10 },
     myClubGridRow:   { gap: 10 },
     myClubRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 13, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     myClubAvatar:    { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     myClubTopRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
-    myClubName:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, flex: 1 },
-    myClubDate:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginLeft: 8, flexShrink: 0 },
-    myClubMeta:      { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginBottom: 2 },
+    myClubName:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1, flex: 1 },
+    myClubDate:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginLeft: 8, flexShrink: 0 },
+    myClubMeta:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginBottom: 2 },
     myClubPreview:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     empty:           { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 18 },
-    emptyTitle:      { fontFamily: Fonts.medium, fontSize: 13, color: C.black, marginBottom: 4 },
-    emptyTitleServe: { fontFamily: Fonts.display, fontSize: 17, lineHeight: 21, color: C.black, marginBottom: 4, textAlign: 'center' },
-    emptyText:       { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', marginBottom: 12 },
-    emptyBtn:        { backgroundColor: C.alwaysDark, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 4 },
-    emptyBtnLabel:   { fontFamily: Fonts.medium, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.6 },
+    emptyTitle:      { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, marginBottom: 4 },
+    emptyTitleServe: { ...Type.title, color: C.t1, marginBottom: 6, textAlign: 'center' },
+    emptyText:       { ...Type.bodySm, color: C.t2, textAlign: 'center', marginBottom: 16 },
+    emptyBtn:        { backgroundColor: C.red, paddingHorizontal: 22, height: 46, justifyContent: 'center', borderRadius: 999 },
+    emptyBtnLabel:   { ...Type.button, color: C.alwaysLight },
     // Rankings tab — one row (scope chip + search toggle) instead of pills + a
     // permanently-open search bar stacked above the list.
     rankList:        { paddingBottom: 100 },
-    rankHeaderRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, backgroundColor: C.bg },
-    scopeChip:       { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 7 },
-    scopeChipText:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t1 },
-    searchToggle:    { width: 30, height: 30, borderRadius: 15, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    rankHeaderRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingTop: 14, paddingBottom: 4, backgroundColor: C.bg },
+    scopeChip:       { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, backgroundColor: C.card, borderRadius: 999, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, paddingHorizontal: 12, paddingVertical: 7 },
+    scopeChipText:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    searchToggle:    { width: 34, height: 34, borderRadius: 17, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     searchToggleActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
     rankSearchWrap:  { paddingHorizontal: 18, paddingTop: 10, paddingBottom: 4 },
     scopeSheetContent: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl },
@@ -548,15 +563,15 @@ function mkStyles(C: AppColors) {
     scopeSheetRowLabel:  { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
     scopeSheetRowLabelActive: { fontFamily: Fonts.medium, color: C.red },
     // Dark podium
-    podiumCard:      { marginHorizontal: 18, marginTop: 12, marginBottom: 0, backgroundColor: C.alwaysDark, borderRadius: 16, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' },
+    podiumCard:      { marginHorizontal: Spacing.gutter, marginTop: 12, marginBottom: 8, backgroundColor: C.alwaysDark, borderRadius: 20, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' },
     podiumHeader:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },
-    podiumHeading:   { ...Type.overline, color: 'rgba(255,255,255,0.45)' },
+    podiumHeading:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight },
     podiumRow:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
     podiumSlot:      { flex: 1, alignItems: 'center' },
     podiumAvatar:    { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
     podiumName:      { fontFamily: Fonts.semiBold, color: C.alwaysLight, textAlign: 'center', marginBottom: 2, paddingHorizontal: 4 },
-    podiumMeta:      { fontFamily: Fonts.regular, fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 8 },
+    podiumMeta:      { fontFamily: Fonts.numeric, fontSize: 16, color: C.alwaysLight, opacity: 0.7, marginBottom: 8, fontVariant: ['tabular-nums'] },
     podiumBlock:     { width: '100%', borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    podiumRank:      { fontFamily: Fonts.bold, fontSize: 18, color: C.alwaysLight },
+    podiumRank:      { fontFamily: Fonts.numeric, fontSize: 34, lineHeight: 36, color: C.alwaysLight },
   });
 }

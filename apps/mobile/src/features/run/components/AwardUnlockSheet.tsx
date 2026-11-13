@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, Modal, Animated, Easing, StyleSheet } from 'react-native';
 import { useTheme, Fonts } from '@theme';
+import { Medal } from 'phosphor-react-native';
+import { AWARD_DEFINITIONS } from '@shared/constants/awards';
+import type { AwardId } from '@shared/types/game';
 
 interface Props {
   visible: boolean;
@@ -76,7 +79,10 @@ export default function AwardUnlockSheet({ visible, onClose, awards }: Props) {
     setTimeout(() => burst(particles), 300);
   }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const displayAward = awards[0] ?? '🏆';
+  // The run hands over award ids ("first_claim"); show the award, not the id.
+  const def = AWARD_DEFINITIONS[awards[0] as AwardId];
+  const awardTitle = def?.title ?? 'New award';
+  const more = awards.length - 1;
 
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
@@ -98,19 +104,19 @@ export default function AwardUnlockSheet({ visible, onClose, awards }: Props) {
             ))}
           </View>
 
-          <Animated.Text style={[ss.icon, { transform: [{ scale: iconScale }] }]}>
-            {displayAward}
-          </Animated.Text>
+          <Animated.View style={[ss.icon, { backgroundColor: C.redLo, transform: [{ scale: iconScale }] }]}>
+            <Medal size={34} color={C.red} weight="fill" />
+          </Animated.View>
 
-          <Text style={[ss.title, { color: C.black }]}>Award Unlocked</Text>
+          <Text style={[ss.eyebrow, { color: C.t2 }]}>Award unlocked</Text>
+          <Text style={[ss.title, { color: C.t1 }]}>{awardTitle}</Text>
           <Text style={[ss.sub, { color: C.t2 }]}>
-            {awards.length > 1
-              ? `${awards.length} new awards earned on this run`
-              : 'New award earned on this run'}
+            {def?.description ?? 'Earned on this run'}
+            {more > 0 ? `\n+${more} more award${more === 1 ? '' : 's'} on this run` : ''}
           </Text>
 
           <Pressable style={[ss.btn, { backgroundColor: C.red }]} onPress={onClose}>
-            <Text style={ss.btnTxt}>Nice!</Text>
+            <Text style={ss.btnTxt}>Nice</Text>
           </Pressable>
         </Animated.View>
       </Animated.View>
@@ -123,8 +129,9 @@ const ss = StyleSheet.create({
   card:              { width: 300, borderRadius: 14, padding: 28, alignItems: 'center' },
   particleContainer: { position: 'absolute', top: '40%', left: '50%', width: 0, height: 0 },
   particle:          { position: 'absolute', width: 6, height: 6, borderRadius: 3 },
-  icon:              { fontSize: 56, marginBottom: 16 },
-  title:             { fontFamily: Fonts.semiBold, fontSize: 20, marginBottom: 8 },
+  icon:              { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  eyebrow:           { fontFamily: Fonts.medium, fontSize: 12, marginBottom: 4 },
+  title:             { fontFamily: Fonts.semiBold, fontSize: 20, marginBottom: 8, textAlign: 'center' },
   sub:               { fontFamily: Fonts.regular, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
   btn:               { borderRadius: 12, paddingVertical: 13, paddingHorizontal: 40 },
   btnTxt:            { fontFamily: Fonts.semiBold, fontSize: 15, color: '#FFFFFF' },

@@ -55,5 +55,5 @@ const styles = StyleSheet.create({
   },
   label:      { fontFamily: Fonts.medium, fontSize: 13 },
   countBadge: { borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 },
-  countText:  { fontFamily: Fonts.semiBold, fontSize: 10, fontVariant: ['tabular-nums'] },
+  countText:  { fontFamily: Fonts.semiBold, fontSize: 11, fontVariant: ['tabular-nums'] },
 });

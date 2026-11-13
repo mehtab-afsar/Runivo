@@ -1,84 +1,68 @@
 /**
- * useFeatureGate — subscription-aware feature access checks.
+ * useFeatureGate — Free vs Runivo Plus access, from the shared rules in
+ * packages/shared/src/engine/entitlements.ts (the same rules the server uses).
  *
  * Usage:
  *   const gate = useFeatureGate();
- *   if (!gate.hasAICoach) navigation.navigate('Subscription');
+ *   if (!gate.canUse('pacex_chat')) navigation.navigate('Subscription', { reason: 'debrief' });
  *   if (!gate.canClaimTerritory(ownedCount)) showTerritoryPaywall();
  */
 import { useSubscription } from './useSubscription';
-import { GAME_CONFIG } from '@shared/services/config';
+import {
+  canUse as canUseFeature,
+  canClaimZone,
+  isPlus,
+  zoneLimitFor,
+  type Feature,
+} from '@shared/engine/entitlements';
 
-export type GatedFeature =
-  | 'ai_coach'
-  | 'territory_unlimited'
-  | 'territory_alerts'
-  | 'create_clubs'
-  | 'create_events'
-  | 'advanced_analytics';
+/** Older names kept so existing call sites keep working. */
+type LegacyFeature = 'ai_coach' | 'create_events';
+export type GatedFeature = Feature | LegacyFeature;
+
+const LEGACY: Record<LegacyFeature, Feature> = {
+  ai_coach: 'pacex_chat',
+  create_events: 'host_events',
+};
 
 export interface FeatureGateResult {
-  /** Whether the current user has an active paid subscription. */
+  /** Whether the current user has Runivo Plus (premium or admin). */
   isPremium: boolean;
   /** Maximum number of territories this user can own. */
   territoryLimit: number;
   /** True only while the subscription tier is being fetched. */
   loading: boolean;
-  /** Check access to a named feature. Returns false while loading. */
+  /** Check access to a named feature. Plus features return false while loading. */
   canUse(feature: GatedFeature): boolean;
-  /**
-   * Check whether the user can claim one more territory given their current count.
-   * Returns false if free tier and `currentCount >= MAX_TERRITORIES_FREE`.
-   */
+  /** Whether the user can claim one more territory given their current count. */
   canClaimTerritory(currentOwnedCount: number): boolean;
-  /**
-   * Same as canClaimTerritory but returns a human-readable reason when blocked.
-   * Returns null if access is allowed.
-   */
+  /** Same as canClaimTerritory but returns a human-readable reason when blocked. */
   territoryBlockReason(currentOwnedCount: number): string | null;
 }
 
-/** Features that are free for everyone. */
-const FREE_FEATURES = new Set<GatedFeature>(['create_clubs']);
-
-/** Features that require a paid tier. */
-const PREMIUM_FEATURES = new Set<GatedFeature>([
-  'ai_coach',
-  'territory_unlimited',
-  'territory_alerts',
-  'create_events',
-  'advanced_analytics',
-]);
-
 export function useFeatureGate(): FeatureGateResult {
-  const { isPremium, loading } = useSubscription();
-
-  const territoryLimit = isPremium ? Infinity : GAME_CONFIG.MAX_TERRITORIES_FREE;
+  const { currentTier, loading } = useSubscription();
+  const tier = currentTier ?? 'free';
+  const plus = isPlus(tier);
+  const territoryLimit = zoneLimitFor(tier);
 
   const canUse = (feature: GatedFeature): boolean => {
+    const f = (LEGACY as Record<string, Feature>)[feature] ?? (feature as Feature);
+    // Free features never wait on the tier; Plus ones stay locked until it loads.
+    if (canUseFeature(f, 'free')) return true;
     if (loading) return false;
-    if (FREE_FEATURES.has(feature)) return true;
-    if (PREMIUM_FEATURES.has(feature)) return isPremium;
-    return true;
+    return canUseFeature(f, tier);
   };
 
   const canClaimTerritory = (currentOwnedCount: number): boolean => {
-    if (loading) return false;
-    if (isPremium) return true;
-    return currentOwnedCount < territoryLimit;
+    if (loading) return true;
+    return canClaimZone(currentOwnedCount, tier);
   };
 
   const territoryBlockReason = (currentOwnedCount: number): string | null => {
     if (canClaimTerritory(currentOwnedCount)) return null;
-    return `Free plan limit reached — you own ${currentOwnedCount}/${territoryLimit} zones. Upgrade to Runivo Premium to claim unlimited territory.`;
+    return `Free runners hold ${territoryLimit} zones at once. You hold ${currentOwnedCount}. Runivo Plus removes the limit.`;
   };
 
-  return {
-    isPremium,
-    territoryLimit,
-    loading,
-    canUse,
-    canClaimTerritory,
-    territoryBlockReason,
-  };
+  return { isPremium: plus, territoryLimit, loading, canUse, canClaimTerritory, territoryBlockReason };
 }

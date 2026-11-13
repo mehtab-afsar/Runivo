@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, TextInput, Pressable, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { Send } from 'lucide-react-native';
 import { Fonts, useTheme, type AppColors } from '@theme';
 
 interface Props {
@@ -8,9 +9,11 @@ interface Props {
   onSend: () => void;
   sending: boolean;
   disabled?: boolean;
+  /** "Message Hyde Park Hustlers" */
+  placeholder?: string;
 }
 
-export function ChatInput({ value, onChange, onSend, sending, disabled }: Props) {
+export function ChatInput({ value, onChange, onSend, sending, disabled, placeholder = 'Message' }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const canSend = value.trim().length > 0 && !sending;
@@ -20,17 +23,17 @@ export function ChatInput({ value, onChange, onSend, sending, disabled }: Props)
         style={s.input}
         value={value}
         onChangeText={onChange}
-        placeholder="Message..."
+        placeholder={placeholder}
         placeholderTextColor={C.t3}
         maxLength={500}
         returnKeyType="send"
         onSubmitEditing={onSend}
         editable={!disabled}
       />
-      <Pressable style={[s.sendBtn, canSend && s.sendBtnActive]} onPress={onSend} disabled={!canSend}>
+      <Pressable style={[s.sendBtn, !canSend && { opacity: 0.55 }]} onPress={onSend} disabled={!canSend} accessibilityLabel="Send">
         {sending
-          ? <ActivityIndicator size="small" color={C.t3} />
-          : <Text style={[s.sendIcon, canSend && s.sendIconActive]}>↑</Text>}
+          ? <ActivityIndicator size="small" color="#fff" />
+          : <Send size={18} color="#fff" strokeWidth={2} />}
       </Pressable>
     </View>
   );
@@ -41,19 +44,16 @@ function mkStyles(C: AppColors) {
   bar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 0.5, borderTopColor: C.border, backgroundColor: C.bg,
+    backgroundColor: C.bg,
   },
   input: {
-    flex: 1, backgroundColor: C.card, borderRadius: 24, borderWidth: 0.5,
-    borderColor: C.border, paddingHorizontal: 16, paddingVertical: 8,
+    flex: 1, backgroundColor: C.border, borderRadius: 999,
+    paddingHorizontal: 18, height: 46,
     fontFamily: Fonts.regular, fontSize: 14, color: C.t1,
   },
   sendBtn: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: C.mid,
+    width: 46, height: 46, borderRadius: 23, backgroundColor: C.red,
     alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
-  sendBtnActive: { backgroundColor: C.red },
-  sendIcon: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t3 },
-  sendIconActive: { color: C.white },
   });
 }

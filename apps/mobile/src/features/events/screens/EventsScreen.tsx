@@ -1,33 +1,54 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, Modal, Share, Linking } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, Modal, Share, Linking, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, Plus, ArrowLeft, ArrowSquareOut, NavigationArrow } from 'phosphor-react-native';
+import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, ArrowLeft, ArrowSquareOut } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventCard } from '../components/EventCard';
 import { DISCIPLINE_LABEL, type RunEvent } from '../types';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
+import { raceForKm, RACE_LABEL } from '@shared/engine/training';
+import { localToday } from '@features/training/services/planService';
+import { canAddToCalendar, addEventToCalendar, hasEventReminder, setEventReminder } from '../services/eventCalendar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 function avatarColor(initial: string): string {
-  const COLORS = ['#D93518', '#1A6B40', '#9E6800', '#1E4D8C', '#6B2D8C', '#8C2D1E', '#2D6B5C'];
+  const COLORS = ['#FF4518', '#1A6B40', '#9E6800', '#1E4D8C', '#6B2D8C', '#8C2D1E', '#2D6B5C'];
   return COLORS[initial.charCodeAt(0) % COLORS.length];
 }
 
-function EventDetailSheet({ event, joined, onClose, onJoin }: {
+function EventDetailSheet({ event, joined, onClose, onJoin, onTrain }: {
   event: RunEvent;
   joined: boolean;
   onClose: () => void;
   onJoin: () => void;
+  /** Starts a plan ending on this race, when it is a 5K–marathon far enough ahead. */
+  onTrain?: () => void;
 }) {
   const C = useTheme();
   const ed = useMemo(() => mkEdStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [bookmarked, setBookmarked] = useState(false);
   const isCurated = event.source === 'curated';
+  const [reminder, setReminder] = useState(false);
+  const [added, setAdded] = useState(false);
+  const upcoming = new Date(event.startsAt).getTime() > Date.now();
+  useEffect(() => { hasEventReminder(event.id).then(setReminder).catch(() => {}); }, [event.id]);
+  const toggleReminder = async () => {
+    const when = await setEventReminder(event, !reminder).catch(() => null);
+    if (!reminder && !when) {
+      Alert.alert('No reminder set', 'Turn on notifications for Runivo, or the event is starting too soon.');
+      return;
+    }
+    setReminder(!reminder);
+  };
+  const addToCalendar = async () => {
+    try { if (await addEventToCalendar(event)) setAdded(true); }
+    catch { Alert.alert("Couldn't open your calendar", 'Allow calendar access for Runivo in Settings.'); }
+  };
   const categoryLabel = event.discipline
     ? DISCIPLINE_LABEL[event.discipline]
     : event.category.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -100,7 +121,7 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
               <Text style={ed.orgAvatarText}>{event.organizer.charAt(0).toUpperCase()}</Text>
             </View>
             <View>
-              <Text style={ed.orgLabel}>ORGANIZER</Text>
+              <Text style={ed.orgLabel}>Organizer</Text>
               <Text style={ed.orgName}>{event.organizer}</Text>
             </View>
           </View>
@@ -110,6 +131,28 @@ function EventDetailSheet({ event, joined, onClose, onJoin }: {
           <Text style={ed.disclaimer}>
             Registration happens on the organizer's own site — Runivo isn't hosting this event.
           </Text>
+        )}
+
+        {upcoming && (
+          <View style={ed.calRow}>
+            {canAddToCalendar() && (
+              <Pressable style={ed.calBtn} onPress={addToCalendar} accessibilityRole="button">
+                {added ? <Check size={14} color={C.green} weight="bold" /> : <Calendar size={14} color={C.t1} weight="regular" />}
+                <Text style={ed.calTxt}>{added ? 'In your calendar' : 'Add to calendar'}</Text>
+              </Pressable>
+            )}
+            <Pressable style={[ed.calBtn, reminder && ed.calBtnOn]} onPress={toggleReminder} accessibilityRole="switch" accessibilityState={{ checked: reminder }}>
+              <Clock size={14} color={reminder ? C.bg : C.t1} weight="regular" />
+              <Text style={[ed.calTxt, reminder && { color: C.bg }]}>{reminder ? 'Reminder on' : 'Remind me the evening before'}</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {onTrain && (
+          <Pressable style={ed.trainBtn} onPress={() => { onClose(); onTrain(); }} accessibilityRole="button">
+            <Text style={ed.trainTxt}>Train for this</Text>
+            <Text style={ed.trainSub}>A plan that peaks on race day</Text>
+          </Pressable>
         )}
 
         {/* Footer */}
@@ -157,9 +200,9 @@ function mkEdStyles(C: AppColors) {
     chips:           { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' },
     categoryText:    { ...Type.overline, color: C.t3 },
     distPill:        { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: C.redLo },
-    distPillText:    { fontFamily: Fonts.medium, fontSize: 10, color: C.red },
+    distPillText:    { fontFamily: Fonts.medium, fontSize: 11, color: C.red },
     externalPill:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: C.stone },
-    externalPillText:{ fontFamily: Fonts.medium, fontSize: 10, color: C.t3 },
+    externalPillText:{ fontFamily: Fonts.medium, fontSize: 11, color: C.t3 },
     closeBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8 },
     eventTitle:      { ...Type.displaySm, color: C.black, marginBottom: 8 },
     eventDesc:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
@@ -167,17 +210,24 @@ function mkEdStyles(C: AppColors) {
     detailRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 13 },
     detailRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
     detailIconBox:   { width: 30, height: 30, borderRadius: 8, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    detailLabel:     { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.8, marginBottom: 2 },
+    detailLabel:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginBottom: 2 },
     detailValue:     { fontFamily: Fonts.regular, fontSize: 13, color: C.black },
     organizerRow:    { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
     orgAvatar:       { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     orgAvatarText:   { fontFamily: Fonts.bold, fontSize: 11, color: C.white },
-    orgLabel:        { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, letterSpacing: 0.8, marginBottom: 1 },
+    orgLabel:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginBottom: 1 },
     orgName:         { fontFamily: Fonts.regular, fontSize: 13, color: C.black },
-    disclaimer:      { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3, lineHeight: 15, marginBottom: 14 },
+    disclaimer:      { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t3, lineHeight: 15, marginBottom: 14 },
     footer:          { flexDirection: 'row', gap: 8, alignItems: 'center' },
     iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     iconBtnSaved:    { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
+    calRow:          { flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
+    calBtn:          { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 19, borderWidth: 1, borderColor: C.border },
+    calBtnOn:        { backgroundColor: C.t1, borderColor: C.t1 },
+    calTxt:          { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    trainBtn:        { borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
+    trainTxt:        { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    trainSub:        { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
     joinBtn:         { flex: 1, height: 48, borderRadius: 14, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
     joinBtnJoined:   { backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: 'rgba(26,107,64,0.25)' },
     joinLabel:       { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
@@ -189,46 +239,58 @@ export default function EventsScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
   const {
     events, joinedIds, canCreate, loading, refreshing,
     nearMeAvailable, nearMeActive, toggleNearMe, handleJoin, refresh,
   } = useEvents();
   const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
 
-  // One list, upcoming only, sorted by date (already server-sorted) — no tabs,
-  // no category taxonomy. What's happening next is the only question this
-  // screen answers; a discipline label still shows on each card itself.
-  const upcomingEvents = useMemo(() => {
+  const [tab, setTab] = useState<'upcoming' | 'going' | 'past'>('upcoming');
+  const shown = useMemo(() => {
     const now = Date.now();
-    return events.filter(e => new Date(e.startsAt).getTime() >= now);
-  }, [events]);
+    const upcoming = events.filter(e => new Date(e.startsAt).getTime() >= now);
+    if (tab === 'going') return upcoming.filter(e => joinedIds.has(e.id));
+    if (tab === 'past') return events.filter(e => new Date(e.startsAt).getTime() < now).reverse();
+    return upcoming;
+  }, [events, joinedIds, tab]);
+  const firstHosted = shown.find(e => e.source !== 'curated')?.id;
+
+  // "Train for this": races of a plannable distance at least a week away.
+  const trainFor = (e: RunEvent) => {
+    const race = raceForKm(e.distanceM ? e.distanceM / 1000 : null);
+    const raceDate = localToday(new Date(e.startsAt)); // the race's local calendar day
+    if (!race || new Date(e.startsAt).getTime() - Date.now() < 7 * 86400e3) return undefined;
+    return () => navigation.navigate('PlanBuilder', { race, raceDate, raceName: e.title || RACE_LABEL[race] });
+  };
 
   return (
     <SafeAreaView style={s.root}>
-      {/* Header */}
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8} accessibilityLabel="Back">
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Events</Text>
-        {canCreate ? (
-          <Pressable onPress={() => navigation.navigate('CreateEvent')} style={s.createBtn}>
-            <Plus size={14} color={C.white} weight="bold" />
-          </Pressable>
-        ) : (
-          <View style={{ width: 32 }} />
-        )}
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {canCreate && (
+            <Pressable style={s.chip} onPress={() => navigation.navigate('CreateEvent')}>
+              <Text style={s.chipText}>Host</Text>
+            </Pressable>
+          )}
+          {nearMeAvailable && (
+            <Pressable style={[s.chip, nearMeActive && s.chipOn]} onPress={() => toggleNearMe()}>
+              <Text style={[s.chipText, nearMeActive && { color: C.bg }]}>Near me</Text>
+            </Pressable>
+          )}
+        </View>
       </View>
 
-      {nearMeAvailable && (
-        <View style={s.nearMeRow}>
-          <Pressable style={[s.nearMePill, nearMeActive && s.nearMePillActive]} onPress={() => toggleNearMe()}>
-            <NavigationArrow size={11} color={nearMeActive ? C.alwaysLight : C.t3} weight="fill" />
-            <Text style={[s.nearMeText, nearMeActive && s.nearMeTextActive]}>Near me</Text>
+      <View style={s.seg}>
+        {(['upcoming', 'going', 'past'] as const).map(k => (
+          <Pressable key={k} style={[s.segItem, tab === k && s.segItemOn]} onPress={() => setTab(k)}>
+            <Text style={[s.segLabel, tab === k && s.segLabelOn]}>{k === 'upcoming' ? 'Upcoming' : k === 'going' ? 'Going' : 'Past'}</Text>
           </Pressable>
-        </View>
-      )}
+        ))}
+      </View>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -236,11 +298,12 @@ export default function EventsScreen() {
         </View>
       ) : (
         <FlatList
-          data={upcomingEvents}
+          data={shown}
           keyExtractor={e => e.id}
           renderItem={({ item }) => (
             <EventCard
               event={item}
+              featured={item.id === firstHosted}
               joined={joinedIds.has(item.id)}
               onJoin={() => handleJoin(item.id)}
               onPress={() => setSelectedEvent(item)}
@@ -251,22 +314,13 @@ export default function EventsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
           ListEmptyComponent={
             <View style={s.empty}>
-              <Calendar size={32} color={C.t3} weight="light" />
-              <Text style={s.emptyTitle}>No upcoming events</Text>
-              <Text style={s.emptyText}>Check back soon for new events.</Text>
+              <Text style={s.emptyTitle}>
+                {tab === 'going' ? "You haven't RSVP'd to anything yet." : tab === 'past' ? 'No past events.' : 'No events coming up.'}
+              </Text>
+              <Text style={s.emptyText}>Group runs from clubs and official races near you show up here.</Text>
             </View>
           }
         />
-      )}
-
-      {/* FAB */}
-      {canCreate && (
-        <Pressable
-          style={[s.fab, { bottom: insets.bottom + 80 }]}
-          onPress={() => navigation.navigate('CreateEvent')}
-        >
-          <Plus size={16} color={C.white} weight="bold" />
-        </Pressable>
       )}
 
       {selectedEvent && (
@@ -275,6 +329,7 @@ export default function EventsScreen() {
           joined={joinedIds.has(selectedEvent.id)}
           onClose={() => setSelectedEvent(null)}
           onJoin={() => handleJoin(selectedEvent.id)}
+          onTrain={trainFor(selectedEvent)}
         />
       )}
     </SafeAreaView>
@@ -283,23 +338,21 @@ export default function EventsScreen() {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    root:           { flex: 1, backgroundColor: C.bg },
-    header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 14 : 4, paddingBottom: 16, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    backBtn:        { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:          { flex: 1, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 22, color: C.black },
-    createBtn:      { width: 32, height: 32, borderRadius: 16, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
-    // Near-me — the one filter worth surfacing, everything else lives on the card itself
-    nearMeRow:      { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 2, backgroundColor: C.bg },
-    nearMePill:     { flexDirection: 'row', alignSelf: 'flex-start', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 14, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border },
-    nearMePillActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-    nearMeText:     { fontFamily: Fonts.medium, fontSize: 11.5, color: C.t3 },
-    nearMeTextActive: { color: C.alwaysLight },
-    // List
-    list:           { paddingTop: 8, paddingBottom: 120 },
-    empty:          { alignItems: 'center' as const, paddingVertical: 56, paddingHorizontal: 18, gap: 8 },
-    emptyTitle:     { fontFamily: Fonts.medium, fontSize: 13, color: C.black },
-    emptyText:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center' },
-    // FAB
-    fab:            { position: 'absolute', right: 14, width: 40, height: 40, borderRadius: 20, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', shadowColor: C.red, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+    root:       { flex: 1, backgroundColor: C.bg },
+    header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
+    backBtn:    { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    chip:       { backgroundColor: C.card, borderRadius: 999, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, height: 30, justifyContent: 'center' },
+    chipOn:     { backgroundColor: C.t1, borderColor: C.t1 },
+    chipText:   { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    title: { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
+    seg:        { flexDirection: 'row', backgroundColor: '#E9E7E2', borderRadius: 999, padding: 3, marginHorizontal: 18, marginBottom: 12 },
+    segItem:    { flex: 1, alignItems: 'center', justifyContent: 'center', height: 32, borderRadius: 999 },
+    segItemOn:  { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+    segLabel:   { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },
+    segLabelOn: { fontFamily: Fonts.semiBold, color: C.t1 },
+    list:       { paddingTop: 2, paddingBottom: 120 },
+    empty:      { alignItems: 'center' as const, paddingVertical: 56, paddingHorizontal: 32, gap: 8 },
+    emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1, textAlign: 'center' },
+    emptyText:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18 },
   });
 }

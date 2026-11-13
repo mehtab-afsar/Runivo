@@ -9,7 +9,7 @@ export interface FeedPost {
   distanceM: number;
   durationSec: number;
   avgPace: string;
-  activityType: 'run' | 'trail' | 'interval' | 'long_run';
+  activityType: 'run' | 'trail' | 'trail_run' | 'walk' | 'hike' | 'cycle' | 'interval' | 'long_run' | (string & {});
   routePoints: { lat: number; lng: number }[];
   kudosCount: number;
   hasKudos: boolean;
@@ -24,6 +24,12 @@ export interface FeedPost {
   zoneTier: string | null;
   stolenFromUserId: string | null;
   createdAt: string;
+  /** Set by the runner in Edit activity. */
+  title: string | null;
+  description: string | null;
+  visibility: 'everyone' | 'followers' | 'only_me';
+  /** Public URLs of the activity's photos. */
+  photos: string[];
 }
 
 export interface SuggestedRunner {

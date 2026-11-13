@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/services/supabase';
 import { getPlayer } from '@shared/services/store';
-import { GAME_CONFIG } from '@shared/services/config';
 import { computeRunnerRank } from '@shared/services/claimEngine';
+import { weeklyCapFor } from '@shared/engine/runEngine';
 import type { StoredPlayer } from '@shared/services/store';
 import { HARDCODED_REWARDS } from '../rewards';
 import type { Reward } from '../types';
+import { lastKnownPoint, pointParams } from '../services/devicePoint';
 
+function expiresLabelFor(iso: unknown): string | undefined {
+  return iso ? `Ends ${new Date(String(iso)).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : undefined;
+}
+
+/** Row from the pace_store_rewards table (fallback when store_catalog isn't deployed). */
 function mapDbRowToReward(row: Record<string, unknown>): Reward {
   return {
     id:           String(row.id),
@@ -20,10 +26,43 @@ function mapDbRowToReward(row: Record<string, unknown>): Reward {
     brandInitial: String(row.brand_initial),
     valueLabel:   String(row.value_label),
     category:     (row.category as Reward['category']) ?? 'gear',
-    expiresLabel: row.expires_at
-      ? `Expires ${new Date(String(row.expires_at)).toLocaleDateString()}`
-      : undefined,
+    expiresLabel: expiresLabelFor(row.expires_at),
+    expiresAt:    row.expires_at ? String(row.expires_at) : null,
   };
+}
+
+/** Row from store_catalog(): the reward plus this runner's lock reason and code. */
+function mapCatalogRowToReward(row: Record<string, unknown>): Reward {
+  const status = String(row.status);
+  return {
+    ...mapDbRowToReward(row),
+    // Sold-out rewards stay listed (locked) rather than "coming soon".
+    status:     status === 'coming_soon' ? 'coming_soon' : 'available',
+    plusOnly:   row.plus_only === true,
+    minRank:    (row.min_rank as Reward['minRank']) ?? null,
+    startsAt:   row.starts_at ? String(row.starts_at) : null,
+    stockLeft:  row.stock_left == null ? null : Number(row.stock_left),
+    lockReason: (row.lock_reason as Reward['lockReason']) ?? null,
+    redeemed:   row.redeemed === true,
+    myCode:     row.my_code ? String(row.my_code) : null,
+    howToUse:   row.how_to_use ? String(row.how_to_use) : null,
+  };
+}
+
+/** Live rewards for this runner: server catalogue, then the table, then the built-in fallback. */
+export async function loadRewards(): Promise<Reward[] | null> {
+  // City rewards use the phone's last known position when the profile has
+  // no saved location (never prompts; see devicePoint.ts).
+  const catalog = await supabase.rpc('store_catalog', pointParams(await lastKnownPoint()));
+  if (!catalog.error && Array.isArray(catalog.data)) {
+    return (catalog.data as Record<string, unknown>[]).map(mapCatalogRowToReward);
+  }
+  const { data } = await supabase
+    .from('pace_store_rewards')
+    .select('*')
+    .neq('status', 'hidden')
+    .order('sort_order', { ascending: true });
+  return data && data.length > 0 ? data.map(row => mapDbRowToReward(row as Record<string, unknown>)) : null;
 }
 
 export function usePACEStore() {
@@ -36,22 +75,18 @@ export function usePACEStore() {
     getPlayer().then(p => { if (p) setPlayer(p); }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from('pace_store_rewards')
-        .select('*')
-        .neq('status', 'hidden')
-        .order('sort_order', { ascending: true });
-      if (data && data.length > 0) {
-        setRewards(data.map(row => mapDbRowToReward(row as Record<string, unknown>)));
-      }
-    })().catch(() => { /* keep HARDCODED_REWARDS fallback */ });
+  const refresh = useCallback(async () => {
+    try {
+      const loaded = await loadRewards();
+      if (loaded && loaded.length > 0) setRewards(loaded);
+    } catch { /* keep HARDCODED_REWARDS fallback */ }
   }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
 
   const paceBalance      = player?.paceBalance      ?? 0;
   const paceWeeklyEarned = player?.paceWeeklyEarned ?? 0;
-  const capLimit         = GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
+  const capLimit         = weeklyCapFor(player?.subscriptionTier);
   const weeklyPct        = capLimit > 0 ? Math.min(1, paceWeeklyEarned / capLimit) : 0;
   const runnerRank       = computeRunnerRank(player?.paceTotalEarned ?? 0);
 
@@ -67,6 +102,6 @@ export function usePACEStore() {
 
   return {
     paceBalance, paceWeeklyEarned, capLimit, weeklyPct, runnerRank,
-    rewards, selectedReward, isRedeemVisible, handleRedeem, closeRedeem,
+    rewards, selectedReward, isRedeemVisible, handleRedeem, closeRedeem, refresh,
   };
 }

@@ -1,3 +1,4 @@
+import { friendColor } from '@theme/territory';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   fetchLiveFriendPositions,
@@ -39,7 +40,7 @@ export function useLiveFriendRuns() {
     for (const row of data ?? []) {
       profileCacheRef.current.set(row.id, {
         username: row.username ?? 'Runner',
-        avatarColor: row.avatar_color ?? '#D93518',
+        avatarColor: row.avatar_color ?? friendColor(row.id),
       });
     }
   }, []);
@@ -55,7 +56,7 @@ export function useLiveFriendRuns() {
         lng: pos.lng,
         updatedAt: pos.updatedAt,
         username: profile?.username ?? 'Runner',
-        avatarColor: profile?.avatarColor ?? '#D93518',
+        avatarColor: profile?.avatarColor ?? friendColor(pos.userId),
       },
     }));
   }, [resolveProfiles]);
@@ -81,7 +82,7 @@ export function useLiveFriendRuns() {
         return [p.userId, {
           userId: p.userId, lat: p.lat, lng: p.lng, updatedAt: p.updatedAt,
           username: profile?.username ?? 'Runner',
-          avatarColor: profile?.avatarColor ?? '#D93518',
+          avatarColor: profile?.avatarColor ?? friendColor(p.userId),
         }];
       })));
     }).catch(() => {});

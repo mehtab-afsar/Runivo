@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { LeaderboardEntry, LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
-import { fetchLeaderboard } from '../services/leaderboardService';
+import { fetchLeaderboard, unitFor } from '../services/leaderboardService';
 import { supabase } from '@shared/services/supabase';
 
 export interface LeaderboardState {
@@ -40,7 +40,7 @@ export function useLeaderboard(): LeaderboardState {
 
   useEffect(() => { load(); }, [load]);
 
-  const unit = tab === 'distance' ? 'km' : tab === 'weekly_pace' ? 'PACE' : 'TS';
+  const unit = unitFor(tab, timeFrame);
 
   return { entries, loading, tab, timeFrame, scope, unit, currentUserId, setTab, setTimeFrame, setScope };
 }

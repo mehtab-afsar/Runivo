@@ -155,7 +155,7 @@ serve(async (req) => {
   // summary all looked real but never actually suppressed anything.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('notifications_enabled, run_reminders_enabled, territory_alerts_enabled, announce_achievements_enabled, weekly_summary_enabled')
+    .select('notifications_enabled, run_reminders_enabled, territory_alerts_enabled, announce_achievements_enabled, weekly_summary_enabled, offers_enabled')
     .eq('id', user_id)
     .single();
 
@@ -167,11 +167,18 @@ serve(async (req) => {
 
   const CATEGORY_BY_TYPE: Record<string, keyof NonNullable<typeof profile>> = {
     run_reminder:       'run_reminders_enabled',
+    streak_risk:        'run_reminders_enabled',
     territory_claimed:  'territory_alerts_enabled',
+    zone_fading:        'territory_alerts_enabled',
     territory_lost:     'territory_alerts_enabled',
     territory_captured: 'territory_alerts_enabled',
     zone_attacked:      'territory_alerts_enabled',
     achievement:        'announce_achievements_enabled',
+    rank_up:            'announce_achievements_enabled',
+    pace_cap:           'announce_achievements_enabled',
+    pace_cap_near:      'announce_achievements_enabled',
+    campaign:           'offers_enabled',
+    new_event:          'offers_enabled',
     weekly_summary:     'weekly_summary_enabled',
   };
   const categoryColumn = CATEGORY_BY_TYPE[type];

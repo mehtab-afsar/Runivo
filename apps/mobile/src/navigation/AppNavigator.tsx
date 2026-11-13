@@ -35,6 +35,11 @@ import HistoryScreen         from '@features/history/screens/HistoryScreen';
 import NotificationsScreen   from '@features/notifications/screens/NotificationsScreen';
 import SettingsScreen           from '@features/settings/screens/SettingsScreen';
 import ConnectedDevicesScreen   from '@features/settings/screens/ConnectedDevicesScreen';
+import MapVisibilityScreen      from '@features/settings/screens/MapVisibilityScreen';
+import BlockedRunnersScreen     from '@features/settings/screens/BlockedRunnersScreen';
+import PrivacyScreen            from '@features/settings/screens/PrivacyScreen';
+import TrainingPlanScreen       from '@features/training/screens/TrainingPlanScreen';
+import PlanBuilderScreen        from '@features/training/screens/PlanBuilderScreen';
 import CoachScreen           from '@features/coach/screens/CoachScreen';
 import EventsScreen          from '@features/events/screens/EventsScreen';
 import CreateEventScreen     from '@features/events/screens/CreateEventScreen';
@@ -48,6 +53,9 @@ import NutritionSetupScreen  from '@features/nutrition/screens/NutritionSetupScr
 import GearScreen            from '@features/gear/screens/GearScreen';
 import GearAddScreen         from '@features/gear/screens/GearAddScreen';
 import FootScanScreen        from '@features/gear/screens/FootScanScreen';
+import type { PaywallReason } from '@shared/engine/entitlements';
+import type { RaceDistance } from '@shared/engine/training';
+import type { TargetZone } from '@shared/engine/targetZone';
 import SubscriptionScreen    from '@features/subscription/screens/SubscriptionScreen';
 import LandingScreen         from '@features/auth/screens/LandingScreen';
 import LoginScreen           from '@features/auth/screens/LoginScreen';
@@ -55,6 +63,8 @@ import SignUpScreen          from '@features/auth/screens/SignUpScreen';
 import OnboardingScreen      from '@features/auth/screens/OnboardingScreen';
 import PACEStoreScreen       from '@features/store/screens/PACEStoreScreen';
 import RewardDetailScreen    from '@features/store/screens/RewardDetailScreen';
+import MyRewardsScreen       from '@features/store/screens/MyRewardsScreen';
+import YearInRunivoScreen    from '@features/profile/screens/YearInRunivoScreen';
 import type { Reward }       from '@features/store/types';
 import CoachPlanScreen      from '@features/coach/screens/CoachPlanScreen';
 import RunReplayScreen      from '@features/run/screens/RunReplayScreen';
@@ -69,9 +79,11 @@ export type RootStackParamList = {
   // Authenticated
   Main:      NavigatorScreenParams<TabParamList> | undefined;
   // Modal / overlay stacks
-  ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[]; activityType?: string; mapStyle?: string; pacerEnabled?: boolean; pacerPace?: string } | undefined;
+  ActiveRun: { ghostRoutePoints?: { lat: number; lng: number }[]; activityType?: string; mapStyle?: string; pacerEnabled?: boolean; pacerPace?: string; autoStart?: boolean; /** A planned session to run in workout mode (training plan). */ sessionId?: string; /** Defend or attack this zone (M1). */ targetZone?: TargetZone } | undefined;
   RunSummary: {
     runId: string;
+    /** 'cycle' turns the summary into a ride summary (tracked only). */
+    activityType?: string;
     runData?: {
       distance: number;
       duration: number;
@@ -112,12 +124,18 @@ export type RootStackParamList = {
   History:   undefined;
   Settings:          undefined;
   ConnectedDevices:  undefined;
+  MapVisibility:     undefined;
+  BlockedRunners:    undefined;
+  Privacy:           undefined;
+  TrainingPlan:      undefined;
+  PlanBuilder:       { race?: RaceDistance; raceDate?: string; raceName?: string; fromOnboarding?: boolean } | undefined;
   Gear:      undefined;
   GearAdd:   undefined;
   FootScan:  undefined;
-  TerritoryMap: { initialFilter?: 'all' | 'mine' | 'rivals' | 'stale' } | undefined;
+  TerritoryMap: { initialFilter?: 'all' | 'mine' | 'rivals' | 'stale'; /** Show this club's ground (C2). */ clubId?: string; clubName?: string } | undefined;
   Notifications: undefined;
-  Subscription: undefined;
+  /** reason: which paywall moment opened it (sets the headline). */
+  Subscription: { reason?: PaywallReason } | undefined;
   StoryViewer: {
     groups: { userId: string; userName: string; stories: { id: string; imageUrl: string }[] }[];
     initialGroupIndex: number;
@@ -133,6 +151,8 @@ export type RootStackParamList = {
   // (and to work for the HARDCODED_REWARDS fallback, which isn't in the DB
   // at all); falls back to a rewardId-only lookup if ever reached another way.
   RewardDetail: { rewardId: string; reward?: Reward };
+  MyRewards:    undefined;
+  YearInRunivo: { year?: number } | undefined;
   CoachPlan:    undefined;
   RunReplay: {
     runId: string;
@@ -146,12 +166,17 @@ export type TabParamList = {
   Dashboard: undefined;
   Feed:      undefined;
   Run:       undefined;
-  Coach:     undefined;
+  Map:       undefined;
   Profile:   undefined;
 };
 
 // ─── Bottom Tab Navigator ────────────────────────────────────────────────────
 const Tab = createBottomTabNavigator<TabParamList>();
+
+// The territory map is both a tab root (no params) and a pushable stack screen
+// (with an optional initial filter). It reads params defensively, so the tab
+// can render the same component.
+const TerritoryMapTab = TerritoryMapScreen as unknown as React.ComponentType;
 
 function TabNavigator() {
   return (
@@ -159,10 +184,12 @@ function TabNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
+      {/* v1 tab order: Home, Map, Run, Feed, You. PaceX lives behind Home and the
+          post-run debrief until the full coach ships in v2. */}
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Feed"  component={FEATURES.SOCIAL_FEED ? FeedScreen  : () => <ComingSoon feature={FEATURE_LABELS.SOCIAL_FEED!} />} />
+      <Tab.Screen name="Map"       component={TerritoryMapTab} />
       <Tab.Screen name="Run"       component={RunScreen}       />
-      <Tab.Screen name="Coach" component={FEATURES.AI_COACH   ? CoachScreen : () => <ComingSoon feature={FEATURE_LABELS.AI_COACH!} />} />
+      <Tab.Screen name="Feed"  component={FEATURES.SOCIAL_FEED ? FeedScreen  : () => <ComingSoon feature={FEATURE_LABELS.SOCIAL_FEED!} />} />
       <Tab.Screen name="Profile"   component={ProfileScreen}   />
     </Tab.Navigator>
   );
@@ -206,6 +233,13 @@ const linking: LinkingOptions<RootStackParamList> = {
       Notifications: 'notifications',
       Subscription:      'subscription',
       ConnectedDevices:  'settings/devices',
+      MapVisibility:     'settings/map-visibility',
+      BlockedRunners:    'settings/blocked',
+      Privacy:           'settings/privacy',
+      MyRewards:         'store/mine',
+      YearInRunivo:      'year',
+      TrainingPlan:      'training',
+      PlanBuilder:       'training/new',
       RunSummary:    'run/summary/:runId',
       AwardDetail:   'award/:awardId',
     },
@@ -288,6 +322,11 @@ export function AppNavigator({
             <Stack.Screen name="History"         component={HistoryScreen} />
             <Stack.Screen name="Settings"          component={SettingsScreen} />
             <Stack.Screen name="ConnectedDevices"  component={ConnectedDevicesScreen} />
+            <Stack.Screen name="MapVisibility"     component={MapVisibilityScreen} />
+            <Stack.Screen name="BlockedRunners"    component={BlockedRunnersScreen} />
+            <Stack.Screen name="Privacy"           component={PrivacyScreen} />
+            <Stack.Screen name="TrainingPlan"      component={TrainingPlanScreen} />
+            <Stack.Screen name="PlanBuilder"       component={PlanBuilderScreen} />
             <Stack.Screen name="Gear"            component={FEATURES.GEAR_TRACKING ? GearScreen    : () => <ComingSoon feature={FEATURE_LABELS.GEAR_TRACKING!} />} />
             <Stack.Screen name="GearAdd"         component={FEATURES.GEAR_TRACKING ? GearAddScreen  : () => <ComingSoon feature={FEATURE_LABELS.GEAR_TRACKING!} />} />
             <Stack.Screen name="FootScan"        component={FEATURES.GEAR_TRACKING ? FootScanScreen : () => <ComingSoon feature={FEATURE_LABELS.GEAR_TRACKING!} />} />
@@ -301,6 +340,8 @@ export function AppNavigator({
             <Stack.Screen name="AwardDetail"     component={AwardDetailScreen} options={{ presentation: 'modal' }} />
             <Stack.Screen name="PACEStore"       component={PACEStoreScreen}    options={{ headerShown: false, presentation: 'modal' }} />
             <Stack.Screen name="RewardDetail"    component={RewardDetailScreen} options={{ headerShown: false, presentation: 'modal' }} />
+            <Stack.Screen name="MyRewards"       component={MyRewardsScreen} />
+            <Stack.Screen name="YearInRunivo"    component={YearInRunivoScreen} />
             <Stack.Screen name="CoachPlan"       component={FEATURES.AI_COACH ? CoachPlanScreen : () => <ComingSoon feature={FEATURE_LABELS.AI_COACH!} />} options={{ headerShown: false }} />
             <Stack.Screen name="RunReplay"       component={RunReplayScreen}   options={{ headerShown: false }} />
           </>

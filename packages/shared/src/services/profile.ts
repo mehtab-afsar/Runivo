@@ -10,7 +10,8 @@ export interface PlayerProfile {
   // Training preferences
   experienceLevel: 'new' | 'casual' | 'regular' | 'competitive';
   weeklyFrequency: number;
-  primaryGoal: 'get_fit' | 'lose_weight' | 'run_faster' | 'explore' | 'compete';
+  /** 'race' and 'social' come from the v1 onboarding; the rest are older answers. */
+  primaryGoal: 'get_fit' | 'race' | 'compete' | 'social' | 'lose_weight' | 'run_faster' | 'explore';
   preferredDistance: 'short' | '5k' | '10k' | 'long';
   distanceUnit: 'km' | 'mi';
   notificationsEnabled: boolean;
@@ -18,6 +19,12 @@ export interface PlayerProfile {
   missionDifficulty: 'easy' | 'mixed' | 'hard';
   onboardingCompletedAt: number;
   phone?: string;
+  // v1 onboarding answers (profiles.usual_distance_km, recent_5k_seconds,
+  // age_range, pacex_tone — migration 20261106000005)
+  usualDistanceKm?: number;
+  recentFiveKSeconds?: number | null;
+  ageRange?: string | null;
+  paceXTone?: 'encouraging' | 'structured' | 'competitive' | 'friendly';
   playstyle?: 'conqueror' | 'defender' | 'explorer' | 'social'; // kept for DB compat
 }
 

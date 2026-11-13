@@ -21,7 +21,7 @@ export function ComingSoon({ feature, description }: Props) {
       <Text style={s.title}>{feature}</Text>
 
       <View style={s.badge}>
-        <Text style={s.badgeText}>COMING SOON</Text>
+        <Text style={s.badgeText}>Coming soon</Text>
       </View>
 
       {description ? (
@@ -69,7 +69,6 @@ function mkStyles(C: AppColors) {
       fontSize: 11,
       fontFamily: Fonts.bold,
       color: C.white,
-      letterSpacing: 1,
     },
     description: {
       fontSize: 15,

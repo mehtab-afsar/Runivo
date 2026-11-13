@@ -81,6 +81,6 @@ function mkStyles(C: AppColors) {
   error: { fontFamily: Fonts.regular, fontSize: 12, color: C.red, marginTop: 8 },
   submitBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   submitBtnDisabled: { opacity: 0.4 },
-  submitLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight, letterSpacing: 1 },
+  submitLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
   });
 }

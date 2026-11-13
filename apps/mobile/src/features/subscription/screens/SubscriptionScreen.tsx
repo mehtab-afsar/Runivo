@@ -1,132 +1,132 @@
-import React, { useMemo, useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, Pressable,
-  Platform, ActivityIndicator, Linking,
-} from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { LinearGradient } from 'expo-linear-gradient';
-import { X, Crown } from 'phosphor-react-native';
+import { X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { track } from '@shared/services/analytics';
 import { useSubscription } from '../hooks/useSubscription';
 import { PlanCard } from '../components/PlanCard';
 import { CurrentPlanBadge } from '../components/CurrentPlanBadge';
-import { FeatureRow } from '../components/FeatureRow';
-import { PLANS, FEATURES, FREE_LIMITS } from '../types';
-import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { PLANS, PAYWALL_COPY } from '../types';
+import { paywallRows, displayPrice } from '@shared/engine/entitlements';
+import { FEATURES } from '../../../config/features';
+import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+/**
+ * The Runivo Plus paywall. Opens with copy for the moment that brought the
+ * runner here (11th zone, PACE cap, PaceX debrief, events, map styles).
+ */
 export default function SubscriptionScreen() {
   const C = useTheme();
-  const su = useMemo(() => mkStyles(C), [C]);
+  const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Subscription'>>();
+  const reason = route.params?.reason;
+  const copy = PAYWALL_COPY[reason ?? 'default'];
   const insets = useSafeAreaInsets();
-  const {
-    currentTier, isPremium, loading, purchasing, rcPrices,
-    purchasePlan, restorePlan, RC_PRODUCT_ANNUAL, RC_PRODUCT_MONTHLY,
-  } = useSubscription();
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
+  const { currentTier, isPremium, loading, purchasing, rcPrices, purchasePlan, restorePlan } = useSubscription();
+  const [selected, setSelected] = useState<'annual' | 'monthly'>('annual');
 
-  const activePlan = PLANS.find(p => p.id === selectedPlan)!;
-  const trialPrice = selectedPlan === 'annual'
-    ? (rcPrices[RC_PRODUCT_ANNUAL]  ? `${rcPrices[RC_PRODUCT_ANNUAL]}/yr`  : '$59.99/yr')
-    : (rcPrices[RC_PRODUCT_MONTHLY] ? `${rcPrices[RC_PRODUCT_MONTHLY]}/mo` : '$7.99/mo');
+  useEffect(() => { track('paywall_viewed', { reason: reason ?? 'direct' }); }, [reason]);
+
+  const plan = PLANS.find(p => p.id === selected)!;
+  // Only the store's real price (X5); before it loads, the store shows it at checkout.
+  const price = displayPrice(rcPrices[plan.rcProductId]);
+  const ctaLabel = plan.trialDays > 0 ? `Start ${plan.trialDays}-day free trial` : price ? `Get Plus · ${price} a month` : 'Get Plus';
+  const ctaSub = plan.trialDays > 0
+    ? (price ? `Then ${price}${plan.period}.` : 'The store shows the price before you confirm.')
+    : 'Renews monthly until cancelled.';
+
+  const onBuy = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    track('paywall_purchase_tapped', { reason: reason ?? 'direct', plan: plan.id });
+    purchasePlan(plan.id, plan.rcProductId);
+  };
+
+  // Only perks that are live in this build, with the numbers the game enforces.
+  const KEY_ROWS = paywallRows({ aiCoach: FEATURES.AI_COACH });
 
   return (
-    <View style={su.root}>
-      <ScrollView contentContainerStyle={[su.scrollContent, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
-        {/* ── Hero — full-bleed dark, one accent (gold), the real tagline as the
-             editorial moment instead of a generic "App Name + crown" pattern ── */}
-        <LinearGradient
-          colors={['#201D19', C.alwaysDark]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={su.hero}
-        >
-          <View style={[su.heroTop, { paddingTop: insets.top + (Platform.OS === 'android' ? 12 : 6) }]}>
-            <Pressable onPress={() => navigation.goBack()} style={su.closeBtn} hitSlop={8}>
-              <X size={16} color="rgba(255,255,255,0.7)" weight="bold" />
+    <View style={s.root}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }} showsVerticalScrollIndicator={false}>
+        {/* Dark hero */}
+        <View style={[s.heroBlock, { paddingTop: insets.top + 12 }]}>
+          <View style={s.topRow}>
+            <Pressable onPress={() => navigation.goBack()} style={s.close} hitSlop={10} accessibilityLabel="Close">
+              <X size={18} color={C.alwaysLight} strokeWidth={2.2} />
             </Pressable>
+            {!isPremium && (
+              <Pressable style={s.restorePill} onPress={restorePlan} disabled={purchasing} hitSlop={8}>
+                <Text style={s.restorePillText}>Restore purchase</Text>
+              </Pressable>
+            )}
+          </View>
+          <Text style={s.eyebrow}>Runivo Plus</Text>
+          <Text style={s.hero} accessibilityRole="header">{copy.lead} {copy.accent}</Text>
+        </View>
+
+        <View style={s.body}>
+          {/* Free vs Plus */}
+          <View style={s.table}>
+            {KEY_ROWS.map(r => (
+              <View key={r.label} style={s.tr}>
+                <Text style={s.tdLabel}>{r.label}</Text>
+                <Text style={s.tdFree}>{r.free}</Text>
+                <Text style={s.tdPlus}>{r.plus}</Text>
+              </View>
+            ))}
+            <View style={s.trFoot}>
+              <Text style={s.tdLabel} />
+              <Text style={s.footFree}>Free</Text>
+              <Text style={s.footPlus}>Plus</Text>
+            </View>
           </View>
 
-          <View style={su.kicker}>
-            <Crown size={12} color={C.gold} weight="fill" />
-            <Text style={su.kickerText}>RUNIVO PLUS</Text>
-          </View>
-          <Text style={su.heroTitle}>Own more{'\n'}of your city.</Text>
-          <Text style={su.heroSub}>Run smarter, claim faster, never hit a cap.</Text>
-        </LinearGradient>
-
-        <View style={su.content}>
           {loading ? (
-            <ActivityIndicator color={C.red} style={{ marginTop: 8 }} />
+            <ActivityIndicator color={C.red} style={{ marginVertical: 28 }} />
           ) : isPremium ? (
-            <CurrentPlanBadge tier={currentTier ?? 'premium'} />
+            <View style={{ marginTop: 16 }}><CurrentPlanBadge tier={currentTier ?? 'premium'} /></View>
           ) : (
             <>
-              <View style={su.planRow}>
+              <View style={s.plans}>
                 {PLANS.map(p => (
                   <PlanCard
-                    key={p.id} plan={p} isSelected={selectedPlan === p.id}
-                    displayPrice={rcPrices[p.rcProductId] ?? p.price}
-                    onSelect={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setSelectedPlan(p.id); }}
+                    key={p.id}
+                    plan={p}
+                    isSelected={selected === p.id}
+                    displayPrice={displayPrice(rcPrices[p.rcProductId]) ?? 'Price at checkout'}
+                    onSelect={() => { Haptics.selectionAsync().catch(() => {}); setSelected(p.id); }}
                   />
                 ))}
               </View>
-
               <Pressable
-                style={({ pressed }) => [su.subscribeBtnWrap, pressed && { opacity: 0.9 }]}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); purchasePlan(activePlan.id, activePlan.rcProductId); }}
+                onPress={onBuy}
                 disabled={purchasing}
+                accessibilityRole="button"
+                style={({ pressed }) => [s.cta, (pressed || purchasing) && { opacity: 0.88 }]}
               >
-                <LinearGradient
-                  colors={[C.red, '#B82A12']}
-                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                  style={[su.subscribeBtn, purchasing && { opacity: 0.6 }]}
-                >
-                  {purchasing ? <ActivityIndicator size="small" color={C.alwaysLight} /> : (
-                    <>
-                      <Text style={su.subscribeBtnLabel}>Start Free Trial</Text>
-                      <Text style={su.subscribeBtnSub}>7 days free, then {trialPrice} · cancel anytime</Text>
-                    </>
-                  )}
-                </LinearGradient>
+                {purchasing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={s.ctaLabel}>{ctaLabel}</Text>}
               </Pressable>
-
-              <Pressable style={su.restoreBtn} onPress={restorePlan} disabled={purchasing}>
-                <Text style={su.restoreText}>Restore purchases</Text>
-              </Pressable>
+              <Text style={s.ctaSub}>{ctaSub} Cancel any time in your App Store settings.</Text>
             </>
           )}
 
-          <Text style={su.sectionLabel}>What's in Plus</Text>
-          <View style={su.featureCard}>
-            {FEATURES.map((f, i) => (
-              <FeatureRow key={f.name} name={f.name} sub={f.sub} icon={f.icon} live={f.live} isLast={i === FEATURES.length - 1} />
-            ))}
-          </View>
-
-          {!isPremium && (
-            <Text style={su.freeLimitsText}>
-              Free plan: {FREE_LIMITS.join(' · ')}
-            </Text>
-          )}
-
-          <Text style={su.legal}>
-            Cancel anytime. Subscription auto-renews unless cancelled at least 24 hours before the end of the trial or billing period.
+          <Text style={s.legal}>
+            Payment is charged to your Apple or Google account. The subscription renews automatically unless cancelled at least 24 hours before the end of the trial or billing period.
           </Text>
-
-          {/* Apple requires Terms + Privacy visible on the same screen as the
-              purchase button, not just reachable from Settings. */}
-          <View style={su.legalLinksRow}>
+          {/* Apple requires Terms and Privacy on the same screen as the purchase button. */}
+          <View style={s.links}>
             <Pressable onPress={() => Linking.openURL('https://runivo.app/terms')} hitSlop={8}>
-              <Text style={su.legalLink}>Terms of Service</Text>
+              <Text style={s.link}>Terms of Service</Text>
             </Pressable>
-            <Text style={su.legalLinkSep}>·</Text>
+            <Text style={s.linkSep}>·</Text>
             <Pressable onPress={() => Linking.openURL('https://runivo.app/privacy')} hitSlop={8}>
-              <Text style={su.legalLink}>Privacy Policy</Text>
+              <Text style={s.link}>Privacy Policy</Text>
             </Pressable>
           </View>
         </View>
@@ -135,51 +135,35 @@ export default function SubscriptionScreen() {
   );
 }
 
-function mkStyles(C: AppColors) { return StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { paddingBottom: 60 },
-
-  hero: {
-    alignItems: 'center', paddingBottom: 36, paddingHorizontal: 32,
-    borderBottomLeftRadius: 28, borderBottomRightRadius: 28,
-    overflow: 'hidden',
-  },
-  heroTop: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20, marginBottom: 18 },
-  closeBtn: {
-    width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  kicker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-  kickerText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.gold, letterSpacing: 2 },
-  // Thin Barlow, not the italic display face — a light, spacious weight
-  // instead of an editorial-serif or heavy-bold moment.
-  heroTitle: { fontFamily: Fonts.light, fontSize: 36, lineHeight: 40, letterSpacing: -0.3, color: C.alwaysLight, textAlign: 'center', marginBottom: 12 },
-  heroSub: { fontFamily: Fonts.regular, fontSize: 13.5, color: 'rgba(255,255,255,0.55)', textAlign: 'center' },
-
-  content: { paddingHorizontal: Spacing.gutter, paddingTop: 20 },
-
-  planRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-
-  subscribeBtnWrap: { borderRadius: Spacing.radius.lg, marginBottom: 6 },
-  subscribeBtn: {
-    borderRadius: Spacing.radius.lg, paddingVertical: 17, alignItems: 'center',
-    shadowColor: C.red, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 5,
-  },
-  subscribeBtnLabel: { fontFamily: Fonts.bold, fontSize: 16, color: C.alwaysLight, letterSpacing: 0.6 },
-  subscribeBtnSub: { fontFamily: Fonts.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.75)', marginTop: 3 },
-  restoreBtn: { alignItems: 'center', paddingVertical: 12 },
-  restoreText: { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, textDecorationLine: 'underline' },
-
-  sectionLabel: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.t3, letterSpacing: 1.2, textTransform: 'uppercase', marginTop: 26, marginBottom: 4 },
-  featureCard: {
-    backgroundColor: C.card, borderRadius: Spacing.radius.lg, borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 16, marginTop: 8,
-  },
-
-  freeLimitsText: { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t3, marginTop: 12, textAlign: 'center' },
-
-  legal: { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, textAlign: 'center', lineHeight: 16, marginTop: 24 },
-  legalLinksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10 },
-  legalLink: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t2, textDecorationLine: 'underline' },
-  legalLinkSep: { fontFamily: Fonts.regular, fontSize: 10.5, color: C.t3 },
-}); }
+function mkStyles(C: AppColors) {
+  return StyleSheet.create({
+    root:        { flex: 1, backgroundColor: C.bg },
+    heroBlock:   { backgroundColor: C.alwaysDark, paddingHorizontal: Spacing.gutter + 2, paddingBottom: 28 },
+    topRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 },
+    close:       { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+    restorePill: { backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6 },
+    restorePillText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.alwaysLight },
+    eyebrow:     { fontFamily: Fonts.medium, fontSize: 13, color: '#FF9B80' },
+    hero:        { ...Type.hero, fontSize: 52, lineHeight: 50, color: C.alwaysLight, marginTop: 10 },
+    body:        { paddingHorizontal: Spacing.gutter, paddingTop: 18 },
+    table:       {
+      backgroundColor: C.card, borderRadius: Spacing.radius.lg, paddingHorizontal: 16, paddingTop: 4,
+      shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1,
+    },
+    tr:          { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: C.border },
+    trFoot:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 9 },
+    tdLabel:     { flex: 1, fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
+    tdFree:      { width: 64, textAlign: 'center', fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    tdPlus:      { width: 86, textAlign: 'right', fontFamily: Fonts.bold, fontSize: 16, color: C.red },
+    footFree:    { width: 64, textAlign: 'center', fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+    footPlus:    { width: 86, textAlign: 'right', fontFamily: Fonts.medium, fontSize: 12, color: C.t1 },
+    plans:       { flexDirection: 'row', gap: 10, marginTop: 16 },
+    cta:         { marginTop: 14, height: 56, borderRadius: 999, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+    ctaLabel:    { fontFamily: Fonts.semiBold, fontSize: 16, color: '#FFFFFF' },
+    ctaSub:      { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 18, color: C.t2, textAlign: 'center', marginTop: 10 },
+    legal:       { fontFamily: Fonts.regular, fontSize: 11.5, lineHeight: 16, color: C.t3, textAlign: 'center', marginTop: 18 },
+    links:       { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10 },
+    link:        { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textDecorationLine: 'underline' },
+    linkSep:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
+  });
+}

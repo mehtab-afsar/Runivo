@@ -1,0 +1,105 @@
+diff --git a/node_modules/@maplibre/maplibre-react-native/lib/commonjs/utils/animated/AnimatedPoint.js b/node_modules/@maplibre/maplibre-react-native/lib/commonjs/utils/animated/AnimatedPoint.js
+index 154d829..6c82c9b 100644
+--- a/node_modules/@maplibre/maplibre-react-native/lib/commonjs/utils/animated/AnimatedPoint.js
++++ b/node_modules/@maplibre/maplibre-react-native/lib/commonjs/utils/animated/AnimatedPoint.js
+@@ -25,7 +25,7 @@ class AnimatedPoint extends AnimatedWithChildren {
+     if (!(this.latitude instanceof _reactNative.Animated.Value)) {
+       this.latitude = new _reactNative.Animated.Value(this.latitude);
+     }
+-    this._listeners = {};
++    this._pointListeners = {};
+   }
+   setValue(point = DEFAULT_POINT) {
+     this.longitude.setValue(point.coordinates[0]);
+@@ -54,16 +54,16 @@ class AnimatedPoint extends AnimatedWithChildren {
+         cb(this.__getValue());
+       }
+     };
+-    this._listeners[id] = {
++    this._pointListeners[id] = {
+       longitude: this.longitude.addListener(completeCB),
+       latitude: this.latitude.addListener(completeCB)
+     };
+     return id;
+   }
+   removeListener(id) {
+-    this.longitude.removeListener(this._listeners[id].longitude);
+-    this.latitude.removeListener(this._listeners[id].latitude);
+-    delete this._listeners[id];
++    this.longitude.removeListener(this._pointListeners[id].longitude);
++    this.latitude.removeListener(this._pointListeners[id].latitude);
++    delete this._pointListeners[id];
+   }
+   spring(config = {
+     coordinates: DEFAULT_COORD
+diff --git a/node_modules/@maplibre/maplibre-react-native/lib/module/utils/animated/AnimatedPoint.js b/node_modules/@maplibre/maplibre-react-native/lib/module/utils/animated/AnimatedPoint.js
+index cf0e89c..6a2d1f2 100644
+--- a/node_modules/@maplibre/maplibre-react-native/lib/module/utils/animated/AnimatedPoint.js
++++ b/node_modules/@maplibre/maplibre-react-native/lib/module/utils/animated/AnimatedPoint.js
+@@ -22,7 +22,7 @@ export class AnimatedPoint extends AnimatedWithChildren {
+     if (!(this.latitude instanceof Animated.Value)) {
+       this.latitude = new Animated.Value(this.latitude);
+     }
+-    this._listeners = {};
++    this._pointListeners = {};
+   }
+   setValue(point = DEFAULT_POINT) {
+     this.longitude.setValue(point.coordinates[0]);
+@@ -51,16 +51,16 @@ export class AnimatedPoint extends AnimatedWithChildren {
+         cb(this.__getValue());
+       }
+     };
+-    this._listeners[id] = {
++    this._pointListeners[id] = {
+       longitude: this.longitude.addListener(completeCB),
+       latitude: this.latitude.addListener(completeCB)
+     };
+     return id;
+   }
+   removeListener(id) {
+-    this.longitude.removeListener(this._listeners[id].longitude);
+-    this.latitude.removeListener(this._listeners[id].latitude);
+-    delete this._listeners[id];
++    this.longitude.removeListener(this._pointListeners[id].longitude);
++    this.latitude.removeListener(this._pointListeners[id].latitude);
++    delete this._pointListeners[id];
+   }
+   spring(config = {
+     coordinates: DEFAULT_COORD
+diff --git a/node_modules/@maplibre/maplibre-react-native/src/utils/animated/AnimatedPoint.ts b/node_modules/@maplibre/maplibre-react-native/src/utils/animated/AnimatedPoint.ts
+index d8d37d7..82678cb 100644
+--- a/node_modules/@maplibre/maplibre-react-native/src/utils/animated/AnimatedPoint.ts
++++ b/node_modules/@maplibre/maplibre-react-native/src/utils/animated/AnimatedPoint.ts
+@@ -24,7 +24,9 @@ export class AnimatedPoint extends AnimatedWithChildren {
+       this.latitude = new Animated.Value(this.latitude);
+     }
+ 
+-    this._listeners = {};
++    // Own field: React Native 0.80+ keeps a Map in _listeners and calls
++    // .forEach on it every animation frame; overwriting it with {} threw.
++    this._pointListeners = {};
+   }
+ 
+   setValue(point = DEFAULT_POINT): void {
+@@ -61,7 +63,7 @@ export class AnimatedPoint extends AnimatedWithChildren {
+       }
+     };
+ 
+-    this._listeners[id] = {
++    this._pointListeners[id] = {
+       longitude: this.longitude.addListener(completeCB),
+       latitude: this.latitude.addListener(completeCB),
+     };
+@@ -70,9 +72,9 @@ export class AnimatedPoint extends AnimatedWithChildren {
+   }
+ 
+   removeListener(id: string): void {
+-    this.longitude.removeListener(this._listeners[id].longitude);
+-    this.latitude.removeListener(this._listeners[id].latitude);
+-    delete this._listeners[id];
++    this.longitude.removeListener(this._pointListeners[id].longitude);
++    this.latitude.removeListener(this._pointListeners[id].latitude);
++    delete this._pointListeners[id];
+   }
+ 
+   spring(

@@ -1,3 +1,4 @@
+import { PlusOnlyCoach } from '../components/PaceXLocked';
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -50,7 +51,12 @@ function SessionRow({ session, C, s }: {
   );
 }
 
+/** PaceX is a Runivo Plus feature (PRD); free runners see what it offers. */
 export default function CoachPlanScreen() {
+  return <PlusOnlyCoach><CoachPlanScreenInner /></PlusOnlyCoach>;
+}
+
+function CoachPlanScreenInner() {
   const C        = useTheme();
   const s        = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation();
@@ -65,7 +71,7 @@ export default function CoachPlanScreen() {
       {/* Header */}
       <View style={[s.header, { paddingTop: Platform.OS === 'android' ? 12 : 0 }]}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={18} color={C.t2} weight="regular" />
+          <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <View style={{ flex: 1 }}>
           <Text style={s.title}>Training Plan</Text>
@@ -140,9 +146,9 @@ function mkStyles(C: AppColors) {
     header:      { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingBottom: 12, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
     backBtn:     { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginRight: 4, marginTop: 2 },
     title:       { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
-    subtitle:    { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+    subtitle:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     weekBadge:   { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: 'rgba(217,53,24,0.2)', marginTop: 2 },
-    weekBadgeText: { fontFamily: Fonts.semiBold, fontSize: 10, color: C.red, fontVariant: ['tabular-nums'] },
+    weekBadgeText: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.red, fontVariant: ['tabular-nums'] },
     center:      { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 12 },
     emptyTitle:  { fontFamily: Fonts.medium, fontSize: 14, color: C.black },
     emptyText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center', lineHeight: 20 },
@@ -153,7 +159,7 @@ function mkStyles(C: AppColors) {
     summaryStats:{ flexDirection: 'row', paddingVertical: 12 },
     stat:        { flex: 1, alignItems: 'center' },
     statNum:     { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, fontVariant: ['tabular-nums'] },
-    statLabel:   { fontFamily: Fonts.regular, fontSize: 10, color: C.t3, marginTop: 2 },
+    statLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     statDiv:     { width: 0.5, backgroundColor: C.border },
     // Session rows
     row:         { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingVertical: 14, backgroundColor: C.card },
@@ -163,7 +169,7 @@ function mkStyles(C: AppColors) {
     dayToday:    { color: C.red },
     todayDot:    { width: 4, height: 4, borderRadius: 2, backgroundColor: C.red },
     typePill:    { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, flexShrink: 0 },
-    typeText:    { fontFamily: Fonts.medium, fontSize: 10, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+    typeText:    { fontFamily: Fonts.medium, fontSize: 11 },
     desc:        { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: C.black, lineHeight: 18 },
     separator:   { height: 0.5, backgroundColor: C.mid, marginLeft: 18 },
   });

@@ -1,5 +1,29 @@
+/**
+ * claimEngine — the app's entry points for territory and PACE.
+ *
+ * Every rule lives in ../engine/runEngine.ts, which the server runs too
+ * (supabase/functions/_shared/runEngine.ts is a byte-for-byte copy). This file
+ * only adapts it to the shapes the app already uses, so a number the app shows
+ * after a run is the number the server pays.
+ */
 import { GAME_CONFIG } from './config';
 import type { TerritoryPolygon, TerritoryTier, RunnerRank } from '../types/game';
+import {
+  ENGINE,
+  buildTerritoryShape,
+  cleanPoints,
+  computeRunPace,
+  coverageAreaM2,
+  decayedFreshness,
+  findLoopStart,
+  haversineM as engineHaversineM,
+  rankFor,
+  ringAreaM2,
+  tierForArea,
+  zoneScore,
+  type EnginePoint,
+  type LngLat,
+} from '../engine/runEngine';
 
 // ── Event types for live HUD ───────────────────────────────────────────────────
 
@@ -11,17 +35,6 @@ export interface ClaimEvent {
   timestamp: number;
 }
 
-// ── GPS point types ────────────────────────────────────────────────────────────
-
-interface RawGPSPoint {
-  lat: number;
-  lng: number;
-  timestamp: number;
-  speed: number;
-  accuracy: number;
-  altitude: number;
-}
-
 export interface ValidGPSPoint {
   lat: number;
   lng: number;
@@ -29,10 +42,10 @@ export interface ValidGPSPoint {
   speed: number;
 }
 
-// ── Result types ───────────────────────────────────────────────────────────────
-
 export interface TerritoryBuildResult {
-  polygon: [number, number][];  // closed ring [lng, lat][]
+  /** Closed ring [lng, lat][] the app draws until the server's shape arrives. */
+  polygon: [number, number][];
+  /** App estimate; replaced by the server's measured area after sync. */
   areaM2: number;
   isLoopFill: boolean;
   tier: TerritoryTier;
@@ -49,358 +62,144 @@ export interface RunPACEResult {
   cappedAt?: number;
 }
 
-// ── Haversine distance ─────────────────────────────────────────────────────────
-// Canonical implementation — this was duplicated (with varying signatures: object
-// args here vs. 4 loose lat/lng numbers elsewhere) across useActiveRun.ts,
-// RunScreen.tsx, and routeNavigation.ts. Exported so all three can import instead
-// of re-implementing.
+// ── Geometry ───────────────────────────────────────────────────────────────────
 
 export function haversineM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const R = 6_371_000;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLng = (b.lng - a.lng) * Math.PI / 180;
-  const s = Math.sin(dLat / 2) ** 2
-          + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(s));
+  return engineHaversineM(a, b);
 }
 
-// ── GPS filter: accuracy + anti-spoof variance check ──────────────────────────
-
-export function filterGPSPoints(points: RawGPSPoint[]): ValidGPSPoint[] {
-  const accurate = points.filter(p => p.accuracy <= GAME_CONFIG.GPS_ACCURACY_THRESHOLD_M);
-  if (accurate.length < 4) return [];
-
-  const lats = accurate.map(p => p.lat);
-  const mean = lats.reduce((s, v) => s + v, 0) / lats.length;
-  const variance = lats.reduce((s, v) => s + (v - mean) ** 2, 0) / lats.length;
-  if (variance < GAME_CONFIG.GPS_VARIANCE_MIN * 1e-10) return [];
-
-  return accurate.map(p => ({ lat: p.lat, lng: p.lng, timestamp: p.timestamp, speed: p.speed }));
+/** Area of a closed [lng, lat] ring in m². */
+export function polygonAreaM2(ring: [number, number][]): number {
+  return ringAreaM2(ring as LngLat[]);
 }
 
-// ── Speed gate: split run into sub-5.5 m/s segments ──────────────────────────
-
-export function stripFastSegments(points: ValidGPSPoint[]): ValidGPSPoint[][] {
-  const segments: ValidGPSPoint[][] = [];
-  let current: ValidGPSPoint[] = [];
-
-  for (const p of points) {
-    if (p.speed <= GAME_CONFIG.MAX_RUN_SPEED_MS) {
-      current.push(p);
-    } else {
-      if (current.length >= 3) segments.push(current);
-      current = [];
-    }
-  }
-  if (current.length >= 3) segments.push(current);
-  return segments;
-}
-
-// ── 1D Kalman smoother on lat + lng ───────────────────────────────────────────
-
-export function kalmanSmooth(points: ValidGPSPoint[]): ValidGPSPoint[] {
+/**
+ * Light smoothing for drawing the live trail only. Never used for distance or
+ * territory: smoothing shrinks a route depending on GPS spacing.
+ */
+export function kalmanSmooth<T extends { lat: number; lng: number }>(points: T[]): T[] {
   if (points.length === 0) return [];
-  const Q = 1e-5; // process noise
-  const R = 1e-4; // measurement noise
-
+  const Q = 1e-5;
+  const R = 1e-4;
   let latEst = points[0].lat;
   let lngEst = points[0].lng;
   let P = 1.0;
-
   return points.map(p => {
     const Pp = P + Q;
-    const K  = Pp / (Pp + R);
-    latEst   = latEst + K * (p.lat - latEst);
-    lngEst   = lngEst + K * (p.lng - lngEst);
-    P        = (1 - K) * Pp;
+    const K = Pp / (Pp + R);
+    latEst = latEst + K * (p.lat - latEst);
+    lngEst = lngEst + K * (p.lng - lngEst);
+    P = (1 - K) * Pp;
     return { ...p, lat: latEst, lng: lngEst };
   });
 }
 
-// ── Polygon area — shoelace formula in m² ─────────────────────────────────────
-
-export function polygonAreaM2(ring: [number, number][]): number {
-  const n = ring.length;
-  if (n < 3) return 0;
-  const LAT_M = GAME_CONFIG.METERS_PER_DEGREE_LAT;
-  // Use relative coordinates to avoid catastrophic cancellation when absolute
-  // lat/lng values (e.g. 51.5 * 111320 ≈ 5.7M) dwarf the polygon dimensions.
-  const refLng = ring[0][0];
-  const refLat = ring[0][1];
-  let area = 0;
-  for (let i = 0; i < n; i++) {
-    const [lng1, lat1] = ring[i];
-    const [lng2, lat2] = ring[(i + 1) % n];
-    const LNG_M = LAT_M * Math.cos(((lat1 + lat2) / 2) * Math.PI / 180);
-    const x1 = (lng1 - refLng) * LNG_M;
-    const y1 = (lat1 - refLat) * LAT_M;
-    const x2 = (lng2 - refLng) * LNG_M;
-    const y2 = (lat2 - refLat) * LAT_M;
-    area += x1 * y2 - x2 * y1;
-  }
-  return Math.abs(area) / 2;
-}
-
-// ── Corridor polygon builder: ±widthM perpendicular to GPS trace ──────────────
-
-export function buildCorridorPolygon(
-  segment: ValidGPSPoint[],
-  widthM: number = GAME_CONFIG.CORRIDOR_WIDTH_M,
-): [number, number][] {
-  if (segment.length < 2) return [];
-  const LAT_M = GAME_CONFIG.METERS_PER_DEGREE_LAT;
-  const refLat = segment[0].lat;
-  const LNG_M  = LAT_M * Math.cos(refLat * Math.PI / 180);
-  const dLat   = widthM / LAT_M;
-  const dLng   = widthM / LNG_M;
-
-  const left:  [number, number][] = [];
-  const right: [number, number][] = [];
-
-  for (let i = 0; i < segment.length; i++) {
-    const prev = segment[Math.max(0, i - 1)];
-    const next = segment[Math.min(segment.length - 1, i + 1)];
-    // Miter guard: on a hairpin (heading change > 90°) the averaged tangent flips
-    // the offset to the wrong side and the ribbon self-intersects (bow-tie).
-    // Skip the offset pair for such interior points — the neighbours bridge the gap.
-    if (i > 0 && i < segment.length - 1) {
-      const inE  = (segment[i].lng - prev.lng) * LNG_M;
-      const inN  = (segment[i].lat - prev.lat) * LAT_M;
-      const outE = (next.lng - segment[i].lng) * LNG_M;
-      const outN = (next.lat - segment[i].lat) * LAT_M;
-      if (inE * outE + inN * outN < 0) continue;
-    }
-    const dlat = (next.lat - prev.lat) / LAT_M;
-    const dlng = (next.lng - prev.lng) / LNG_M;
-    const len  = Math.sqrt(dlat * dlat + dlng * dlng) || 1;
-    // Perpendicular unit vector: tangent in (east, north) = (dlng, dlat),
-    // so left-perp (CCW 90°) in (east, north) = (-dlat, dlng).
-    const px   = -dlat / len;  // east (lng) component of perp
-    const py   =  dlng / len;  // north (lat) component of perp
-    left.push( [segment[i].lng + px * dLng, segment[i].lat + py * dLat]);
-    right.push([segment[i].lng - px * dLng, segment[i].lat - py * dLat]);
-  }
-
-  return [...left, ...[...right].reverse(), left[0]];
-}
-
-// ── Convex hull (Graham scan) for loop-fill ───────────────────────────────────
-
-export function buildConvexHull(points: ValidGPSPoint[]): [number, number][] {
-  const pts: [number, number][] = points.map(p => [p.lng, p.lat]);
-  if (pts.length < 3) return [...pts, pts[0]];
-
-  pts.sort((a, b) => a[1] !== b[1] ? a[1] - b[1] : a[0] - b[0]);
-  const pivot = pts[0];
-
-  function cross(O: [number, number], A: [number, number], B: [number, number]): number {
-    return (A[0] - O[0]) * (B[1] - O[1]) - (A[1] - O[1]) * (B[0] - O[0]);
-  }
-
-  const rest = pts.slice(1).sort((a, b) => {
-    const dA = Math.atan2(a[1] - pivot[1], a[0] - pivot[0]);
-    const dB = Math.atan2(b[1] - pivot[1], b[0] - pivot[0]);
-    if (dA !== dB) return dA - dB;
-    // Collinear with the pivot — nearer point first (standard Graham scan
-    // tie-break; without it equal-angle points can produce a self-intersecting hull).
-    const distA = (a[0] - pivot[0]) ** 2 + (a[1] - pivot[1]) ** 2;
-    const distB = (b[0] - pivot[0]) ** 2 + (b[1] - pivot[1]) ** 2;
-    return distA - distB;
-  });
-
-  const hull: [number, number][] = [pivot];
-  for (const p of rest) {
-    while (hull.length >= 2 && cross(hull[hull.length - 2], hull[hull.length - 1], p) <= 0) {
-      hull.pop();
-    }
-    hull.push(p);
-  }
-  hull.push(hull[0]);
-  return hull;
-}
-
-// ── Loop-fill decision ────────────────────────────────────────────────────────
-
-export function shouldLoopFill(
-  allPoints: ValidGPSPoint[],
-  fillPolygon: [number, number][],
-): boolean {
-  if (allPoints.length < GAME_CONFIG.MIN_GPS_POINTS) return false;
-  const start = allPoints[0];
-  const end   = allPoints[allPoints.length - 1];
-  if (haversineM(start, end) > GAME_CONFIG.LOOP_CLOSE_DIST_M) return false;
-  // The cap must be tested against the polygon that would actually be claimed
-  // (the convex hull) — capping on the corridor area would leave the hull unbounded.
-  const area = polygonAreaM2(fillPolygon);
-  return area > 0 && area < GAME_CONFIG.LOOP_MAX_AREA_M2;
-}
-
-// ── RDP simplification ────────────────────────────────────────────────────────
-
-function ptLineDist(p: [number, number], a: [number, number], b: [number, number]): number {
-  const dx = b[0] - a[0];
-  const dy = b[1] - a[1];
-  if (dx === 0 && dy === 0) return Math.hypot(p[0] - a[0], p[1] - a[1]);
-  const t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)));
-  return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy));
-}
-
-function rdp(pts: [number, number][], eps: number): [number, number][] {
-  if (pts.length <= 2) return pts;
-  let maxD = 0, maxI = 0;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const d = ptLineDist(pts[i], pts[0], pts[pts.length - 1]);
-    if (d > maxD) { maxD = d; maxI = i; }
-  }
-  if (maxD > eps) {
-    return [
-      ...rdp(pts.slice(0, maxI + 1), eps).slice(0, -1),
-      ...rdp(pts.slice(maxI), eps),
-    ];
-  }
-  return [pts[0], pts[pts.length - 1]];
-}
-
-export function rdpSimplify(polygon: [number, number][], epsilon = 0.00003): [number, number][] {
-  if (polygon.length <= 4) return polygon;
-  const open = polygon.slice(0, -1);
-  const simplified = rdp(open, epsilon);
-  return [...simplified, simplified[0]];
-}
-
-// ── Tier from area ─────────────────────────────────────────────────────────────
-
-// Thresholds MUST match computeTierFromArea in the process-run-territory edge
-// function — the server is the authoritative claim path and re-derives the tier.
 export function computeTier(areaM2: number): TerritoryTier {
-  if (areaM2 < 5_000)   return 'patch';
-  if (areaM2 < 50_000)  return 'block';
-  if (areaM2 < 200_000) return 'district';
-  if (areaM2 < 500_000) return 'quarter';
-  return 'domain';
+  return tierForArea(areaM2);
 }
 
-// ── Main territory builder ────────────────────────────────────────────────────
+// ── Territory ──────────────────────────────────────────────────────────────────
 
+/**
+ * The territory a finished run claims, or null. Same rules as the server:
+ * on foot only (run, trail run, walk, hike), at least 200 m, a loop claims its inside plus the strip along
+ * the route, anything else claims the 24 m strip.
+ */
 export function buildTerritoryPolygon(
-  rawPoints: { lat: number; lng: number; timestamp: number; speed: number; accuracy: number; altitude: number }[],
+  rawPoints: EnginePoint[],
   activityType: string,
 ): TerritoryBuildResult | null {
-  if (activityType !== 'run') return null;
-  if (rawPoints.length < GAME_CONFIG.MIN_GPS_POINTS) return null;
-
-  const filtered = filterGPSPoints(rawPoints);
-  if (filtered.length < GAME_CONFIG.MIN_GPS_POINTS) return null;
-
-  let totalDist = 0;
-  for (let i = 1; i < filtered.length; i++) {
-    totalDist += haversineM(filtered[i - 1], filtered[i]);
-  }
-  if (totalDist < GAME_CONFIG.MIN_TERRITORY_DIST_M) return null;
-
-  const segments = stripFastSegments(filtered);
-  if (segments.length === 0) return null;
-
-  const smoothed    = segments.map(kalmanSmooth);
-  const allSmoothed = smoothed.flat();
-  if (allSmoothed.length < 4) return null;
-
-  const longestSegment = smoothed.reduce((a, b) => a.length > b.length ? a : b);
-  const corridor       = buildCorridorPolygon(longestSegment);
-  const hull           = buildConvexHull(allSmoothed);
-  const isLoopFill     = shouldLoopFill(allSmoothed, hull);
-  const rawPolygon     = isLoopFill ? hull : corridor;
-  const polygon        = rdpSimplify(rawPolygon);
-  const areaM2         = polygonAreaM2(polygon);
-
-  if (areaM2 < 100) return null;
-
-  return { polygon, areaM2, isLoopFill, tier: computeTier(areaM2) };
+  const shape = buildTerritoryShape(rawPoints, activityType);
+  if (!shape) return null;
+  return {
+    polygon: shape.displayRing,
+    areaM2: shape.estimatedAreaM2,
+    isLoopFill: shape.kind === 'loop',
+    tier: shape.tier,
+  };
 }
 
-// ── PACE calculator ───────────────────────────────────────────────────────────
+// ── PACE ───────────────────────────────────────────────────────────────────────
 
+/**
+ * PACE for one run, as the server will pay it. `distanceKm` should be the
+ * run's recorded distance; `streakAdvanced` is whether this run moved the
+ * streak (only the day's first meaningful run does).
+ */
 export function calculateRunPACE(params: {
   distanceKm: number;
   newZonesClaimed: number;
   stolenZones: number;
   streakDays: number;
+  streakAdvanced?: boolean;
   paceWeeklyEarned: number;
-  isPremium: boolean;
+  tier?: string | null;
+  /** @deprecated pass `tier`; kept so older call sites still compile. */
+  isPremium?: boolean;
+  /** Rides earn no PACE. Omitted means a run. */
+  activityType?: string;
 }): RunPACEResult {
-  const { distanceKm, newZonesClaimed, stolenZones, streakDays, paceWeeklyEarned, isPremium } = params;
-  const cap       = isPremium ? GAME_CONFIG.PACE_WEEKLY_CAP_PREMIUM : GAME_CONFIG.PACE_WEEKLY_CAP_FREE;
-  const remaining = Math.max(0, cap - paceWeeklyEarned);
-
-  const fromDistance    = Math.floor(distanceKm * GAME_CONFIG.PACE_PER_KM);
-  const fromNewZones    = newZonesClaimed * GAME_CONFIG.PACE_PER_NEW_ZONE;
-  const fromStolenZones = stolenZones    * GAME_CONFIG.PACE_PER_STOLEN_ZONE;
-  // Weekly milestone bonus (7th, 14th, 21st... streak day) — must match the
-  // server's rule exactly (process-run-territory/index.ts's streakBonus calc,
-  // which is authoritative via apply_pace_adjustment). This used to award the
-  // bonus on ANY day with an active streak (streakDays > 0), which is true for
-  // nearly every run once a streak exists — the optimistic local credit showed
-  // +3 that then silently vanished on every non-multiple-of-7 day once the
-  // server's sync reconciliation corrected it down, and the ~3 PACE gap tripped
-  // the anti-cheat discrepancy log (threshold 2) on almost every streak day.
-  const fromStreak      = streakDays > 0 && streakDays % 7 === 0 ? GAME_CONFIG.PACE_STREAK_BONUS : 0;
-
-  const raw       = fromDistance + fromNewZones + fromStolenZones + fromStreak;
-  const paceEarned = Math.min(raw, remaining);
-
+  const tier = params.tier ?? (params.isPremium ? 'premium' : 'free');
+  const r = computeRunPace({
+    distanceM: params.distanceKm * 1000,
+    newZones: params.newZonesClaimed,
+    stolenZones: params.stolenZones,
+    streakAdvanced: params.streakAdvanced ?? true,
+    streakDays: params.streakDays,
+    weeklyEarned: params.paceWeeklyEarned,
+    tier,
+    activityType: params.activityType,
+  });
   return {
-    paceEarned,
-    breakdown: { fromDistance, fromNewZones, fromStolenZones, fromStreak },
-    cappedAt: paceEarned < raw ? cap : undefined,
+    paceEarned: r.total,
+    breakdown: {
+      fromDistance: r.breakdown.distance,
+      fromNewZones: r.breakdown.newZones,
+      fromStolenZones: r.breakdown.stolenZones,
+      fromStreak: r.breakdown.streak,
+    },
+    cappedAt: r.capped ? r.cap : undefined,
   };
 }
 
-// ── Freshness decay (computed lazily on read) ──────────────────────────────────
+// ── Freshness, score, rank ─────────────────────────────────────────────────────
 
 export function computeFreshness(lastDefendedAt: string, storedFreshness: number): number {
-  const daysSince = (Date.now() - new Date(lastDefendedAt).getTime()) / GAME_CONFIG.MS_PER_DAY;
-  const decayed   = storedFreshness - Math.floor(daysSince * GAME_CONFIG.FRESHNESS_DECAY_PER_DAY);
-  return Math.max(0, decayed);
+  return decayedFreshness(storedFreshness, new Date(lastDefendedAt).getTime(), Date.now());
 }
 
-// ── Territory Score ────────────────────────────────────────────────────────────
-
-// alreadyDecayed: pass true when the caller already ran computeFreshness on each
-// polygon (e.g. the territory map screen decays for display before this is called) —
-// otherwise decaying again here from the same lastDefendedAt double-applies the decay
-// and produces a different (lower) score than callers who pass raw stored values.
+/**
+ * Territory score: each zone's area weighted by how fresh it is.
+ * Pass alreadyDecayed when the caller ran computeFreshness on each zone.
+ */
 export function computeTerritoryScore(polygons: TerritoryPolygon[], alreadyDecayed = false): number {
-  const { TS_FRESHNESS_SCALE_MIN: MIN, TS_FRESHNESS_SCALE_MAX: MAX } = GAME_CONFIG;
   return polygons.reduce((sum, t) => {
     const fresh = alreadyDecayed ? t.freshness : computeFreshness(t.lastDefendedAt, t.freshness);
-    const scale = MIN + (fresh / 100) * (MAX - MIN);
-    return sum + t.areaM2 * scale;
+    return sum + zoneScore(t.areaM2, fresh);
   }, 0);
 }
 
-// ── Runner Rank ────────────────────────────────────────────────────────────────
-
 export function computeRunnerRank(totalPaceEarned: number): RunnerRank {
-  const t = GAME_CONFIG.RUNNER_RANK_THRESHOLDS;
-  if (totalPaceEarned >= t.sovereign) return 'sovereign';
-  if (totalPaceEarned >= t.hunter)   return 'hunter';
-  if (totalPaceEarned >= t.chaser)   return 'chaser';
-  if (totalPaceEarned >= t.strider)  return 'strider';
-  return 'pacer';
+  return rankFor(totalPaceEarned);
 }
 
-// ── Live HUD estimators ────────────────────────────────────────────────────────
+// ── Live HUD ───────────────────────────────────────────────────────────────────
 
+/**
+ * Ground the run would claim if it ended now, using the same shape rules as
+ * the finished run. Before 200 m it shows the strip so far, so the number
+ * grows from the first step instead of jumping.
+ */
 export function estimateLiveArea(
-  bufferedPoints: ValidGPSPoint[],
+  bufferedPoints: (ValidGPSPoint & { accuracy?: number })[],
   activityType: string,
 ): number {
-  if (activityType !== 'run' || bufferedPoints.length < 4) return 0;
-  const segs = stripFastSegments(bufferedPoints);
-  if (segs.length === 0) return 0;
-  const longest  = segs.reduce((a, b) => a.length > b.length ? a : b);
-  const corridor = buildCorridorPolygon(longest);
-  return polygonAreaM2(corridor);
+  if (!ENGINE.TERRITORY_ACTIVITIES.includes(activityType as 'run') || bufferedPoints.length < 2) return 0;
+  const shape = buildTerritoryShape(bufferedPoints, activityType);
+  if (shape) return shape.estimatedAreaM2;
+  const clean = cleanPoints(bufferedPoints);
+  if (clean.length < 2) return 0;
+  return coverageAreaM2(clean.map(p => [p.lng, p.lat] as LngLat), null);
 }
 
 export function isNearRivalTerritory(
@@ -411,16 +210,24 @@ export function isNearRivalTerritory(
 ): boolean {
   return cachedPolygons.some(t =>
     t.polygon.some(([pLng, pLat]) =>
-      Math.abs(pLat - lat) < radiusDeg && Math.abs(pLng - lng) < radiusDeg
-    )
+      Math.abs(pLat - lat) < radiusDeg && Math.abs(pLng - lng) < radiusDeg,
+    ),
   );
 }
 
+/**
+ * True when the runner is back within 100 m of an earlier part of the route,
+ * with enough of a lap behind them to enclose ground. Pass the trace to use
+ * the same test the finished run uses; with only start/current it falls back
+ * to "near the start".
+ */
 export function detectLoopClose(
   current: { lat: number; lng: number },
   start: { lat: number; lng: number },
   minRunDistM: number,
+  trace?: { lat: number; lng: number }[],
 ): boolean {
   if (minRunDistM < GAME_CONFIG.MIN_TERRITORY_DIST_M) return false;
-  return haversineM(current, start) <= GAME_CONFIG.LOOP_CLOSE_DIST_M;
+  if (trace && trace.length >= 3) return findLoopStart(trace) >= 0;
+  return haversineM(current, start) <= ENGINE.LOOP_CLOSE_DIST_M;
 }

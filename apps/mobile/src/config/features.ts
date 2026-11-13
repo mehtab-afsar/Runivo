@@ -32,7 +32,8 @@ export const FEATURES = {
   // gated behind this flag via setAiCoachEnabled() (App.tsx → sync.ts), so
   // flipping this is now what actually turns the feature on end-to-end.
   AI_COACH:          true,
-  NUTRITION_TRACKER: true,
+  // v2 per the PRD; built, but off for launch.
+  NUTRITION_TRACKER: false,
 } as const;
 
 export const FEATURE_LABELS: Partial<Record<keyof typeof FEATURES, string>> = {

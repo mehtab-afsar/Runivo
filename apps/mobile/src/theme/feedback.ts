@@ -16,4 +16,7 @@ export const feedback = {
   },
   paceCap:     () => { haptic.success(); playSound('pace_cap'); },
   rivalNearby: () => { haptic.warning(); playSound('rival_nearby'); },
+  // Workout mode (training plans): a new step, and a nudge when off the target pace.
+  workoutStep: () => { haptic.heavy();   playSound('run_start'); },
+  workoutPace: () => { haptic.warning(); },
 } as const;

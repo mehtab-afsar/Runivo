@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNearbyZones } from '../hooks/useNearbyZones';
+import { sportFor } from '../constants/activities';
 import { View, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { getSettings, saveRun, type StoredRun } from '@shared/services/store';
+import { getSettings, getPlayer, saveRun, type StoredRun } from '@shared/services/store';
+import { isPlus } from '@shared/engine/entitlements';
 import { postRunSync } from '@shared/services/sync';
 import { useTheme, useIsDark, type AppColors } from '@theme';
 import { mapStyleUrlFor } from '@theme/maps';
@@ -65,17 +68,17 @@ async function recoverRunFromCheckpoint(
   clearBgGpsBuffer(runId);
 }
 
-function gpsColor(status: string, acc: number | null): string {
-  if (status === 'error') return '#EF4444';
-  if (status === 'searching' || acc === null) return '#D1D5DB';
-  if (acc < 20) return '#22C55E';
-  return acc < 50 ? '#F59E0B' : '#F87171';
+function gpsColor(C: AppColors, status: string, acc: number | null): string {
+  if (status === 'error') return C.red;
+  if (status === 'searching' || acc === null) return C.t3;
+  if (acc < 20) return C.green;
+  return C.amber;
 }
 function gpsLabel(status: string, acc: number | null): string {
-  if (status === 'error') return 'GPS Error';
-  if (status === 'searching' || acc === null) return 'Locating...';
-  if (acc < 20) return 'GPS Strong';
-  return acc < 50 ? 'GPS OK' : 'GPS Weak';
+  if (status === 'error') return 'GPS error';
+  if (status === 'searching' || acc === null) return 'Finding GPS…';
+  if (acc < 20) return 'GPS strong';
+  return acc < 50 ? 'GPS OK' : 'GPS weak';
 }
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -87,6 +90,7 @@ export default function RunScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [mapStyle, setMapStyle] = useState(() => mapStyleUrlFor(undefined, isDark));
+  const [plus, setPlus] = useState(false);
 
   useEffect(() => {
     // mapStyleUrlFor resolves Terrain/Satellite to their real raster styles.
@@ -97,18 +101,24 @@ export default function RunScreen() {
     // Passing isDark means: if the user has never explicitly picked a map style,
     // default to dark/light matching the app's own theme instead of always light.
     // An explicit past choice (including a light one) still wins either way.
-    getSettings().then(s => setMapStyle(mapStyleUrlFor(s.mapStyle, isDark)));
+    // Terrain and Satellite are Plus: a saved one falls back once Plus lapses.
+    Promise.all([getSettings(), getPlayer()]).then(([s, p]) => {
+      const hasPlus = isPlus(p?.subscriptionTier);
+      setPlus(hasPlus);
+      setMapStyle(mapStyleUrlFor(s.mapStyle, isDark, hasPlus));
+    }).catch(() => {});
   }, [isDark]);
 
   const {
     activityType, setActivityType, gps, intel,
     savedRoutes, nearbyRoutes, nearbyLoading,
-    selectedRoute, setSelectedRoute,
+    selectedRoute, setSelectedRoute, todaySession,
     showActivityModal, setShowActivityModal,
     showRouteModal, setShowRouteModal,
     sheetAnim, panResponder,
     openRouteModal, findNearby, startRun,
   } = useRunSetup();
+  const nearbyLine = useNearbyZones(gps.status === 'ready' && gps.lat != null && gps.lng != null ? { lat: gps.lat, lng: gps.lng } : null, sportFor(activityType).claims);
 
   const pacer = useBeatPacer();
 
@@ -124,7 +134,7 @@ export default function RunScreen() {
       }
       const km = (cp.points.length * 3 / 1000).toFixed(1);
       Alert.alert(
-        'Interrupted Run Found',
+        'Interrupted run found',
         `A run was interrupted (~${km} km of GPS data). Recover it?`,
         [
           { text: 'Discard', style: 'destructive', onPress: () => {
@@ -151,11 +161,13 @@ export default function RunScreen() {
         gpsAccuracy={gps.accuracy}
         mapStyle={mapStyle}
         onMapStyleChange={setMapStyle}
+        plus={plus}
+        onLockedStyle={() => navigation.navigate('Subscription', { reason: 'map_styles' })}
         sheetAnim={sheetAnim}
         topInset={insets.top}
         intelEnemy={intel.enemy}
         intelWeak={intel.weak}
-        gpsColor={gpsColor(gps.status, gps.accuracy)}
+        gpsColor={gpsColor(C, gps.status, gps.accuracy)}
         gpsLabel={gpsLabel(gps.status, gps.accuracy)}
         onClose={() => navigation.navigate('Main', { screen: 'Dashboard' })}
       />
@@ -172,7 +184,9 @@ export default function RunScreen() {
         onPacerToggle={() => pacer.setEnabled(!pacer.enabled)}
         onPacerPaceChange={p => pacer.setPace(p)}
         onActivityPress={() => setShowActivityModal(true)}
+        onSportChange={setActivityType}
         onRoutePress={openRouteModal}
+        nearbyLine={nearbyLine}
         onStartPress={() => startRun(mapStyle, { enabled: pacer.enabled, pace: pacer.pace })}
       />
       <ActivityModal
@@ -192,6 +206,8 @@ export default function RunScreen() {
         bottomInset={insets.bottom}
         onSelectRoute={(name, pts) => setSelectedRoute({ name, gpsPoints: pts })}
         onClearRoute={() => setSelectedRoute(null)}
+        todaySession={todaySession}
+        onSelectWorkout={sess => setSelectedRoute({ name: `Today: ${sess.title}`, sessionId: sess.id })}
         onFindNearby={findNearby}
         onClose={() => setShowRouteModal(false)}
       />

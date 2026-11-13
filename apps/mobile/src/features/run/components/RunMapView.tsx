@@ -3,11 +3,13 @@ import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Stack, X } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
-import { MAP_STYLES } from '@theme/maps';
+import { MAP_STYLES, PLUS_MAP_STYLE_IDS } from '@theme/maps';
+import { Lock } from 'lucide-react-native';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
+import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 
 interface RunMapViewProps {
   lat: number | null;
@@ -16,6 +18,9 @@ interface RunMapViewProps {
   gpsAccuracy: number | null;
   mapStyle: string;
   onMapStyleChange: (url: string) => void;
+  /** Free runners see Terrain and Satellite locked; tapping one opens the paywall. */
+  plus?: boolean;
+  onLockedStyle?: () => void;
   sheetAnim: Animated.Value;
   topInset: number;
   intelEnemy: number;
@@ -26,7 +31,7 @@ interface RunMapViewProps {
 }
 
 export default function RunMapView({
-  lat, lng, gpsStatus, gpsAccuracy, mapStyle, onMapStyleChange,
+  lat, lng, gpsStatus, gpsAccuracy, mapStyle, onMapStyleChange, plus = true, onLockedStyle,
   sheetAnim, topInset, intelEnemy, intelWeak, gpsColor: dotColor, gpsLabel: gpsTxt,
   onClose,
 }: RunMapViewProps) {
@@ -34,10 +39,11 @@ export default function RunMapView({
   const ss = useMemo(() => mkStyles(C), [C]);
   const [showStylePicker, setShowStylePicker] = React.useState(false);
   const locationGranted = useLocationGranted();
+  const baseStyle = useRunivoMapStyle(mapStyle);
 
   return (
     <Animated.View style={[ss.container, { bottom: sheetAnim }]}>
-      <MapLibreGL.MapView style={ss.map} mapStyle={mapStyle} logoEnabled={false} attributionEnabled>
+      <MapLibreGL.MapView style={ss.map} mapStyle={baseStyle} logoEnabled={false} attributionEnabled>
         {lat !== null && lng !== null && (
           <MapLibreGL.Camera
             zoomLevel={15}
@@ -73,9 +79,19 @@ export default function RunMapView({
         <View style={ss.picker}>
           <Text style={ss.pickerLabel}>Map Style</Text>
           {MAP_STYLES.map(s => (
-            <Pressable key={s.id} style={ss.pickerRow} onPress={() => { onMapStyleChange(s.url); setShowStylePicker(false); }}>
-              <View style={[ss.preview, { backgroundColor: s.swatch }, mapStyle === s.url && ss.previewActive]} />
-              <Text style={[ss.previewLabel, mapStyle === s.url && { color: C.black }]}>{s.label}</Text>
+            <Pressable
+              key={s.id}
+              style={ss.pickerRow}
+              onPress={() => {
+                setShowStylePicker(false);
+                if (!plus && PLUS_MAP_STYLE_IDS.has(s.id)) { onLockedStyle?.(); return; }
+                onMapStyleChange(s.url);
+              }}
+            >
+              <View style={[ss.preview, { backgroundColor: s.swatch }, mapStyle === s.url && ss.previewActive]}>
+                {!plus && PLUS_MAP_STYLE_IDS.has(s.id) && <Lock size={12} color="#FFFFFF" strokeWidth={2.4} />}
+              </View>
+              <Text style={[ss.previewLabel, mapStyle === s.url && { color: C.black }]}>{s.label}{!plus && PLUS_MAP_STYLE_IDS.has(s.id) ? ' · Plus' : ''}</Text>
             </Pressable>
           ))}
         </View>

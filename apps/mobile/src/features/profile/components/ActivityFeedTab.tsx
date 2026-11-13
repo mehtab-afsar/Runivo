@@ -103,7 +103,7 @@ function CalendarHeatmap({ runs, emptyColor, redColor }: { runs: StoredRun[]; em
       <View style={{ flexDirection: 'row', gap: GAP, marginBottom: 6 }}>
         {DOW_LABELS.map((label, i) => (
           <View key={i} style={{ width: CELL, alignItems: 'center' }}>
-            <Text style={{ fontFamily: Fonts.regular, fontSize: 10, color: redColor + '80' }}>{label}</Text>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 11, color: redColor + '80' }}>{label}</Text>
           </View>
         ))}
       </View>

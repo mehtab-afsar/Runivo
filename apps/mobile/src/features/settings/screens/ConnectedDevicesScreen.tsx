@@ -20,6 +20,7 @@ import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import {
   readRecentWorkouts,
 } from '../../../shared/services/healthService';
+import { getOAuthAuthUrl, completeOAuthCallback, disconnectOAuth } from '../services/deviceOAuthService';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -77,49 +78,6 @@ function formatSyncTime(iso: string | null): string {
   const h = Math.floor(min / 60);
   if (h < 24)   return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
-}
-
-async function getSupabaseFnUrl(path: string): Promise<string> {
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-  return `${supabaseUrl}/functions/v1/${path}`;
-}
-
-async function getOAuthAuthUrl(provider: string): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not signed in');
-  const fnUrl = await getSupabaseFnUrl(`device-oauth?provider=${provider}&action=authorize`);
-  const res = await fetch(fnUrl, {
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
-  if (!res.ok) throw new Error(await res.text());
-  const { url } = await res.json() as { url: string };
-  return url;
-}
-
-async function completeOAuthCallback(
-  provider: string,
-  params: { code?: string; state?: string; oauth_token?: string; oauth_verifier?: string },
-): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not signed in');
-  const fnUrl = await getSupabaseFnUrl('device-oauth');
-  const res = await fetch(fnUrl, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-    body:    JSON.stringify({ provider, action: 'callback', ...params }),
-  });
-  if (!res.ok) throw new Error(await res.text());
-}
-
-async function disconnectOAuth(provider: string): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
-  const fnUrl = await getSupabaseFnUrl('device-oauth');
-  await fetch(fnUrl, {
-    method:  'DELETE',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-    body:    JSON.stringify({ provider }),
-  });
 }
 
 async function getOAuthConnection(deviceType: string): Promise<{
@@ -500,7 +458,7 @@ export default function ConnectedDevicesScreen() {
 
         {/* Data types info */}
         <View style={ss.dataCard}>
-          <Text style={ss.dataCardTitle}>DATA SYNCED FROM DEVICES</Text>
+          <Text style={ss.dataCardTitle}>Data synced from devices</Text>
           {([
             { Icon: Heart,       color: C.red,    label: 'Heart rate',  desc: 'Avg & max HR per run' },
             { Icon: Pulse,       color: C.red,    label: 'Cadence',     desc: 'Steps/min for gait analysis' },
@@ -578,15 +536,15 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   deviceDesc:  { fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
 
   iosPill:     { backgroundColor: C.mid, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  iosPillText: { fontFamily: Fonts.medium, fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.6 },
+  iosPillText: { fontFamily: Fonts.medium, fontSize: 11, color: C.muted},
 
   connectedPill:     { backgroundColor: C.greenLo, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  connectedPillText: { fontFamily: Fonts.medium, fontSize: 10, color: C.green, textTransform: 'uppercase', letterSpacing: 0.6 },
+  connectedPillText: { fontFamily: Fonts.medium, fontSize: 11, color: C.green},
 
   cardFooter:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  syncTime:      { fontFamily: Fonts.regular, fontSize: 10, color: C.green },
-  notConnected:  { fontFamily: Fonts.regular, fontSize: 10, color: C.muted },
-  unavailableText: { fontFamily: Fonts.regular, fontSize: 10, color: C.muted },
+  syncTime:      { fontFamily: Fonts.regular, fontSize: 11, color: C.green },
+  notConnected:  { fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
+  unavailableText: { fontFamily: Fonts.regular, fontSize: 11, color: C.muted },
 
   btnRow:        { flexDirection: 'row', gap: 6 },
   iconBtn: {
@@ -625,7 +583,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   dataDesc:  { flex: 1, fontFamily: Fonts.regular, fontSize: 11, color: C.t2, lineHeight: 16 },
 
   privacyNote: {
-    fontFamily: Fonts.regular, fontSize: 10,
+    fontFamily: Fonts.regular, fontSize: 11,
     color: C.muted, textAlign: 'center', marginTop: 12,
   },
 

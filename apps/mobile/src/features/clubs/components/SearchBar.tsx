@@ -34,11 +34,11 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrap: { position: 'relative' },
     input: {
-      backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border,
-      paddingHorizontal: 14, paddingVertical: 10, paddingRight: 36,
-      fontFamily: Fonts.regular, fontSize: 14, color: C.black,
+      backgroundColor: C.card, borderRadius: 999, borderWidth: 1, borderColor: C.border,
+      height: 44, paddingHorizontal: 18, paddingRight: 40,
+      fontFamily: Fonts.regular, fontSize: 14, color: C.t1,
     },
-    clear: { position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center' },
+    clear: { position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center' },
     clearText: { fontFamily: Fonts.regular, fontSize: 13, color: C.t3 },
   });
 }

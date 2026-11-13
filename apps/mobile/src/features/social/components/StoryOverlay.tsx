@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { avatarColor } from '@shared/lib/avatarUtils';
 import { Colors, Fonts } from '@theme';
 import type { StoryGroup } from '@features/social/services/storyService';
+import { RunnerFace } from '@mobile/shared/components/RunnerFace';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -20,15 +20,13 @@ interface Props {
 }
 
 export function StoryOverlay({ group, storyIndex, topOffset }: Props) {
-  const bg = avatarColor(group.userName);
-  const initials = group.userName.slice(0, 2).toUpperCase();
   const story = group.stories[storyIndex] as any;
 
   return (
     <>
       <View style={[s.header, { top: topOffset + 24 }]}>
-        <View style={[s.avatar, { backgroundColor: bg }]}>
-          <Text style={s.avatarText}>{initials}</Text>
+        <View style={[s.avatar, { overflow: 'hidden' }]}>
+          <RunnerFace seed={group.userName} size={36} />
         </View>
         <Text style={s.userName}>{group.userName}</Text>
         {story?.createdAt && <Text style={s.time}>{timeAgo(story.createdAt)}</Text>}

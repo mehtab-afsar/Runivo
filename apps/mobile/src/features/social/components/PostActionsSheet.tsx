@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Modal, View, Text, Pressable, StyleSheet } from 'react-native';
-import { ShareNetwork, Trash, Flag, Check } from 'phosphor-react-native';
+import { ShareNetwork, Trash, Flag, Check, SpeakerSlash } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
@@ -10,9 +10,12 @@ interface Props {
   onShare: () => void;
   onDelete: () => void;
   onReport: () => Promise<void> | void;
+  /** Mute the post's author: their activities leave your feed. */
+  onMute?: () => void;
+  authorName?: string;
 }
 
-export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare, onDelete, onReport }: Props) {
+export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare, onDelete, onReport, onMute, authorName }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const [reported, setReported] = useState(false);
@@ -38,6 +41,13 @@ export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare,
           <ShareNetwork size={18} color={C.black} weight="light" />
           <Text style={s.rowText}>Share</Text>
         </Pressable>
+
+        {!isOwnPost && onMute && (
+          <Pressable style={s.row} onPress={() => { onClose(); onMute(); }} accessibilityRole="button">
+            <SpeakerSlash size={18} color={C.black} weight="light" />
+            <Text style={s.rowText}>Mute {authorName ?? 'this runner'}</Text>
+          </Pressable>
+        )}
 
         {isOwnPost ? (
           <Pressable style={s.row} onPress={handleDelete}>

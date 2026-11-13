@@ -1,75 +1,62 @@
-import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, SafeAreaView, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Easing, StatusBar, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import LandingScene from '../components/LandingScene';
 import LandingHero from '../components/LandingHero';
 import LandingActions from '../components/LandingActions';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { Colors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+/**
+ * The first screen: a daylight city map where a run loops the park and the
+ * ground turns red, under a sheet that says what the game is. Always the
+ * light design, whatever the system theme.
+ */
 export default function LandingScreen() {
   const navigation = useNavigation<Nav>();
-  const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
+  const insets = useSafeAreaInsets();
+  // The sheet takes the bottom 47% of the screen, as in the mock.
+  const { height } = useWindowDimensions();
+
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, { toValue: 1, duration: 650, delay: 120, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [enter]);
+  const rise = enter.interpolate({ inputRange: [0, 1], outputRange: [40, 0] });
 
   return (
-    <SafeAreaView style={s.root}>
-      {/* Navbar */}
-      <View style={s.navbar}>
-        <Text style={s.logo}>runivo</Text>
-        <View style={s.navRight}>
-          <Pressable onPress={() => navigation.navigate('Login')} style={s.signInBtn}>
-            <Text style={s.signInText}>SIGN IN</Text>
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('SignUp')} style={s.getStartedBtn}>
-            <Text style={s.getStartedText}>GET STARTED</Text>
-          </Pressable>
-        </View>
+    <View style={s.root}>
+      <StatusBar barStyle="dark-content" />
+
+      <View style={StyleSheet.absoluteFill}>
+        <LandingScene />
       </View>
 
-      {/* Hero — vertically centred */}
-      <View style={s.content}>
+      <Animated.View
+        style={[s.sheet, { height: Math.round(height * 0.47), paddingBottom: 26 + insets.bottom, transform: [{ translateY: rise }] }]}
+      >
         <LandingHero />
-      </View>
-
-      {/* CTAs pinned to bottom */}
-      <LandingActions
-        onSignUp={() => navigation.navigate('SignUp')}
-        onSignIn={() => navigation.navigate('Login')}
-      />
-    </SafeAreaView>
+        <View style={s.spacer} />
+        <LandingActions
+          onSignUp={() => navigation.navigate('SignUp')}
+          onSignIn={() => navigation.navigate('Login')}
+        />
+      </Animated.View>
+    </View>
   );
 }
 
-function mkStyles(C: AppColors) {
-  return StyleSheet.create({
-    root:    { flex: 1, backgroundColor: C.bg },
-    navbar:  {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingTop: Platform.OS === 'android' ? 12 : 4,
-      paddingBottom: 10,
-    },
-    logo: {
-      fontFamily: Fonts.semiBold,
-      fontSize: 16, color: C.t1,
-    },
-    navRight:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    signInBtn:    { paddingHorizontal: 4, paddingVertical: 4 },
-    signInText:   {
-      fontFamily: Fonts.regular, fontSize: 10,
-      color: C.t2, letterSpacing: 0.8,
-    },
-    getStartedBtn: {
-      backgroundColor: C.alwaysDark, borderRadius: 4,
-      paddingHorizontal: 14, paddingVertical: 7,
-    },
-    getStartedText: {
-      fontFamily: Fonts.medium, fontSize: 10,
-      color: C.alwaysLight, letterSpacing: 0.8,
-    },
-    content: { flex: 1, justifyContent: 'center' },
-  });
-}
+const s = StyleSheet.create({
+  root:       { flex: 1, backgroundColor: Colors.bg },
+  sheet:      {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    backgroundColor: Colors.bg, borderTopLeftRadius: 30, borderTopRightRadius: 30,
+    paddingTop: 28, paddingHorizontal: 22,
+    shadowColor: '#14120F', shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: -12 }, elevation: 12,
+  },
+  spacer:     { flex: 1, minHeight: 20 },
+});

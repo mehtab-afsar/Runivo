@@ -20,8 +20,8 @@ const RANK_LABELS: Record<RunnerRank, string> = {
 };
 
 const SIZE = {
-  xs: { fontSize: 10, paddingH: 6,  paddingV: 2, radius: 4 },
-  sm: { fontSize: 10, paddingH: 8,  paddingV: 3, radius: 5 },
+  xs: { fontSize: 11, paddingH: 6,  paddingV: 2, radius: 4 },
+  sm: { fontSize: 11, paddingH: 8,  paddingV: 3, radius: 5 },
   md: { fontSize: 11, paddingH: 10, paddingV: 4, radius: 6 },
   lg: { fontSize: 12, paddingH: 12, paddingV: 5, radius: 7 },
 } as const;
