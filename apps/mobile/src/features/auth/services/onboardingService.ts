@@ -57,25 +57,7 @@ export async function saveIdentity(username: string, avatarUri: string | null): 
   if (player) await savePlayer({ ...player, username: check.value });
 }
 
-/**
- * DEV ONLY (callers gate on __DEV__): finish onboarding with default answers so a
- * freshly signed-up test account lands straight in the app. Creates the same local
- * player/profile and server completion marker the real flow does.
- */
-export async function completeOnboardingWithDefaults(): Promise<void> {
-  await saveOnboardingData({
-    lastKnownLocation: null, country: null,
-    goal: 'get_fit',
-    runsPerWeek: 3, usualKm: 5, fiveKInput: '',
-    healthConsent: false, healthBaseline: null,
-    ageRange: null, gender: null, heightCm: null, weightKg: null,
-    username: '', avatarUri: null,
-    notificationsEnabled: false,
-    distanceUnit: 'km',
-  });
-}
-
-export async function saveOnboardingData(data: OnboardingData): Promise<void> {
+export async function saveOnboardingData(data: OnboardingData, variant: 'full' | 'short' = 'full'): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   const username = data.username || user?.user_metadata?.username || 'Runner';
   const setup = deriveSetup(data);
@@ -124,6 +106,7 @@ export async function saveOnboardingData(data: OnboardingData): Promise<void> {
   // directly: pushProfile below only carries the older profile fields.
   if (user) {
     const { error } = await supabase.from('profiles').update({
+      onboarding_variant: variant,
       usual_distance_km: data.usualKm,
       recent_5k_seconds: setup.fiveKSeconds,
       pacex_tone: setup.paceXTone,

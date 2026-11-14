@@ -2,6 +2,7 @@
 -- Run after _stub_supabase.sql, 20261106000001, _stub_onboarding.sql, 20261106000005.
 \set ON_ERROR_STOP on
 SET client_min_messages = notice;
+BEGIN;
 
 CREATE OR REPLACE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
@@ -66,3 +67,4 @@ SELECT pg_temp.check(health_baseline IS NULL AND health_consent_version IS NULL,
 FROM profiles WHERE id = 'c1000000-0000-0000-0000-000000000002';
 
 SELECT 'ALL ONBOARDING CHECKS PASSED' AS result;
+ROLLBACK;

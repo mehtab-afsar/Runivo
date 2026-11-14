@@ -10,6 +10,11 @@ import { useLiveFriendRuns } from '@features/run/hooks/useLiveFriendRuns';
 import { useGpsStatus } from '../hooks/useGpsStatus';
 import { getLastSport } from '@features/run/constants/lastSport';
 import TodayCard from '@features/training/components/TodayCard';
+import { GoalSheet } from '@features/profile/components/GoalSheet';
+import { GoalsCard } from '@features/goals/GoalsCard';
+import { useWeatherLine } from '../hooks/useWeatherLine';
+import { getSettings } from '@shared/services/store';
+import { PencilSimple } from 'phosphor-react-native';
 import FriendsActivityCard from '../components/FriendsActivityCard';
 import { sportFor } from '@features/run/constants/activities';
 import type { ActivityType } from '@features/run/types';
@@ -42,6 +47,11 @@ export default function DashboardScreen() {
   const hasAnimatedTs                 = useRef(false);
   const paceStoreRef = useRef<View>(null);
   const bentoRef     = useRef<View>(null);
+  const [goalOpen, setGoalOpen] = useState(false);
+  const weather = useWeatherLine();
+  // S3: the reward they're saving for, set on its detail page.
+  const [goalReward, setGoalReward] = useState<{ brand: string; valueLabel: string; paceCost: number } | null>(null);
+  useFocusEffect(useCallback(() => { getSettings().then(st => setGoalReward(st.goalReward ?? null)).catch(() => {}); }, []));
 
   useEffect(() => {
     if (dash.territoryScore > 0 && !hasAnimatedTs.current) {
@@ -71,7 +81,9 @@ export default function DashboardScreen() {
   const go = (screen: GoScreen) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate(screen); };
 
   if (dash.loading || !dash.player) {
-    return <View style={[s.fill, { backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }]}><Text style={s.loadText}>runivo</Text></View>;
+    // Plain page while Home loads: a second "runivo" screen here read as
+    // another launch page right after the real one (SplashView).
+    return <View style={[s.fill, { backgroundColor: C.bg }]} />;
   }
 
   const now = new Date();
@@ -175,6 +187,7 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </Pressable>
+        {!!weather && <Text style={s.weather}>{weather}</Text>}
 
         {/* Today's training session (or an invitation to build a plan) */}
         <TodayCard />
@@ -237,7 +250,13 @@ export default function DashboardScreen() {
             </View>
             <View style={s.track}><View style={[s.fillBar, { width: `${capPct}%`, backgroundColor: C.red }]} /></View>
             <View style={s.rowBetween}>
-              <Text style={s.small}>{(dash.player.paceBalance ?? 0).toLocaleString()} PACE to spend</Text>
+              <Text style={s.small} numberOfLines={1}>
+                {goalReward
+                  ? (dash.player.paceBalance ?? 0) >= goalReward.paceCost
+                    ? `Ready: ${goalReward.brand} ${goalReward.valueLabel}`
+                    : `${(goalReward.paceCost - (dash.player.paceBalance ?? 0)).toLocaleString()} PACE to go · ${goalReward.brand}`
+                  : `${(dash.player.paceBalance ?? 0).toLocaleString()} PACE to spend`}
+              </Text>
               <View style={s.rowCenterTight}>
                 <Text style={s.smallStrong}>PACE Store</Text>
                 <ArrowRight size={14} color={C.t1} strokeWidth={2} />
@@ -248,10 +267,13 @@ export default function DashboardScreen() {
 
         {/* This week */}
         <View ref={bentoRef} collapsable={false} style={[s.card, s.wideCard]}>
-          <View style={s.rowBetween}>
+          <Pressable style={s.rowBetween} onPress={() => setGoalOpen(true)} accessibilityRole="button" accessibilityLabel={`Weekly goal ${dash.weeklyGoal} km. Edit`} hitSlop={6}>
             <Text style={s.label}>This week</Text>
-            <Text style={s.ofText}><Text style={s.inlineNum}>{dash.weeklyKm.toFixed(1)}</Text>  / {dash.weeklyGoal} km</Text>
-          </View>
+            <View style={s.rowCenterTight}>
+              <Text style={s.ofText}><Text style={s.inlineNum}>{dash.weeklyKm.toFixed(1)}</Text>  / {dash.weeklyGoal} km</Text>
+              <PencilSimple size={12} color={C.t2} weight="bold" />
+            </View>
+          </Pressable>
           <View style={s.bars}>
             {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => {
               const km = dash.dayKm[i] ?? 0;
@@ -276,6 +298,9 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {/* Goals per sport (P3) */}
+        <GoalsCard />
+
         {/* Missions */}
         <View style={[s.card, s.missionsCard]}>
           <View style={s.missionsHead}>
@@ -288,6 +313,7 @@ export default function DashboardScreen() {
         </View>
 
       </ScrollView>
+      <GoalSheet visible={goalOpen} current={dash.weeklyGoal} onClose={() => setGoalOpen(false)} onSaved={() => { dash.refresh(); }} />
 
     </View>
   );
@@ -303,7 +329,6 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     fill:           { flex: 1 },
     bonusToastWrap: { position: 'absolute', left: 0, right: 0, zIndex: 50 },
-    loadText:       { fontFamily: Fonts.wordmark, fontSize: 26, letterSpacing: -0.5, color: C.t1 },
 
     header:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
     dateLine:    { ...Type.labelSm, color: C.t2 },
@@ -376,5 +401,6 @@ function mkStyles(C: AppColors) {
 
     syncChip:    { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 6, backgroundColor: C.red, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
     syncText:    { ...Type.labelSm, color: C.alwaysLight },
+    weather: { fontFamily: Fonts.medium, fontSize: 12.5, color: C.t2, textAlign: 'center', marginTop: -4 },
   });
 }

@@ -20,7 +20,7 @@ let lastKey = '';
 
 async function startIos(p: RunActivityProps): Promise<Handle | null> {
   if (!hasWidgets()) return null;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+   
   const { runActivity } = require('./RunActivityWidget') as typeof import('./RunActivityWidget');
   const la = runActivity.start(p, 'runivo://run');
   return {

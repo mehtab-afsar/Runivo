@@ -77,7 +77,7 @@ export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={ss.grid}>
-          {CAPABILITIES.map((cap, i) => (
+          {CAPABILITIES.map((cap) => (
             <Pressable
               key={cap.name}
               style={({ pressed }) => [

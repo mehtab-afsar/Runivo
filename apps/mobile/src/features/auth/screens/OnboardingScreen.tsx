@@ -15,7 +15,6 @@ import { subscribeToPush } from '@shared/services/pushNotificationService';
 import { track } from '@shared/services/analytics';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { useOnboarding } from '../hooks/useOnboarding';
-import { ONBOARDING_STEPS } from '../types';
 import OnboardingProgress from '../components/OnboardingProgress';
 import CityMapPreviewStep, { type LocationPhase } from '../components/CityMapPreviewStep';
 import GoalStep from '../components/GoalStep';
@@ -154,7 +153,7 @@ export default function OnboardingScreen() {
       <OnboardingProgress
         index={ob.index}
         total={ob.total}
-        label={ONBOARDING_STEPS[ob.index].label}
+        label={ob.label}
         onBack={ob.goBack}
       />
 

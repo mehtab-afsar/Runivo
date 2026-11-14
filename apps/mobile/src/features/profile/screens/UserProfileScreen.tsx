@@ -13,7 +13,8 @@ import { avatarColor } from '@shared/lib/avatarUtils';
 import { RunnerRankBadge } from '@mobile/shared/components/RunnerRankBadge';
 import { fetchAwards } from '../services/profileService';
 import { fetchRunnerActivities } from '../services/runnerActivitiesService';
-import { SportFilterBar, ThisWeekCard, StatsCard, RecentActivities } from '../components/ProfileActivity';
+import { ThisWeekCard, StatsCard, RecentActivities } from '../components/ProfileActivity';
+import { SportChip } from '../components/SportPicker';
 import type { SportFilter } from '../utils/profileStats';
 import type { StoredRun } from '@shared/services/store';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
@@ -47,6 +48,12 @@ export default function UserProfileScreen() {
   const { userId, username } = route.params;
 
   const [activities, setActivities] = useState<StoredRun[] | null>(null);
+  // The run they pinned to the top of their profile (P4), when you can see it.
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.from('profiles_public').select('pinned_run_id').eq('id', userId).maybeSingle()
+      .then(({ data }) => setPinnedId((data as { pinned_run_id: string | null } | null)?.pinned_run_id ?? null), () => {});
+  }, [userId]);
   const [sport, setSport] = useState<SportFilter>('all');
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -233,10 +240,13 @@ export default function UserProfileScreen() {
               {/* The same sections as your own profile, built from what they let you see. */}
               {activities && activities.length > 0 && (
                 <View style={s.sections}>
-                  <SportFilterBar value={sport} onChange={setSport} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={s.awardsHeading}>Activity</Text>
+                    <SportChip value={sport} onChange={setSport} />
+                  </View>
                   <ThisWeekCard runs={activities} sport={sport} />
                   <StatsCard runs={activities} sport={sport} />
-                  <RecentActivities runs={activities} sport={sport} emptyText="Nothing to show for this sport." />
+                  <RecentActivities runs={activities} sport={sport} pinnedId={pinnedId} emptyText="Nothing to show for this sport." />
                 </View>
               )}
 

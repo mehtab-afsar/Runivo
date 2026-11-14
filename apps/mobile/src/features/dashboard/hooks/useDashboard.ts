@@ -27,7 +27,6 @@ export function useDashboard() {
   const [hasRunToday, setHasRunToday] = useState(false);
   const [cityRank, setCityRank]       = useState<number | null>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string>('free');
-  const isPremium = subscriptionTier === 'premium' || subscriptionTier === 'admin';
   const [refreshing, setRefreshing]   = useState(false);
   const [syncError, setSyncError]     = useState(false);
   const [claimingId, setClaimingId]   = useState<string | null>(null);

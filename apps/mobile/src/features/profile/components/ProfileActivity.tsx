@@ -4,8 +4,8 @@
  * and the territory card. All from the runner's stored runs.
  */
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { ArrowRight, CaretRight, Hexagon } from 'phosphor-react-native';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { ArrowRight, CaretRight, Hexagon, PushPin } from 'phosphor-react-native';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { useIsDark } from '@theme';
@@ -144,8 +144,12 @@ export function StatsCard({ runs, sport }: { runs: StoredRun[]; sport: SportFilt
 }
 
 // ── Recent activities ──────────────────────────────────────────────────────
-export function RecentActivities({ runs, sport, onOpen, onAll, emptyText }: {
+export function RecentActivities({ runs, sport, onOpen, onAll, emptyText, pinnedId, onPin }: {
   runs: StoredRun[]; sport: SportFilter;
+  /** The run pinned to the top of the profile, if any (P4). */
+  pinnedId?: string | null;
+  /** Own profile only: long-press a row to pin or unpin it. */
+  onPin?: (runId: string | null) => void;
   /** Omitted on someone else's profile: rows are not tappable. */
   onOpen?: (run: StoredRun) => void; onAll?: () => void;
   emptyText?: string;
@@ -158,7 +162,15 @@ export function RecentActivities({ runs, sport, onOpen, onAll, emptyText }: {
     () => filterBySport(runs, sport).filter(r => r.distanceMeters >= 50).sort((a, b) => b.startTime - a.startTime),
     [runs, sport],
   );
-  const recent = list.slice(0, 3);
+  const pinned = pinnedId ? list.find(r => r.id === pinnedId) : undefined;
+  const recent = pinned ? [pinned, ...list.filter(r => r.id !== pinned.id).slice(0, 2)] : list.slice(0, 3);
+  const askPin = (r: StoredRun) => {
+    if (!onPin) return;
+    const isPinned = r.id === pinnedId;
+    Alert.alert(isPinned ? 'Unpin this activity?' : 'Pin to your profile?',
+      isPinned ? 'It goes back to its place by date.' : 'It stays at the top of Recent activities, for you and anyone who views your profile.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: isPinned ? 'Unpin' : 'Pin', onPress: () => onPin(isPinned ? null : r.id) }]);
+  };
 
   return (
     <View style={s.card}>
@@ -180,10 +192,13 @@ export function RecentActivities({ runs, sport, onOpen, onAll, emptyText }: {
         const zones = r.serverResult ? r.serverResult.newZones + r.serverResult.stolenZones : r.territoriesClaimed.length;
         const d = new Date(r.startTime);
         return (
-          <Pressable key={r.id} style={[s.actRow, i > 0 && s.actRowBorder]} onPress={onOpen ? () => onOpen(r) : undefined} disabled={!onOpen} accessibilityRole={onOpen ? 'button' : 'text'}>
+          <Pressable key={r.id} style={[s.actRow, i > 0 && s.actRowBorder]} onPress={onOpen ? () => onOpen(r) : undefined} onLongPress={onPin ? () => askPin(r) : undefined} disabled={!onOpen && !onPin} accessibilityRole={onOpen ? 'button' : 'text'} accessibilityHint={onPin ? 'Long-press to pin or unpin' : undefined}>
             <View style={s.actIcon}><Icon size={18} color={C.t1} weight="regular" /></View>
             <View style={{ flex: 1 }}>
-              <Text style={s.actTitle} numberOfLines={1}>{r.title || activityTitle(r)}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                {r.id === pinnedId && <PushPin size={12} color={C.red} weight="fill" />}
+                <Text style={[s.actTitle, { flexShrink: 1 }]} numberOfLines={1}>{r.title || activityTitle(r)}</Text>
+              </View>
               <Text style={s.actMeta} numberOfLines={1}>
                 {r.excluded ? 'Not counted · ' : ''}{d.getDate()} {MONTHS[d.getMonth()]} · {fmtKm(km)} km · {fmtClock(r.durationSec)} · {ps.value}{ps.unit === 'km/h' ? ' km/h' : ps.unit}
               </Text>

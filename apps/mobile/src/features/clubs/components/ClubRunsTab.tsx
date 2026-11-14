@@ -6,6 +6,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getSavedRoutes, type StoredSavedRoute } from '@shared/services/store';
+import * as Location from 'expo-location';
+import { createTerritoryEvent } from '@features/events/services/eventService';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { toggleEventJoin } from '@features/events/services/eventService';
 import { fetchClubRuns, scheduleClubRun, type ClubRun } from '../services/clubService';
@@ -32,6 +34,10 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
   const [km, setKm] = useState('');
   const [weeks, setWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
+  // E6: a territory hour instead of a run.
+  const [territory, setTerritory] = useState(false);
+  const [minutes, setMinutes] = useState(60);
+  const [radius, setRadius] = useState(800);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [routes, setRoutes] = useState<StoredSavedRoute[]>([]);
   const [routeId, setRouteId] = useState<string | null>(null);
@@ -50,6 +56,14 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
     const start = new Date(days[day]); start.setHours(h, m, 0, 0);
     setSaving(true);
     try {
+      if (territory) {
+        const fix = await Location.getLastKnownPositionAsync().catch(() => null);
+        if (!fix) { Alert.alert('Location needed', 'The area is centred on where you are now. Turn on location and try again.'); return; }
+        await createTerritoryEvent(clubId, { title: title.trim(), startsAt: start, minutes, lat: fix.coords.latitude, lng: fix.coords.longitude, radiusM: radius, place: place.trim() });
+        setForm(false);
+        Alert.alert('Territory hour scheduled', `Members earn double zone PACE inside ${radius} m of here for ${minutes} minutes. It's on the Events page.`);
+        return;
+      }
       const picked = routes.find(r => r.id === routeId);
       const n = await scheduleClubRun(clubId, {
         title: title.trim(), startsAt: start, location: place.trim(), weeks,
@@ -76,6 +90,10 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
 
       {form && (
         <View style={s.card}>
+          <View style={s.chips}>
+            <Pressable style={[s.chip, !territory && s.chipOn]} onPress={() => setTerritory(false)}><Text style={[s.chipTxt, !territory && s.chipTxtOn]}>Club run</Text></Pressable>
+            <Pressable style={[s.chip, territory && s.chipOn]} onPress={() => { setTerritory(true); if (title === 'Club run') setTitle('Territory hour'); }}><Text style={[s.chipTxt, territory && s.chipTxtOn]}>Territory hour · double zone PACE</Text></Pressable>
+          </View>
           <Text style={s.label}>Title</Text>
           <TextInput style={s.input} value={title} onChangeText={setTitle} maxLength={60} />
           <Text style={s.label}>Day</Text>
@@ -92,6 +110,23 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
           </ScrollView>
           <Text style={s.label}>Meeting point</Text>
           <TextInput style={s.input} value={place} onChangeText={setPlace} placeholder="e.g. Cubbon Park main gate" placeholderTextColor={C.t3} maxLength={80} />
+          {territory && (
+            <>
+              <Text style={s.label}>How long</Text>
+              <View style={s.chips}>
+                {[30, 60, 90].map(m => (
+                  <Pressable key={m} style={[s.chip, minutes === m && s.chipOn]} onPress={() => setMinutes(m)}><Text style={[s.chipTxt, minutes === m && s.chipTxtOn]}>{m} min</Text></Pressable>
+                ))}
+              </View>
+              <Text style={s.label}>Area around where you are now</Text>
+              <View style={s.chips}>
+                {[500, 800, 1500].map(r => (
+                  <Pressable key={r} style={[s.chip, radius === r && s.chipOn]} onPress={() => setRadius(r)}><Text style={[s.chipTxt, radius === r && s.chipTxtOn]}>{r >= 1000 ? `${r / 1000} km` : `${r} m`}</Text></Pressable>
+                ))}
+              </View>
+            </>
+          )}
+          {!territory && <>
           <Text style={s.label}>Distance (km, optional)</Text>
           <TextInput style={s.input} value={km} onChangeText={setKm} keyboardType="decimal-pad" placeholder="10" placeholderTextColor={C.t3} maxLength={5} />
           {routes.length > 0 && (
@@ -113,6 +148,7 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
               <Pressable key={w} style={[s.chip, weeks === w && s.chipOn]} onPress={() => setWeeks(w)}><Text style={[s.chipTxt, weeks === w && s.chipTxtOn]}>{w === 1 ? 'Once' : `${w} weeks`}</Text></Pressable>
             ))}
           </View>
+          </>}
           <View style={s.formBtns}>
             <Pressable style={s.secondary} onPress={() => setForm(false)}><Text style={s.secondaryTxt}>Cancel</Text></Pressable>
             <Pressable style={[s.cta, { flex: 1, marginBottom: 0 }, (saving || !place.trim()) && { opacity: 0.5 }]} onPress={schedule} disabled={saving || !place.trim()}>

@@ -1,0 +1,9 @@
+{
+  "name": "runivo-workouts",
+  "version": "1.0.0",
+  "description": "Schedules Runivo training sessions on Apple Watch with WorkoutKit (T7)",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "author": "Runivo",
+  "homepage": "https://runivo.app"
+}

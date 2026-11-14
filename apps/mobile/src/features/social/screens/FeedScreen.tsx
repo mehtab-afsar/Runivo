@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
   RefreshControl, Platform, Animated, ScrollView,
@@ -14,10 +14,7 @@ import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
 import { EmptyFeed } from '@features/social/components/EmptyFeed';
 import { FeedSkeleton } from '@features/social/components/FeedSkeleton';
-import { StoryReel } from '@features/social/components/StoryReel';
 import { ClubActivityStrip } from '@features/social/components/ClubActivityStrip';
-import { fetchStories, type StoryGroup } from '@features/social/services/storyService';
-import { supabase } from '@shared/services/supabase';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import type { FeedPost, SuggestedRunner } from '@features/social/types';
@@ -34,7 +31,6 @@ export default function FeedScreen() {
 
   const [tab, setTab]                     = useState<Tab>('following');
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
-  const [stories, setStories]             = useState<StoryGroup[]>([]);
   const [searchVisible, setSearchVisible] = useState(false);
   const [runnerQuery, setRunnerQuery]     = useState('');
 
@@ -62,12 +58,6 @@ export default function FeedScreen() {
     deletePost,
     muteAuthor,
   } = useFeed();
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user.id) fetchStories(session.user.id).then(setStories).catch(() => {});
-    });
-  }, []);
 
   const switchTab = useCallback((t: Tab) => {
     setTab(t);
@@ -132,7 +122,8 @@ export default function FeedScreen() {
   }, [navigation]);
 
   const DiscoverHeader = useMemo(() => {
-    if (tab !== 'discover' || suggestedRunners.length === 0) return null;
+    // O3: on day one (following fewer than 3), suggestions show on Following too.
+    if ((tab !== 'discover' && followingIds.length >= 3) || suggestedRunners.length === 0) return null;
     return (
       <View style={s.suggestedSection}>
         <Text style={[Type.overline, s.suggestedLabel]}>Runners near you</Text>
@@ -157,7 +148,7 @@ export default function FeedScreen() {
                   )}
                 </View>
                 <Text style={s.runnerName} numberOfLines={1}>{runner.username.split(' ')[0]}</Text>
-                <Text style={s.runnerScore}>{Intl.NumberFormat().format(runner.territoryScore)}</Text>
+                <Text style={s.runnerScore}>{runner.distanceKm != null ? `${runner.distanceKm} km away` : Intl.NumberFormat().format(runner.territoryScore)}</Text>
               </Pressable>
             );
           })}
@@ -168,19 +159,13 @@ export default function FeedScreen() {
 
   const FollowingHeader = useMemo(() => {
     if (tab !== 'following') return null;
-    if (stories.length === 0 && clubActivity.length === 0) return null;
+    if (clubActivity.length === 0) return null;
     return (
       <>
-        {stories.length > 0 && (
-          <StoryReel
-            groups={stories}
-            onPress={(_g, i) => navigation.navigate('StoryViewer', { groups: stories, initialGroupIndex: i })}
-          />
-        )}
         <ClubActivityStrip items={clubActivity} onPress={goToClub} />
       </>
     );
-  }, [tab, stories, clubActivity, navigation, goToClub]);
+  }, [tab, clubActivity, goToClub]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -218,7 +203,7 @@ export default function FeedScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => refresh(tab)} tintColor={C.red} />}
           onEndReached={hasMore ? () => loadMore(tab) : undefined}
           onEndReachedThreshold={0.4}
-          ListHeaderComponent={tab === 'following' ? FollowingHeader : DiscoverHeader}
+          ListHeaderComponent={tab === 'following' ? <>{DiscoverHeader}{FollowingHeader}</> : DiscoverHeader}
           ListEmptyComponent={
             <EmptyFeed
               tab={tab === 'following' ? 'following' : 'explore'}

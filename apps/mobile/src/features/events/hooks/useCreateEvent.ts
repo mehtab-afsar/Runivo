@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import * as Location from 'expo-location';
 import { createEvent } from '../services/eventService';
 import type { Discipline } from '../types';
 
@@ -35,6 +36,8 @@ export function useCreateEvent() {
   const [distanceKm, setDistanceKm]   = useState('');
   const [description, setDescription] = useState('');
   const [discipline, setDiscipline]   = useState<Discipline | ''>('');
+  const [paceGroups, setPaceGroups]   = useState('');
+  const [useHere, setUseHere]         = useState(true);
 
   const canSubmit = title.trim().length >= 3 && !!date && !!time && location.trim().length >= 2;
 
@@ -43,9 +46,14 @@ export function useCreateEvent() {
     setSaving(true);
     setError('');
     try {
+      let here: { lat: number; lng: number } | null = null;
+      if (useHere) {
+        const fix = await Location.getLastKnownPositionAsync().catch(() => null);
+        if (fix) here = { lat: fix.coords.latitude, lng: fix.coords.longitude };
+      }
       await createEvent({
         title, eventType, date, time, location, distanceKm, description,
-        discipline: discipline || undefined,
+        discipline: discipline || undefined, paceGroups, ...(here ?? {}),
       });
       return true;
     } catch (err) {
@@ -54,7 +62,7 @@ export function useCreateEvent() {
     } finally {
       setSaving(false);
     }
-  }, [canSubmit, title, eventType, date, time, location, distanceKm, description, discipline]);
+  }, [canSubmit, title, eventType, date, time, location, distanceKm, description, discipline, paceGroups, useHere]);
 
   return {
     saving, error, canSubmit,
@@ -66,6 +74,8 @@ export function useCreateEvent() {
     distanceKm, setDistanceKm,
     description, setDescription,
     discipline, setDiscipline,
+    paceGroups, setPaceGroups,
+    useHere, setUseHere,
     submit,
   };
 }

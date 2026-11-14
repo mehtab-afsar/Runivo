@@ -1,3 +1,4 @@
+import { SponsoredChallenges } from '../components/SponsoredChallenges';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -83,6 +84,9 @@ export default function PACEStoreScreen() {
             <View style={[s.progressBarFill, { width: `${Math.round(weeklyPct * 100)}%` }]} />
           </View>
         </View>
+
+        {/* S4: brand challenges */}
+        <SponsoredChallenges />
 
         {/* Categories */}
         {chips.length > 1 && (

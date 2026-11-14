@@ -119,12 +119,19 @@ export function useRunSummary(
         : Haptics.NotificationFeedbackType.Warning,
     );
     fetchShoesForSummary().then(async ({ defaultShoe, allShoes: all }) => {
-      setRunShoe(defaultShoe);
       setAllShoes(all);
-      if (defaultShoe) {
-        const allRuns = await getRuns(500);
+      // P5: the shoe this run was in. A run that just finished takes the default.
+      const allRuns = await getRuns(500);
+      const thisRun = runId ? allRuns.find(r => r.id === runId) : undefined;
+      let shoe = thisRun?.shoeId ? all.find(s => s.id === thisRun.shoeId) ?? null : null;
+      if (!shoe && passedRunData && defaultShoe && runId) {
+        shoe = defaultShoe;
+        await assignShoeToRun(runId, defaultShoe.id).catch(() => {});
+      }
+      setRunShoe(shoe);
+      if (shoe) {
         const km = allRuns
-          .filter(r => (r as any).shoeId === defaultShoe.id)
+          .filter(r => r.shoeId === shoe!.id || (r.id === runId && !r.shoeId))
           .reduce((s, r) => s + r.distanceMeters / 1000, 0);
         setShoeTotalKm(km);
       }
@@ -152,6 +159,8 @@ export function useRunSummary(
     setRunShoe(shoe);
     setShowShoeDrawer(false);
     if (runId) await assignShoeToRun(runId, shoe.id);
+    const allRuns = await getRuns(500);
+    setShoeTotalKm(allRuns.filter(r => r.shoeId === shoe.id).reduce((s, r) => s + r.distanceMeters / 1000, 0));
   }, [runId]);
 
   return { runData, splits, stats, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe, loading };

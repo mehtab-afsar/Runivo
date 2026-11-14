@@ -22,7 +22,7 @@ export const FEATURES = {
 
   // Gamification
   DAILY_MISSIONS: true,
-  GEAR_TRACKING:  false,
+  GEAR_TRACKING:  true,
 
   // Intelligence
   // All 10 LLM-calling modes now share SAFETY_GUARDRAILS (medical/injury,

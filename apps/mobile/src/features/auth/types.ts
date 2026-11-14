@@ -19,6 +19,17 @@ export const ONBOARDING_STEPS = [
 
 export type OnboardingStepKey = typeof ONBOARDING_STEPS[number]['key'];
 
+/**
+ * O4: half of new runners get the short path, without Health and About you
+ * (both stay in Settings). Compare run-within-24h per variant with
+ * onboarding_activation() before keeping one.
+ */
+export type OnboardingVariant = 'full' | 'short';
+export const SHORT_PATH_SKIPS: readonly OnboardingStepKey[] = ['health', 'about'];
+export function stepsFor(variant: OnboardingVariant) {
+  return variant === 'short' ? ONBOARDING_STEPS.filter(s => !SHORT_PATH_SKIPS.includes(s.key)) : ONBOARDING_STEPS;
+}
+
 export interface OnboardingData {
   // Location (required to play; the step still lets them continue if they decline)
   lastKnownLocation: { lat: number; lng: number } | null;

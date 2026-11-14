@@ -4,6 +4,7 @@ import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-na
 import { Shield, Swords, Share as ShareIcon, X } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import type { TerritoryDetails } from '../types';
+import { ZoneHistory } from './ZoneHistory';
 import type { TerritoryTier } from '@shared/types/game';
 import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette, type TerritoryPalette } from '@theme/territory';
@@ -134,6 +135,8 @@ export function TerritoryBottomSheet({ polygon, onClose, onDefend }: Props) {
       <View style={[ss.trackBg, { backgroundColor: '#ECEAE5' }]}>
         <View style={[ss.trackFill, { width: `${freshPct}%`, backgroundColor: color }]} />
       </View>
+
+      <ZoneHistory zoneId={polygon.id} />
 
       <View style={ss.ctaRow}>
         <Pressable

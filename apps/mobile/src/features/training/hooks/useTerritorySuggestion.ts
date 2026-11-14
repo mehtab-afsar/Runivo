@@ -15,7 +15,11 @@ import { fetchOwnPolygons } from '@features/territory/services/territoryService'
 
 export interface TerritorySuggestion { title: string; sub: string; points: { lat: number; lng: number }[] }
 
-export function useTerritorySuggestion(enabled: boolean): TerritorySuggestion | null {
+/**
+ * With `distanceKm` (T6: an easy, long or recovery session), the loop is that
+ * long and only offered when it refreshes at least one fading zone.
+ */
+export function useTerritorySuggestion(enabled: boolean, distanceKm?: number): TerritorySuggestion | null {
   const [s, setS] = useState<TerritorySuggestion | null>(null);
   useFocusEffect(useCallback(() => {
     if (!enabled) { setS(null); return; }
@@ -31,14 +35,20 @@ export function useTerritorySuggestion(enabled: boolean): TerritorySuggestion | 
       const zones = own.map(p => ({ ring: p.polygon, fading: p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT }));
       const fading = zones.filter(z => z.fading && z.ring.length >= 3)
         .map(z => haversineM(pos, ringCentroid(z.ring))).filter(d => d <= 4000).sort((a, b) => a - b);
-      const km = suggestedLoopKm(fading[0] ?? null);
+      const km = distanceKm ? Math.max(2, Math.round(distanceKm)) : suggestedLoopKm(fading[0] ?? null);
       const plan = planLoop(pos, km * 1000, fading.length ? 'refresh' : 'new', zones);
       if (!live) return;
+      if (distanceKm) {
+        setS(fading.length && plan.refreshes
+          ? { title: `${km} km loop`, sub: `This route refreshes ${plan.refreshes} of your fading zone${plan.refreshes > 1 ? 's' : ''}`, points: plan.points }
+          : null);
+        return;
+      }
       setS(fading.length && plan.refreshes
         ? { title: `Easy ${km} km loop`, sub: `Refreshes ${plan.refreshes} of your fading zone${plan.refreshes > 1 ? 's' : ''} before a rival takes ${plan.refreshes > 1 ? 'them' : 'it'}`, points: plan.points }
         : { title: `Easy ${km} km loop`, sub: `About ${Math.round(plan.newShare * 100)}% new ground for you`, points: plan.points });
     })().catch(() => {});
     return () => { live = false; };
-  }, [enabled]));
+  }, [enabled, distanceKm]));
   return s;
 }

@@ -97,7 +97,7 @@ export default function LeaderboardScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { entries, loading, tab, timeFrame, scope, unit, currentUserId, setTab, setTimeFrame, setScope } = useLeaderboard();
+  const { entries, loading, tab, timeFrame, scope, unit, setTab, setTimeFrame, setScope } = useLeaderboard();
 
   // Current player's entry (for sticky footer if rank > 3)
   const playerEntry = entries.find(e => e.isPlayer);

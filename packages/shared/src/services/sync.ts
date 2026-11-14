@@ -354,7 +354,8 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
       // from stolen zones will be credited on the next successful sync.
       try {
         const { data: session } = await supabase.auth.getSession();
-        if (session.session) {
+        // Treadmill runs are logged by hand: nothing to claim, nothing to score.
+        if (session.session && run.activityType !== 'treadmill') {
           const { data: result } = await supabase.functions.invoke('process-run-territory', {
             body: {
               runId:            run.id,
@@ -449,8 +450,6 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
                     runner_rank:       currentPlayer?.runnerRank ?? 'pacer',
                     pace_earned:       0,
                     distance_km:       0,
-                    xp_earned:         0,
-                    leveled_up:        false,
                   });
                   if (currentPlayer) {
                     await savePlayer({ ...currentPlayer, largestTierAchieved: newLargestTier });

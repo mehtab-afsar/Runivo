@@ -286,6 +286,11 @@ export const FeedPostCard = React.memo(function FeedPostCard({
               {timeAgo(post.createdAt)}{activitySuffix}
               {post.visibility === 'followers' ? ' · Followers' : post.visibility === 'only_me' ? ' · Only you' : ''}
             </Text>
+            {!!post.companions?.length && (
+              <Text style={s.subtitle} numberOfLines={1}>
+                with {post.companions[0].username}{post.companions.length > 1 ? ` and ${post.companions.length - 1} other${post.companions.length > 2 ? 's' : ''}` : ''}
+              </Text>
+            )}
           </View>
         </Pressable>
         {showRank && rankLabel && <View style={s.lightChip}><Text style={s.lightChipText}>{rankLabel}</Text></View>}

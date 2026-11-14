@@ -1,164 +1,196 @@
+/**
+ * "You": the runner's own profile, laid out like Strava's with Runivo's game
+ * on top (see the Runivo profile redesign canvas). Detail lives on pages the
+ * menu rows open, not on this one.
+ */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Share } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ShareNetwork, GearSix, Pulse, ChartBar, Hexagon, MapTrifold, Timer, Sneaker, Crown, CaretRight, CalendarDots, Barbell } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import { GAME_CONFIG } from '@shared/services/config';
+import { getTerritoryPolygons, getSavedRoutes } from '@shared/services/store';
+import { fetchClubs } from '@features/clubs/services/clubService';
+import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
+import { supabase } from '@shared/services/supabase';
+import { useTheme, Fonts, type AppColors } from '@theme';
+import { FEATURES } from '../../../config/features';
 import { useProfile } from '../hooks/useProfile';
-import { ProfileHeader } from '../components/ProfileHeader';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import { AwardsTab } from '../components/AwardsTab';
-import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
-import { ProfileMockSections } from '../components/ProfileMockSections';
-import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
-import { getTerritoryPolygons } from '@shared/services/store';
-import { fetchClubs } from '@features/clubs/services/clubService';
+import { GoalSheet } from '../components/GoalSheet';
 import {
-  SportFilterBar, ThisWeekCard, StatsCard, RecentActivities, BestEfforts, TerritoryCard,
-} from '../components/ProfileActivity';
-import type { SportFilter } from '../utils/profileStats';
+  YouHeader, WeekCard, PinnedCard, MenuList, TrophyStrip, ClubsStrip, activityName, fmtKm, type MenuItem,
+} from '../components/YouSections';
+import { periodStats, filterBySport, type SportFilter } from '../utils/profileStats';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+const RANK_ORDER = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'] as const;
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function ProfileScreen() {
   const C = useTheme();
-  const ss = useMemo(() => mkStyles(C), [C]);
+  const s = useMemo(() => mkStyles(C), [C]);
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { player, totalAreaM2, loading } = usePlayerStats();
   const {
-    runs, weeklyGoalKm, personalRecords, thisWeekKm, followers, following,
-    tab, setTab, avatarColor, avatarUri, displayName, bio, location, instagram, strava,
+    runs, weeklyGoalKm, personalRecords, followers, following,
+    avatarColor, avatarUri, displayName, location,
     isEditing, editName, setEditName, editColor, setEditColor, editBio, setEditBio,
     editLocation, setEditLocation, editInstagram, setEditInstagram, editStrava, setEditStrava,
-    editAvatarUri, pickAvatar,
-    startEdit, saveEdit, cancelEdit,
-    earnedAwards,
-    refreshCounts,
+    editAvatarUri, pickAvatar, startEdit, saveEdit, cancelEdit,
+    earnedAwards, refreshCounts, pinnedRunId, pinRun, setWeeklyGoal,
   } = useProfile();
-
-  // Follow/unfollow from FollowersScreen or FollowingScreen doesn't update this
-  // screen's state — refresh just the counts (not a full reload) whenever the
-  // Profile tab regains focus.
   useFocusEffect(useCallback(() => { refreshCounts(); }, [refreshCounts]));
 
-  // Zones held right now (not lifetime claims) and clubs joined, for the
-  // stat row, the Plus zone-cap card and the Clubs row.
   const gate = useFeatureGate();
-  // Strava-style: one sport filter drives This week, Statistics and Recent.
   const [sport, setSport] = useState<SportFilter>('all');
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [showAwards, setShowAwards] = useState(false);
   const [zonesHeld, setZonesHeld] = useState<number | null>(null);
-  const [clubCount, setClubCount] = useState<number | null>(null);
+  const [routeCount, setRouteCount] = useState(0);
+  const [legendOf, setLegendOf] = useState(0);
+  const [clubs, setClubs] = useState<{ id: string; name: string; emoji: string; memberCount: number; totalKm: number; description: string | null }[]>([]);
   const playerId = player?.id;
   useEffect(() => {
     if (!playerId) return;
     getTerritoryPolygons(playerId).then(z => setZonesHeld(z.length)).catch(() => {});
-    fetchClubs(playerId).then(cs => setClubCount(cs.filter(c => c.joined).length)).catch(() => {});
+    getSavedRoutes().then(r => setRouteCount(r.length)).catch(() => {});
+    supabase.rpc('legend_zone_count', { p_user: playerId }).then(({ data }) => setLegendOf((data as number | null) ?? 0), () => {});
+    fetchClubs(playerId).then(cs => setClubs(cs.filter(c => c.joined).map(c => ({
+      id: c.id, name: c.name, emoji: c.badge_emoji, memberCount: c.member_count, totalKm: c.total_km, description: c.description,
+    })))).catch(() => {});
   }, [playerId]);
 
-  const displayedName = displayName || player?.username || 'Runner';
-  const totalKm = runs.filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0);
+  const name = displayName || player?.username || 'Runner';
+  const rank = (player?.runnerRank ?? 'pacer') as typeof RANK_ORDER[number];
+  const earned = player?.paceTotalEarned ?? 0;
+  const nextRank = RANK_ORDER[RANK_ORDER.indexOf(rank) + 1];
+  const toNext = nextRank ? Math.max(0, (GAME_CONFIG.RUNNER_RANK_THRESHOLDS[nextRank] ?? 0) - earned) : 0;
 
-  const runnerRank = player?.runnerRank ?? 'pacer';
-  const paceTotalEarned = player?.paceTotalEarned ?? 0;
-  const thresholds = GAME_CONFIG.RUNNER_RANK_THRESHOLDS;
-  const RANK_ORDER = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'] as const;
-  const rankIdx = RANK_ORDER.indexOf(runnerRank as typeof RANK_ORDER[number]);
-  const rankPct = (() => {
-    if (runnerRank === 'sovereign') return 1;
-    const curr = thresholds[runnerRank] ?? 0;
-    const next  = thresholds[RANK_ORDER[rankIdx + 1]] ?? curr;
-    const span  = next - curr;
-    return span > 0 ? Math.min(1, (paceTotalEarned - curr) / span) : 0;
-  })();
-  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const rankCaption = runnerRank === 'sovereign'
-    ? `${capitalize(runnerRank)} · ${paceTotalEarned.toLocaleString()} PACE — top rank`
-    : `${capitalize(runnerRank)} → ${capitalize(RANK_ORDER[rankIdx + 1])} · ${paceTotalEarned.toLocaleString()} / ${(thresholds[RANK_ORDER[rankIdx + 1]] ?? 0).toLocaleString()} PACE`;
+  const pinned = pinnedRunId ? runs.find(r => r.id === pinnedRunId) : undefined;
+  const latest = useMemo(() => runs.filter(r => r.distanceMeters >= 50).sort((a, b) => b.startTime - a.startTime)[0], [runs]);
+  const year = useMemo(() => periodStats(filterBySport(runs, sport), 'year'), [runs, sport]);
+  const best5k = personalRecords.find(r => r.label === 'Fastest 5K')?.value;
+  const best10k = personalRecords.find(r => r.label === 'Fastest 10K')?.value;
+  const areaKm2 = totalAreaM2 / 1e6;
 
-  if (loading) return <SafeAreaView style={[ss.root, ss.center]}><ActivityIndicator color={C.red} /></SafeAreaView>;
+  const ago = (ms: number) => {
+    const days = Math.floor((Date.now() - ms) / 86_400_000);
+    return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days} days ago`;
+  };
+
+  const menu: MenuItem[] = [
+    { key: 'acts', label: 'Activities', Icon: Pulse, sub: latest ? `${ago(latest.startTime)} · ${activityName(latest)}` : 'Nothing yet', onPress: () => navigation.navigate('History') },
+    { key: 'stats', label: 'Statistics', Icon: ChartBar, sub: `${new Date().getFullYear()} · ${fmtKm(year.km)} km · ${year.count} ${year.count === 1 ? 'activity' : 'activities'}`, onPress: () => navigation.navigate('ProfileStats', { sport }) },
+    { key: 'log', label: 'Training log', Icon: CalendarDots, sub: 'Every day of the last 16 weeks', onPress: () => navigation.navigate('TrainingLog') },
+    { key: 'strength', label: 'Strength and mobility', Icon: Barbell, sub: '8–17 minute guided sessions', onPress: () => navigation.navigate('Strength') },
+    { key: 'terr', label: 'Territory', Icon: Hexagon, red: true, sub: `${zonesHeld ?? 0} ${zonesHeld === 1 ? 'zone' : 'zones'} · ${areaKm2 >= 0.01 ? areaKm2.toFixed(2) : '0'} km² ${legendOf > 0 ? ` · legend of ${legendOf}` : ''} · ${player?.totalTerritoriesClaimed ?? 0} claimed ever`, onPress: () => navigation.navigate('TerritoryMap', {}) },
+    { key: 'routes', label: 'Routes', Icon: MapTrifold, sub: routeCount > 0 ? `${routeCount} saved` : 'Save one from any activity', onPress: () => navigation.navigate('Main', { screen: 'Run' }) },
+    { key: 'best', label: 'Best efforts', Icon: Timer, sub: best5k || best10k ? [best5k && `5K ${best5k}`, best10k && `10K ${best10k}`].filter(Boolean).join(' · ') : 'Run a 5K to set one', onPress: () => navigation.navigate('ProfileStats', { sport: 'run' }) },
+    ...(FEATURES.GEAR_TRACKING ? [{ key: 'gear', label: 'Gear', Icon: Sneaker, sub: 'Shoes and their distance', onPress: () => navigation.navigate('Gear') } as MenuItem] : []),
+  ];
+
+  if (loading) return <View style={[s.root, s.center]}><ActivityIndicator color={C.red} /></View>;
 
   return (
-    <SafeAreaView style={ss.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
-        <ProfileHeader
-          displayName={displayedName} username={player?.username} bio={bio} avatarColor={avatarColor} avatarUri={avatarUri}
-          location={location} instagram={instagram} strava={strava}
-          runnerRank={runnerRank} rankPct={rankPct} rankCaption={rankCaption}
-          totalKm={totalKm} totalRuns={runs.length} thisWeekKm={thisWeekKm}
-          totalTerritories={zonesHeld ?? player?.totalTerritoriesClaimed ?? 0} totalAreaM2={totalAreaM2}
-          paceTotalEarned={paceTotalEarned}
-          weeklyGoalKm={weeklyGoalKm} followers={followers} following={following}
-          onEditPress={startEdit} onNotificationsPress={() => navigation.navigate('Notifications')}
-          onSettingsPress={() => navigation.navigate('Settings')}
-          onFollowersPress={() => navigation.navigate('Followers', { userId: player?.id ?? '' })}
-          onFollowingPress={() => navigation.navigate('Following', { userId: player?.id ?? '' })}
-          onTerritoryPress={() => setTab('territory')}
-        />
-
-        <View style={ss.sections}>
-          <SportFilterBar value={sport} onChange={setSport} />
-          <ThisWeekCard runs={runs} sport={sport} weeklyGoalKm={weeklyGoalKm} />
-          <StatsCard runs={runs} sport={sport} />
-          <RecentActivities
-            runs={runs}
-            sport={sport}
-            onOpen={r => navigation.navigate('RunSummary', { runId: r.id, activityType: r.activityType })}
-            onAll={() => navigation.navigate('History')}
-          />
-          {(sport === 'all' || sport === 'run') && <BestEfforts records={personalRecords} />}
-          <TerritoryCard
-            zonesHeld={zonesHeld ?? 0}
-            areaM2={totalAreaM2}
-            lifetimeClaims={player?.totalTerritoriesClaimed ?? 0}
-            onOpen={() => navigation.navigate('Main', { screen: 'Map' })}
-          />
-          <Pressable style={ss.linkCard} onPress={() => navigation.navigate('YearInRunivo')} accessibilityRole="button">
-            <View style={{ flex: 1 }}>
-              <Text style={ss.linkTitle}>Your {new Date().getFullYear()} in Runivo</Text>
-              <Text style={ss.linkSub}>Distance, zones, steals and your best month</Text>
-            </View>
-            <Text style={ss.linkChev}>›</Text>
-          </Pressable>
-          <Pressable style={ss.linkCard} onPress={() => navigation.navigate('MyRewards')} accessibilityRole="button">
-            <View style={{ flex: 1 }}>
-              <Text style={ss.linkTitle}>My rewards</Text>
-              <Text style={ss.linkSub}>Codes you redeemed with PACE</Text>
-            </View>
-            <Text style={ss.linkChev}>›</Text>
-          </Pressable>
+    <View style={s.root}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 120, gap: 12 }}>
+        <View style={s.topBar}>
+          <Text style={s.title}>You</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Pressable style={s.iconBtn} accessibilityLabel="Share profile" onPress={() => Share.share({ message: `Follow me on Runivo: runivo://runner/${playerId}` }).catch(() => {})}>
+              <ShareNetwork size={18} color={C.t1} />
+            </Pressable>
+            <Pressable style={s.iconBtn} accessibilityLabel="Settings" onPress={() => navigation.navigate('Settings')}>
+              <GearSix size={18} color={C.t1} />
+            </Pressable>
+          </View>
         </View>
 
-        <ProfileMockSections
-          hideBest
-          runs={runs}
-          earnedAwards={earnedAwards}
-          personalRecords={personalRecords}
-          zonesHeld={zonesHeld ?? 0}
-          zoneLimit={gate.territoryLimit}
-          isPlus={gate.isPremium}
-          clubCount={clubCount}
-          onSeeAllAwards={() => setTab(t => (t === 'awards' ? 'overview' : 'awards'))}
-          onUpgrade={() => navigation.navigate('Subscription', { reason: 'zone_limit' })}
-          onClubs={() => navigation.navigate('Club')}
-          onConnected={() => navigation.navigate('ConnectedDevices')}
-          onPrivacy={() => navigation.navigate('Settings')}
+        <YouHeader
+          name={name} location={location} avatarUri={avatarUri} avatarColor={avatarColor}
+          rankLabel={cap(rank)} rankNext={nextRank ? `${toNext.toLocaleString()} PACE to ${cap(nextRank)}` : 'Top rank'}
+          following={following} followers={followers} zonesHeld={zonesHeld ?? 0} score={player?.territoryScore ?? 0}
+          onFollowing={() => navigation.navigate('Following', { userId: playerId ?? '' })}
+          onFollowers={() => navigation.navigate('Followers', { userId: playerId ?? '' })}
+          onZones={() => navigation.navigate('TerritoryMap', {})}
+          onScore={() => navigation.navigate('Leaderboard')}
+          onEdit={startEdit}
+          onShare={() => Share.share({ message: `Follow me on Runivo: runivo://runner/${playerId}` }).catch(() => {})}
         />
 
-        {/* "See all" on the awards card opens the full grid here. */}
-        {tab === 'awards' && (
-          <View style={ss.content}>
+        <View style={{ height: 8 }} />
+        <WeekCard runs={runs} sport={sport} onSport={setSport} goalKm={weeklyGoalKm} onEditGoal={() => setGoalOpen(true)} />
+
+        {pinned && (
+          <PinnedCard
+            run={pinned}
+            onOpen={() => navigation.navigate('RunSummary', { runId: pinned.id, activityType: pinned.activityType })}
+            onUnpin={() => pinRun(null)}
+          />
+        )}
+
+        <MenuList items={menu} />
+
+        {!gate.isPremium && Number.isFinite(gate.territoryLimit) && (
+          <Pressable style={s.plus} onPress={() => navigation.navigate('Subscription', { reason: 'zone_limit' })} accessibilityRole="button">
+            <Crown size={20} color={C.red} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.plusTitle}>{Math.min(zonesHeld ?? 0, gate.territoryLimit)} of {gate.territoryLimit} zones used</Text>
+              <Text style={s.plusSub}>Runivo Plus removes the cap</Text>
+            </View>
+            <CaretRight size={14} color={C.alwaysLight} weight="bold" />
+          </Pressable>
+        )}
+
+        <View style={{ height: 8 }} />
+        <TrophyStrip earned={earnedAwards} onAll={() => setShowAwards(v => !v)} />
+        {showAwards && (
+          <View style={{ paddingHorizontal: 18 }}>
             <AwardsTab
               earnedAwards={earnedAwards}
-              totalKm={totalKm}
+              totalKm={runs.filter(r => !r.excluded).reduce((n, r) => n + r.distanceMeters / 1000, 0)}
               streakDays={player?.streakDays ?? 0}
               totalTerritoriesClaimed={player?.totalTerritoriesClaimed ?? 0}
-              paceTotalEarned={player?.paceTotalEarned ?? 0}
+              paceTotalEarned={earned}
               runs={runs}
             />
           </View>
         )}
+
+        <View style={{ height: 8 }} />
+        <ClubsStrip
+          clubs={clubs}
+          onAll={() => navigation.navigate('Club')}
+          onOpen={(id) => {
+            const c = clubs.find(x => x.id === id);
+            if (c) navigation.navigate('ClubDetail', { clubId: c.id, clubName: c.name, badgeEmoji: c.emoji, memberCount: c.memberCount, totalKm: c.totalKm, description: c.description ?? undefined });
+          }}
+        />
+
+        <View style={{ height: 8 }} />
+        <View style={s.footer}>
+          <Pressable style={[s.footRow, s.footBorder]} onPress={() => navigation.navigate('MyRewards')} accessibilityRole="button">
+            <Text style={s.footTxt}>My rewards</Text>
+            <Text style={s.footVal}>{(player?.paceBalance ?? 0).toLocaleString()} PACE</Text>
+          </Pressable>
+          <Pressable style={[s.footRow, s.footBorder]} onPress={() => navigation.navigate('YearInRunivo')} accessibilityRole="button">
+            <Text style={s.footTxt}>Year in Runivo</Text>
+            <Text style={s.footVal}>{new Date().getFullYear()}</Text>
+          </Pressable>
+          <Pressable style={s.footRow} onPress={() => navigation.navigate('ConnectedDevices')} accessibilityRole="button">
+            <Text style={s.footTxt}>Connected apps and devices</Text>
+            <CaretRight size={14} color={C.t3} weight="bold" />
+          </Pressable>
+        </View>
       </ScrollView>
+
+      <GoalSheet visible={goalOpen} current={weeklyGoalKm} onClose={() => setGoalOpen(false)} onSaved={setWeeklyGoal} />
 
       {isEditing && (
         <EditProfileSheet
@@ -173,7 +205,7 @@ export default function ProfileScreen() {
           onSave={saveEdit} onCancel={cancelEdit}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -181,22 +213,16 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     center: { alignItems: 'center', justifyContent: 'center' },
-    content: { paddingHorizontal: Spacing.gutter, paddingTop: 16, paddingBottom: 40 },
-    sections: { paddingHorizontal: 18, gap: 12, marginBottom: 12 },
-    linkCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, borderRadius: 16, padding: 16 },
-    linkTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
-    linkSub: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
-    linkChev: { fontFamily: Fonts.regular, fontSize: 22, color: C.t3 },
-    tabsScroll: { backgroundColor: C.bg, marginTop: 4 },
-    moreLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, paddingHorizontal: Spacing.gutter, marginTop: 22, marginBottom: 8 },
-    tabsContent: { paddingHorizontal: Spacing.gutter, gap: 8 },
-    // Segmented pills: active one is ink, the rest quiet outlines.
-    tab: {
-      height: 36, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center',
-      borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
-    },
-    tabActive: { backgroundColor: C.t1, borderColor: C.t1 },
-    tabLabel: { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
-    tabLabelActive: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.bg },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
+    title: { fontFamily: Fonts.bold, fontSize: 26, color: C.t1, letterSpacing: -0.5 },
+    iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
+    plus: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 18, padding: 16, borderRadius: 18, backgroundColor: C.t1 },
+    plusTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.bg },
+    plusSub: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, marginTop: 2 },
+    footer: { marginHorizontal: 18, backgroundColor: C.card, borderRadius: 18, paddingHorizontal: 14 },
+    footRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 52 },
+    footBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    footTxt: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    footVal: { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
   });
 }

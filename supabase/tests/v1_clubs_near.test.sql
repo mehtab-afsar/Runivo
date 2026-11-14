@@ -2,6 +2,7 @@
 -- no coordinates or creator locations reachable by clients.
 -- Run after _stub_clubs.sql and 20261106000007 (see README for the full order).
 \set ON_ERROR_STOP on
+BEGIN;
 SET client_min_messages = notice;
 
 CREATE OR REPLACE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
@@ -11,12 +12,20 @@ BEGIN
 END $$;
 
 -- Bengaluru: owners near Cubbon Park, Indiranagar (≈4.5 km east) and Mysuru (≈130 km).
+INSERT INTO auth.users (id, email) VALUES
+  ('d1000000-0000-0000-0000-000000000001', 'v1-d1000000-0@example.com'),
+  ('d1000000-0000-0000-0000-000000000002', 'v1-d1000000-1@example.com'),
+  ('d1000000-0000-0000-0000-000000000003', 'v1-d1000000-2@example.com'),
+  ('d1000000-0000-0000-0000-000000000004', 'v1-d1000000-3@example.com'),
+  ('d1000000-0000-0000-0000-000000000005', 'v1-d1000000-4@example.com')
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO profiles (id, username, last_known_location) VALUES
   ('d1000000-0000-0000-0000-000000000001', 'cubbon_owner', ST_SetSRID(ST_MakePoint(77.592345, 12.976789), 4326)),
   ('d1000000-0000-0000-0000-000000000002', 'indira_owner', ST_SetSRID(ST_MakePoint(77.6408, 12.9784), 4326)),
   ('d1000000-0000-0000-0000-000000000003', 'mysuru_owner', ST_SetSRID(ST_MakePoint(76.6394, 12.2958), 4326)),
   ('d1000000-0000-0000-0000-000000000004', 'no_loc_owner', NULL),
-  ('d1000000-0000-0000-0000-000000000005', 'cubbon_runner', NULL);
+  ('d1000000-0000-0000-0000-000000000005', 'cubbon_runner', NULL)
+ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, last_known_location = EXCLUDED.last_known_location;
 
 INSERT INTO clubs (id, name, owner_id, member_count, created_at) VALUES
   ('d2000000-0000-0000-0000-000000000001', 'Cubbon Dawn Runners', 'd1000000-0000-0000-0000-000000000001', 40, now() - interval '3 days'),
@@ -55,12 +64,13 @@ SELECT pg_temp.check((SELECT count(*) FROM clubs_near(12.9763, 77.5929, 15, 1)) 
 
 -- No location, or nothing nearby: most popular clubs, nearby = false, no distance.
 SELECT pg_temp.check(
-  (SELECT array_agg(name) FROM clubs_near(NULL, NULL)) = ARRAY['Mysuru Milers', 'Cubbon Dawn Runners', 'Indiranagar Striders', 'Somewhere Club'],
+  -- Other clubs may exist in a shared database: compare this suite's own, in order.
+  (SELECT array_agg(name) FROM clubs_near(NULL, NULL) WHERE name IN ('Mysuru Milers', 'Cubbon Dawn Runners', 'Indiranagar Striders', 'Somewhere Club')) = ARRAY['Mysuru Milers', 'Cubbon Dawn Runners', 'Indiranagar Striders', 'Somewhere Club'],
   'no location: the most popular clubs');
 SELECT pg_temp.check(bool_and(NOT nearby) AND bool_and(distance_km IS NULL), 'fallback rows carry no distance')
 FROM clubs_near(NULL, NULL);
 SELECT pg_temp.check((SELECT bool_and(NOT nearby) FROM clubs_near(51.5, -0.12)), 'nothing within range (London): popular fallback');
-SELECT pg_temp.check((SELECT count(*) FROM clubs_near(999, 999)) = 4, 'nonsense coordinates fall back instead of erroring');
+SELECT pg_temp.check((SELECT count(*) FROM clubs_near(999, 999) WHERE name IN ('Mysuru Milers', 'Cubbon Dawn Runners', 'Indiranagar Striders', 'Somewhere Club')) = 4, 'nonsense coordinates fall back instead of erroring');
 
 -- Owner moves the club to a public meeting point; others can't.
 SELECT set_config('test.uid', 'd1000000-0000-0000-0000-000000000005', false);
@@ -87,3 +97,4 @@ SELECT pg_temp.check(NOT EXISTS (
   'clubs_near returns no geometry columns');
 
 SELECT 'ALL CLUBS NEAR CHECKS PASSED' AS result;
+ROLLBACK;

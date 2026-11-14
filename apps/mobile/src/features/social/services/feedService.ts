@@ -52,11 +52,31 @@ export async function fetchFeed(opts: {
     discover:  opts.discover ?? false,
   });
   if (error) throw error;
-  const posts = (data ?? []).map(mapRow);
+  const posts = await withCompanions((data ?? []).map(mapRow)).catch(() => (data ?? []).map(mapRow));
   const nextCursor = posts.length === (opts.lim ?? 20)
     ? posts[posts.length - 1].createdAt
     : null;
   return { posts, nextCursor };
+}
+
+/** C3: a club's members' activities. */
+export async function fetchClubFeed(clubId: string, cursorTs?: string | null): Promise<FeedPost[]> {
+  const { data, error } = await supabase.rpc('get_club_feed', { p_club: clubId, lim: 20, cursor_ts: cursorTs ?? null });
+  if (error) throw error;
+  return withCompanions((data ?? []).map(mapRow));
+}
+
+/** F5: "with Sam and 1 other" — runners who started within 100 m and 5 min. */
+export async function withCompanions(posts: FeedPost[]): Promise<FeedPost[]> {
+  if (posts.length === 0) return posts;
+  const { data } = await supabase.rpc('get_post_companions', { p_post_ids: posts.map(p => p.id) });
+  const by = new Map<string, { userId: string; username: string }[]>();
+  for (const r of (data as { post_id: string; user_id: string; username: string }[] | null) ?? []) {
+    const arr = by.get(r.post_id) ?? [];
+    arr.push({ userId: r.user_id, username: r.username });
+    by.set(r.post_id, arr);
+  }
+  return posts.map(p => (by.has(p.id) ? { ...p, companions: by.get(p.id) } : p));
 }
 
 export async function toggleLike(postId: string): Promise<{ liked: boolean; count: number }> {
@@ -75,6 +95,15 @@ export async function fetchFollowingIds(userId: string): Promise<string[]> {
 }
 
 export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRunner[]> {
+  // O3: runners near you first; the global top list only when there's no one nearby.
+  const near = await supabase.rpc('suggest_runners_nearby', { lim: 5 });
+  if (!near.error && (near.data as unknown[] | null)?.length) {
+    return (near.data as any[]).map(r => ({
+      id: r.id, username: r.username ?? 'Runner', avatarUrl: r.avatar_url ?? null, avatarColor: r.avatar_color ?? '#888888',
+      totalDistanceKm: Number(r.total_distance_km ?? 0), territoryScore: Math.round(Number(r.territory_score ?? 0)),
+      distanceKm: r.distance_km == null ? undefined : Number(r.distance_km),
+    }));
+  }
   const { data, error } = await supabase
     .from('profiles_public')
     .select('id, username, avatar_url, avatar_color, total_distance_km, territory_score')

@@ -1,6 +1,11 @@
 -- City rewards with a device point, and partner applications.
 -- Run right after v1_store.test.sql and 20261106000006 (see README.md).
 \set ON_ERROR_STOP on
+BEGIN;
+-- Rewards gained required brand/description/value_label after these tests were written;
+-- defaults for this transaction only.
+ALTER TABLE public.pace_store_rewards ALTER COLUMN brand SET DEFAULT 'Test brand',
+  ALTER COLUMN description SET DEFAULT 'Test reward', ALTER COLUMN value_label SET DEFAULT 'Test';
 SET client_min_messages = notice;
 
 CREATE OR REPLACE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
@@ -12,10 +17,15 @@ END $$;
 SELECT set_config('test.role', 'service_role', false);
 
 -- A runner who passes every gate but has never saved a location.
+INSERT INTO auth.users (id, email) VALUES
+  ('e1000000-0000-0000-0000-000000000001', 'v1-e1000000-0@example.com'),
+  ('e1000000-0000-0000-0000-000000000002', 'v1-e1000000-1@example.com')
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO profiles (id, username, created_at, total_runs, pace_balance, pace_total_earned, pace_weekly_earned,
                       runner_rank, subscription_tier, country, last_known_location) VALUES
   ('e1000000-0000-0000-0000-000000000001', 'nolocA', now() - interval '30 days', 5, 500, 900, 40, 'chaser', 'free', 'IN', NULL),
-  ('e1000000-0000-0000-0000-000000000002', 'nolocB', now() - interval '30 days', 5, 500, 900, 40, 'chaser', 'free', 'IN', NULL);
+  ('e1000000-0000-0000-0000-000000000002', 'nolocB', now() - interval '30 days', 5, 500, 900, 40, 'chaser', 'free', 'IN', NULL)
+ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, created_at = EXCLUDED.created_at, total_runs = EXCLUDED.total_runs, pace_balance = EXCLUDED.pace_balance, pace_total_earned = EXCLUDED.pace_total_earned, pace_weekly_earned = EXCLUDED.pace_weekly_earned, runner_rank = EXCLUDED.runner_rank, subscription_tier = EXCLUDED.subscription_tier, country = EXCLUDED.country, last_known_location = EXCLUDED.last_known_location;
 
 INSERT INTO pace_store_rewards (id, title, pace_cost, code_mode, cities, status, plus_only) VALUES
   ('e2000000-0000-0000-0000-000000000001', 'Pune café', 40, 'none', '{Pune}', 'available', false);
@@ -91,3 +101,4 @@ SELECT pg_temp.check(pg_temp.apply_error('x@y.co', 'cafe', 'A fine offer') LIKE 
 SELECT set_config('test.role', 'service_role', false);
 
 SELECT 'ALL STORE LOCATION CHECKS PASSED' AS result;
+ROLLBACK;

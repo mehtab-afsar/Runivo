@@ -61,6 +61,10 @@ export interface StoredSettings {
   offersEnabled?: boolean;
   /** Paywall moment → ISO week it was last shown ("2026-W46"); at most once a week each. */
   paywallShown?: Partial<Record<'zone_limit' | 'pace_cap' | 'debrief', string>>;
+  /** A reward the runner is saving PACE for (S3); Home counts down to it. */
+  goalReward?: { id: string; brand: string; valueLabel: string; paceCost: number } | null;
+  /** P3: goals per sport, weekly or monthly, by distance or time. */
+  sportGoals?: { id: string; sport: 'run' | 'walk' | 'ride' | 'all'; period: 'week' | 'month'; metric: 'km' | 'hours'; target: number }[];
   // Sound & Haptics
   soundEnabled: boolean;
   hapticEnabled: boolean;

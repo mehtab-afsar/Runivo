@@ -5,6 +5,8 @@ import type { RunEvent, Discipline } from '../types';
 export interface EventsData {
   events: RunEvent[];
   joinedIds: Set<string>;
+  /** E5: saved on the server, shown under Going. */
+  bookmarkedIds: Set<string>;
   canCreate: boolean;
 }
 
@@ -29,6 +31,12 @@ function toRunEvent(e: Record<string, unknown>): RunEvent {
     sourceName: (e.source_name as string) ?? undefined,
     discipline: (e.discipline as Discipline) ?? undefined,
     clubId: (e.club_id as string) ?? undefined,
+    paceGroups: (e.pace_groups as string[] | null) ?? undefined,
+    route: Array.isArray(e.route_points) && (e.route_points as unknown[]).length >= 2 ? e.route_points as { lat: number; lng: number }[] : undefined,
+    lat: e.lat == null ? undefined : Number(e.lat),
+    lng: e.lng == null ? undefined : Number(e.lng),
+    radiusM: (e.radius_m as number | null) ?? undefined,
+    endsAt: (e.ends_at as string | null) ?? undefined,
   };
 }
 
@@ -41,20 +49,22 @@ export async function fetchEvents(): Promise<EventsData> {
     .eq('is_active', true)
     .order('starts_at', { ascending: true });
 
-  if (!eventsData) return { events: [], joinedIds: new Set(), canCreate: false };
+  if (!eventsData) return { events: [], joinedIds: new Set(), bookmarkedIds: new Set(), canCreate: false };
 
   const events = eventsData.map(toRunEvent);
 
-  if (!user) return { events, joinedIds: new Set(), canCreate: false };
+  if (!user) return { events, joinedIds: new Set(), bookmarkedIds: new Set(), canCreate: false };
 
-  const [{ data: parts }, { data: profile }] = await Promise.all([
+  const [{ data: parts }, { data: profile }, { data: marks }] = await Promise.all([
     supabase.from('event_participants').select('event_id').eq('user_id', user.id).in('event_id', eventsData.map(e => e.id)),
     supabase.from('profiles').select('subscription_tier').eq('id', user.id).single(),
+    supabase.from('event_bookmarks').select('event_id').eq('user_id', user.id),
   ]);
 
   return {
     events,
     joinedIds: new Set(parts?.map(p => p.event_id) ?? []),
+    bookmarkedIds: new Set((marks as { event_id: string }[] | null)?.map(b => b.event_id) ?? []),
     canCreate: profile?.subscription_tier === 'premium' || profile?.subscription_tier === 'admin',
   };
 }
@@ -87,6 +97,16 @@ export interface CreateEventData {
   distanceKm: string;
   description: string;
   discipline?: Discipline;
+  /** E3: "5:00, 6:00" → pace groups. */
+  paceGroups?: string;
+  /** E3/E4: meeting point, for check-in and the result (the host's position). */
+  lat?: number;
+  lng?: number;
+}
+
+export function parsePaceGroups(raw: string | undefined): string[] | null {
+  const groups = (raw ?? '').split(/[,\s]+/).map(g => g.trim()).filter(g => /^\d{1,2}:[0-5]\d$/.test(g));
+  return groups.length ? [...new Set(groups)].slice(0, 6) : null;
 }
 
 // Parsing "YYYY-MM-DD" + "HH:MM" as free text (no date picker in the form
@@ -121,6 +141,8 @@ export async function createEvent(data: CreateEventData): Promise<void> {
     distance_m: data.distanceKm ? Math.round(parseFloat(data.distanceKm) * 1000) : null,
     description: data.description.trim() || null,
     discipline: data.discipline ?? null,
+    pace_groups: parsePaceGroups(data.paceGroups),
+    ...(data.lat != null && data.lng != null ? { lat: data.lat, lng: data.lng, location: `SRID=4326;POINT(${data.lng} ${data.lat})` } : {}),
     is_active: true,
     participant_count: 0,
   });
@@ -139,4 +161,46 @@ export async function toggleEventJoin(eventId: string, isJoined: boolean): Promi
   } else {
     await supabase.from('event_participants').upsert({ event_id: eventId, user_id: user.id }, { onConflict: 'event_id,user_id' });
   }
+}
+
+// ── E5 / E3 / E4 / E6 ─────────────────────────────────────────────────────
+
+export async function setBookmark(eventId: string, on: boolean): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  if (on) await supabase.from('event_bookmarks').upsert({ user_id: user.id, event_id: eventId });
+  else await supabase.from('event_bookmarks').delete().eq('user_id', user.id).eq('event_id', eventId);
+}
+
+export interface Attendee { userId: string; username: string; avatarColor: string | null; paceGroup: string | null; arrived: boolean }
+export async function fetchAttendees(eventId: string): Promise<Attendee[]> {
+  const { data } = await supabase.rpc('event_attendees', { p_event: eventId });
+  return ((data as any[]) ?? []).map(r => ({ userId: r.user_id, username: r.username, avatarColor: r.avatar_color, paceGroup: r.pace_group, arrived: !!r.arrived }));
+}
+export async function setPaceGroup(eventId: string, group: string | null): Promise<void> {
+  await supabase.rpc('set_event_pace_group', { p_event: eventId, p_group: group });
+}
+export async function checkInEvent(eventId: string, lat: number, lng: number): Promise<boolean> {
+  const { data } = await supabase.rpc('check_in_event', { p_event: eventId, p_lat: lat, p_lng: lng });
+  return !!data;
+}
+
+export interface ResultRow { userId: string; username: string; avatarColor: string | null; distanceKm: number; durationSec: number; isMe: boolean }
+export async function fetchEventResult(eventId: string): Promise<ResultRow[]> {
+  const { data } = await supabase.rpc('event_result', { p_event: eventId });
+  return ((data as any[]) ?? []).map(r => ({ userId: r.user_id, username: r.username, avatarColor: r.avatar_color, distanceKm: Number(r.distance_km), durationSec: r.duration_sec, isMe: !!r.is_me }))
+    .sort((a, b) => b.distanceKm - a.distanceKm || a.durationSec - b.durationSec);
+}
+export async function claimEventFinish(eventId: string): Promise<boolean> {
+  const { data } = await supabase.rpc('claim_event_finish', { p_event: eventId });
+  return !!data;
+}
+
+export async function createTerritoryEvent(clubId: string, e: { title: string; startsAt: Date; minutes: number; lat: number; lng: number; radiusM: number; place: string }): Promise<string> {
+  const { data, error } = await supabase.rpc('create_territory_event', {
+    p_club: clubId, p_title: e.title, p_starts_at: e.startsAt.toISOString(), p_minutes: e.minutes,
+    p_lat: e.lat, p_lng: e.lng, p_radius_m: e.radiusM, p_place: e.place || 'Club area',
+  });
+  if (error) throw error;
+  return data as string;
 }

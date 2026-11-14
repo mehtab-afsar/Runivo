@@ -38,6 +38,10 @@ import { supabase } from '@shared/services/supabase';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { RunnerFace } from '@mobile/shared/components/RunnerFace';
 import { ClubInitialsTile } from '../components/ClubHeroCard';
+import { FeedPostCard } from '@features/social/components/FeedPostCard';
+import CommentSheet from '@features/social/components/CommentSheet';
+import { fetchClubFeed, toggleLike, deletePost } from '@features/social/services/feedService';
+import type { FeedPost } from '@features/social/types';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
@@ -162,6 +166,16 @@ export default function ClubDetailScreen() {
   // Activity tab
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  // C3: members' activities.
+  const [clubPosts, setClubPosts] = useState<FeedPost[]>([]);
+  const [commentPostId, setCommentPostId] = useState<string | null>(null);
+  const kudos = useCallback(async (postId: string) => {
+    setClubPosts(ps => ps.map(p => p.id === postId ? { ...p, hasKudos: !p.hasKudos, kudosCount: p.kudosCount + (p.hasKudos ? -1 : 1) } : p));
+    try {
+      const r = await toggleLike(postId);
+      setClubPosts(ps => ps.map(p => p.id === postId ? { ...p, hasKudos: r.liked, kudosCount: r.count } : p));
+    } catch { /* keep the optimistic state */ }
+  }, []);
 
   // Admin tab
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
@@ -222,8 +236,9 @@ export default function ClubDetailScreen() {
   const loadActivity = useCallback(async () => {
     setActivityLoading(true);
     try {
-      const data = await fetchClubActivity(clubId);
+      const [data, posts] = await Promise.all([fetchClubActivity(clubId), fetchClubFeed(clubId).catch(() => [] as FeedPost[])]);
       setActivity(data);
+      setClubPosts(posts);
     } catch { /* offline */ }
     setActivityLoading(false);
   }, [clubId]);
@@ -490,15 +505,33 @@ export default function ClubDetailScreen() {
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
-              <Text style={s.sectionLabel}>Recent activity</Text>
+              <>
+                {clubPosts.length > 0 && (
+                  <View style={{ gap: 12, marginBottom: 16 }}>
+                    <Text style={s.sectionLabel}>Members' activities</Text>
+                    {clubPosts.map(p => (
+                      <FeedPostCard
+                        key={p.id}
+                        post={p}
+                        currentUserId={currentUserId}
+                        onKudos={() => kudos(p.id)}
+                        onComment={() => setCommentPostId(p.id)}
+                        onUserPress={() => navigation.navigate('UserProfile', { userId: p.userId, username: p.username })}
+                        onDelete={() => { setClubPosts(ps => ps.filter(x => x.id !== p.id)); deletePost(p.id).catch(() => loadActivity()); }}
+                      />
+                    ))}
+                  </View>
+                )}
+                {activity.length > 0 && <Text style={s.sectionLabel}>Club news</Text>}
+              </>
             }
-            ListEmptyComponent={
+            ListEmptyComponent={clubPosts.length > 0 ? null : (
               <View style={s.empty}>
                 <ClipboardText size={36} color={C.t3} weight="light" />
                 <Text style={s.emptyTitle}>No activity yet</Text>
                 <Text style={s.emptyText}>Club runs and events will appear here.</Text>
               </View>
-            }
+            )}
           />
         )
       )}
@@ -614,6 +647,7 @@ export default function ClubDetailScreen() {
           </View>
         </Pressable>
       </Modal>
+      <CommentSheet postId={commentPostId} onClose={() => setCommentPostId(null)} onCommentPosted={() => setClubPosts(ps => ps.map(p => p.id === commentPostId ? { ...p, commentCount: p.commentCount + 1 } : p))} />
     </SafeAreaView>
   );
 }

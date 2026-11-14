@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getCachedPlan, localToday } from '@features/training/services/planService';
 import { sessionOn } from '@shared/engine/training';
-import { Animated, PanResponder } from 'react-native';
+import { Animated, PanResponder, AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
@@ -18,6 +18,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export interface GpsState {
   status: 'searching' | 'ready' | 'error';
+  /** Why there's no GPS: permission refused, or location switched off on the phone. */
+  problem?: 'denied' | 'off';
   accuracy: number | null;
   lat: number | null;
   lng: number | null;
@@ -26,8 +28,8 @@ export interface GpsState {
 export interface IntelStats { enemy: number; neutral: number; weak: number }
 
 // v1: the sheet holds the sport chips, the rule line and Start.
-const SHEET_COLLAPSED = 292;
-const SHEET_EXPANDED  = 292;
+const SHEET_COLLAPSED = 336; // +44 for the countdown / auto-pause chips (R6)
+const SHEET_EXPANDED  = 336;
 
 export function useRunSetup() {
   const navigation = useNavigation<Nav>();
@@ -56,6 +58,15 @@ export function useRunSetup() {
   const sheetAnim      = useRef(new Animated.Value(SHEET_COLLAPSED)).current;
   const isExpandedRef  = useRef(false);
 
+  // Coming back from Settings (where the runner turned location on) retries.
+  const [gpsAttempt, setGpsAttempt] = useState(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', st => {
+      if (st === 'active') setGps(g => { if (g.status === 'error') setGpsAttempt(a => a + 1); return g; });
+    });
+    return () => sub.remove();
+  }, []);
+
   // GPS watch
   useEffect(() => {
     // The cleanup below runs synchronously at unmount, but the subscription is only
@@ -65,18 +76,29 @@ export function useRunSetup() {
     // watcher (battery drain) until app restart. `cancelled` catches that race.
     let cancelled = false;
     (async () => {
+      setGps(g => (g.status === 'error' ? { ...g, status: 'searching', problem: undefined } : g));
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (cancelled) return;
-      if (status !== 'granted') { setGps(g => ({ ...g, status: 'error' })); return; }
-      const sub = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, timeInterval: 2000, distanceInterval: 5 },
-        loc => setGps({ status: 'ready', accuracy: loc.coords.accuracy ?? null, lat: loc.coords.latitude, lng: loc.coords.longitude }),
-      );
-      if (cancelled) { sub.remove(); return; }
-      locationSubRef.current = sub;
+      if (status !== 'granted') { setGps(g => ({ ...g, status: 'error', problem: 'denied' })); return; }
+      // With location switched off on the phone, watchPositionAsync throws (or
+      // never reports) and the sheet used to sit on "Waiting for GPS" forever.
+      if (!(await Location.hasServicesEnabledAsync().catch(() => true))) {
+        if (!cancelled) setGps(g => ({ ...g, status: 'error', problem: 'off' }));
+        return;
+      }
+      try {
+        const sub = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.High, timeInterval: 2000, distanceInterval: 5 },
+          loc => setGps({ status: 'ready', accuracy: loc.coords.accuracy ?? null, lat: loc.coords.latitude, lng: loc.coords.longitude }),
+        );
+        if (cancelled) { sub.remove(); return; }
+        locationSubRef.current = sub;
+      } catch {
+        if (!cancelled) setGps(g => ({ ...g, status: 'error', problem: 'off' }));
+      }
     })();
-    return () => { cancelled = true; locationSubRef.current?.remove(); };
-  }, []);
+    return () => { cancelled = true; locationSubRef.current?.remove(); locationSubRef.current = null; };
+  }, [gpsAttempt]);
 
   // Territory intel
   useEffect(() => {

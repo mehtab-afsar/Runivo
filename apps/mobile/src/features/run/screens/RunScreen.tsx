@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNearbyZones } from '../hooks/useNearbyZones';
+import { useZonesAround } from '../hooks/useZonesAround';
 import { sportFor } from '../constants/activities';
 import { View, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -118,6 +119,7 @@ export default function RunScreen() {
     sheetAnim, panResponder,
     openRouteModal, findNearby, startRun,
   } = useRunSetup();
+  const zonesAround = useZonesAround(gps.status === 'ready' && gps.lat != null && gps.lng != null ? { lat: gps.lat, lng: gps.lng } : null, sportFor(activityType).claims);
   const nearbyLine = useNearbyZones(gps.status === 'ready' && gps.lat != null && gps.lng != null ? { lat: gps.lat, lng: gps.lng } : null, sportFor(activityType).claims);
 
   const pacer = useBeatPacer();
@@ -132,7 +134,9 @@ export default function RunScreen() {
         cleanupOrphanedBackgroundTask(false).catch(() => {});
         return;
       }
-      const km = (cp.points.length * 3 / 1000).toFixed(1);
+      let m = 0;
+      for (let i = 1; i < cp.points.length; i++) { const d = haversineM(cp.points[i - 1], cp.points[i]); if (d >= 1 && d < 100) m += d; }
+      const km = (m / 1000).toFixed(1);
       Alert.alert(
         'Interrupted run found',
         `A run was interrupted (~${km} km of GPS data). Recover it?`,
@@ -149,7 +153,7 @@ export default function RunScreen() {
         ],
       );
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   return (
@@ -167,6 +171,8 @@ export default function RunScreen() {
         topInset={insets.top}
         intelEnemy={intel.enemy}
         intelWeak={intel.weak}
+        ownZones={zonesAround.own}
+        rivalZones={zonesAround.rivals}
         gpsColor={gpsColor(C, gps.status, gps.accuracy)}
         gpsLabel={gpsLabel(gps.status, gps.accuracy)}
         onClose={() => navigation.navigate('Main', { screen: 'Dashboard' })}
@@ -177,6 +183,7 @@ export default function RunScreen() {
         activityType={activityType}
         selectedRouteName={selectedRoute?.name ?? null}
         gpsReady={gps.status === 'ready'}
+        gpsProblem={gps.problem}
         bottomInset={insets.bottom}
         pacerEnabled={pacer.enabled}
         pacerPace={pacer.pace}

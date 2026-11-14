@@ -15,9 +15,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   // Deep-link scheme — used by notification handler, OAuth, and universal links
   scheme: 'runivo',
   splash: {
+    // Plain white on purpose: the in-app launch screen (SplashView) draws the
+    // hexagon from nothing on the same white, so the hand-off doesn't show.
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#FFFFFF',
   },
   ios: {
     supportsTablet: false,
@@ -63,6 +65,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
+      monochromeImage: './assets/android-icon-monochrome.png',
       backgroundColor: '#FFFFFF',
     },
     permissions: [
@@ -159,6 +162,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Creates the widget extension target and an App Group
     // (group.<bundleIdentifier>); frequentUpdates lets the run update every few seconds.
     ['expo-widgets', { frequentUpdates: true, widgets: [] }],
+    // L4: the Apple Watch companion (targets/watch). Opt in with RUNIVO_WATCH=1
+    // so a phone-only build never depends on the watch target compiling.
+    ...(process.env.RUNIVO_WATCH === '1' ? ['@bacons/apple-targets' as const] : []),
+    // L4 on Android: the Wear OS app (targets/wear). Opt in with RUNIVO_WEAR=1.
+    ...(process.env.RUNIVO_WEAR === '1' ? ['./plugins/withWearCompanion' as const] : []),
     [
       'expo-image-picker',
       {

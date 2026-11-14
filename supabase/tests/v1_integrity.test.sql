@@ -2,18 +2,30 @@
 -- Each check raises an exception on failure; a clean run prints "ALL PASSED".
 \set ON_ERROR_STOP on
 
+BEGIN;
+-- Rewards gained required brand/description/value_label after these tests were written;
+-- defaults for this transaction only.
+ALTER TABLE public.pace_store_rewards ALTER COLUMN brand SET DEFAULT 'Test brand',
+  ALTER COLUMN description SET DEFAULT 'Test reward', ALTER COLUMN value_label SET DEFAULT 'Test';
+DROP TRIGGER IF EXISTS protect_profile_columns_t ON public.profiles;
 CREATE TRIGGER protect_profile_columns_t BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.protect_profile_columns();
 
 CREATE OR REPLACE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
-BEGIN IF NOT ok THEN RAISE EXCEPTION 'FAILED: %', what; END IF; RAISE NOTICE 'ok  %', what; END $$;
+BEGIN IF ok IS NOT TRUE THEN RAISE EXCEPTION 'FAILED: %', what; END IF; RAISE NOTICE 'ok  %', what; END $$;
 
 -- Users: u1 free, u2 premium, u3 free
 SELECT set_config('test.role', 'service_role', false);
+INSERT INTO auth.users (id, email) VALUES
+  ('00000000-0000-0000-0000-000000000001', 'v1-00000000-0@example.com'),
+  ('00000000-0000-0000-0000-000000000002', 'v1-00000000-1@example.com'),
+  ('00000000-0000-0000-0000-000000000003', 'v1-00000000-2@example.com')
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO profiles (id, username, subscription_tier) VALUES
   ('00000000-0000-0000-0000-000000000001', 'u1', 'free'),
   ('00000000-0000-0000-0000-000000000002', 'u2', 'premium'),
-  ('00000000-0000-0000-0000-000000000003', 'u3', 'free');
+  ('00000000-0000-0000-0000-000000000003', 'u3', 'free')
+ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, subscription_tier = EXCLUDED.subscription_tier;
 
 -- ── Client can't touch economy columns ────────────────────────────────────────
 SELECT set_config('test.role', 'authenticated', false);
@@ -47,6 +59,10 @@ FROM profiles WHERE id = '00000000-0000-0000-0000-000000000001';
 SELECT pg_temp.check(credit_pace_capped('00000000-0000-0000-0000-000000000001', 0, 'run', 'r6') = 0, 'zero amounts credit nothing');
 
 -- ── Missions: credited despite the trigger, once per title per day ────────────
+-- Missions now need the work done: an 8 km run today for Long Haul.
+SELECT set_config('test.role', 'service_role', false);
+INSERT INTO runs (user_id, activity_type, started_at, finished_at, distance_m, duration_sec, avg_pace)
+VALUES ('00000000-0000-0000-0000-000000000003', 'run', date_trunc('day', now()) + interval '1 minute', date_trunc('day', now()) + interval '50 minutes', 8200, 2940, '6:00');
 UPDATE profiles SET pace_weekly_reset_at = now() - interval '8 days' WHERE id = '00000000-0000-0000-0000-000000000003';
 SELECT set_config('test.role', 'authenticated', false);
 SELECT set_config('test.uid', '00000000-0000-0000-0000-000000000003', false);
@@ -71,13 +87,13 @@ SELECT pg_temp.check(ST_IsValid(ST_GeomFromText(wkt, 4326)), 'self-crossing rout
 FROM build_territory_geom('LINESTRING(-0.165 51.507, -0.162 51.509, -0.162 51.507, -0.165 51.509)', NULL);
 
 -- Claim: u1 takes the loop
-INSERT INTO runs (id, user_id) VALUES
-  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001'),
-  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002');
+INSERT INTO runs (id, user_id, activity_type, started_at, finished_at, distance_m, duration_sec, avg_pace) VALUES
+  ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'run', now() - interval '5 hours', now() - interval '5 hours', 0, 0, '0:00'),
+  ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'run', now() - interval '6 hours', now() - interval '6 hours', 0, 0, '0:00');
 SELECT pg_temp.check(c.pieces = 1 AND c.area_m2 > 48000, 'free land is claimed in full')
 FROM g, build_territory_geom(g.loop_line, g.loop_ring) b,
      claim_unclaimed_area(b.wkt, '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', true) c;
-SELECT pg_temp.check(is_loop_fill AND tier = 'district', 'stored as a loop, district tier (50.1k m²)') FROM territory_polygons;
+SELECT pg_temp.check(is_loop_fill AND tier = 'district', 'stored as a loop, district tier (50.1k m²)') FROM territory_polygons WHERE run_id = '10000000-0000-0000-0000-000000000001';
 
 -- Steal: u2 runs a strip through the middle
 SELECT pg_temp.check(
@@ -106,11 +122,15 @@ SELECT pg_temp.check(territory_score > 0 AND territory_score < 50000, 'territory
 FROM profiles WHERE id = '00000000-0000-0000-0000-000000000001';
 
 -- ── Redemption ────────────────────────────────────────────────────────────────
-INSERT INTO pace_store_rewards (id, title, pace_cost, expires_at, stock) VALUES
-  ('20000000-0000-0000-0000-000000000001', 'Expired', 10, now() - interval '1 day', NULL),
-  ('20000000-0000-0000-0000-000000000002', 'One left', 10, NULL, 1);
-SELECT pg_temp.check(NOT success, 'expired reward cannot be redeemed') FROM redeem_reward('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001');
-SELECT pg_temp.check(success, 'last unit can be redeemed') FROM redeem_reward('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002');
-SELECT pg_temp.check(NOT success AND message = 'This reward has run out', 'sold-out reward is refused') FROM redeem_reward('00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002');
+INSERT INTO pace_store_rewards (id, title, pace_cost, expires_at, stock, status, code_mode) VALUES
+  ('20000000-0000-0000-0000-000000000001', 'Expired', 10, now() - interval '1 day', NULL, 'available', 'none'),
+  ('20000000-0000-0000-0000-000000000002', 'One left', 10, NULL, 1, 'available', 'none');
+-- redeem_reward now returns jsonb: a reason when refused (see v1_store for the full rules).
+SELECT set_config('test.role', 'service_role', false);
+UPDATE profiles SET pace_balance = 100, created_at = now() - interval '60 days', total_runs = 10 WHERE id IN ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002');
+SELECT pg_temp.check(redeem_reward('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001')->>'reason' IS NOT NULL, 'expired reward cannot be redeemed');
+SELECT pg_temp.check(redeem_reward('00000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002')->>'reason' IS NULL, 'last unit can be redeemed');
+SELECT pg_temp.check(redeem_reward('00000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002')->>'reason' = 'sold_out', 'sold-out reward is refused');
 
 SELECT 'ALL PASSED' AS result;
+ROLLBACK;

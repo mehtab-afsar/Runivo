@@ -2,6 +2,8 @@ export type PostType = 'run' | 'conquest' | 'attack' | 'milestone';
 
 export interface FeedPost {
   id: string;
+  /** F5: others who ran with this runner (started within 100 m and 5 min). */
+  companions?: { userId: string; username: string }[];
   userId: string;
   username: string;
   avatarUrl: string | null;
@@ -39,6 +41,8 @@ export interface SuggestedRunner {
   avatarColor: string;
   totalDistanceKm: number;
   territoryScore: number;
+  /** O3: km away, when suggested because they run near you. */
+  distanceKm?: number;
 }
 
 export interface Comment {

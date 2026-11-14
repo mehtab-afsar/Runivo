@@ -44,7 +44,7 @@ export const ENGINE = {
    * Rides are recorded but don't play the territory game (a bike covers ground
    * 3-4x faster, which would let riders sweep the map).
    */
-  TERRITORY_ACTIVITIES: ['run', 'trail_run', 'trail', 'walk', 'hike'] as readonly string[],
+  TERRITORY_ACTIVITIES: ['run', 'trail_run', 'trail', 'walk', 'hike', 'wheelchair', 'stroller'] as readonly string[],
 
   // Freshness and score
   FRESHNESS_DECAY_PER_DAY: 10,

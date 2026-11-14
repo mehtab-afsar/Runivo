@@ -24,7 +24,6 @@ import RunSummaryScreen      from '@features/run/screens/RunSummaryScreen';
 import RunScreen             from '@features/run/screens/RunScreen';
 import TerritoryMapScreen    from '@features/territory/screens/TerritoryMapScreen';
 import FeedScreen            from '@features/social/screens/FeedScreen';
-import StoryViewerScreen     from '@features/social/screens/StoryViewerScreen';
 import ProfileScreen         from '@features/profile/screens/ProfileScreen';
 import UserProfileScreen     from '@features/profile/screens/UserProfileScreen';
 import FollowersScreen       from '@features/profile/screens/FollowersScreen';
@@ -45,8 +44,8 @@ import EventsScreen          from '@features/events/screens/EventsScreen';
 import CreateEventScreen     from '@features/events/screens/CreateEventScreen';
 import ClubScreen            from '@features/clubs/screens/ClubScreen';
 import ClubDetailScreen      from '@features/clubs/screens/ClubDetailScreen';
-import LobbyScreen           from '@features/clubs/screens/LobbyScreen';
-import LobbyChatScreen       from '@features/clubs/screens/LobbyChatScreen';
+import ChallengesScreen      from '@features/challenges/screens/ChallengesScreen';
+import ChallengeDetailScreen from '@features/challenges/screens/ChallengeDetailScreen';
 import LeaderboardScreen     from '@features/leaderboard/screens/LeaderboardScreen';
 import CalorieTrackerScreen  from '@features/nutrition/screens/CalorieTrackerScreen';
 import NutritionSetupScreen  from '@features/nutrition/screens/NutritionSetupScreen';
@@ -65,6 +64,10 @@ import PACEStoreScreen       from '@features/store/screens/PACEStoreScreen';
 import RewardDetailScreen    from '@features/store/screens/RewardDetailScreen';
 import MyRewardsScreen       from '@features/store/screens/MyRewardsScreen';
 import YearInRunivoScreen    from '@features/profile/screens/YearInRunivoScreen';
+import ProfileStatsScreen    from '@features/profile/screens/ProfileStatsScreen';
+import TrainingLogScreen     from '@features/profile/screens/TrainingLogScreen';
+import StrengthScreen        from '@features/training/screens/StrengthScreen';
+import LogTreadmillScreen    from '@features/run/screens/LogTreadmillScreen';
 import type { Reward }       from '@features/store/types';
 import CoachPlanScreen      from '@features/coach/screens/CoachPlanScreen';
 import RunReplayScreen      from '@features/run/screens/RunReplayScreen';
@@ -116,8 +119,8 @@ export type RootStackParamList = {
   CreateEvent: undefined;
   Club:      undefined;
   ClubDetail: { clubId: string; clubName: string; badgeEmoji: string; memberCount: number; totalKm: number; description?: string };
-  Lobby:     undefined;
-  LobbyChat: { lobbyId: string };
+  Challenges: undefined;
+  ChallengeDetail: { id: string };
   Leaderboard: undefined;
   CalorieTracker: { burnKcal?: number } | undefined;
   NutritionSetup: undefined;
@@ -136,13 +139,13 @@ export type RootStackParamList = {
   Notifications: undefined;
   /** reason: which paywall moment opened it (sets the headline). */
   Subscription: { reason?: PaywallReason } | undefined;
-  StoryViewer: {
-    groups: { userId: string; userName: string; stories: { id: string; imageUrl: string }[] }[];
-    initialGroupIndex: number;
-  };
   // username is optional — deep links from push notifications (e.g. a new-follower
   // push) only carry the userId; the screen fetches the rest itself.
   UserProfile: { userId: string; username?: string };
+  ProfileStats: { sport?: 'all' | 'run' | 'walk' | 'ride' } | undefined;
+  TrainingLog: undefined;
+  Strength: undefined;
+  LogTreadmill: undefined;
   Followers: { userId: string };
   Following: { userId: string };
   AwardDetail: { awardId: string; unlockedAt: string | null };
@@ -229,7 +232,8 @@ const linking: LinkingOptions<RootStackParamList> = {
       Leaderboard: 'leaderboard',
       Events:      'events',
       Club:        'clubs',
-      Lobby:       'lobby',
+      Challenges:  'challenges',
+      ChallengeDetail: 'challenges/:id',
       Notifications: 'notifications',
       Subscription:      'subscription',
       ConnectedDevices:  'settings/devices',
@@ -238,6 +242,10 @@ const linking: LinkingOptions<RootStackParamList> = {
       Privacy:           'settings/privacy',
       MyRewards:         'store/mine',
       YearInRunivo:      'year',
+      ProfileStats:      'profile/stats',
+      TrainingLog:       'profile/log',
+      Strength:          'training/strength',
+      UserProfile:       'runner/:userId',
       TrainingPlan:      'training',
       PlanBuilder:       'training/new',
       RunSummary:    'run/summary/:runId',
@@ -314,8 +322,8 @@ export function AppNavigator({
             <Stack.Screen name="CreateEvent"     component={FEATURES.EVENTS ? CreateEventScreen : () => <ComingSoon feature={FEATURE_LABELS.EVENTS!} />} />
             <Stack.Screen name="Club"            component={FEATURES.CLUBS ? ClubScreen       : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
             <Stack.Screen name="ClubDetail"      component={FEATURES.CLUBS ? ClubDetailScreen : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
-            <Stack.Screen name="Lobby"           component={FEATURES.CLUBS ? LobbyScreen      : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
-            <Stack.Screen name="LobbyChat"       component={FEATURES.CLUBS ? LobbyChatScreen  : () => <ComingSoon feature={FEATURE_LABELS.CLUBS!} />} />
+            <Stack.Screen name="Challenges"      component={ChallengesScreen} />
+            <Stack.Screen name="ChallengeDetail" component={ChallengeDetailScreen} />
             <Stack.Screen name="Leaderboard"     component={LeaderboardScreen} />
             <Stack.Screen name="CalorieTracker"  component={FEATURES.NUTRITION_TRACKER ? CalorieTrackerScreen : () => <ComingSoon feature={FEATURE_LABELS.NUTRITION_TRACKER!} />} />
             <Stack.Screen name="NutritionSetup"  component={FEATURES.NUTRITION_TRACKER ? NutritionSetupScreen : () => <ComingSoon feature={FEATURE_LABELS.NUTRITION_TRACKER!} />} />
@@ -333,7 +341,6 @@ export function AppNavigator({
             <Stack.Screen name="TerritoryMap"     component={TerritoryMapScreen} />
             <Stack.Screen name="Notifications"   component={NotificationsScreen} />
             <Stack.Screen name="Subscription"    component={SubscriptionScreen} />
-            <Stack.Screen name="StoryViewer"     component={StoryViewerScreen} />
             <Stack.Screen name="UserProfile"     component={UserProfileScreen} />
             <Stack.Screen name="Followers"       component={FollowersScreen}   />
             <Stack.Screen name="Following"       component={FollowingScreen}   />
@@ -342,6 +349,10 @@ export function AppNavigator({
             <Stack.Screen name="RewardDetail"    component={RewardDetailScreen} options={{ headerShown: false, presentation: 'modal' }} />
             <Stack.Screen name="MyRewards"       component={MyRewardsScreen} />
             <Stack.Screen name="YearInRunivo"    component={YearInRunivoScreen} />
+            <Stack.Screen name="ProfileStats"    component={ProfileStatsScreen} />
+            <Stack.Screen name="TrainingLog"     component={TrainingLogScreen} />
+            <Stack.Screen name="Strength"        component={StrengthScreen} />
+            <Stack.Screen name="LogTreadmill"    component={LogTreadmillScreen} />
             <Stack.Screen name="CoachPlan"       component={FEATURES.AI_COACH ? CoachPlanScreen : () => <ComingSoon feature={FEATURE_LABELS.AI_COACH!} />} options={{ headerShown: false }} />
             <Stack.Screen name="RunReplay"       component={RunReplayScreen}   options={{ headerShown: false }} />
           </>

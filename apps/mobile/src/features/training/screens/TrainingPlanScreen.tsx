@@ -3,6 +3,8 @@
  * steps. Sessions can be started, moved within their week or skipped, and
  * "Not feeling 100%" eases the next 7 days.
  */
+import { supabase } from '@shared/services/supabase';
+import { getWatchWorkouts } from '../../../../modules/runivo-workouts';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Platform, ActivityIndicator, Alert, Modal,
@@ -27,6 +29,9 @@ export default function TrainingPlanScreen() {
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const today = localToday();
+  // T7: only offered on builds with WorkoutKit and a paired watch that can take it.
+  const [watchOk, setWatchOk] = useState(false);
+  useEffect(() => { getWatchWorkouts()?.isSupported().then(setWatchOk).catch(() => {}); }, []);
   const [ap, setAp] = useState<ActivePlan | null | undefined>(undefined);
   const [weekIdx, setWeekIdx] = useState<number | null>(null);
   const [open, setOpen] = useState<Session | null>(null);
@@ -178,6 +183,43 @@ export default function TrainingPlanScreen() {
               >
                 <Play size={16} color={C.alwaysLight} weight="fill" />
                 <Text style={s.ctaTxt}>Start this session</Text>
+              </Pressable>
+            )}
+
+            {/* T7: Apple Watch (WorkoutKit, iOS 17+). */}
+            {watchOk && open.status === 'planned' && open.date >= today && (
+              <Pressable
+                style={[s.cta, { backgroundColor: C.surface, marginTop: 8 }]}
+                onPress={async () => {
+                  const ok = await getWatchWorkouts()?.schedule({
+                    title: open.title, date: open.date,
+                    steps: open.steps.map(st => ({ kind: st.kind, distanceM: st.distanceM, durationSec: st.durationSec })),
+                  }).catch(() => false);
+                  Alert.alert(ok ? 'On your Apple Watch' : "Couldn't add it",
+                    ok ? `Open the Workout app on ${open.date} and it's under Custom.` : 'Allow Runivo to add workouts when asked, and check your watch runs watchOS 10 or later.');
+                }}
+                accessibilityRole="button"
+              >
+                <Text style={[s.ctaTxt, { color: C.t1 }]}>Send to Apple Watch</Text>
+              </Pressable>
+            )}
+
+            {/* T7: put the session on a Garmin watch. */}
+            {open.status === 'planned' && open.date >= today && (
+              <Pressable
+                style={[s.cta, { backgroundColor: C.surface, marginTop: 8 }]}
+                onPress={async () => {
+                  const { data, error } = await supabase.functions.invoke('export-workout', { body: { sessionId: open.id } });
+                  const code = (data as { error?: string } | null)?.error ?? (error ? 'failed' : null);
+                  Alert.alert(code ? "Couldn't send it" : 'Sent to Garmin',
+                    code === 'garmin_not_connected' ? 'Connect Garmin in Connected apps and devices first.'
+                    : code === 'garmin_permission' ? 'Reconnect Garmin and allow workout import.'
+                    : code ? 'Try again in a moment.'
+                    : `It's on your Garmin calendar for ${open.date}. Sync your watch to see it.`);
+                }}
+                accessibilityRole="button"
+              >
+                <Text style={[s.ctaTxt, { color: C.t1 }]}>Send to Garmin</Text>
               </Pressable>
             )}
 

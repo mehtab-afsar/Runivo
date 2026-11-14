@@ -26,6 +26,14 @@ export interface RunEvent {
   sourceName?: string;
   discipline?: Discipline;
   clubId?: string;
+  /** E3: pace groups runners can pick, e.g. ["5:00", "6:00"]. */
+  paceGroups?: string[];
+  route?: { lat: number; lng: number }[];
+  lat?: number;
+  lng?: number;
+  /** E6: territory hour area. */
+  radiusM?: number;
+  endsAt?: string;
 }
 
 export const CATEGORY_EMOJI: Record<string, string> = {

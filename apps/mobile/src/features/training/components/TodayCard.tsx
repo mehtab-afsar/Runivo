@@ -23,6 +23,10 @@ export default function TodayCard() {
   const [ap, setAp] = useState<ActivePlan | null | undefined>(undefined);
   // No plan: suggest a run for the territory (H1).
   const suggestion = useTerritorySuggestion(ap === null);
+  // T6: an easy session can run through the zones that are fading.
+  const todaysSession = ap ? sessionOn(ap.plan, localToday()) : undefined;
+  const easyKm = todaysSession && todaysSession.status === 'planned' && ['easy', 'long', 'recovery'].includes(todaysSession.kind) ? todaysSession.distanceKm : undefined;
+  const sessionLoop = useTerritorySuggestion(!!easyKm, easyKm);
 
   useFocusEffect(useCallback(() => {
     getCachedPlan().then(c => setAp(prev => (prev === undefined ? c : prev)));
@@ -84,6 +88,16 @@ export default function TodayCard() {
           <Play size={14} color={C.alwaysLight} weight="fill" />
           <Text style={s.startTxt}>Start session</Text>
         </Pressable>
+        {sessionLoop && (
+          <Pressable
+            style={s.loopRow}
+            onPress={() => navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', sessionId: todays.id, ghostRoutePoints: sessionLoop.points })}
+            accessibilityRole="button"
+          >
+            <Text style={s.loopTxt} numberOfLines={2}>Run it as a {sessionLoop.title}: {sessionLoop.sub.charAt(0).toLowerCase()}{sessionLoop.sub.slice(1)}</Text>
+            <ArrowRight size={14} color={C.t1} weight="bold" />
+          </Pressable>
+        )}
       </View>
     );
   }
@@ -114,5 +128,7 @@ function mkStyles(C: AppColors) {
     sub:      { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.t2, marginTop: 3 },
     start:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 40, borderRadius: 20, backgroundColor: C.t1, marginTop: 12 },
     startTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.bg },
+    loopRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+    loopTxt: { flex: 1, fontFamily: Fonts.medium, fontSize: 12.5, color: C.t1 },
   });
 }

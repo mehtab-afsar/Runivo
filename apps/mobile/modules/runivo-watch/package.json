@@ -1,0 +1,9 @@
+{
+  "name": "runivo-watch",
+  "version": "1.0.0",
+  "description": "Phone side of the Runivo Apple Watch companion (L4): WatchConnectivity",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "author": "Runivo",
+  "homepage": "https://runivo.app"
+}

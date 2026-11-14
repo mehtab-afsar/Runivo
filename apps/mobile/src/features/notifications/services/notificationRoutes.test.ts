@@ -24,7 +24,7 @@ describe('notification routes', () => {
     expect(r('/profile')).toEqual({ screen: 'Main', params: { screen: 'Profile' } });
   });
   it('covers the simple paths, trailing slashes, and nothing for unknowns', () => {
-    for (const [url, screen] of [['/store', 'PACEStore'], ['/store/mine', 'MyRewards'], ['/training', 'TrainingPlan'], ['/history/', 'History'], ['/lobby', 'Lobby'], ['/clubs', 'Club']]) {
+    for (const [url, screen] of [['/store', 'PACEStore'], ['/store/mine', 'MyRewards'], ['/training', 'TrainingPlan'], ['/history/', 'History'], ['/challenges', 'Challenges'], ['/clubs', 'Club']]) {
       expect(r(url)?.screen).toBe(screen);
     }
     expect(r('/')).toBeNull();

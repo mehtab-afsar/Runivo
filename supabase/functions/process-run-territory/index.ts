@@ -29,7 +29,7 @@ const MIN_GPS_POINTS     = 10;
 // for the "Achievement unlocked" push body, so this Deno function doesn't need
 // a cross-package import for one string per award.
 const AWARD_TITLES: Record<string, string> = {
-  first_claim: 'First Claim', first_blood: 'First Blood', park_capture: 'Park Capture',
+  first_claim: 'First Claim', first_blood: 'First Blood', park_capture: 'Loop Closer',
   district_owner: 'District Owner', quarter_owner: 'Quarter Owner', domain_lord: 'Domain Lord',
   city_builder: 'City Builder', defender: 'Defender', sovereign_rank: 'Sovereign',
   first_5k: 'First 5K', first_10k: '10K Club', first_halfmarathon: 'Half Done',
@@ -289,6 +289,20 @@ Deno.serve(async (req) => {
     serverPaceEarned = Number(credited) || 0;
   }
 
+  // E6: zones claimed inside a live territory event earn their zone PACE twice.
+  const zonePace = pace.breakdown.newZones + pace.breakdown.stolenZones;
+  if (zonePace > 0) {
+    const first = body.gpsPoints[0] as { lat: number; lng: number; timestamp?: number };
+    const at = new Date(Number(first.timestamp) || Date.now()).toISOString();
+    const { data: mult } = await supabase.rpc('territory_event_multiplier', { p_user: user.id, p_at: at, p_lat: first.lat, p_lng: first.lng });
+    if (Number(mult) > 1) {
+      const { data: bonus } = await supabase.rpc('credit_pace_capped', {
+        p_user_id: user.id, p_amount: zonePace * (Number(mult) - 1), p_source: 'territory_event', p_source_key: body.runId,
+      });
+      serverPaceEarned += Number(bonus) || 0;
+    }
+  }
+
   const clientPaceEarned = body.clientPaceEarned ?? 0;
   if (Math.abs(clientPaceEarned - serverPaceEarned) > 2) {
     try {
@@ -325,8 +339,6 @@ Deno.serve(async (req) => {
           stolen_from_user_id:  steal.rivalOwnerId,
           zone_tier:            steal.tier,
           stolen_area_m2:       steal.stolenAreaM2,
-          xp_earned:            0,
-          leveled_up:           false,
         }));
 
         feedOps.push(supabase.from('feed_posts').insert({
@@ -341,8 +353,6 @@ Deno.serve(async (req) => {
           stolen_from_user_id:  body.userId,
           zone_tier:            steal.tier,
           stolen_area_m2:       steal.stolenAreaM2,
-          xp_earned:            0,
-          leveled_up:           false,
           // Pilot instrumentation: links this notification to the actual
           // territory_polygons row taken, so a later query can check whether
           // the victim reclaimed this SAME spot — not just whether they ran
@@ -351,23 +361,17 @@ Deno.serve(async (req) => {
           push_suppressed:      pushSuppressed,
         }));
 
-        if (!pushSuppressed) {
-          feedOps.push(supabase.functions.invoke('send-push-notification', {
-            // send-push-notification reads user_id/action_url (snake_case) — the previous
-            // userId/data.actionUrl keys never matched, so this call 400'd silently on
-            // every steal and the "your territory is under attack" push never fired.
-            body: {
-              user_id:    steal.rivalOwnerId,
-              title:      '⚔ Your territory is under attack',
-              body:       `${attackerUsername} captured part of your ${steal.tier} zone. Defend it now.`,
-              action_url: '/territory-map?filter=stale',
-              // Lets send-push-notification apply the Territory alerts toggle —
-              // this call bypasses the notifications-table trigger entirely, so
-              // without this it would ignore that setting completely.
-              type:       'zone_attacked',
-            },
-          }));
-        }
+        // In-app row for the rival; its insert trigger sends the push (with
+        // the Territory alerts setting applied) unless the pilot withholds it.
+        feedOps.push(supabase.from('notifications').insert({
+          user_id:    steal.rivalOwnerId,
+          type:       'zone_attacked',
+          title:      'Your territory is under attack',
+          body:       `${attackerUsername} captured part of your ${steal.tier} zone. Defend it now.`,
+          action_url: '/territory-map?filter=stale',
+          dedupe_key: `zone_attacked:${body.runId}:${steal.territoryId}`,
+          silent:     pushSuppressed,
+        }));
       }
 
       await Promise.allSettled(feedOps);

@@ -16,10 +16,12 @@ interface Props {
   distanceKm: string; setDistanceKm: (v: string) => void;
   description: string; setDescription: (v: string) => void;
   discipline: Discipline | ''; setDiscipline: (v: Discipline | '') => void;
+  paceGroups: string; setPaceGroups: (v: string) => void;
+  useHere: boolean; setUseHere: (v: boolean) => void;
   onSubmit: () => void;
 }
 
-export function EventForm({ saving, error, canSubmit, title, setTitle, eventType, setEventType, date, setDate, time, setTime, location, setLocation, distanceKm, setDistanceKm, description, setDescription, discipline, setDiscipline, onSubmit }: Props) {
+export function EventForm({ saving, error, canSubmit, title, setTitle, eventType, setEventType, date, setDate, time, setTime, location, setLocation, distanceKm, setDistanceKm, description, setDescription, discipline, setDiscipline, paceGroups, setPaceGroups, useHere, setUseHere, onSubmit }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   return (
@@ -60,6 +62,14 @@ export function EventForm({ saving, error, canSubmit, title, setTitle, eventType
       <Text style={s.label}>Description — optional</Text>
       <TextInput style={[s.input, { height: 80, textAlignVertical: 'top' }]} value={description} onChangeText={setDescription} placeholder="Tell people what to expect..." placeholderTextColor={C.t3} multiline maxLength={500} />
 
+      <Text style={s.label}>Pace groups — optional</Text>
+      <TextInput style={s.input} value={paceGroups} onChangeText={setPaceGroups} placeholder="5:00, 6:00, 7:00" placeholderTextColor={C.t3} keyboardType="numbers-and-punctuation" maxLength={40} />
+
+      <Pressable style={s.toggleRow} onPress={() => setUseHere(!useHere)} accessibilityRole="switch" accessibilityState={{ checked: useHere }}>
+        <View style={[s.box, useHere && s.boxOn]} />
+        <Text style={s.toggleTxt}>Use where I am now as the meeting point (lets runners check in and get a result)</Text>
+      </Pressable>
+
       {error ? <Text style={s.error}>{error}</Text> : null}
 
       <Pressable style={[s.submitBtn, !canSubmit && s.submitBtnDisabled]} onPress={onSubmit} disabled={!canSubmit || saving}>
@@ -78,6 +88,10 @@ function mkStyles(C: AppColors) {
   typeBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
   typeLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
   typeLabelActive: { color: C.alwaysLight, fontFamily: Fonts.medium },
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+  box: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: C.border },
+  boxOn: { backgroundColor: C.red, borderColor: C.red },
+  toggleTxt: { flex: 1, fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2 },
   error: { fontFamily: Fonts.regular, fontSize: 12, color: C.red, marginTop: 8 },
   submitBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
   submitBtnDisabled: { opacity: 0.4 },

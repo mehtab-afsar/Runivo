@@ -1,6 +1,6 @@
 /**
  * ActiveRunMapView — full-screen map for the live run screen.
- * Shows: MapLibre tile map · live GPS trail polyline · user position indicator
+ * Shows: MapLibre tile map · zones around the runner · live GPS trail · user position
  */
 import React, { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
@@ -8,6 +8,8 @@ import type { GPSPoint } from '../hooks/useActiveRun';
 import { kalmanSmooth } from '@shared/services/claimEngine';
 import type { LiveFriendRunner } from '../hooks/useLiveFriendRuns';
 import { LiveFriendMarker } from './LiveFriendMarker';
+import type { TerritoryPolygon } from '@shared/types/game';
+import { ZoneLayers } from './ZoneLayers';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { territoryPalette } from '@theme/territory';
@@ -29,7 +31,11 @@ interface Props {
   mapStyle?: string;
   /** Mutual connections currently running live, visible on this map (Live Run Sharing). */
   liveFriends?: LiveFriendRunner[];
+  /** Zones around the runner: yours and rivals', drawn under the trail. */
+  ownZones?: TerritoryPolygon[];
+  rivalZones?: TerritoryPolygon[];
 }
+
 
 function buildLineString(pts: { lat: number; lng: number }[]) {
   return {
@@ -39,7 +45,7 @@ function buildLineString(pts: { lat: number; lng: number }[]) {
   };
 }
 
-export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestIdx = 0, mapStyle, liveFriends }: Props) {
+export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestIdx = 0, mapStyle, liveFriends, ownZones, rivalZones }: Props) {
   const latest = gpsPoints.length > 0 ? gpsPoints[gpsPoints.length - 1] : null;
   const locationGranted = useLocationGranted();
   const isDark = useIsDark();
@@ -89,14 +95,14 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
     if (!ghostRoutePoints || closestIdx < 1) return null;
     const pts = ghostRoutePoints.slice(0, closestIdx + 1);
     return pts.length >= 2 ? buildLineString(pts) : null;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [ghostRoutePoints, closestIdx]);
 
   const ghostRemainingGeoJSON = useMemo(() => {
     if (!ghostRoutePoints || ghostRoutePoints.length < 2) return null;
     const pts = ghostRoutePoints.slice(closestIdx);
     return pts.length >= 2 ? buildLineString(pts) : null;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [ghostRoutePoints, closestIdx]);
 
   return (
@@ -125,6 +131,9 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
           showsUserHeadingIndicator
         />
       )}
+
+      {/* Zones around the runner, under everything else. Fill fades with freshness. */}
+      <ZoneLayers own={ownZones} rivals={rivalZones} idPrefix="run" />
 
       {/* Ghost route — completed section (solid, muted) */}
       {ghostCompletedGeoJSON && (

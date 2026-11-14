@@ -8,6 +8,8 @@ import { Lock } from 'lucide-react-native';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
+import type { TerritoryPolygon } from '@shared/types/game';
+import { ZoneLayers } from './ZoneLayers';
 import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 
@@ -25,6 +27,9 @@ interface RunMapViewProps {
   topInset: number;
   intelEnemy: number;
   intelWeak: number;
+  /** Zones around the runner (yours and rivals'). */
+  ownZones?: TerritoryPolygon[];
+  rivalZones?: TerritoryPolygon[];
   gpsColor: string;
   gpsLabel: string;
   onClose: () => void;
@@ -32,7 +37,7 @@ interface RunMapViewProps {
 
 export default function RunMapView({
   lat, lng, gpsStatus, gpsAccuracy, mapStyle, onMapStyleChange, plus = true, onLockedStyle,
-  sheetAnim, topInset, intelEnemy, intelWeak, gpsColor: dotColor, gpsLabel: gpsTxt,
+  sheetAnim, topInset, intelEnemy, intelWeak, ownZones, rivalZones, gpsColor: dotColor, gpsLabel: gpsTxt,
   onClose,
 }: RunMapViewProps) {
   const C = useTheme();
@@ -52,6 +57,7 @@ export default function RunMapView({
             animationDuration={800}
           />
         )}
+        <ZoneLayers own={ownZones} rivals={rivalZones} idPrefix="setup" />
         {locationGranted && <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />}
       </MapLibreGL.MapView>
 

@@ -8,7 +8,7 @@ export const AWARD_DEFINITIONS: Record<AwardId, {
 }> = {
   first_claim:        { title: 'First Claim',       icon: '🗺',  description: 'Claimed your first territory zone',               category: 'territory' },
   first_blood:        { title: 'First Blood',        icon: '⚔️',  description: "Stole a rival's zone for the first time",         category: 'territory' },
-  park_capture:       { title: 'Park Capture',       icon: '🌀',  description: 'Claimed a full park interior in one loop run',    category: 'territory' },
+  park_capture:       { title: 'Loop Closer',        icon: '🌀',  description: 'Closed a loop and claimed everything inside it',    category: 'territory' },
   district_owner:     { title: 'District Owner',     icon: '🏰',  description: 'Held a District-tier territory polygon',          category: 'territory' },
   quarter_owner:      { title: 'Quarter Owner',      icon: '🏯',  description: 'Held a Quarter-tier territory polygon',           category: 'territory' },
   domain_lord:        { title: 'Domain Lord',        icon: '👑',  description: 'Claimed a Domain — the largest territory tier',   category: 'territory' },
@@ -24,6 +24,7 @@ export const AWARD_DEFINITIONS: Record<AwardId, {
   streak_7:           { title: 'On Fire',            icon: '🔥',  description: '7-day running streak',                          category: 'streak' },
   streak_30:          { title: 'Unstoppable',        icon: '💪',  description: '30-day running streak',                         category: 'streak' },
   early_bird:         { title: 'Early Bird',         icon: '🌅',  description: '5 runs completed before 6am',                   category: 'streak' },
+  event_finisher:     { title: 'Event Finisher',     icon: '🎟️', description: 'Ran a Runivo event and got the result',          category: 'streak' },
   sub_5:              { title: 'Sub-5',              icon: '⚡',  description: 'Ran a kilometre in under 5:00/km',               category: 'pace' },
   sub_4_30:           { title: 'Sub-4:30',           icon: '🚀',  description: 'Ran a kilometre in under 4:30/km',              category: 'pace' },
   monthly_100:        { title: 'Century Month',      icon: '📅',  description: '100km in a single calendar month',              category: 'distance' },

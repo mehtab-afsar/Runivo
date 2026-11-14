@@ -1,21 +1,21 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet } from 'react-native';
-import Svg, { Polygon } from 'react-native-svg';
+import { Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { MARK_PATH, MARK_PERIMETER, MARK_STROKE } from './RunivoMark';
 
-const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-const HEX_R    = 108;
-const SVG_SIZE = HEX_R * 2 + 24;
-const CX       = SVG_SIZE / 2;
-const CY       = SVG_SIZE / 2;
-const PERIM    = 6 * HEX_R;
+const ORANGE = '#FF4518';
+const INK = '#141412';
+const MARK_SIZE = 112;
 
-function hexPoints(cx: number, cy: number, r: number): string {
-  return Array.from({ length: 6 }, (_, i) => {
-    const a = ((i * 60 - 90) * Math.PI) / 180;
-    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
-  }).join(' ');
-}
+// Timeline (ms). The phone's own launch screen is the same plain white, so the
+// hand-off to this view is invisible; everything after is one motion.
+const DRAW_MS = 760;       // the hexagon draws itself closed, top corner, clockwise
+const SETTLE_MS = 220;     // a small press when the line meets itself
+const WORD_DELAY_MS = 560; // the wordmark rises in under it as the line closes
+const WORD_MS = 380;
+const FADE_MS = 320;       // out to the app once it's ready
 
 interface Props {
   ready: boolean;
@@ -24,54 +24,72 @@ interface Props {
 }
 
 /**
- * JS-rendered splash shown after the native splash hands off (while auth is
- * checked) — the brand mark (hollow orange hex, drawn on), no wordmark.
+ * Launch screen shown while the app checks the session: white, the orange
+ * mark drawing itself closed, then "runivo". Holds on the finished frame for
+ * as long as loading takes, then fades into the app.
  */
 export function SplashView({ ready, onLayout, onHidden }: Props) {
-  const dashOffset = useRef(new Animated.Value(PERIM)).current;
+  const dash = useRef(new Animated.Value(MARK_PERIMETER)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const word = useRef(new Animated.Value(0)).current;
   const rootOpacity = useRef(new Animated.Value(1)).current;
-  const animDone    = useRef(false);
+  const animDone = useRef(false);
 
   useEffect(() => {
-    Animated.timing(dashOffset, {
-      toValue: 0, duration: 900, useNativeDriver: false,
-    }).start(() => { animDone.current = true; });
-  }, [dashOffset]);
+    let live = true;
+    AccessibilityInfo.isReduceMotionEnabled().catch(() => false).then(reduce => {
+      if (!live) return;
+      if (reduce) {
+        dash.setValue(0); word.setValue(1);
+        animDone.current = true;
+        return;
+      }
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(dash, { toValue: 0, duration: DRAW_MS, easing: Easing.inOut(Easing.cubic), useNativeDriver: false }),
+          Animated.timing(scale, { toValue: 0.94, duration: SETTLE_MS / 2, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 1, damping: 9, stiffness: 260, useNativeDriver: true }),
+        ]),
+        Animated.timing(word, { toValue: 1, delay: WORD_DELAY_MS, duration: WORD_MS, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      ]).start(() => { animDone.current = true; });
+    });
+    return () => { live = false; };
+  }, [dash, scale, word]);
 
   useEffect(() => {
     if (!ready) return;
-
     const fadeOut = () =>
-      Animated.timing(rootOpacity, {
-        toValue: 0, duration: 420, delay: 120, useNativeDriver: true,
-      }).start(({ finished }) => { if (finished) onHidden?.(); });
-
-    if (animDone.current) {
-      fadeOut();
-    } else {
-      const id = setInterval(() => {
-        if (animDone.current) { clearInterval(id); fadeOut(); }
-      }, 50);
-      return () => clearInterval(id);
-    }
+      Animated.timing(rootOpacity, { toValue: 0, duration: FADE_MS, delay: 120, easing: Easing.out(Easing.quad), useNativeDriver: true })
+        .start(({ finished }) => { if (finished) onHidden?.(); });
+    if (animDone.current) { fadeOut(); return; }
+    const id = setInterval(() => {
+      if (animDone.current) { clearInterval(id); fadeOut(); }
+    }, 40);
+    return () => clearInterval(id);
   }, [ready, rootOpacity, onHidden]);
 
-  const pts = hexPoints(CX, CY, HEX_R);
-
   return (
-    <Animated.View style={[s.root, { opacity: rootOpacity }]} onLayout={onLayout}>
-      <Svg width={SVG_SIZE} height={SVG_SIZE}>
-        <AnimatedPolygon
-          points={pts}
-          fill="none"
-          stroke="#FF5326"
-          strokeWidth={2.4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray={`${PERIM}`}
-          strokeDashoffset={dashOffset}
-        />
-      </Svg>
+    <Animated.View style={[s.root, { opacity: rootOpacity }]} onLayout={onLayout} accessibilityLabel="Runivo" accessible>
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <Svg width={MARK_SIZE} height={MARK_SIZE} viewBox="0 0 100 100">
+          <AnimatedPath
+            d={MARK_PATH}
+            fill="none"
+            stroke={ORANGE}
+            strokeWidth={MARK_STROKE}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={`${MARK_PERIMETER} ${MARK_PERIMETER}`}
+            strokeDashoffset={dash}
+          />
+        </Svg>
+      </Animated.View>
+      <Animated.Text
+        style={[s.word, { opacity: word, transform: [{ translateY: word.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }] }]}
+        allowFontScaling={false}
+      >
+        runivo
+      </Animated.Text>
     </Animated.View>
   );
 }
@@ -79,9 +97,11 @@ export function SplashView({ ready, onLayout, onHidden }: Props) {
 const s = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#0D0D0D',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
   },
+  // Wordmark: Archivo 900, already loaded before this view mounts (App.tsx).
+  word: { marginTop: 22, fontFamily: 'ArchivoWordmark', fontSize: 34, letterSpacing: -0.5, color: INK },
 });

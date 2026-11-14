@@ -1,6 +1,7 @@
 -- v1 notifications: local time, quiet hours, daily limit, dedupe, each sender.
 -- Run after _stub_supabase.sql, 20261106000001, _stub_notifications.sql, 20261106000002.
 \set ON_ERROR_STOP on
+BEGIN;
 SET client_min_messages = notice;
 
 CREATE OR REPLACE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
@@ -10,11 +11,18 @@ BEGIN
 END $$;
 
 -- Runners: Mumbai (UTC+5:30), London (UTC+0 in Nov), Los Angeles (UTC-8 in Nov).
+INSERT INTO auth.users (id, email) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'v1-a0000000-0@example.com'),
+  ('a0000000-0000-0000-0000-000000000002', 'v1-a0000000-1@example.com'),
+  ('a0000000-0000-0000-0000-000000000003', 'v1-a0000000-2@example.com'),
+  ('a0000000-0000-0000-0000-000000000004', 'v1-a0000000-3@example.com')
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO profiles (id, username, timezone, country) VALUES
   ('a0000000-0000-0000-0000-000000000001', 'asha',  'Asia/Kolkata',        'IN'),
   ('a0000000-0000-0000-0000-000000000002', 'leo',   'Europe/London',       'GB'),
   ('a0000000-0000-0000-0000-000000000003', 'sam',   'America/Los_Angeles', 'US'),
-  ('a0000000-0000-0000-0000-000000000004', 'nova',  'Not/AZone',           'IN');
+  ('a0000000-0000-0000-0000-000000000004', 'nova',  'Not/AZone',           'IN')
+ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, timezone = EXCLUDED.timezone, country = EXCLUDED.country;
 
 SELECT pg_temp.check(timezone = 'UTC', 'an invalid time zone falls back to UTC')
 FROM profiles WHERE username = 'nova';
@@ -81,13 +89,16 @@ SELECT pg_temp.check(send_run_reminders_local('2026-11-13 02:00Z') = 1, 'run rem
 SELECT pg_temp.check(send_run_reminders_local('2026-11-14 02:00Z') = 0, 'run reminders at most every 3 days');
 DELETE FROM notifications;
 
-INSERT INTO runs (id, user_id, distance_m, started_at) VALUES
-  (gen_random_uuid(), 'a0000000-0000-0000-0000-000000000002', 5200, '2026-11-10 07:00Z'),
-  (gen_random_uuid(), 'a0000000-0000-0000-0000-000000000002', 8100, '2026-11-13 07:00Z');
+SELECT set_config('test.role', 'service_role', false);
+INSERT INTO runs (id, user_id, activity_type, distance_m, duration_sec, avg_pace, started_at, finished_at) VALUES
+  (gen_random_uuid(), 'a0000000-0000-0000-0000-000000000002', 'run', 5200, 1800, '5:46', '2026-11-10 07:00Z', '2026-11-10 07:30Z'),
+  (gen_random_uuid(), 'a0000000-0000-0000-0000-000000000002', 'run', 8100, 2700, '5:33', '2026-11-13 07:00Z', '2026-11-13 07:45Z');
 -- Monday 2026-11-16 08:00 London = 08:00 UTC.
-SELECT pg_temp.check(send_weekly_summaries_local('2026-11-16 08:00Z') = 1, 'weekly summary Monday 08:00 local');
+SELECT send_weekly_summaries_local('2026-11-16 08:00Z');
+-- Shared databases have other runners: count this suite's own.
+SELECT pg_temp.check((SELECT count(*) FROM notifications WHERE type = 'weekly_summary' AND user_id::text LIKE 'a0000000-%') = 1, 'weekly summary Monday 08:00 local');
 SELECT pg_temp.check(body LIKE '13.3 km across 2 runs.%', 'weekly summary sums last PACE week: 13.3 km, 2 runs')
-FROM notifications WHERE type = 'weekly_summary';
+FROM notifications WHERE type = 'weekly_summary' AND user_id::text LIKE 'a0000000-%';
 DELETE FROM notifications;
 
 -- ── campaigns ───────────────────────────────────────────────────────────────
@@ -131,3 +142,4 @@ SELECT pg_temp.check(EXISTS (SELECT 1 FROM notifications WHERE type = 'pace_cap'
 SELECT pg_temp.check((SELECT count(*) FROM notifications WHERE type = 'rank_up') = 1, 'rank-up sent once');
 
 SELECT 'ALL NOTIFICATION CHECKS PASSED' AS result;
+ROLLBACK;

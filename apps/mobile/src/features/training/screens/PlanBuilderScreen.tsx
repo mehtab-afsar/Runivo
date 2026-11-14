@@ -18,6 +18,7 @@ import {
 } from '@shared/engine/training';
 import { parseFiveKTime } from '@shared/engine/onboarding';
 import { createPlan, fetchPlanDefaults, localToday } from '../services/planService';
+import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const RACES: RaceDistance[] = ['5k', '10k', 'half', 'marathon'];
@@ -43,6 +44,7 @@ export default function PlanBuilderScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
+  const gate = useFeatureGate();
   const params = useRoute<RouteProp<RootStackParamList, 'PlanBuilder'>>().params;
   const today = localToday();
   // From a race in Events: its distance and date are fixed.
@@ -93,6 +95,8 @@ export default function PlanBuilderScreen() {
 
   const create = async () => {
     if (problems.length || !fiveKSec) return;
+    // X6: plans are a Plus feature (one switch in entitlements.ts).
+    if (!gate.loading && !gate.canUse('training_plan')) { navigation.navigate('Subscription', { reason: 'training' }); return; }
     const result = buildPlan({
       race, raceDate, fiveKSec, goalSec, runDays, longRunDay: longDay, currentWeeklyKm: weeklyKm, today,
     });

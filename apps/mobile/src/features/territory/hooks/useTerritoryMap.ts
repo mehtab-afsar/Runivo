@@ -23,6 +23,8 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
   const [isLoadingRivals, setIsLoadingRivals] = useState(false);
   const [deviceLocation, setDeviceLocation]   = useState<[number, number] | null>(null);
   const [currentUserId, setCurrentUserId]     = useState('');
+  const [homeArea, setHomeArea]               = useState<[number, number] | null>(null);
+  const rivalReqRef = useRef(0);
   const bboxDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [locationStatus, setLocationStatus]   = useState<'granted' | 'undetermined' | 'denied'>('undetermined');
 
@@ -37,6 +39,7 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
     (async () => {
       const player = await getPlayer();
       if (player?.id) setCurrentUserId(player.id);
+      if (player?.lastKnownLocation) setHomeArea([player.lastKnownLocation.lng, player.lastKnownLocation.lat]);
       // Never prompt on open: the screen explains why first (see
       // TerritoryMapScreen's location card) and asks only when tapped.
       const perm = await Location.getForegroundPermissionsAsync();
@@ -68,12 +71,15 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
     if (bboxDebounceRef.current) clearTimeout(bboxDebounceRef.current);
     bboxDebounceRef.current = setTimeout(async () => {
       if (!currentUserId) return;
+      // Panning quickly can leave an older request finishing last; only the
+      // newest one may replace what's drawn.
+      const req = ++rivalReqRef.current;
       setIsLoadingRivals(true);
       try {
         const rivals = await fetchRivalPolygons(newBbox, currentUserId);
-        setRivalPolygons(rivals);
+        if (req === rivalReqRef.current) setRivalPolygons(rivals);
       } catch { /* silent */ } finally {
-        setIsLoadingRivals(false);
+        if (req === rivalReqRef.current) setIsLoadingRivals(false);
       }
     }, 400);
   }, [currentUserId]);
@@ -128,14 +134,19 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
     };
   }, [ownPolygons, rivalPolygons]);
 
-  const defaultCenter = useMemo((): [number, number] => {
-    if (ownPolygons.length > 0) {
-      const lng = ownPolygons.reduce((s, p) => s + p.polygon[0][0], 0) / ownPolygons.length;
-      const lat = ownPolygons.reduce((s, p) => s + p.polygon[0][1], 0) / ownPolygons.length;
-      return [lng, lat];
-    }
-    return deviceLocation ?? [0, 0];
-  }, [ownPolygons, deviceLocation]);
+  // Where the map opens: where the runner is; else their newest zone (an
+  // average of every zone landed between cities for anyone with zones in two);
+  // else their home area. 0,0 only if there's nothing at all.
+  const newestZone = useMemo((): [number, number] | null => {
+    if (ownPolygons.length === 0) return null;
+    const z = ownPolygons.reduce((a, b) => ((b.claimedAt ?? '') > (a.claimedAt ?? '') ? b : a));
+    const ring = z.polygon;
+    return [ring.reduce((s, c) => s + c[0], 0) / ring.length, ring.reduce((s, c) => s + c[1], 0) / ring.length];
+  }, [ownPolygons]);
+  const centre = deviceLocation ?? newestZone ?? homeArea ?? [0, 0];
+  // Same array while the values hold, so a reload of the zones doesn't snap
+  // the camera back while the runner is panning around.
+  const defaultCenter = useMemo((): [number, number] => centre, [centre[0].toFixed(5), centre[1].toFixed(5)]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     ownPolygons,

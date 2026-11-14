@@ -1,4 +1,5 @@
 import { territoryPalette } from '@theme/territory';
+import * as Haptics from 'expo-haptics';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated, ActivityIndicator, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,9 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useRunSummary } from '../hooks/useRunSummary';
 import RunSummaryHero       from '../components/RunSummaryHero';
 import SplitsList           from '../components/SplitsList';
+import { AnalysisCards } from '../components/AnalysisCards';
+import ShoeChip             from '../components/ShoeChip';
+import ShoeDrawer           from '../components/ShoeDrawer';
 import ActivityCharts       from '../components/ActivityCharts';
 import PaceXSummaryCard     from '../components/PaceXSummaryCard';
 import { sportFor }         from '../constants/activities';
@@ -104,7 +108,7 @@ export default function RunSummaryScreen() {
   const sport = sportFor(activityType);
   const ride = !sport.claims;
 
-  const { runData, splits, loading } =
+  const { runData, splits, loading, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe } =
     useRunSummary(runId, passedData);
   const distanceUnit = useDistanceUnit();
 
@@ -117,6 +121,10 @@ export default function RunSummaryScreen() {
   // the card shows the app's estimate and says so.
   const [serverAreaM2, setServerAreaM2]               = useState<number | null>(null);
   const [serverResult, setServerResult]               = useState<StoredRun['serverResult'] | null>(null);
+  // PACE the server actually paid (cap and verified distance applied); also
+  // the only PACE figure a past run opened from History has.
+  const [serverPace, setServerPace]                   = useState<number | null>(null);
+  const [confirm, setConfirm]                         = useState<'checking' | 'confirmed' | 'pending'>('checking');
   const [tier, setTier]                               = useState<string>('free');
   const [runsCompleted, setRunsCompleted]             = useState(0);
   const [recentAvgPace, setRecentAvgPace]             = useState<number | null>(null);
@@ -132,11 +140,18 @@ export default function RunSummaryScreen() {
       const r = await getRunById(runId).catch(() => undefined);
       if (cancelled) return;
       if (r?.serverProcessed) {
+        if (typeof r.xpEarned === 'number') setServerPace(r.xpEarned);
         if (typeof r.territoryAreaM2 === 'number' && r.territoryAreaM2 > 0) setServerAreaM2(r.territoryAreaM2);
-        if (r.serverResult) setServerResult(r.serverResult);
+        if (r.serverResult) {
+          setServerResult(r.serverResult);
+          // L6: the capture moment fires here, once the server has confirmed it.
+          if (r.serverResult.newZones + r.serverResult.stolenZones > 0) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        }
+        setConfirm('confirmed');
         return;
       }
       if (++tries < 15) setTimeout(check, 2000);
+      else setConfirm('pending');
     };
     check();
     return () => { cancelled = true; };
@@ -188,26 +203,31 @@ export default function RunSummaryScreen() {
   const rankUpScale   = useRef(new Animated.Value(0.85)).current;
   const rankUpOpacity = useRef(new Animated.Value(0)).current;
 
-  const paceEarned      = runData.paceEarned ?? 0;
+  const paceEarned      = serverPace ?? runData.paceEarned ?? 0;
   const paceTotalEarned = runData.paceTotalEarned ?? 0;
   const prevRank        = computeRunnerRank(Math.max(0, paceTotalEarned - paceEarned));
   const currentRank     = runData.runnerRank ?? 'pacer';
   const rankedUp        = paceEarned > 0 && prevRank !== currentRank;
 
-  // PACE count-up: 300ms delay, 800ms ease-out cubic
+  // PACE count-up: 300ms delay, 800ms ease-out cubic. Runs again from the
+  // shown figure if the server's number differs from the estimate.
+  const paceShownRef = useRef(0);
   useEffect(() => {
-    if (paceEarned <= 0) return;
-    const startTime = Date.now() + 300;
+    const from = paceShownRef.current;
+    if (paceEarned === from) return;
+    const startTime = Date.now() + (from === 0 ? 300 : 0);
     const id = setInterval(() => {
       const elapsed = Date.now() - startTime;
       if (elapsed < 0) return;
       const t = Math.min(1, elapsed / 800);
       const eased = 1 - Math.pow(1 - t, 3);
-      setPaceDisplay(Math.round(eased * paceEarned));
+      const v = Math.round(from + eased * (paceEarned - from));
+      paceShownRef.current = v;
+      setPaceDisplay(v);
       if (t >= 1) clearInterval(id);
     }, 16);
     return () => clearInterval(id);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [paceEarned]);
 
   // Rank-up spring + awards
   useEffect(() => {
@@ -296,7 +316,7 @@ export default function RunSummaryScreen() {
       distance:    runData.distance.toFixed(2),
       duration:    fmt(runData.duration),
       pace:        pace(runData.pace),
-      paceEarned:  runData.paceEarned ?? 0,
+      paceEarned,
       heading,
       actionType:  runData.actionType,
       // The share card shows only what others may see.
@@ -349,6 +369,16 @@ export default function RunSummaryScreen() {
           onClose={() => navigation.navigate('Main')}
           onShare={shareRun}
         />
+
+        {/* L6: zones count once the server confirms them. */}
+        {!ride && passedData && confirm !== 'confirmed' && (runData.territory || runData.actionType) && (
+          <View style={{ marginHorizontal: 18, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {confirm === 'checking' && <ActivityIndicator size="small" color={C.t2} />}
+            <Text style={{ flex: 1, fontFamily: Fonts.medium, fontSize: 12.5, color: C.t2 }}>
+              {confirm === 'checking' ? 'Confirming your ground…' : "Can't reach Runivo right now. Your ground is confirmed as soon as you're back online."}
+            </Text>
+          </View>
+        )}
 
         {ride && (
           <View style={[ss.card, ss.surface]}>
@@ -410,7 +440,22 @@ export default function RunSummaryScreen() {
         )}
 
         <View style={ss.card}><ActivityCharts runId={runId} isRide={activityType === 'cycle'} /></View>
+        <AnalysisCards runId={runId} />
         {splits.length > 0 && <View style={ss.card}><SplitsList splits={splits} /></View>}
+
+        {/* P5: which shoes, and a nudge when they're near the end of their life. */}
+        {allShoes.length > 0 && (
+          <View style={{ gap: 6 }}>
+            <ShoeChip shoe={runShoe} totalKm={runShoe ? shoeTotalKm : undefined} onPress={() => setShowShoeDrawer(true)} />
+            {runShoe && shoeTotalKm >= runShoe.maxKm * 0.9 && (
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 12.5, color: C.red, paddingHorizontal: 4 }}>
+                {shoeTotalKm >= runShoe.maxKm
+                  ? `These are past ${runShoe.maxKm} km. Time to retire them.`
+                  : `${Math.max(0, Math.round(runShoe.maxKm - shoeTotalKm))} km left before these hit ${runShoe.maxKm} km.`}
+              </Text>
+            )}
+          </View>
+        )}
 
         <PaceXSummaryCard
           runId={runId}
@@ -530,6 +575,9 @@ export default function RunSummaryScreen() {
         onSaved={e => setEdited({ title: e.title.trim(), description: e.description.trim(), visibility: e.visibility })}
         onDeleted={() => navigation.navigate('Main')}
       />
+      {showShoeDrawer && (
+        <ShoeDrawer shoes={allShoes} selectedShoe={runShoe} bottomInset={insets.bottom} onSelect={selectShoe} onClose={() => setShowShoeDrawer(false)} />
+      )}
     </View>
   );
 }

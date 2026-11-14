@@ -390,9 +390,9 @@ export default function ClubScreen() {
             </Text>
           </Pressable>
         ))}
-        {/* Lobby: the one open room for every runner (Global Runners), as in the mock. */}
-        <Pressable style={s.tabBtn} onPress={() => navigation.navigate('LobbyChat', { lobbyId: 'global' })}>
-          <Text style={s.tabLabel}>Lobby</Text>
+        {/* C4: group challenges with people you follow (C6: the open lobby room is gone). */}
+        <Pressable style={s.tabBtn} onPress={() => navigation.navigate('Challenges')}>
+          <Text style={s.tabLabel}>Challenges</Text>
         </Pressable>
       </View>
 

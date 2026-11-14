@@ -21,9 +21,9 @@ type CalendarModule = typeof import('expo-calendar');
 let speech: SpeechModule | null | undefined;
 let calendar: CalendarModule | null | undefined;
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 export const getSpeech = (): SpeechModule | null => (speech === undefined ? (speech = load('ExpoSpeech', () => require('expo-speech'))) : speech);
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+ 
 export const getCalendar = (): CalendarModule | null => (calendar === undefined ? (calendar = load('ExpoCalendar', () => require('expo-calendar'))) : calendar);
 /** True when this build includes expo-widgets (iOS Live Activities). */
 export const hasWidgets = (): boolean => load('ExpoWidgets', () => true) === true;

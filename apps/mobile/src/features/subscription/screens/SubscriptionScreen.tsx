@@ -86,6 +86,8 @@ export default function SubscriptionScreen() {
               <Text style={s.footPlus}>Plus</Text>
             </View>
           </View>
+          {/* X6: what never goes behind the paywall. */}
+          <Text style={s.alwaysFree}>Always free: tracking, claiming and defending zones, clubs, safety sharing, privacy controls and the PACE store.</Text>
 
           {loading ? (
             <ActivityIndicator color={C.red} style={{ marginVertical: 28 }} />
@@ -165,5 +167,6 @@ function mkStyles(C: AppColors) {
     links:       { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10 },
     link:        { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textDecorationLine: 'underline' },
     linkSep:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
+    alwaysFree: { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, marginTop: 10, lineHeight: 18 },
   });
 }

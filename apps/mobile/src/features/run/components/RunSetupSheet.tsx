@@ -1,10 +1,14 @@
 import React, { useMemo } from 'react';
-import { View, Text, Animated, StyleSheet, TouchableOpacity, Switch, ScrollView } from 'react-native';
+import { View, Text, Animated, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert, Linking } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { CaretRight, Check, Play, MusicNotes as Music2, PathIcon as RouteIcon, Hexagon, Info } from 'phosphor-react-native';
+import { CaretRight, Check, Play, MusicNotes as Music2, PathIcon as RouteIcon, Hexagon, Info, DotsThree } from 'phosphor-react-native';
 import type { ActivityType } from '../types';
-import { activityMetaFor, SPORTS, sportFor } from '../constants/activities';
+import { activityMetaFor, SPORTS, MORE_SPORTS, sportFor } from '../constants/activities';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { RunPrefChips } from './RunPrefChips';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@navigation/AppNavigator';
 
 /** Route and Beat Pacer pickers are not in the v1 design; they stay built for later. */
 const RUN_OPTIONS = false;
@@ -15,6 +19,8 @@ interface RunSetupSheetProps {
   activityType: ActivityType;
   selectedRouteName: string | null;
   gpsReady: boolean;
+  /** Set when there's no GPS because of permission or the phone's location switch. */
+  gpsProblem?: 'denied' | 'off';
   bottomInset: number;
   pacerEnabled: boolean;
   pacerPace: string;
@@ -31,7 +37,7 @@ interface RunSetupSheetProps {
 
 export default function RunSetupSheet({
   sheetAnim, panHandlers, activityType, selectedRouteName,
-  gpsReady, bottomInset,
+  gpsReady, gpsProblem, bottomInset,
   pacerEnabled, pacerPace, pacerPaceOptions, onPacerToggle, onPacerPaceChange,
   onActivityPress, onSportChange, onRoutePress, onStartPress, nearbyLine,
 }: RunSetupSheetProps) {
@@ -40,6 +46,8 @@ export default function RunSetupSheet({
   const activity = activityMetaFor(activityType);
   const ActivityIcon = activity.icon;
   const sport = sportFor(activityType);
+  const moreOn = MORE_SPORTS.some(m => m.id === sport.id);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <Animated.View style={[ss.sheet, { height: sheetAnim }]} {...panHandlers}>
@@ -47,7 +55,7 @@ export default function RunSetupSheet({
 
       {/* Sport picker, Strava-style: the choice is remembered for next time. */}
       <View style={ss.sports} testID="run-sport-picker">
-        {SPORTS.map(sp => {
+        {[...SPORTS.slice(0, 4), ...(moreOn ? [sport] : [SPORTS[4]])].map(sp => {
           const on = sp.id === sport.id;
           const Icon = sp.icon;
           return (
@@ -65,6 +73,23 @@ export default function RunSetupSheet({
             </TouchableOpacity>
           );
         })}
+        <TouchableOpacity
+          style={ss.sportChip}
+          onPress={() => {
+            Haptics.selectionAsync();
+            Alert.alert('More sports', 'Wheelchair and stroller runs claim zones like a run. Treadmill runs are logged by hand and only count for distance.', [
+              ...[...MORE_SPORTS, ...(moreOn ? [SPORTS[4]] : [])].map(sp => ({ text: sp.label, onPress: () => onSportChange(sp.id) })),
+              { text: 'Treadmill (log by hand)', onPress: () => navigation.navigate('LogTreadmill') },
+              { text: 'Cancel', style: 'cancel' as const },
+            ]);
+          }}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="More sports"
+        >
+          <DotsThree size={20} color={C.t1} weight="bold" />
+          <Text style={ss.sportTxt} numberOfLines={1}>More</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={ss.rule}>
@@ -172,12 +197,26 @@ export default function RunSetupSheet({
 
       </>)}
 
+      {/* The help line takes this row's space, so Start stays inside the sheet. */}
+      {!gpsProblem && <RunPrefChips />}
+
       {/* Start button */}
       <View style={[ss.startWrap, { paddingBottom: Math.max(bottomInset, 16) }]}>
-        <TouchableOpacity style={[ss.startBtn, !gpsReady && ss.startBtnDisabled]} onPress={onStartPress} disabled={!gpsReady} activeOpacity={0.85} testID="run-start-btn">
-          <Play size={18} color={C.white} weight="fill" />
-          <Text style={ss.startLabel}>{gpsReady ? `Start ${sport.verb}` : 'Waiting for GPS'}</Text>
-        </TouchableOpacity>
+        {gpsProblem ? (<>
+          <Text style={ss.gpsHelp}>
+            {gpsProblem === 'denied'
+              ? 'Runivo needs your location to track the route and claim ground.'
+              : 'Location is switched off on this phone. Turn on Location Services to track a run.'}
+          </Text>
+          <TouchableOpacity style={ss.startBtn} onPress={() => { Linking.openSettings().catch(() => {}); }} activeOpacity={0.85} testID="run-gps-settings-btn">
+            <Text style={ss.startLabel}>{gpsProblem === 'denied' ? 'Allow location in Settings' : 'Open Settings'}</Text>
+          </TouchableOpacity>
+        </>) : (
+          <TouchableOpacity style={[ss.startBtn, !gpsReady && ss.startBtnDisabled]} onPress={onStartPress} disabled={!gpsReady} activeOpacity={0.85} testID="run-start-btn">
+            <Play size={18} color={C.white} weight="fill" />
+            <Text style={ss.startLabel}>{gpsReady ? `Start ${sport.verb}` : 'Waiting for GPS'}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </Animated.View>
   );
@@ -219,6 +258,7 @@ function mkStyles(C: AppColors) {
     startWrap:        { paddingHorizontal: 18, marginTop: 'auto' },
     startBtn:         { backgroundColor: C.red, borderRadius: 999, height: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
     startBtnDisabled: { backgroundColor: C.t3, shadowOpacity: 0 },
+    gpsHelp:          { ...Type.caption, color: C.t2, textAlign: 'center', marginBottom: 10, paddingHorizontal: 12 },
     startLabel:       { fontFamily: Fonts.semiBold, fontSize: 17, color: C.white },
   });
 }

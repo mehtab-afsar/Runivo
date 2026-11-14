@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, Pressable, StyleSheet, ScrollView,
-  ActivityIndicator, Dimensions, TextInput, Platform,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -16,7 +16,6 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useTheme, type AppColors } from '@theme';
 import { FontSize, Type, Fonts, Spacing } from '@theme';
-import type { NutritionProfile } from '@shared/services/store';
 import {
   fetchExistingProfile,
   saveNutritionProfileService,

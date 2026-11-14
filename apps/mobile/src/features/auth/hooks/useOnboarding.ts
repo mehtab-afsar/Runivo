@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseFiveKTime, validateUsername, startingWeeklyTargetKm } from '@shared/engine/onboarding';
 import { track } from '@shared/services/analytics';
 import { saveOnboardingData, saveIdentity } from '../services/onboardingService';
-import { ONBOARDING_STEPS, type OnboardingData, type OnboardingStepKey } from '../types';
+import { stepsFor, type OnboardingData, type OnboardingStepKey, type OnboardingVariant } from '../types';
 
 const DEFAULT_DATA: OnboardingData = {
   lastKnownLocation: null, country: null,
@@ -17,6 +18,8 @@ const DEFAULT_DATA: OnboardingData = {
 
 export interface OnboardingState {
   index: number;
+  label: string;
+  variant: OnboardingVariant;
   stepKey: OnboardingStepKey;
   total: number;
   optional: boolean;
@@ -37,8 +40,19 @@ export function useOnboarding(): OnboardingState {
   const [data, setData] = useState<OnboardingData>(DEFAULT_DATA);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // O4: the path variant is picked once per install and kept.
+  const [variant, setVariant] = useState<OnboardingVariant>('full');
+  useEffect(() => {
+    AsyncStorage.getItem('runivo.onboardingVariant').then(v => {
+      const pick: OnboardingVariant = v === 'short' || v === 'full' ? v : (Math.random() < 0.5 ? 'short' : 'full');
+      if (!v) AsyncStorage.setItem('runivo.onboardingVariant', pick).catch(() => {});
+      setVariant(pick);
+      track('onboarding_variant', { variant: pick });
+    }).catch(() => {});
+  }, []);
+  const STEPS = stepsFor(variant);
 
-  const step = ONBOARDING_STEPS[index];
+  const step = STEPS[Math.min(index, STEPS.length - 1)];
   const weeklyTargetKm = startingWeeklyTargetKm({
     runsPerWeek: data.runsPerWeek,
     usualKm: data.usualKm,
@@ -61,9 +75,9 @@ export function useOnboarding(): OnboardingState {
   }, [step.key, data.goal, data.fiveKInput, data.username]);
 
   const advance = useCallback(() => {
-    track('onboarding_step_done', { step: step.key, index });
-    setIndex(i => Math.min(i + 1, ONBOARDING_STEPS.length - 1));
-  }, [step.key, index]);
+    track('onboarding_step_done', { step: step.key, index, variant });
+    setIndex(i => Math.min(i + 1, STEPS.length - 1));
+  }, [step.key, index, variant, STEPS.length]);
 
   const goNext = useCallback(async () => {
     if (!canContinue() || loading) return;
@@ -83,15 +97,15 @@ export function useOnboarding(): OnboardingState {
 
   const skip = useCallback(() => {
     if (!step.optional) return;
-    track('onboarding_step_skipped', { step: step.key });
+    track('onboarding_step_skipped', { step: step.key, variant });
     if (step.key === 'about') {
       setData(d => ({ ...d, ageRange: null, gender: null, heightCm: null, weightKg: null }));
     }
     if (step.key === 'health') {
       setData(d => ({ ...d, healthConsent: false, healthBaseline: null }));
     }
-    setIndex(i => Math.min(i + 1, ONBOARDING_STEPS.length - 1));
-  }, [step]);
+    setIndex(i => Math.min(i + 1, STEPS.length - 1));
+  }, [step, variant, STEPS.length]);
 
   const goBack = useCallback(() => {
     setError('');
@@ -101,7 +115,7 @@ export function useOnboarding(): OnboardingState {
   const submit = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      await saveOnboardingData(data);
+      await saveOnboardingData(data, variant);
       return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Setup failed. Please try again.');
@@ -109,10 +123,10 @@ export function useOnboarding(): OnboardingState {
     } finally {
       setLoading(false);
     }
-  }, [data]);
+  }, [data, variant]);
 
   return {
-    index, stepKey: step.key, total: ONBOARDING_STEPS.length, optional: step.optional,
+    index, label: step.label, variant, stepKey: step.key, total: STEPS.length, optional: step.optional,
     data, loading, error, weeklyTargetKm,
     update, canContinue, goNext, skip, goBack, submit,
   };

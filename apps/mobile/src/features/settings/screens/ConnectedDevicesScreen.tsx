@@ -345,7 +345,7 @@ export default function ConnectedDevicesScreen() {
       await saveAppleHealthConnection(true);
       await loadAppleHealth();
       showToast('Apple Health connected!');
-    } catch (err) {
+    } catch {
       Alert.alert('Apple Health', 'Could not connect to Apple Health. Make sure you grant permission in Settings > Privacy > Health.');
     } finally {
       setAhBusy(false);

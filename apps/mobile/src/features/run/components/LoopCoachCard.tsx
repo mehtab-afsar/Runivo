@@ -16,7 +16,7 @@ export function useLoopCoach(active: boolean, distanceKm: number): { show: boole
   const [seen, setSeen] = useState<boolean | null>(null);
   useEffect(() => { AsyncStorage.getItem(KEY).then(v => setSeen(v === '1')).catch(() => setSeen(true)); }, []);
   const dismiss = () => { setSeen(true); AsyncStorage.setItem(KEY, '1').catch(() => {}); };
-  useEffect(() => { if (active && seen === false && distanceKm >= 0.3) dismiss(); }, [active, seen, distanceKm]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (active && seen === false && distanceKm >= 0.3) dismiss(); }, [active, seen, distanceKm]);  
   return { show: active && seen === false, dismiss };
 }
 

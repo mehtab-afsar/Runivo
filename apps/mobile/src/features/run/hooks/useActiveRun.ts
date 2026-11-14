@@ -22,6 +22,7 @@ import {
   drainBgGpsBuffer,
   clearBgGpsBuffer,
 } from '../services/locationTask';
+import { screenOffAdditions } from '../services/screenOffMerge';
 
 const GPS_CHECKPOINT_INTERVAL_MS = 30_000;
 // How often a running position reaches friends — not every GPS tick (~1/sec):
@@ -166,6 +167,24 @@ export function useActiveRun(activityType: string = 'run') {
     };
   }, []);
 
+  // ── Merging screen-off points ──────────────────────────────────────────────
+  // On iOS the live watcher keeps receiving fixes while the screen is locked
+  // (the background task keeps the app alive), and the background task buffers
+  // the same fixes. Merging the whole buffer counted every screen-off stretch
+  // twice: distance, pace, PACE and the trace. Only fixes newer than the last
+  // one the live watcher recorded are new; on Android, where the watcher stops
+  // in the background, that's all of them.
+  const mergeBgPoints = useCallback((bgPoints: ReturnType<typeof drainBgGpsBuffer>): boolean => {
+    const pts = gpsPointsRef.current;
+    const { fresh, addedKm, lastPos } = screenOffAdditions(pts.length ? pts[pts.length - 1].timestamp : 0, lastPositionRef.current, bgPoints);
+    totalDistanceRef.current += addedKm;
+    lastPositionRef.current = lastPos;
+    for (const pt of fresh) {
+      gpsPointsRef.current.push({ lat: pt.lat, lng: pt.lng, timestamp: pt.timestamp, speed: pt.speed, accuracy: pt.accuracy, altitude: 0 });
+    }
+    return fresh.length > 0;
+  }, []);
+
   // ── Start ───────────────────────────────────────────────────────────────────
   const startRun = useCallback(async () => {
     // Re-entrancy guard: a double-tap on the start button before the first await
@@ -213,21 +232,9 @@ export function useActiveRun(activityType: string = 'run') {
         // background window was during a paused run. Counting it would inflate distance
         // while paused (the live GPS callback already returns early when paused at :254).
         const bgPoints = drainBgGpsBuffer(runIdRef.current);
-        if (bgPoints.length > 0 && !isPausedRef.current) {
-          for (const pt of bgPoints) {
-            const prev = lastPositionRef.current;
-            if (prev) {
-              const d = haversineM(prev, pt);
-              if (d < 100 && d >= 1) {
-                totalDistanceRef.current += d / 1000;
-              }
-            }
-            lastPositionRef.current = { lat: pt.lat, lng: pt.lng };
-            gpsPointsRef.current.push({
-              lat: pt.lat, lng: pt.lng, timestamp: pt.timestamp,
-              speed: pt.speed, accuracy: pt.accuracy, altitude: 0,
-            });
-          }
+        if (bgPoints.length > 0 && !isPausedRef.current && mergeBgPoints(bgPoints)) {
+          // The live state's distance lags totalDistanceRef by whatever is pending.
+          pendingDistanceRef.current = 0;
           setState(prev => ({
             ...prev,
             distance: Math.round(totalDistanceRef.current * 1000) / 1000,
@@ -300,7 +307,9 @@ export function useActiveRun(activityType: string = 'run') {
       },
       (location) => {
         const { latitude, longitude, speed, accuracy, altitude } = location.coords;
-        const now = Date.now();
+        // The fix's own time, the same clock the background buffer stores, so
+        // the two can be lined up when merging (mergeBgPoints).
+        const now = location.timestamp || Date.now();
         const gpsSpeed = speed ?? 0;
 
         // Auto-pause / auto-resume — evaluated even while already paused, so a
@@ -435,7 +444,7 @@ export function useActiveRun(activityType: string = 'run') {
 
     lastKmRef.current = 0;
     isStartingRef.current = false;
-  }, [gameEngine]);
+  }, [gameEngine, mergeBgPoints]);
 
   // ── Pause / Resume ──────────────────────────────────────────────────────────
   const pauseRun = useCallback(() => {
@@ -486,20 +495,7 @@ export function useActiveRun(activityType: string = 'run') {
     // and must not be added to distance.
     await stopBackgroundTracking();
     const bgTail = drainBgGpsBuffer(runIdRef.current);
-    if (bgTail.length > 0 && !isPausedRef.current) {
-      for (const pt of bgTail) {
-        const prev = lastPositionRef.current;
-        if (prev) {
-          const d = haversineM(prev, pt);
-          if (d < 100 && d >= 1) totalDistanceRef.current += d / 1000;
-        }
-        lastPositionRef.current = { lat: pt.lat, lng: pt.lng };
-        gpsPointsRef.current.push({
-          lat: pt.lat, lng: pt.lng, timestamp: pt.timestamp,
-          speed: pt.speed, accuracy: pt.accuracy, altitude: 0,
-        });
-      }
-    }
+    if (bgTail.length > 0 && !isPausedRef.current) mergeBgPoints(bgTail);
 
     feedback.runComplete();
 
@@ -554,7 +550,7 @@ export function useActiveRun(activityType: string = 'run') {
       territoriesClaimed:  (result as any)?.run?.territoriesClaimed?.length ?? 0,
       ...result,
     };
-  }, [gameEngine]);
+  }, [gameEngine, mergeBgPoints]);
 
   return {
     ...state,
@@ -564,6 +560,8 @@ export function useActiveRun(activityType: string = 'run') {
     resumeRun,
     finishRun,
     activeRunId:          runIdRef.current,
+    /** L5: live climb so far, for the HUD's switchable metric. */
+    elevationGainM:       Math.round(elevationGainRef.current),
     gpsCheckpointPrefix:  GPS_CHECKPOINT_PREFIX,
     player:               gameEngine.player,
     playerTerritoryCount: gameEngine.playerTerritoryCount,

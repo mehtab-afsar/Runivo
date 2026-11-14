@@ -5,6 +5,20 @@
 -- Uses dblink to run two redemptions at the same time, connecting back to
 -- this same database over the local socket.
 \set ON_ERROR_STOP on
+CREATE EXTENSION IF NOT EXISTS dblink;
+-- Fixture rows are committed (the race below runs on two real connections), so
+-- clear anything a previous run left, here and again at the end.
+DELETE FROM pace_redemptions WHERE user_id::text LIKE 'b0000000-%';
+DELETE FROM reward_codes WHERE reward_id::text LIKE 'd0000000-%';
+DELETE FROM reward_events WHERE reward_id::text LIKE 'd0000000-%';
+DELETE FROM reward_view_keys WHERE true AND EXISTS (SELECT 1);
+DELETE FROM pace_store_rewards WHERE id::text LIKE 'd0000000-%';
+DELETE FROM partners WHERE id::text LIKE 'c0000000-%';
+DELETE FROM auth.users WHERE id::text LIKE 'b0000000-%';
+-- Rewards gained required brand/description/value_label after these tests were written;
+-- defaults for this transaction only.
+ALTER TABLE public.pace_store_rewards ALTER COLUMN brand SET DEFAULT 'Test brand',
+  ALTER COLUMN description SET DEFAULT 'Test reward', ALTER COLUMN value_label SET DEFAULT 'Test';
 SET client_min_messages = notice;
 
 CREATE OR REPLACE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
@@ -16,6 +30,14 @@ END $$;
 SELECT set_config('test.role', 'service_role', false);
 
 -- Runners. Bengaluru point is inside the Bengaluru launch city.
+INSERT INTO auth.users (id, email) VALUES
+  ('b0000000-0000-0000-0000-000000000001', 'v1-b0000000-0@example.com'),
+  ('b0000000-0000-0000-0000-000000000002', 'v1-b0000000-1@example.com'),
+  ('b0000000-0000-0000-0000-000000000003', 'v1-b0000000-2@example.com'),
+  ('b0000000-0000-0000-0000-000000000004', 'v1-b0000000-3@example.com'),
+  ('b0000000-0000-0000-0000-000000000005', 'v1-b0000000-4@example.com'),
+  ('b0000000-0000-0000-0000-000000000006', 'v1-b0000000-5@example.com')
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO profiles (id, username, created_at, total_runs, pace_balance, pace_total_earned, pace_weekly_earned,
                       runner_rank, subscription_tier, country, last_known_location) VALUES
   ('b0000000-0000-0000-0000-000000000001', 'vet',     now() - interval '30 days', 5, 500, 900, 40, 'chaser',  'free',    'IN', ST_SetSRID(ST_MakePoint(77.60, 12.97), 4326)),
@@ -23,7 +45,8 @@ INSERT INTO profiles (id, username, created_at, total_runs, pace_balance, pace_t
   ('b0000000-0000-0000-0000-000000000003', 'fewruns', now() - interval '30 days', 2, 500, 900, 40, 'chaser',  'free',    'IN', ST_SetSRID(ST_MakePoint(77.60, 12.97), 4326)),
   ('b0000000-0000-0000-0000-000000000004', 'plus',    now() - interval '30 days', 9, 500, 900, 40, 'hunter',  'premium', 'IN', ST_SetSRID(ST_MakePoint(72.88, 19.07), 4326)),
   ('b0000000-0000-0000-0000-000000000005', 'broke',   now() - interval '30 days', 9,  20, 900, 40, 'chaser',  'free',    'IN', ST_SetSRID(ST_MakePoint(77.60, 12.97), 4326)),
-  ('b0000000-0000-0000-0000-000000000006', 'racer',   now() - interval '30 days', 9, 500, 900, 40, 'chaser',  'free',    'IN', ST_SetSRID(ST_MakePoint(77.60, 12.97), 4326));
+  ('b0000000-0000-0000-0000-000000000006', 'racer',   now() - interval '30 days', 9, 500, 900, 40, 'chaser',  'free',    'IN', ST_SetSRID(ST_MakePoint(77.60, 12.97), 4326))
+ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, created_at = EXCLUDED.created_at, total_runs = EXCLUDED.total_runs, pace_balance = EXCLUDED.pace_balance, pace_total_earned = EXCLUDED.pace_total_earned, pace_weekly_earned = EXCLUDED.pace_weekly_earned, runner_rank = EXCLUDED.runner_rank, subscription_tier = EXCLUDED.subscription_tier, country = EXCLUDED.country, last_known_location = EXCLUDED.last_known_location;
 
 SELECT pg_temp.check(city_for_point(last_known_location) = 'Bengaluru', 'a Bengaluru point maps to Bengaluru')
 FROM profiles WHERE username = 'vet';
@@ -181,8 +204,8 @@ EXCEPTION WHEN raise_exception THEN
   RAISE NOTICE 'ok  redeem_reward refuses non-service callers';
 END $$;
 SELECT pg_temp.check(NOT has_function_privilege('authenticated', 'partner_monthly_report(uuid, date)', 'EXECUTE')
-                 AND NOT has_function_privilege('authenticated', 'redeem_reward(uuid, uuid)', 'EXECUTE')
-                 AND has_function_privilege('authenticated', 'store_catalog()', 'EXECUTE'),
+                 AND NOT has_function_privilege('authenticated', 'redeem_reward(uuid, uuid, double precision, double precision)', 'EXECUTE')
+                 AND has_function_privilege('authenticated', 'store_catalog(double precision, double precision)', 'EXECUTE'),
                      'runners can browse, but not redeem directly or read reports');
 SELECT pg_temp.check((SELECT relrowsecurity FROM pg_class WHERE relname = 'partners')
                  AND (SELECT relrowsecurity FROM pg_class WHERE relname = 'reward_codes')
@@ -190,3 +213,14 @@ SELECT pg_temp.check((SELECT relrowsecurity FROM pg_class WHERE relname = 'partn
                      'partners, codes and events are behind row-level security');
 
 SELECT 'ALL STORE CHECKS PASSED' AS result;
+-- Fixture rows are committed (the race below runs on two real connections), so
+-- clear anything a previous run left, here and again at the end.
+DELETE FROM pace_redemptions WHERE user_id::text LIKE 'b0000000-%';
+DELETE FROM reward_codes WHERE reward_id::text LIKE 'd0000000-%';
+DELETE FROM reward_events WHERE reward_id::text LIKE 'd0000000-%';
+DELETE FROM reward_view_keys WHERE true AND EXISTS (SELECT 1);
+DELETE FROM pace_store_rewards WHERE id::text LIKE 'd0000000-%';
+DELETE FROM partners WHERE id::text LIKE 'c0000000-%';
+DELETE FROM auth.users WHERE id::text LIKE 'b0000000-%';
+ALTER TABLE public.pace_store_rewards ALTER COLUMN brand DROP DEFAULT,
+  ALTER COLUMN description DROP DEFAULT, ALTER COLUMN value_label DROP DEFAULT;

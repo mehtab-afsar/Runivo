@@ -6,6 +6,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, ArrowLeft, ArrowSquareOut } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
+import { EventExtras } from '../components/EventExtras';
 import { EventCard } from '../components/EventCard';
 import { DISCIPLINE_LABEL, type RunEvent } from '../types';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
@@ -20,9 +21,12 @@ function avatarColor(initial: string): string {
   return COLORS[initial.charCodeAt(0) % COLORS.length];
 }
 
-function EventDetailSheet({ event, joined, onClose, onJoin, onTrain }: {
+function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked, onBookmark, onFollowRoute }: {
   event: RunEvent;
   joined: boolean;
+  bookmarked: boolean;
+  onBookmark: () => void;
+  onFollowRoute?: () => void;
   onClose: () => void;
   onJoin: () => void;
   /** Starts a plan ending on this race, when it is a 5K–marathon far enough ahead. */
@@ -31,7 +35,6 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain }: {
   const C = useTheme();
   const ed = useMemo(() => mkEdStyles(C), [C]);
   const insets = useSafeAreaInsets();
-  const [bookmarked, setBookmarked] = useState(false);
   const isCurated = event.source === 'curated';
   const [reminder, setReminder] = useState(false);
   const [added, setAdded] = useState(false);
@@ -127,6 +130,8 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain }: {
           </View>
         )}
 
+        <EventExtras event={event} joined={joined} onFollowRoute={onFollowRoute} />
+
         {isCurated && (
           <Text style={ed.disclaimer}>
             Registration happens on the organizer's own site — Runivo isn't hosting this event.
@@ -162,7 +167,8 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain }: {
           </Pressable>
           <Pressable
             style={[ed.iconBtn, bookmarked && ed.iconBtnSaved]}
-            onPress={() => setBookmarked(b => !b)}
+            onPress={onBookmark}
+            accessibilityLabel={bookmarked ? 'Remove from saved' : 'Save'}
           >
             <Bookmark size={16} color={bookmarked ? C.red : C.t2} weight={bookmarked ? 'fill' : 'light'} />
           </Pressable>
@@ -240,7 +246,7 @@ export default function EventsScreen() {
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const {
-    events, joinedIds, canCreate, loading, refreshing,
+    events, joinedIds, bookmarkedIds, toggleBookmark, canCreate, loading, refreshing,
     nearMeAvailable, nearMeActive, toggleNearMe, handleJoin, refresh,
   } = useEvents();
   const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
@@ -249,10 +255,10 @@ export default function EventsScreen() {
   const shown = useMemo(() => {
     const now = Date.now();
     const upcoming = events.filter(e => new Date(e.startsAt).getTime() >= now);
-    if (tab === 'going') return upcoming.filter(e => joinedIds.has(e.id));
+    if (tab === 'going') return upcoming.filter(e => joinedIds.has(e.id) || bookmarkedIds.has(e.id));
     if (tab === 'past') return events.filter(e => new Date(e.startsAt).getTime() < now).reverse();
     return upcoming;
-  }, [events, joinedIds, tab]);
+  }, [events, joinedIds, bookmarkedIds, tab]);
   const firstHosted = shown.find(e => e.source !== 'curated')?.id;
 
   // "Train for this": races of a plannable distance at least a week away.
@@ -315,7 +321,7 @@ export default function EventsScreen() {
           ListEmptyComponent={
             <View style={s.empty}>
               <Text style={s.emptyTitle}>
-                {tab === 'going' ? "You haven't RSVP'd to anything yet." : tab === 'past' ? 'No past events.' : 'No events coming up.'}
+                {tab === 'going' ? "Nothing yet. Join or save an event and it shows here." : tab === 'past' ? 'No past events.' : 'No events coming up.'}
               </Text>
               <Text style={s.emptyText}>Group runs from clubs and official races near you show up here.</Text>
             </View>
@@ -330,6 +336,9 @@ export default function EventsScreen() {
           onClose={() => setSelectedEvent(null)}
           onJoin={() => handleJoin(selectedEvent.id)}
           onTrain={trainFor(selectedEvent)}
+          bookmarked={bookmarkedIds.has(selectedEvent.id)}
+          onBookmark={() => toggleBookmark(selectedEvent.id)}
+          onFollowRoute={selectedEvent.route ? () => { const r = selectedEvent.route!; setSelectedEvent(null); navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', ghostRoutePoints: r }); } : undefined}
         />
       )}
     </SafeAreaView>

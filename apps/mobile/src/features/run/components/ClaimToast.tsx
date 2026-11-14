@@ -29,7 +29,7 @@ export default function ClaimToast({ event, onDismiss }: ClaimToastProps) {
   return (
     <Animated.View style={[ss.toast, { opacity }]}>
       <CheckCircle size={20} color={zone.own} weight="fill" />
-      <Text style={ss.text}>Loop closed. This ground is yours</Text>
+      <Text style={ss.text}>Loop closed · it's yours once you finish</Text>
       {(event.paceEarned ?? 0) > 0
         ? <Text style={[ss.xp, { color: zone.own }]}>+{event.paceEarned} PACE</Text>
         : null}

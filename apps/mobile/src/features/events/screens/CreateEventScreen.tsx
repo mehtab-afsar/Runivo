@@ -19,6 +19,7 @@ export default function CreateEventScreen() {
     date, setDate, time, setTime,
     location, setLocation, distanceKm, setDistanceKm,
     description, setDescription, discipline, setDiscipline, submit,
+    paceGroups, setPaceGroups, useHere, setUseHere,
   } = useCreateEvent();
 
   const handleSubmit = async () => {
@@ -48,6 +49,8 @@ export default function CreateEventScreen() {
             distanceKm={distanceKm} setDistanceKm={setDistanceKm}
             description={description} setDescription={setDescription}
             discipline={discipline} setDiscipline={setDiscipline}
+            paceGroups={paceGroups} setPaceGroups={setPaceGroups}
+            useHere={useHere} setUseHere={setUseHere}
             onSubmit={handleSubmit}
           />
         </ScrollView>

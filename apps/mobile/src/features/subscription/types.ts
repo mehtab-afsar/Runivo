@@ -46,6 +46,10 @@ export const PAYWALL_COPY: Record<PaywallReason | 'default', { lead: string; acc
     lead: 'See your city', accent: 'differently.',
     sub: 'Terrain and satellite maps come with Plus.',
   },
+  training: {
+    lead: 'Train for', accent: 'race day.',
+    sub: 'Plus builds a plan around your week, adapts it after every run and guides each session. Tracking, territory and the store stay free.',
+  },
   default: {
     lead: 'Own more of your', accent: 'city.',
     sub: 'Unlimited zones, a higher PACE cap, and PaceX, the coach that reads every run.',

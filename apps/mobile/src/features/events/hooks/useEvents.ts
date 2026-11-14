@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import type { RunEvent, Discipline } from '../types';
-import { fetchEvents, fetchNearbyEvents, toggleEventJoin } from '../services/eventService';
+import { fetchEvents, fetchNearbyEvents, toggleEventJoin, setBookmark } from '../services/eventService';
 import { getPlayer } from '@shared/services/store';
 
 export interface EventsState {
   events: RunEvent[];
   joinedIds: Set<string>;
+  bookmarkedIds: Set<string>;
+  toggleBookmark: (eventId: string) => void;
   canCreate: boolean;
   loading: boolean;
   refreshing: boolean;
@@ -20,6 +22,7 @@ export interface EventsState {
 export function useEvents(): EventsState {
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [canCreate, setCanCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -32,6 +35,7 @@ export function useEvents(): EventsState {
       const [data, player] = await Promise.all([fetchEvents(), getPlayer()]);
       setEvents(data.events);
       setJoinedIds(data.joinedIds);
+      setBookmarkedIds(data.bookmarkedIds);
       setCanCreate(data.canCreate);
       setLastKnownLocation(player?.lastKnownLocation ?? null);
     } catch { /* offline */ } finally {
@@ -64,8 +68,8 @@ export function useEvents(): EventsState {
     const event = events.find(e => e.id === eventId);
     if (!event) return;
 
-    if (event.category === 'king-of-hill' || event.category === 'territory-war') {
-      Alert.alert('Coming Soon', 'Territory War events are launching soon. Stay tuned!');
+    if (event.category === 'king-of-hill') {
+      Alert.alert('Coming Soon', 'King of the Hill events are launching soon.');
       return;
     }
 
@@ -94,10 +98,18 @@ export function useEvents(): EventsState {
     }
   }, [events, joinedIds]);
 
+  const toggleBookmark = useCallback((eventId: string) => {
+    const on = !bookmarkedIds.has(eventId);
+    setBookmarkedIds(prev => { const n = new Set(prev); if (on) n.add(eventId); else n.delete(eventId); return n; });
+    setBookmark(eventId, on).catch(() => {
+      setBookmarkedIds(prev => { const n = new Set(prev); if (on) n.delete(eventId); else n.add(eventId); return n; });
+    });
+  }, [bookmarkedIds]);
+
   const refresh = useCallback(() => load(true), [load]);
 
   return {
-    events, joinedIds, canCreate, loading, refreshing,
+    events, joinedIds, bookmarkedIds, toggleBookmark, canCreate, loading, refreshing,
     nearMeAvailable: !!lastKnownLocation, nearMeActive, toggleNearMe,
     handleJoin, refresh,
   };

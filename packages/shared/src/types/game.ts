@@ -22,7 +22,7 @@ export type AwardId =
   | 'first_claim' | 'first_blood' | 'park_capture'
   | 'district_owner' | 'quarter_owner' | 'domain_lord'
   | 'city_builder' | 'defender' | 'sovereign_rank'
-  | 'first_5k' | 'first_10k' | 'first_halfmarathon'
+  | 'first_5k' | 'first_10k' | 'first_halfmarathon' | 'event_finisher'
   | 'km_100' | 'km_500' | 'km_1000'
   | 'streak_7' | 'streak_30' | 'early_bird'
   | 'sub_5' | 'sub_4_30' | 'monthly_100';

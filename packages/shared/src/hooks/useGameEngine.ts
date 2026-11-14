@@ -28,7 +28,7 @@ import { updateMissionsAfterRun } from '../services/missionStore';
 const AWARD_LABELS: Record<string, string> = {
   first_claim:        'First Claim',
   first_blood:        'First Blood',
-  park_capture:       'Park Capture',
+  park_capture:       'Loop Closer',
   district_owner:     'District Owner',
   quarter_owner:      'Quarter Owner',
   domain_lord:        'Domain Lord',

@@ -57,7 +57,16 @@ export const PLUS_FEATURES: ReadonlySet<Feature> = new Set<Feature>([
   'advanced_analytics',
 ]);
 
+/**
+ * X6, the line: tracking, territory, safety, clubs and the store are free;
+ * Plus adds training plans. Flip to false to make plans free again — the
+ * builder, the paywall copy and the Plus table all follow this one switch.
+ * Runners who already have a plan keep it either way.
+ */
+export const TRAINING_PLANS_PLUS = true;
+
 export function canUse(feature: Feature, tier: Tier): boolean {
+  if (feature === 'training_plan' && !TRAINING_PLANS_PLUS) return true;
   return PLUS_FEATURES.has(feature) ? isPlus(tier) : true;
 }
 
@@ -69,7 +78,7 @@ export function canClaimZone(ownedCount: number, tier: Tier): boolean {
 // ── Paywall moments ──────────────────────────────────────────────────────────
 
 export type PaywallTrigger = 'zone_limit' | 'pace_cap' | 'debrief';
-export type PaywallReason = PaywallTrigger | 'events' | 'map_styles';
+export type PaywallReason = PaywallTrigger | 'events' | 'map_styles' | 'training';
 
 /** Opening the full debrief only sells Plus once the runner has a few runs to reflect on. */
 export const DEBRIEF_PAYWALL_AFTER_RUNS = 3;
@@ -135,6 +144,7 @@ export function paywallRows(live: { aiCoach: boolean; weeklyBrief?: boolean }): 
     rows.push({ label: 'Chat with PaceX', free: 'No', plus: 'Yes' });
     if (live.weeklyBrief) rows.push({ label: 'PaceX weekly brief', free: 'No', plus: 'Yes' });
   }
+  if (TRAINING_PLANS_PLUS) rows.push({ label: 'Race training plans', free: 'No', plus: 'Yes' });
   // Enforced by the events insert policy (20260811000002); club runs need no Plus.
   rows.push({ label: 'Host public events', free: 'No', plus: 'Yes' });
   rows.push({ label: 'Plus-only store rewards', free: 'No', plus: 'Yes' });

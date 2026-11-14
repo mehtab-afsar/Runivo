@@ -82,8 +82,17 @@ export const SPORTS: Sport[] = [
   { id: 'cycle',     label: 'Ride',      icon: Bicycle,       verb: 'ride', gerund: 'Riding',  claims: false, metric: 'speed' },
 ];
 
+/**
+ * R5: behind "More". Wheelchair and stroller runs claim like a run (same
+ * GPS rules, same zones); they're labelled so stats and kudos read right.
+ */
+export const MORE_SPORTS: Sport[] = [
+  { id: 'wheelchair', label: 'Wheelchair', icon: Wheelchair, verb: 'push', gerund: 'Pushing', claims: true, metric: 'pace' },
+  { id: 'stroller',   label: 'Stroller run', icon: Pulse,    verb: 'run',  gerund: 'Running', claims: true, metric: 'pace' },
+];
+
 export function sportFor(id: string | null | undefined): Sport {
-  return SPORTS.find(s => s.id === id) ?? (id === 'trail' ? SPORTS[1] : SPORTS[0]);
+  return SPORTS.find(s => s.id === id) ?? MORE_SPORTS.find(s => s.id === id) ?? (id === 'trail' ? SPORTS[1] : SPORTS[0]);
 }
 
 /** @deprecated the old 18-item picker; kept so older imports compile. */

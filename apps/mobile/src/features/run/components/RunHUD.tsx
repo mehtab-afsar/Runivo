@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useTheme, useIsDark, Type, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { convertKm, convertPaceStringPerKm } from '@mobile/shared/lib/formatters';
@@ -16,6 +17,9 @@ interface RunHUDProps {
   lap?: { n: number; pace: string } | null;
   /** Pace on foot, average speed on a ride. */
   metric?: 'pace' | 'speed';
+  /** For the tap-to-switch slot (L5): current pace and climb. */
+  gpsPoints?: { lat: number; lng: number; timestamp: number }[];
+  elevationGainM?: number;
   /** The zone column: off for rides, which don't claim. */
   showZone?: boolean;
 }
@@ -33,7 +37,34 @@ function formatArea(m2: number): string {
   return `${Math.round(m2).toLocaleString()} m²`;
 }
 
-export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km', stateLabel, lap, metric = 'pace', showZone = true }: RunHUDProps) {
+type SlotMode = 'avg' | 'now' | 'climb';
+let lastMode: SlotMode = 'avg'; // remembered across runs in this session
+
+/** Pace or speed over the last ~30 s of GPS (L5). */
+function recentRate(points: { lat: number; lng: number; timestamp: number }[] | undefined): number | null {
+  if (!points || points.length < 2) return null;
+  const end = points[points.length - 1];
+  let i = points.length - 2;
+  while (i > 0 && end.timestamp - points[i].timestamp < 30_000) i--;
+  const sec = (end.timestamp - points[i].timestamp) / 1000;
+  if (sec < 8) return null;
+  let m = 0;
+  for (let j = i + 1; j < points.length; j++) {
+    const a = points[j - 1], b = points[j];
+    const dLat = (b.lat - a.lat) * 111_320, dLng = (b.lng - a.lng) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
+    m += Math.sqrt(dLat * dLat + dLng * dLng);
+  }
+  return m > 5 ? m / sec : null; // metres per second
+}
+
+export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km', stateLabel, lap, metric = 'pace', showZone = true, gpsPoints, elevationGainM }: RunHUDProps) {
+  const [mode, setMode] = useState<SlotMode>(lastMode);
+  const cycle = () => { const n: SlotMode = mode === 'avg' ? 'now' : mode === 'now' ? 'climb' : 'avg'; lastMode = n; setMode(n); Haptics.selectionAsync(); };
+  const mps = mode === 'now' ? recentRate(gpsPoints) : null;
+  const perUnitM = unit === 'mi' ? 1609.344 : 1000;
+  const nowValue = mps == null ? '—' : metric === 'speed'
+    ? (mps * 3.6 * (unit === 'mi' ? 0.621371 : 1)).toFixed(1)
+    : (() => { const sp = perUnitM / mps; return sp > 1800 ? '—' : `${Math.floor(sp / 60)}:${String(Math.round(sp % 60)).padStart(2, '0')}`; })();
   const C = useTheme();
   const zone = territoryPalette(useIsDark());
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -68,10 +99,18 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km
       </View>
 
       <View style={ss.stats}>
-        <View style={ss.stat}>
-          <Text style={ss.statValue} maxFontSizeMultiplier={1.3}>{metric === 'speed' ? (speed > 0 ? speed.toFixed(1) : '0.0') : displayPace}</Text>
-          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>{metric === 'speed' ? `Speed ${unit}/h` : `Pace /${unit}`}</Text>
-        </View>
+        <Pressable style={ss.stat} onPress={cycle} accessibilityRole="button" accessibilityHint="Tap to switch between average, current and climb">
+          <Text style={ss.statValue} maxFontSizeMultiplier={1.3}>
+            {mode === 'climb' ? `${Math.round((elevationGainM ?? 0) * (unit === 'mi' ? 3.28084 : 1))}`
+              : mode === 'now' ? nowValue
+              : metric === 'speed' ? (speed > 0 ? speed.toFixed(1) : '0.0') : displayPace}
+          </Text>
+          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>
+            {mode === 'climb' ? `Climb ${unit === 'mi' ? 'ft' : 'm'} ⇄`
+              : mode === 'now' ? (metric === 'speed' ? `Now ${unit}/h ⇄` : `Now /${unit} ⇄`)
+              : metric === 'speed' ? `Avg ${unit}/h ⇄` : `Avg /${unit} ⇄`}
+          </Text>
+        </Pressable>
         <View style={[ss.stat, ss.statDivided]}>
           <Text style={ss.statValue} maxFontSizeMultiplier={1.3}>{formatElapsed(elapsed)}</Text>
           <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>Time</Text>

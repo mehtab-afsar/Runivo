@@ -29,7 +29,7 @@ const SIMPLE: Record<string, Route> = {
   '/leaderboard':   { screen: 'Leaderboard' },
   '/events':        { screen: 'Events' },
   '/clubs':         { screen: 'Club' },
-  '/lobby':         { screen: 'Lobby' },
+  '/challenges':    { screen: 'Challenges' },
   '/history':       { screen: 'History' },
   '/year':          { screen: 'YearInRunivo' },
 };
@@ -41,6 +41,9 @@ export function resolveNotificationRoute(actionUrl: string | null | undefined): 
   const params = new URLSearchParams(query);
 
   if (SIMPLE[path]) return SIMPLE[path];
+
+  const ch = path.match(/^\/challenges\/([0-9a-f-]{36})$/i);
+  if (ch) return { screen: 'ChallengeDetail', params: { id: ch[1] } };
 
   if (path === '/territory-map' || path === '/map' || path.startsWith('/territory/')) {
     const filter = params.get('filter');

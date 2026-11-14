@@ -15,6 +15,7 @@ import PlanLoopSheet from '../components/PlanLoopSheet';
 import { fetchClubTerritory } from '@features/clubs/services/clubService';
 import type { LoopPlan } from '@shared/engine/planLoop';
 import { GAME_CONFIG } from '@shared/services/config';
+import { getRuns } from '@shared/services/store';
 
 import { MAP_STYLES } from '@theme/maps';
 import ML from '@maplibre/maplibre-react-native';
@@ -51,6 +52,20 @@ export default function TerritoryMapScreen() {
     defaultCenter, handleBboxChange, locationStatus, requestLocation,
   } = useTerritoryMap(initialFilter);
   const [locationCardDismissed, setLocationCardDismissed] = useState(false);
+  // M3: personal heatmap. Overlapping lines build up, so streets you run a lot glow.
+  const zonePal = territoryPalette(useIsDark());
+  const [heatmapOn, setHeatmapOn] = useState(false);
+  const [heatShape, setHeatShape] = useState<any>(null);
+  useEffect(() => {
+    if (!heatmapOn) { setHeatShape(null); return; }
+    getRuns(1000).then(runs => {
+      const lines = runs.filter(r => !r.excluded && (r.gpsPoints?.length ?? 0) > 1).map(r => {
+        const step = Math.max(1, Math.floor(r.gpsPoints.length / 300));
+        return r.gpsPoints.filter((_, i) => i % step === 0).map(p => [p.lng, p.lat]);
+      });
+      setHeatShape({ type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: lines } });
+    }).catch(() => {});
+  }, [heatmapOn]);
   // Plan a loop (M2)
   const [planOpen, setPlanOpen] = useState(false);
   const [loop, setLoop] = useState<LoopPlan | null>(null);
@@ -76,6 +91,15 @@ export default function TerritoryMapScreen() {
   const selectedFilter: any = selectedPolygon
     ? ['==', ['get', 'id'], selectedPolygon.id]
     : ['==', ['get', 'id'], ''];
+
+  // Rivals load on map moves; the first view may not count as one, so load
+  // around the opening centre too (about the area zoom 13 shows).
+  useEffect(() => {
+    const [lng, lat] = defaultCenter;
+    if (lng === 0 && lat === 0) return;
+    const dLat = 0.04, dLng = 0.04 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    handleBboxChange({ minLng: lng - dLng, minLat: lat - dLat, maxLng: lng + dLng, maxLat: lat + dLat });
+  }, [defaultCenter, handleBboxChange]);
 
   function handleRegionChange(feature: any) {
     const bounds = feature?.properties?.visibleBounds;
@@ -140,6 +164,11 @@ export default function TerritoryMapScreen() {
             <ML.LineLayer id="club-ground-line" style={{ lineColor: '#7A5AF8', lineWidth: 2 } as any} />
           </ML.ShapeSource>
         )}
+        {heatShape && (
+          <ML.ShapeSource id="heatmap" shape={heatShape}>
+            <ML.LineLayer id="heatmap-line" belowLayerID="territory-line" style={{ lineColor: zonePal.own, lineOpacity: 0.22, lineWidth: 4, lineCap: 'round', lineJoin: 'round' } as any} />
+          </ML.ShapeSource>
+        )}
         {loopShape && (
           <ML.ShapeSource id="planned-loop" shape={loopShape}>
             <ML.LineLayer id="planned-loop-line" style={{ lineColor: C.t1, lineWidth: 4, lineDasharray: [1.5, 1.2], lineCap: 'round', lineJoin: 'round' } as any} />
@@ -159,6 +188,8 @@ export default function TerritoryMapScreen() {
           activeFilter={activeFilter}
           counts={{ mine: ownPolygons.length, rivals: rivalPolygons.length, stale: stats.staleCount }}
           onSelect={setActiveFilter}
+          heatmapOn={heatmapOn}
+          onHeatmap={() => setHeatmapOn(v => !v)}
         />
       </View>
 

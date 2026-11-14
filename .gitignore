@@ -39,3 +39,6 @@ dist-ssr
 /ios
 /android
 scripts/reports/
+
+# transfer batches dropped by other tooling; not source
+.claude-drop/

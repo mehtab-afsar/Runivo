@@ -35,6 +35,7 @@ import { useSettings, SettingsProvider } from './src/features/settings/context/S
 import { preloadSounds, setSoundEnabled } from './src/theme/sounds';
 import { loadRunivoMapStyle } from './src/theme/runivoMapStyle';
 import { setHapticEnabled } from './src/theme/haptics';
+import { watchHomeArea } from './src/shared/location/homeArea';
 
 initSentry();
 initAnalytics(
@@ -148,6 +149,12 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
     identify(user.id);
   }, [user?.id]);
 
+  // Home area for the "near you" lists; waits for onboarding, which sets it first.
+  useEffect(() => {
+    if (!user || checkingOnboarding || needsOnboarding) return;
+    return watchHomeArea();
+  }, [user?.id, checkingOnboarding, needsOnboarding]);
+
   // CRITICAL PATH (App.tsx auth): app_opened funnel event, fired once per mount after
   // auth/onboarding resolve — never blocks rendering, analytics wrapper never throws.
   const appOpenedTrackedRef = useRef(false);
@@ -213,5 +220,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0A0A0A' },
+  root: { flex: 1, backgroundColor: '#FFFFFF' },
 });

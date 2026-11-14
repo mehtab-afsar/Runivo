@@ -1,7 +1,6 @@
 import { positionIfAllowed } from '@mobile/shared/location/devicePosition';
 import { supabase } from '@shared/services/supabase';
 import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
-import * as Location from 'expo-location';
 import type { Club, NearbyClubs, ActivityItem, ClubFeedActivityItem, ClubMember, JoinRequest } from '@features/clubs/types';
 
 export async function fetchClubs(userId: string | null): Promise<Club[]> {

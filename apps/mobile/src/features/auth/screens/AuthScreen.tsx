@@ -4,6 +4,7 @@
  * first sign-in creates the account; App.tsx then routes to onboarding or home.
  * The older email + password forms stay reachable for existing accounts.
  */
+import { RunivoMark } from '@mobile/shared/components/RunivoMark';
 import React, { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator,
@@ -88,7 +89,7 @@ export default function AuthScreen({ mode }: Props) {
         <Pressable onPress={onBack} hitSlop={10} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} strokeWidth={1.8} />
         </Pressable>
-        <Text style={s.logo}>runivo</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole="header" accessibilityLabel="Runivo"><RunivoMark size={22} /><Text style={s.logo}>runivo</Text></View>
         <View style={s.backSpacer} />
       </View>
 

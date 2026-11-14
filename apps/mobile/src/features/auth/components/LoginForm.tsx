@@ -1,3 +1,4 @@
+import { RunivoMark } from '@mobile/shared/components/RunivoMark';
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
@@ -113,7 +114,7 @@ export default function LoginForm({
         <Pressable onPress={onGoBack} hitSlop={10} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} strokeWidth={1.8} />
         </Pressable>
-        <Text style={s.logoWord}>runivo</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole="header" accessibilityLabel="Runivo"><RunivoMark size={22} /><Text style={s.logoWord}>runivo</Text></View>
         <View style={s.backSpacer} />
       </Animated.View>
 

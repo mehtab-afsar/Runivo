@@ -3,8 +3,8 @@ import {
   View, Text, Pressable, StyleSheet, Platform, Animated, Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Play } from 'phosphor-react-native';
-import { House, Hexagon, Menu, UserRound, type LucideIcon } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
+import { House, Map as MapIcon, Menu, UserRound, type LucideIcon } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -20,10 +20,21 @@ const TAB_ENABLED: Record<string, boolean> = {
 };
 
 type NonRunIcon = 'Home' | 'Rss' | 'PaceX' | 'User' | 'Map';
-// Mock tab icons: house, hexagon (a zone), three lines (feed), person.
+// Tab icons: house, map, three lines (feed), person. The hexagon belongs to
+// the Run button (the Runivo mark), so Map no longer uses one.
 const ICON_MAP: Record<Exclude<NonRunIcon, 'PaceX'>, LucideIcon> = {
-  Home: House, Rss: Menu, User: UserRound, Map: Hexagon,
+  Home: House, Rss: Menu, User: UserRound, Map: MapIcon,
 };
+
+// The Run button's outer hexagon: pointy top, soft corners, in a 100-unit box.
+const RUN_HEX = (() => {
+  const pts = [-90, -30, 30, 90, 150, 210].map(a => {
+    const r = (a * Math.PI) / 180;
+    return `${(50 + 44 * Math.cos(r)).toFixed(2)} ${(50 + 44 * Math.sin(r)).toFixed(2)}`;
+  });
+  return `M${pts.join(' L')} Z`;
+})();
+const RUN_SIZE = 70;
 
 const TAB_META: { label: string; icon: NonRunIcon | 'Run' }[] = [
   { label: 'Home', icon: 'Home' },
@@ -99,11 +110,16 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               return (
                 <Pressable
                   key={route.key} onPress={onPress} style={s.runOuter}
-                  accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={meta.label}
+                  accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel="Start a run"
                 >
-                  <View style={[s.runCircle, focused && s.runCircleActive]}>
-                    <Play size={20} color={C.alwaysLight} weight="fill" />
-                  </View>
+                  {({ pressed }) => (
+                    <View style={[s.runHex, pressed && s.runHexPressed]}>
+                      {/* One orange hexagon, ringed in the page colour. */}
+                      <Svg width={RUN_SIZE} height={RUN_SIZE} viewBox="0 0 100 100">
+                        <Path d={RUN_HEX} fill={C.red} stroke={C.bg} strokeWidth={7} strokeLinejoin="round" />
+                      </Svg>
+                    </View>
+                  )}
                 </Pressable>
               );
             }
@@ -150,7 +166,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrapper:         {
-      // No overflow:hidden here — the floating red Run button (runCircle) pokes
+      // No overflow:hidden here — the floating Run hexagon (runHex) pokes
       // above this view via a negative margin, and clipping would cut it off.
       // A rounded background still renders correctly without it.
       position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.95)',
@@ -165,8 +181,9 @@ function mkStyles(C: AppColors) {
     soonBadge:       { backgroundColor: C.orange, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
     soonText:        { fontFamily: Fonts.bold, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.5 },
     runOuter:        { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 2 },
-    // 58pt button with a 5pt ring in the page colour, as in the mock.
-    runCircle:       { width: 68, height: 68, borderRadius: 34, borderWidth: 5, borderColor: C.bg, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: -27, shadowColor: C.red, shadowOpacity: 0.45, shadowRadius: 11, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
-    runCircleActive: { shadowOpacity: 0.55, shadowRadius: 16 },
+    // The Run button is the Runivo mark: a hexagon lifted above the bar. No
+    // background on the view, so the iOS shadow follows the hexagon's shape.
+    runHex:          { width: RUN_SIZE, height: RUN_SIZE, marginTop: -30, shadowColor: C.red, shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+    runHexPressed:   { transform: [{ scale: 0.93 }], shadowOpacity: 0.25 },
   });
 }

@@ -10,6 +10,7 @@ import { ArrowLeft } from 'phosphor-react-native';
 import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
+import { NotificationLimits, FriendZoneAlerts, EmailDigest } from '../components/NotificationLimits';
 import { SignInMethodsSection } from '../components/SignInMethodsSection';
 import { SegmentedControl } from '../components/SettingToggle';
 import { rescheduleSessionReminders, DEFAULT_REMINDER_HOUR } from '@features/training/services/sessionReminders';
@@ -106,6 +107,9 @@ export default function SettingsScreen() {
           <SettingRow label="Run reminders" sub="Streak at risk, and a nudge after a few quiet days">
             <Switch value={settings.runReminders} onValueChange={v => updateSetting({ runReminders: v })} {...sw} />
           </SettingRow>
+          <NotificationLimits />
+          <FriendZoneAlerts {...sw} />
+          {!settings.notificationsEnabled && <EmailDigest {...sw} />}
           <SettingRow label="Territory alerts" sub="Attacks, captures, and zones about to fade">
             <Switch value={settings.territoryAlerts} onValueChange={v => updateSetting({ territoryAlerts: v })} {...sw} />
           </SettingRow>

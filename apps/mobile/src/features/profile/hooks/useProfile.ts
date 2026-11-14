@@ -201,5 +201,7 @@ export function useProfile() {
     },
     pinnedRunId, pinRun,
     refreshCounts,
+    /** After the goal sheet saved a new weekly goal (H4). */
+    setWeeklyGoal: setWeeklyGoalKm,
   };
 }

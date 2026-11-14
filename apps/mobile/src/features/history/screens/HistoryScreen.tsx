@@ -1,116 +1,121 @@
+/**
+ * Activities: every activity, newest first, grouped by week with the week's
+ * distance, like Strava's list. One small sport chip filters it.
+ */
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SectionList, Pressable, RefreshControl } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { CaretLeft } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun } from '@shared/services/store';
 import { useRunHistory } from '../hooks/useRunHistory';
-import { RunItem } from '../components/RunItem';
-import { HistoryStats } from '../components/HistoryStats';
-import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
-import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { EmptyState } from '@mobile/shared/components/EmptyState';
+import { RouteThumb } from '@mobile/shared/components/RouteThumb';
+import { SportChip, SPORT_LABEL } from '@features/profile/components/SportPicker';
+import { activityMeta, activityName, zonesOf, fmtKm } from '@features/profile/components/YouSections';
+import { filterBySport, weekStart, type SportFilter } from '@features/profile/utils/profileStats';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const FILTERS = [
-  { value: 'all',        label: 'All' },
-  { value: 'run',        label: 'Run' },
-  { value: 'walk',       label: 'Walk' },
-  { value: 'hike',       label: 'Hike' },
-  { value: 'trail_run',  label: 'Trail' },
-  { value: 'cycle',      label: 'Cycle' },
-  { value: 'interval',   label: 'Interval' },
-  { value: 'tempo',      label: 'Tempo' },
-  { value: 'race',       label: 'Race' },
-] as const;
-
-type FilterValue = typeof FILTERS[number]['value'];
-
-// Module-level so the identity is stable across renders. Previously this was an
-// inline `() => <View/>`, i.e. a new component TYPE every render, which forces
-// React to unmount and remount every separator in the list.
-const ItemSeparator = () => <View style={{ height: 8 }} />;
-const keyExtractor = (r: StoredRun) => r.id;
+function weekTitle(start: number, now = Date.now()): string {
+  const thisWeek = weekStart(now);
+  if (start === thisWeek) return 'This week';
+  const last = new Date(thisWeek); last.setDate(last.getDate() - 7);
+  if (start === last.getTime()) return 'Last week';
+  const d = new Date(start);
+  return `Week of ${d.getDate()} ${MONTHS[d.getMonth()]}${d.getFullYear() !== new Date(now).getFullYear() ? ` ${d.getFullYear()}` : ''}`;
+}
 
 export default function HistoryScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { runs, refreshing, refresh } = useRunHistory();
-  const [filter, setFilter] = useState<FilterValue>('all');
+  const [sport, setSport] = useState<SportFilter>('all');
 
-  const filtered = useMemo(() =>
-    filter === 'all' ? runs : runs.filter(r => r.activityType === filter),
-  [runs, filter]);
+  const sections = useMemo(() => {
+    const list = filterBySport(runs, sport).filter(r => r.distanceMeters >= 50).sort((a, b) => b.startTime - a.startTime);
+    const byWeek = new Map<number, StoredRun[]>();
+    for (const r of list) {
+      const k = weekStart(r.startTime);
+      const arr = byWeek.get(k);
+      if (arr) arr.push(r); else byWeek.set(k, [r]);
+    }
+    return [...byWeek.entries()].map(([start, data]) => ({
+      key: String(start),
+      title: weekTitle(start),
+      km: data.filter(r => !r.excluded).reduce((n, r) => n + r.distanceMeters / 1000, 0),
+      data,
+    }));
+  }, [runs, sport]);
 
-  const filteredTotalKm = useMemo(() => filtered.reduce((acc, r) => acc + r.distanceMeters / 1000, 0), [filtered]);
-  const filteredAvgKm   = useMemo(() => filteredTotalKm / Math.max(filtered.length, 1), [filteredTotalKm, filtered.length]);
-
-  // Stable identities so the memoised RunItem rows can actually bail out.
-  const openRun = useCallback(
-    (run: StoredRun) => navigation.navigate('RunSummary', { runId: run.id }),
-    [navigation],
-  );
-  const renderItem = useCallback(
-    ({ item }: { item: StoredRun }) => <RunItem run={item} onPress={openRun} />,
-    [openRun],
-  );
+  const open = useCallback((r: StoredRun) => navigation.navigate('RunSummary', { runId: r.id, activityType: r.activityType }), [navigation]);
 
   return (
-    <SafeAreaView style={s.root}>
-      <ScreenHeader title="Run History" onBack={() => navigation.goBack()} />
-
-      {runs.length > 0 && (
-        <HistoryStats runCount={filtered.length} totalKm={filteredTotalKm} avgKm={filteredAvgKm} />
-      )}
-
-      {/* Activity type filter chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterScroll} contentContainerStyle={s.filterContent}>
-        {FILTERS.map(f => (
-          <Pressable key={f.value} style={[s.chip, filter === f.value && s.chipActive]} onPress={() => setFilter(f.value)}>
-            <Text style={[s.chipText, filter === f.value && s.chipTextActive]}>{f.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
-      <FlatList
-        data={filtered}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        ItemSeparatorComponent={ItemSeparator}
-        contentContainerStyle={s.list}
-        showsVerticalScrollIndicator={false}
-        // History can hold hundreds of runs; without these the whole list mounts up front.
-        initialNumToRender={10}
-        windowSize={7}
-        removeClippedSubviews
+    <View style={s.root}>
+      <View style={[s.top, { paddingTop: insets.top + 6 }]}>
+        <Pressable style={s.back} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+        <Text style={s.title}>Activities</Text>
+        <SportChip value={sport} onChange={setSport} />
+      </View>
+      <SectionList
+        sections={sections}
+        keyExtractor={r => r.id}
+        stickySectionHeadersEnabled={false}
+        contentContainerStyle={{ paddingBottom: 60 }}
+        initialNumToRender={12}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
+        renderSectionHeader={({ section }) => (
+          <Text style={s.sectionHead}>{section.title} · {fmtKm(section.km)} km</Text>
+        )}
+        renderItem={({ item, index, section }) => {
+          const z = zonesOf(item);
+          const first = index === 0, last = index === section.data.length - 1;
+          return (
+            <Pressable
+              style={[s.row, first && s.rowFirst, last && s.rowLast, !last && s.rowBorder]}
+              onPress={() => open(item)}
+              accessibilityRole="button"
+            >
+              <RouteThumb points={item.gpsPoints} width={52} height={52} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={s.rowTitle} numberOfLines={1}>{activityName(item)}</Text>
+                <Text style={s.rowSub} numberOfLines={1}>{item.excluded ? 'Not counted · ' : ''}{activityMeta(item)}</Text>
+              </View>
+              {z > 0 && <Text style={s.zones}>+{z}</Text>}
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
-            title={filter === 'all' ? 'No runs yet' : `No ${filter} activities`}
-            body={filter === 'all'
-              ? 'Head out for your first run and your history will appear here.'
-              : 'Try a different filter or log a new activity.'}
-            cta={filter === 'all'
-              ? { label: 'Start a run', onPress: () => navigation.navigate('Main', { screen: 'Run' }) }
-              : undefined}
+            title={sport === 'all' ? 'No activities yet' : `No ${SPORT_LABEL[sport].toLowerCase()} yet`}
+            body={sport === 'all' ? 'Head out for your first run and it shows up here.' : 'Try another sport, or record one.'}
+            cta={sport === 'all' ? { label: 'Start a run', onPress: () => navigation.navigate('Main', { screen: 'Run' }) } : undefined}
           />
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    root:         { flex: 1, backgroundColor: C.bg },
-    filterScroll: { borderBottomWidth: 0.5, borderBottomColor: C.border, backgroundColor: C.card, flexGrow: 0 },
-    filterContent:{ paddingHorizontal: Spacing.gutter, paddingVertical: 10, gap: 8, flexDirection: 'row' },
-    chip:         { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
-    chipActive:   { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-    chipText:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
-    chipTextActive:{ color: C.alwaysLight, fontFamily: Fonts.medium },
-    list:         { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 8, paddingTop: 8 },
+    root: { flex: 1, backgroundColor: C.bg },
+    top: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingBottom: 6 },
+    back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+    title: { flex: 1, fontFamily: Fonts.bold, fontSize: 20, color: C.t1 },
+    sectionHead: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 6 },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, marginHorizontal: 18, paddingHorizontal: 14, backgroundColor: C.card },
+    rowFirst: { borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+    rowLast: { borderBottomLeftRadius: 18, borderBottomRightRadius: 18 },
+    rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    rowTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    rowSub: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
+    zones: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.red },
   });
 }

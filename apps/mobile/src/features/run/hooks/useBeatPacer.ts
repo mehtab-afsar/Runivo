@@ -116,7 +116,7 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
         // pacer) starts. On a muted phone that leaves the click scheduling
         // correctly and the HUD dot pulsing, but no sound ever actually plays.
         await Audio.setAudioModeAsync({ playsInSilentMode: true });
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+         
         const s = Audio.createAudioPlayer(require('../../../shared/audio/files/click.wav'));
         sound = s;
         soundRef.current = s;

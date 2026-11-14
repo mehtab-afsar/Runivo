@@ -15,7 +15,9 @@ import { Play, X, ShieldCheck } from 'phosphor-react-native';
 import * as Location from 'expo-location';
 import { useActiveRun }          from '../hooks/useActiveRun';
 import { postRunSync, createFeedPost } from '@shared/services/sync';
-import { getTerritoryPolygons, getPlayer, savePlayer, getSettings } from '@shared/services/store';
+import { getPlayer, savePlayer, getSettings, getRunById } from '@shared/services/store';
+import { useZonesAround } from '../hooks/useZonesAround';
+import { useWatchCompanion } from '../hooks/useWatchCompanion';
 import CountdownOverlay from '../components/CountdownOverlay';
 import { track } from '@shared/services/analytics';
 import { buildRunSummaryParams }  from '../services/runNavigationHelper';
@@ -147,14 +149,12 @@ export default function ActiveRunScreen() {
     handleStartPress();
   }, [route.params?.autoStart, run.isRunning, handleStartPress]);
 
-  // Load rival polygons once at run start — rivals don't change mid-run
-  useEffect(() => {
-    const uid = user?.id;
-    if (!uid) return;
-    getTerritoryPolygons().then(all => {
-      rivalPolygonsRef.current = all.filter(t => t.ownerId !== uid);
-    }).catch(() => {});
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Zones around the runner, for the map and the "rival nearby" alert. The
+  // phone only stores the runner's own zones, so this used to read an empty
+  // rival list: the alert never fired and the live map showed no zones.
+  const lastFix = run.gpsPoints.length ? run.gpsPoints[run.gpsPoints.length - 1] : null;
+  const mapZones = useZonesAround(lastFix ? { lat: lastFix.lat, lng: lastFix.lng } : null, sport.claims);
+  useEffect(() => { rivalPolygonsRef.current = mapZones.rivals; }, [mapZones.rivals]);
 
   // Update live area estimate every 15s (same shape rules as the finished run). gpsPoints is read from a ref (updated by the
   // effect below) rather than a dependency — run.gpsPoints is a new array reference on
@@ -201,11 +201,11 @@ export default function ActiveRunScreen() {
   // GPS locked and rival nearby feedback
   useEffect(() => {
     if (run.gpsLocked) feedback.gpsLocked();
-  }, [run.gpsLocked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [run.gpsLocked]);  
 
   useEffect(() => {
     if (nearRival) feedback.rivalNearby();
-  }, [nearRival]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nearRival]);  
 
   // Fire the capture reward once each time a loop closes (this effect only re-runs when
   // loopClosing actually changes, so it won't spam while the runner lingers near start).
@@ -214,7 +214,7 @@ export default function ActiveRunScreen() {
       feedback.zoneClaimed();
       setClaimEvent({ type: 'claimed' });
     }
-  }, [loopClosing]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loopClosing]);  
 
   // ── Pause card animation ───────────────────────────────────────────────────
   const pauseCardY = useSharedValue(400);
@@ -232,8 +232,15 @@ export default function ActiveRunScreen() {
   // waiting on an async settings read — closes the audible gap at run start.
   const pacer = useBeatPacer({ enabled: route.params?.pacerEnabled, pace: route.params?.pacerPace });
 
+  // Leaving mid-run (Android back button) used to drop the run without asking.
+  // Finish and Discard set this before they navigate away.
+  const allowLeaveRef = useRef(false);
+  const runningRef = useRef(false);
+  runningRef.current = run.isRunning;
+
   const doFinish = useCallback(async () => {
     setShowConfirm(false);
+    allowLeaveRef.current = true;
     // CRITICAL PATH (adjacent to finishRun/postRunSync): refresh the player's last
     // known location + country from this run's GPS trace, for city-rank/leaderboard
     // proximity. Local-first — savePlayer() writes locally before postRunSync() pushes
@@ -241,6 +248,7 @@ export default function ActiveRunScreen() {
     // never block or delay the run finishing or syncing.
     const result = await run.finishRun();
     if (!result) {
+      allowLeaveRef.current = false;
       Alert.alert(
         'Could not save run',
         'Something went wrong saving your run. Your GPS data is safe — try again.',
@@ -248,70 +256,86 @@ export default function ActiveRunScreen() {
       );
       return;
     }
-    try {
-      const lastPt = result.gpsPoints[result.gpsPoints.length - 1];
-      if (lastPt) {
-        const [address] = await Location.reverseGeocodeAsync({ latitude: lastPt.lat, longitude: lastPt.lng });
-        const player = await getPlayer();
-        if (player) {
-          await savePlayer({
-            ...player,
-            lastKnownLocation: { lat: lastPt.lat, lng: lastPt.lng },
-            country: address?.country ?? player.country ?? null,
+    // The run is saved on the phone. Open the summary now: it shows the
+    // phone's numbers straight away and fills in the server's verdict when the
+    // sync below lands. Waiting for the sync first (location lookup, upload,
+    // retries with backoff) froze this screen after Finish on a weak signal.
+    const elapsedSec = Math.round(run.elapsed);
+    const avgPace = run.pace;
+    const routePoints = run.gpsPoints.map(p => ({ lat: p.lat, lng: p.lng }));
+    nav.replace('RunSummary', { ...buildRunSummaryParams(result as Parameters<typeof buildRunSummaryParams>[0]), activityType });
+
+    void (async () => {
+      try {
+        const lastPt = result.gpsPoints[result.gpsPoints.length - 1];
+        if (lastPt) {
+          const [address] = await Location.reverseGeocodeAsync({ latitude: lastPt.lat, longitude: lastPt.lng });
+          const player = await getPlayer();
+          if (player) {
+            await savePlayer({
+              ...player,
+              // Rounded to about 1 km: a run usually ends at the runner's door,
+              // and this is what the server keeps as their home area.
+              lastKnownLocation: { lat: Math.round(lastPt.lat * 100) / 100, lng: Math.round(lastPt.lng * 100) / 100 },
+              country: address?.country ?? player.country ?? null,
+            });
+          }
+        }
+      } catch {
+        // non-critical — location/country refresh is best-effort
+      }
+      const { ok } = await postRunSync();
+      if (!ok) {
+        showToast({ message: 'Sync failed — run saved locally, will retry when online', type: 'warning', duration: 6000 });
+      }
+      if (result.run) {
+        const { id: runId, distanceMeters } = result.run;
+        // Tick off the matching plan session (on-foot only; best-effort, never blocks).
+        if (sportFor(activityType).claims) {
+          recordRunAgainstPlan({ runId, startTime: result.run.startTime ?? Date.now(), distanceKm: distanceMeters / 1000, durationSec: elapsedSec })
+            .then(({ session, fasterFiveK }) => {
+              if (fasterFiveK) showToast({ message: `You're getting faster: plan paces updated (5K ${fmtDuration(fasterFiveK)})`, type: 'success', duration: 6000 });
+              else if (session) showToast({ message: `Plan: ${session.title} done`, type: 'success' });
+            })
+            .catch(() => {});
+        }
+        // CRITICAL PATH (adjacent to finishRun/postRunSync): funnel events, fired after
+        // sync so they can't add latency to it. No GPS/lat-lng in properties — ever.
+        track('run_completed', {
+          distanceKm:   distanceMeters / 1000,
+          durationSec:  elapsedSec,
+          activityType,
+        });
+        if (result.territory) {
+          track('territory_claimed', {
+            territoryTier:   result.territory.tier,
+            territoryAreaM2: result.territory.areaM2,
           });
         }
+        if ((result.paceEarned ?? 0) > 0) {
+          track('pace_earned', { paceEarned: result.paceEarned });
+        }
+        // Sync has finished by now, so the server's PACE is on the stored run
+        // (cap and verified distance applied); the feed card shows that one.
+        const stored = ok ? await getRunById(runId).catch(() => undefined) : undefined;
+        const feedPace = stored?.serverProcessed && typeof stored.xpEarned === 'number' ? stored.xpEarned : result.paceEarned;
+        createFeedPost(
+          runId,
+          distanceMeters / 1000,
+          result.territory ? 1 : 0,
+          {
+            paceEarned:      feedPace,
+            territoryTier:   result.territory?.tier ?? null,
+            territoryAreaM2: result.territory?.areaM2 ?? null,
+            runnerRank:      result.runnerRank,
+            durationSec:     elapsedSec,
+            avgPace:         avgPace,
+            activityType:    activityType,
+            routePoints:     routePoints,
+          },
+        ).catch(() => {});
       }
-    } catch {
-      // non-critical — location/country refresh is best-effort
-    }
-    const { ok } = await postRunSync();
-    if (!ok) {
-      showToast({ message: 'Sync failed — run saved locally, will retry when online', type: 'warning', duration: 6000 });
-    }
-    if (result.run) {
-      const { id: runId, distanceMeters } = result.run;
-      // Tick off the matching plan session (on-foot only; best-effort, never blocks).
-      if (sportFor(activityType).claims) {
-        recordRunAgainstPlan({ runId, startTime: result.run.startTime ?? Date.now(), distanceKm: distanceMeters / 1000, durationSec: Math.round(run.elapsed) })
-          .then(({ session, fasterFiveK }) => {
-            if (fasterFiveK) showToast({ message: `You're getting faster: plan paces updated (5K ${fmtDuration(fasterFiveK)})`, type: 'success', duration: 6000 });
-            else if (session) showToast({ message: `Plan: ${session.title} done`, type: 'success' });
-          })
-          .catch(() => {});
-      }
-      // CRITICAL PATH (adjacent to finishRun/postRunSync): funnel events, fired after
-      // sync so they can't add latency to it. No GPS/lat-lng in properties — ever.
-      track('run_completed', {
-        distanceKm:   distanceMeters / 1000,
-        durationSec:  Math.round(run.elapsed),
-        activityType,
-      });
-      if (result.territory) {
-        track('territory_claimed', {
-          territoryTier:   result.territory.tier,
-          territoryAreaM2: result.territory.areaM2,
-        });
-      }
-      if ((result.paceEarned ?? 0) > 0) {
-        track('pace_earned', { paceEarned: result.paceEarned });
-      }
-      createFeedPost(
-        runId,
-        distanceMeters / 1000,
-        result.territory ? 1 : 0,
-        {
-          paceEarned:      result.paceEarned,
-          territoryTier:   result.territory?.tier ?? null,
-          territoryAreaM2: result.territory?.areaM2 ?? null,
-          runnerRank:      result.runnerRank,
-          durationSec:     Math.round(run.elapsed),
-          avgPace:         run.pace,
-          activityType:    activityType,
-          routePoints:     run.gpsPoints.map(p => ({ lat: p.lat, lng: p.lng })),
-        },
-      ).catch(() => {});
-    }
-    nav.replace('RunSummary', { ...buildRunSummaryParams(result as Parameters<typeof buildRunSummaryParams>[0]), activityType });
+    })().catch(() => {});
   }, [run, nav, showToast, activityType]);
 
   const handleFinish = useCallback(() => {
@@ -325,6 +349,21 @@ export default function ActiveRunScreen() {
     setShowConfirm(true);
   }, [run.distance, run.elapsed, doFinish]);
 
+  // L4: the Apple Watch companion mirrors the run and controls it.
+  const [finishedRun, setFinishedRun] = useState(false);
+  useWatchCompanion({
+    isRunning: run.isRunning, isPaused: run.isPaused, finished: finishedRun,
+    distanceKm: run.distance, elapsed: run.elapsed, pace: run.pace, unit: distanceUnit, metric: sport.metric,
+    liveAreaM2: run.isRunning ? liveAreaM2 : undefined,
+    onCommand: c => {
+      if (c === 'start' && !run.isRunning && countdown == null) handleStartPress();
+      else if (c === 'pause' && run.isRunning && !run.isPaused) run.pauseRun();
+      else if (c === 'resume' && run.isPaused) run.resumeRun();
+      // End is only offered on the watch while paused: a deliberate second tap.
+      else if (c === 'end' && run.isRunning) { setFinishedRun(true); doFinish(); }
+    },
+  });
+
   const handleBack = useCallback(() => {
     if (!run.isRunning) { nav.goBack(); return; }
     Alert.alert(`Discard this ${sport.verb}?`, `Your ${sport.verb} so far will be lost.`, [
@@ -334,10 +373,17 @@ export default function ActiveRunScreen() {
         // restore a cancelled run on next app launch.
         const cpKey = `${run.gpsCheckpointPrefix}${run.activeRunId}`;
         AsyncStorage.removeItem(cpKey).catch(() => {});
+        allowLeaveRef.current = true;
         nav.goBack();
       }},
     ]);
   }, [run.isRunning, run.activeRunId, run.gpsCheckpointPrefix, nav, sport.verb]);
+
+  useEffect(() => nav.addListener('beforeRemove', e => {
+    if (allowLeaveRef.current || !runningRef.current) return;
+    e.preventDefault();
+    handleBack();
+  }), [nav, handleBack]);
 
   const stateLabel = !run.isRunning ? 'Ready' : run.isPaused ? 'Paused' : sport.gerund;
 
@@ -453,7 +499,7 @@ export default function ActiveRunScreen() {
   return (
     <View style={ss.root}>
       <View style={ss.map}>
-        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} closestIdx={routeProgress?.closestIdx ?? 0} mapStyle={mapStyle} liveFriends={friendsShown ? liveFriends : []} />
+        <ActiveRunMapView gpsPoints={run.gpsPoints} isRunning={run.isRunning} ghostRoutePoints={ghostRoutePoints} closestIdx={routeProgress?.closestIdx ?? 0} mapStyle={mapStyle} liveFriends={friendsShown ? liveFriends : []} ownZones={mapZones.own} rivalZones={mapZones.rivals} />
 
         <View style={[ss.topBar, { top: insets.top + 8 }]}>
           <Pressable onPress={handleBack} style={ss.iconPill} hitSlop={12} accessibilityLabel={run.isRunning ? 'Cancel run' : 'Close'}>
@@ -555,6 +601,8 @@ export default function ActiveRunScreen() {
           unit={distanceUnit}
           stateLabel={stateLabel}
           lap={lap}
+          gpsPoints={run.gpsPoints}
+          elevationGainM={run.elevationGainM}
         />
 
         {loopRow && (

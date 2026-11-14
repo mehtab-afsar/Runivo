@@ -7,7 +7,7 @@ import { Lock, Crown, Share2, ArrowLeft, Gift } from 'lucide-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
-import { getPlayer, savePlayer } from '@shared/services/store';
+import { getPlayer, savePlayer, getSettings, saveSettings } from '@shared/services/store';
 import { HARDCODED_REWARDS } from '../rewards';
 import { redeemReward, logRewardView } from '../services/rewardService';
 import { lockStateFor } from '../lockState';
@@ -32,6 +32,9 @@ export default function RewardDetailScreen() {
   useEffect(() => {
     getPlayer().then(p => { if (p) setPaceBalance(p.paceBalance ?? 0); }).catch(() => {});
   }, []);
+  // S3: the reward the runner is saving for (one at a time).
+  const [goalId, setGoalId] = useState<string | null>(null);
+  useEffect(() => { getSettings().then(st => setGoalId(st.goalReward?.id ?? null)).catch(() => {}); }, []);
 
   // Anonymous view count for the partner's monthly report.
   useEffect(() => { logRewardView(rewardId); }, [rewardId]);
@@ -57,6 +60,15 @@ export default function RewardDetailScreen() {
   const canAfford = paceBalance >= reward.paceCost;
   const plusLocked = lock.kind === 'plus' || failReason === 'plus_only';
   const LockIcon = lock.kind === 'plus' ? Crown : Lock;
+
+  const isGoal = goalId === reward.id;
+  const toggleGoal = async () => {
+    Haptics.selectionAsync();
+    const st = await getSettings();
+    const next = isGoal ? null : { id: reward.id, brand: reward.brand, valueLabel: reward.valueLabel, paceCost: reward.paceCost };
+    await saveSettings({ ...st, goalReward: next });
+    setGoalId(next?.id ?? null);
+  };
 
   const shareCode = () => {
     if (!code) return;
@@ -138,7 +150,12 @@ export default function RewardDetailScreen() {
         <Text style={s.description}>{reward.description}{reward.description.trim().endsWith('.') ? '' : '.'} One code per runner.</Text>
         {!!reward.expiresLabel && <Text style={s.expires}>{reward.expiresLabel}</Text>}
         {!canAfford && !alreadyMine && !lock.blocked && (
-          <Text style={s.needMore}>You need {reward.paceCost - paceBalance} more PACE</Text>
+          <>
+            <Text style={s.needMore}>You need {reward.paceCost - paceBalance} more PACE</Text>
+            <Pressable style={[s.codeShare, { alignSelf: 'flex-start', marginBottom: 16 }]} onPress={toggleGoal} accessibilityRole="button">
+              <Text style={s.codeShareText}>{isGoal ? 'Saving for this ✓ · Stop' : 'Save for this'}</Text>
+            </Pressable>
+          </>
         )}
 
         {code ? (
