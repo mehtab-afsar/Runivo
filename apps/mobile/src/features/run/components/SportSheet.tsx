@@ -3,10 +3,10 @@
  * and earn PACE first, then the ones that are only tracked.
  */
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
 import { Check, Barbell } from 'phosphor-react-native';
 import * as Haptics from '@theme/hapticsGated';
-import { BottomSheet } from '@mobile/shared/components/BottomSheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { ENGINE } from '@shared/engine/runEngine';
 import type { ActivityType } from '../types';
@@ -18,6 +18,7 @@ export function SportSheet({ visible, current, onPick, onTreadmill, onClose }: {
 }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
+  const insets = useSafeAreaInsets();
   const all = [...SPORTS, ...MORE_SPORTS];
   const claims = all.filter(sp => sp.claims);
   const tracked = all.filter(sp => !sp.claims);
@@ -38,7 +39,12 @@ export function SportSheet({ visible, current, onPick, onTreadmill, onClose }: {
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} maxHeight={0.82}>
+    // A real Modal: it sits above the start panel and the map, so it never
+    // pushes or hides the panel behind it, and its list scrolls in full.
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={s.scrim} onPress={onClose} accessibilityLabel="Close" />
+      <View style={[s.sheet, { paddingBottom: insets.bottom + 8 }]} accessibilityViewIsModal>
+      <View style={s.grab} />
       <View style={s.head}>
         <Text style={s.title} accessibilityRole="header">Choose a sport</Text>
       </View>
@@ -59,12 +65,16 @@ export function SportSheet({ visible, current, onPick, onTreadmill, onClose }: {
           <Text style={s.rowTxt}>Treadmill <Text style={s.rowSub}>· logged by hand</Text></Text>
         </Pressable>
       </ScrollView>
-    </BottomSheet>
+      </View>
+    </Modal>
   );
 }
 
 function mk(C: AppColors) {
   return StyleSheet.create({
+    scrim:     { flex: 1, backgroundColor: 'rgba(23,24,26,0.42)' },
+    sheet:     { maxHeight: '82%', backgroundColor: C.card, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 10 },
+    grab:      { width: 40, height: 5, borderRadius: 3, backgroundColor: C.border, alignSelf: 'center', marginBottom: 12 },
     head:      { paddingHorizontal: 20, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
     title:     { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1 },
     body:      { paddingHorizontal: 20, paddingBottom: 36 },

@@ -139,12 +139,12 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
           <ML.Camera centerCoordinate={coord} zoomLevel={14.2} animationDuration={0} />
           {zones && zones.features.length > 0 && (
             <ML.ShapeSource id="onb-zones" shape={zones}>
-              {zoneStyles.kinds.map(k => (
-                <React.Fragment key={k.key}>
-                  <ML.FillLayer id={`onb-zone-fill-${k.key}`} filter={k.filter as any} style={k.fill as any} />
-                  <ML.LineLayer id={`onb-zone-line-${k.key}`} filter={k.filter as any} style={k.line as any} />
-                </React.Fragment>
-              ))}
+              {/* Flat list, no Fragment: ShapeSource only hands its id to direct children,
+                  so layers inside a Fragment looked for a source called "composite" and crashed. */}
+              {zoneStyles.kinds.flatMap(k => [
+                <ML.FillLayer key={`fill-${k.key}`} id={`onb-zone-fill-${k.key}`} filter={k.filter as any} style={k.fill as any} />,
+                <ML.LineLayer key={`line-${k.key}`} id={`onb-zone-line-${k.key}`} filter={k.filter as any} style={k.line as any} />,
+              ])}
             </ML.ShapeSource>
           )}
           <ML.UserLocation visible renderMode="native" />

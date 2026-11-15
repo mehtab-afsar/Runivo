@@ -362,7 +362,7 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
   const Root = embedded ? View : SafeAreaView;
   return (
     <Root style={s.root}>
-      <View style={s.header}>
+      {!embedded && <View style={s.header}>
         {embedded ? <View style={{ flex: 1 }} /> : <>
           <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
             <ArrowLeft size={16} color={C.t1} weight="regular" />
@@ -373,10 +373,10 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
           <Plus size={14} color={C.t1} weight="bold" />
           <Text style={s.createTriggerText}>Create</Text>
         </Pressable>
-      </View>
+      </View>}
 
-      {/* Tab bar */}
-      <View style={s.tabBar}>
+      {/* Tab bar (embedded in Groups: chips on the left, Create on the right, one row) */}
+      <View style={[s.tabBar, embedded && { marginTop: 14 }]}>
         {(['my_clubs', 'rankings'] as ClubTab[]).map(t => (
           <Pressable hitSlop={8} key={t} style={[s.tabBtn, tab === t && s.tabBtnActive]} onPress={() => setTab(t)}>
             <Text style={[s.tabLabel, tab === t && s.tabLabelActive]}>
@@ -388,6 +388,12 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
         {!embedded && (
           <Pressable hitSlop={8} style={s.tabBtn} onPress={() => navigation.navigate('Challenges')}>
             <Text style={s.tabLabel}>Challenges</Text>
+          </Pressable>
+        )}
+        {embedded && (
+          <Pressable style={[s.createTrigger, { marginLeft: 'auto', height: 38 }]} onPress={() => setShowCreate(true)} testID="clubs-create-btn" accessibilityRole="button">
+            <Plus size={14} color={C.t1} weight="bold" />
+            <Text style={s.createTriggerText}>Create</Text>
           </Pressable>
         )}
       </View>
@@ -499,10 +505,10 @@ function mkStyles(C: AppColors) {
     backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
     title:           { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
     createTrigger:   { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card },
-    createTriggerText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    createTriggerText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     // Tabs - match web (black underline active)
     // Segmented control: one rounded track, active segment is a raised card.
-    tabBar:          { flexDirection: 'row', gap: 8, marginHorizontal: 18, marginBottom: 6 },
+    tabBar:          { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 18, marginBottom: 10 },
     tabBtn:          { height: 38, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: C.card },
     tabBtnActive:    { backgroundColor: C.alwaysDark },
     tabLabel:        { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
@@ -521,7 +527,7 @@ function mkStyles(C: AppColors) {
     myClubDate:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginLeft: 8, flexShrink: 0 },
     myClubMeta:      { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginBottom: 2 },
     myClubPreview:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
-    empty:           { alignItems: 'center', paddingVertical: 64, paddingHorizontal: 18 },
+    empty:           { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20, marginTop: 4, borderRadius: 24, backgroundColor: C.card },
     emptyTitle:      { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, marginBottom: 4 },
     emptyTitleServe: { ...Type.title, color: C.t1, marginBottom: 6, textAlign: 'center' },
     emptyText:       { ...Type.bodySm, color: C.t2, textAlign: 'center', marginBottom: 16 },

@@ -217,7 +217,9 @@ export default function DashboardScreen() {
           >
             <Text style={s.tileTitle}>PACE this week</Text>
             <Text style={s.tileNum}>{weeklyEarned}<Text style={[s.tileOf, { color: '#7A5525' }]}> / {weeklyCap}</Text></Text>
-            <Text style={[s.small, { color: '#7A5525' }]} numberOfLines={1}>{(dash.player.paceBalance ?? 0).toLocaleString()} to spend ›</Text>
+            <View style={s.storePill}>
+              <Text style={s.storePillTxt} numberOfLines={1}>PACE Store · {(dash.player.paceBalance ?? 0).toLocaleString()} to spend ›</Text>
+            </View>
           </Pressable>
         </View>
 
@@ -347,6 +349,8 @@ function mkStyles(C: AppColors) {
     tileOf:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     claimPill:   { height: 32, borderRadius: 16, backgroundColor: C.lime, alignItems: 'center', justifyContent: 'center' },
     claimTxt:    { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysDark },
+    storePill:   { alignSelf: 'flex-start', height: 30, paddingHorizontal: 10, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', maxWidth: '100%' },
+    storePillTxt:{ fontFamily: Fonts.semiBold, fontSize: 12, color: '#7A5525' },
     feedHead:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
     feedSeg:     { flexDirection: 'row', gap: 4, padding: 4, borderRadius: 20, backgroundColor: C.card },
     feedSegBtn:  { height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center' },

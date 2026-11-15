@@ -2,8 +2,8 @@
  * You → Gallery: every activity as its route shape, three across, like
  * Strava's gallery but drawn from the GPS trace (no photos needed).
  */
-import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
 import type { StoredRun } from '@shared/services/store';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -11,6 +11,7 @@ import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { convertKm } from '@mobile/shared/lib/formatters';
 import { fmtKm } from './YouSections';
 import { routePolyline } from '../utils/routeShape';
+import { signPhotoUrls } from '@features/run/services/activityEditService';
 
 const COLS = 3;
 const GAP = 2;
@@ -27,17 +28,68 @@ export function RouteGallery({ runs, onOpen }: { runs: StoredRun[]; onOpen: (run
     [runs],
   );
 
+  const [mode, setMode] = useState<'routes' | 'photos'>('routes');
+  const photoRuns = useMemo(() => runs.filter(r => (r.photoPaths?.length ?? 0) > 0).sort((a, b) => b.startTime - a.startTime), [runs]);
+  const [photos, setPhotos] = useState<{ uri: string; run: StoredRun }[] | null>(null);
+  useEffect(() => {
+    if (mode !== 'photos' || photos !== null) return;
+    const items = photoRuns.flatMap(r => (r.photoPaths ?? []).map(path => ({ path, run: r })));
+    signPhotoUrls(items.map(i => i.path))
+      .then(m => setPhotos(items.flatMap(i => (m.has(i.path) ? [{ uri: m.get(i.path)!, run: i.run }] : []))))
+      .catch(() => setPhotos([]));
+  }, [mode, photos, photoRuns]);
+
+  const header = (
+    <View style={s.head}>
+      <Text style={s.headTxt}>Routes and photos · {list.length}</Text>
+      <View style={s.seg}>
+        {(['routes', 'photos'] as const).map(k => (
+          <Pressable key={k} style={[s.segBtn, mode === k && s.segOn]} onPress={() => setMode(k)} accessibilityRole="tab" accessibilityState={{ selected: mode === k }}>
+            <Text style={[s.segTxt, mode === k && { color: C.alwaysLight }]}>{k === 'routes' ? 'Routes' : 'Photos'}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+
+  if (mode === 'photos') {
+    return (
+      <View style={{ gap: 12 }}>
+        {header}
+        {photos && photos.length > 0 ? (
+          <View style={s.grid}>
+            {photos.map((p, i) => (
+              <Pressable key={`${p.run.id}-${i}`} onPress={() => onOpen(p.run)} style={{ width: size, height: size }} accessibilityRole="button" accessibilityLabel="Open activity">
+                <Image source={{ uri: p.uri }} style={{ width: size, height: size }} />
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View style={s.empty}>
+            <Text style={s.emptyTitle}>{photos === null ? 'Loading photos…' : 'No photos yet'}</Text>
+            <Text style={s.emptySub}>Add photos to an activity from its page and they show up here.</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
   if (list.length === 0) {
     return (
-      <View style={s.empty}>
-        <Text style={s.emptyTitle}>No routes yet</Text>
-        <Text style={s.emptySub}>Every run you record shows up here as its shape.</Text>
+      <View style={{ gap: 12 }}>
+        {header}
+        <View style={s.empty}>
+          <Text style={s.emptyTitle}>No routes yet</Text>
+          <Text style={s.emptySub}>Every run you record shows up here as its shape.</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <View style={s.grid}>
+    <View style={{ gap: 12 }}>
+      {header}
+      <View style={s.grid}>
       {list.map((r, i) => {
         const line = routePolyline(r.gpsPoints, size);
         const bg = C[TILE_BG[i % TILE_BG.length]];
@@ -56,6 +108,7 @@ export function RouteGallery({ runs, onOpen }: { runs: StoredRun[]; onOpen: (run
           </Pressable>
         );
       })}
+      </View>
     </View>
   );
 }
@@ -63,6 +116,12 @@ export function RouteGallery({ runs, onOpen }: { runs: StoredRun[]; onOpen: (run
 function mk(C: AppColors) {
   return StyleSheet.create({
     grid:       { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
+    head:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
+    headTxt:    { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    seg:        { flexDirection: 'row', gap: 4, padding: 3, borderRadius: 16, backgroundColor: C.card },
+    segBtn:     { height: 28, paddingHorizontal: 10, borderRadius: 14, justifyContent: 'center' },
+    segOn:      { backgroundColor: C.alwaysDark },
+    segTxt:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t1 },
     tile:       { overflow: 'hidden' },
     label:      { position: 'absolute', left: 7, bottom: 6, fontFamily: Fonts.semiBold, fontSize: 11, color: C.t1 },
     empty:      { marginHorizontal: 18, padding: 24, borderRadius: 20, backgroundColor: C.card, alignItems: 'center', gap: 4 },

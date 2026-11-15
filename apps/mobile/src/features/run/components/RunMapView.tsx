@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import { LiveFriendMarker } from './LiveFriendMarker';
+import type { LiveFriendRunner } from '../hooks/useLiveFriendRuns';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from '@theme/hapticsGated';
 import { Stack, X } from 'phosphor-react-native';
@@ -33,12 +35,15 @@ interface RunMapViewProps {
   gpsColor: string;
   gpsLabel: string;
   onClose: () => void;
+  /** Friends running right now; tap one to cheer. */
+  liveFriends?: LiveFriendRunner[];
+  onFriend?: (f: LiveFriendRunner) => void;
 }
 
 export default function RunMapView({
   lat, lng, gpsStatus, gpsAccuracy, mapStyle, onMapStyleChange, plus = true, onLockedStyle,
   sheetAnim, topInset, intelEnemy, intelWeak, ownZones, rivalZones, gpsColor: dotColor, gpsLabel: gpsTxt,
-  onClose,
+  onClose, liveFriends = [], onFriend,
 }: RunMapViewProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -58,6 +63,7 @@ export default function RunMapView({
           />
         )}
         <ZoneLayers own={ownZones} rivals={rivalZones} idPrefix="setup" />
+        {liveFriends.map(f => <LiveFriendMarker key={f.userId} runner={f} onPress={onFriend ? () => onFriend(f) : undefined} />)}
         {locationGranted && <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />}
       </MapLibreGL.MapView>
 

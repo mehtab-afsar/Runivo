@@ -17,8 +17,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   // Deep-link scheme — used by notification handler, OAuth, and universal links
   scheme: 'runivo',
   splash: {
-    // Plain white on purpose: the in-app launch screen (SplashView) draws the
-    // hexagon from nothing on the same white, so the hand-off doesn't show.
+    // One launch look: the big orange hexagon on white. The in-app SplashView
+    // draws the same mark at the same size (200 pt box), so the hand-off is invisible.
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
     backgroundColor: '#FFFFFF',
@@ -175,10 +175,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     [
+      'expo-splash-screen',
+      { image: './assets/splash-icon.png', imageWidth: 200, resizeMode: 'contain', backgroundColor: '#FFFFFF' },
+    ],
+    [
       'expo-notifications',
       {
         icon: './assets/icon.png',
-        color: '#D93518',
+        color: '#F2A43A',
         sounds: [],
       },
     ],

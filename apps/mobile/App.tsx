@@ -206,7 +206,7 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
 
   return (
     <ThemeProvider isDark={isDark}>
-      <View style={[styles.root, { backgroundColor: isDark ? '#0D0D0D' : '#F8F6F3' }]}>
+      <View style={[styles.root, { backgroundColor: isDark ? '#0D0D0D' : '#F4F5F1' }]}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         {authReady && user && needsAgeGate ? (
           <AgeGateScreen userId={user.id} onConfirmed={() => setNeedsAgeGate(false)} />

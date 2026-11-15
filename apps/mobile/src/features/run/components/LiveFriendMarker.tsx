@@ -11,7 +11,7 @@ const TICK_MS = 200;
 // Snapping the marker straight to each new point would look like a teleport;
 // this tweens from the last displayed point to the new one over that same
 // window, so a friend's avatar reads as running rather than jumping.
-export function LiveFriendMarker({ runner }: { runner: LiveFriendRunner }) {
+export function LiveFriendMarker({ runner, onPress }: { runner: LiveFriendRunner; onPress?: () => void }) {
   const [display, setDisplay] = useState({ lat: runner.lat, lng: runner.lng });
   const fromRef   = useRef({ lat: runner.lat, lng: runner.lng });
   const toRef     = useRef({ lat: runner.lat, lng: runner.lng });
@@ -43,7 +43,7 @@ export function LiveFriendMarker({ runner }: { runner: LiveFriendRunner }) {
 
 
   return (
-    <MapLibreGL.PointAnnotation id={`live-friend-${runner.userId}`} coordinate={[display.lng, display.lat]}>
+    <MapLibreGL.PointAnnotation id={`live-friend-${runner.userId}`} coordinate={[display.lng, display.lat]} onSelected={onPress}>
       <View style={ss.wrap}>
         {/* Ring colour is per friend and never your trail red or rival blue. */}
         <View style={[ss.pulse, { borderColor: friendColor(runner.userId) }]} />

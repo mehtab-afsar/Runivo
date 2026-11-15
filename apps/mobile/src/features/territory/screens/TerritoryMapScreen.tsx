@@ -25,6 +25,9 @@ import ML from '@maplibre/maplibre-react-native';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 import { useHideTabBar } from '@navigation/tabBarVisibility';
 import { ZoneCard } from '../components/ZoneCard';
+import { useLiveFriendRuns } from '@features/run/hooks/useLiveFriendRuns';
+import { LiveFriendMarker } from '@features/run/components/LiveFriendMarker';
+import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -81,6 +84,9 @@ export default function TerritoryMapScreen() {
   const [planOpen, setPlanOpen] = useState(false);
   // Sheets rise from the bottom; the floating bar would cover them.
   const [zoneExpanded, setZoneExpanded] = useState(false);
+  // Friends running right now (mutual follows who share live), as on the mock's map.
+  const liveFriends = useLiveFriendRuns();
+  const [cheerFor, setCheerFor] = useState<CheerTarget | null>(null);
   const defendZone = (name: string) => {
     const z = selectedPolygon;
     if (!z) return;
@@ -190,12 +196,12 @@ export default function TerritoryMapScreen() {
             reference these ids never point at a missing layer. */}
         <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
           <ML.LineLayer id="territory-new-halo" style={zoneStyles.newHalo as any} filter={zoneStyles.newFilter as any} />
-          {zoneStyles.kinds.map(k => (
-            <React.Fragment key={k.key}>
-              <ML.FillLayer id={`territory-fill-${k.key}`} filter={k.filter as any} style={k.fill as any} />
-              <ML.LineLayer id={`territory-line-${k.key}`} filter={k.filter as any} style={k.line as any} />
-            </React.Fragment>
-          ))}
+          {/* Flat list, no Fragment: ShapeSource only hands its id to direct children,
+              so layers inside a Fragment looked for a source called "composite" and crashed. */}
+          {zoneStyles.kinds.flatMap(k => [
+            <ML.FillLayer key={`fill-${k.key}`} id={`territory-fill-${k.key}`} filter={k.filter as any} style={k.fill as any} />,
+            <ML.LineLayer key={`line-${k.key}`} id={`territory-line-${k.key}`} filter={k.filter as any} style={k.line as any} />,
+          ])}
           <ML.LineLayer id="territory-fading" style={zoneStyles.fadingLine as any} filter={zoneStyles.fadingFilter as any} />
           <ML.LineLayer id="territory-selected" style={zoneStyles.selectedLine as any} filter={selectedFilter} />
         </ML.ShapeSource>
@@ -205,6 +211,9 @@ export default function TerritoryMapScreen() {
             <ML.LineLayer id="club-ground-line" style={{ lineColor: '#7C72D8', lineWidth: 2 } as any} />
           </ML.ShapeSource>
         )}
+        {liveFriends.map(f => (
+          <LiveFriendMarker key={f.userId} runner={f} onPress={() => setCheerFor({ userId: f.userId, username: f.username, avatarColor: f.avatarColor })} />
+        ))}
         {loopShape && (
           <ML.ShapeSource id="planned-loop" shape={loopShape}>
             <ML.LineLayer id="planned-loop-line" style={{ lineColor: C.t1, lineWidth: 4, lineDasharray: [1.5, 1.2], lineCap: 'round', lineJoin: 'round' } as any} />
@@ -227,6 +236,19 @@ export default function TerritoryMapScreen() {
           counts={{ mine: ownPolygons.length, rivals: rivalPolygons.length, stale: stats.staleCount }}
           onSelect={setActiveFilter}
         />
+        {liveFriends.length > 0 && (
+          <Pressable
+            style={ss.friendsChip}
+            onPress={() => {
+              const f = liveFriends[0];
+              cameraRef.current?.setCamera({ centerCoordinate: [f.lng, f.lat], zoomLevel: 15, animationDuration: 700 });
+            }}
+            accessibilityRole="button"
+          >
+            <View style={ss.friendsDot} />
+            <Text style={ss.friendsTxt}>{liveFriends.length === 1 ? `${liveFriends[0].username} is running` : `${liveFriends.length} friends running`}</Text>
+          </Pressable>
+        )}
         {!planOpen && !selectedPolygon && locationGranted && (
           <Pressable style={[ss.planBtn, { marginTop: 30 }]} onPress={() => setPlanOpen(true)} accessibilityRole="button">
             <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
@@ -330,6 +352,7 @@ export default function TerritoryMapScreen() {
           onDefend={defendZone}
         />
       )}
+      <CheerSheet target={cheerFor} onClose={() => setCheerFor(null)} />
     </View>
   );
 }
@@ -348,6 +371,9 @@ function mkStyles(C: AppColors) {
     container:    { flex: 1, backgroundColor: C.bg },
     map:          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
     topOverlay:   { position: 'absolute', left: 16, right: 16, gap: 10 },
+    friendsChip:  { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.alwaysDark },
+    friendsDot:   { width: 8, height: 8, borderRadius: 4, backgroundColor: C.lime },
+    friendsTxt:   { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
     searchRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
     styleBtn:     { width: 48, height: 48, borderRadius: 24, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
     emptyState:   { position: 'absolute', left: 18, right: 18, top: '30%', alignItems: 'center', backgroundColor: C.card, borderRadius: 20, gap: 8, paddingVertical: 24, paddingHorizontal: 22, shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 8 },

@@ -19,6 +19,8 @@ import RunMapView    from '../components/RunMapView';
 import RunSetupSheet from '../components/RunSetupSheet';
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import { SportSheet } from '../components/SportSheet';
+import { useLiveFriendRuns } from '../hooks/useLiveFriendRuns';
+import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 import ActivityModal from '../components/ActivityModal';
 import RouteModal    from '../components/RouteModal';
 import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint, type GPSPoint } from '../hooks/useActiveRun';
@@ -100,6 +102,8 @@ export default function RunScreen() {
   const isDark = useIsDark();
   const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
+  const liveFriends = useLiveFriendRuns();
+  const [cheerFor, setCheerFor] = useState<CheerTarget | null>(null);
   const navigation = useNavigation<Nav>();
   const [sportsOpen, setSportsOpen] = useState(false);
   const streakDays = usePlayerStats().player?.streakDays ?? 0;
@@ -198,6 +202,8 @@ export default function RunScreen() {
         rivalZones={zonesAround.rivals}
         gpsColor={gpsColor(C, gps.status, gps.accuracy)}
         gpsLabel={gpsLabel(gps.status, gps.accuracy)}
+        liveFriends={liveFriends}
+        onFriend={f => setCheerFor({ userId: f.userId, username: f.username, avatarColor: f.avatarColor })}
         onClose={() => navigation.navigate('Main', { screen: 'Dashboard' })}
       />
       <RunSetupSheet
@@ -247,6 +253,7 @@ export default function RunScreen() {
         onFindNearby={findNearby}
         onClose={() => setShowRouteModal(false)}
       />
+      <CheerSheet target={cheerFor} onClose={() => setCheerFor(null)} />
     </View>
   );
 }

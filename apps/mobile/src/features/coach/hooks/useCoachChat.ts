@@ -14,6 +14,15 @@ import {
   type QuickPrompt,
 } from '../services/coachService';
 
+/** Turn transport errors into something a runner can act on. */
+function friendlyCoachError(e: unknown, fallback: string): string {
+  const msg = (e as Error)?.message ?? '';
+  if (/non-2xx|FunctionsHttpError|FunctionsFetchError|Failed to send a request|404|500|502|503/i.test(msg)) {
+    return "PaceX can't reach its server right now";
+  }
+  return msg || fallback;
+}
+
 export function useCoachChat() {
   const [messages, setMessages]         = useState<CoachMessage[]>([]);
   const [sending, setSending]           = useState(false);
@@ -65,7 +74,7 @@ export function useCoachChat() {
       setLiveMessageIds(prev => new Set(prev).add(aiMsg.id));
     } catch (e: unknown) {
       setMessages(prev => prev.filter(m => m.id !== optimistic.id));
-      setError((e as Error)?.message ?? 'Failed to send');
+      setError(friendlyCoachError(e, 'Failed to send'));
     } finally {
       setSending(false);
     }
@@ -86,7 +95,7 @@ export function useCoachChat() {
       setMessages(prev => [...prev, aiMsg]);
       setLiveMessageIds(prev => new Set(prev).add(aiMsg.id));
     } catch (e: unknown) {
-      setError((e as Error)?.message ?? 'Failed to load habit analysis');
+      setError(friendlyCoachError(e, 'Failed to load habit analysis'));
     } finally {
       setSending(false);
     }
@@ -106,7 +115,7 @@ export function useCoachChat() {
       setMessages(prev => [...prev, aiMsg]);
       setLiveMessageIds(prev => new Set(prev).add(aiMsg.id));
     } catch (e: unknown) {
-      setError((e as Error)?.message ?? 'Failed to load nutrition analysis');
+      setError(friendlyCoachError(e, 'Failed to load nutrition analysis'));
     } finally {
       setSending(false);
     }

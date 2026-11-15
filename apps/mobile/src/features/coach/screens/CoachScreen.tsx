@@ -58,7 +58,7 @@ function AiConsentGate({ children }: { children: React.ReactNode }) {
     <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
       {consent === false && (
         <ScrollView contentContainerStyle={{ paddingVertical: 12 }}>
-          <AiConsentCard onGranted={granted} onDecline={() => navigation.navigate('Dashboard' as never)} />
+          <AiConsentCard onGranted={granted} onDecline={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main' as never))} />
         </ScrollView>
       )}
     </SafeAreaView>
@@ -284,7 +284,7 @@ function CoachScreenInner() {
         <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <View style={s.startTop}>
-              <Pressable style={s.glassBtn} onPress={() => navigation.navigate('Dashboard' as never)} accessibilityRole="button" accessibilityLabel="Close PaceX">
+              <Pressable style={s.glassBtn} onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main' as never))} accessibilityRole="button" accessibilityLabel="Close PaceX">
                 <X size={18} color={C.t1} weight="bold" />
               </Pressable>
               <Pressable style={s.glassPill} onPress={openPlan} accessibilityRole="button">
