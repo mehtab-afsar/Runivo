@@ -15,6 +15,7 @@ export function useClubs() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -29,7 +30,11 @@ export function useClubs() {
       setClubs(data);
       setNearClubs(near.clubs);
       setNearby(near.nearby);
-    } catch { /* offline */ }
+      setLoadError(false);
+    } catch {
+      // Say so instead of showing "No pack to run with yet" when the load simply failed.
+      setLoadError(true);
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -39,7 +44,13 @@ export function useClubs() {
   const handleJoinClub = useCallback(async (club: Club) => {
     if (!userId) return;
     if (club.join_policy !== 'open') {
+      if (club.requested) return;
       const { ok } = await requestToJoinClub(club.id, userId);
+      if (ok) {
+        const markRequested = (prev: Club[]) => prev.map((c) => (c.id === club.id ? { ...c, requested: true } : c));
+        setClubs(markRequested);
+        setNearClubs(markRequested);
+      }
       Alert.alert(
         ok ? 'Request sent' : 'Something went wrong',
         ok ? 'The club owner will review your request.' : 'Please try again.',
@@ -62,7 +73,9 @@ export function useClubs() {
         text: 'Leave',
         style: 'destructive',
         onPress: async () => {
-          await leaveClub(club.id, userId);
+          const { error } = await leaveClub(club.id, userId);
+          // Don't show them as out of a club the server still has them in.
+          if (error) { Alert.alert("Couldn't leave the club", 'Check your connection and try again.'); return; }
           const markLeft = (prev: Club[]) =>
             prev.map((c) =>
               c.id === club.id
@@ -111,6 +124,7 @@ export function useClubs() {
     locationOn,
     filteredClubs,
     loading,
+    loadError,
     refreshing,
     searchQuery,
     setSearchQuery,

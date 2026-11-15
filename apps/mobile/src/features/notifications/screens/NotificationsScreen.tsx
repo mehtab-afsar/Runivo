@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Platform, RefreshControl, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -24,7 +26,7 @@ export default function NotificationsScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { notifs, refreshing, unreadCount, markRead, markAllRead, refresh } = useNotifications();
+  const { notifs, loading, error, refreshing, unreadCount, markRead, markAllRead, refresh } = useNotifications();
   const [following, setFollowing] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -87,7 +89,9 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
         ListEmptyComponent={
-          <View style={s.empty}>
+          loading ? <ActivityIndicator style={{ marginTop: 64 }} color={C.t2} accessibilityLabel="Loading activity" />
+          : error ? <ErrorState title="Couldn't load your activity" onRetry={refresh} />
+          : <View style={s.empty}>
             <View style={s.emptyIcon}><Bell size={28} color={C.t1} weight="regular" /></View>
             <Text style={s.emptyTitle}>Nothing yet</Text>
             <Text style={s.emptyText}>Zone steals, kudos, follows and rank ups will show up here.</Text>

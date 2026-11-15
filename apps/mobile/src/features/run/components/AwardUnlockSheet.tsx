@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, Modal, Animated, Easing, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Modal, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { useTheme, Fonts } from '@theme';
 import { Medal } from 'phosphor-react-native';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
@@ -63,6 +63,8 @@ export default function AwardUnlockSheet({ visible, onClose, awards }: Props) {
   const cardScale      = useRef(new Animated.Value(0.7)).current;
   const iconScale      = useRef(new Animated.Value(0)).current;
   const particles      = useMemo(() => createParticles(), []);
+  const reduceMotionRef = useRef(false);
+  useEffect(() => { AccessibilityInfo.isReduceMotionEnabled().then(v => { reduceMotionRef.current = v; }).catch(() => {}); }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -70,6 +72,12 @@ export default function AwardUnlockSheet({ visible, onClose, awards }: Props) {
     overlayOpacity.setValue(0);
     cardScale.setValue(0.7);
     iconScale.setValue(0);
+
+    // Reduce Motion: show the card straight away, no spring or particle burst.
+    if (reduceMotionRef.current) {
+      overlayOpacity.setValue(1); cardScale.setValue(1); iconScale.setValue(1);
+      return;
+    }
 
     Animated.timing(overlayOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     Animated.spring(cardScale, { toValue: 1, damping: 16, stiffness: 220, useNativeDriver: true }).start();
@@ -81,8 +89,12 @@ export default function AwardUnlockSheet({ visible, onClose, awards }: Props) {
 
   // The run hands over award ids ("first_claim"); show the award, not the id.
   const def = AWARD_DEFINITIONS[awards[0] as AwardId];
-  const awardTitle = def?.title ?? 'New award';
-  const more = awards.length - 1;
+  const many = awards.length > 1;
+  const awardTitle = many ? `${awards.length} awards unlocked` : (def?.title ?? 'New award');
+  // With several, list them all: only naming the first and "+N more" hid what was earned.
+  const subText = many
+    ? awards.map(a => AWARD_DEFINITIONS[a as AwardId]?.title ?? 'New award').join('\n')
+    : (def?.description ?? 'Earned on this run');
 
   return (
     <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
@@ -111,11 +123,10 @@ export default function AwardUnlockSheet({ visible, onClose, awards }: Props) {
           <Text style={[ss.eyebrow, { color: C.t2 }]}>Award unlocked</Text>
           <Text style={[ss.title, { color: C.t1 }]}>{awardTitle}</Text>
           <Text style={[ss.sub, { color: C.t2 }]}>
-            {def?.description ?? 'Earned on this run'}
-            {more > 0 ? `\n+${more} more award${more === 1 ? '' : 's'} on this run` : ''}
+            {subText}
           </Text>
 
-          <Pressable style={[ss.btn, { backgroundColor: C.red }]} onPress={onClose}>
+          <Pressable style={[ss.btn, { backgroundColor: C.red }]} onPress={onClose} accessibilityRole="button">
             <Text style={ss.btnTxt}>Nice</Text>
           </Pressable>
         </Animated.View>

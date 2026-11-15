@@ -1,8 +1,8 @@
 import { RunivoMark } from '@mobile/shared/components/RunivoMark';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
-  ActivityIndicator, Alert, Platform,
+  ActivityIndicator, Alert, Platform, Linking,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withDelay,
@@ -91,6 +91,8 @@ export default function SignUpForm({
   const C = useTheme();
   const isDark = useIsDark();
   const s = useMemo(() => mkStyles(C), [C]);
+  const emailRef = useRef<TextInput>(null);
+  const pwdRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
 
@@ -170,7 +172,12 @@ export default function SignUpForm({
               autoCapitalize="none"
               autoCorrect={false}
               autoFocus
+              autoComplete="username-new"
+              textContentType="username"
               returnKeyType="next"
+              onSubmitEditing={() => emailRef.current?.focus()}
+              blurOnSubmit={false}
+              accessibilityLabel="Username"
               selectionColor={C.red}
               onFocus={userBorder.onFocus}
               onBlur={userBorder.onBlur}
@@ -183,6 +190,7 @@ export default function SignUpForm({
               <Text style={s.label}>Email</Text>
             </View>
             <TextInput
+              ref={emailRef}
               style={s.input}
               value={email}
               onChangeText={setEmail}
@@ -191,7 +199,12 @@ export default function SignUpForm({
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
               returnKeyType="next"
+              onSubmitEditing={() => pwdRef.current?.focus()}
+              blurOnSubmit={false}
+              accessibilityLabel="Email"
               selectionColor={C.red}
               onFocus={emailBorder.onFocus}
               onBlur={emailBorder.onBlur}
@@ -205,6 +218,7 @@ export default function SignUpForm({
             </View>
             <View style={s.inputRow}>
               <TextInput
+                ref={pwdRef}
                 style={[s.input, { flex: 1 }]}
                 value={pwd}
                 onChangeText={setPwd}
@@ -217,11 +231,13 @@ export default function SignUpForm({
                 autoCorrect={false}
                 spellCheck={false}
                 textContentType="newPassword"
+                autoComplete="new-password"
+                accessibilityLabel="Password"
                 selectionColor={C.red}
                 onFocus={pwBorder.onFocus}
                 onBlur={pwBorder.onBlur}
               />
-              <Pressable onPress={() => setShowPwd(!showPwd)} hitSlop={8} style={s.toggleBtn}>
+              <Pressable onPress={() => setShowPwd(!showPwd)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }} style={s.toggleBtn} accessibilityRole="button" accessibilityLabel={showPwd ? 'Hide password' : 'Show password'}>
                 <Text style={s.toggleText}>{showPwd ? 'Hide' : 'Show'}</Text>
               </Pressable>
             </View>
@@ -316,6 +332,16 @@ export default function SignUpForm({
             )}
           </Pressable>
 
+          {/* Creating an account with a password used to show no terms at all, while the
+              other sign-in paths did. App Review (1.2) expects agreement to terms that
+              ban objectionable content before someone can post. */}
+          <Text style={s.legal}>
+            By creating an account you agree to our{' '}
+            <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.app/terms')}>Terms</Text> and{' '}
+            <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.app/privacy')}>Privacy Policy</Text>.
+            There is no tolerance for abusive or objectionable content.
+          </Text>
+
           <Pressable onPress={onGoLogin} style={s.signinRow}>
             <Text style={s.signinText}>
               Already a runner?{'  '}
@@ -388,6 +414,8 @@ function mkStyles(C: AppColors) {
     ctaLabel:   { ...Type.button, color: C.alwaysLight },
 
     // Sign in link
+    legal:      { fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, color: C.t3, textAlign: 'center', marginTop: 14, paddingHorizontal: 8 },
+    legalLink:  { color: C.t2, textDecorationLine: 'underline' },
     signinRow:  { marginTop: 20, alignItems: 'center' },
     signinText: { fontSize: 13, color: C.t2 },
     signinLink: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, textDecorationLine: 'underline' },

@@ -4,6 +4,7 @@
  * PRD: "This is the moment they get it." Background ("Always") location is
  * asked later, on the first run, when they lock the screen.
  */
+import { safeRing } from '@mobile/shared/map/geo';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Linking, Pressable, ScrollView } from 'react-native';
 import { MapPin } from 'lucide-react-native';
@@ -39,6 +40,9 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
   const [coord, setCoord] = useState<[number, number] | null>(null);
   const [zones, setZones] = useState<GeoJSON.FeatureCollection | null>(null);
   const [rivals, setRivals] = useState(0);
+  // Permission was granted but no fix came back (indoors, GPS still warming up). That is not
+  // "Location is off", so it gets its own message instead of the denied screen.
+  const [locFailed, setLocFailed] = useState(false);
 
   // The OS prompt only fires once they've read why (footer "Allow location").
   useEffect(() => {
@@ -47,8 +51,15 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') { onPhase('denied'); track('location_permission_denied'); return; }
       track('location_permission_granted');
-      const last = await Location.getLastKnownPositionAsync();
-      const pos = last ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      let pos: Location.LocationObject;
+      try {
+        const last = await Location.getLastKnownPositionAsync();
+        pos = last ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      } catch {
+        setLocFailed(true);
+        onPhase('granted');
+        return;
+      }
       const { latitude, longitude } = pos.coords;
       setCoord([longitude, latitude]);
       onPhase('granted');
@@ -68,11 +79,14 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
         setRivals(new Set(polys.map(p => p.ownerId)).size);
         setZones({
           type: 'FeatureCollection',
-          features: polys.filter(p => p.polygon.length >= 4).map(p => ({
-            type: 'Feature',
-            geometry: { type: 'Polygon', coordinates: [p.polygon] },
-            properties: { isOwn: false, freshness: p.freshness, isNew: false },
-          })),
+          features: polys.flatMap(p => {
+            const ring = safeRing(p.polygon);
+            return ring ? [{
+              type: 'Feature' as const,
+              geometry: { type: 'Polygon' as const, coordinates: [ring] },
+              properties: { isOwn: false, freshness: p.freshness, isNew: false },
+            }] : [];
+          }),
         });
       } catch { setZones({ type: 'FeatureCollection', features: [] }); }
     })().catch(() => onPhase('denied'));
@@ -125,19 +139,31 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
           <ML.Camera centerCoordinate={coord} zoomLevel={14.2} animationDuration={0} />
           {zones && zones.features.length > 0 && (
             <ML.ShapeSource id="onb-zones" shape={zones}>
-              <ML.FillLayer id="onb-zone-fill" style={zoneStyles.fill as any} />
-              <ML.LineLayer id="onb-zone-line" style={zoneStyles.line as any} />
+              {zoneStyles.kinds.map(k => (
+                <React.Fragment key={k.key}>
+                  <ML.FillLayer id={`onb-zone-fill-${k.key}`} filter={k.filter as any} style={k.fill as any} />
+                  <ML.LineLayer id={`onb-zone-line-${k.key}`} filter={k.filter as any} style={k.line as any} />
+                </React.Fragment>
+              ))}
             </ML.ShapeSource>
           )}
           <ML.UserLocation visible renderMode="native" />
         </ML.MapView>
+      ) : locFailed ? (
+        <View style={s.loading}>
+          <Text style={[s.body, { textAlign: 'center', paddingHorizontal: 32 }]}>
+            We couldn’t find you just yet. That’s fine, Runivo only needs your location while you run. Carry on.
+          </Text>
+        </View>
       ) : (
         <View style={s.loading}><ActivityIndicator color={C.red} /></View>
       )}
 
       <View style={s.sheet}>
         <Text style={step.eyebrow}>Around you</Text>
-        {zones == null ? (
+        {locFailed ? (
+          <Text style={s.body}>Location is on. We’ll show the zones around you once your phone finds a signal.</Text>
+        ) : zones == null ? (
           <ActivityIndicator color={C.red} style={{ alignSelf: 'flex-start' }} />
         ) : zones.features.length > 0 ? (
           <>

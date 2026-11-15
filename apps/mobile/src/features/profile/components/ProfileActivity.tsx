@@ -5,7 +5,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
-import { ArrowRight, CaretRight, Hexagon, PushPin } from 'phosphor-react-native';
+import { CaretRight, Hexagon, PushPin } from 'phosphor-react-native';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { useIsDark } from '@theme';
@@ -16,38 +16,7 @@ import {
   paceOrSpeed, fmtHours, fmtKm, fmtClock, sportGroup,
 } from '../utils/profileStats';
 
-const FILTERS: { id: SportFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'run', label: 'Run' },
-  { id: 'walk', label: 'Walk' },
-  { id: 'ride', label: 'Ride' },
-];
-
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-// ── Sport filter ───────────────────────────────────────────────────────────
-export function SportFilterBar({ value, onChange }: { value: SportFilter; onChange: (s: SportFilter) => void }) {
-  const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
-  return (
-    <View style={s.seg} accessibilityRole="tablist">
-      {FILTERS.map(f => {
-        const on = f.id === value;
-        return (
-          <Pressable
-            key={f.id}
-            style={[s.segItem, on && s.segItemOn]}
-            onPress={() => onChange(f.id)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-          >
-            <Text style={[s.segTxt, on && s.segTxtOn]}>{f.label}</Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
 
 // ── This week + 12-week chart ──────────────────────────────────────────────
 export function ThisWeekCard({ runs, sport, weeklyGoalKm }: { runs: StoredRun[]; sport: SportFilter; weeklyGoalKm?: number }) {
@@ -245,32 +214,6 @@ export function BestEfforts({ records }: { records: { label: string; value: stri
         ))}
       </View>
     </View>
-  );
-}
-
-// ── Territory ──────────────────────────────────────────────────────────────
-export function TerritoryCard({ zonesHeld, areaM2, lifetimeClaims, onOpen }: {
-  zonesHeld: number; areaM2: number; lifetimeClaims: number; onOpen: () => void;
-}) {
-  const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
-  const zone = territoryPalette(useIsDark());
-  const area = areaM2 >= 100_000 ? { v: (areaM2 / 1_000_000).toFixed(2), u: 'km²' } : { v: Math.round(areaM2).toLocaleString('en-US'), u: 'm²' };
-  return (
-    <Pressable style={s.card} onPress={onOpen} accessibilityRole="button">
-      <View style={s.cardHead}>
-        <Text style={s.cardLabel}>Territory</Text>
-        <View style={s.rowCenter}>
-          <Text style={s.seeAll}>Map</Text>
-          <ArrowRight size={13} color={C.t2} weight="regular" />
-        </View>
-      </View>
-      <View style={s.weekStats}>
-        <Stat value={String(zonesHeld)} label="Zones held" s={s} color={zone.own} />
-        <Stat value={area.v} unit={area.u} label="Ground" s={s} />
-        <Stat value={lifetimeClaims.toLocaleString('en-US')} label="Claimed all-time" s={s} />
-      </View>
-    </Pressable>
   );
 }
 

@@ -91,21 +91,21 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
       {form && (
         <View style={s.card}>
           <View style={s.chips}>
-            <Pressable style={[s.chip, !territory && s.chipOn]} onPress={() => setTerritory(false)}><Text style={[s.chipTxt, !territory && s.chipTxtOn]}>Club run</Text></Pressable>
-            <Pressable style={[s.chip, territory && s.chipOn]} onPress={() => { setTerritory(true); if (title === 'Club run') setTitle('Territory hour'); }}><Text style={[s.chipTxt, territory && s.chipTxtOn]}>Territory hour · double zone PACE</Text></Pressable>
+            <Pressable hitSlop={8} style={[s.chip, !territory && s.chipOn]} onPress={() => setTerritory(false)}><Text style={[s.chipTxt, !territory && s.chipTxtOn]}>Club run</Text></Pressable>
+            <Pressable hitSlop={8} style={[s.chip, territory && s.chipOn]} onPress={() => { setTerritory(true); if (title === 'Club run') setTitle('Territory hour'); }}><Text style={[s.chipTxt, territory && s.chipTxtOn]}>Territory hour · double zone PACE</Text></Pressable>
           </View>
           <Text style={s.label}>Title</Text>
           <TextInput style={s.input} value={title} onChangeText={setTitle} maxLength={60} />
           <Text style={s.label}>Day</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
             {days.map((d, i) => (
-              <Pressable key={i} style={[s.chip, day === i && s.chipOn]} onPress={() => setDay(i)}><Text style={[s.chipTxt, day === i && s.chipTxtOn]}>{dayLabel(d)}</Text></Pressable>
+              <Pressable hitSlop={8} key={i} style={[s.chip, day === i && s.chipOn]} onPress={() => setDay(i)}><Text style={[s.chipTxt, day === i && s.chipTxtOn]}>{dayLabel(d)}</Text></Pressable>
             ))}
           </ScrollView>
           <Text style={s.label}>Time</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
             {TIMES.map(t => (
-              <Pressable key={t} style={[s.chip, time === t && s.chipOn]} onPress={() => setTime(t)}><Text style={[s.chipTxt, time === t && s.chipTxtOn]}>{t}</Text></Pressable>
+              <Pressable hitSlop={8} key={t} style={[s.chip, time === t && s.chipOn]} onPress={() => setTime(t)}><Text style={[s.chipTxt, time === t && s.chipTxtOn]}>{t}</Text></Pressable>
             ))}
           </ScrollView>
           <Text style={s.label}>Meeting point</Text>
@@ -115,13 +115,13 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
               <Text style={s.label}>How long</Text>
               <View style={s.chips}>
                 {[30, 60, 90].map(m => (
-                  <Pressable key={m} style={[s.chip, minutes === m && s.chipOn]} onPress={() => setMinutes(m)}><Text style={[s.chipTxt, minutes === m && s.chipTxtOn]}>{m} min</Text></Pressable>
+                  <Pressable hitSlop={8} key={m} style={[s.chip, minutes === m && s.chipOn]} onPress={() => setMinutes(m)}><Text style={[s.chipTxt, minutes === m && s.chipTxtOn]}>{m} min</Text></Pressable>
                 ))}
               </View>
               <Text style={s.label}>Area around where you are now</Text>
               <View style={s.chips}>
                 {[500, 800, 1500].map(r => (
-                  <Pressable key={r} style={[s.chip, radius === r && s.chipOn]} onPress={() => setRadius(r)}><Text style={[s.chipTxt, radius === r && s.chipTxtOn]}>{r >= 1000 ? `${r / 1000} km` : `${r} m`}</Text></Pressable>
+                  <Pressable hitSlop={8} key={r} style={[s.chip, radius === r && s.chipOn]} onPress={() => setRadius(r)}><Text style={[s.chipTxt, radius === r && s.chipTxtOn]}>{r >= 1000 ? `${r / 1000} km` : `${r} m`}</Text></Pressable>
                 ))}
               </View>
             </>
@@ -133,9 +133,9 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
             <>
               <Text style={s.label}>Route (optional, from your saved routes)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
-                <Pressable style={[s.chip, !routeId && s.chipOn]} onPress={() => setRouteId(null)}><Text style={[s.chipTxt, !routeId && s.chipTxtOn]}>None</Text></Pressable>
+                <Pressable hitSlop={8} style={[s.chip, !routeId && s.chipOn]} onPress={() => setRouteId(null)}><Text style={[s.chipTxt, !routeId && s.chipTxtOn]}>None</Text></Pressable>
                 {routes.map(r => (
-                  <Pressable key={r.id} style={[s.chip, routeId === r.id && s.chipOn]} onPress={() => setRouteId(r.id)}>
+                  <Pressable hitSlop={8} key={r.id} style={[s.chip, routeId === r.id && s.chipOn]} onPress={() => setRouteId(r.id)}>
                     <Text style={[s.chipTxt, routeId === r.id && s.chipTxtOn]} numberOfLines={1}>{r.emoji} {r.name} · {(r.distanceM / 1000).toFixed(1)} km</Text>
                   </Pressable>
                 ))}
@@ -145,7 +145,7 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
           <Text style={s.label}>Repeat weekly</Text>
           <View style={s.chips}>
             {WEEKS.map(w => (
-              <Pressable key={w} style={[s.chip, weeks === w && s.chipOn]} onPress={() => setWeeks(w)}><Text style={[s.chipTxt, weeks === w && s.chipTxtOn]}>{w === 1 ? 'Once' : `${w} weeks`}</Text></Pressable>
+              <Pressable hitSlop={8} key={w} style={[s.chip, weeks === w && s.chipOn]} onPress={() => setWeeks(w)}><Text style={[s.chipTxt, weeks === w && s.chipTxtOn]}>{w === 1 ? 'Once' : `${w} weeks`}</Text></Pressable>
             ))}
           </View>
           </>}

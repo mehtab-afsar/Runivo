@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, TextInput, ActivityIndicator } from 'react-native';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, Platform, TextInput, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -55,17 +57,30 @@ export default function FollowingScreen() {
   const [entries, setEntries] = useState<FollowingEntry[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const inFlightRef = useRef(new Set<string>());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(false);
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUserId(user?.id ?? null);
-      const list = await loadFollowing(userId);
-      setEntries(list);
-      setLoading(false);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!cancelled) setCurrentUserId(user?.id ?? null);
+        const list = await loadFollowing(userId);
+        if (!cancelled) setEntries(list);
+      } catch {
+        // A rejection used to leave the spinner up forever.
+        if (!cancelled) setLoadError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
-  }, [userId]);
+    return () => { cancelled = true; };
+  }, [userId, reloadKey]);
 
   const filtered = useMemo(() => {
     if (!query) return entries;
@@ -78,21 +93,24 @@ export default function FollowingScreen() {
 
   const unfollow = useCallback(async (entry: FollowingEntry) => {
     if (!currentUserId) return;
-    const prev = entries;
-    setEntries(entries.filter(e => e.userId !== entry.userId));
+    if (inFlightRef.current.has(entry.userId)) return;
+    inFlightRef.current.add(entry.userId);
+    setEntries(prev => prev.filter(e => e.userId !== entry.userId));
     try {
       await toggleFollowService(entry.userId);
     } catch {
-      setEntries(prev); // revert on failure
+      setEntries(prev => (prev.some(e => e.userId === entry.userId) ? prev : [...prev, entry]));   // put the row back
+    } finally {
+      inFlightRef.current.delete(entry.userId);
     }
-  }, [currentUserId, entries]);
+  }, [currentUserId]);
 
   const isOwn = currentUserId === userId;
 
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Following</Text>
@@ -111,6 +129,8 @@ export default function FollowingScreen() {
 
       {loading ? (
         <View style={s.center}><ActivityIndicator color={C.red} /></View>
+      ) : loadError ? (
+        <ErrorState title="Couldn't load this list" onRetry={() => setReloadKey(k => k + 1)} />
       ) : (
         <FlatList
           data={filtered}

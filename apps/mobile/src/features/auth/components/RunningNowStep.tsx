@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { RUNS_PER_WEEK_OPTIONS, USUAL_DISTANCE_OPTIONS_KM, parseFiveKTime } from '@shared/engine/onboarding';
 import { useTheme } from '@theme';
 import { mkStep } from './onboardingStyles';
@@ -20,6 +20,8 @@ export default function RunningNowStep({ runsPerWeek, usualKm, fiveKInput, weekl
   const C = useTheme();
   const s = useMemo(() => mkStep(C), [C]);
   const fiveK = parseFiveKTime(fiveKInput);
+  // Typing "2" or "28:" is simply unfinished, not wrong: only complain once it could be a full time.
+  const showFiveKError = !fiveK.ok && fiveKInput.length >= 4;
 
   return (
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
@@ -60,10 +62,10 @@ export default function RunningNowStep({ runsPerWeek, usualKm, fiveKInput, weekl
         placeholder="mm:ss, e.g. 28:30"
         placeholderTextColor={C.t3}
         keyboardType="numbers-and-punctuation"
-        style={[s.input, !fiveK.ok && s.inputError]}
+        style={[s.input, showFiveKError && s.inputError]}
         accessibilityLabel="Recent 5K time in minutes and seconds"
       />
-      {!fiveK.ok && <Text style={s.error}>{fiveK.error}</Text>}
+      {showFiveKError && !fiveK.ok && <Text style={s.error}>{fiveK.error}</Text>}
 
       <View style={[s.statCard, { marginTop: 22 }]}>
         <Text style={s.statUnit}>Your starting target</Text>

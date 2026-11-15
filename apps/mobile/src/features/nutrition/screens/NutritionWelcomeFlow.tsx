@@ -13,7 +13,7 @@ import {
   TrendDown, Equals, TrendUp, Armchair, PersonSimpleWalk, PersonSimpleRun,
   ForkKnife, Leaf, Plant, Avocado, StarAndCrescent, Fish, type Icon,
 } from 'phosphor-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { useTheme, type AppColors } from '@theme';
 import { FontSize, Type, Fonts, Spacing } from '@theme';
 import {
@@ -647,6 +647,9 @@ export function NutritionWelcomeFlow({ onComplete }: NutritionWelcomeFlowProps) 
       {step > 1 && (
         <Pressable
           onPress={goBack}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
           style={{ padding: Spacing.lg, paddingBottom: 0, alignSelf: 'flex-start' }}
         >
           <CaretLeft size={22} color={C.black} weight="regular" />

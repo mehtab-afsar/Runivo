@@ -11,7 +11,7 @@ import { claimMissionReward } from '@shared/services/missionStore';
 import { estimateRunCalories } from '@shared/services/nutrition';
 
 export function useDashboard() {
-  const { player, loading, loginBonusCoins, dismissLoginBonus, reload: reloadPlayer } = usePlayerStats();
+  const { player, loading, error: loadError, loginBonusCoins, dismissLoginBonus, reload: reloadPlayer } = usePlayerStats();
 
   const [territories, setTerritories] = useState<TerritoryPolygon[]>([]);
   const [missions, setMissions]       = useState<Mission[]>([]);
@@ -161,6 +161,8 @@ export function useDashboard() {
   return {
     player,
     loading,
+    loadError,
+    reloadPlayer,
     loginBonusCoins,
     dismissLoginBonus,
     pacePct,

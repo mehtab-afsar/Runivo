@@ -1,10 +1,11 @@
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, RefreshControl, Modal, Share, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ScrollView, Pressable, Platform, ActivityIndicator, RefreshControl, Modal, Share, Linking, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, ArrowLeft, ArrowSquareOut } from 'phosphor-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, ArrowLeft, ArrowSquareOut, Flag } from 'phosphor-react-native';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventExtras } from '../components/EventExtras';
 import { EventCard } from '../components/EventCard';
@@ -12,6 +13,8 @@ import { DISCIPLINE_LABEL, type RunEvent } from '../types';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { raceForKm, RACE_LABEL } from '@shared/engine/training';
 import { localToday } from '@features/training/services/planService';
+import { safeHttpUrl } from '@mobile/shared/lib/safeUrl';
+import { promptReport } from '@mobile/shared/lib/promptReport';
 import { canAddToCalendar, addEventToCalendar, hasEventReminder, setEventReminder } from '../services/eventCalendar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -91,11 +94,14 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
               </View>
             )}
           </View>
-          <Pressable style={ed.closeBtn} onPress={onClose}>
+          <Pressable style={ed.closeBtn} onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
             <X size={12} color={C.t2} weight="regular" />
           </Pressable>
         </View>
 
+        {/* The body scrolls; header and the Join/Register footer stay put, so on a small phone
+            the main action is never pushed off the bottom of the sheet. */}
+        <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
         {/* Title + description */}
         <Text style={ed.eventTitle}>{event.title}</Text>
         {!!event.description && (
@@ -141,12 +147,12 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
         {upcoming && (
           <View style={ed.calRow}>
             {canAddToCalendar() && (
-              <Pressable style={ed.calBtn} onPress={addToCalendar} accessibilityRole="button">
+              <Pressable hitSlop={8} style={ed.calBtn} onPress={addToCalendar} accessibilityRole="button">
                 {added ? <Check size={14} color={C.green} weight="bold" /> : <Calendar size={14} color={C.t1} weight="regular" />}
                 <Text style={ed.calTxt}>{added ? 'In your calendar' : 'Add to calendar'}</Text>
               </Pressable>
             )}
-            <Pressable style={[ed.calBtn, reminder && ed.calBtnOn]} onPress={toggleReminder} accessibilityRole="switch" accessibilityState={{ checked: reminder }}>
+            <Pressable hitSlop={8} style={[ed.calBtn, reminder && ed.calBtnOn]} onPress={toggleReminder} accessibilityRole="switch" accessibilityState={{ checked: reminder }}>
               <Clock size={14} color={reminder ? C.bg : C.t1} weight="regular" />
               <Text style={[ed.calTxt, reminder && { color: C.bg }]}>{reminder ? 'Reminder on' : 'Remind me the evening before'}</Text>
             </Pressable>
@@ -160,10 +166,16 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
           </Pressable>
         )}
 
+        </ScrollView>
+
         {/* Footer */}
         <View style={ed.footer}>
-          <Pressable style={ed.iconBtn} onPress={handleShare}>
+          <Pressable style={ed.iconBtn} onPress={handleShare} accessibilityRole="button" accessibilityLabel="Share this event">
             <ShareNetwork size={16} color={C.t2} weight="light" />
+          </Pressable>
+          <Pressable style={ed.iconBtn} onPress={() => promptReport('event', event.id, 'event')}
+            accessibilityRole="button" accessibilityLabel="Report this event">
+            <Flag size={16} color={C.t2} weight="light" />
           </Pressable>
           <Pressable
             style={[ed.iconBtn, bookmarked && ed.iconBtnSaved]}
@@ -175,8 +187,8 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
           {isCurated ? (
             <Pressable
               style={ed.joinBtn}
-              onPress={() => event.registrationUrl && Linking.openURL(event.registrationUrl)}
-              disabled={!event.registrationUrl}
+              onPress={() => { const url = safeHttpUrl(event.registrationUrl); if (url) Linking.openURL(url).catch(() => {}); }}
+              disabled={!safeHttpUrl(event.registrationUrl)}
             >
               <Text style={ed.joinLabel}>Register</Text>
               <ArrowSquareOut size={14} color={C.alwaysLight} weight="bold" />
@@ -184,7 +196,15 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
           ) : (
             <Pressable
               style={[ed.joinBtn, joined && ed.joinBtnJoined]}
-              onPress={() => { onJoin(); onClose(); }}
+              // Tapping "Joined" used to leave the event on the spot. Leaving asks first.
+              onPress={() => {
+                if (!joined) { onJoin(); onClose(); return; }
+                Alert.alert('Leave this event?', 'You can join again any time.', [
+                  { text: 'Stay', style: 'cancel' },
+                  { text: 'Leave event', style: 'destructive', onPress: () => { onJoin(); onClose(); } },
+                ]);
+              }}
+              accessibilityRole="button"
             >
               {joined
                 ? <><Check size={15} color={C.green} weight="regular" /><Text style={[ed.joinLabel, ed.joinLabelJoined]}>Joined</Text></>
@@ -248,6 +268,7 @@ export default function EventsScreen() {
   const {
     events, joinedIds, bookmarkedIds, toggleBookmark, canCreate, loading, refreshing,
     nearMeAvailable, nearMeActive, toggleNearMe, handleJoin, refresh,
+    error: loadError,
   } = useEvents();
   const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
 
@@ -278,12 +299,12 @@ export default function EventsScreen() {
         <Text style={s.title}>Events</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {canCreate && (
-            <Pressable style={s.chip} onPress={() => navigation.navigate('CreateEvent')}>
+            <Pressable hitSlop={8} style={s.chip} onPress={() => navigation.navigate('CreateEvent')}>
               <Text style={s.chipText}>Host</Text>
             </Pressable>
           )}
           {nearMeAvailable && (
-            <Pressable style={[s.chip, nearMeActive && s.chipOn]} onPress={() => toggleNearMe()}>
+            <Pressable hitSlop={8} style={[s.chip, nearMeActive && s.chipOn]} onPress={() => toggleNearMe()}>
               <Text style={[s.chipText, nearMeActive && { color: C.bg }]}>Near me</Text>
             </Pressable>
           )}
@@ -319,6 +340,7 @@ export default function EventsScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
           ListEmptyComponent={
+            loadError ? <ErrorState title="Couldn't load events" onRetry={refresh} /> :
             <View style={s.empty}>
               <Text style={s.emptyTitle}>
                 {tab === 'going' ? "Nothing yet. Join or save an event and it shows here." : tab === 'past' ? 'No past events.' : 'No events coming up.'}
@@ -354,7 +376,7 @@ function mkStyles(C: AppColors) {
     chipOn:     { backgroundColor: C.t1, borderColor: C.t1 },
     chipText:   { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     title: { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
-    seg:        { flexDirection: 'row', backgroundColor: '#E9E7E2', borderRadius: 999, padding: 3, marginHorizontal: 18, marginBottom: 12 },
+    seg:        { flexDirection: 'row', backgroundColor: C.border, borderRadius: 999, padding: 3, marginHorizontal: 18, marginBottom: 12 },
     segItem:    { flex: 1, alignItems: 'center', justifyContent: 'center', height: 32, borderRadius: 999 },
     segItemOn:  { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
     segLabel:   { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },

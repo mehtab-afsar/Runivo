@@ -1,9 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
-  Platform, ActivityIndicator, RefreshControl, Modal, TextInput,
-  ScrollView, KeyboardAvoidingView, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Platform, ActivityIndicator, RefreshControl, Modal, TextInput, ScrollView, KeyboardAvoidingView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -16,10 +12,10 @@ import {
 } from 'phosphor-react-native';
 import { useClubs } from '@features/clubs/hooks/useClubs';
 import { SearchBar } from '@features/clubs/components/SearchBar';
-import { BottomSheet } from '@mobile/shared/components/BottomSheet';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { avatarColor } from '@shared/lib/avatarUtils';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import type { Club } from '@features/clubs/types';
 import { useTheme, Colors, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { ClubRankRow } from '../components/ClubRankRow';
@@ -28,17 +24,11 @@ import { NearbyClubsSection } from '../components/NearbyClubsSection';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ClubTab = 'my_clubs' | 'rankings';
-type RankingScope = 'local' | 'national' | 'international';
 // Matches the DB CHECK constraint on clubs.join_policy exactly (migration 005) —
 // it only allows these two values. The UI previously offered a third 'request'
 // option that could never be saved (createClub always failed the CHECK for it).
 type JoinPolicy = 'open' | 'invite_only';
 
-const SCOPES: { value: RankingScope; label: string }[] = [
-  { value: 'local',         label: 'Local'         },
-  { value: 'national',      label: 'National'      },
-  { value: 'international', label: 'International' },
-];
 
 const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; label: string }[] = [
   { emoji: '🏃',  Icon: Pulse,          color: '#FF4518', bg: '#FDE8E4', label: 'Runner'    },
@@ -114,7 +104,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
           <View style={cs.handle} />
           <View style={cs.sheetHeader}>
             <Text style={cs.sheetTitle}>Create Club</Text>
-            <Pressable style={cs.closeBtn} onPress={onClose}>
+            <Pressable hitSlop={8} style={cs.closeBtn} onPress={onClose}>
               <X size={14} color={C.t2} weight="regular" />
             </Pressable>
           </View>
@@ -146,6 +136,9 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
                     key={opt.emoji}
                     style={[cs.badgeBtn, active && { backgroundColor: opt.bg, borderColor: opt.color }]}
                     onPress={() => setEmoji(opt.emoji)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={`Club badge ${BADGE_OPTIONS.indexOf(opt) + 1}`}
                   >
                     <BIcon size={18} color={active ? opt.color : C.t3} weight="light" />
                     {active && <View style={[cs.badgeBtnDot, { backgroundColor: opt.color }]} />}
@@ -284,10 +277,8 @@ export default function ClubScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { filteredClubs, clubs, nearClubs, nearby, locationOn, loading, refreshing, joinClub, leaveClub, createClub, refresh } = useClubs();
+  const { filteredClubs, clubs, nearClubs, nearby, locationOn, loading, loadError, refreshing, joinClub, leaveClub, createClub, refresh } = useClubs();
   const [tab, setTab] = useState<ClubTab>('my_clubs');
-  const [rankScope, setRankScope] = useState<RankingScope>('international');
-  const [scopeSheetOpen, setScopeSheetOpen] = useState(false);
   const [rankSearchOpen, setRankSearchOpen] = useState(false);
   const [rankSearch, setRankSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
@@ -305,22 +296,21 @@ export default function ClubScreen() {
   const goToDetail = (item: Club) =>
     navigation.navigate('ClubDetail', { clubId: item.id, clubName: item.name, badgeEmoji: item.badge_emoji, memberCount: item.member_count, totalKm: item.total_km });
 
-  const scopeLabel = SCOPES.find(sc => sc.value === rankScope)?.label ?? 'International';
-
   // One row: a scope chip that opens a sheet for the 3 options, plus a search
   // toggle — instead of 3 always-visible pills + a permanently-open search bar
   // + a table header stacked before a single ranked list ever shows.
   const ScopeHeader = (
     <>
       <View style={s.rankHeaderRow}>
-        <Pressable style={s.scopeChip} onPress={() => setScopeSheetOpen(true)}>
-          <Text style={s.scopeChipText}>{scopeLabel}</Text>
-          <CaretDown size={9} color={C.t3} weight="bold" />
-        </Pressable>
+        {/* The Local / National / International chip only changed this heading, never the
+            list (clubs carry no country data), so it is a plain label until that exists. */}
+        <Text style={s.scopeChipText}>All clubs, ranked by distance run</Text>
         <Pressable
           style={[s.searchToggle, rankSearchOpen && s.searchToggleActive]}
           onPress={() => setRankSearchOpen(o => { if (o) setRankSearch(''); return !o; })}
           hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel="Search clubs"
         >
           <MagnifyingGlass size={14} color={rankSearchOpen ? C.alwaysLight : C.t3} weight="regular" />
         </Pressable>
@@ -338,7 +328,7 @@ export default function ClubScreen() {
       <View style={s.podiumHeader}>
         <MapPin size={12} color="rgba(255,255,255,0.4)" weight="light" />
         <Text style={s.podiumHeading}>
-          {rankScope === 'local' ? 'Top clubs near you' : rankScope === 'national' ? 'Top clubs nationally' : 'Top clubs worldwide'}
+          Top clubs
         </Text>
       </View>
       <View style={s.podiumRow}>
@@ -371,7 +361,7 @@ export default function ClubScreen() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Clubs</Text>
@@ -384,20 +374,22 @@ export default function ClubScreen() {
       {/* Tab bar */}
       <View style={s.tabBar}>
         {(['my_clubs', 'rankings'] as ClubTab[]).map(t => (
-          <Pressable key={t} style={[s.tabBtn, tab === t && s.tabBtnActive]} onPress={() => setTab(t)}>
+          <Pressable hitSlop={8} key={t} style={[s.tabBtn, tab === t && s.tabBtnActive]} onPress={() => setTab(t)}>
             <Text style={[s.tabLabel, tab === t && s.tabLabelActive]}>
               {t === 'my_clubs' ? 'My clubs' : 'Rankings'}
             </Text>
           </Pressable>
         ))}
         {/* C4: group challenges with people you follow (C6: the open lobby room is gone). */}
-        <Pressable style={s.tabBtn} onPress={() => navigation.navigate('Challenges')}>
+        <Pressable hitSlop={8} style={s.tabBtn} onPress={() => navigation.navigate('Challenges')}>
           <Text style={s.tabLabel}>Challenges</Text>
         </Pressable>
       </View>
 
       {loading ? (
         <View style={s.loader}><ActivityIndicator color={C.red} /></View>
+      ) : loadError && clubs.length === 0 ? (
+        <ErrorState title="Couldn't load clubs" onRetry={refresh} />
       ) : tab === 'my_clubs' ? (
         <FlatList
           // Distinct key from the rankings list below — they render at the same
@@ -489,26 +481,6 @@ export default function ClubScreen() {
         onCreate={createClub}
       />
 
-      <BottomSheet visible={scopeSheetOpen} onClose={() => setScopeSheetOpen(false)} maxHeight={0.36}>
-        <View style={s.scopeSheetContent}>
-          <Text style={s.scopeSheetLabel}>Rank clubs by</Text>
-          {SCOPES.map(sc => {
-            const active = rankScope === sc.value;
-            const SIcon = sc.value === 'local' ? MapPin : sc.value === 'national' ? Flag : Globe;
-            return (
-              <Pressable
-                key={sc.value}
-                style={[s.scopeSheetRow, active && s.scopeSheetRowActive]}
-                onPress={() => { setRankScope(sc.value); setRankSearch(''); setScopeSheetOpen(false); }}
-              >
-                <SIcon size={15} color={active ? C.red : C.t3} weight={active ? 'fill' : 'light'} />
-                <Text style={[s.scopeSheetRowLabel, active && s.scopeSheetRowLabelActive]}>{sc.label}</Text>
-                {active && <Check size={14} color={C.red} weight="bold" />}
-              </Pressable>
-            );
-          })}
-        </View>
-      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -523,7 +495,7 @@ function mkStyles(C: AppColors) {
     createTriggerText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     // Tabs - match web (black underline active)
     // Segmented control: one rounded track, active segment is a raised card.
-    tabBar:          { flexDirection: 'row', marginHorizontal: 18, marginBottom: 4, padding: 3, borderRadius: 999, backgroundColor: '#E9E7E2' },
+    tabBar:          { flexDirection: 'row', marginHorizontal: 18, marginBottom: 4, padding: 3, borderRadius: 999, backgroundColor: C.border },
     tabBtn:          { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
     tabBtnActive:    { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
     tabLabel:        { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },

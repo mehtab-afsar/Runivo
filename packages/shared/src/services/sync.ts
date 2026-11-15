@@ -87,6 +87,7 @@ import {
 } from './store';
 import type { TerritoryPolygon, TerritoryTier, RunnerRank } from '../types/game';
 import { getProfile } from './profile';
+import { hasAiConsent } from './aiConsent';
 
 /**
  * Returns the current user only if a valid local session exists.
@@ -320,6 +321,7 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
   const unsynced = allRuns.filter(r => !r.synced || r.serverProcessed === false);
   if (unsynced.length === 0) return;
 
+  let firstUploadError: unknown = null;
   for (const run of unsynced) {
     // Simplify GPS track before upload: keeps route shape but drops redundant
     // intermediate points (1800-point run → ~60-120 points, ~95% size reduction).
@@ -356,7 +358,7 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
         const { data: session } = await supabase.auth.getSession();
         // Treadmill runs are logged by hand: nothing to claim, nothing to score.
         if (session.session && run.activityType !== 'treadmill') {
-          const { data: result } = await supabase.functions.invoke('process-run-territory', {
+          const { data, error: scoreError } = await supabase.functions.invoke('process-run-territory', {
             body: {
               runId:            run.id,
               userId:           user.id,
@@ -365,8 +367,19 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
               distanceKm:       run.distanceMeters / 1000,
               durationSec:      run.durationSec,
               clientPaceEarned: run.xpEarned ?? 0,
+              ...(run.mockedLocation && { mockedLocation: true }),
             },
           });
+          // A permanent rejection (too short, too little GPS, trace too large,
+          // doesn't match the stored run) will never succeed on retry. Record it
+          // as scored with nothing earned: the correction below drops the PACE
+          // shown optimistically, and later syncs stop re-sending the whole trace.
+          // Anything else (network, 401/403, 404, 409 in progress, 5xx) is retried.
+          let result = data;
+          if (scoreError) {
+            const status = (scoreError as { context?: { status?: number } }).context?.status;
+            if (status === 400 || status === 413 || status === 422) result = { paceAdjustment: 0, rejected: true };
+          }
           if (result && typeof result.paceAdjustment === 'number') {
             const serverPace = result.paceAdjustment as number;
             const latestRun = (await getRunById(run.id)) ?? run;
@@ -413,6 +426,9 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
           const tierForDebrief = (await getPlayer())?.subscriptionTier;
           if (_aiCoachEnabled && isPlus(tierForDebrief)) (async () => {
             try {
+              // Sends the run to the third-party AI, so only after the runner agreed
+              // (App Store 5.1.2(i)); the server refuses without it as well.
+              if (!(await hasAiConsent())) return;
               const { data: debriefData } = await supabase.functions.invoke('ai-coach', {
                 body: { feature: 'post_run', runId: run.id },
               });
@@ -463,11 +479,14 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
         // Non-fatal — territory/PACE from steal will be re-evaluated on next sync
       }
     } else {
-      // Throw so withRetry + postRunSync can set sync status to 'error' and surface
-      // a "Could not upload run" message in the UI instead of silently discarding data.
-      throw error;
+      // Remember it and keep going: one run the server rejects must not block
+      // every run queued behind it. It is thrown after the loop so withRetry +
+      // postRunSync still set sync status to 'error' and surface "Could not
+      // upload run" instead of silently discarding data.
+      firstUploadError ??= error;
     }
   }
+  if (firstUploadError) throw firstUploadError;
 }
 
 /** Pull runs for the current user and cache locally (for history page). */
@@ -643,55 +662,6 @@ export async function pullMapPolygons(bbox: {
       tier:           r.tier as TerritoryTier,
       synced:         true,
     }));
-}
-
-// ----------------------------------------------------------------
-// REALTIME SUBSCRIPTIONS
-// ----------------------------------------------------------------
-
-/**
- * Subscribe to live territory updates.
- *
- * Intentionally a no-op: territories are polygon corridors derived from GPS tracks and
- * stored locally in IndexedDB/SQLite. There is no server-side territory table to stream
- * from in real-time — territory state is pulled via pullTerritories() after each run.
- *
- * To re-enable real-time territory sync (e.g., for live attack notifications), wire a
- * Supabase Realtime subscription to the `territories` table here and update pullTerritories
- * to merge remote state with the local cache.
- */
-export function subscribeTerritories(
-  _onUpdate: (territory: TerritoryPolygon) => void
-): () => void {
-  return () => {};
-}
-
-/**
- * Subscribe to lobby messages for a given lobby ID.
- * Returns unsubscribe function.
- */
-export function subscribeLobbyMessages(
-  lobbyId: string,
-  onMessage: (msg: { id: string; userId: string; content: string; createdAt: string }) => void
-): () => void {
-  const channel = supabase
-    .channel(`lobby-${lobbyId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'lobby_messages',
-        filter: `lobby_id=eq.${lobbyId}`,
-      },
-      (payload) => {
-        const row = payload.new as { id: string; user_id: string; content: string; created_at: string };
-        onMessage({ id: row.id, userId: row.user_id, content: row.content, createdAt: row.created_at });
-      }
-    )
-    .subscribe();
-
-  return () => { supabase.removeChannel(channel); };
 }
 
 // ----------------------------------------------------------------
@@ -970,62 +940,6 @@ export async function createFeedPost(
     route_points:        opts?.routePoints ?? null,
   });
   if (error) console.warn('[sync] feed post failed:', error.message);
-}
-
-// ----------------------------------------------------------------
-// LEADERBOARD
-// ----------------------------------------------------------------
-
-export async function fetchLeaderboard() {
-  const { data, error } = await supabase
-    .from('leaderboard_weekly')
-    .select('*')
-    .order('rank', { ascending: true })
-    .limit(100);
-
-  if (error) throw error;
-  return data;
-}
-
-// ----------------------------------------------------------------
-// MISSIONS
-// ----------------------------------------------------------------
-
-export async function upsertMissionProgress(
-  missionId: string,
-  missionType: string,
-  currentValue: number,
-  completed: boolean,
-  claimed: boolean,
-  expiresAt: number
-) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-
-  const { error } = await supabase.from('mission_progress').upsert({
-    id: missionId,
-    user_id: user.id,
-    mission_type: missionType,
-    current_value: currentValue,
-    completed,
-    claimed,
-    expires_at: new Date(expiresAt).toISOString(),
-  }, { onConflict: 'id,user_id' });
-  if (error) console.warn('[sync] mission progress failed:', error.message);
-}
-
-export async function fetchMissionProgress(missionIds: string[]) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data, error } = await supabase
-    .from('mission_progress')
-    .select('*')
-    .eq('user_id', user.id)
-    .in('id', missionIds);
-
-  if (error) return [];
-  return data;
 }
 
 // ----------------------------------------------------------------

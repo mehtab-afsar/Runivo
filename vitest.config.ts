@@ -6,8 +6,8 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./packages/shared/src/test-setup.ts'],
     include: [
-      'packages/shared/src/**/*.test.ts',
-      'apps/mobile/src/**/*.test.ts',
+      'packages/shared/src/**/*.test.{ts,tsx}',
+      'apps/mobile/src/**/*.test.{ts,tsx}',
       // Pure helpers of edge functions (no Deno APIs).
       'supabase/functions/**/*.test.ts',
     ],

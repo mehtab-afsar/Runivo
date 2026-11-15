@@ -3,10 +3,8 @@
  * The plan itself comes from the tested engine (packages/shared/src/engine/training.ts).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Platform, TextInput, ActivityIndicator, Alert,
-  KeyboardAvoidingView,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -136,7 +134,7 @@ export default function PlanBuilderScreen() {
           <Text style={s.label}>Race</Text>
           <View style={s.chips}>
             {RACES.map(r => (
-              <Pressable key={r} style={[s.chip, race === r && s.chipOn]} onPress={() => setRace(r)} accessibilityRole="button" accessibilityState={{ selected: race === r }}>
+              <Pressable hitSlop={8} key={r} style={[s.chip, race === r && s.chipOn]} onPress={() => setRace(r)} accessibilityRole="button" accessibilityState={{ selected: race === r }}>
                 <Text style={[s.chipTxt, race === r && s.chipTxtOn]}>{RACE_LABEL[r]}</Text>
               </Pressable>
             ))}
@@ -152,14 +150,14 @@ export default function PlanBuilderScreen() {
             </View>
           ) : (
           <View style={[s.card, s.stepper]}>
-            <Pressable style={s.stepBtn} onPress={() => setWeeks(w => Math.max(min, w - 1))} accessibilityRole="button" accessibilityLabel="One week earlier">
+            <Pressable hitSlop={8} style={s.stepBtn} onPress={() => setWeeks(w => Math.max(min, w - 1))} accessibilityRole="button" accessibilityLabel="One week earlier">
               <Minus size={16} color={C.t1} weight="bold" />
             </Pressable>
             <View style={{ flex: 1, alignItems: 'center' }}>
               <Text style={s.dateTxt}>{fmtDate(raceDate)}</Text>
               <Text style={s.sub}>{weeks} weeks away{weeks > max ? ` · the plan starts ${fmtDate(starts)}` : ''}</Text>
             </View>
-            <Pressable style={s.stepBtn} onPress={() => setWeeks(w => Math.min(52, w + 1))} accessibilityRole="button" accessibilityLabel="One week later">
+            <Pressable hitSlop={8} style={s.stepBtn} onPress={() => setWeeks(w => Math.min(52, w + 1))} accessibilityRole="button" accessibilityLabel="One week later">
               <Plus size={16} color={C.t1} weight="bold" />
             </Pressable>
           </View>
@@ -201,7 +199,7 @@ export default function PlanBuilderScreen() {
           <Text style={s.label}>Long run on</Text>
           <View style={s.chips}>
             {runDays.map(d => (
-              <Pressable key={d} style={[s.chip, longDay === d && s.chipOn]} onPress={() => setLongDay(d)} accessibilityRole="button" accessibilityState={{ selected: longDay === d }}>
+              <Pressable hitSlop={8} key={d} style={[s.chip, longDay === d && s.chipOn]} onPress={() => setLongDay(d)} accessibilityRole="button" accessibilityState={{ selected: longDay === d }}>
                 <Text style={[s.chipTxt, longDay === d && s.chipTxtOn]}>{DAY_NAMES[d].slice(0, 3)}</Text>
               </Pressable>
             ))}

@@ -11,6 +11,7 @@ export interface EventsState {
   toggleBookmark: (eventId: string) => void;
   canCreate: boolean;
   loading: boolean;
+  error: boolean;
   refreshing: boolean;
   nearMeAvailable: boolean;
   nearMeActive: boolean;
@@ -26,6 +27,7 @@ export function useEvents(): EventsState {
   const [canCreate, setCanCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
   const [lastKnownLocation, setLastKnownLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [nearMeActive, setNearMeActive] = useState(false);
 
@@ -38,7 +40,8 @@ export function useEvents(): EventsState {
       setBookmarkedIds(data.bookmarkedIds);
       setCanCreate(data.canCreate);
       setLastKnownLocation(player?.lastKnownLocation ?? null);
-    } catch { /* offline */ } finally {
+      setError(false);
+    } catch { setError(true); } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -109,7 +112,7 @@ export function useEvents(): EventsState {
   const refresh = useCallback(() => load(true), [load]);
 
   return {
-    events, joinedIds, bookmarkedIds, toggleBookmark, canCreate, loading, refreshing,
+    events, joinedIds, bookmarkedIds, toggleBookmark, canCreate, loading, error, refreshing,
     nearMeAvailable: !!lastKnownLocation, nearMeActive, toggleNearMe,
     handleJoin, refresh,
   };

@@ -7,6 +7,7 @@
  * calls in screens. Never pass GPS coordinates or precise location as a property.
  */
 import posthog from 'posthog-js';
+import { getSettings, saveSettings } from './store';
 
 let initialized = false;
 
@@ -45,4 +46,19 @@ export function resetAnalytics(): void {
   } catch {
     // non-critical
   }
+}
+
+export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
+  try {
+    const st = await getSettings();
+    await saveSettings({ ...st, analyticsEnabled: enabled });
+  } catch { /* non-critical */ }
+  if (!initialized) return;
+  try {
+    if (enabled) posthog.opt_in_capturing(); else posthog.opt_out_capturing();
+  } catch { /* non-critical */ }
+}
+
+export async function isAnalyticsEnabled(): Promise<boolean> {
+  try { return (await getSettings()).analyticsEnabled !== false; } catch { return true; }
 }

@@ -192,7 +192,8 @@ export const FeedPostCard = React.memo(function FeedPostCard({
     Share.share({ message: buildShareMessage(post) }).catch(() => {});
   }, [post]);
 
-  const handleReport = useCallback(() => reportPost(post.id, 'inappropriate').catch(() => {}), [post.id]);
+  // Errors propagate so the sheet only says "Reported" when the report actually went through.
+  const handleReport = useCallback(() => reportPost(post.id, 'inappropriate'), [post.id]);
 
   const tier = post.territoryTier ? (TIER_CONFIG[post.territoryTier] ?? TIER_CONFIG.patch) : null;
   const zoneTier = post.zoneTier ? (TIER_CONFIG[post.zoneTier] ?? null) : tier;
@@ -221,7 +222,7 @@ export const FeedPostCard = React.memo(function FeedPostCard({
               <Text style={s.subtitle}>{timeAgo(post.createdAt)}{zoneTier ? ` · ${zoneTier.label}` : ''}</Text>
             </View>
           </Pressable>
-          <Pressable style={s.kebab} onPress={() => setSheetOpen(true)} hitSlop={10}>
+          <Pressable style={s.kebab} onPress={() => setSheetOpen(true)} hitSlop={10} accessibilityRole="button" accessibilityLabel="More options for this post">
             <MoreHorizontal size={18} color={C.t3} strokeWidth={2} />
           </Pressable>
         </View>
@@ -238,7 +239,7 @@ export const FeedPostCard = React.memo(function FeedPostCard({
             </Text>
           ) : <View />}
           {attack && onDefend && (
-            <Pressable style={[s.takeBack, { backgroundColor: zone.own }]} onPress={onDefend} accessibilityRole="button">
+            <Pressable hitSlop={8} style={[s.takeBack, { backgroundColor: zone.own }]} onPress={onDefend} accessibilityRole="button">
               <Text style={s.takeBackText}>Take it back</Text>
             </Pressable>
           )}
@@ -294,7 +295,7 @@ export const FeedPostCard = React.memo(function FeedPostCard({
           </View>
         </Pressable>
         {showRank && rankLabel && <View style={s.lightChip}><Text style={s.lightChipText}>{rankLabel}</Text></View>}
-        <Pressable style={s.kebab} onPress={() => setSheetOpen(true)} hitSlop={10}>
+        <Pressable style={s.kebab} onPress={() => setSheetOpen(true)} hitSlop={10} accessibilityRole="button" accessibilityLabel="More options for this post">
           <MoreHorizontal size={18} color={C.t3} strokeWidth={2} />
         </Pressable>
       </View>
@@ -385,7 +386,7 @@ function mkStyles(C: AppColors) {
     textBlock:    { paddingHorizontal: 16, paddingBottom: 10, gap: 4 },
     postTitle:    { fontFamily: Fonts.semiBold, fontSize: 16, lineHeight: 21, color: C.t1 },
     postBody:     { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2 },
-    lightChip:    { backgroundColor: '#F0EEE9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+    lightChip:    { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     lightChipText:{ fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.t1 },
     darkChip:     { backgroundColor: C.alwaysDark, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     darkChipText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysLight },

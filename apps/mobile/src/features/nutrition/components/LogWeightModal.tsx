@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, SafeAreaView, View, Text, TextInput, Pressable, StyleSheet, Platform } from 'react-native';
+import { Modal, View, Text, TextInput, Pressable, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
@@ -30,11 +31,11 @@ export function LogWeightModal({ visible, currentWeightKg, onSave, onClose }: Lo
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={s.overlay}>
+      <KeyboardAvoidingView style={s.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <SafeAreaView style={s.card}>
           <View style={s.header}>
             <Text style={s.title}>Log Weight</Text>
-            <Pressable onPress={onClose} hitSlop={8}>
+            <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
               <X size={16} color={C.t2} weight="regular" />
             </Pressable>
           </View>
@@ -46,13 +47,14 @@ export function LogWeightModal({ visible, currentWeightKg, onSave, onClose }: Lo
             placeholderTextColor={C.t3}
             keyboardType="decimal-pad"
             autoFocus
+            accessibilityLabel="Weight in kilograms"
           />
           <Text style={s.unit}>kg</Text>
           <Pressable style={[s.saveBtn, !canSave && s.saveBtnDisabled]} onPress={handleSave} disabled={!canSave}>
             <Text style={s.saveLabel}>Save</Text>
           </Pressable>
         </SafeAreaView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

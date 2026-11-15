@@ -1,4 +1,5 @@
 /** C4: your group challenges, and a sheet to start one with people you follow. */
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,7 +30,11 @@ export default function ChallengesScreen() {
   const navigation = useNavigation<Nav>();
   const [list, setList] = useState<Challenge[] | null>(null);
   const [creating, setCreating] = useState(false);
-  const load = useCallback(() => { fetchMyChallenges().then(setList).catch(() => setList([])); }, []);
+  const [loadError, setLoadError] = useState(false);
+  const load = useCallback(() => {
+    setLoadError(false);
+    fetchMyChallenges().then(setList).catch(() => { setList(prev => prev ?? []); setLoadError(true); });
+  }, []);
   useFocusEffect(load);
 
   const answer = async (c: Challenge, join: boolean) => {
@@ -39,15 +44,16 @@ export default function ChallengesScreen() {
   return (
     <View style={s.root}>
       <View style={[s.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={s.back} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
         <Text style={s.title}>Challenges</Text>
-        <Pressable style={s.newBtn} onPress={() => setCreating(true)} accessibilityRole="button">
+        <Pressable hitSlop={8} style={s.newBtn} onPress={() => setCreating(true)} accessibilityRole="button">
           <Plus size={14} color={C.bg} weight="bold" /><Text style={s.newTxt}>New</Text>
         </Pressable>
       </View>
       {list === null ? <ActivityIndicator color={C.red} style={{ marginTop: 40 }} /> : (
         <ScrollView contentContainerStyle={{ padding: 18, gap: 12, paddingBottom: 60 }}>
-          {list.length === 0 && (
+          {list.length === 0 && loadError && <ErrorState title="Couldn't load challenges" onRetry={load} />}
+          {list.length === 0 && !loadError && (
             <View style={s.empty}>
               <Flag size={36} color={C.t3} />
               <Text style={s.emptyTitle}>Race your friends</Text>
@@ -113,14 +119,14 @@ function CreateSheet({ visible, onClose, onCreated }: { visible: boolean; onClos
           <Text style={s.label}>Goal</Text>
           <View style={s.chips}>
             {(Object.keys(METRIC_LABEL) as ChallengeMetric[]).map(m => (
-              <Pressable key={m} style={[s.chip, metric === m && s.chipOn]} onPress={() => { setMetric(m); setTarget(TARGETS[m][1]); }}>
+              <Pressable hitSlop={8} key={m} style={[s.chip, metric === m && s.chipOn]} onPress={() => { setMetric(m); setTarget(TARGETS[m][1]); }}>
                 <Text style={[s.chipTxt, metric === m && s.chipTxtOn]}>{METRIC_LABEL[m].name}</Text>
               </Pressable>
             ))}
           </View>
           <View style={s.chips}>
             {TARGETS[metric].map(t => (
-              <Pressable key={t} style={[s.chip, target === t && s.chipOn]} onPress={() => setTarget(t)}>
+              <Pressable hitSlop={8} key={t} style={[s.chip, target === t && s.chipOn]} onPress={() => setTarget(t)}>
                 <Text style={[s.chipTxt, target === t && s.chipTxtOn]}>{t} {METRIC_LABEL[metric].unit}</Text>
               </Pressable>
             ))}
@@ -128,7 +134,7 @@ function CreateSheet({ visible, onClose, onCreated }: { visible: boolean; onClos
           <Text style={s.label}>Deadline</Text>
           <View style={s.chips}>
             {DURATIONS.map(d => (
-              <Pressable key={d.days} style={[s.chip, days === d.days && s.chipOn]} onPress={() => setDays(d.days)}>
+              <Pressable hitSlop={8} key={d.days} style={[s.chip, days === d.days && s.chipOn]} onPress={() => setDays(d.days)}>
                 <Text style={[s.chipTxt, days === d.days && s.chipTxtOn]}>{d.label}</Text>
               </Pressable>
             ))}

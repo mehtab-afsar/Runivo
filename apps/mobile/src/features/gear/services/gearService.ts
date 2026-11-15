@@ -11,13 +11,6 @@ export async function fetchShoes(): Promise<StoredShoe[]> {
   return getShoes();
 }
 
-export async function fetchRunsForShoe(shoeId: string): Promise<number> {
-  const runs = await getRuns(500);
-  return runs
-    .filter(r => r.shoeId === shoeId)
-    .reduce((sum, r) => sum + r.distanceMeters / 1000, 0);
-}
-
 export async function fetchShoeKmMap(): Promise<Record<string, number>> {
   const runs = await getRuns(500);
   const km: Record<string, number> = {};
@@ -44,10 +37,6 @@ export async function retireShoe(id: string, allShoes: StoredShoe[]): Promise<St
 
 export async function deleteShoeById(id: string): Promise<void> {
   return deleteShoe(id);
-}
-
-export async function addShoe(shoe: StoredShoe): Promise<void> {
-  await saveShoe(shoe);
 }
 
 export async function uploadShoePhoto(localUri: string, shoeId: string): Promise<string | null> {

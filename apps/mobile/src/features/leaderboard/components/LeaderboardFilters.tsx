@@ -134,7 +134,7 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     seg: {
-      flexDirection: 'row', backgroundColor: '#E9E7E2',
+      flexDirection: 'row', backgroundColor: C.border,
       borderRadius: 999, padding: 3, marginHorizontal: 18, marginBottom: 12,
     },
     segItem: {

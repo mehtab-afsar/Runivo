@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Image, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'lucide-react-native';
 import { validateUsername } from '@shared/engine/onboarding';
@@ -23,7 +23,10 @@ export default function IdentityStep({ username, avatarUri, serverError, onUsern
 
   async function pickPhoto() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
+    if (!perm.granted) {
+      Alert.alert('Photos are off', 'Allow photo access for Runivo in Settings to add a picture. You can skip this and add one later.');
+      return;
+    }
     const r = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.7,
     });

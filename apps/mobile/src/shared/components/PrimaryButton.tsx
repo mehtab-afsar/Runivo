@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import type { ViewStyle } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { useTheme, Type } from '@theme';
 
 interface PrimaryButtonProps {
@@ -69,6 +69,9 @@ export function PrimaryButton({
     <Pressable
       onPress={handlePress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
       hitSlop={HIT_SLOP[size]}
       style={({ pressed }) => [
         styles.btn,

@@ -6,6 +6,7 @@ import type { RunEvent } from '../types';
 import { DISCIPLINE_LABEL } from '../types';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { CityBackdrop } from '@mobile/shared/components/CityBackdrop';
+import { safeHttpUrl } from '@mobile/shared/lib/safeUrl';
 import { RunnerFace } from '@mobile/shared/components/RunnerFace';
 
 interface Props {
@@ -45,8 +46,8 @@ export function EventCard({ event, joined, onJoin, onPress, featured }: Props) {
         <Text style={s.meta}>{meta}</Text>
         <Pressable
           style={s.outlineBtn}
-          onPress={() => event.registrationUrl && Linking.openURL(event.registrationUrl)}
-          disabled={!event.registrationUrl}
+          onPress={() => { const url = safeHttpUrl(event.registrationUrl); if (url) Linking.openURL(url).catch(() => {}); }}
+          disabled={!safeHttpUrl(event.registrationUrl)}
           accessibilityRole="link"
         >
           <Text style={s.outlineBtnText}>Register on organiser site</Text>

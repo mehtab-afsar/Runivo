@@ -39,79 +39,115 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p style={{ ...prose, color: 'var(--t3)', marginBottom: 48 }}>
-            Last updated: May 2026
+            Last updated: November 2026
           </p>
 
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 48 }}>
 
             <h2 style={h2Style}>Introduction</h2>
             <p style={prose}>
-              Runivo (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is committed to protecting your privacy. This policy explains what data we collect, why we collect it, and how you can control it.
+              Runivo (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is a running app where runs claim territory on a map. This policy explains what we collect, why, who receives it, and how you control it. We do not sell your personal data, we do not show ads, and we do not track you across other companies&apos; apps or websites.
             </p>
 
-            <h2 style={h2Style}>1. Data We Collect</h2>
+            <h2 style={h2Style}>1. What We Collect</h2>
 
-            <h3 style={h3Style}>Location Data</h3>
+            <h3 style={h3Style}>Account information</h3>
             <p style={prose}>
-              To enable run tracking and territory claiming, Runivo collects your GPS location during active runs. With your permission, we may track location in the background to capture territory zones. Location data is processed on your device and stored securely in our database associated with your account.
+              Your email address and/or phone number, a username, and your name if you sign in with Apple or Google. If you use a password it is stored only as a secure hash. Optional profile details such as a bio, display name, location text and profile photo are stored if you add them.
             </p>
 
-            <h3 style={h3Style}>Health &amp; Activity Metrics</h3>
+            <h3 style={h3Style}>Precise location (runs)</h3>
             <p style={prose}>
-              We collect run data including distance, pace, duration, and route coordinates. If you connect Apple Health, we may read or write step counts and workout data. This data is used solely to power your Runivo experience and is never sold.
+              While you record a run, Runivo collects your GPS location, including in the background after you lock your screen, so your route, distance and territory are accurate. It only does this during a run that you start. We store your route with the run so you can review it and so territory can be calculated on our servers.
             </p>
 
-            <h3 style={h3Style}>Account Information</h3>
+            <h3 style={h3Style}>Approximate location</h3>
             <p style={prose}>
-              When you create an account we collect your email address, username, and password (stored as a secure hash). Optional profile details such as city, profile photo, and bio are stored if you provide them. During onboarding we also collect your age, gender, height, weight, running experience level, weekly running frequency, primary goal, and preferred distance, to personalise your missions and weekly targets.
+              We keep an approximate home area (about 1 km) to show runners, clubs and leaderboards near you, and to decide which partner rewards are available in your city. You can set private places and hide your zones from other people&apos;s maps in Settings.
             </p>
 
-            <h3 style={h3Style}>Usage Data</h3>
+            <h3 style={h3Style}>Health and fitness</h3>
             <p style={prose}>
-              We collect standard analytics data (screen views, feature usage, crash reports) to improve the app. This data is aggregated and not linked to your identity. We use Sentry for crash reporting and PostHog for product analytics (e.g. tracking which features are used, such as completing onboarding or finishing a run) — neither ever receives your precise GPS coordinates.
+              Distance, time, pace, heart rate, cadence, elevation and similar workout metrics from your runs. If you allow it, Runivo reads your past running workouts from Apple Health to set a starting baseline, and saves completed runs to Apple Health as workouts. If you connect Garmin, COROS or Polar, we receive the workouts they share. You may also give your age range, sex, height, weight and running goals to personalise targets. You can withdraw consent for imported health data at any time in Settings, which deletes what we imported.
             </p>
 
-            <h2 style={h2Style}>2. How We Use Your Data</h2>
+            <h3 style={h3Style}>Content you create</h3>
             <p style={prose}>
-              Your data is used to: power run tracking and territory claiming; personalise your AI Coach recommendations; compute leaderboards and territory scores; send you push notifications about your zones; process PACE token transactions; and improve the app through aggregated analytics.
+              Photos (profile, run and shoe photos), posts, comments, club and event text, and club chat messages. This content can be seen by other people according to the settings you choose.
             </p>
 
-            <h2 style={h2Style}>3. Data Sharing</h2>
+            <h3 style={h3Style}>Device and usage information</h3>
             <p style={prose}>
-              We do not sell your personal data. We share data only with: infrastructure providers (Supabase for database hosting, operating under data processing agreements); crash reporting services (Sentry); product analytics services (PostHog); and, only with your explicit action, other Runivo users who can see your public profile, username, territory claims, and run stats you choose to share.
+              A push notification token for your device, your account ID, and what you do in the app (for example finishing a run or opening a screen), which we use for product analytics. Analytics events are tied to your account ID, not to your name. Crash and performance reports are collected separately and are not linked to your account; coordinates and tokens are removed from them before they are stored.
             </p>
 
-            <h2 style={h2Style}>4. Data Retention</h2>
+            <h3 style={h3Style}>Purchases</h3>
             <p style={prose}>
-              Your data is retained for as long as your account is active. Run history older than 3 years may be summarised into aggregate statistics to reduce storage. If you delete your account, all personal data is permanently deleted within 30 days.
+              If you subscribe to Runivo Plus, Apple processes the payment. We receive confirmation of your subscription status; we never see your card or Apple ID details.
             </p>
 
-            <h2 style={h2Style}>5. Your Rights</h2>
+            <h2 style={h2Style}>2. How We Use It</h2>
             <p style={prose}>
-              You have the right to: access the personal data we hold about you; correct inaccurate data; delete your account and all associated data; export your run data in a portable format; withdraw consent for optional data processing at any time.
+              To record runs and claim territory; to calculate PACE, missions, ranks and leaderboards; to show you nearby runners, clubs, events and partner rewards; to send notifications you have enabled; to provide the PaceX AI coach if you turn it on; to keep the service safe (reports, blocking and moderation); to understand which features are used so we can improve them; and to provide customer support.
+            </p>
+
+            <h2 style={h2Style}>3. Who Receives Your Data</h2>
+            <p style={prose}>
+              We share data only with the services that help us run Runivo, and only what each needs:
+            </p>
+            <ul style={{ ...prose, paddingLeft: 22, marginTop: 8 }}>
+              <li><strong>Supabase</strong>: hosts our database, sign-in and file storage (everything above).</li>
+              <li><strong>Anthropic</strong> (the PaceX AI coach): only if you agree. See section 4.</li>
+              <li><strong>PostHog</strong>: product analytics events tied to your account ID. You can turn this off in Settings.</li>
+              <li><strong>Sentry</strong>: crash and performance reports, not linked to your account.</li>
+              <li><strong>RevenueCat and Apple</strong>: subscription management and payment.</li>
+              <li><strong>Expo and Apple</strong>: delivering push notifications (your push token).</li>
+              <li><strong>Resend</strong>: sending emails such as your optional weekly digest (your email address).</li>
+              <li><strong>Twilio</strong>: sending sign-in codes by SMS, if you sign in with a phone number (your phone number).</li>
+              <li><strong>Apple and Google</strong>: if you sign in with them. <strong>Garmin, COROS and Polar</strong>: only if you connect them.</li>
+              <li><strong>Map, routing and weather services</strong>: to show maps and plan routes, the map area you view and, for routing and weather, approximate coordinates are sent to CARTO, OpenStreetMap-based routing (routing.openstreetmap.de and OpenRouteService), Open-Meteo, and, for the extra map styles, Esri and OpenTopoMap. These providers also see your IP address.</li>
+              <li><strong>Other Runivo users</strong>: what you choose to share (profile, posts, comments, zones on the map, run stats). Live location sharing is off unless you turn it on, and the safety link is shared only with the people you send it to.</li>
+            </ul>
+            <p style={{ ...prose, marginTop: 12 }}>
+              We may also disclose data if required by law or to protect people&apos;s safety.
+            </p>
+
+            <h2 style={h2Style}>4. The PaceX AI Coach</h2>
+            <p style={prose}>
+              PaceX is optional and part of Runivo Plus. It is off until you read a screen that names Anthropic and agree. After you agree, PaceX sends Anthropic, the company that provides the AI model: your recent runs (distance, time, pace, heart rate and similar), your goal, experience, age range and weight if you added them, imported health data if you turned that on, and anything you type to PaceX. It does not send your GPS routes, your name or your email. Anthropic uses the data to produce your reply. You can turn PaceX off at any time in Settings under Privacy and data; after that nothing further is sent.
+            </p>
+
+            <h2 style={h2Style}>5. Retention and Deletion</h2>
+            <p style={prose}>
+              We keep your data while your account is active. When you delete your account in the app, your profile, runs, zones, posts, files and other account data are deleted immediately, and if you signed in with Apple we also revoke Runivo&apos;s Sign in with Apple access. Copies in our encrypted backups are removed as those backups expire. We also ask PostHog to delete the analytics events recorded under your account ID; if that request fails, email us and we will do it by hand. Messages and content other people have already received from you may remain on their devices.
+            </p>
+
+            <h2 style={h2Style}>6. Your Choices and Rights</h2>
+            <p style={prose}>
+              In Settings you can: turn the PaceX AI coach off; turn product analytics off; withdraw consent for imported health data; turn promotional notifications on or off (they are off by default); control who sees your profile and zones; set private places; and report or block anyone. You may also ask to access, correct, export or delete the personal data we hold about you.
             </p>
             <p style={{ ...prose, marginTop: 12 }}>
               To exercise any of these rights, contact us at{' '}
               <a href="mailto:support@runivo.com" style={{ color: 'var(--accent)' }}>support@runivo.com</a>.
-              Account deletion can also be performed directly in the app under Settings → Delete Account.
+              Account deletion can also be performed directly in the app under Settings → Legal → Delete Account.
             </p>
 
-            <h2 style={h2Style}>6. Security</h2>
+            <h2 style={h2Style}>7. Security</h2>
             <p style={prose}>
-              We use industry-standard security measures including TLS encryption in transit, AES-256 encryption at rest (via Supabase), and row-level security policies on all database tables. We conduct regular security reviews.
+              We use TLS encryption in transit, encryption at rest for our database, and row-level security so accounts can only read data they are allowed to see. No system is perfectly secure, so we also limit what each service receives.
             </p>
 
-            <h2 style={h2Style}>7. Children&apos;s Privacy</h2>
+            <h2 style={h2Style}>8. Children&apos;s Privacy</h2>
             <p style={prose}>
-              Runivo is not intended for children under 13. We do not knowingly collect data from children. If you believe a child has provided us with personal data, please contact us and we will delete it promptly.
+              Runivo is not intended for children under 13 and we do not knowingly collect data from them. If you believe a child has given us personal data, contact us and we will delete it promptly.
             </p>
 
-            <h2 style={h2Style}>8. Changes to This Policy</h2>
+            <h2 style={h2Style}>9. Changes to This Policy</h2>
             <p style={prose}>
-              We may update this policy from time to time. We will notify you of significant changes via email or in-app notification. Continued use of Runivo after changes constitutes acceptance of the updated policy.
+              We may update this policy. If a change affects how we use your data in a meaningful way, we will tell you in the app before it takes effect, and we will update the date above.
             </p>
 
-            <h2 style={h2Style}>9. Contact</h2>
+            <h2 style={h2Style}>10. Contact</h2>
             <p style={prose}>
               For privacy questions or requests, contact us at{' '}
               <a href="mailto:support@runivo.com" style={{ color: 'var(--accent)' }}>support@runivo.com</a>.

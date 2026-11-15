@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, Dimensions, StyleSheet } from 'react-native';
+import { View, Pressable, Dimensions, StyleSheet, BackHandler } from 'react-native';
 import Animated, {
-  useSharedValue, withSpring, useAnimatedStyle, runOnJS,
+  useSharedValue, withSpring, useAnimatedStyle, runOnJS, interpolate, Extrapolation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTheme } from '@theme';
@@ -55,13 +55,24 @@ export function BottomSheet({
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+  // The scrim fades with the sheet (it used to pop in and out at full strength).
+  const scrimStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateY.value, [0, sheetH], [1, 0], Extrapolation.CLAMP),
+  }));
+
+  // Android back closes the sheet instead of leaving the screen behind it.
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { onClose(); return true; });
+    return () => sub.remove();
+  }, [visible, onClose]);
 
   if (!mounted) return null;
 
   return (
     <>
-      <Animated.View style={[styles.overlay, { opacity: visible ? 1 : 0 }]} pointerEvents={visible ? 'auto' : 'none'}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <Animated.View style={[styles.overlay, scrimStyle]} pointerEvents={visible ? 'auto' : 'none'}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" />
       </Animated.View>
       <Animated.View
         style={[styles.sheet, animStyle, {
@@ -71,6 +82,7 @@ export function BottomSheet({
           borderTopRightRadius: Spacing.radius.xl,
         }]}
         pointerEvents={visible ? 'auto' : 'none'}
+        accessibilityViewIsModal
       >
         <GestureDetector gesture={panGesture}>
           <View style={styles.handleArea}>

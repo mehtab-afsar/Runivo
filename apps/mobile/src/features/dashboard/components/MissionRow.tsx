@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import {
   Route, Flag, Shield, Zap, Flame, UtensilsCrossed, Check, Diamond, type LucideIcon,
 } from 'lucide-react-native';
@@ -47,7 +47,7 @@ function RewardChip({ pace, muted, C, ss }: { pace: number; muted: boolean; C: A
 function tintFor(color: string, C: AppColors): string {
   if (color === C.red) return C.redLo;
   if (color === C.blue) return '#E5EAFF';
-  return '#F0EEE9';
+  return C.stone;
 }
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
@@ -151,7 +151,7 @@ function mkStyles(C: AppColors) {
     readyCaption: { ...Type.labelSm, color: C.gold },
     retryCaption: { ...Type.labelSm, color: C.retryAmber },
 
-    track:      { height: 6, borderRadius: 9, backgroundColor: '#ECEAE5', overflow: 'hidden' },
+    track:      { height: 6, borderRadius: 9, backgroundColor: C.surface, overflow: 'hidden' },
     fill:       { height: 6, borderRadius: 9, backgroundColor: C.t1 },
 
     claimBtn:   { height: 32, paddingHorizontal: 16, minHeight: 0 },

@@ -12,7 +12,6 @@ import { feedback } from '@theme';
 import { track } from '@shared/services/analytics';
 import { useGameEngine } from '@shared/hooks/useGameEngine';
 import { GAME_CONFIG } from '@shared/services/config';
-import { haversineM } from '@shared/services/claimEngine';
 import { formatPace } from '@shared/lib/paceFormat';
 import { getSettings } from '@shared/services/store';
 import { upsertLivePosition, clearLivePosition } from '@shared/services/liveRunSharing';
@@ -21,16 +20,19 @@ import {
   stopBackgroundTracking,
   drainBgGpsBuffer,
   clearBgGpsBuffer,
+  GPS_CHECKPOINT_PREFIX,
 } from '../services/locationTask';
-import { screenOffAdditions } from '../services/screenOffMerge';
+import { freshScreenOffFixes } from '../services/screenOffMerge';
+import { addFixes, MAX_FOOT_SPEED_MS, MAX_RIDE_SPEED_MS, type Fix } from '../services/gpsFilter';
 
 const GPS_CHECKPOINT_INTERVAL_MS = 30_000;
 // How often a running position reaches friends — not every GPS tick (~1/sec):
 // battery/bandwidth, and a friend's marker only needs to look alive, not
 // exactly track every single fix.
 const LIVE_SHARE_INTERVAL_MS = 6_000;
-const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
 const GPS_LOCK_REQUIRED_POINTS = 3;
+// No accepted fix for this long while running = signal lost (drop the "GPS locked" state).
+const GPS_STALE_MS = 10_000;
 // Below ~1.8 km/h counts as stopped (well under walking pace, so normal running/
 // walking cadence never trips it); 8s of that before auto-pausing absorbs a red
 // light or a photo stop without pausing on every brief slowdown.
@@ -40,6 +42,8 @@ const AUTO_PAUSE_DELAY_MS = 8_000;
 // 'standard' still needs to be good enough for territory-corridor accuracy —
 // this is one step down from BestForNavigation, not a big drop to Balanced/Low,
 // since claimed-zone geometry and the PACE economy both depend on this track.
+const maxSpeedFor = (activityType: string) => (activityType === 'cycle' ? MAX_RIDE_SPEED_MS : MAX_FOOT_SPEED_MS);
+
 function resolveGpsAccuracy(setting: 'standard' | 'high'): Location.Accuracy {
   return setting === 'standard' ? Location.Accuracy.High : Location.Accuracy.BestForNavigation;
 }
@@ -114,7 +118,9 @@ export function useActiveRun(activityType: string = 'run') {
   const startTimeRef        = useRef<number>(0);
   const pauseStartRef     = useRef<number>(0);
   const totalPausedMsRef  = useRef<number>(0);
-  const lastPositionRef   = useRef<{ lat: number; lng: number } | null>(null);
+  // Distance filter state (gpsFilter): the last fix distance is measured from,
+  // and how many impossible jumps in a row have been seen.
+  const filterRef         = useRef<{ base: Fix | null; outliers: number }>({ base: null, outliers: 0 });
   const runIdRef          = useRef<string>('');
   const lastGpsStateUpdateRef = useRef<number>(0);
   const gpsPointsRef      = useRef<GPSPoint[]>([]);
@@ -130,7 +136,15 @@ export function useActiveRun(activityType: string = 'run') {
   const isPausedRef            = useRef<boolean>(false);
   // gpsLockedRef + consecutiveGoodPointsRef: prevents distance accumulation from iOS stale cache
   const gpsLockedRef           = useRef<boolean>(false);
+  // Time of the last fix that passed the accuracy gate while locked. If it goes stale
+  // (tunnel, dense buildings) the lock is dropped so the UI stops claiming "GPS locked"
+  // while distance and pace are frozen.
+  const lastGoodFixAtRef       = useRef<number>(0);
   const consecutiveGoodPointsRef = useRef(0);
+  // Android reports `mocked` on each fix when a mock-location provider supplied
+  // it. One such fix flags the whole run: it is sent to the server, which pays
+  // and claims nothing for it (security audit H1).
+  const mockedLocationRef = useRef(false);
   const prevAltitudeRef        = useRef<number | null>(null);
   const elevationGainRef       = useRef<number>(0);
   const lastKmRef              = useRef<number>(0);
@@ -176,14 +190,15 @@ export function useActiveRun(activityType: string = 'run') {
   // in the background, that's all of them.
   const mergeBgPoints = useCallback((bgPoints: ReturnType<typeof drainBgGpsBuffer>): boolean => {
     const pts = gpsPointsRef.current;
-    const { fresh, addedKm, lastPos } = screenOffAdditions(pts.length ? pts[pts.length - 1].timestamp : 0, lastPositionRef.current, bgPoints);
-    totalDistanceRef.current += addedKm;
-    lastPositionRef.current = lastPos;
-    for (const pt of fresh) {
+    const fresh = freshScreenOffFixes(pts.length ? pts[pts.length - 1].timestamp : 0, bgPoints);
+    const r = addFixes(filterRef.current, fresh, maxSpeedFor(activityType));
+    filterRef.current = { base: r.base, outliers: r.outliers };
+    totalDistanceRef.current += r.addedM / 1000;
+    for (const pt of r.kept) {
       gpsPointsRef.current.push({ lat: pt.lat, lng: pt.lng, timestamp: pt.timestamp, speed: pt.speed, accuracy: pt.accuracy, altitude: 0 });
     }
-    return fresh.length > 0;
-  }, []);
+    return r.kept.length > 0;
+  }, [activityType]);
 
   // ── Start ───────────────────────────────────────────────────────────────────
   const startRun = useCallback(async () => {
@@ -214,7 +229,8 @@ export function useActiveRun(activityType: string = 'run') {
     autoPausedRef.current = false;
     stoppedSinceRef.current = null;
 
-    await activateKeepAwakeAsync();
+    // Keeping the screen awake is a nicety; failing to get it must not stop the run starting.
+    await activateKeepAwakeAsync().catch(() => {});
 
     // CRITICAL PATH (useActiveRun): fire-and-forget funnel event, no GPS/lat-lng in
     // properties — track() never throws, so this can't affect the run starting below.
@@ -248,8 +264,9 @@ export function useActiveRun(activityType: string = 'run') {
     startTimeRef.current     = Date.now();
     pauseStartRef.current    = 0;
     totalPausedMsRef.current = 0;
-    lastPositionRef.current  = null;
+    filterRef.current        = { base: null, outliers: 0 };
     runIdRef.current         = crypto.randomUUID();
+    mockedLocationRef.current = false;
     gpsPointsRef.current     = [];
     pendingDistanceRef.current = 0;
     totalDistanceRef.current   = 0;
@@ -288,6 +305,17 @@ export function useActiveRun(activityType: string = 'run') {
 
     // 1-second timer
     timerRef.current = setInterval(() => {
+      // Signal-loss watchdog: no accepted fix for GPS_STALE_MS while moving → unlock.
+      // Re-locking needs GPS_LOCK_REQUIRED_POINTS good fixes again (existing gate).
+      if (isPausedRef.current) lastGoodFixAtRef.current = Date.now();   // don't count paused time as signal loss
+      if (
+        gpsLockedRef.current && !isPausedRef.current &&
+        Date.now() - lastGoodFixAtRef.current > GPS_STALE_MS
+      ) {
+        gpsLockedRef.current = false;
+        consecutiveGoodPointsRef.current = 0;
+        setGpsLocked(false);
+      }
       setState(prev => {
         if (prev.isPaused) return prev;
         const totalElapsed = Math.floor(
@@ -298,8 +326,27 @@ export function useActiveRun(activityType: string = 'run') {
       });
     }, 1000);
 
+    // watchPositionAsync rejects when Location Services are off (or the
+    // permission was revoked in between). By now `isRunning` is true and the
+    // timers are ticking, and isStartingRef would stay set forever, so Start
+    // silently did nothing until the app restarted. Undo the start instead.
+    const abortStart = (err: unknown) => {
+      console.warn('[useActiveRun] GPS watcher failed to start:', err);
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      if (checkpointIntervalRef.current) { clearInterval(checkpointIntervalRef.current); checkpointIntervalRef.current = null; }
+      appStateSubRef.current?.remove();
+      appStateSubRef.current = null;
+      deactivateKeepAwake();
+      setState(prev => ({
+        ...prev,
+        isRunning: false,
+        gpsError: "Couldn't start GPS. Check that Location Services are on, then try again.",
+      }));
+      isStartingRef.current = false;
+    };
+
     // GPS watcher
-    locationSubRef.current = await Location.watchPositionAsync(
+    const watchSub = await Location.watchPositionAsync(
       {
         accuracy:     gpsAccuracy,
         timeInterval: 1000,
@@ -310,12 +357,18 @@ export function useActiveRun(activityType: string = 'run') {
         // The fix's own time, the same clock the background buffer stores, so
         // the two can be lined up when merging (mergeBgPoints).
         const now = location.timestamp || Date.now();
-        const gpsSpeed = speed ?? 0;
+        // iOS reports speed = -1 (and some devices null) when a fix has no valid
+        // speed. That is "unknown", not "standing still": reading it as 0 made
+        // the auto-pause logic stop the run on any poor fix, and put a negative
+        // speed in the trace.
+        const speedKnown = typeof speed === 'number' && Number.isFinite(speed) && speed >= 0;
+        const gpsSpeed = speedKnown ? (speed as number) : 0;
+        if ((location as { mocked?: boolean }).mocked === true) mockedLocationRef.current = true;
 
         // Auto-pause / auto-resume — evaluated even while already paused, so a
         // stop this hook triggered can detect movement resuming. Never engages
         // if the user paused manually (manualPauseRef), and never overrides one.
-        if (autoPauseEnabledRef.current && !manualPauseRef.current) {
+        if (autoPauseEnabledRef.current && !manualPauseRef.current && speedKnown) {
           if (gpsSpeed < AUTO_PAUSE_SPEED_MS) {
             if (stoppedSinceRef.current == null) {
               stoppedSinceRef.current = now;
@@ -334,7 +387,7 @@ export function useActiveRun(activityType: string = 'run') {
             if (autoPausedRef.current) {
               autoPausedRef.current = false;
               totalPausedMsRef.current += now - pauseStartRef.current;
-              lastPositionRef.current = null;
+              filterRef.current = { base: null, outliers: 0 };
               isPausedRef.current = false;
               setState(prev => ({ ...prev, isPaused: false }));
               feedback.runStart();
@@ -359,28 +412,23 @@ export function useActiveRun(activityType: string = 'run') {
         consecutiveGoodPointsRef.current++;
         if (!gpsLockedRef.current && consecutiveGoodPointsRef.current >= GPS_LOCK_REQUIRED_POINTS) {
           gpsLockedRef.current = true;
+          lastGoodFixAtRef.current = now;
           setGpsLocked(true);
         }
         if (!gpsLockedRef.current) return;
+        lastGoodFixAtRef.current = now;
 
-        let deltaKm = 0;
-        if (lastPositionRef.current) {
-          const d = haversineM(
-            lastPositionRef.current,
-            { lat: latitude, lng: longitude },
-          );
-          if (d >= 100) {
-            // GPS teleport / bad lock — skip
-            lastPositionRef.current = { lat: latitude, lng: longitude };
-            return;
-          }
-          if (d >= 1) {
-            deltaKm = d / 1000;
-            pendingDistanceRef.current += deltaKm;
-            totalDistanceRef.current   += deltaKm;
-          }
+        if (!isFinite(latitude) || !isFinite(longitude)) return;
+        // Distance through the same filter as screen-off fixes (gpsFilter):
+        // spikes ignored, standing drift not counted, tunnel gaps kept.
+        const step = addFixes(filterRef.current, [{ lat: latitude, lng: longitude, timestamp: now, accuracy: accuracy ?? 10 }], maxSpeedFor(activityType));
+        filterRef.current = { base: step.base, outliers: step.outliers };
+        if (step.kept.length === 0) return;   // an outlier: not distance, not trace
+        const deltaKm = step.addedM / 1000;
+        if (deltaKm > 0) {
+          pendingDistanceRef.current += deltaKm;
+          totalDistanceRef.current   += deltaKm;
         }
-        lastPositionRef.current = { lat: latitude, lng: longitude };
 
         // Accumulate elevation gain (>0.5m threshold filters out GPS altitude noise).
         // altitude is commonly null on the first fix or two (no 3D lock yet) — coercing
@@ -395,7 +443,6 @@ export function useActiveRun(activityType: string = 'run') {
           prevAltitudeRef.current = altitude;
         }
 
-        if (!isFinite(latitude) || !isFinite(longitude)) return;
         gpsPointsRef.current.push({ lat: latitude, lng: longitude, timestamp: now, speed: gpsSpeed, accuracy: accuracy ?? 10, altitude: altitude ?? 0 });
 
         // Live Run Sharing — fire-and-forget, throttled independently of the 1s
@@ -435,7 +482,9 @@ export function useActiveRun(activityType: string = 'run') {
           };
         });
       },
-    );
+    ).catch((err: unknown) => { abortStart(err); return null; });
+    if (!watchSub) return;
+    locationSubRef.current = watchSub;
 
     // Start background location task for screen-off tracking
     startBackgroundTracking(runIdRef.current, gpsAccuracy).catch(err =>
@@ -462,7 +511,7 @@ export function useActiveRun(activityType: string = 'run') {
   const resumeRun = useCallback(() => {
     totalPausedMsRef.current += Date.now() - pauseStartRef.current;
     // Reset last position so the first point after resume doesn't create a large delta
-    lastPositionRef.current = null;
+    filterRef.current = { base: null, outliers: 0 };
     manualPauseRef.current = false;
     stoppedSinceRef.current = null;
     isPausedRef.current = false;
@@ -527,6 +576,7 @@ export function useActiveRun(activityType: string = 'run') {
         avgPace:        finalPace,
         gpsPoints:      gpsPointsRef.current,
         elevationGainM: Math.round(elevationGainRef.current),
+        ...(mockedLocationRef.current && { mockedLocation: true }),
       });
     } catch (err) {
       console.error('[useActiveRun] endRunSession threw:', err);

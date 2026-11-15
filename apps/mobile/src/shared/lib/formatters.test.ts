@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { fmtDist, fmtDistShort, fmtDuration, fmtPace } from './formatters';
+import { fmtDist, fmtDistShort, fmtDuration, fmtPace, convertPaceStringPerKm } from './formatters';
 
 describe('fmtDist', () => {
   it('formats meters as kilometers to 2 decimal places', () => {
@@ -41,5 +41,20 @@ describe('fmtPace', () => {
   it('formats seconds-per-km as m:ss', () => {
     expect(fmtPace(330)).toBe('5:30');
     expect(fmtPace(305)).toBe('5:05');
+  });
+});
+
+describe('pace rounding never prints 60 seconds', () => {
+  it('fmtPace carries into the minute', () => {
+    expect(fmtPace(359.6)).toBe('6:00');
+    expect(fmtPace(300)).toBe('5:00');
+    expect(fmtPace(329)).toBe('5:29');
+  });
+  it('convertPaceStringPerKm carries into the minute', () => {
+    expect(convertPaceStringPerKm('5:00', 'km')).toBe('5:00');
+    for (const s of ['4:59', '5:30', '6:01', '3:20', '7:59']) {
+      expect(convertPaceStringPerKm(s, 'mi')).toMatch(/^\d+:[0-5]\d$/);
+    }
+    expect(convertPaceStringPerKm('5:00', 'mi')).toBe('8:03');
   });
 });

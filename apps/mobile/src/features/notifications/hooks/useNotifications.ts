@@ -6,6 +6,7 @@ import { fetchNotifications, markNotificationRead, markAllNotificationsRead } fr
 export interface NotificationsState {
   notifs: AppNotification[];
   loading: boolean;
+  error: boolean;
   refreshing: boolean;
   unreadCount: number;
   markRead: (id: string) => void;
@@ -17,13 +18,15 @@ export function useNotifications(): NotificationsState {
   const [notifs, setNotifs] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     try {
       const data = await fetchNotifications();
       setNotifs(data);
-    } catch { /* offline */ } finally {
+      setError(false);
+    } catch { setError(true); } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -32,8 +35,10 @@ export function useNotifications(): NotificationsState {
   useEffect(() => { load(); }, [load]);
 
   const markRead = useCallback(async (id: string) => {
-    await markNotificationRead(id);
+    // Optimistic: the row reads as read immediately; put it back if the server refused.
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    try { await markNotificationRead(id); }
+    catch { setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: false } : n)); }
   }, []);
 
   const markAllRead = useCallback(async () => {
@@ -46,5 +51,5 @@ export function useNotifications(): NotificationsState {
   const refresh = useCallback(() => load(true), [load]);
   const unreadCount = notifs.filter(n => !n.read).length;
 
-  return { notifs, loading, refreshing, unreadCount, markRead, markAllRead, refresh };
+  return { notifs, loading, error, refreshing, unreadCount, markRead, markAllRead, refresh };
 }

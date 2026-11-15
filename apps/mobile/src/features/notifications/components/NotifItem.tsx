@@ -71,11 +71,13 @@ export function NotifItem({ notif, onPress, action, position = 'middle' }: Props
           {notif.body ? `${notif.body} · ` : ''}{fmtRelativeTime(notif.created_at)}
         </Text>
       </View>
+      {/* Unread dot always shows for unread rows, including ones with an action button. */}
+      {!notif.read ? <View style={s.dot} accessibilityLabel="Unread" /> : null}
       {action ? (
         <Pressable style={s.action} onPress={action.onPress} hitSlop={6} accessibilityRole="button">
           <Text style={s.actionText}>{action.label}</Text>
         </Pressable>
-      ) : !notif.read ? <View style={s.dot} /> : null}
+      ) : null}
     </Pressable>
   );
 }

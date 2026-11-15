@@ -36,15 +36,6 @@ export interface RunEvent {
   endsAt?: string;
 }
 
-export const CATEGORY_EMOJI: Record<string, string> = {
-  'community-run': '🏃',
-  'race': '🏆',
-  'challenge': '⚡',
-  'brand-challenge': '🎯',
-  'king-of-hill': '👑',
-  'survival': '💀',
-};
-
 export const DISCIPLINE_LABEL: Record<Discipline, string> = {
   marathon:       'Marathon',
   half_marathon:  'Half Marathon',
@@ -55,16 +46,4 @@ export const DISCIPLINE_LABEL: Record<Discipline, string> = {
   trail_run:      'Trail Run',
   community_run:  'Community Run',
   other:          'Other',
-};
-
-export const DISCIPLINE_EMOJI: Record<Discipline, string> = {
-  marathon:       '🏅',
-  half_marathon:  '🎽',
-  '10k':          '🏃',
-  '5k':           '🏃',
-  cyclothon:      '🚴',
-  triathlon:      '🏊',
-  trail_run:      '⛰️',
-  community_run:  '👥',
-  other:          '📅',
 };

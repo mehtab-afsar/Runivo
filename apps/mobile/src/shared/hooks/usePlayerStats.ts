@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getPlayer, savePlayer, getRuns, getAllTerritories, getTerritoryPolygons } from '@shared/services/store';
 import type { StoredPlayer, StoredRun } from '@shared/services/store';
 import { collectLoginBonus } from '@shared/services/passiveIncome';
@@ -9,13 +9,17 @@ export function usePlayerStats() {
   const [totalAreaM2, setTotalAreaM2] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loginBonusCoins, setLoginBonusCoins] = useState(0);
+  const [error, setError] = useState(false);
+  // `loading` is for the first load only. Reloading after an action (claiming a mission)
+  // keeps the screen on its current content instead of blanking it and resetting scroll.
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
     load();
   }, []);
 
   const load = async () => {
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       let p = await getPlayer();
 
@@ -37,6 +41,11 @@ export function usePlayerStats() {
       ]);
       setRecentRuns(runs);
       setTotalAreaM2(polygons.reduce((s, poly) => s + poly.areaM2, 0));
+      hasLoadedRef.current = true;
+      setError(false);
+    } catch {
+      // Keep whatever is already on screen; only the very first load shows an error state.
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -44,5 +53,5 @@ export function usePlayerStats() {
 
   const dismissLoginBonus = () => setLoginBonusCoins(0);
 
-  return { player, recentRuns, totalAreaM2, loading, loginBonusCoins, dismissLoginBonus, reload: load };
+  return { player, recentRuns, totalAreaM2, loading, error, loginBonusCoins, dismissLoginBonus, reload: load };
 }

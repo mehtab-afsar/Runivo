@@ -8,7 +8,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
+  // The app draws its own light UI (App.tsx forces it). 'automatic' left system alerts,
+  // the keyboard and sheets dark on a dark-mode phone while the app stayed light.
+  userInterfaceStyle: 'light',
   // Bundle the sounds folder so MP3s placed in assets/sounds/ are included
   // in both development and production builds without extra configuration.
   assetBundlePatterns: ['assets/**/*', 'assets/sounds/*'],
@@ -40,13 +42,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSLocationAlwaysUsageDescription:
         'Runivo uses your location in the background to continue tracking after you lock your screen.',
       NSCameraUsageDescription:
-        'Runivo uses the camera to photograph your shoes and scan your foot.',
+        'Runivo uses the camera to take your profile photo and photos of your shoes.',
       NSPhotoLibraryUsageDescription:
-        'Runivo needs access to your photos to attach images to your shoe log.',
+        'Runivo needs access to your photos so you can set your profile picture, add photos to your runs and posts, and attach photos to your shoe log.',
       NSHealthShareUsageDescription:
-        'Runivo reads your past workouts to calculate baselines and passive income.',
+        'Runivo can read your past running workouts from Apple Health to set your starting baseline, if you choose to import them.',
       NSHealthUpdateUsageDescription:
-        'Runivo saves completed runs to Apple Health.',
+        'Runivo saves your completed runs to Apple Health as running workouts.',
     },
     entitlements: {
       'com.apple.developer.healthkit': true,
@@ -55,13 +57,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'com.mehtabafsar.runivo',
-    // The Supabase session (access + refresh token) is persisted in AsyncStorage —
-    // see packages/shared/src/services/supabase.native.ts, which documents why
-    // SecureStore's 2048-char value cap ruled it out. With Android's default
-    // allowBackup=true that plaintext file is swept into the user's Google Drive by
-    // Auto Backup and is extractable via `adb backup` on older devices. Disable it:
-    // nothing in this app needs cloud backup of local state (everything syncs from
-    // Supabase on sign-in).
+    // The Supabase session (access + refresh token) is persisted in AsyncStorage, now
+    // ENCRYPTED with a key in the Keystore (packages/shared/src/services/secureSessionStorage.ts).
+    // Still disable Auto Backup: the rest of local state (runs, GPS traces, health data)
+    // is plain SQLite, and nothing in this app needs cloud backup of it — everything
+    // syncs from Supabase on sign-in.
     allowBackup: false,
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
@@ -89,6 +89,44 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         ios: {
           privacyManifests: {
+            // What the app collects, as declared in App Store Connect's App Privacy
+            // section. Keep the two in step (docs/APP_STORE_CHECKLIST.md).
+            // Nothing is used to track (no ads, no cross-app identifiers).
+            NSPrivacyTracking: false,
+            NSPrivacyCollectedDataTypes: [
+              ...[
+                ['NSPrivacyCollectedDataTypePreciseLocation', true],
+                ['NSPrivacyCollectedDataTypeCoarseLocation', true],
+                ['NSPrivacyCollectedDataTypeHealth', true],
+                ['NSPrivacyCollectedDataTypeFitness', true],
+                ['NSPrivacyCollectedDataTypeEmailAddress', true],
+                ['NSPrivacyCollectedDataTypePhoneNumber', true],
+                ['NSPrivacyCollectedDataTypeName', true],
+                ['NSPrivacyCollectedDataTypePhotosorVideos', true],
+                ['NSPrivacyCollectedDataTypeOtherUserContent', true],
+                ['NSPrivacyCollectedDataTypeDeviceID', true],
+                ['NSPrivacyCollectedDataTypePurchaseHistory', true],
+              ].map(([type, linked]) => ({
+                NSPrivacyCollectedDataType: type as string,
+                NSPrivacyCollectedDataTypeLinked: linked as boolean,
+                NSPrivacyCollectedDataTypeTracking: false,
+                NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+              })),
+              // First-party product analytics (PostHog), tied to the account id.
+              ...['NSPrivacyCollectedDataTypeUserID', 'NSPrivacyCollectedDataTypeProductInteraction'].map(type => ({
+                NSPrivacyCollectedDataType: type,
+                NSPrivacyCollectedDataTypeLinked: true,
+                NSPrivacyCollectedDataTypeTracking: false,
+                NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAnalytics', 'NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+              })),
+              // Crash and performance reports (Sentry): not linked to the account.
+              ...['NSPrivacyCollectedDataTypeCrashData', 'NSPrivacyCollectedDataTypePerformanceData'].map(type => ({
+                NSPrivacyCollectedDataType: type,
+                NSPrivacyCollectedDataTypeLinked: false,
+                NSPrivacyCollectedDataTypeTracking: false,
+                NSPrivacyCollectedDataTypePurposes: ['NSPrivacyCollectedDataTypePurposeAppFunctionality'],
+              })),
+            ],
             NSPrivacyAccessedAPITypes: [
               {
                 NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryFileTimestamp',
@@ -112,7 +150,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-font',
-    'expo-secure-store',
+    './plugins/withoutBackgroundFetch',
+    // faceIDPermission:false: the plugin otherwise adds a generic Face ID string and the app never uses biometrics.
+    ['expo-secure-store', { faceIDPermission: false }],
     [
       'expo-sqlite',
       {
@@ -145,7 +185,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-camera',
       {
-        cameraPermission: 'Runivo uses the camera to photograph your shoes and scan your foot.',
+        cameraPermission: 'Runivo uses the camera to take your profile photo and photos of your shoes.',
         microphonePermission: false,
         recordAudioAndroid: false,
       },
@@ -170,8 +210,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-image-picker',
       {
-        photosPermission: 'Runivo needs access to your photos to attach images to your shoe log.',
-        cameraPermission: 'Runivo uses the camera to photograph your shoes.',
+        photosPermission: 'Runivo needs access to your photos so you can set your profile picture, add photos to your runs and posts, and attach photos to your shoe log.',
+        cameraPermission: 'Runivo uses the camera to take your profile photo and photos of your shoes.',
       },
     ],
     // Must be passed as [plugin, props] — the plugin dereferences
@@ -185,18 +225,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       '@kingstinct/react-native-healthkit',
       {
         NSHealthShareUsageDescription:
-          'Runivo reads your past workouts to calculate baselines and passive income.',
+          'Runivo can read your past running workouts from Apple Health to set your starting baseline, if you choose to import them.',
         NSHealthUpdateUsageDescription:
-          'Runivo saves completed runs to Apple Health.',
+          'Runivo saves your completed runs to Apple Health as running workouts.',
       },
     ],
     '@maplibre/maplibre-react-native',
     '@sentry/react-native',
     'expo-updates',
   ],
-  web: {
-    favicon: './assets/favicon.png',
-  },
   extra: {
     eas: {
       // The real EAS project id (registered under com.mehtabafsar.runivo).

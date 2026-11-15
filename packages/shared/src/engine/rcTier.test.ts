@@ -3,7 +3,7 @@
  * edge function (supabase/functions/_shared/rcTier.ts, pure TS, no Deno APIs).
  */
 import { describe, it, expect } from 'vitest';
-import { decideTierUpdates, usersInEvent } from '../../../../supabase/functions/_shared/rcTier';
+import { decideTierUpdates, usersInEvent, isStaleEvent, expiryFor } from '../../../../supabase/functions/_shared/rcTier';
 
 const U = 'u1';
 const ev = (type: string, extra: Record<string, unknown> = {}) =>
@@ -53,5 +53,23 @@ describe('RevenueCat event → tier', () => {
   it('test and unknown events are ignored', () => {
     expect(decideTierUpdates(ev('TEST'), { [U]: 'free' })).toEqual([]);
     expect(decideTierUpdates({ type: 'INITIAL_PURCHASE' }, { [U]: 'free' })).toEqual([]);
+  });
+});
+
+describe('RevenueCat event order and expiry', () => {
+  it('skips an event older than the last one applied (a late EXPIRATION after a RENEWAL)', () => {
+    const renewedAt = '2026-11-10T10:00:00.000Z';
+    expect(isStaleEvent(ev('EXPIRATION', { event_timestamp_ms: Date.parse('2026-11-09T10:00:00Z') }), renewedAt)).toBe(true);
+    expect(isStaleEvent(ev('EXPIRATION', { event_timestamp_ms: Date.parse('2026-12-10T10:00:00Z') }), renewedAt)).toBe(false);
+  });
+  it('applies events with no timestamp, or for runners with none recorded', () => {
+    expect(isStaleEvent(ev('RENEWAL'), '2026-11-10T10:00:00Z')).toBe(false);
+    expect(isStaleEvent(ev('RENEWAL', { event_timestamp_ms: 1 }), null)).toBe(false);
+  });
+  it('stores the period end with Plus, and nothing with Free', () => {
+    const end = Date.parse('2026-12-15T00:00:00Z');
+    expect(expiryFor(ev('RENEWAL', { expiration_at_ms: end }), 'premium')).toBe('2026-12-15T00:00:00.000Z');
+    expect(expiryFor(ev('NON_RENEWING_PURCHASE', { expiration_at_ms: null }), 'premium')).toBeNull();
+    expect(expiryFor(ev('EXPIRATION', { expiration_at_ms: end }), 'free')).toBeNull();
   });
 });

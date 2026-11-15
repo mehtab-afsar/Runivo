@@ -1,3 +1,4 @@
+import { safeRing, safeLine, safeCenter } from '@mobile/shared/map/geo';
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -37,7 +38,7 @@ export default function TerritoryMapScreen() {
   useEffect(() => {
     if (!clubId) return;
     fetchClubTerritory(clubId).then(zs => {
-      setClubShape({ type: 'FeatureCollection', features: zs.map(z => ({ type: 'Feature', properties: { id: z.id }, geometry: { type: 'Polygon', coordinates: [z.ring] } })) });
+      setClubShape({ type: 'FeatureCollection', features: zs.flatMap(z => { const ring = safeRing(z.ring); return ring ? [{ type: 'Feature', properties: { id: z.id }, geometry: { type: 'Polygon', coordinates: [ring] } }] : []; }) });
       const pts = zs.flatMap(z => z.ring);
       if (pts.length) {
         const lngs = pts.map(p => p[0]), lats = pts.map(p => p[1]);
@@ -48,7 +49,7 @@ export default function TerritoryMapScreen() {
 
   const {
     ownPolygons, rivalPolygons, geoJSON, activeFilter, setActiveFilter,
-    selectedPolygon, setSelectedPolygon, stats, isLoadingRivals,
+    selectedPolygon, setSelectedPolygon, stats, isLoadingRivals, ownLoaded,
     defaultCenter, handleBboxChange, locationStatus, requestLocation,
   } = useTerritoryMap(initialFilter);
   const [locationCardDismissed, setLocationCardDismissed] = useState(false);
@@ -61,8 +62,9 @@ export default function TerritoryMapScreen() {
     getRuns(1000).then(runs => {
       const lines = runs.filter(r => !r.excluded && (r.gpsPoints?.length ?? 0) > 1).map(r => {
         const step = Math.max(1, Math.floor(r.gpsPoints.length / 300));
-        return r.gpsPoints.filter((_, i) => i % step === 0).map(p => [p.lng, p.lat]);
-      });
+        return safeLine(r.gpsPoints.filter((_, i) => i % step === 0).map(p => [p.lng, p.lat]));
+      }).filter((l): l is NonNullable<typeof l> => l !== null);
+      if (lines.length === 0) { setHeatShape(null); return; }
       setHeatShape({ type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates: lines } });
     }).catch(() => {});
   }, [heatmapOn]);
@@ -130,7 +132,7 @@ export default function TerritoryMapScreen() {
     });
   }
 
-  const isEmpty = ownPolygons.length === 0 && rivalPolygons.length === 0 && !isLoadingRivals;
+  const isEmpty = ownLoaded && ownPolygons.length === 0 && rivalPolygons.length === 0 && !isLoadingRivals;
 
   return (
     <View style={ss.container}>
@@ -143,30 +145,37 @@ export default function TerritoryMapScreen() {
       >
         <ML.Camera
           ref={cameraRef}
-          centerCoordinate={defaultCenter}
+          centerCoordinate={safeCenter(defaultCenter)}
           zoomLevel={13}
           animationDuration={0}
         />
         {/* Native dot: MapLibre's JS-animated puck breaks on React Native 0.83 (see patches/). */}
         {locationGranted && <ML.UserLocation visible renderMode="native" />}
-        {geoJSON.features.length > 0 && (
-          <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
-            <ML.LineLayer id="territory-new-halo" style={zoneStyles.newHalo as any} filter={zoneStyles.newFilter as any} />
-            <ML.FillLayer id="territory-fill" style={zoneStyles.fill as any} />
-            <ML.LineLayer id="territory-line" style={zoneStyles.line as any} />
-            <ML.LineLayer id="territory-fading" style={zoneStyles.fadingLine as any} filter={zoneStyles.fadingFilter as any} />
-            <ML.LineLayer id="territory-selected" style={zoneStyles.selectedLine as any} filter={selectedFilter} />
+        {/* Under the zones. It used to be placed below "territory-line", which
+            didn't exist whenever there were no zones to draw; the zone layers
+            are now always mounted, so this anchor is always there. */}
+        {heatShape && (
+          <ML.ShapeSource id="heatmap" shape={heatShape}>
+            <ML.LineLayer id="heatmap-line" belowLayerID="territory-new-halo" style={{ lineColor: zonePal.own, lineOpacity: 0.22, lineWidth: 4, lineCap: 'round', lineJoin: 'round' } as any} />
           </ML.ShapeSource>
         )}
+        {/* Always mounted (empty when there's nothing to draw), so layers that
+            reference these ids never point at a missing layer. */}
+        <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
+          <ML.LineLayer id="territory-new-halo" style={zoneStyles.newHalo as any} filter={zoneStyles.newFilter as any} />
+          {zoneStyles.kinds.map(k => (
+            <React.Fragment key={k.key}>
+              <ML.FillLayer id={`territory-fill-${k.key}`} filter={k.filter as any} style={k.fill as any} />
+              <ML.LineLayer id={`territory-line-${k.key}`} filter={k.filter as any} style={k.line as any} />
+            </React.Fragment>
+          ))}
+          <ML.LineLayer id="territory-fading" style={zoneStyles.fadingLine as any} filter={zoneStyles.fadingFilter as any} />
+          <ML.LineLayer id="territory-selected" style={zoneStyles.selectedLine as any} filter={selectedFilter} />
+        </ML.ShapeSource>
         {clubShape && (
           <ML.ShapeSource id="club-ground" shape={clubShape}>
             <ML.FillLayer id="club-ground-fill" style={{ fillColor: '#7A5AF8', fillOpacity: 0.28 } as any} />
             <ML.LineLayer id="club-ground-line" style={{ lineColor: '#7A5AF8', lineWidth: 2 } as any} />
-          </ML.ShapeSource>
-        )}
-        {heatShape && (
-          <ML.ShapeSource id="heatmap" shape={heatShape}>
-            <ML.LineLayer id="heatmap-line" belowLayerID="territory-line" style={{ lineColor: zonePal.own, lineOpacity: 0.22, lineWidth: 4, lineCap: 'round', lineJoin: 'round' } as any} />
           </ML.ShapeSource>
         )}
         {loopShape && (

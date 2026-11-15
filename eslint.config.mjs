@@ -4,6 +4,13 @@ import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import react from 'eslint-plugin-react';
 
+// One entry per folder in apps/mobile/src/features. Add a new feature here too.
+const FEATURES = [
+  'auth', 'challenges', 'clubs', 'coach', 'dashboard', 'events', 'gear', 'goals', 'history', 'leaderboard',
+  'missions', 'notifications', 'nutrition', 'profile', 'run', 'settings', 'social', 'store', 'subscription',
+  'territory', 'training',
+];
+
 const compat = new FlatCompat({ baseDirectory: fileURLToPath(new URL('.', import.meta.url)) });
 
 export default tseslint.config(
@@ -51,6 +58,24 @@ export default tseslint.config(
       'react-hooks/exhaustive-deps': 'warn',
     },
   },
+
+  // ── Feature boundaries (warn only: the count is the to-do list) ─────────────
+  // A feature may import from itself, from src/shared, src/theme and packages/shared,
+  // but not reach into another feature's folders. Each such import is a coupling the
+  // restructure in docs/AUDIT_2026-11.md has to untangle (it caused the run⇄settings,
+  // social⇄clubs and profile⇄social cycles). Move the shared piece to src/shared (UI,
+  // helpers) or give it a home in the feature that owns it and import that.
+  ...FEATURES.map(feature => ({
+    files: [`apps/mobile/src/features/${feature}/**/*.{ts,tsx}`],
+    rules: {
+      'no-restricted-imports': ['warn', {
+        patterns: [{
+          group: ['@features/*', `!@features/${feature}`, `!@features/${feature}/**`],
+          message: `Cross-feature import from "${feature}". Move the shared code to src/shared, or to the feature that owns it.`,
+        }],
+      }],
+    },
+  })),
 
   // ── apps/web: Next.js's own rules (core-web-vitals + TS) via FlatCompat ─────
   ...compat.extends('next/core-web-vitals', 'next/typescript').map(cfg => ({

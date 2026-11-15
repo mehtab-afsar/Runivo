@@ -6,7 +6,7 @@ import { setAccessToken as maplibreSetAccessToken } from '@maplibre/maplibre-rea
 maplibreSetAccessToken('');
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import {
@@ -19,10 +19,11 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import AgeGateScreen from './src/features/auth/screens/AgeGateScreen';
 import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
 import { getProfile } from '@shared/services/profile';
-import { pushProfile, initialSync, setAiCoachEnabled } from '@shared/services/sync';
+import { pushProfile, initialSync, pushUnsyncedRuns, setAiCoachEnabled } from '@shared/services/sync';
 import { FEATURES } from './src/config/features';
 import { supabase } from '@shared/services/supabase';
 import { ToastProvider } from './src/shared/components/ToastProvider';
@@ -74,6 +75,8 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
     setHapticEnabled(settings.hapticEnabled ?? true);
   }, [settings.soundEnabled, settings.hapticEnabled]);
   const [needsOnboarding, setNeedsOnboarding]       = useState(false);
+  // Not yet through the age screen (profiles.age_confirmed_at is null): shown before anything else.
+  const [needsAgeGate, setNeedsAgeGate]               = useState(false);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [splashDone, setSplashDone]                 = useState(false);
 
@@ -92,17 +95,23 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
   }
 
   useEffect(() => {
-    if (!user) { setCheckingOnboarding(false); return; }
+    if (!user) { setNeedsAgeGate(false); setCheckingOnboarding(false); return; }
     setCheckingOnboarding(true);
     // Guards against a rapid sign-out→sign-in-as-different-account race: without
     // it, the PREVIOUS user's in-flight profile response could resolve after the
     // new user's effect run and set needsOnboarding for the wrong account.
     let cancelled = false;
     Promise.resolve(
-      supabase.from('profiles').select('onboarding_completed_at').eq('id', user.id).maybeSingle()
+      supabase.from('profiles').select('onboarding_completed_at, age_confirmed_at').eq('id', user.id).maybeSingle()
     )
-      .then(async ({ data }) => {
+      .then(async ({ data, error }) => {
         if (cancelled) return;
+        // supabase-js reports a network/RLS failure as { data: null, error }, it
+        // does not reject. Reading that as "no profile data" sent returning users
+        // (reinstall + a flaky connection) back through onboarding. Treat it as
+        // "unknown" and let the local-state fallback below decide.
+        if (error) throw error;
+        setNeedsAgeGate(!(data as { age_confirmed_at?: string | null } | null)?.age_confirmed_at);
         // The handle_new_user trigger always creates a profile row, so `data` is
         // essentially never null — trusting it exclusively meant a swallowed
         // pushProfile() failure at the end of onboarding (saveOnboardingData)
@@ -122,8 +131,13 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
         }
         setNeedsOnboarding(true);
       })
-      .catch(() => {
+      .catch(async () => {
         if (cancelled) return;
+        // Server unreachable: do not lock a returning runner out; the screen is asked again next launch.
+        setNeedsAgeGate(false);
+        // Unknown server state: finished onboarding on this phone counts.
+        const localProfile = await getProfile().catch(() => undefined);
+        if (localProfile?.onboardingCompletedAt) { setNeedsOnboarding(false); return; }
         return getPlayer()
           .then(player => setNeedsOnboarding(!player))
           .catch(() => setNeedsOnboarding(true));
@@ -147,6 +161,23 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
     initialSyncedUserIdRef.current = user.id;
     initialSync().catch(() => {});
     identify(user.id);
+  }, [user?.id]);
+
+  // A run saved offline used to wait for the next cold start (or the next run) to
+  // upload. Retry whenever the app comes back to the foreground, at most once a
+  // minute; pushUnsyncedRuns() already de-duplicates concurrent calls and is a
+  // no-op when nothing is pending or the user is signed out.
+  useEffect(() => {
+    if (!user) return;
+    let lastTry = 0;
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      const now = Date.now();
+      if (now - lastTry < 60_000) return;
+      lastTry = now;
+      pushUnsyncedRuns().catch(() => {});
+    });
+    return () => sub.remove();
   }, [user?.id]);
 
   // Home area for the "near you" lists; waits for onboarding, which sets it first.
@@ -176,7 +207,9 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
     <ThemeProvider isDark={isDark}>
       <View style={[styles.root, { backgroundColor: isDark ? '#0D0D0D' : '#F8F6F3' }]}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
-        {authReady && (
+        {authReady && user && needsAgeGate ? (
+          <AgeGateScreen userId={user.id} onConfirmed={() => setNeedsAgeGate(false)} />
+        ) : authReady && (
           <AppNavigator isAuthenticated={user !== null} needsOnboarding={needsOnboarding} />
         )}
         {!splashDone && (

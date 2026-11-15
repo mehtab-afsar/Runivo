@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, Switch, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { HeartPulse } from 'lucide-react-native';
 import { healthBaseline, formatDuration, type HealthBaseline } from '@shared/engine/onboarding';
@@ -26,20 +26,29 @@ export default function HealthStep({ consent, baseline, onChange }: Props) {
   const [loading, setLoading] = useState(false);
   const [checked, setChecked] = useState(false);
 
+  // Bumped on every toggle. A slow import that resolves after the user has switched the
+  // consent off (or on again) is stale and must not flip their choice back.
+  const requestRef = useRef(0);
+
   async function toggle(on: boolean) {
-    if (!on) { onChange(false, null); setChecked(false); return; }
+    const req = ++requestRef.current;
+    if (!on) { onChange(false, null); setChecked(false); setLoading(false); return; }
     onChange(true, null);
     setLoading(true);
     try {
       const workouts = await readRecentWorkouts(90);
+      if (req !== requestRef.current) return;
       const b = healthBaseline(workouts, Date.now(), 90);
       onChange(true, b);
       track('onboarding_health_import', { runs: b?.runs ?? 0 });
     } catch {
+      if (req !== requestRef.current) return;
       onChange(true, null);
     } finally {
-      setLoading(false);
-      setChecked(true);
+      if (req === requestRef.current) {
+        setLoading(false);
+        setChecked(true);
+      }
     }
   }
 

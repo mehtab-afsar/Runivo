@@ -6,7 +6,7 @@
 - [x] `splash-icon.png` — 1024×1024 px ✓
 - [x] `android-icon-foreground.png` — 512×512 px ✓
 - [x] `eas.json` — development / preview / production profiles configured ✓
-- [x] `app.config.ts` — bundleIdentifier `com.runivo.app`, permissions, HealthKit ✓
+- [x] `app.config.ts` — bundleIdentifier `com.mehtabafsar.runivo`, permissions, HealthKit ✓
 - [x] Background location plugin configured ✓
 - [x] `assets/sounds/` directory present ✓
 
@@ -23,11 +23,19 @@ EXPO_PUBLIC_POSTHOG_API_KEY      = (from your PostHog project settings)
 EXPO_PUBLIC_POSTHOG_HOST         = https://us.i.posthog.com
 ```
 
-RevenueCat is NOT part of this launch — v1 ships free-tier-only. No
-`REVENUECAT_IOS_KEY`/`REVENUECAT_ANDROID_KEY` are required, and
-`react-native-purchases` isn't installed. Add these when RevenueCat is actually wired
-in a future pass — don't set them now, an unused key is a false signal that
-monetization is live.
+RevenueCat IS part of this launch (Runivo Plus). Set these in the EAS dashboard
+(Secrets / environment variables), not as empty strings in `eas.json`:
+
+```
+EXPO_PUBLIC_RC_API_KEY_IOS       = (RevenueCat public iOS SDK key)
+EXPO_PUBLIC_RC_API_KEY_ANDROID   = (RevenueCat public Android SDK key)
+```
+
+`react-native-purchases` is installed. The client switch (`SUBSCRIPTIONS_ENABLED` in
+`packages/shared/src/engine/entitlements.ts`), the server row
+(`app_settings.subscriptions_enabled`) and the edge-function switch
+(`supabase/functions/_shared/subscriptions.ts`) must all be true in the build you
+submit. Create the two subscriptions in App Store Connect first.
 
 ## eas.json submit fields to fill in
 
@@ -66,10 +74,10 @@ eas submit --platform android --profile production
 
 1. Go to https://appstoreconnect.apple.com
 2. My Apps → "+" → New App
-3. Platform: iOS, Name: "Runivo", Bundle ID: com.runivo.app
+3. Platform: iOS, Name: "Runivo", Bundle ID: com.mehtabafsar.runivo
 4. Fill in pricing (free), primary language (English), age rating
 5. Upload screenshots (5 per device size)
-6. Paste description, keywords, subtitle from `app-store-listing.md`
+6. Paste description, keywords, subtitle from `store-metadata/ios/en-US/` (see `app-store-listing.md` for the other fields)
 7. Set privacy policy URL: https://runivo.app/privacy
 8. Submit for review
 

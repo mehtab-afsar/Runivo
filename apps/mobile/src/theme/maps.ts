@@ -27,15 +27,23 @@
 // ── Providers ────────────────────────────────────────────────────────────────
 
 const CARTO = 'https://basemaps.cartocdn.com/gl';
+/**
+ * CARTO basemap key (free at carto.com/basemaps/apikey: 1M tile requests a
+ * month for commercial use). Vector styles still load without one, but CARTO
+ * says the key requirement may extend to them, so set EXPO_PUBLIC_MAP_TILE_KEY
+ * before launch. Unset, the URLs stay as they are.
+ */
+const CARTO_KEY = process.env.EXPO_PUBLIC_MAP_TILE_KEY;
+const carto = (style: string) => `${CARTO}/${style}/style.json${CARTO_KEY ? `?key=${encodeURIComponent(CARTO_KEY)}` : ''}`;
 
-/** CARTO vector styles. Keyless free tier — attribution required. */
+/** CARTO vector styles. Attribution required. */
 export const MapStyleUrl = {
   /** Light, low-saturation. The app default. */
-  positron:   `${CARTO}/positron-gl-style/style.json`,
+  positron:   carto('positron-gl-style'),
   /** Near-black. Used for run/replay/summary heroes. */
-  darkMatter: `${CARTO}/dark-matter-gl-style/style.json`,
+  darkMatter: carto('dark-matter-gl-style'),
   /** Slightly warmer light style. */
-  voyager:    `${CARTO}/voyager-gl-style/style.json`,
+  voyager:    carto('voyager-gl-style'),
 } as const;
 
 /** Raster tile sources must be wrapped in an inline GL style JSON. */

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { useTheme, useIsDark, Type, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { convertKm, convertPaceStringPerKm } from '@mobile/shared/lib/formatters';

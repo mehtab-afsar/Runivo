@@ -1,3 +1,4 @@
+import { safeRing, safeCenter } from '@mobile/shared/map/geo';
 import { isNewCapture } from '@theme/territory';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,6 +22,9 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
   const [activeFilter, setActiveFilter]       = useState<TerritoryFilter>(initialFilter ?? 'all');
   const [selectedPolygon, setSelectedPolygon] = useState<TerritoryDetails | null>(null);
   const [isLoadingRivals, setIsLoadingRivals] = useState(false);
+  // False until the first fetch of the user's own zones settles, so the screen can tell
+  // "still loading" from "you really have no zones" (it flashed "No zones yet" on every open).
+  const [ownLoaded, setOwnLoaded]              = useState(false);
   const [deviceLocation, setDeviceLocation]   = useState<[number, number] | null>(null);
   const [currentUserId, setCurrentUserId]     = useState('');
   const [homeArea, setHomeArea]               = useState<[number, number] | null>(null);
@@ -56,8 +60,12 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
 
   const loadOwnPolygons = useCallback(async () => {
     if (!currentUserId) return;
-    const polys = await fetchOwnPolygons(currentUserId);
-    setOwnPolygons(polys);
+    try {
+      const polys = await fetchOwnPolygons(currentUserId);
+      setOwnPolygons(polys);
+    } catch { /* keep what is drawn */ } finally {
+      setOwnLoaded(true);
+    }
   }, [currentUserId]);
 
   useFocusEffect(useCallback(() => {
@@ -96,11 +104,12 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
   const geoJSON = useMemo((): FeatureCollection => ({
     type: 'FeatureCollection',
     features: visiblePolygons
-      .filter(p => p.polygon.length >= 3)
-      .map(p => ({
+      .map(p => ({ p, ring: safeRing(p.polygon) }))
+      .filter((x): x is { p: TerritoryPolygon; ring: NonNullable<ReturnType<typeof safeRing>> } => x.ring !== null)
+      .map(({ p, ring }) => ({
         type: 'Feature',
         id: p.id,
-        geometry: { type: 'Polygon', coordinates: [p.polygon] },
+        geometry: { type: 'Polygon', coordinates: [ring] },
         properties: {
           id:         p.id,
           ownerId:    p.ownerId,
@@ -140,10 +149,12 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
   const newestZone = useMemo((): [number, number] | null => {
     if (ownPolygons.length === 0) return null;
     const z = ownPolygons.reduce((a, b) => ((b.claimedAt ?? '') > (a.claimedAt ?? '') ? b : a));
-    const ring = z.polygon;
-    return [ring.reduce((s, c) => s + c[0], 0) / ring.length, ring.reduce((s, c) => s + c[1], 0) / ring.length];
+    const ring = safeRing(z.polygon);
+    if (!ring) return null;
+    return safeCenter([ring.reduce((s, c) => s + c[0], 0) / ring.length, ring.reduce((s, c) => s + c[1], 0) / ring.length]) ?? null;
   }, [ownPolygons]);
-  const centre = deviceLocation ?? newestZone ?? homeArea ?? [0, 0];
+  // A NaN or 0,0 centre (no fix yet, a bad zone) used to reach the camera.
+  const centre = safeCenter(deviceLocation) ?? newestZone ?? safeCenter(homeArea) ?? [0, 0];
   // Same array while the values hold, so a reload of the zones doesn't snap
   // the camera back while the runner is panning around.
   const defaultCenter = useMemo((): [number, number] => centre, [centre[0].toFixed(5), centre[1].toFixed(5)]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -159,6 +170,7 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
     setSelectedPolygon,
     stats,
     isLoadingRivals,
+    ownLoaded,
     deviceLocation,
     defaultCenter,
     handleBboxChange,

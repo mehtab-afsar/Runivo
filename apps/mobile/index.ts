@@ -43,14 +43,7 @@ if (typeof (global as any).window !== 'undefined' && !(global as any).window.loc
   };
 }
 
-// 3. TextDecoder / TextEncoder polyfill
-// Always override — Hermes has a native TextDecoder but it doesn't support
-// utf-16le which h3-js requires at module load time.
-const { TextDecoder, TextEncoder } = require('text-encoding');
-(global as any).TextDecoder = TextDecoder;
-(global as any).TextEncoder = TextEncoder;
-
-// 4. Register app
+// 3. Register app
 const { registerRootComponent } = require('expo');
 const App = require('./App').default;
 registerRootComponent(App);

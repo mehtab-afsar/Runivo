@@ -20,7 +20,8 @@ import RunSetupSheet from '../components/RunSetupSheet';
 import ActivityModal from '../components/ActivityModal';
 import RouteModal    from '../components/RouteModal';
 import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint, type GPSPoint } from '../hooks/useActiveRun';
-import { stopBackgroundTracking, clearBgGpsBuffer, cleanupOrphanedBackgroundTask } from '../services/locationTask';
+import { stopBackgroundTracking, clearBgGpsBuffer, drainBgGpsBuffer, cleanupOrphanedBackgroundTask } from '../services/locationTask';
+import { freshScreenOffFixes } from '../services/screenOffMerge';
 import { haversineM } from '@shared/services/claimEngine';
 import { formatPace } from '@shared/lib/paceFormat';
 
@@ -37,6 +38,16 @@ async function recoverRunFromCheckpoint(
   points: GPSPoint[],
   activityType: string,
 ): Promise<void> {
+  // Stop the background task first so nothing new lands, then take what it
+  // buffered. On Android the live watcher stops with the screen off, so the
+  // checkpoint (written from that watcher) is missing every screen-off stretch;
+  // the buffer is the only copy. This used to clear it unread.
+  await stopBackgroundTracking().catch(() => {});
+  const lastTs = points.length ? points[points.length - 1].timestamp : 0;
+  const bgFixes = freshScreenOffFixes(lastTs, drainBgGpsBuffer(runId))
+    .map(p => ({ lat: p.lat, lng: p.lng, timestamp: p.timestamp, speed: p.speed, accuracy: p.accuracy, altitude: 0 }));
+  points = [...points, ...bgFixes];
+
   let distanceM = 0;
   for (let i = 1; i < points.length; i++) {
     const d = haversineM(points[i - 1], points[i]);
@@ -63,9 +74,7 @@ async function recoverRunFromCheckpoint(
   };
   await saveRun(run);
 
-  // The background task (if the crash happened before a clean stop) is still
-  // tracking under this run's id — stop it and drop its buffer before recovering.
-  await stopBackgroundTracking().catch(() => {});
+  // Only now is the buffer safe to drop: the run, with its points, is on disk.
   clearBgGpsBuffer(runId);
 }
 
@@ -146,9 +155,19 @@ export default function RunScreen() {
             cleanupOrphanedBackgroundTask(false).catch(() => {});
           } },
           { text: 'Recover', onPress: async () => {
-            await recoverRunFromCheckpoint(cp.runId, cp.startTime, cp.points, cp.activityType);
-            await postRunSync();
+            try {
+              await recoverRunFromCheckpoint(cp.runId, cp.startTime, cp.points, cp.activityType);
+            } catch {
+              // Keep the checkpoint: the GPS data is still on the phone and the
+              // prompt will offer recovery again next time.
+              Alert.alert("Couldn't recover the run", 'Your GPS data is still on this phone. Try again from the Run screen.');
+              return;
+            }
             clearInterruptedRunCheckpoint();
+            // The run is saved locally; a failed upload retries on the next sync.
+            postRunSync().catch(() => {});
+            // Show the result. Recovering used to end silently, so nobody could tell it worked.
+            navigation.navigate('RunSummary', { runId: cp.runId, activityType: cp.activityType });
           } },
         ],
       );

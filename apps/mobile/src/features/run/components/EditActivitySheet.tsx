@@ -2,7 +2,7 @@
  * Edit an activity, Strava-style: title, description, how it felt, private
  * notes, who can see it, and delete.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal, View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert,
   KeyboardAvoidingView, Platform, Image, Switch,
@@ -31,14 +31,28 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
   const s = useMemo(() => mkStyles(C), [C]);
   const [form, setForm] = useState<ActivityEdit | null>(null);
   const [saving, setSaving] = useState(false);
+  // The form as it was loaded, to tell real edits from an untouched sheet.
+  const initialJson = useRef<string | null>(null);
 
   useEffect(() => {
     if (!visible) return;
     setForm(null);
+    initialJson.current = null;
+    const loaded = (f: ActivityEdit) => { initialJson.current = JSON.stringify(f); setForm(f); };
     fetchActivityEdit(runId)
-      .then(setForm)
-      .catch(() => setForm({ title: '', description: '', privateNotes: '', perceivedEffort: null, visibility: 'everyone', photos: [], excluded: false, integrityStatus: 'ok', integrityReason: null }));
+      .then(loaded)
+      .catch(() => loaded({ title: '', description: '', privateNotes: '', perceivedEffort: null, visibility: 'everyone', photos: [], excluded: false, integrityStatus: 'ok', integrityReason: null }));
   }, [visible, runId]);
+
+  // Close X, swipe-down and Android back all land here: edits are never dropped silently.
+  const requestClose = () => {
+    const dirty = form != null && initialJson.current != null && JSON.stringify(form) !== initialJson.current;
+    if (!dirty || saving) { onClose(); return; }
+    Alert.alert('Discard changes?', 'Your edits to this activity haven\'t been saved.', [
+      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: onClose },
+    ]);
+  };
 
   const set = (patch: Partial<ActivityEdit>) => setForm(f => (f ? { ...f, ...patch } : f));
 
@@ -110,14 +124,14 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={requestClose}>
       <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={s.header}>
-          <Pressable onPress={onClose} style={s.iconBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
+          <Pressable onPress={requestClose} style={s.iconBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
             <X size={18} color={C.t1} weight="regular" />
           </Pressable>
           <Text style={s.title}>Edit activity</Text>
-          <Pressable onPress={save} style={[s.saveBtn, (!form || saving) && { opacity: 0.5 }]} disabled={!form || saving} accessibilityRole="button">
+          <Pressable hitSlop={8} onPress={save} style={[s.saveBtn, (!form || saving) && { opacity: 0.5 }]} disabled={!form || saving} accessibilityRole="button">
             {saving ? <ActivityIndicator size="small" color={C.bg} /> : <Check size={16} color={C.bg} weight="bold" />}
             <Text style={s.saveTxt}>Save</Text>
           </Pressable>

@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView,
-  Platform, Switch, Alert, Linking,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Switch, Alert, Linking } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -12,6 +11,7 @@ import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
 import { NotificationLimits, FriendZoneAlerts, EmailDigest } from '../components/NotificationLimits';
 import { SignInMethodsSection } from '../components/SignInMethodsSection';
+import { PrivacyDataSection } from '../components/PrivacyDataSection';
 import { SegmentedControl } from '../components/SettingToggle';
 import { rescheduleSessionReminders, DEFAULT_REMINDER_HOUR } from '@features/training/services/sessionReminders';
 import { getCachedPlan } from '@features/training/services/planService';
@@ -25,6 +25,8 @@ import { RowChevron } from '@mobile/shared/components/RowChevron';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { useAuth } from '@shared/hooks/useAuth';
 import { resetPassword } from '@shared/services/auth';
+import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
+import { restorePurchases, manageSubscriptionUrl } from '@features/subscription/services/purchaseService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -42,7 +44,7 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.backBtn}>
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Settings</Text>
@@ -57,33 +59,61 @@ export default function SettingsScreen() {
             <Text style={s.linkLabel}>Edit Profile</Text>
             <RowChevron />
           </Pressable>
-          <SettingRow label="Profile Visibility">
+          <SettingRow label="Who can see your profile" sub="Stats, zones and awards">
             <SegmentedControl
-              options={['Public', 'Friends', 'Private']}
+              options={['Everyone', 'Followers', 'Only me']}
               value={
-                settings.privacy === 'public' ? 'Public'
-                : settings.privacy === 'followers' ? 'Friends'
-                : 'Private'
+                settings.privacy === 'public' ? 'Everyone'
+                : settings.privacy === 'followers' ? 'Followers'
+                : 'Only me'
               }
               onChange={v => updateSetting({
-                privacy: v === 'Public' ? 'public' : v === 'Friends' ? 'followers' : 'private',
+                privacy: v === 'Everyone' ? 'public' : v === 'Followers' ? 'followers' : 'private',
               })}
             />
           </SettingRow>
-          <Pressable style={s.linkRow} onPress={() => {
-            const email = user?.email;
-            if (!email) return;
-            // Goes through the shared helper so it targets the real reset page and
-            // uses the implicit-flow email client — a bare resetPasswordForEmail on
-            // the PKCE app client produces a link the web page cannot redeem.
-            resetPassword(email)
-              .then(() => Alert.alert('Check your email', `A password reset link has been sent to ${email}.`))
-              .catch((e: unknown) => Alert.alert('Error', e instanceof Error ? e.message : 'Could not send reset email.'));
-          }}>
-            <Text style={s.linkLabel}>Change Password</Text>
-            <RowChevron />
-          </Pressable>
+          {user?.email ? (
+            <Pressable style={s.linkRow} onPress={() => {
+              const email = user?.email;
+              if (!email) return;
+              // Goes through the shared helper so it targets the real reset page and
+              // uses the implicit-flow email client — a bare resetPasswordForEmail on
+              // the PKCE app client produces a link the web page cannot redeem.
+              resetPassword(email)
+                .then(() => Alert.alert('Check your email', `A password reset link has been sent to ${email}.`))
+                .catch((e: unknown) => Alert.alert('Error', e instanceof Error ? e.message : 'Could not send reset email.'));
+            }}>
+              <Text style={s.linkLabel}>Change Password</Text>
+              <RowChevron />
+            </Pressable>
+          ) : null}
+          {/* Restore and Manage must be reachable outside the paywall (App Store 3.1.1 / 3.1.2),
+              including for someone who already has Plus and so never sees the paywall. */}
+          {SUBSCRIPTIONS_ENABLED && (
+            <>
+              <Pressable style={s.linkRow} onPress={() => navigation.navigate('Subscription', {})}>
+                <Text style={s.linkLabel}>Runivo Plus</Text>
+                <RowChevron />
+              </Pressable>
+              <Pressable style={s.linkRow} onPress={async () => {
+                const r = await restorePurchases();
+                if (r === 'restored') Alert.alert('Purchases restored', 'Your subscription has been restored.');
+                else if (r === 'none') Alert.alert('No purchases found', 'No active subscription was found for this Apple ID.');
+                else Alert.alert("Couldn't check purchases", 'Check your connection and try again.');
+              }}>
+                <Text style={s.linkLabel}>Restore purchases</Text>
+                <RowChevron />
+              </Pressable>
+              <Pressable style={s.linkRow} onPress={() => Linking.openURL(manageSubscriptionUrl()).catch(() => {})}>
+                <Text style={s.linkLabel}>Manage subscription</Text>
+                <RowChevron />
+              </Pressable>
+            </>
+          )}
         </SettingSection>
+
+        {/* ── Consents the runner can take back ── */}
+        <PrivacyDataSection />
 
         {/* ── Sign-in methods: Apple, Google, phone, email on one account ── */}
         <SignInMethodsSection />
@@ -132,8 +162,8 @@ export default function SettingsScreen() {
           <SettingRow label="Weekly summary" sub="Monday morning, your week in review">
             <Switch value={settings.weeklySummary} onValueChange={v => updateSetting({ weeklySummary: v })} {...sw} />
           </SettingRow>
-          <SettingRow label="Offers and events" sub="Festive challenges and partner rewards">
-            <Switch value={settings.offersEnabled ?? true} onValueChange={v => updateSetting({ offersEnabled: v })} {...sw} />
+          <SettingRow label="Offers and events" sub="Off by default. Partner rewards and community events">
+            <Switch value={settings.offersEnabled ?? false} onValueChange={v => updateSetting({ offersEnabled: v })} {...sw} />
           </SettingRow>
         </SettingSection>
 
@@ -146,6 +176,15 @@ export default function SettingsScreen() {
               disabled={!getSpeech()}
               {...sw}
             />
+          </SettingRow>
+        </SettingSection>
+
+        <SettingSection title="Sounds and haptics">
+          <SettingRow label="Haptics" sub="Taps, countdown and run milestones">
+            <Switch value={settings.hapticEnabled ?? true} onValueChange={v => updateSetting({ hapticEnabled: v })} {...sw} />
+          </SettingRow>
+          <SettingRow label="Sounds" sub="Run start, km and zone-claim sounds">
+            <Switch value={settings.soundEnabled ?? true} onValueChange={v => updateSetting({ soundEnabled: v })} {...sw} />
           </SettingRow>
         </SettingSection>
 
@@ -169,20 +208,23 @@ export default function SettingsScreen() {
             <Text style={s.linkLabel}>Terms of Service</Text>
             <RowChevron />
           </Pressable>
-          <Pressable style={s.linkRow} onPress={deleteAccount}>
-            <Text style={[s.linkLabel, { color: C.red }]}>Delete Account</Text>
-            <RowChevron />
-          </Pressable>
         </SettingSection>
 
         {/* ── Sign Out ── */}
         <View style={s.signOutWrap}>
-          <Pressable style={s.signOutBtn} onPress={signOut}>
+          <Pressable style={s.signOutBtn} onPress={signOut} accessibilityRole="button">
             <Text style={s.signOutLabel}>Sign out</Text>
           </Pressable>
         </View>
 
-        <Text style={s.version}>Runivo v1.0.0</Text>
+        {/* Destructive and irreversible: its own section, away from the Legal links. */}
+        <View style={s.dangerWrap}>
+          <Pressable style={s.dangerBtn} onPress={deleteAccount} accessibilityRole="button" accessibilityHint="Permanently deletes your account and all data. Asks you to confirm twice.">
+            <Text style={s.dangerLabel}>Delete account</Text>
+          </Pressable>
+        </View>
+
+        <Text style={s.version}>Runivo v{Constants.expoConfig?.version ?? ''}</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -196,7 +238,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   scroll:      { paddingBottom: 40 },
   linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
   linkLabel:   { fontFamily: Fonts.regular, fontSize: 14, color: C.black },
-  linkSub:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
+  linkSub:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 1 },
   versionText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
   // Premium card
   premiumCard:       { marginHorizontal: Spacing.gutter, marginBottom: 16, borderRadius: 16, overflow: 'hidden' },
@@ -219,5 +261,8 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   signOutWrap: { paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 8 },
   signOutBtn:  { borderWidth: 0.5, borderColor: C.red, borderRadius: 8, paddingVertical: 13, alignItems: 'center' },
   signOutLabel:{ fontFamily: Fonts.medium, fontSize: 13, color: C.red },
-  version:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', paddingBottom: 8 },
+  dangerWrap:  { paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 12 },
+  dangerBtn:   { paddingVertical: 13, alignItems: 'center' },
+  dangerLabel: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textDecorationLine: 'underline' },
+  version:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center', paddingBottom: 8 },
 }); }

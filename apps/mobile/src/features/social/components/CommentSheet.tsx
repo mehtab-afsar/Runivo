@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Modal, View, Text, StyleSheet, Pressable, FlatList,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
+  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
 } from 'react-native';
-import { PaperPlaneTilt, X } from 'phosphor-react-native';
+import { PaperPlaneTilt, X, DotsThree } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { getComments, addComment } from '../services/feedService';
+import { blockUser } from '@mobile/shared/services/safetyService';
+import { promptReport } from '@mobile/shared/lib/promptReport';
+import { useAuth } from '@shared/hooks/useAuth';
+import { supabase } from '@shared/services/supabase';
 import type { Comment } from '../types';
 
 function timeAgo(iso: string): string {
@@ -34,6 +38,7 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
   const [loadError, setLoadError] = useState(false);
   const [sending, setSending]     = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!postId) { setComments([]); return; }
@@ -65,13 +70,45 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
     try {
       await addComment(postId, trimmed);
       onCommentPosted?.(postId);
-    } catch {
+    } catch (e) {
       setComments(prev => prev.filter(c => c.id !== optimistic.id));
       setText(trimmed);
+      const msg = (e as { message?: string } | null)?.message ?? '';
+      if (msg.includes('content_not_allowed')) Alert.alert("That can't be posted", "It contains language that isn't allowed in Runivo. Please reword it.");
+      else if (msg.includes('account_suspended')) Alert.alert('Commenting is turned off', 'This account is suspended. Contact support if you think that is a mistake.');
+      else Alert.alert("Couldn't post your comment", 'Check your connection and try again. Your text is still in the box.');
     } finally {
       setSending(false);
     }
   }, [text, postId, sending, onCommentPosted]);
+
+  const openMenu = useCallback((item: Comment) => {
+    const mine = !!user && item.userId === user.id;
+    if (mine) {
+      Alert.alert('Your comment', undefined, [
+        { text: 'Delete', style: 'destructive', onPress: async () => {
+          const { error } = await supabase.from('feed_post_comments').delete().eq('id', item.id);
+          if (error) Alert.alert("Couldn't delete it", 'Try again in a moment.');
+          else setComments(prev => prev.filter(c => c.id !== item.id));
+        } },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+      return;
+    }
+    Alert.alert(`Comment by ${item.username}`, undefined, [
+      { text: 'Report comment', onPress: () => promptReport('comment', item.id, 'comment') },
+      { text: `Block ${item.username}`, style: 'destructive', onPress: () => {
+        Alert.alert(`Block ${item.username}?`, "You won't see their posts or comments, and they won't see yours.", [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Block', style: 'destructive', onPress: async () => {
+            try { await blockUser(item.userId); setComments(prev => prev.filter(c => c.userId !== item.userId)); }
+            catch { Alert.alert("Couldn't block", 'Check your connection and try again.'); }
+          } },
+        ]);
+      } },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }, [user]);
 
   const renderItem = useCallback(({ item }: { item: Comment }) => {
     const initial = (item.username?.[0] ?? '?').toUpperCase();
@@ -84,12 +121,18 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
           <View style={s.commentTop}>
             <Text style={s.commentUser}>{item.username}</Text>
             <Text style={s.commentTime}>{timeAgo(item.createdAt)}</Text>
+            {!item.id.startsWith('opt-') && (
+              <Pressable onPress={() => openMenu(item)} hitSlop={12} style={s.more}
+                accessibilityRole="button" accessibilityLabel={`More options for ${item.username}'s comment`}>
+                <DotsThree size={20} color={C.t2} weight="bold" />
+              </Pressable>
+            )}
           </View>
           <Text style={s.commentText}>{item.content}</Text>
         </View>
       </View>
     );
-  }, [s]);
+  }, [s, C, openMenu]);
 
   return (
     <Modal
@@ -141,7 +184,7 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
             returnKeyType="send"
             onSubmitEditing={handleSend}
           />
-          <Pressable onPress={handleSend} disabled={!text.trim() || sending} hitSlop={8}>
+          <Pressable onPress={handleSend} disabled={!text.trim() || sending} hitSlop={8} accessibilityRole="button" accessibilityLabel="Send comment">
             <PaperPlaneTilt
               size={18}
               color={text.trim() ? C.red : C.t3}
@@ -164,6 +207,7 @@ function mkStyles(C: AppColors) {
     center:       { height: 120, alignItems: 'center', justifyContent: 'center' },
     list:         { paddingHorizontal: 16, paddingBottom: 8, flexGrow: 1 },
     empty:        { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, textAlign: 'center', marginTop: 32 },
+    more:         { marginLeft: 'auto', minWidth: 28, minHeight: 28, alignItems: 'center', justifyContent: 'center' },
     commentRow:   { flexDirection: 'row', gap: 10, paddingVertical: 8 },
     avatar:       { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     avatarInitial:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.white },

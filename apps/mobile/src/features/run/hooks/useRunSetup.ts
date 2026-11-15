@@ -5,7 +5,7 @@ import { Animated, PanResponder, AppState } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 
 import { getAllTerritories, getPlayer, getSavedRoutes } from '@shared/services/store';
 import type { StoredSavedRoute } from '@shared/services/store';

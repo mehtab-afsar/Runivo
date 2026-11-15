@@ -1,4 +1,7 @@
 import { PlusOnlyCoach } from '../components/PaceXLocked';
+import AiConsentCard from '../components/AiConsentCard';
+import { SafetyNote } from '@mobile/shared/components/SafetyNote';
+import { useAiConsent } from '../hooks/useAiConsent';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput,
@@ -42,7 +45,29 @@ function PaceXLogo({ size = 22 }: { size?: number }) {
 
 /** PaceX is a Runivo Plus feature (PRD); free runners see what it offers. */
 export default function CoachScreen() {
-  return <PlusOnlyCoach><CoachScreenInner /></PlusOnlyCoach>;
+  return <PlusOnlyCoach><AiConsentGate><CoachScreenInner /></AiConsentGate></PlusOnlyCoach>;
+}
+
+/**
+ * Nothing below this point may run until the runner has agreed to send their data
+ * to the third-party AI: CoachScreenInner's hooks call the coach as soon as they
+ * mount (weekly brief, quick prompts), so the gate has to wrap it, not sit inside.
+ */
+function AiConsentGate({ children }: { children: React.ReactNode }) {
+  const C = useTheme();
+  const navigation = useNavigation<Nav>();
+  const { consent, granted } = useAiConsent();
+
+  if (consent === true) return <>{children}</>;
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
+      {consent === false && (
+        <ScrollView contentContainerStyle={{ paddingVertical: 12 }}>
+          <AiConsentCard onGranted={granted} onDecline={() => navigation.navigate('Dashboard' as never)} />
+        </ScrollView>
+      )}
+    </SafeAreaView>
+  );
 }
 
 function CoachScreenInner() {
@@ -190,13 +215,14 @@ function CoachScreenInner() {
     <SafeAreaView style={s.root} edges={['top']}>
       {/* Header: back · PaceX · AI coach (mock s-coach) */}
       <View style={s.header}>
-        <Pressable style={s.backBtn} onPress={() => navigation.navigate('Dashboard' as never)} hitSlop={8}
+        <Pressable style={s.backBtn} onPress={() => navigation.navigate('Dashboard' as never)} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
           accessibilityRole="button" accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <PaceXLogo size={22} />
         <View style={s.aiChip}><Text style={s.aiChipText}>AI coach</Text></View>
       </View>
+      <SafetyNote kind="coach" style={{ marginTop: 0, marginBottom: 6 }} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
@@ -233,7 +259,7 @@ function CoachScreenInner() {
                 })}
               </View>
             ) : !planData.loading && (
-              <Pressable style={s.briefBtn} onPress={() => setPlanFormVisible(true)}>
+              <Pressable hitSlop={8} style={s.briefBtn} onPress={() => setPlanFormVisible(true)}>
                 <Text style={s.briefBtnText}>Build a training plan</Text>
               </Pressable>
             )}
@@ -272,11 +298,11 @@ function CoachScreenInner() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.chipsWrap}
           keyboardShouldPersistTaps="handled">
           {chips.map(c => (
-            <Pressable key={c.label} style={s.chip} onPress={() => handleCapabilitySelect(c.message)}>
+            <Pressable hitSlop={8} key={c.label} style={s.chip} onPress={() => handleCapabilitySelect(c.message)}>
               <Text style={s.chipText}>{c.label}</Text>
             </Pressable>
           ))}
-          <Pressable style={s.chip} onPress={() => setCapabilitiesVisible(true)}>
+          <Pressable hitSlop={8} style={s.chip} onPress={() => setCapabilitiesVisible(true)}>
             <Text style={s.chipText}>More</Text>
           </Pressable>
         </ScrollView>
@@ -328,7 +354,7 @@ function CoachScreenInner() {
         <SafeAreaView style={s.root}>
           <View style={s.header}>
             <Text style={s.sheetTitle}>Build a training plan</Text>
-            <Pressable style={s.backBtn} onPress={() => setPlanFormVisible(false)} hitSlop={8}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close" style={s.backBtn} onPress={() => setPlanFormVisible(false)} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
               <X size={16} color={C.t2} weight="bold" />
             </Pressable>
           </View>

@@ -38,7 +38,7 @@ export default function RouteModal({
             <Text style={ss.title}>Follow</Text>
             <Text style={ss.sub}>A route, or today's workout</Text>
           </View>
-          <Pressable style={ss.closeBtn} onPress={onClose}>
+          <Pressable hitSlop={8} style={ss.closeBtn} onPress={onClose}>
             <X size={14} color={C.muted} weight="regular" />
           </Pressable>
         </View>

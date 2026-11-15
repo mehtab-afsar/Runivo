@@ -168,15 +168,15 @@ describe('computeRunPace', () => {
   const base = { newZones: 0, stolenZones: 0, streakAdvanced: false, streakDays: 0, weeklyEarned: 0, tier: 'free' };
 
   it.each([
-    [40, 0], [400, 0], [990, 0], [1_000, 1], [5_240, 5], [8_100, 8], [42_195, 42],
+    [40, 0], [400, 0], [990, 0], [1_000, 2], [5_240, 10], [8_100, 16], [42_195, 84],
   ])('%i m pays %i PACE for distance', (m, pace) => {
     expect(computeRunPace({ ...base, distanceM: m }).breakdown.distance).toBe(pace);
   });
 
   it('pays 5 per new zone and 10 per stolen zone', () => {
     const r = computeRunPace({ ...base, distanceM: 8_100, newZones: 1, stolenZones: 1 });
-    expect(r.breakdown).toEqual({ distance: 8, newZones: 5, stolenZones: 10, streak: 0 });
-    expect(r.total).toBe(23);
+    expect(r.breakdown).toEqual({ distance: 16, newZones: 5, stolenZones: 10, streak: 0 });
+    expect(r.total).toBe(31);
   });
 
   it('pays no zone PACE on a run shorter than 200 m', () => {
@@ -192,7 +192,7 @@ describe('computeRunPace', () => {
 
   it('respects the weekly cap by tier', () => {
     expect(computeRunPace({ ...base, distanceM: 50_000, weeklyEarned: 90 }).total).toBe(10);
-    expect(computeRunPace({ ...base, distanceM: 50_000, weeklyEarned: 90, tier: 'premium' }).total).toBe(50);
+    expect(computeRunPace({ ...base, distanceM: 50_000, weeklyEarned: 90, tier: 'premium' }).total).toBe(60);
     expect(computeRunPace({ ...base, distanceM: 50_000, weeklyEarned: 150, tier: 'premium' }).total).toBe(0);
     expect(weeklyCapFor('admin')).toBe(150);
     expect(weeklyCapFor(null)).toBe(100);

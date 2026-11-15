@@ -76,29 +76,35 @@ const fresh = ['>=', ['get', 'freshness'], STALE];
  * MapLibre layer styles for zones. Features need `isOwn`, `freshness`
  * (already decayed) and optionally `isNew`.
  */
+/**
+ * Zone layers, one per kind (yours or a rival's, fresh or fading), each with a
+ * plain colour. Colours must never be expressions here: maplibre-react-native
+ * converts plain colour strings for the native side but passes expressions
+ * through untouched, and on iOS a ['case', ..., '#hex'] fill colour crashed
+ * the map (MLRNStyle setFillColor, EXC_BAD_ACCESS) the moment it opened.
+ * Numbers inside expressions are fine, so opacity still fades with freshness.
+ */
+export interface ZoneKind {
+  key: 'own' | 'ownFading' | 'rival' | 'rivalFading';
+  filter: unknown[];
+  fill: { fillColor: string; fillOpacity: unknown[] };
+  line: { lineColor: string; lineWidth: number; lineOpacity: number };
+}
+
 export function territoryLayerStyles(p: TerritoryPalette) {
   const lerp = ([lo, hi]: [number, number]) =>
     ['interpolate', ['linear'], ['get', 'freshness'], 0, lo, 100, hi];
+  const notOwn = ['!', isOwn];
+  const stale = ['!', fresh];
+  const kinds: ZoneKind[] = [
+    { key: 'rivalFading', filter: ['all', notOwn, stale], fill: { fillColor: p.rivalFading, fillOpacity: lerp(p.rivalOpacity) }, line: { lineColor: p.rivalFading, lineWidth: 0.75, lineOpacity: 0.6 } },
+    { key: 'rival',       filter: ['all', notOwn, fresh], fill: { fillColor: p.rival,       fillOpacity: lerp(p.rivalOpacity) }, line: { lineColor: p.rival,       lineWidth: 1.25, lineOpacity: 0.9 } },
+    { key: 'ownFading',   filter: ['all', isOwn, stale],  fill: { fillColor: p.ownFading,   fillOpacity: lerp(p.ownOpacity) },   line: { lineColor: p.ownFading,   lineWidth: 2,    lineOpacity: 0.6 } },
+    { key: 'own',         filter: ['all', isOwn, fresh],  fill: { fillColor: p.own,         fillOpacity: lerp(p.ownOpacity) },   line: { lineColor: p.own,         lineWidth: 2,    lineOpacity: 0.9 } },
+  ];
   return {
-    fill: {
-      fillColor: ['case',
-        ['all', isOwn, fresh], p.own,
-        isOwn, p.ownFading,
-        fresh, p.rival,
-        p.rivalFading,
-      ],
-      fillOpacity: ['case', isOwn, lerp(p.ownOpacity), lerp(p.rivalOpacity)],
-    },
-    line: {
-      lineColor: ['case',
-        ['all', isOwn, fresh], p.own,
-        isOwn, p.ownFading,
-        fresh, p.rival,
-        p.rivalFading,
-      ],
-      lineWidth: ['case', isOwn, 2, ['all', ['!', isOwn], fresh], 1.25, 0.75],
-      lineOpacity: ['case', fresh, 0.9, 0.6],
-    },
+    /** Drawn in this order: rivals under your zones, fading under fresh. */
+    kinds,
     /** Dashed outline on your fading zones: "defend me". */
     fadingLine: {
       lineColor: p.ownFading,

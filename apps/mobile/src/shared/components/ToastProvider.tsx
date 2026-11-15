@@ -7,7 +7,7 @@
 import React, {
   useState, useRef, useCallback, useEffect, type ReactNode,
 } from 'react';
-import { Animated, Text, StyleSheet, Platform, View } from 'react-native';
+import { Animated, Text, StyleSheet, Platform, View, AccessibilityInfo } from 'react-native';
 import { Check, X, Warning as AlertTriangle, Info, type Icon } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Fonts } from '@theme';
@@ -19,7 +19,7 @@ import {
 
 // ─── Colours per toast type ──────────────────────────────────────────────────
 const BG: Record<ToastType, string> = {
-  success: Colors.green,
+  success: '#0F7F40',   // darker than Colors.green: white text on it passes 4.5:1
   error:   '#C0392B',
   warning: Colors.amber,
   info:    Colors.alwaysDark,
@@ -71,6 +71,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showItem = useCallback((item: ActiveToast) => {
     isShowingRef.current = true;
     setCurrent(item);
+    // pointerEvents=none toasts are invisible to screen readers unless announced.
+    AccessibilityInfo.announceForAccessibility(item.message);
     translateY.setValue(-80);
     opacity.setValue(0);
     Animated.parallel([
@@ -116,7 +118,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           ]}
         >
           <View style={ss.iconWrap}>{React.createElement(ICON_COMPONENTS[current.type], { size: 14, color: Colors.alwaysLight, weight: 'regular' })}</View>
-          <Text style={ss.message} numberOfLines={2}>{current.message}</Text>
+          <Text style={ss.message} numberOfLines={3}>{current.message}</Text>
         </Animated.View>
       )}
     </ToastContext.Provider>

@@ -37,7 +37,8 @@ export default function LandingScreen() {
       </View>
 
       <Animated.View
-        style={[s.sheet, { height: Math.round(height * 0.47), paddingBottom: 26 + insets.bottom, transform: [{ translateY: rise }] }]}
+        // minHeight, not height: a fixed 47% clipped the buttons on small phones and at large text sizes.
+        style={[s.sheet, { minHeight: Math.round(height * 0.47), paddingBottom: 26 + insets.bottom, transform: [{ translateY: rise }] }]}
       >
         <LandingHero />
         <View style={s.spacer} />

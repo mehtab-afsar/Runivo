@@ -2,12 +2,14 @@
  * Runners you blocked or muted, with Unblock / Unmute.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Platform, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { Avatar } from '@mobile/shared/components/Avatar';
-import { fetchBlocksAndMutes, unblockUser, unmuteUser, type HiddenRunner } from '@features/social/services/safetyService';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
+import { fetchBlocksAndMutes, unblockUser, unmuteUser, type HiddenRunner } from '@mobile/shared/services/safetyService';
 
 export default function BlockedRunnersScreen() {
   const C = useTheme();
@@ -15,9 +17,13 @@ export default function BlockedRunnersScreen() {
   const navigation = useNavigation();
   const [rows, setRows] = useState<HiddenRunner[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(() => {
-    fetchBlocksAndMutes().then(setRows).catch(() => setRows([]));
+    setLoadError(false);
+    // A failed load must not read as "you haven't blocked anyone" — on a safety screen
+    // that would tell someone a blocked person is no longer blocked.
+    fetchBlocksAndMutes().then(setRows).catch(() => { setRows([]); setLoadError(true); });
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -45,6 +51,8 @@ export default function BlockedRunnersScreen() {
 
       {rows === null ? (
         <View style={s.center}><ActivityIndicator color={C.t2} /></View>
+      ) : loadError ? (
+        <ErrorState title="Couldn't load your blocked list" onRetry={load} />
       ) : (
         <FlatList
           data={rows}
@@ -63,7 +71,7 @@ export default function BlockedRunnersScreen() {
                 <Text style={s.name}>{item.username}</Text>
                 <Text style={s.kind}>{item.kind === 'blocked' ? 'Blocked' : 'Muted'}</Text>
               </View>
-              <Pressable style={s.btn} onPress={() => undo(item)} disabled={busyId === item.userId + item.kind} accessibilityRole="button">
+              <Pressable hitSlop={8} style={s.btn} onPress={() => undo(item)} disabled={busyId === item.userId + item.kind} accessibilityRole="button">
                 {busyId === item.userId + item.kind
                   ? <ActivityIndicator size="small" color={C.t2} />
                   : <Text style={s.btnTxt}>{item.kind === 'blocked' ? 'Unblock' : 'Unmute'}</Text>}

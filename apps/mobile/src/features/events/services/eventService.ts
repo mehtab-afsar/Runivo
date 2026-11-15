@@ -1,3 +1,4 @@
+import { isPlus } from '@shared/engine/entitlements';
 import { supabase } from '@shared/services/supabase';
 import { fmtEventDate, fmtEventTime, fmtDistShort } from '@mobile/shared/lib/formatters';
 import type { RunEvent, Discipline } from '../types';
@@ -65,7 +66,8 @@ export async function fetchEvents(): Promise<EventsData> {
     events,
     joinedIds: new Set(parts?.map(p => p.event_id) ?? []),
     bookmarkedIds: new Set((marks as { event_id: string }[] | null)?.map(b => b.event_id) ?? []),
-    canCreate: profile?.subscription_tier === 'premium' || profile?.subscription_tier === 'admin',
+    // Plus hosts public events; everyone while subscriptions are off.
+    canCreate: isPlus(profile?.subscription_tier),
   };
 }
 

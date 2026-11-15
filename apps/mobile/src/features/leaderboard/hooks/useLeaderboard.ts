@@ -6,6 +6,8 @@ import { supabase } from '@shared/services/supabase';
 export interface LeaderboardState {
   entries: LeaderboardEntry[];
   loading: boolean;
+  error: boolean;
+  reload: () => void;
   tab: LeaderboardTab;
   timeFrame: LeaderboardTimeFrame;
   scope: LeaderboardScope;
@@ -22,6 +24,7 @@ export function useLeaderboard(): LeaderboardState {
   const [scope, setScope] = useState<LeaderboardScope>('global');
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | undefined>();
 
   useEffect(() => {
@@ -30,10 +33,15 @@ export function useLeaderboard(): LeaderboardState {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const data = await fetchLeaderboard(tab, timeFrame, scope);
       setEntries(data);
-    } catch { /* offline */ } finally {
+    } catch {
+      // Clear the previous filter's rows so a failure never shows them under the new title.
+      setEntries([]);
+      setError(true);
+    } finally {
       setLoading(false);
     }
   }, [tab, timeFrame, scope]);
@@ -42,5 +50,5 @@ export function useLeaderboard(): LeaderboardState {
 
   const unit = unitFor(tab, timeFrame);
 
-  return { entries, loading, tab, timeFrame, scope, unit, currentUserId, setTab, setTimeFrame, setScope };
+  return { entries, loading, error, reload: load, tab, timeFrame, scope, unit, currentUserId, setTab, setTimeFrame, setScope };
 }

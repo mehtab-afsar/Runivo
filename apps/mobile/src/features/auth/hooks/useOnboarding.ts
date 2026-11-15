@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseFiveKTime, validateUsername, startingWeeklyTargetKm } from '@shared/engine/onboarding';
 import { track } from '@shared/services/analytics';
+import { supabase } from '@shared/services/supabase';
 import { saveOnboardingData, saveIdentity } from '../services/onboardingService';
 import { stepsFor, type OnboardingData, type OnboardingStepKey, type OnboardingVariant } from '../types';
 
@@ -51,6 +52,34 @@ export function useOnboarding(): OnboardingState {
     }).catch(() => {});
   }, []);
   const STEPS = stepsFor(variant);
+
+  // Draft: answers and step survive the app being killed mid-onboarding (an OS kill at step 7
+  // used to send people back to step 1). Keyed by account so another user on this phone never
+  // inherits it; dropped once onboarding is submitted.
+  const draftKeyRef = useRef<string | null>(null);
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const key = session?.user.id ? `runivo.onboardingDraft.${session.user.id}` : null;
+        draftKeyRef.current = key;
+        const raw = key ? await AsyncStorage.getItem(key) : null;
+        if (raw && !cancelled) {
+          const d = JSON.parse(raw) as { index?: number; data?: Partial<OnboardingData> };
+          if (d.data) setData(prev => ({ ...prev, ...d.data }));
+          if (typeof d.index === 'number' && d.index > 0) setIndex(d.index);
+        }
+      } catch { /* a bad or missing draft just means starting fresh */ }
+      hydratedRef.current = true;
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  useEffect(() => {
+    if (!hydratedRef.current || !draftKeyRef.current) return;
+    AsyncStorage.setItem(draftKeyRef.current, JSON.stringify({ index, data })).catch(() => {});
+  }, [index, data]);
 
   const step = STEPS[Math.min(index, STEPS.length - 1)];
   const weeklyTargetKm = startingWeeklyTargetKm({
@@ -116,6 +145,7 @@ export function useOnboarding(): OnboardingState {
     setLoading(true); setError('');
     try {
       await saveOnboardingData(data, variant);
+      if (draftKeyRef.current) AsyncStorage.removeItem(draftKeyRef.current).catch(() => {});
       return true;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Setup failed. Please try again.');

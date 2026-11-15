@@ -6,6 +6,8 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import { Play, Pause, ArrowCounterClockwise, CaretLeft } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors, useIsDark } from '@theme';
+import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
+import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
@@ -15,12 +17,16 @@ const DARK_STYLE = MapStyleUrl.darkMatter;
 type Route = RouteProp<RootStackParamList, 'RunReplay'>;
 
 function fmt(s: number) {
-  const m = Math.floor(s / 60);
-  return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const t = Math.max(0, Math.floor(s));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+  const ss = String(sec).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${String(m).padStart(2, '0')}:${ss}`;
 }
+// pace is decimal min/km; zero-distance runs give 0 / NaN / Infinity → placeholder.
 function paceStr(p: number) {
-  const m = Math.floor(p);
-  return `${m}:${String(Math.floor((p - m) * 60)).padStart(2, '0')}`;
+  if (!Number.isFinite(p) || p <= 0) return '–:––';
+  const total = Math.round(p * 60);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
 export default function RunReplayScreen() {
@@ -31,6 +37,7 @@ export default function RunReplayScreen() {
   const navigation = useNavigation();
   const route = useRoute<Route>();
   const { route: gpsRoute, durationSec, pace } = route.params;
+  const unit = useDistanceUnit();
 
   const totalPoints = gpsRoute.length;
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -108,26 +115,27 @@ export default function RunReplayScreen() {
   // Derived stats
   const progressPct = totalPoints > 1 ? currentIdx / (totalPoints - 1) : 0;
   const elapsedSec  = Math.round(progressPct * durationSec);
-  const coveredKmApprox = (progressPct * (durationSec / 60) / pace).toFixed(2);
+  const coveredKm = Number.isFinite(pace) && pace > 0 ? progressPct * (durationSec / 60) / pace : 0;
+  const coveredKmApprox = convertKm(coveredKm, unit).toFixed(2);
 
   return (
     <View style={ss.root}>
       {/* Stats HUD */}
       <View style={[ss.hud, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={12}>
+        <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back">
           <CaretLeft size={18} color={C.alwaysLight} weight="regular" />
         </Pressable>
         <View style={ss.hudStats}>
           <View style={ss.statItem}>
             <Text style={ss.statValue}>{coveredKmApprox}</Text>
-            <Text style={ss.statLabel}>km</Text>
+            <Text style={ss.statLabel}>{unit}</Text>
           </View>
           <View style={ss.statItem}>
             <Text style={ss.statValue}>{fmt(elapsedSec)}</Text>
             <Text style={ss.statLabel}>elapsed</Text>
           </View>
           <View style={ss.statItem}>
-            <Text style={ss.statValue}>{paceStr(pace)}</Text>
+            <Text style={ss.statValue}>{paceStr(convertPaceMinPerKm(pace, unit))}</Text>
             <Text style={ss.statLabel}>avg pace</Text>
           </View>
         </View>
@@ -201,10 +209,10 @@ export default function RunReplayScreen() {
 
         {/* Buttons */}
         <View style={ss.btnRow}>
-          <Pressable style={ss.ctrlBtn} onPress={handleReset}>
+          <Pressable style={ss.ctrlBtn} onPress={handleReset} accessibilityRole="button" accessibilityLabel="Restart replay">
             <ArrowCounterClockwise size={18} color={C.alwaysLight} weight="regular" />
           </Pressable>
-          <Pressable style={[ss.ctrlBtn, ss.playBtn]} onPress={togglePlay}>
+          <Pressable style={[ss.ctrlBtn, ss.playBtn]} onPress={togglePlay} accessibilityRole="button" accessibilityLabel={isPlaying ? 'Pause replay' : 'Play replay'}>
             {isPlaying
               ? <Pause size={22} color={C.alwaysLight} weight="fill" />
               : <Play  size={22} color={C.alwaysLight} weight="fill" />
@@ -213,12 +221,14 @@ export default function RunReplayScreen() {
           <Pressable
             style={[ss.ctrlBtn, speed === 5 && ss.ctrlBtnActive]}
             onPress={() => setSpeed(5)}
+            accessibilityRole="button" accessibilityLabel="Speed 5 times" accessibilityState={{ selected: speed === 5 }}
           >
             <Text style={ss.speedTxt}>5×</Text>
           </Pressable>
           <Pressable
             style={[ss.ctrlBtn, speed === 10 && ss.ctrlBtnActive]}
             onPress={() => setSpeed(10)}
+            accessibilityRole="button" accessibilityLabel="Speed 10 times" accessibilityState={{ selected: speed === 10 }}
           >
             <Text style={ss.speedTxt}>10×</Text>
           </Pressable>

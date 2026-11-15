@@ -85,6 +85,11 @@ export function planLoop(start: LatLng, lengthM: number, mode: LoopMode, own: Lo
   return best!;
 }
 
+/** How a loop scores against your zones: fading zones it passes, and the share of new ground inside. */
+export function scoreLoop(points: LatLng[], own: LoopZone[]): { refreshes: number; newShare: number } {
+  return { refreshes: refreshCount(points, own), newShare: newShareOf(points, own) };
+}
+
 /** Loop length that reaches the nearest fading zone and back: 2× the distance + 1 km, 2–8 km in whole km. */
 export function suggestedLoopKm(nearestFadingM: number | null): number {
   if (nearestFadingM == null) return 3;

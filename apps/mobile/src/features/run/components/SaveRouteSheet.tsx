@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, Pressable, StyleSheet,
-  Modal, ScrollView, Switch, ActivityIndicator,
+  Modal, ScrollView, Switch, ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { X } from 'phosphor-react-native';
 import { saveSavedRoute, type StoredSavedRoute } from '@shared/services/store';
 import { pushSavedRoutes } from '@shared/services/sync';
@@ -47,7 +47,14 @@ export default function SaveRouteSheet({
       synced: false,
       createdAt: Date.now(),
     };
-    await saveSavedRoute(route);
+    try {
+      await saveSavedRoute(route);
+    } catch {
+      // `saving` used to stay true forever here, leaving the button dead.
+      setSaving(false);
+      Alert.alert("Couldn't save the route", 'Please try again.');
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     pushSavedRoutes().catch(() => {});
     setSaving(false);
@@ -58,6 +65,8 @@ export default function SaveRouteSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      {/* Lifts the sheet above the keyboard (its name field autofocuses). */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pressable style={ss.backdrop} onPress={onClose} />
       <View style={[ss.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {/* Handle */}
@@ -101,10 +110,13 @@ export default function SaveRouteSheet({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
           <View style={ss.emojiRow}>
             {ICON_OPTIONS.map(({ key, Icon, color }) => (
-              <Pressable
+              <Pressable hitSlop={8}
                 key={key}
                 style={[ss.emojiBtn, emoji === key && ss.emojiBtnActive]}
                 onPress={() => { setEmoji(key); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: emoji === key }}
+                accessibilityLabel={`Route icon: ${key}`}
               >
                 <Icon size={18} color={emoji === key ? color : C.t2} weight="light" />
               </Pressable>
@@ -140,6 +152,7 @@ export default function SaveRouteSheet({
           }
         </Pressable>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -5,7 +5,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { House, Map as MapIcon, Menu, UserRound, type LucideIcon } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { FEATURES } from '../config/features';
@@ -131,7 +131,7 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
             return (
               <Pressable
-                key={route.key} onPress={onPress} style={s.tab}
+                key={route.key} onPress={onPress} style={s.tab} hitSlop={{ top: 6, bottom: 6 }}
                 accessibilityRole="tab" accessibilityState={{ selected: focused }}
                 accessibilityLabel={enabled ? meta.label : `${meta.label} — coming soon`}
               >
@@ -169,7 +169,7 @@ function mkStyles(C: AppColors) {
       // No overflow:hidden here — the floating Run hexagon (runHex) pokes
       // above this view via a negative margin, and clipping would cut it off.
       // A rounded background still renders correctly without it.
-      position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.95)',
+      position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: `${C.card}F2`,
     },
     // Inset past the rounded corners so the hairline doesn't poke out past the curve.
     topBorder:       { height: 1, backgroundColor: C.border },
@@ -177,7 +177,7 @@ function mkStyles(C: AppColors) {
     tab:             { flex: 1, alignItems: 'center', gap: 4, paddingBottom: 4 },
     // 10px tracked-uppercase floor — 9px system font was both illegible and an SF leak.
     label:           { fontFamily: Fonts.medium, fontSize: 10 },
-    labelActive:     { fontFamily: Fonts.medium },
+    labelActive:     { fontFamily: Fonts.semiBold },
     soonBadge:       { backgroundColor: C.orange, paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 },
     soonText:        { fontFamily: Fonts.bold, fontSize: 11, color: C.alwaysLight, letterSpacing: 0.5 },
     runOuter:        { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 2 },

@@ -109,13 +109,15 @@ export async function syncRunToHealth(run: {
 }): Promise<void> {
   if (!run.success || run.duration <= 0) return;
   const profile = await getNutritionProfile().catch(() => undefined);
-  const weightKg = profile?.weightKg ?? 70;
+  // No weight on file means no honest calorie figure: leave energy out rather than
+  // writing an estimate built on an assumed 70 kg into the runner's Health data.
+  const weightKg = profile?.weightKg;
   const now = Date.now();
   await writeRunToHealth({
     startTime:      run.startTime ?? (now - run.duration * 1000),
     endTime:        run.startTime ? run.startTime + run.duration * 1000 : now,
     distanceMeters: run.distance * 1000,
-    calories:       estimateRunCalories(run.distance * 1000, weightKg),
+    calories:       weightKg ? estimateRunCalories(run.distance * 1000, weightKg) : undefined,
   }).catch(() => {});
 }
 

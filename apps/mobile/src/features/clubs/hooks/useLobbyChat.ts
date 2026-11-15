@@ -6,7 +6,7 @@ import {
   subscribeToMessages,
 } from '@features/clubs/services/lobbyChatService';
 import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
-import { fetchMyBlockedIds } from '@features/social/services/safetyService';
+import { fetchMyBlockedIds } from '@mobile/shared/services/safetyService';
 
 export function useLobbyChat(lobbyId: string) {
   const [messages, setMessages] = useState<LobbyMessage[]>([]);
@@ -58,8 +58,15 @@ export function useLobbyChat(lobbyId: string) {
       if (!user) throw new Error('not signed in');
       await sendMessageService(lobbyId, user.id, text);
       setInputText('');
-    } catch {
-      setError('Could not send — check your connection and try again.');
+    } catch (e) {
+      // The database filters objectionable text and refuses suspended accounts, so say
+      // which it was instead of blaming the connection.
+      const msg = (e as { message?: string } | null)?.message ?? '';
+      setError(
+        msg.includes('content_not_allowed') ? "That message can't be sent: it contains language that isn't allowed here."
+        : msg.includes('account_suspended') ? 'Chat is turned off for this account.'
+        : 'Could not send — check your connection and try again.',
+      );
     }
     setSending(false);
   }, [inputText, sending, lobbyId]);

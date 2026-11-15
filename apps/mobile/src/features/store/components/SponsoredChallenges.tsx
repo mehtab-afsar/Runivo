@@ -54,7 +54,7 @@ export function SponsoredChallenges() {
                 </>
               )}
               {!c.joined && <Text style={s.meta}>{days} {days === 1 ? 'day' : 'days'} left</Text>}
-              <Pressable style={[s.btn, (c.joined && !done && !c.code) && s.btnQuiet]} disabled={c.joined && !done && !c.code} onPress={() => act(c)} accessibilityRole="button">
+              <Pressable hitSlop={8} style={[s.btn, (c.joined && !done && !c.code) && s.btnQuiet]} disabled={c.joined && !done && !c.code} onPress={() => act(c)} accessibilityRole="button">
                 <Text style={[s.btnTxt, (c.joined && !done && !c.code) && { color: C.t2 }]}>
                   {!c.joined ? 'Join' : c.code ? `Code: ${c.code}` : done ? 'Get your reward' : 'In progress'}
                 </Text>

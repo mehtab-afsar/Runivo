@@ -2,6 +2,7 @@ import * as Haptics from 'expo-haptics';
 
 let hapticEnabled = true;
 export function setHapticEnabled(enabled: boolean) { hapticEnabled = enabled; }
+export function isHapticEnabled(): boolean { return hapticEnabled; }
 
 export const haptic = {
   light:   () => { if (hapticEnabled) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); },

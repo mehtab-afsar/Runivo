@@ -1,5 +1,7 @@
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useMemo, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -97,7 +99,7 @@ export default function LeaderboardScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { entries, loading, tab, timeFrame, scope, unit, setTab, setTimeFrame, setScope } = useLeaderboard();
+  const { entries, loading, error, reload, tab, timeFrame, scope, unit, setTab, setTimeFrame, setScope } = useLeaderboard();
 
   // Current player's entry (for sticky footer if rank > 3)
   const playerEntry = entries.find(e => e.isPlayer);
@@ -156,6 +158,8 @@ export default function LeaderboardScreen() {
 
       {loading ? (
         <SkeletonRows />
+      ) : error ? (
+        <ErrorState title="Couldn't load the leaderboard" onRetry={reload} />
       ) : (
         <FlatList
           // Podium only renders (and only makes sense) at 3+ entries — below that,

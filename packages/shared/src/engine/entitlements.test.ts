@@ -1,8 +1,28 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
-  isPlus, zoneLimitFor, canUse, canClaimZone, weeklyCapFor, paywallMoment,
+  isPlus, isPlusTier, setSubscriptionsEnabledForTests, SUBSCRIPTIONS_ENABLED, zoneLimitFor, canUse, canClaimZone, weeklyCapFor, paywallMoment,
   paywallWeekKey, PLAN_ROWS, PLUS_FEATURES, type Feature,
 } from './entitlements';
+
+// The Free/Plus rules below are checked as they'll run once subscriptions are on.
+beforeAll(() => setSubscriptionsEnabledForTests(true));
+afterAll(() => setSubscriptionsEnabledForTests(SUBSCRIPTIONS_ENABLED));
+
+describe('while subscriptions are off (still building)', () => {
+  it('everyone gets Plus, no limits and no paywall', () => {
+    setSubscriptionsEnabledForTests(false);
+    try {
+      for (const t of ['free', null, undefined, 'premium']) expect(isPlus(t)).toBe(true);
+      expect(zoneLimitFor('free')).toBe(Infinity);
+      expect(canUse('training_plan', 'free')).toBe(true);
+      expect(paywallMoment({ trigger: 'zone_limit', tier: 'free', runsCompleted: 5, isFirstLaunch: false, alreadyShownThisWeek: false })).toBe(false);
+      // The stored tier is still read the same way, ready for launch.
+      expect(isPlusTier('free')).toBe(false);
+    } finally {
+      setSubscriptionsEnabledForTests(true);
+    }
+  });
+});
 
 describe('tiers', () => {
   it('premium and admin are Plus; free, null and unknown are not', () => {

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -24,7 +25,7 @@ export default function AwardDetailScreen() {
   if (!def) {
     return (
       <SafeAreaView style={s.root}>
-        <Pressable style={s.closeBtn} onPress={() => navigation.goBack()}><X size={18} color={C.t2} /></Pressable>
+        <Pressable hitSlop={8} style={s.closeBtn} onPress={() => navigation.goBack()}><X size={18} color={C.t2} /></Pressable>
         <Text style={s.errorText}>Unknown award</Text>
       </SafeAreaView>
     );

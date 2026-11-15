@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { CaretLeft, SealCheck } from 'phosphor-react-native';
 import { Lock, Crown, Share2, ArrowLeft, Gift } from 'lucide-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { getPlayer, savePlayer, getSettings, saveSettings } from '@shared/services/store';
-import { HARDCODED_REWARDS } from '../rewards';
 import { redeemReward, logRewardView } from '../services/rewardService';
 import { lockStateFor } from '../lockState';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -39,11 +38,9 @@ export default function RewardDetailScreen() {
   // Anonymous view count for the partner's monthly report.
   useEffect(() => { logRewardView(rewardId); }, [rewardId]);
 
-  // Prefer the object passed by PACEStoreScreen — covers both DB-sourced and
-  // HARDCODED_REWARDS-fallback rewards. Falls back to a hardcoded-only lookup
-  // for any other way this screen might be reached (there's no deep link to
-  // it today, but route params alone shouldn't be assumed complete).
-  const reward = passedReward ?? HARDCODED_REWARDS.find(r => r.id === rewardId);
+  // The reward comes from PACEStoreScreen. Reached any other way (there is no
+  // deep link to this screen), it shows the "not found" state below.
+  const reward = passedReward;
 
   if (!reward) {
     return (
@@ -76,7 +73,20 @@ export default function RewardDetailScreen() {
     Share.share({ message: `${reward.brand}: ${code}` }).catch(() => {});
   };
 
-  const handleClaim = async () => {
+  // Spending PACE is not undoable, so the button asks first rather than redeeming on one tap.
+  const handleClaim = () => {
+    if (redeeming || redeemedMsg || lock.blocked || reward.redeemed) return;
+    Alert.alert(
+      `Redeem ${reward.brand}?`,
+      `${reward.valueLabel} for ${reward.paceCost} PACE. This can't be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: `Redeem for ${reward.paceCost} PACE`, onPress: () => { void redeemNow(); } },
+      ],
+    );
+  };
+
+  const redeemNow = async () => {
     if (redeeming || redeemedMsg || lock.blocked || reward.redeemed) return;
     setErrorMsg(null);
     setRedeeming(true);

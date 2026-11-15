@@ -45,16 +45,12 @@ export interface HealthWorkout {
 // installed, already-configured (app.config.ts plugin + Info.plist strings)
 // package; this now actually calls it.
 
-const HEALTH_READ: ObjectTypeIdentifier[] = [
-  'HKQuantityTypeIdentifierDistanceWalkingRunning',
-  'HKQuantityTypeIdentifierActiveEnergyBurned',
-  WorkoutTypeIdentifier,
-];
-const HEALTH_SHARE: SampleTypeIdentifierWriteable[] = [
-  'HKQuantityTypeIdentifierDistanceWalkingRunning',
-  'HKQuantityTypeIdentifierActiveEnergyBurned',
-  WorkoutTypeIdentifier,
-];
+// Only what the app uses (App Store 5.1.3 / 5.1.1(iii): don't request data types
+// you don't need). Reads: queryWorkoutSamples is the only query. Writes: a run
+// is saved as one workout sample that carries its own distance and energy
+// totals, so the separate quantity types were never needed.
+const HEALTH_READ: ObjectTypeIdentifier[] = [WorkoutTypeIdentifier];
+const HEALTH_SHARE: SampleTypeIdentifierWriteable[] = [WorkoutTypeIdentifier];
 
 let _appleHealthReady = false;
 
@@ -91,7 +87,9 @@ async function writeRunToAppleHealth(run: HealthRun): Promise<void> {
       [],
       new Date(run.startTime),
       new Date(run.endTime),
-      { distance: run.distanceMeters, energyBurned: run.calories ?? 0 },
+      // Energy only when it was really estimated from the runner's own weight; a 0 or a
+      // default-weight guess in someone's Health data is worse than nothing.
+      { distance: run.distanceMeters, ...(run.calories != null && { energyBurned: run.calories }) },
     );
   } catch (err) {
     console.warn('[health] saveWorkoutSample error:', err);

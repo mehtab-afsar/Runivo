@@ -63,7 +63,6 @@
     "postcss": "^8.5.25"
   },
   "dependencies": {
-    "@expo-google-fonts/dm-sans": "^0.4.2",
     "buffer": "^6.0.3",
     "expo": "~55.0.8",
     "expo-speech": "~55.0.18",

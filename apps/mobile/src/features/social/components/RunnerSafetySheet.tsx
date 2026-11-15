@@ -7,7 +7,7 @@ import { SpeakerSlash, SpeakerHigh, Prohibit, Flag, Check, CaretLeft } from 'pho
 import { useTheme, Fonts, type AppColors } from '@theme';
 import {
   blockUser, unblockUser, muteUser, unmuteUser, reportUser, REPORT_REASONS, type ReportReason,
-} from '../services/safetyService';
+} from '@mobile/shared/services/safetyService';
 
 interface Props {
   visible: boolean;
@@ -114,7 +114,7 @@ export default function RunnerSafetySheet({ visible, userId, username, blocked, 
             <Text style={s.doneTitle}>Thanks, we'll take a look</Text>
             <Text style={s.doneSub}>Reports are private. You can also block {username} so neither of you sees the other.</Text>
             {!blocked && (
-              <Pressable style={s.doneBtn} onPress={confirmBlock} accessibilityRole="button">
+              <Pressable hitSlop={8} style={s.doneBtn} onPress={confirmBlock} accessibilityRole="button">
                 <Text style={s.doneBtnTxt}>Block {username}</Text>
               </Pressable>
             )}

@@ -9,6 +9,7 @@ import { X } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { planLoop, type LoopMode, type LoopPlan, type LoopZone } from '@shared/engine/planLoop';
 import { compass } from '@shared/engine/targetZone';
+import { streetLoop } from '../services/loopRouting';
 
 const LENGTHS = [2, 3, 5, 8];
 
@@ -28,6 +29,8 @@ export default function PlanLoopSheet({ zones, bottomInset, onPlan, onStart, onC
   const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
   const [noFix, setNoFix] = useState(false);
   const [plan, setPlan] = useState<LoopPlan | null>(null);
+  // 'streets': the router returned a loop on real streets; 'guide': the circle.
+  const [routing, setRouting] = useState<'loading' | 'streets' | 'guide'>('loading');
 
   useEffect(() => {
     (async () => {
@@ -39,9 +42,17 @@ export default function PlanLoopSheet({ zones, bottomInset, onPlan, onStart, onC
 
   useEffect(() => {
     if (!pos) return;
+    // The circle shows at once; the street version replaces it when it comes back.
     const p = planLoop(pos, km * 1000, mode, zones);
     setPlan(p);
     onPlan(p);
+    setRouting('loading');
+    let live = true;
+    streetLoop(p, zones, { orsKey: process.env.EXPO_PUBLIC_ORS_KEY }).then(street => {
+      if (!live) return;
+      if (street) { setPlan(street); onPlan(street); setRouting('streets'); } else setRouting('guide');
+    });
+    return () => { live = false; };
   }, [pos, km, mode, zones]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const outcome = !plan ? '' : mode === 'refresh'
@@ -57,14 +68,14 @@ export default function PlanLoopSheet({ zones, bottomInset, onPlan, onStart, onC
 
       <View style={s.row}>
         {LENGTHS.map(n => (
-          <Pressable key={n} style={[s.chip, km === n && s.chipOn]} onPress={() => setKm(n)} accessibilityRole="button" accessibilityState={{ selected: km === n }}>
+          <Pressable hitSlop={8} key={n} style={[s.chip, km === n && s.chipOn]} onPress={() => setKm(n)} accessibilityRole="button" accessibilityState={{ selected: km === n }}>
             <Text style={[s.chipTxt, km === n && s.chipTxtOn]}>{n} km</Text>
           </Pressable>
         ))}
       </View>
       <View style={s.row}>
         {([['refresh', 'Refresh fading zones'], ['new', 'Claim new ground']] as const).map(([m, label]) => (
-          <Pressable key={m} style={[s.chip, s.wide, mode === m && s.chipOn]} onPress={() => setMode(m)} accessibilityRole="button" accessibilityState={{ selected: mode === m }}>
+          <Pressable hitSlop={8} key={m} style={[s.chip, s.wide, mode === m && s.chipOn]} onPress={() => setMode(m)} accessibilityRole="button" accessibilityState={{ selected: mode === m }}>
             <Text style={[s.chipTxt, mode === m && s.chipTxtOn]}>{label}</Text>
           </Pressable>
         ))}
@@ -77,8 +88,14 @@ export default function PlanLoopSheet({ zones, bottomInset, onPlan, onStart, onC
       ) : (
         <>
           <Text style={s.outcome}>{outcome}</Text>
-          <Text style={s.sub}>Heads {compass(plan.heading)} and back to where you are. It's a guide line: follow the streets nearest to it.</Text>
-          <Pressable style={s.start} onPress={() => onStart(plan)} accessibilityRole="button">
+          <Text style={s.sub}>
+            {routing === 'streets'
+              ? `${(plan.lengthM / 1000).toFixed(1)} km on streets and paths, heading ${compass(plan.heading)} and back to where you are.`
+              : routing === 'loading'
+                ? 'Finding streets for this loop…'
+                : `Heads ${compass(plan.heading)} and back to where you are. Couldn't reach the street router, so this is a guide line: follow the streets nearest to it.`}
+          </Text>
+          <Pressable style={[s.start, routing === 'loading' && { opacity: 0.6 }]} onPress={() => onStart(plan)} disabled={routing === 'loading'} accessibilityRole="button">
             <Text style={s.startTxt}>Start this loop</Text>
           </Pressable>
         </>

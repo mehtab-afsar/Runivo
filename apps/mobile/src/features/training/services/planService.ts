@@ -30,6 +30,11 @@ async function cache(ap: ActivePlan | null): Promise<void> {
   void rescheduleSessionReminders(ap?.plan ?? null);
 }
 
+/** Forget the cached plan and its reminders (sign-out: the next account must not see it). */
+export async function clearCachedPlan(): Promise<void> {
+  await cache(null);
+}
+
 export async function getCachedPlan(): Promise<ActivePlan | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHE);

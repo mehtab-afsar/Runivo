@@ -63,7 +63,7 @@ export function BarcodeScannerModal({ visible, onResult, onClose }: BarcodeScann
           <Pressable style={s.permBtn} onPress={requestPermission}>
             <Text style={s.permBtnLabel}>Allow Camera</Text>
           </Pressable>
-          <Pressable onPress={onClose} style={s.closeTopBtn}>
+          <Pressable hitSlop={8} onPress={onClose} style={s.closeTopBtn}>
             <X size={20} color={Colors.alwaysLight} weight="regular" />
           </Pressable>
         </SafeAreaView>
@@ -85,7 +85,7 @@ export function BarcodeScannerModal({ visible, onResult, onClose }: BarcodeScann
         <SafeAreaView style={s.overlay}>
           {/* Top bar */}
           <View style={s.topBar}>
-            <Pressable onPress={onClose} style={s.closeTopBtn}>
+            <Pressable hitSlop={8} onPress={onClose} style={s.closeTopBtn}>
               <X size={20} color={Colors.alwaysLight} weight="regular" />
             </Pressable>
             <Text style={s.topTitle}>Scan Barcode</Text>

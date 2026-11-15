@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { X } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { track } from '@shared/services/analytics';
 import { useSubscription } from '../hooks/useSubscription';
 import { PlanCard } from '../components/PlanCard';
@@ -29,7 +29,7 @@ export default function SubscriptionScreen() {
   const reason = route.params?.reason;
   const copy = PAYWALL_COPY[reason ?? 'default'];
   const insets = useSafeAreaInsets();
-  const { currentTier, isPremium, loading, purchasing, rcPrices, purchasePlan, restorePlan } = useSubscription();
+  const { currentTier, isPremium, loading, purchasing, rcPrices, plansUnavailable, reload, purchasePlan, restorePlan } = useSubscription();
   const [selected, setSelected] = useState<'annual' | 'monthly'>('annual');
 
   useEffect(() => { track('paywall_viewed', { reason: reason ?? 'direct' }); }, [reason]);
@@ -61,7 +61,7 @@ export default function SubscriptionScreen() {
               <X size={18} color={C.alwaysLight} strokeWidth={2.2} />
             </Pressable>
             {!isPremium && (
-              <Pressable style={s.restorePill} onPress={restorePlan} disabled={purchasing} hitSlop={8}>
+              <Pressable style={s.restorePill} onPress={restorePlan} disabled={purchasing} hitSlop={8} accessibilityRole="button">
                 <Text style={s.restorePillText}>Restore purchase</Text>
               </Pressable>
             )}
@@ -73,18 +73,19 @@ export default function SubscriptionScreen() {
         <View style={s.body}>
           {/* Free vs Plus */}
           <View style={s.table}>
+            {/* Column headers belong above the values they name. */}
+            <View style={s.trFoot} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+              <Text style={s.tdLabel} />
+              <Text style={s.footFree}>Free</Text>
+              <Text style={s.footPlus}>Plus</Text>
+            </View>
             {KEY_ROWS.map(r => (
-              <View key={r.label} style={s.tr}>
+              <View key={r.label} style={s.tr} accessible accessibilityLabel={`${r.label}. Free: ${r.free}. Plus: ${r.plus}.`}>
                 <Text style={s.tdLabel}>{r.label}</Text>
                 <Text style={s.tdFree}>{r.free}</Text>
                 <Text style={s.tdPlus}>{r.plus}</Text>
               </View>
             ))}
-            <View style={s.trFoot}>
-              <Text style={s.tdLabel} />
-              <Text style={s.footFree}>Free</Text>
-              <Text style={s.footPlus}>Plus</Text>
-            </View>
           </View>
           {/* X6: what never goes behind the paywall. */}
           <Text style={s.alwaysFree}>Always free: tracking, claiming and defending zones, clubs, safety sharing, privacy controls and the PACE store.</Text>
@@ -93,6 +94,14 @@ export default function SubscriptionScreen() {
             <ActivityIndicator color={C.red} style={{ marginVertical: 28 }} />
           ) : isPremium ? (
             <View style={{ marginTop: 16 }}><CurrentPlanBadge tier={currentTier ?? 'premium'} /></View>
+          ) : plansUnavailable ? (
+            // No plan, no price: the store returned nothing (offline, or the products are not live).
+            // A purchase button without a price would break the paywall rules, so offer a retry.
+            <View style={s.unavailable}>
+              <Text style={s.unavailableTitle}>Plans can't load right now</Text>
+              <Text style={s.unavailableBody}>Check your connection and try again. Restore purchase above still works if you already subscribed.</Text>
+              <Pressable onPress={reload} style={s.retry} accessibilityRole="button" hitSlop={8}><Text style={s.retryTxt}>Try again</Text></Pressable>
+            </View>
           ) : (
             <>
               <View style={s.plans}>
@@ -114,22 +123,30 @@ export default function SubscriptionScreen() {
               >
                 {purchasing ? <ActivityIndicator color="#FFFFFF" /> : <Text style={s.ctaLabel}>{ctaLabel}</Text>}
               </Pressable>
-              <Text style={s.ctaSub}>{ctaSub} Cancel any time in your App Store settings.</Text>
+              <Text style={s.ctaSub}>{ctaSub} Cancel any time in {Platform.OS === 'ios' ? 'your Apple ID settings' : 'Google Play'}.</Text>
             </>
           )}
 
           <Text style={s.legal}>
-            Payment is charged to your Apple or Google account. The subscription renews automatically unless cancelled at least 24 hours before the end of the trial or billing period.
+            Payment is charged to your {Platform.OS === 'ios' ? 'Apple ID' : 'Google Play'} account at confirmation of purchase. The subscription renews automatically unless cancelled at least 24 hours before the end of the trial or billing period.
           </Text>
           {/* Apple requires Terms and Privacy on the same screen as the purchase button. */}
           <View style={s.links}>
-            <Pressable onPress={() => Linking.openURL('https://runivo.app/terms')} hitSlop={8}>
-              <Text style={s.link}>Terms of Service</Text>
+            <Pressable onPress={() => { Linking.openURL('https://runivo.app/terms').catch(() => {}); }} hitSlop={8} accessibilityRole="link">
+              <Text style={s.link}>Terms of Use (EULA)</Text>
             </Pressable>
             <Text style={s.linkSep}>·</Text>
-            <Pressable onPress={() => Linking.openURL('https://runivo.app/privacy')} hitSlop={8}>
+            <Pressable onPress={() => { Linking.openURL('https://runivo.app/privacy').catch(() => {}); }} hitSlop={8} accessibilityRole="link">
               <Text style={s.link}>Privacy Policy</Text>
             </Pressable>
+            {!isPremium && (
+              <>
+                <Text style={s.linkSep}>·</Text>
+                <Pressable onPress={restorePlan} disabled={purchasing} hitSlop={8} accessibilityRole="button">
+                  <Text style={s.link}>Restore purchase</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -139,6 +156,11 @@ export default function SubscriptionScreen() {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
+    unavailable:      { marginTop: 24, padding: 18, borderRadius: Spacing.radius.lg, backgroundColor: C.card },
+    unavailableTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    unavailableBody:  { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2, marginTop: 6 },
+    retry:            { height: 44, borderRadius: 12, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
+    retryTxt:         { fontFamily: Fonts.semiBold, fontSize: 14, color: C.bg },
     root:        { flex: 1, backgroundColor: C.bg },
     heroBlock:   { backgroundColor: C.alwaysDark, paddingHorizontal: Spacing.gutter + 2, paddingBottom: 28 },
     topRow:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 40 },

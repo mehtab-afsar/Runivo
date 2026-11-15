@@ -5,6 +5,8 @@ import { usePostRunInsights } from '../hooks/usePostRunInsights';
 import { buildRunSummary, type RunSummaryInput } from '@shared/engine/runSummary';
 import { DEBRIEF_PAYWALL_AFTER_RUNS } from '@shared/engine/entitlements';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import AiConsentCard from '../../coach/components/AiConsentCard';
+import { useAiConsent } from '../../coach/hooks/useAiConsent';
 
 interface Props {
   runId?: string;
@@ -22,7 +24,10 @@ interface Props {
 export default function PaceXSummaryCard({ runId, plus, runsCompleted, summary, onOpenPlus }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
-  const { insights, loading } = usePostRunInsights(runId, plus);
+  // The AI debrief sends this run to a third-party AI, so it waits for the runner's say-so.
+  const { consent, granted } = useAiConsent();
+  const aiOn = plus && consent === true;
+  const { insights, loading } = usePostRunInsights(runId, aiOn);
   const free = useMemo(() => buildRunSummary(summary), [summary]);
   const showUpsell = !plus && runsCompleted >= DEBRIEF_PAYWALL_AFTER_RUNS;
 
@@ -31,10 +36,10 @@ export default function PaceXSummaryCard({ runId, plus, runsCompleted, summary, 
       <View style={s.head}>
         <View style={s.icon}><Sparkles size={15} color={C.red} strokeWidth={2.2} /></View>
         <Text style={s.title}>{plus ? 'PaceX debrief' : 'PaceX summary'}</Text>
-        {plus && loading && <ActivityIndicator size="small" color={C.t3} style={{ marginLeft: 'auto' }} />}
+        {aiOn && loading && <ActivityIndicator size="small" color={C.t3} style={{ marginLeft: 'auto' }} />}
       </View>
 
-      {plus && insights ? (
+      {aiOn && insights ? (
         <>
           <Text style={s.lead}>{insights.praise}</Text>
           <Text style={s.body}>{insights.analysis}</Text>
@@ -46,6 +51,10 @@ export default function PaceXSummaryCard({ runId, plus, runsCompleted, summary, 
           <Text style={s.lead}>{free.headline}</Text>
           {free.lines.map(line => <Text key={line} style={s.body}>{line}</Text>)}
         </>
+      )}
+
+      {plus && consent === false && (
+        <View style={s.consent}><AiConsentCard compact onGranted={granted} /></View>
       )}
 
       {showUpsell && (
@@ -68,6 +77,7 @@ function mkStyles(C: AppColors) {
     title:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
     lead:       { fontFamily: Fonts.semiBold, fontSize: 16, lineHeight: 22, color: C.t1, marginBottom: 6 },
     body:       { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2, marginTop: 4 },
+    consent:    { marginTop: 14 },
     upsell:     {
       flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12,
       borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border,

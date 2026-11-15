@@ -33,7 +33,7 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
   return (
     <Animated.View style={[ss.outer, { paddingBottom: Math.max(insets.bottom, 8) + 4, transform: [{ translateY: slideY }], opacity }]}>
       <View style={ss.pill}>
-        <Pressable style={ss.zapBtn} onPress={onOpenCapabilities} hitSlop={8}>
+        <Pressable style={ss.zapBtn} onPress={onOpenCapabilities} hitSlop={8} accessibilityRole="button" accessibilityLabel="What can PaceX do">
           <LayoutGrid size={16} color={C.purple} weight="light" />
         </Pressable>
         <TextInput
@@ -52,6 +52,8 @@ export function CoachFloatingInput({ value, onChangeText, onSend, sending, onOpe
           onPress={onSend}
           disabled={!canSend}
           hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
         >
           <ArrowUp size={16} color={canSend ? C.alwaysLight : C.t3} weight="bold" />
         </Pressable>

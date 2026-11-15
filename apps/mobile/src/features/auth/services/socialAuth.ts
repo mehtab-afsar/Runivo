@@ -73,7 +73,7 @@ export const signInWithGoogle = (): Promise<void> => oauthFlow('google');
  * with the hashed claim in Apple's identityToken, binding the token to this
  * attempt (replay/CSRF defence). Null when the runner backed out.
  */
-export async function nativeAppleCredential(): Promise<{ token: string; nonce: string } | null> {
+export async function nativeAppleCredential(): Promise<{ token: string; nonce: string; authorizationCode: string | null } | null> {
   const rawNonce = Crypto.randomUUID();
   const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
 
@@ -92,7 +92,7 @@ export async function nativeAppleCredential(): Promise<{ token: string; nonce: s
   }
 
   if (!credential.identityToken) throw new Error('Apple sign-in returned no identity token');
-  return { token: credential.identityToken, nonce: rawNonce };
+  return { token: credential.identityToken, nonce: rawNonce, authorizationCode: credential.authorizationCode ?? null };
 }
 
 /**

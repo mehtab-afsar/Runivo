@@ -7,7 +7,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { CaretLeft, Barbell, PersonSimpleTaiChi, Pause, Play, SkipForward } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { STRENGTH_SESSIONS, type StrengthSession } from '@shared/engine/strength';
@@ -24,7 +24,7 @@ export default function StrengthScreen() {
   return (
     <View style={s.root}>
       <View style={[s.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={s.back} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
         <Text style={s.title}>Strength and mobility</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 18, gap: 12, paddingBottom: 60 }}>
@@ -83,7 +83,7 @@ function Guided({ session, onDone }: { session: StrengthSession; onDone: () => v
   return (
     <View style={[s.root, { paddingTop: insets.top + 6 }]}>
       <View style={s.top}>
-        <Pressable style={s.back} onPress={onDone} accessibilityLabel="Stop"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={onDone} accessibilityLabel="Stop"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
         <Text style={s.title}>{session.title}</Text>
         <Text style={s.cardSub}>{Math.min(Math.max(i + 1, 0), total)}/{total}</Text>
       </View>

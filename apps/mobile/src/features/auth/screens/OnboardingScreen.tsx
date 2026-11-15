@@ -5,11 +5,11 @@
  * Goal: out on a first run within 24 hours, with PaceX knowing enough to coach.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Platform, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { subscribeToPush } from '@shared/services/pushNotificationService';
 import { track } from '@shared/services/analytics';
@@ -144,6 +144,17 @@ export default function OnboardingScreen() {
         return <FirstMissionStep goal={d.goal} weeklyTargetKm={ob.weeklyTargetKm} />;
     }
   };
+
+  // Android hardware back steps to the previous question instead of closing the app.
+  const { index: obIndex, goBack: obGoBack } = ob;
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (obIndex > 0) { obGoBack(); return true; }
+      return false;
+    });
+    return () => sub.remove();
+  }, [obIndex, obGoBack]);
 
   const skipLabel = ob.stepKey === 'notifications' ? 'Not now' : 'Skip for now';
 

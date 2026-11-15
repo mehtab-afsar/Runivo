@@ -1,9 +1,12 @@
+import { effectiveTier } from '../_shared/subscriptions.ts';
 import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 /** Runivo Plus: 'premium' or the internal 'admin' tier (entitlements.isPlus). */
 function isPlusTier(tier: string | null | undefined): boolean {
+  // Plus for everyone while subscriptions are off (_shared/subscriptions.ts).
+  tier = effectiveTier(tier);
   return tier === 'premium' || tier === 'admin';
 }
 
@@ -1295,7 +1298,7 @@ ABOUT RUNIVO:
 Runivo is a gamified running app where runners claim real-world territory by running through it. Your GPS path generates a corridor polygon. Rivals can steal your territory by running through it. Territory freshness decays over time (−10/day) — stale zones (freshness < 40) are easy to steal. Runners win by running consistently to defend and expand their ground.
 
 ECONOMY (never mention XP, coins, energy, or levels):
-- PACE: runners earn 1 PACE per km, 5 per new zone, 10 per rival zone stolen. Weekly cap: ${ctx.paceWeeklyCapLimit} PACE. Resets Monday.
+- PACE: runners earn 2 PACE per km, 5 per new zone, 10 per rival zone stolen. Weekly cap: ${ctx.paceWeeklyCapLimit} PACE. Resets Monday.
 - Territory Score (TS): sum of all polygon area × freshness multiplier. Competitive ranking.
 - Runner Rank: Pacer → Strider → Chaser → Hunter → Sovereign. Based on total PACE earned all-time.
 - Freshness: each polygon decays from 100 to 0 over 10 days. Below 40 = stale = easy to steal.
@@ -1794,10 +1797,21 @@ Deno.serve(async (req) => {
     // so free runners are refused here, before any cost. The red-flag safety
     // reply above stays free: safety is never charged for. 'admin' counts as Plus.
     const { data: tierRow } = await supabase
-      .from('profiles').select('subscription_tier').eq('id', user.id).single();
-    if (!isPlusTier((tierRow as { subscription_tier: string | null } | null)?.subscription_tier)) {
+      .from('profiles').select('subscription_tier, ai_consent_at').eq('id', user.id).single();
+    const gate = tierRow as { subscription_tier: string | null; ai_consent_at: string | null } | null;
+    if (!isPlusTier(gate?.subscription_tier)) {
       return new Response(JSON.stringify({ error: 'plus_required' }), {
         status: 402,
+        headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Everything below sends the runner's data to Anthropic. Apple (5.1.2(i)) and
+    // the privacy policy require explicit permission first, so this is enforced
+    // here, not only in the app: a modified client must not be able to skip it.
+    if (!gate?.ai_consent_at) {
+      return new Response(JSON.stringify({ error: 'ai_consent_required' }), {
+        status: 403,
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
       });
     }

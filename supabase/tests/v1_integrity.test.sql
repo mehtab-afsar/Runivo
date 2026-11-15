@@ -3,6 +3,8 @@
 \set ON_ERROR_STOP on
 
 BEGIN;
+-- These checks cover the Free/Plus rules as they'll run once subscriptions are on.
+UPDATE public.app_settings SET value = 'true' WHERE key = 'subscriptions_enabled';
 -- Rewards gained required brand/description/value_label after these tests were written;
 -- defaults for this transaction only.
 ALTER TABLE public.pace_store_rewards ALTER COLUMN brand SET DEFAULT 'Test brand',

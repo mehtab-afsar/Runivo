@@ -1,6 +1,7 @@
+import { SafetyNote } from '@mobile/shared/components/SafetyNote';
 import React, { useMemo } from 'react';
 import { View, Text, Animated, StyleSheet, TouchableOpacity, Switch, ScrollView, Alert, Linking } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { CaretRight, Check, Play, MusicNotes as Music2, PathIcon as RouteIcon, Hexagon, Info, DotsThree } from 'phosphor-react-native';
 import type { ActivityType } from '../types';
 import { activityMetaFor, SPORTS, MORE_SPORTS, sportFor } from '../constants/activities';
@@ -217,6 +218,7 @@ export default function RunSetupSheet({
             <Text style={ss.startLabel}>{gpsReady ? `Start ${sport.verb}` : 'Waiting for GPS'}</Text>
           </TouchableOpacity>
         )}
+        <SafetyNote kind="run" />
       </View>
     </Animated.View>
   );

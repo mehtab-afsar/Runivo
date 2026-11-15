@@ -4,7 +4,6 @@ import { getPlayer } from '@shared/services/store';
 import { computeRunnerRank } from '@shared/services/claimEngine';
 import { weeklyCapFor } from '@shared/engine/runEngine';
 import type { StoredPlayer } from '@shared/services/store';
-import { HARDCODED_REWARDS } from '../rewards';
 import type { Reward } from '../types';
 import { lastKnownPoint, pointParams } from '../services/devicePoint';
 
@@ -67,7 +66,9 @@ export async function loadRewards(): Promise<Reward[] | null> {
 
 export function usePACEStore() {
   const [player, setPlayer]               = useState<StoredPlayer | null>(null);
-  const [rewards, setRewards]             = useState<Reward[]>(HARDCODED_REWARDS);
+  const [rewards, setRewards]             = useState<Reward[]>([]);
+  // false until the first server answer, so the screen doesn't flash "no rewards" while loading.
+  const [rewardsLoaded, setRewardsLoaded] = useState(false);
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [isRedeemVisible, setIsRedeemVisible] = useState(false);
 
@@ -77,9 +78,13 @@ export function usePACEStore() {
 
   const refresh = useCallback(async () => {
     try {
+      // Whatever the server has for this runner's area, including nothing: rewards
+      // are partner offers in selected cities, so an empty list is a real answer.
+      // (There used to be a hardcoded sample reward here that nobody could redeem.)
       const loaded = await loadRewards();
-      if (loaded && loaded.length > 0) setRewards(loaded);
-    } catch { /* keep HARDCODED_REWARDS fallback */ }
+      setRewards(loaded ?? []);
+    } catch { /* keep what is shown; a network error is not "no rewards" */ }
+    finally { setRewardsLoaded(true); }
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -102,6 +107,6 @@ export function usePACEStore() {
 
   return {
     paceBalance, paceWeeklyEarned, capLimit, weeklyPct, runnerRank,
-    rewards, selectedReward, isRedeemVisible, handleRedeem, closeRedeem, refresh,
+    rewards, rewardsLoaded, selectedReward, isRedeemVisible, handleRedeem, closeRedeem, refresh,
   };
 }

@@ -115,15 +115,15 @@ describe('calculateRunPACE', () => {
   const base = { newZonesClaimed: 0, stolenZones: 0, streakDays: 0, paceWeeklyEarned: 0 };
 
   it.each([
-    [0.04, 0], [0.9, 0], [1.0, 1], [1.99, 1], [5.0, 5], [10.4, 10], [21.1, 21],
+    [0.04, 0], [0.9, 0], [1.0, 2], [1.99, 2], [5.0, 10], [10.4, 20], [21.1, 42],
   ])('%s km pays %s PACE for distance', (km, pace) => {
     expect(calculateRunPACE({ ...base, distanceKm: km }).breakdown.fromDistance).toBe(pace);
   });
 
   it('pays 5 per new zone and 10 per stolen zone on runs of 200 m or more', () => {
     const r = calculateRunPACE({ ...base, distanceKm: 3, newZonesClaimed: 1, stolenZones: 2 });
-    expect(r.breakdown).toEqual({ fromDistance: 3, fromNewZones: 5, fromStolenZones: 20, fromStreak: 0 });
-    expect(r.paceEarned).toBe(28);
+    expect(r.breakdown).toEqual({ fromDistance: 6, fromNewZones: 5, fromStolenZones: 20, fromStreak: 0 });
+    expect(r.paceEarned).toBe(31);
   });
 
   it('pays nothing for zones on a run under 200 m', () => {
@@ -142,7 +142,7 @@ describe('calculateRunPACE', () => {
     expect(free.paceEarned).toBe(10);
     expect(free.cappedAt).toBe(100);
     const premium = calculateRunPACE({ ...base, distanceKm: 20, paceWeeklyEarned: 90, tier: 'premium' });
-    expect(premium.paceEarned).toBe(20);
+    expect(premium.paceEarned).toBe(40);
     expect(premium.cappedAt).toBeUndefined();
     expect(calculateRunPACE({ ...base, distanceKm: 20, paceWeeklyEarned: 145, tier: 'admin' }).paceEarned).toBe(5);
   });

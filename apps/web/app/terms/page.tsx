@@ -39,7 +39,7 @@ export default function TermsPage() {
             Terms of Service
           </h1>
           <p style={{ ...prose, color: 'var(--t3)', marginBottom: 48 }}>
-            Last updated: May 2026
+            Last updated: November 2026
           </p>
 
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 48 }}>
@@ -81,37 +81,52 @@ export default function TermsPage() {
               Territory claims are a game mechanic. They confer no real-world rights over any location. Territory can be lost through natural decay or by other runners claiming zones. We make no guarantees about the persistence of any territory claim.
             </p>
 
-            <h2 style={h2Style}>6. Content</h2>
+            <h2 style={h2Style}>6. Content and Conduct</h2>
             <p style={prose}>
-              You retain ownership of content you create (photos, descriptions). By submitting content you grant Runivo a non-exclusive, royalty-free licence to use, display, and distribute it within the app. You must not submit content that is illegal, hateful, or infringes third-party rights.
+              You retain ownership of content you create (photos, descriptions, comments, messages). By submitting content you grant Runivo a non-exclusive, royalty-free licence to use, display, and distribute it within the app.
+            </p>
+            <p style={{ ...prose, marginTop: 12 }}>
+              There is no tolerance for objectionable content or abusive users. You must not post content that is illegal, hateful, harassing, sexually explicit, threatening, or that infringes third-party rights, and you must not impersonate others or cheat (for example by faking GPS data or using a vehicle on a foot run).
+            </p>
+            <p style={{ ...prose, marginTop: 12 }}>
+              Anyone can report a comment, post, club, event, message or runner from inside the app, and can block any runner. We review reports and act on content that breaks these rules, usually within 24 hours: we may remove it, hide it, or suspend or end the account that posted it. To report something we have missed, email{' '}
+              <a href="mailto:support@runivo.com" style={{ color: 'var(--accent)' }}>support@runivo.com</a>.
             </p>
 
-            <h2 style={h2Style}>7. Disclaimers</h2>
+            <h2 style={h2Style}>7. Runivo Plus Subscription</h2>
             <p style={prose}>
-              Runivo is provided &ldquo;as is&rdquo; without warranties of any kind. GPS accuracy varies by device and environment. Runivo is a game — always follow traffic laws and exercise safely. We are not responsible for any injury, accident, or loss arising from your use of the app.
+              Runivo Plus is an optional auto-renewing subscription that adds features such as unlimited zones, the PaceX AI coach and training plans. The price and billing period are shown in the app before you subscribe, and the price may vary by country. Payment is charged to your Apple ID account when you confirm the purchase. The subscription renews automatically for the same period unless you turn off auto-renew at least 24 hours before the end of the current period; your account is charged for renewal within 24 hours before the period ends.
+            </p>
+            <p style={{ ...prose, marginTop: 12 }}>
+              You can manage or cancel your subscription at any time in your Apple ID account settings (Settings → your name → Subscriptions); deleting the app does not cancel it. If we offer a free trial, any unused part of it ends when you purchase a subscription. Refunds are handled by Apple under its policies. If a subscription lapses, you keep your account and runs, and Plus features stop.
             </p>
 
-            <h2 style={h2Style}>8. Limitation of Liability</h2>
+            <h2 style={h2Style}>8. Disclaimers</h2>
+            <p style={prose}>
+              Runivo is provided &ldquo;as is&rdquo; without warranties of any kind. GPS accuracy varies by device and environment. Runivo is a game — always follow traffic laws, stay on public paths and never enter private property, and exercise safely. PaceX gives general running guidance, not medical advice; talk to a doctor before changing your training if you have a health concern. We are not responsible for any injury, accident, or loss arising from your use of the app.
+            </p>
+
+            <h2 style={h2Style}>9. Limitation of Liability</h2>
             <p style={prose}>
               To the maximum extent permitted by law, Runivo&apos;s total liability for any claim arising from these Terms shall not exceed the amount you paid to Runivo in the 12 months preceding the claim, or £10, whichever is greater.
             </p>
 
-            <h2 style={h2Style}>9. Termination</h2>
+            <h2 style={h2Style}>10. Termination</h2>
             <p style={prose}>
               We may suspend or terminate your account if you violate these Terms. You may delete your account at any time in Settings. Upon termination, your data will be deleted in accordance with our Privacy Policy.
             </p>
 
-            <h2 style={h2Style}>10. Governing Law</h2>
+            <h2 style={h2Style}>11. Governing Law</h2>
             <p style={prose}>
               These Terms are governed by the laws of England and Wales. Any disputes shall be resolved in the courts of England and Wales.
             </p>
 
-            <h2 style={h2Style}>11. Changes</h2>
+            <h2 style={h2Style}>12. Changes</h2>
             <p style={prose}>
               We may update these Terms from time to time. We will notify you of material changes 30 days in advance. Continued use after the effective date constitutes acceptance.
             </p>
 
-            <h2 style={h2Style}>12. Contact</h2>
+            <h2 style={h2Style}>13. Contact</h2>
             <p style={prose}>
               Questions about these Terms? Email{' '}
               <a href="mailto:support@runivo.com" style={{ color: 'var(--accent)' }}>support@runivo.com</a>.

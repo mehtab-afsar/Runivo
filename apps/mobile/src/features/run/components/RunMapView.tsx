@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Animated, Pressable, StyleSheet } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { Stack, X } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { MAP_STYLES, PLUS_MAP_STYLE_IDS } from '@theme/maps';
@@ -76,7 +76,7 @@ export default function RunMapView({
         <View style={{ flex: 1 }} />
 
         {/* Map style picker */}
-        <Pressable style={ss.mapBtn} onPress={() => { setShowStylePicker(s => !s); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
+        <Pressable style={ss.mapBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Choose map style" onPress={() => { setShowStylePicker(s => !s); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}>
           <Stack size={14} color={C.black} weight="light" />
         </Pressable>
       </View>

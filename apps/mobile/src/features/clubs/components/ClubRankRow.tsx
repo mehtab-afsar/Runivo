@@ -77,15 +77,18 @@ export const ClubRankRow = React.memo(function ClubRankRow({
           </Pressable>
         ) : (
           <Pressable
-            style={s.joinPill}
+            style={[s.joinPill, club.requested && { opacity: 0.6 }]}
             onPress={() => onJoin(club)}
+            disabled={club.requested}
             hitSlop={6}
+            accessibilityRole="button"
             accessibilityLabel={
-              club.join_policy === 'open' ? `Join ${club.name}` : `Request to join ${club.name}`
+              club.requested ? `Request to join ${club.name} sent`
+              : club.join_policy === 'open' ? `Join ${club.name}` : `Request to join ${club.name}`
             }
           >
             <Text style={s.joinText}>
-              {club.join_policy === 'open' ? 'Join' : 'Request'}
+              {club.requested ? 'Requested' : club.join_policy === 'open' ? 'Join' : 'Request'}
             </Text>
           </Pressable>
         )}

@@ -9,10 +9,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, Pressable,
-  SafeAreaView, Platform, ActivityIndicator, Linking, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Linking, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Heart, Pulse, TrendUp, Brain, DeviceMobile, Check, X } from 'phosphor-react-native';
 import { supabase } from '@shared/services/supabase';
@@ -195,7 +193,7 @@ function DeviceCard({
           {isConnected && (
             <>
               {device.iosOnly && (
-                <Pressable
+                <Pressable hitSlop={8}
                   style={ss.iconBtn}
                   onPress={onSync}
                   disabled={busy}
@@ -206,7 +204,7 @@ function DeviceCard({
                   }
                 </Pressable>
               )}
-              <Pressable
+              <Pressable hitSlop={8}
                 style={ss.disconnectBtn}
                 onPress={onDisconnect}
                 disabled={busy}
@@ -352,12 +350,22 @@ export default function ConnectedDevicesScreen() {
     }
   };
 
-  const handleAhDisconnect = async () => {
-    setAhBusy(true);
-    await saveAppleHealthConnection(false);
-    setAhStatus('disconnected');
-    setAhLastSync(null);
-    setAhBusy(false);
+  const handleAhDisconnect = () => {
+    Alert.alert('Disconnect Apple Health?', 'Runivo will stop importing your workouts.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Disconnect', style: 'destructive', onPress: async () => {
+        setAhBusy(true);
+        try {
+          await saveAppleHealthConnection(false);
+          setAhStatus('disconnected');
+          setAhLastSync(null);
+        } catch {
+          showToast('Failed to disconnect');
+        } finally {
+          setAhBusy(false);
+        }
+      } },
+    ]);
   };
 
   const handleAhSync = async () => {
@@ -388,7 +396,15 @@ export default function ConnectedDevicesScreen() {
     }
   };
 
-  const handleOAuthDisconnect = async (device: DeviceInfo) => {
+  const handleOAuthDisconnect = (device: DeviceInfo) => {
+    if (!device.oauthProvider) return;
+    Alert.alert(`Disconnect ${device.name}?`, 'Runivo will stop syncing runs with it.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Disconnect', style: 'destructive', onPress: () => { void doOAuthDisconnect(device); } },
+    ]);
+  };
+
+  const doOAuthDisconnect = async (device: DeviceInfo) => {
     if (!device.oauthProvider) return;
     setOauthBusy(device.key);
     try {
@@ -405,7 +421,7 @@ export default function ConnectedDevicesScreen() {
     <SafeAreaView style={ss.root}>
       {/* Header */}
       <View style={ss.header}>
-        <Pressable onPress={() => navigation.goBack()} style={ss.backBtn}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={ss.backBtn}>
           <Text style={ss.backText}>←</Text>
         </Pressable>
         <Text style={ss.title}>Connected Devices</Text>

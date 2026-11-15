@@ -173,6 +173,8 @@ export function useGameEngine() {
       durationSec: number;
       avgPace: string;
       elevationGainM?: number;
+      /** The device reported mock/simulated location during the run. */
+      mockedLocation?: boolean;
       gpsPoints: {
         lat: number;
         lng: number;

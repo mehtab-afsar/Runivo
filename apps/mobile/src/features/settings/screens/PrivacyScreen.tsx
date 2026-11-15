@@ -2,8 +2,10 @@
  * Privacy controls (PRD X1): every visibility choice on one page. Changes
  * apply to past activities and zones too; the server enforces all of them.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Switch, Alert, ActivityIndicator } from 'react-native';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
@@ -41,11 +43,18 @@ export default function PrivacyScreen() {
   const [radius, setRadius] = useState(400);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    fetchDefaultAudience().then(setAudience).catch(() => setAudience('everyone'));
-    fetchPrivatePlaces().then(setPlaces).catch(() => setPlaces([]));
-    fetchPrivacyControls().then(setControls).catch(() => setControls({ hideFromLeaderboards: false, hideZonesFromMap: false }));
+  const [loadFailed, setLoadFailed] = useState(false);
+  const load = useCallback(() => {
+    setLoadFailed(false);
+    // A failed load must NOT fall back to "Everyone / nothing hidden": that showed a
+    // private runner as fully visible. Leave the values unknown (controls stay disabled)
+    // and say so.
+    const failed = () => setLoadFailed(true);
+    fetchDefaultAudience().then(setAudience).catch(failed);
+    fetchPrivatePlaces().then(setPlaces).catch(() => { setPlaces([]); failed(); });
+    fetchPrivacyControls().then(setControls).catch(failed);
   }, []);
+  useEffect(() => { load(); }, [load]);
 
   const changeAudience = (l: string) => {
     const next = (Object.keys(AUD_LABEL) as Audience[]).find(k => AUD_LABEL[k] === l) ?? 'everyone';
@@ -88,6 +97,9 @@ export default function PrivacyScreen() {
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+        {loadFailed && (
+          <ErrorState title="Couldn't load your privacy settings" body="What you see below may be out of date, so changes are paused. Try again." onRetry={load} />
+        )}
         <Text style={s.section}>Activities</Text>
         <View style={s.card}>
           <View style={s.rowCol}>
@@ -132,12 +144,12 @@ export default function PrivacyScreen() {
             <View style={[s.rowCol, s.border]}>
               <View style={s.chips}>
                 {LABELS.map(l => (
-                  <Pressable key={l} style={[s.chip, label === l && s.chipOn]} onPress={() => setLabel(l)}><Text style={[s.chipTxt, label === l && s.chipTxtOn]}>{l}</Text></Pressable>
+                  <Pressable hitSlop={8} key={l} style={[s.chip, label === l && s.chipOn]} onPress={() => setLabel(l)}><Text style={[s.chipTxt, label === l && s.chipTxtOn]}>{l}</Text></Pressable>
                 ))}
               </View>
               <View style={[s.chips, { marginTop: 8 }]}>
                 {MAP_HIDE_RADII.map(r => (
-                  <Pressable key={r} style={[s.chip, radius === r && s.chipOn]} onPress={() => setRadius(r)}><Text style={[s.chipTxt, radius === r && s.chipTxtOn]}>{radiusLabel(r)}</Text></Pressable>
+                  <Pressable hitSlop={8} key={r} style={[s.chip, radius === r && s.chipOn]} onPress={() => setRadius(r)}><Text style={[s.chipTxt, radius === r && s.chipTxtOn]}>{radiusLabel(r)}</Text></Pressable>
                 ))}
               </View>
               <Pressable style={s.cta} onPress={addHere} disabled={busy} accessibilityRole="button">

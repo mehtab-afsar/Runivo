@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import type { TerritoryFilter } from '../types';
 import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
@@ -30,7 +30,7 @@ export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn
       {filters.map(f => {
         const active = activeFilter === f.id;
         return (
-          <Pressable
+          <Pressable hitSlop={8}
             key={f.id}
             style={[ss.pill, active && ss.pillActive]}
             onPress={() => { onSelect(f.id); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
@@ -43,7 +43,7 @@ export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn
         );
       })}
       {onHeatmap && (
-        <Pressable
+        <Pressable hitSlop={8}
           style={[ss.pill, heatmapOn && ss.pillActive]}
           onPress={() => { onHeatmap(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
           accessibilityRole="switch"

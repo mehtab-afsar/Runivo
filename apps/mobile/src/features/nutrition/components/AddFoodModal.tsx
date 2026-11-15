@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import {
-  Modal, SafeAreaView, View, Text, TextInput, Pressable,
-  ScrollView, StyleSheet, Platform, Alert, ActivityIndicator,
-} from 'react-native';
+import { Modal, View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { X, Barcode, Camera, CheckCircle } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import type { NutritionEntry } from '@shared/services/store';
@@ -206,7 +204,7 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
         <SafeAreaView style={s.root}>
           {/* Header */}
           <View style={s.header}>
-            <Pressable onPress={handleClose} style={s.closeBtn}>
+            <Pressable onPress={handleClose} style={s.closeBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close">
               <X size={16} color={C.t2} weight="regular" />
             </Pressable>
             <Text style={s.title}>{isEditing ? 'Edit Food' : 'Log Food'}</Text>
@@ -215,6 +213,8 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
                 style={s.scanBtn}
                 onPress={() => setShowBarcodeScanner(true)}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Scan barcode"
               >
                 <Barcode size={20} color={C.t1} weight="regular" />
               </Pressable>
@@ -223,6 +223,8 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
                 onPress={handlePhotoScan}
                 disabled={photoScanning}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Scan food with camera"
               >
                 {photoScanning
                   ? <ActivityIndicator size="small" color={C.red} />
@@ -245,7 +247,7 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
             </View>
           )}
 
-          <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
             {/* Meal selector */}
             <View style={s.mealRow}>
               {MEALS.map(m => (

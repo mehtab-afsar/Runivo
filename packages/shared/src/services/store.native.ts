@@ -639,6 +639,11 @@ export function clearLocalUserData(): void {
   _db.runSync('DELETE FROM missions');
   _db.runSync('DELETE FROM saved_routes');
   _db.runSync('DELETE FROM shoes');
+  // Per-user rows the wipe used to miss: another account on this phone must not
+  // inherit the previous runner's weight history or queued writes (which would
+  // otherwise be replayed under the new account's session).
+  _db.runSync('DELETE FROM weight_logs');
+  _db.runSync('DELETE FROM pending_actions');
   // Onboarding profile (biometrics, training prefs) is keyed inside the shared
   // 'settings' table (see profile.native.ts) — delete just that row, not the whole
   // table, so device-level app preferences (dark mode, sound, GPS accuracy) survive

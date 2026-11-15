@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { normalizePhone, validateEmail, otpSendPolicy, isOtpCode } from '@shared/engine/onboarding';
+import { normalizePhone, dialCodeForLocale, validateEmail, otpSendPolicy, isOtpCode } from '@shared/engine/onboarding';
 import { track } from '@shared/services/analytics';
 import { sendPhoneCode, verifyPhoneCode, sendEmailLink, verifyEmailCode } from '../services/authService';
 import { onMagicLinkResult } from '../services/magicLink';
@@ -62,7 +62,8 @@ export function usePasswordlessAuth(): PasswordlessAuth {
 
   const setStage = useCallback((s: AuthStage) => { setError(''); setStageRaw(s); }, []);
 
-  const phoneCheck = normalizePhone(phone);
+  // A number typed without a country code is read in the device's region, not always +91.
+  const phoneCheck = normalizePhone(phone, dialCodeForLocale(Intl.DateTimeFormat().resolvedOptions().locale));
   const phoneValid = phoneCheck.ok;
   const emailValid = validateEmail(email);
 

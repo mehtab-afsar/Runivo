@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: 'How do I delete my account?',
-    a: 'Go to Settings → Account → Delete Account. This permanently deletes your profile, run history, territory claims, and PACE balance. This action cannot be undone. Your data is removed from our servers within 30 days.',
+    a: 'Go to Settings → Legal → Delete Account. This permanently deletes your profile, run history, territory claims, and PACE balance. This action cannot be undone. Your data is removed from our servers within 30 days.',
   },
   {
     q: 'Is Runivo available on Android?',

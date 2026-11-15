@@ -1,5 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { collectFilePaths, type StorageEntry } from './storageWalk.ts';
+import { appleConfigFromEnv, revokeAppleSignIn } from './appleRevoke.ts';
+import { deletePostHogPerson, posthogConfigFromEnv } from './posthogDelete.ts';
+
 // Buckets that store user-owned files under a `{userId}/...` path (RLS-scoped via
 // storage.foldername(name)[1] = auth.uid()::text — see migrations 022 and 039).
 // 'user-media' is referenced by the mobile gear feature but has no bucket-creation
@@ -7,15 +11,22 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 const USER_MEDIA_BUCKETS = ['avatars', 'feed', 'stories', 'user-media'];
 
 async function clearUserStorage(
-  supabase: ReturnType<typeof createClient>,
+  storage: ReturnType<typeof createClient>['storage'],
   userId: string
 ): Promise<void> {
   for (const bucket of USER_MEDIA_BUCKETS) {
     try {
-      const { data: files, error: listErr } = await supabase.storage.from(bucket).list(userId);
-      if (listErr || !files || files.length === 0) continue;
-      const paths = files.map(f => `${userId}/${f.name}`);
-      await supabase.storage.from(bucket).remove(paths);
+      const store = storage.from(bucket);
+      // Whole tree, not one level: photos sit at {userId}/{runId}/{name}.
+      const paths = await collectFilePaths(async (prefix, opts) => {
+        const { data, error } = await store.list(prefix, opts);
+        if (error) throw error;
+        return (data ?? []) as StorageEntry[];
+      }, userId);
+      // remove() takes a bounded batch; 100 at a time keeps requests small.
+      for (let i = 0; i < paths.length; i += 100) {
+        await store.remove(paths.slice(i, i + 100));
+      }
     } catch {
       // Best-effort — a missing/misconfigured bucket must not block account deletion.
     }
@@ -46,7 +57,35 @@ Deno.serve(async (req) => {
   // Storage cleanup BEFORE the irreversible deleteUser call below — if this throws,
   // the user account still exists and the client can show an error instead of the
   // user being deleted with orphaned files left behind silently either way.
-  await clearUserStorage(supabase, user.id);
+  await clearUserStorage(supabase.storage, user.id);
+
+  // Sign in with Apple (App Store 5.1.1(v), TN3194): the app re-authenticated with
+  // Apple just now and sent its one-time authorization code. Revoking the token
+  // removes Runivo from the runner's Apple ID "Sign in with Apple" list. A failure
+  // here is reported but never blocks the deletion the runner asked for.
+  let appleRevoked: boolean | null = null;
+  const usedApple = ((user.app_metadata?.providers as string[] | undefined) ?? []).includes('apple');
+  if (usedApple) {
+    const code = await req.json().then((b: { appleAuthorizationCode?: string }) => b?.appleAuthorizationCode).catch(() => undefined);
+    const cfg = appleConfigFromEnv(k => Deno.env.get(k));
+    if (!code || !cfg) {
+      console.warn('[delete-account] Apple token not revoked:', !code ? 'no authorization code sent' : 'APPLE_* secrets not set');
+      appleRevoked = false;
+    } else {
+      appleRevoked = await revokeAppleSignIn(cfg, code).catch(() => false);
+      if (!appleRevoked) console.warn('[delete-account] Apple token revoke failed');
+    }
+  }
+
+  // Product analytics kept at PostHog under this account id (the privacy policy says
+  // they go with the account). Best effort: a failure is logged, never blocks deletion.
+  const phCfg = posthogConfigFromEnv(k => Deno.env.get(k));
+  if (phCfg) {
+    const ok = await deletePostHogPerson(phCfg, user.id).catch(() => false);
+    if (!ok) console.warn('[delete-account] PostHog person not deleted');
+  } else {
+    console.warn('[delete-account] PostHog person not deleted: POSTHOG_* secrets not set');
+  }
 
   // Cascades through ~30 tables (runs, territory_polygons, mission_progress,
   // saved_routes, feed_posts, followers, coach_messages, etc. — all
@@ -61,7 +100,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  return new Response(JSON.stringify({ success: true }), {
+  return new Response(JSON.stringify({ success: true, appleRevoked }), {
     headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
   });
 });

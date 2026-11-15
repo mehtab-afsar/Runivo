@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { convertKm } from '@mobile/shared/lib/formatters';
 
 function fmt(s: number): string {
   const h = Math.floor(s / 3600);
@@ -16,12 +17,14 @@ interface FinishConfirmSheetProps {
   /** "run" / "walk" / "ride" — names the activity in the title. */
   verb?: string;
   bottomInset: number;
+  /** Display unit; distance stays km-native. */
+  unit?: 'km' | 'mi';
   onKeepRunning: () => void;
   onFinish: () => void;
 }
 
 export default function FinishConfirmSheet({
-  distance, elapsed, verb = 'run', bottomInset, onKeepRunning, onFinish,
+  distance, elapsed, verb = 'run', bottomInset, unit = 'km', onKeepRunning, onFinish,
 }: FinishConfirmSheetProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
@@ -29,12 +32,12 @@ export default function FinishConfirmSheet({
     <Pressable style={ss.overlay} onPress={onKeepRunning}>
       <Pressable style={[ss.sheet, { paddingBottom: bottomInset + 16 }]}>
         <Text style={ss.title}>Finish {verb}?</Text>
-        <Text style={ss.sub}>{distance.toFixed(2)} km · {fmt(elapsed)}</Text>
+        <Text style={ss.sub}>{convertKm(distance, unit).toFixed(2)} {unit} · {fmt(elapsed)}</Text>
         <View style={ss.actions}>
-          <Pressable style={ss.cancel} onPress={onKeepRunning}>
+          <Pressable style={ss.cancel} onPress={onKeepRunning} accessibilityRole="button">
             <Text style={ss.cancelText}>Keep going</Text>
           </Pressable>
-          <Pressable style={ss.finish} onPress={onFinish}>
+          <Pressable style={ss.finish} onPress={onFinish} accessibilityRole="button">
             <Text style={ss.finishText}>Finish</Text>
           </Pressable>
         </View>

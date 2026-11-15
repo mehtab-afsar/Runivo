@@ -97,10 +97,13 @@ export function MissionCard({ mission: m, MIcon, accentColor, sourceLabel, state
             <View style={[ss.rewardChip, { backgroundColor: `${accentColor}1A` }]}>
               <Text style={[ss.rewardChipText, { color: accentColor }]}>+{m.rewards.pace} PACE</Text>
             </View>
-            <Pressable onPress={() => onSwap(m.id)} hitSlop={8} style={ss.swapLink}>
-              <Text style={ss.swapLinkText}>Change</Text>
-              <ChevronRight size={12} color={C.red} strokeWidth={2} />
-            </Pressable>
+            {/* A finished mission can't be swapped: swapping resets its progress. */}
+            {!m.completed && (
+              <Pressable onPress={() => onSwap(m.id)} hitSlop={8} style={ss.swapLink} accessibilityRole="button" accessibilityLabel={`Change mission ${m.title}`}>
+                <Text style={ss.swapLinkText}>Change</Text>
+                <ChevronRight size={12} color={C.red} strokeWidth={2} />
+              </Pressable>
+            )}
           </>
         )}
       </View>

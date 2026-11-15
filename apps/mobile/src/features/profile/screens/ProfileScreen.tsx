@@ -8,7 +8,7 @@ import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Share
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ShareNetwork, GearSix, Pulse, ChartBar, Hexagon, MapTrifold, Timer, Sneaker, Crown, CaretRight, CalendarDots, Barbell } from 'phosphor-react-native';
+import { ShareNetwork, GearSix, Pulse, ChartBar, Hexagon, MapTrifold, Timer, Sneaker, Crown, CaretRight, CalendarDots, Barbell, Rows } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
 import { GAME_CONFIG } from '@shared/services/config';
@@ -40,9 +40,7 @@ export default function ProfileScreen() {
   const {
     runs, weeklyGoalKm, personalRecords, followers, following,
     avatarColor, avatarUri, displayName, location,
-    isEditing, editName, setEditName, editColor, setEditColor, editBio, setEditBio,
-    editLocation, setEditLocation, editInstagram, setEditInstagram, editStrava, setEditStrava,
-    editAvatarUri, pickAvatar, startEdit, saveEdit, cancelEdit,
+    isEditing, editInitial, startEdit, cancelEdit, saveProfile,
     earnedAwards, refreshCounts, pinnedRunId, pinRun, setWeeklyGoal,
   } = useProfile();
   useFocusEffect(useCallback(() => { refreshCounts(); }, [refreshCounts]));
@@ -85,6 +83,7 @@ export default function ProfileScreen() {
   };
 
   const menu: MenuItem[] = [
+    { key: 'feed', label: 'Your feed', Icon: Rows, sub: 'Your runs, battle cards and milestones as posts', onPress: () => navigation.navigate('MyFeed') },
     { key: 'acts', label: 'Activities', Icon: Pulse, sub: latest ? `${ago(latest.startTime)} · ${activityName(latest)}` : 'Nothing yet', onPress: () => navigation.navigate('History') },
     { key: 'stats', label: 'Statistics', Icon: ChartBar, sub: `${new Date().getFullYear()} · ${fmtKm(year.km)} km · ${year.count} ${year.count === 1 ? 'activity' : 'activities'}`, onPress: () => navigation.navigate('ProfileStats', { sport }) },
     { key: 'log', label: 'Training log', Icon: CalendarDots, sub: 'Every day of the last 16 weeks', onPress: () => navigation.navigate('TrainingLog') },
@@ -195,14 +194,10 @@ export default function ProfileScreen() {
       {isEditing && (
         <EditProfileSheet
           username={player?.username}
-          editName={editName} setEditName={setEditName}
-          editBio={editBio} setEditBio={setEditBio}
-          editColor={editColor} setEditColor={setEditColor}
-          editLocation={editLocation} setEditLocation={setEditLocation}
-          editInstagram={editInstagram} setEditInstagram={setEditInstagram}
-          editStrava={editStrava} setEditStrava={setEditStrava}
-          editAvatarUri={editAvatarUri} onPickAvatar={pickAvatar}
-          onSave={saveEdit} onCancel={cancelEdit}
+          initial={editInitial}
+          photoUri={avatarUri}
+          onSave={saveProfile}
+          onClose={cancelEdit}
         />
       )}
     </View>

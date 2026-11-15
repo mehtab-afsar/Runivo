@@ -166,25 +166,6 @@ export interface PaceInsightCard {
   recommendation: string;
 }
 
-export async function requestPaceIntelligence(
-  sessionToken: string,
-): Promise<{ insights: PaceInsightCard[] } | null> {
-  try {
-    const { data, error } = await supabase.functions.invoke('ai-coach', {
-      body: { feature: 'pace_intelligence' },
-      headers: { Authorization: `Bearer ${sessionToken}` },
-    });
-    if (error || !data) return null;
-    const inner = (data as Record<string, unknown>).data ?? data;
-    if (typeof inner === 'object' && inner !== null && 'insights' in inner) {
-      return inner as { insights: PaceInsightCard[] };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 export async function loadMessageHistory(userId: string): Promise<CoachMessage[]> {
   const { data } = await supabase
     .from('coach_messages')

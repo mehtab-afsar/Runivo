@@ -1,5 +1,5 @@
 import { RunivoMark } from '@mobile/shared/components/RunivoMark';
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
   ActivityIndicator, Alert, Platform,
@@ -82,16 +82,20 @@ export default function LoginForm({
   const C = useTheme();
   const isDark = useIsDark();
   const s = useMemo(() => mkStyles(C), [C]);
+  const pwRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
+  const [socialError, setSocialError] = useState<string | null>(null);
 
   async function handleSocialSignIn(provider: 'google' | 'apple') {
     setSocialLoading(provider);
+    setSocialError(null);
     try {
       if (provider === 'google') await signInWithGoogle();
       else await signInWithApple();
     } catch {
-      Alert.alert('Sign in failed', 'Please try again.');
+      // Inline, like every other sign-in error here, instead of a blocking dialog.
+      setSocialError('Sign in failed. Please try again.');
     } finally {
       setSocialLoading(null);
     }
@@ -143,7 +147,12 @@ export default function LoginForm({
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
               returnKeyType="next"
+              onSubmitEditing={() => pwRef.current?.focus()}
+              blurOnSubmit={false}
+              accessibilityLabel="Email"
               selectionColor={C.red}
               onFocus={emailBorder.onFocus}
               onBlur={emailBorder.onBlur}
@@ -154,6 +163,7 @@ export default function LoginForm({
             <Text style={s.label}>Password</Text>
             <View style={s.inputRow}>
               <TextInput
+                ref={pwRef}
                 style={[s.input, { flex: 1 }]}
                 value={password}
                 onChangeText={setPassword}
@@ -166,11 +176,13 @@ export default function LoginForm({
                 autoCorrect={false}
                 spellCheck={false}
                 textContentType="password"
+                autoComplete="current-password"
+                accessibilityLabel="Password"
                 selectionColor={C.red}
                 onFocus={pwBorder.onFocus}
                 onBlur={pwBorder.onBlur}
               />
-              <Pressable onPress={() => setShowPwd(!showPwd)} hitSlop={8} style={s.toggleBtn}>
+              <Pressable onPress={() => setShowPwd(!showPwd)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }} style={s.toggleBtn} accessibilityRole="button" accessibilityLabel={showPwd ? 'Hide password' : 'Show password'}>
                 <Text style={s.toggleText}>{showPwd ? 'Hide' : 'Show'}</Text>
               </Pressable>
             </View>
@@ -180,6 +192,8 @@ export default function LoginForm({
             onPress={handleForgotPassword}
             disabled={loading || resetCooldownSeconds > 0}
             style={s.forgotRow}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
           >
             <Text style={s.forgotText}>
               {resetCooldownSeconds > 0
@@ -192,8 +206,8 @@ export default function LoginForm({
             ? <Text style={s.errText}>Too many attempts. Try again in {lockoutSeconds}s.</Text>
             : resetSent
               ? <Text style={s.resetText}>Check your inbox — reset link sent.</Text>
-              : error
-                ? <Text style={s.errText}>{error}</Text>
+              : (error || socialError)
+                ? <Text style={s.errText} accessibilityRole="alert">{error || socialError}</Text>
                 : null}
         </Animated.View>
 

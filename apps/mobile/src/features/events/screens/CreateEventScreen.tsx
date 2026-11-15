@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, KeyboardAvoidingView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -31,7 +32,7 @@ export default function CreateEventScreen() {
     <SafeAreaView style={s.root}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.header}>
-          <Pressable onPress={() => navigation.goBack()} style={s.back}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.back}>
             <Text style={s.backText}>←</Text>
           </Pressable>
           <Text style={s.title}>Create Event</Text>

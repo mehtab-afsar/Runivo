@@ -1,11 +1,12 @@
+import { StoreMark } from '@mobile/shared/components/StoreMark';
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { fetchUnreadCount } from '@features/notifications/services/notificationsService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Haptics from 'expo-haptics';
-import { ArrowRight, Bell, Play, Shield, Users, CalendarDays, Sparkles, Gift } from 'lucide-react-native';
+import * as Haptics from '@theme/hapticsGated';
+import { ArrowRight, Bell, Play, Shield, Users, CalendarDays, Sparkles } from 'lucide-react-native';
 import { useLiveFriendRuns } from '@features/run/hooks/useLiveFriendRuns';
 import { useGpsStatus } from '../hooks/useGpsStatus';
 import { getLastSport } from '@features/run/constants/lastSport';
@@ -20,6 +21,7 @@ import { sportFor } from '@features/run/constants/activities';
 import type { ActivityType } from '@features/run/types';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { FEATURES } from '../../../config/features';
@@ -44,7 +46,7 @@ export default function DashboardScreen() {
   useFocusEffect(useCallback(() => { getLastSport().then(setLastSportState); }, []));
   const sport = sportFor(lastSport);
   const [tsDisplay, setTsDisplay]     = useState(0);
-  const hasAnimatedTs                 = useRef(false);
+  const tsShownRef                    = useRef(0);   // value currently on screen, so later changes animate from it
   const paceStoreRef = useRef<View>(null);
   const bentoRef     = useRef<View>(null);
   const [goalOpen, setGoalOpen] = useState(false);
@@ -53,20 +55,22 @@ export default function DashboardScreen() {
   const [goalReward, setGoalReward] = useState<{ brand: string; valueLabel: string; paceCost: number } | null>(null);
   useFocusEffect(useCallback(() => { getSettings().then(st => setGoalReward(st.goalReward ?? null)).catch(() => {}); }, []));
 
+  // Count the headline score to its target, and again whenever it changes (after a run,
+  // a refresh or a sync), starting from what is on screen rather than only on first load.
   useEffect(() => {
-    if (dash.territoryScore > 0 && !hasAnimatedTs.current) {
-      hasAnimatedTs.current = true;
-      const target = dash.territoryScore;
-      const startTime = Date.now();
-      const id = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const t = Math.min(1, elapsed / 800);
-        const eased = 1 - Math.pow(1 - t, 3);
-        setTsDisplay(Math.round(eased * target));
-        if (t >= 1) clearInterval(id);
-      }, 16);
-      return () => clearInterval(id);
-    }
+    const target = dash.territoryScore;
+    const from = tsShownRef.current;
+    if (target === from) return;
+    const startTime = Date.now();
+    const id = setInterval(() => {
+      const t = Math.min(1, (Date.now() - startTime) / 800);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const v = Math.round(from + (target - from) * eased);
+      tsShownRef.current = v;
+      setTsDisplay(v);
+      if (t >= 1) clearInterval(id);
+    }, 16);
+    return () => clearInterval(id);
   }, [dash.territoryScore]);
 
   useFocusEffect(
@@ -81,8 +85,15 @@ export default function DashboardScreen() {
   const go = (screen: GoScreen) => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); navigation.navigate(screen); };
 
   if (dash.loading || !dash.player) {
-    // Plain page while Home loads: a second "runivo" screen here read as
-    // another launch page right after the real one (SplashView).
+    // A failed first load gets a retry; otherwise a plain page while Home loads (a
+    // second "runivo" screen here read as another launch page right after SplashView).
+    if (!dash.loading && dash.loadError) {
+      return (
+        <View style={[s.fill, { backgroundColor: C.bg, justifyContent: 'center' }]}>
+          <ErrorState title="Couldn't load Home" onRetry={dash.reloadPlayer} />
+        </View>
+      );
+    }
     return <View style={[s.fill, { backgroundColor: C.bg }]} />;
   }
 
@@ -103,7 +114,7 @@ export default function DashboardScreen() {
     { key: 'clubs', label: 'Clubs', Icon: Users, onPress: () => { tap(); navigation.navigate('Club'); } },
     ...(FEATURES.EVENTS ? [{ key: 'events', label: 'Events', Icon: CalendarDays, onPress: () => { tap(); navigation.navigate('Events'); } }] : []),
     ...(FEATURES.AI_COACH ? [{ key: 'pacex', label: 'PaceX', Icon: Sparkles, accent: true, onPress: () => { tap(); navigation.navigate('Coach'); } }] : []),
-    { key: 'store', label: 'Store', Icon: Gift, onPress: () => { tap(); navigation.navigate('PACEStore'); } },
+    { key: 'store', label: 'Store', Icon: StoreMark as unknown as typeof Users, onPress: () => { tap(); navigation.navigate('PACEStore'); } },
   ];
 
   return (
@@ -225,7 +236,7 @@ export default function DashboardScreen() {
               <Text style={s.alertTitle}>{dash.staleCount === 1 ? 'A zone is fading' : `${dash.staleCount} zones are fading`}</Text>
               <Text style={s.alertSub}>{dash.lowestFreshness}% fresh · run through {dash.staleCount === 1 ? 'it' : 'them'} to defend</Text>
             </View>
-            <Pressable style={s.inkPill} onPress={() => { tap(); navigation.navigate('TerritoryMap', { initialFilter: 'stale' }); }}>
+            <Pressable hitSlop={8} style={s.inkPill} onPress={() => { tap(); navigation.navigate('TerritoryMap', { initialFilter: 'stale' }); }}>
               <Text style={s.inkPillText}>Defend</Text>
             </Pressable>
           </View>
@@ -389,14 +400,14 @@ function mkStyles(C: AppColors) {
     quick:       { ...card, flex: 1, paddingVertical: 12, paddingHorizontal: 4, alignItems: 'center', gap: 6 },
     quickText:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t1 },
 
-    track:       { height: 8, borderRadius: 9, backgroundColor: '#ECEAE5', overflow: 'hidden', marginVertical: 10 },
+    track:       { height: 8, borderRadius: 9, backgroundColor: C.surface, overflow: 'hidden', marginVertical: 10 },
     fillBar:     { height: 8, borderRadius: 9 },
     bars:        { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginTop: 12 },
     barCol:      { flex: 1, alignItems: 'center', gap: 6 },
     barSlot:     { height: BAR_H, width: '100%', justifyContent: 'flex-end' },
     bar:         { width: '100%', borderRadius: 7, backgroundColor: C.t1 },
     barEmpty:    { height: BAR_H, width: '100%', borderRadius: 7, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#D8D6D0' },
-    barNone:     { height: 4, width: '100%', borderRadius: 7, backgroundColor: '#ECEAE5' },
+    barNone:     { height: 4, width: '100%', borderRadius: 7, backgroundColor: C.surface },
     dayLabel:    { ...Type.labelSm, color: C.t2 },
 
     syncChip:    { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 6, backgroundColor: C.red, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },

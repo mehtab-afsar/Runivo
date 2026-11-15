@@ -4,6 +4,7 @@
  * what the run did, a map card with the route and the ground it claimed, and
  * the km · Time · Avg pace row.
  */
+import { safeRing, safeLine } from '@mobile/shared/map/geo';
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { X, Export, Play } from 'phosphor-react-native';
@@ -47,11 +48,13 @@ export default function RunSummaryHero({
   const zone = territoryPalette(isDark);
   const ss = useMemo(() => mkStyles(C), [C]);
 
+  // Bad points (NaN, out of range) are dropped before they reach the map.
   const coords = useMemo<[number, number][]>(
-    () => (route.length >= 2 ? route.map(p => [p.lng, p.lat] as [number, number]) : []),
+    () => safeLine(route.map(p => [p.lng, p.lat])) ?? [],
     [route],
   );
-  const all = useMemo(() => [...coords, ...(zoneRing ?? [])], [coords, zoneRing]);
+  const ring = useMemo(() => safeRing(zoneRing), [zoneRing]);
+  const all = useMemo(() => [...coords, ...(ring ?? [])], [coords, ring]);
   const bounds = useMemo(() => {
     if (all.length < 2) return null;
     const lngs = all.map(c => c[0]);
@@ -65,8 +68,8 @@ export default function RunSummaryHero({
   const routeShape = coords.length >= 2
     ? { type: 'Feature' as const, properties: {}, geometry: { type: 'LineString' as const, coordinates: coords } }
     : null;
-  const zoneShape = zoneRing && zoneRing.length >= 4
-    ? { type: 'Feature' as const, properties: {}, geometry: { type: 'Polygon' as const, coordinates: [zoneRing] } }
+  const zoneShape = ring
+    ? { type: 'Feature' as const, properties: {}, geometry: { type: 'Polygon' as const, coordinates: [ring] } }
     : null;
 
   return (

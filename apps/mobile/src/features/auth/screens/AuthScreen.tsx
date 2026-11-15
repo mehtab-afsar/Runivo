@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import Svg, { Path } from 'react-native-svg';
 import { ArrowLeft, Phone, Mail } from 'lucide-react-native';
 import { useTheme, useIsDark, Fonts, Type, type AppColors } from '@theme';

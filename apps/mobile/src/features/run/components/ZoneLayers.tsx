@@ -1,3 +1,4 @@
+import { safeRing } from '@mobile/shared/map/geo';
 import React, { useMemo } from 'react';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import type { TerritoryPolygon } from '@shared/types/game';
@@ -7,12 +8,12 @@ import { useIsDark } from '@theme';
 function toGeoJSON(zones: TerritoryPolygon[] | undefined): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
   return {
     type: 'FeatureCollection',
-    features: (zones ?? []).filter(z => z.polygon.length >= 4).map(z => ({
-      type: 'Feature',
-      id: z.id,
-      geometry: { type: 'Polygon', coordinates: [z.polygon] },
-      properties: { fresh: Math.max(0, Math.min(100, z.freshness)) / 100 },
-    })),
+    features: (zones ?? []).flatMap(z => {
+      const ring = safeRing(z.polygon);
+      if (!ring) return [];
+      const fresh = Number.isFinite(z.freshness) ? Math.max(0, Math.min(100, z.freshness)) / 100 : 1;
+      return [{ type: 'Feature' as const, id: z.id, geometry: { type: 'Polygon' as const, coordinates: [ring] }, properties: { fresh } }];
+    }),
   };
 }
 

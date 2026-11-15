@@ -6,7 +6,7 @@
  * Pause state: custom slide-up card (Reanimated 4) instead of native alert.
  */
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator, Linking } from 'react-native';
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -23,7 +23,7 @@ import { track } from '@shared/services/analytics';
 import { buildRunSummaryParams }  from '../services/runNavigationHelper';
 import { useToast }              from '@mobile/shared/hooks/useToast';
 import { useDistanceUnit }       from '@mobile/shared/hooks/useDistanceUnit';
-import { fmtDistShort }          from '@mobile/shared/lib/formatters';
+import { fmtDistShort, convertKm, convertPaceStringPerKm } from '@mobile/shared/lib/formatters';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import RunHUD             from '../components/RunHUD';
 import RunControls        from '../components/RunControls';
@@ -45,7 +45,6 @@ import {
 import { GAME_CONFIG } from '@shared/services/config';
 import { ENGINE } from '@shared/engine/runEngine';
 import { sportFor } from '../constants/activities';
-import { useAuth } from '@shared/hooks/useAuth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TerritoryPolygon } from '@shared/types/game';
 import { useWorkoutMode } from '@features/training/hooks/useWorkoutMode';
@@ -109,7 +108,6 @@ export default function ActiveRunScreen() {
   const workout = useWorkoutMode(route.params?.sessionId, run.isRunning && !run.isPaused, run.elapsed, run.distance);
   const liveFriends = useLiveFriendRuns();
   const { showToast } = useToast();
-  const { user } = useAuth();
   const distanceUnit = useDistanceUnit();
 
   // ── Live territory HUD banners ─────────────────────────────────────────────
@@ -339,7 +337,10 @@ export default function ActiveRunScreen() {
   }, [run, nav, showToast, activityType]);
 
   const handleFinish = useCallback(() => {
-    if (run.distance * 1000 < GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M && run.elapsed < GAME_CONFIG.MIN_MEANINGFUL_RUN_DURATION_S) {
+    // Either one short is enough: a 0 m run left running for a minute used to
+    // save without a warning (&&), and the server rejects anything under
+    // MIN_RUN_DURATION_S, so use the engine's limits, not the app's older copy.
+    if (run.distance * 1000 < ENGINE.MIN_MEANINGFUL_RUN_DISTANCE_M || run.elapsed < ENGINE.MIN_RUN_DURATION_S) {
       Alert.alert(`End ${sport.verb}?`, "You haven't gone far enough to save it. End anyway?", [
         { text: 'Keep going', style: 'cancel' },
         { text: `End ${sport.verb}`, style: 'destructive', onPress: doFinish },
@@ -460,9 +461,11 @@ export default function ActiveRunScreen() {
     distance: unitDist.toFixed(2),
     unit: distanceUnit,
     time: fmtTime(Math.round(run.elapsed)),
+    // run.pace is always per km and the speed below is km/h: convert both to the
+    // runner's unit, or "/mi" and "mph" sit next to kilometre numbers.
     pace: activityType === 'cycle'
-      ? `${run.elapsed > 0 ? ((run.distance / run.elapsed) * 3600).toFixed(1) : '0.0'} km/h`
-      : `${run.pace} /${distanceUnit}`,
+      ? `${run.elapsed > 0 ? ((run.distance / run.elapsed) * 3600 / unitKm).toFixed(1) : '0.0'} ${distanceUnit === 'mi' ? 'mph' : 'km/h'}`
+      : `${convertPaceStringPerKm(run.pace, distanceUnit)} /${distanceUnit}`,
     status: run.isPaused ? 'Paused'
       : workout && !workout.progress.done ? workout.progress.step.label
       : loopClosing ? 'Loop closing'
@@ -534,7 +537,7 @@ export default function ActiveRunScreen() {
 
         {/* Safety link (R2): share your live position with anyone, no app needed. */}
         {run.isRunning && (
-          <Pressable
+          <Pressable hitSlop={8}
             style={[ss.pill, ss.safetyPill, { top: insets.top + 54 }, safetyOn && { backgroundColor: C.green }]}
             onPress={sendSafetyLink}
             accessibilityRole="button"
@@ -553,9 +556,18 @@ export default function ActiveRunScreen() {
           </View>
         )}
 
-        <View style={ss.bannerStack} pointerEvents="none">
+        <View style={ss.bannerStack} pointerEvents="box-none">
           {run.gpsError && (
-            <View style={[ss.banner, { borderLeftColor: C.red }]}><Text style={ss.bannerTxt}>{run.gpsError}</Text></View>
+            // Tappable: a permission/location-services problem is fixed in Settings, so
+            // say so and take them there instead of showing a dead-end message.
+            <Pressable
+              style={[ss.banner, { borderLeftColor: C.red }]}
+              onPress={() => { Linking.openSettings().catch(() => {}); }}
+              accessibilityRole="button"
+              accessibilityHint="Opens Settings"
+            >
+              <Text style={ss.bannerTxt}>{run.gpsError}{'\n'}Tap to open Settings</Text>
+            </Pressable>
           )}
           {banner && (
             <View style={[ss.banner, { borderLeftColor: bannerColor }]}>
@@ -646,32 +658,36 @@ export default function ActiveRunScreen() {
         </View>
       </View>
 
-      {/* Pause overlay — tap to resume */}
-      {run.isPaused && (
-        <Pressable style={ss.pauseOverlay} onPress={run.resumeRun} />
-      )}
+      {/* Pause overlay — dims and absorbs touches only. It must NOT resume on tap: a
+          pocket/palm/rain touch would restart the run. Resume is the explicit button below. */}
+      {run.isPaused && <View style={ss.pauseOverlay} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />}
 
       {/* Pause card */}
-      <Animated.View style={[ss.pauseCard, { paddingBottom: insets.bottom + 16 }, pauseCardStyle]}>
+      <Animated.View
+        style={[ss.pauseCard, { paddingBottom: insets.bottom + 16 }, pauseCardStyle]}
+        pointerEvents={run.isPaused ? 'auto' : 'none'}
+        accessibilityElementsHidden={!run.isPaused}
+        importantForAccessibility={run.isPaused ? 'auto' : 'no-hide-descendants'}
+      >
         <View style={ss.pauseHandle} />
         <Text style={ss.pauseTitle}>Paused</Text>
         <Text style={ss.pauseTime}>{fmtTime(run.elapsed)}</Text>
         <View style={ss.pauseStats}>
           <View style={ss.pauseStat}>
-            <Text style={ss.pauseStatVal}>{run.distance.toFixed(2)}</Text>
-            <Text style={ss.pauseStatLbl}>km</Text>
+            <Text style={ss.pauseStatVal}>{convertKm(run.distance, distanceUnit).toFixed(2)}</Text>
+            <Text style={ss.pauseStatLbl}>{distanceUnit}</Text>
           </View>
           <View style={ss.pauseStatDivider} />
           <View style={ss.pauseStat}>
-            <Text style={ss.pauseStatVal}>{run.pace}</Text>
-            <Text style={ss.pauseStatLbl}>Avg pace</Text>
+            <Text style={ss.pauseStatVal}>{convertPaceStringPerKm(run.pace, distanceUnit)}</Text>
+            <Text style={ss.pauseStatLbl}>Avg pace /{distanceUnit}</Text>
           </View>
         </View>
-        <Pressable style={ss.resumeBtn} onPress={run.resumeRun}>
+        <Pressable style={ss.resumeBtn} onPress={run.resumeRun} accessibilityRole="button" accessibilityLabel="Resume">
           <Play size={16} color={C.bg} weight="fill" />
           <Text style={ss.resumeBtnTxt}>Resume</Text>
         </Pressable>
-        <Pressable style={ss.pauseFinishBtn} onPress={handleFinish}>
+        <Pressable style={ss.pauseFinishBtn} onPress={handleFinish} accessibilityRole="button" accessibilityLabel="Finish run">
           <View style={ss.finishSquare} />
           <Text style={ss.pauseFinishBtnTxt}>Finish run</Text>
         </Pressable>
@@ -683,6 +699,7 @@ export default function ActiveRunScreen() {
           elapsed={run.elapsed}
           verb={sport.verb}
           bottomInset={insets.bottom}
+          unit={distanceUnit}
           onKeepRunning={() => setShowConfirm(false)}
           onFinish={doFinish}
         />
@@ -713,14 +730,14 @@ function mkStyles(C: AppColors) {
     bannerDot:   { width: 8, height: 8, borderRadius: 4 },
     bannerTxt:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, flex: 1 },
     sheet:       { backgroundColor: C.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, marginTop: -18, paddingTop: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 8 },
-    grab:        { width: 38, height: 5, borderRadius: 5, backgroundColor: '#DEDCD6', alignSelf: 'center', marginBottom: 14 },
+    grab:        { width: 38, height: 5, borderRadius: 5, backgroundColor: C.border, alignSelf: 'center', marginBottom: 14 },
     friendDot:   { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
     friendInitial: { fontFamily: Fonts.bold, fontSize: 10, color: '#fff' },
     loopRow:     { paddingHorizontal: 20, paddingTop: 14 },
     loopHead:    { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
     loopLabel:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
     loopDetail:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
-    loopTrack:   { height: 8, borderRadius: 9, backgroundColor: '#ECEAE5', overflow: 'hidden', marginTop: 8 },
+    loopTrack:   { height: 8, borderRadius: 9, backgroundColor: C.surface, overflow: 'hidden', marginTop: 8 },
     loopFill:    { height: 8, borderRadius: 9 },
     metaRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12 },
     metaTxt:     { ...Type.caption, color: C.t2 },

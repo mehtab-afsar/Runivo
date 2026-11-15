@@ -1,15 +1,15 @@
 /**
  * Native (Expo) Supabase client.
  * - Reads credentials from EXPO_PUBLIC_SUPABASE_* environment variables.
- * - Uses AsyncStorage for session persistence (no size limit — SecureStore
- *   has a 2048-char value cap which Supabase session JSON routinely exceeds,
- *   causing setItem to fail silently and forcing login on every restart).
+ * - Persists the session in AsyncStorage (no size limit; SecureStore has a
+ *   2048-char cap that session JSON routinely exceeds) but ENCRYPTED, with a key
+ *   held in the Keychain: see secureSessionStorage.ts.
  * - Disables URL-based session detection (no browser URL on mobile).
  *
  * Metro automatically picks this file on iOS/Android; Vite picks supabase.ts on web.
  */
 import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { secureSessionStorage } from './secureSessionStorage';
 import { AppState } from 'react-native';
 
 const supabaseUrl  = process.env.EXPO_PUBLIC_SUPABASE_URL  ?? 'https://placeholder.supabase.co';
@@ -32,7 +32,7 @@ export const supabase = createClient<any>(supabaseUrl, supabaseAnon, {
     autoRefreshToken:   true,
     detectSessionInUrl: false,    // No URL on mobile; socialAuth exchanges manually
     storageKey:         'runivo-auth',
-    storage:            AsyncStorage,
+    storage:            secureSessionStorage,
   },
   realtime: {
     params: { eventsPerSecond: 10 },

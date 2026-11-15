@@ -3,7 +3,7 @@
  * distance, like Strava's list. One small sport chip filters it.
  */
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, SectionList, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, SectionList, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,6 +13,9 @@ import type { StoredRun } from '@shared/services/store';
 import { useRunHistory } from '../hooks/useRunHistory';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { EmptyState } from '@mobile/shared/components/EmptyState';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
+import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
+import { convertKm } from '@mobile/shared/lib/formatters';
 import { RouteThumb } from '@mobile/shared/components/RouteThumb';
 import { SportChip, SPORT_LABEL } from '@features/profile/components/SportPicker';
 import { activityMeta, activityName, zonesOf, fmtKm } from '@features/profile/components/YouSections';
@@ -35,7 +38,8 @@ export default function HistoryScreen() {
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const { runs, refreshing, refresh } = useRunHistory();
+  const { runs, loading, error, refreshing, refresh } = useRunHistory();
+  const unit = useDistanceUnit();
   const [sport, setSport] = useState<SportFilter>('all');
 
   const sections = useMemo(() => {
@@ -59,7 +63,7 @@ export default function HistoryScreen() {
   return (
     <View style={s.root}>
       <View style={[s.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={s.back} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
         <Text style={s.title}>Activities</Text>
         <SportChip value={sport} onChange={setSport} />
       </View>
@@ -71,7 +75,7 @@ export default function HistoryScreen() {
         initialNumToRender={12}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
         renderSectionHeader={({ section }) => (
-          <Text style={s.sectionHead}>{section.title} · {fmtKm(section.km)} km</Text>
+          <Text style={s.sectionHead}>{section.title} · {fmtKm(convertKm(section.km, unit))} {unit}</Text>
         )}
         renderItem={({ item, index, section }) => {
           const z = zonesOf(item);
@@ -85,14 +89,16 @@ export default function HistoryScreen() {
               <RouteThumb points={item.gpsPoints} width={52} height={52} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Text style={s.rowTitle} numberOfLines={1}>{activityName(item)}</Text>
-                <Text style={s.rowSub} numberOfLines={1}>{item.excluded ? 'Not counted · ' : ''}{activityMeta(item)}</Text>
+                <Text style={s.rowSub} numberOfLines={1}>{item.excluded ? 'Not counted · ' : ''}{activityMeta(item, unit)}</Text>
               </View>
               {z > 0 && <Text style={s.zones}>+{z}</Text>}
             </Pressable>
           );
         }}
         ListEmptyComponent={
-          <EmptyState
+          loading ? <ActivityIndicator style={{ marginTop: 48 }} color={C.t2} accessibilityLabel="Loading activities" />
+          : error ? <ErrorState title="Couldn't load your activities" onRetry={refresh} />
+          : <EmptyState
             title={sport === 'all' ? 'No activities yet' : `No ${SPORT_LABEL[sport].toLowerCase()} yet`}
             body={sport === 'all' ? 'Head out for your first run and it shows up here.' : 'Try another sport, or record one.'}
             cta={sport === 'all' ? { label: 'Start a run', onPress: () => navigation.navigate('Main', { screen: 'Run' }) } : undefined}

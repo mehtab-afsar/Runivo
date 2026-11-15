@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { HeartPulse, Trophy, Swords, Users, type LucideIcon } from 'lucide-react-native';
 import { RUNNING_GOALS, type RunningGoal } from '@shared/engine/onboarding';
 import { useTheme } from '@theme';

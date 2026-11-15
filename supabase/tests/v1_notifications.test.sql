@@ -2,6 +2,8 @@
 -- Run after _stub_supabase.sql, 20261106000001, _stub_notifications.sql, 20261106000002.
 \set ON_ERROR_STOP on
 BEGIN;
+-- These checks cover the Free/Plus rules as they'll run once subscriptions are on.
+UPDATE public.app_settings SET value = 'true' WHERE key = 'subscriptions_enabled';
 SET client_min_messages = notice;
 
 CREATE OR REPLACE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$

@@ -77,14 +77,6 @@ export async function fetchClubsNear(
   };
 }
 
-/** Club owners: move the club's point to a public meeting spot. */
-export async function setClubLocation(clubId: string, lat: number, lng: number, city?: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc('set_club_location', {
-    p_club_id: clubId, p_lat: lat, p_lng: lng, p_city: city ?? null,
-  });
-  return !error && data === true;
-}
-
 export async function joinClub(clubId: string, userId: string): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('club_members')
@@ -108,12 +100,13 @@ export async function requestToJoinClub(clubId: string, userId: string): Promise
   return { ok: !error || error.code === '23505' };
 }
 
-export async function leaveClub(clubId: string, userId: string): Promise<void> {
-  await supabase
+export async function leaveClub(clubId: string, userId: string): Promise<{ error: unknown }> {
+  const { error } = await supabase
     .from('club_members')
     .delete()
     .eq('club_id', clubId)
     .eq('user_id', userId);
+  return { error };
 }
 
 export async function createClub(

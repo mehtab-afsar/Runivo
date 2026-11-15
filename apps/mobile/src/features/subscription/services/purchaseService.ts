@@ -18,6 +18,7 @@
  * the profile to update local state.
  */
 
+import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
 import { Platform } from 'react-native';
 
 // Product IDs must match what's configured in App Store Connect / Google Play
@@ -42,6 +43,20 @@ type RCPackage = {
 };
 
 let _rcReady = false;
+let _rcUserId: string | null = null;
+
+/**
+ * Detach this phone's RevenueCat identity from the signed-out user. Without it
+ * a second account that signs in on the same phone inherits the first one's
+ * app-user id, so its purchases (and the rc-webhook tier upgrade) land on the
+ * wrong profile.
+ */
+export async function logOutRevenueCat(): Promise<void> {
+  if (!_rcReady) return;
+  const Purchases = await getRC();
+  try { await Purchases?.logOut(); } catch { /* anonymous already, or offline */ }
+  _rcUserId = null;
+}
 
 async function getRC() {
   try {
@@ -57,7 +72,17 @@ async function getRC() {
  * Safe to call multiple times — skips if already configured.
  */
 export async function configureRevenueCat(userId?: string): Promise<void> {
-  if (_rcReady) return;
+  if (_rcReady) {
+    // Already configured: only the identity may have changed (sign-out, then a
+    // different account signs in).
+    if (userId && userId !== _rcUserId) {
+      const Purchases = await getRC();
+      try { await Purchases?.logIn(userId); _rcUserId = userId; } catch { /* retried on next call */ }
+    }
+    return;
+  }
+  // Subscriptions are off while testing: don't connect to the store at all.
+  if (!SUBSCRIPTIONS_ENABLED) return;
 
   const Purchases = await getRC();
   if (!Purchases) return;
@@ -75,6 +100,7 @@ export async function configureRevenueCat(userId?: string): Promise<void> {
     Purchases.configure({ apiKey });
     if (userId) {
       await Purchases.logIn(userId);
+      _rcUserId = userId;
     }
     _rcReady = true;
   } catch (err) {
@@ -121,7 +147,10 @@ export async function purchaseProduct(productId: string): Promise<PurchaseResult
     const packages = await getAvailablePackages();
     const pkg = packages.find(p => p.product.identifier === productId);
     if (!pkg) {
-      return { success: false, error: `Product ${productId} not found in offerings` };
+      // Not a thing to show a runner ("Product runivo_plus_annual not found in offerings"):
+      // the store did not return this plan, so it cannot be bought right now.
+      console.warn(`[purchase] ${productId} is not in the current offering`);
+      return { success: false, error: "This plan isn't available right now. Please try again in a moment." };
     }
 
     const { customerInfo } = await Purchases.purchasePackage(pkg);
@@ -137,34 +166,46 @@ export async function purchaseProduct(productId: string): Promise<PurchaseResult
 
 /**
  * Restore purchases (required for App Store Review compliance).
- * Returns true if an active entitlement was restored.
+ * 'restored' = an active Plus entitlement came back; 'none' = the store answered and
+ * there is nothing to restore; 'error' = we could not ask (offline, store down).
+ * They used to be one `false`, so a dropped connection told a paying customer
+ * "No purchases found".
  */
-export async function restorePurchases(): Promise<boolean> {
+export type RestoreResult = 'restored' | 'none' | 'error';
+
+export async function restorePurchases(): Promise<RestoreResult> {
   const Purchases = await getRC();
-  if (!Purchases) return false;
+  if (!Purchases) return 'error';
 
   try {
     const customerInfo = await Purchases.restorePurchases();
-    return !!customerInfo.entitlements.active['runivo_plus'];
+    return customerInfo.entitlements.active['runivo_plus'] ? 'restored' : 'none';
   } catch (err) {
     console.warn('[purchase] restorePurchases failed:', err);
-    return false;
+    return 'error';
   }
 }
 
 /**
- * Check if the user currently has an active subscription via RevenueCat.
- * Prefer checking `profiles.subscription_tier` in Supabase for the
- * authoritative source; this is a client-side fallback.
+ * Hear about renewals, expiry, refunds and purchases made on another device, so
+ * the screen stops showing "Plus" the moment it ends instead of at the next launch.
+ * Returns an unsubscribe function.
  */
-export async function hasActiveSubscription(): Promise<boolean> {
-  const Purchases = await getRC();
-  if (!Purchases) return false;
+export function onSubscriptionChange(cb: (active: boolean) => void): () => void {
+  let remove: (() => void) | null = null;
+  let cancelled = false;
+  getRC().then(Purchases => {
+    if (!Purchases || cancelled || !_rcReady) return;
+    const listener = (info: { entitlements: { active: Record<string, unknown> } }) => cb(!!info.entitlements.active['runivo_plus']);
+    Purchases.addCustomerInfoUpdateListener(listener);
+    remove = () => { try { Purchases.removeCustomerInfoUpdateListener(listener); } catch { /* already gone */ } };
+  }).catch(() => {});
+  return () => { cancelled = true; remove?.(); };
+}
 
-  try {
-    const customerInfo = await Purchases.getCustomerInfo();
-    return !!customerInfo.entitlements.active['runivo_plus'];
-  } catch {
-    return false;
-  }
+/** Where a runner changes or cancels their subscription (Apple ID settings on iOS, Play on Android). */
+export function manageSubscriptionUrl(): string {
+  return Platform.OS === 'ios'
+    ? 'https://apps.apple.com/account/subscriptions'
+    : 'https://play.google.com/store/account/subscriptions';
 }

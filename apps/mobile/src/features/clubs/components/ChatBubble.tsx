@@ -52,7 +52,7 @@ function mkStyles(C: AppColors) {
   levelBadge:      { borderRadius: 999, paddingHorizontal: 4, paddingVertical: 1 },
   levelText:       { fontFamily: Fonts.regular, fontSize: 11 },
   bubble:          { borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  bubbleMe:        { backgroundColor: C.t1, borderBottomRightRadius: 6 },
+  bubbleMe:        { backgroundColor: C.alwaysDark, borderBottomRightRadius: 6 },
   bubbleThem:      { backgroundColor: C.card, borderBottomLeftRadius: 6, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
   msgText:         { fontFamily: Fonts.regular, fontSize: 15, color: C.t1, lineHeight: 21 },
   msgTextMe:       { color: C.alwaysLight },

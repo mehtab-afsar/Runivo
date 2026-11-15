@@ -1,11 +1,13 @@
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { UserPlus, Check, MapPin, ArrowLeft, DotsThree, Prohibit } from 'phosphor-react-native';
 import RunnerSafetySheet from '@features/social/components/RunnerSafetySheet';
-import { fetchRelation, unblockUser } from '@features/social/services/safetyService';
+import { fetchRelation, unblockUser } from '@mobile/shared/services/safetyService';
 import { supabase } from '@shared/services/supabase';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { toggleFollowService } from '@features/social/services/feedService';
@@ -57,6 +59,8 @@ export default function UserProfileScreen() {
   const [sport, setSport] = useState<SportFilter>('all');
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
@@ -68,13 +72,19 @@ export default function UserProfileScreen() {
   useEffect(() => { fetchRunnerActivities(userId).then(setActivities).catch(() => setActivities([])); }, [userId]);
 
   useEffect(() => {
+    let cancelled = false;
     async function load() {
+      setLoading(true);
+      setLoadError(false);
+      try {
       // Goes through get_user_profile_for_viewer rather than the profiles_public
       // view directly — that view has no row-level restriction at all, so the
       // Profile Visibility setting (Public/Friends/Private) did nothing before
       // this. The RPC withholds bio/stats/rank when the viewer isn't allowed to
       // see them and returns `restricted: true` instead.
-      const { data } = await supabase.rpc('get_user_profile_for_viewer', { p_target_id: userId });
+      const { data, error } = await supabase.rpc('get_user_profile_for_viewer', { p_target_id: userId });
+      if (error) throw error;
+      if (cancelled) return;
       const row = Array.isArray(data) ? data[0] : null;
       setUser(row ?? null);
 
@@ -83,7 +93,7 @@ export default function UserProfileScreen() {
       // restricted profile so a private account doesn't leak activity through
       // the one field the visibility check doesn't touch.
       if (!row?.restricted) {
-        fetchAwards(userId).then(setAwards);
+        fetchAwards(userId).then(a => { if (!cancelled) setAwards(a); }).catch(() => {});
       }
 
       const { data: { session } } = await supabase.auth.getSession();
@@ -100,18 +110,27 @@ export default function UserProfileScreen() {
           .maybeSingle();
         setIsFollowing(!!follow);
       }
-      setLoading(false);
+      } catch {
+        // A failed RPC used to render an empty profile reading "0 runs".
+        if (!cancelled) setLoadError(true);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
     load();
-  }, [userId]);
+    return () => { cancelled = true; };
+  }, [userId, reloadKey]);
 
   const handleFollow = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session || session.user.id === userId) return;
+    if (!session || session.user.id === userId || followLoading) return;
     setFollowLoading(true);
     try {
       await toggleFollowService(userId);
-      setIsFollowing(!isFollowing); // don't flip UI on a failed write
+      const next = !isFollowing;
+      setIsFollowing(next); // don't flip UI on a failed write
+      // Keep the visible follower count in step with the button.
+      setUser(u => (u ? { ...u, follower_count: Math.max(0, (u.follower_count ?? 0) + (next ? 1 : -1)) } : u));
     } catch {
       // leave state as-is on failure
     }
@@ -127,7 +146,7 @@ export default function UserProfileScreen() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.backBtn}>
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>{resolvedUsername}</Text>
@@ -140,6 +159,8 @@ export default function UserProfileScreen() {
 
       {loading ? (
         <View style={s.center}><ActivityIndicator color={C.red} /></View>
+      ) : loadError ? (
+        <ErrorState title="Couldn't load this profile" onRetry={() => setReloadKey(k => k + 1)} />
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={s.profileSection}>

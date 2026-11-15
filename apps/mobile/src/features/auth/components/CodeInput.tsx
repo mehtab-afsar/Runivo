@@ -29,7 +29,7 @@ export default function CodeInput({ value, onChange, onComplete, error, autoFocu
           const ch = value[i] ?? '';
           const active = i === Math.min(value.length, 5);
           return (
-            <View key={i} style={[s.box, active && s.boxActive, error && s.boxError]}>
+            <View key={i} style={[s.box, active && s.boxActive, error && value.length === 6 && s.boxError]}>
               <Text style={s.digit}>{ch}</Text>
             </View>
           );
@@ -42,7 +42,9 @@ export default function CodeInput({ value, onChange, onComplete, error, autoFocu
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete="sms-otp"
-        maxLength={6}
+        // No maxLength: it would cut "123 456" / "123-456" (paste, autofill) to 5 digits before
+        // `handle` strips the separators and slices to 6 itself.
+        accessibilityLabel="6-digit code"
         autoFocus={autoFocus}
         style={s.hidden}
         caretHidden

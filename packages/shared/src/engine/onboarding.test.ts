@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseFiveKTime, formatDuration, experienceLevelFor, missionDifficultyFor, preferredDistanceFor,
   startingWeeklyTargetKm, paceXToneFor, healthBaseline, ageForRange, validateUsername,
-  normalizePhone, validateEmail, otpSendPolicy, isOtpCode, OTP_WINDOW_MS,
+  normalizePhone, dialCodeForLocale, ageGateOutcome, validateEmail, otpSendPolicy, isOtpCode, OTP_WINDOW_MS,
 } from './onboarding';
 
 describe('5K time', () => {
@@ -158,5 +158,55 @@ describe('one-time code resend limits', () => {
     expect(p.resendsLeft).toBe(0);
     expect(p.waitSeconds).toBe(400);
     expect(otpSendPolicy(sends, t0 + OTP_WINDOW_MS + 1)).toMatchObject({ allowed: true });
+  });
+});
+
+describe('dialCodeForLocale', () => {
+  it('reads the region from the device locale', () => {
+    expect(dialCodeForLocale('en-US')).toBe('+1');
+    expect(dialCodeForLocale('en_GB')).toBe('+44');
+    expect(dialCodeForLocale('de-DE')).toBe('+49');
+    expect(dialCodeForLocale('en-IN')).toBe('+91');
+    expect(dialCodeForLocale('zh-Hans-HK')).toBe('+852');
+  });
+
+  it('falls back to +91 when the region is missing or unknown', () => {
+    expect(dialCodeForLocale('en')).toBe('+91');
+    expect(dialCodeForLocale(undefined)).toBe('+91');
+    expect(dialCodeForLocale('en-ZZ')).toBe('+91');
+  });
+
+  it('lets a US number reach the right country code instead of +91', () => {
+    const r = normalizePhone('(415) 555-0100', dialCodeForLocale('en-US'));
+    expect(r).toEqual({ ok: true, e164: '+14155550100' });
+  });
+});
+
+describe('ageGateOutcome', () => {
+  const now = new Date(2026, 10, 15); // 15 Nov 2026
+
+  it('refuses under-13s, treats 13 to 17 as teens, 18 and over as adults', () => {
+    expect(ageGateOutcome(6, 2018, now)).toBe('under13');
+    expect(ageGateOutcome(1, 2010, now)).toBe('teen');   // 16
+    expect(ageGateOutcome(5, 2000, now)).toBe('adult');
+  });
+
+  it('never counts someone older than they could be (birthday = last day of the month)', () => {
+    // Born in Nov 2013: turns 13 on 30 Nov at the latest, so on 15 Nov 2026 still 12.
+    expect(ageGateOutcome(11, 2013, now)).toBe('under13');
+    // Born Oct 2013: 13 since 31 Oct.
+    expect(ageGateOutcome(10, 2013, now)).toBe('teen');
+    // Same rule at 18.
+    expect(ageGateOutcome(11, 2008, now)).toBe('teen');
+    expect(ageGateOutcome(10, 2008, now)).toBe('adult');
+  });
+
+  it('rejects impossible input', () => {
+    expect(ageGateOutcome(0, 2000, now)).toBe('invalid');
+    expect(ageGateOutcome(13, 2000, now)).toBe('invalid');
+    expect(ageGateOutcome(5, 1800, now)).toBe('invalid');
+    expect(ageGateOutcome(5, 2027, now)).toBe('invalid');
+    expect(ageGateOutcome(12, 2026, now)).toBe('invalid');  // December 2026 has not happened yet
+    expect(ageGateOutcome(Number.NaN, 2000, now)).toBe('invalid');
   });
 });

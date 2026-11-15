@@ -38,11 +38,15 @@ export async function fetchProfileData() {
   let notificationsEnabled: boolean | null = null;
   let missionDifficulty: string | null = null;
   let profileVisibility: string | null = null;
+  let gender: string | null = null;
+  let age: number | null = null;
+  let heightCm: number | null = null;
+  let weightKg: number | null = null;
 
   if (session) {
     const { data } = await supabase
       .from('profiles')
-      .select('bio, avatar_color, display_name, location, instagram, strava, avatar_url, weekly_goal_km, primary_goal, experience_level, weekly_frequency, distance_unit, notifications_enabled, mission_difficulty, profile_visibility')
+      .select('bio, avatar_color, display_name, location, instagram, strava, avatar_url, weekly_goal_km, primary_goal, experience_level, weekly_frequency, distance_unit, notifications_enabled, mission_difficulty, profile_visibility, gender, age, height_cm, weight_kg')
       .eq('id', session.user.id)
       .single();
     if (data) {
@@ -61,6 +65,10 @@ export async function fetchProfileData() {
       notificationsEnabled = data.notifications_enabled ?? null;
       missionDifficulty = data.mission_difficulty ?? null;
       profileVisibility = data.profile_visibility ?? null;
+      gender = data.gender ?? null;
+      age = data.age ?? null;
+      heightCm = data.height_cm ?? null;
+      weightKg = data.weight_kg != null ? Number(data.weight_kg) : null;
     }
   }
 
@@ -74,6 +82,7 @@ export async function fetchProfileData() {
     personalRecords, avatarColor, displayName, bio, location, instagram, strava, avatarUrl,
     primaryGoal, experienceLevel, weeklyFrequency, distanceUnit, notificationsEnabled, missionDifficulty,
     profileVisibility,
+    gender, age, heightCm, weightKg,
     followers, following,
   };
 }
@@ -81,14 +90,17 @@ export async function fetchProfileData() {
 export async function updateProfile(
   userId: string,
   patch: {
-    display_name?: string; bio?: string; avatar_color?: string;
-    location?: string; instagram?: string; strava?: string; avatar_url?: string;
+    display_name?: string | null; bio?: string | null; avatar_color?: string;
+    location?: string | null; instagram?: string | null; strava?: string | null; avatar_url?: string | null;
+    gender?: string | null; age?: number | null; height_cm?: number | null; weight_kg?: number | null;
     weekly_goal_km?: number; primary_goal?: string; experience_level?: string;
     weekly_frequency?: number; distance_unit?: string;
     notifications_enabled?: boolean; mission_difficulty?: string;
   },
 ): Promise<void> {
-  await supabase.from('profiles').update(patch).eq('id', userId);
+  // Throws so the editor can say it didn't save, rather than closing as if it had.
+  const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
+  if (error) throw new Error("Couldn't save your profile. Check your connection and try again.");
 }
 
 export async function uploadAvatar(userId: string, uri: string): Promise<string | null> {
@@ -107,14 +119,6 @@ export async function uploadAvatar(userId: string, uri: string): Promise<string 
   } catch {
     return null;
   }
-}
-
-export async function updateUsername(userId: string, name: string): Promise<void> {
-  await supabase.from('profiles').update({ display_name: name }).eq('id', userId);
-}
-
-export async function updateAvatarColor(userId: string, color: string): Promise<void> {
-  await supabase.from('profiles').update({ avatar_color: color }).eq('id', userId);
 }
 
 export async function fetchAwards(userId: string): Promise<{ awardId: string; unlockedAt: string }[]> {
@@ -140,32 +144,6 @@ export async function fetchProfileStats(userId: string, period: string): Promise
     return data as { totalKm: number; totalRuns: number; avgPaceSec: number; totalCalories: number; totalZones: number };
   } catch {
     return { totalKm: 0, totalRuns: 0, avgPaceSec: 0, totalCalories: 0, totalZones: 0 };
-  }
-}
-
-export async function fetchPersonalRecordsFromDb(userId: string): Promise<{
-  fastest1kSec: number | null;
-  fastest5kSec: number | null;
-  fastest10kSec: number | null;
-  longestRunM: number | null;
-  bestPaceSec: number | null;
-} | null> {
-  try {
-    const { data } = await supabase
-      .from('personal_records')
-      .select('fastest_1k_sec, fastest_5k_sec, fastest_10k_sec, longest_run_m, best_pace_sec')
-      .eq('user_id', userId)
-      .single();
-    if (!data) return null;
-    return {
-      fastest1kSec:  data.fastest_1k_sec  ?? null,
-      fastest5kSec:  data.fastest_5k_sec  ?? null,
-      fastest10kSec: data.fastest_10k_sec ?? null,
-      longestRunM:   data.longest_run_m   ?? null,
-      bestPaceSec:   data.best_pace_sec   ?? null,
-    };
-  } catch {
-    return null;
   }
 }
 

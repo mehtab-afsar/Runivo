@@ -24,7 +24,7 @@ export default function ActivityModal({ visible, selected, bottomInset, onSelect
             <Text style={ss.title}>Activity</Text>
             <Text style={ss.sub}>Select your workout type</Text>
           </View>
-          <Pressable style={ss.closeBtn} onPress={onClose}>
+          <Pressable hitSlop={8} style={ss.closeBtn} onPress={onClose}>
             <Text style={{ fontFamily: Fonts.regular, color: C.muted, fontSize: 16 }}>✕</Text>
           </Pressable>
         </View>

@@ -28,7 +28,7 @@ export default function ChallengeDetailScreen() {
   return (
     <View style={s.root}>
       <View style={[s.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={s.back} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
         <Text style={s.title} numberOfLines={1}>{c?.title ?? 'Challenge'}</Text>
       </View>
       {!c || rows === null ? <ActivityIndicator color={C.red} style={{ marginTop: 40 }} /> : (

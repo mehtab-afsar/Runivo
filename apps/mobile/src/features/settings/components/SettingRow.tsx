@@ -17,7 +17,13 @@ export function SettingRow({ label, sub, children }: SettingRowProps) {
         <Text style={ss.rowLabel}>{label}</Text>
         {sub ? <Text style={ss.rowSub}>{sub}</Text> : null}
       </View>
-      {children}
+      {React.Children.map(children, child =>
+        // A bare Switch has no name for VoiceOver/TalkBack ("switch, on"). Give it the row's
+        // label and sub-text so it reads "Voice cues, switch, on".
+        React.isValidElement<{ onValueChange?: unknown; accessibilityLabel?: string; accessibilityHint?: string }>(child) && child.props.onValueChange
+          ? React.cloneElement(child, { accessibilityLabel: child.props.accessibilityLabel ?? label, accessibilityHint: child.props.accessibilityHint ?? sub })
+          : child,
+      )}
     </View>
   );
 }
@@ -27,6 +33,6 @@ function mkStyles(C: AppColors) {
     row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: C.border },
     labelWrap: { flex: 1, paddingRight: 12 },
     rowLabel: { fontFamily: Fonts.regular, fontSize: 14, color: C.black },
-    rowSub: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
+    rowSub: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
   });
 }

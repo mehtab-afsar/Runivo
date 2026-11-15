@@ -1,10 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, Pressable, Image, ScrollView, ActivityIndicator,
-  StyleSheet, SafeAreaView, Alert,
-} from 'react-native';
+import { View, Text, Pressable, Image, ScrollView, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Camera, ArrowClockwise, CheckCircle } from 'phosphor-react-native';
 import { analyseFootImage, ARCH_INFO, type FootScanResult } from '../services/footScanService';
@@ -56,7 +54,7 @@ export default function FootScanScreen() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.back}>
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Foot Scan</Text>

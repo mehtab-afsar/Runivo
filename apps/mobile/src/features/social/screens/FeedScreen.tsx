@@ -1,14 +1,12 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
-  RefreshControl, Platform, Animated, ScrollView,
-  Modal, TextInput, useWindowDimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl, Platform, Animated, ScrollView, Modal, TextInput, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { Search, Check, Plus, UserPlus, X } from 'lucide-react-native';
 import { useFeed } from '@features/social/hooks/useFeed';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { fetchStolenZone } from '@features/social/services/feedService';
 import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
@@ -45,6 +43,7 @@ export default function FeedScreen() {
     discoverHasMore,
     loading,
     refreshing,
+    loadError,
     followingIds,
     suggestedRunners,
     clubActivity,
@@ -205,12 +204,14 @@ export default function FeedScreen() {
           onEndReachedThreshold={0.4}
           ListHeaderComponent={tab === 'following' ? <>{DiscoverHeader}{FollowingHeader}</> : DiscoverHeader}
           ListEmptyComponent={
-            <EmptyFeed
-              tab={tab === 'following' ? 'following' : 'explore'}
-              onCta={tab === 'following' ? goToDiscover : goToRun}
-            />
+            loadError
+              ? <ErrorState title="Couldn't load the feed" onRetry={() => refresh(tab)} />
+              : <EmptyFeed
+                  tab={tab === 'following' ? 'following' : 'explore'}
+                  onCta={tab === 'following' ? goToDiscover : goToRun}
+                />
           }
-          ListFooterComponent={hasMore ? <FooterSpinner C={C} /> : null}
+          ListFooterComponent={hasMore && posts.length > 0 ? <FooterSpinner C={C} /> : null}
         />
       )}
 
@@ -288,7 +289,7 @@ function RunnerRow({
         <Text style={s.score}>{Intl.NumberFormat().format(runner.territoryScore)} territory score</Text>
       </View>
       {!isSelf && (
-        <Pressable
+        <Pressable hitSlop={8}
           style={[s.followBtn, isFollowing && s.followBtnActive]}
           onPress={onFollow}
         >
@@ -325,7 +326,7 @@ function mkStyles(C: AppColors) {
     titleRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 18 : 8, paddingBottom: 12 },
     title:          { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1 },
     header:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 12 },
-    pillTrack:      { flex: 1, flexDirection: 'row', position: 'relative', backgroundColor: '#E9E7E2', borderRadius: 999, padding: 3, height: 38 },
+    pillTrack:      { flex: 1, flexDirection: 'row', position: 'relative', backgroundColor: C.border, borderRadius: 999, padding: 3, height: 38 },
     pillActive:     { position: 'absolute', top: 3, bottom: 3, left: 3, backgroundColor: C.card, borderRadius: 999, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
     tabItem:        { flex: 1, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
     tabLabel:       { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },

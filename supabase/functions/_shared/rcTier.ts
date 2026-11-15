@@ -25,7 +25,28 @@ export type RCEvent = {
   entitlement_id?: string | null;
   transferred_from?: string[];
   transferred_to?: string[];
+  /** When RevenueCat created the event (ms). Used to apply events in order. */
+  event_timestamp_ms?: number;
+  /** When the subscription period ends (ms); null for lifetime purchases. */
+  expiration_at_ms?: number | null;
 };
+
+/**
+ * True when an event is older than the last one applied to this runner, so a
+ * retried or late EXPIRATION can't undo a newer RENEWAL. Events without a
+ * timestamp, and runners with none recorded, always apply.
+ */
+export function isStaleEvent(e: RCEvent, lastAppliedIso: string | null | undefined): boolean {
+  if (!e.event_timestamp_ms || !lastAppliedIso) return false;
+  const last = Date.parse(lastAppliedIso);
+  return Number.isFinite(last) && e.event_timestamp_ms <= last;
+}
+
+/** The expiry to store with a tier change: the period end when granting Plus, none when Free. */
+export function expiryFor(e: RCEvent, tier: 'free' | 'premium'): string | null {
+  if (tier === 'free' || !e.expiration_at_ms) return null;
+  return new Date(e.expiration_at_ms).toISOString();
+}
 
 export type TierUpdate = { userId: string; tier: 'free' | 'premium' };
 

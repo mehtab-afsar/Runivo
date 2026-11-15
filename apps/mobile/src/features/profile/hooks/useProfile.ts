@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import * as ImagePicker from 'expo-image-picker';
+import type { ProfileForm, PhotoChange, Gender } from '../components/EditProfileSheet';
 import type { StoredRun } from '@shared/services/store';
 import { getSettings, saveSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
@@ -39,14 +39,11 @@ export function useProfile() {
   const [instagram, setInstagram] = useState('');
   const [strava, setStrava] = useState('');
 
+  const [gender, setGender] = useState<Gender>(null);
+  const [age, setAge] = useState<number | null>(null);
+  const [heightCm, setHeightCm] = useState<number | null>(null);
+  const [weightKg, setWeightKg] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editColor, setEditColor] = useState(SWATCHES[0]);
-  const [editBio, setEditBio] = useState('');
-  const [editLocation, setEditLocation] = useState('');
-  const [editInstagram, setEditInstagram] = useState('');
-  const [editStrava, setEditStrava] = useState('');
-  const [editAvatarUri, setEditAvatarUri] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const data = await fetchProfileData();
@@ -62,6 +59,10 @@ export function useProfile() {
     if (data.instagram) setInstagram(data.instagram);
     if (data.strava) setStrava(data.strava);
     if (data.avatarUrl) setAvatarUri(data.avatarUrl);
+    setGender(data.gender === 'male' || data.gender === 'female' || data.gender === 'other' ? data.gender : null);
+    setAge(data.age);
+    setHeightCm(data.heightCm);
+    setWeightKg(data.weightKg);
 
     // Sync Supabase profile preferences back to local settings store
     // so other screens (dashboard weekly goal, distance unit, etc.) pick them up
@@ -121,57 +122,57 @@ export function useProfile() {
       .filter(r => !r.excluded).reduce((s, r) => s + r.distanceMeters / 1000, 0);
   }, [runs]);
 
-  const pickAvatar = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, aspect: [1, 1], quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      setEditAvatarUri(result.assets[0].uri);
-    }
-  }, []);
+  // The editor's starting values (EditProfileSheet keeps its own draft).
+  const editInitial = useMemo((): ProfileForm => ({
+    displayName, bio, location, instagram, strava, avatarColor, gender,
+    age: age != null ? String(age) : '',
+    heightCm: heightCm != null ? String(heightCm) : '',
+    weightKg: weightKg != null ? String(weightKg) : '',
+  }), [displayName, bio, location, instagram, strava, avatarColor, gender, age, heightCm, weightKg]);
 
-  const startEdit = useCallback(() => {
-    setEditName(displayName);
-    setEditColor(avatarColor);
-    setEditBio(bio);
-    setEditLocation(location);
-    setEditInstagram(instagram);
-    setEditStrava(strava);
-    setEditAvatarUri(avatarUri);
-    setIsEditing(true);
-  }, [displayName, avatarColor, bio, location, instagram, strava, avatarUri]);
-
+  const startEdit = useCallback(() => setIsEditing(true), []);
   const cancelEdit = useCallback(() => setIsEditing(false), []);
 
-  const saveEdit = useCallback(async () => {
+  /** Saves the editor's form; throws (with a readable message) if it didn't save. */
+  const saveProfile = useCallback(async (form: ProfileForm, photo: PhotoChange) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    let newAvatarUrl: string | undefined;
-    if (editAvatarUri && editAvatarUri !== avatarUri) {
-      const url = await uploadAvatar(session.user.id, editAvatarUri);
-      if (url) newAvatarUrl = url;
+    if (!session) throw new Error('You are signed out. Sign in again to save.');
+    let avatarUrl: string | null | undefined;
+    if (photo?.kind === 'new') {
+      const url = await uploadAvatar(session.user.id, photo.uri);
+      if (!url) throw new Error("Couldn't upload your photo. Try again, or save without it.");
+      avatarUrl = `${url}?v=${Date.now()}`;   // new URL so cached copies of the old photo don't show
+    } else if (photo?.kind === 'remove') {
+      avatarUrl = null;
     }
+    const num = (v: string) => (v.trim() === '' ? null : Number(v.replace(',', '.')));
+    const nextAge = num(form.age), nextHeight = num(form.heightCm), nextWeight = num(form.weightKg);
     await updateProfile(session.user.id, {
-      display_name: editName,
-      bio: editBio,
-      avatar_color: editColor,
-      location: editLocation,
-      instagram: editInstagram,
-      strava: editStrava,
-      ...(newAvatarUrl ? { avatar_url: newAvatarUrl } : {}),
+      display_name: form.displayName || null,
+      bio: form.bio || null,
+      avatar_color: form.avatarColor,
+      location: form.location || null,
+      instagram: form.instagram.trim() || null,
+      strava: form.strava.trim() || null,
+      gender: form.gender,
+      age: nextAge != null ? Math.round(nextAge) : null,
+      height_cm: nextHeight != null ? Math.round(nextHeight) : null,
+      weight_kg: nextWeight != null ? Math.round(nextWeight * 10) / 10 : null,
+      ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : {}),
     });
-    setDisplayName(editName);
-    setBio(editBio);
-    setAvatarColor(editColor);
-    setLocation(editLocation);
-    setInstagram(editInstagram);
-    setStrava(editStrava);
-    if (newAvatarUrl) setAvatarUri(newAvatarUrl);
+    setDisplayName(form.displayName);
+    setBio(form.bio);
+    setAvatarColor(form.avatarColor);
+    setLocation(form.location);
+    setInstagram(form.instagram.trim());
+    setStrava(form.strava.trim());
+    setGender(form.gender);
+    setAge(nextAge != null ? Math.round(nextAge) : null);
+    setHeightCm(nextHeight != null ? Math.round(nextHeight) : null);
+    setWeightKg(nextWeight);
+    if (avatarUrl !== undefined) setAvatarUri(avatarUrl);
     setIsEditing(false);
-  }, [editName, editBio, editColor, editLocation, editInstagram, editStrava, editAvatarUri, avatarUri]);
+  }, []);
 
   const pinRun = useCallback(async (runId: string | null) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -185,15 +186,7 @@ export function useProfile() {
     followers, following,
     tab, setTab,
     avatarColor, avatarUri, displayName, bio, location, instagram, strava,
-    isEditing,
-    editName, setEditName,
-    editColor, setEditColor,
-    editBio, setEditBio,
-    editLocation, setEditLocation,
-    editInstagram, setEditInstagram,
-    editStrava, setEditStrava,
-    editAvatarUri, pickAvatar,
-    startEdit, saveEdit, cancelEdit,
+    isEditing, editInitial, startEdit, cancelEdit, saveProfile,
     earnedAwards,
     statsData, statsPeriod, setStatsPeriod: (p: 'week' | 'month' | 'year' | 'all') => {
       setStatsPeriod(p);

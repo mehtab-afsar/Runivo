@@ -35,24 +35,29 @@ export async function handleMagicLinkUrl(url: string | null): Promise<boolean> {
   if (!isMagic) return false;
 
   const code = parsed.searchParams.get('code');
-  const tokenHash = parsed.searchParams.get('token_hash');
-  const key = code ?? tokenHash ?? url;
+  const key = code ?? url;
   if (handled.has(key)) return true; // the same link can arrive twice (initial URL + event)
   handled.add(key);
 
   const linkError = parsed.searchParams.get('error_description') ?? parsed.searchParams.get('error');
   if (linkError) { emit({ ok: false, error: 'That link has expired. Ask for a new one.' }); return true; }
 
+  // A magic link is only ever requested from the signed-out sign-in screen. If a
+  // session already exists, a link arriving from elsewhere (a web page, a QR
+  // code, another app) must not be able to swap the account under the user.
   try {
-    if (code) {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) throw error;
-    } else if (tokenHash) {
-      const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'email' });
-      if (error) throw error;
-    } else {
-      throw new Error('missing code');
-    }
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return true;
+  } catch { /* treat as signed out; the PKCE exchange below still needs our verifier */ }
+
+  try {
+    // PKCE only. The code is useless without the verifier this device stored
+    // when it asked for the link, so a link crafted by someone else can't log
+    // this phone into their account. A bare token_hash has no such binding and
+    // is deliberately NOT accepted (security audit H2).
+    if (!code) throw new Error('missing code');
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) throw error;
     emit({ ok: true });
   } catch {
     emit({ ok: false, error: 'That link didn\'t work on this phone. Enter the 6-digit code from the email instead.' });

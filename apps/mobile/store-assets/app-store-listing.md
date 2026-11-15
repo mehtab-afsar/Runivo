@@ -1,128 +1,44 @@
-# Runivo — App Store Listing
+# Runivo: App Store Connect fields (everything except listing text)
 
-> v1 launch scope only. AI Coach, Nutrition Tracker, Foot Scan, Shoe Tracker, Clubs &
-> Events are built but flagged off (`apps/mobile/src/config/features.ts`) and show
-> "Coming Soon" in the shipped build — do not mention them here until those flags flip
-> back on. Re-add their copy blocks below (they're preserved in git history) once live.
+**The listing text lives in `apps/mobile/store-metadata/` and is the single source:** `ios/en-US/{description,subtitle,keywords,promotional_text,whats_new}.txt` and `android/en-US/*`. Edit it there, not here. Limits to respect: app name 30, subtitle 30, keywords 100, promotional text 170, description 4000. Check lengths with `wc -m` before pasting (the previous subtitle was 31 and the keywords 124, which App Store Connect rejects).
 
-## App Name
-Runivo: Run. Claim. Dominate.
+Keep the text true to the shipped build. A feature behind a flag in `apps/mobile/src/config/features.ts` that a reviewer cannot reach must not be described (Guideline 2.3.1). The Plus text is accurate only while `SUBSCRIPTIONS_ENABLED` is true in the same binary.
 
-## Subtitle (30 chars max)
-Territory-claiming running app
+## Fields
 
-## Category
-Primary:   Health & Fitness
-Secondary: Sports
+| Field | Value |
+|---|---|
+| Name | Runivo (30 characters max; add a short suffix only if the plain name is taken) |
+| Bundle ID | `com.mehtabafsar.runivo` (from `app.config.ts`) |
+| Primary / secondary category | Health & Fitness / Sports |
+| Support URL | https://runivo.app/support |
+| Marketing URL | https://runivo.app |
+| Privacy Policy URL | https://runivo.app/privacy |
+| Terms of Use (EULA) | https://runivo.app/terms (also put it in the description, as the text already does) |
+| Support email | one address on one domain, used on the support page, the Terms and in-app (it is currently runivo.com on the web pages and runivo.app elsewhere; confirm the mailbox exists) |
+| Price | Free, with in-app purchases (Runivo Plus) |
+| Copyright | the legal entity name |
 
----
+## Age rating (answer the questionnaire; do not pick a rating directly)
 
-## Description (4000 chars max)
+Answer **yes** to: user-generated content, messaging and chat, social media (a public feed that spreads content), and health or wellness topics. Do not answer "none". Expect **13+**; confirm the final number in App Store Connect. The Terms already say 13+. A previous version of this file said 4+, which does not fit a public feed with comments and club chat.
 
-**Turn every run into a battle for territory.**
+## App Privacy ("nutrition labels")
 
-Runivo transforms your daily run into a location-based strategy game. Claim zones around your city, defend them against rivals, and build an empire — one kilometre at a time.
+Fill in by hand from `docs/APP_STORE_CHECKLIST.md` (data inventory). Tracking: **none** (no ad or attribution SDKs; PostHog is first-party analytics). Re-check if that changes.
 
-**CLAIM TERRITORY**
-Every run you complete draws a corridor on the map and converts it into your territory. The more ground you cover, the more zones you own. Run the same streets to fortify your hold; let a rival run through and they steal it back.
+## In-app purchases
 
-**REAL-TIME RIVALRY**
-Other runners in your city are competing for the same map. Watch zones flip colours in real time. Get push notifications the moment an enemy enters your territory so you can plan your counter-run.
+Create `runivo_plus_monthly` and `runivo_plus_annual` as auto-renewable subscriptions in one subscription group, add a review screenshot of the paywall to each, attach them to the version, and accept the Paid Apps Agreement (banking and tax). They are reviewed with the build.
 
-**PACE ECONOMY & RUNNER RANK**
-Every kilometre and every zone you claim earns PACE. Build your PACE balance, climb from Pacer to Sovereign as your Runner Rank rises, and track your Territory Score against every other runner in your city.
+## App Review Information
 
-**MISSIONS & LEADERBOARDS**
-Daily and weekly missions give you targets beyond just running. Climb the global leaderboard or compete within your city.
+Use `docs/APP_REVIEW_NOTES.md` (sign-in path, demo account, core loop, location, HealthKit, PACE, notifications, AI consent, moderation, deletion). Fill in the demo credentials last.
 
-**SOCIAL FEED**
-Follow other runners, see their claims and conquests, and share your own runs and territory milestones.
+## Screenshots (iOS)
 
-**HISTORY**
-Every run is saved with GPS route, pace splits, and territory claims. Review your history and watch your empire grow over time.
+iPhone 6.9" is the required size (1320 × 2868). The app is iPhone-only (`supportsTablet: false`), so no iPad set is needed. Recommended five: territory map with own and rival zones, active run, run summary with PACE earned, dashboard, leaderboard. Screens must show the real app, not mock-ups (see `screenshot-guide.md`).
 
----
+## Android (Google Play)
 
-## Keywords (100 chars max, comma-separated)
-running,territory,GPS,map,game,fitness,tracker,rival,claim,leaderboard,run,rank,social
-
----
-
-## Promotional Text (170 chars max — shown above description, can be updated without review)
-Claim your city, one run at a time. Earn PACE, climb the Runner Rank ladder, and defend your territory from rivals.
-
----
-
-## What's New (Version 1.0)
-First release. Run. Claim. Dominate.
-
----
-
-## Support URL
-https://runivo.app/support
-
-## Marketing URL
-https://runivo.app
-
-## Privacy Policy URL
-https://runivo.app/privacy
-
----
-
-## Age Rating
-4+ (no objectionable content)
-
-## Content Descriptions
-- Location: Always — required for background run tracking
-- Health & Fitness: Yes — writes runs to Apple Health
-
----
-
-## Apple Review Notes
-
-**Background Location:**
-Runivo tracks the user's GPS position continuously during an active run so that territory claims are accurate and the route is recorded. The app requests "Always" location permission because runs continue while the screen is locked. A foreground service notification is displayed at all times during tracking.
-
-**HealthKit:**
-The app writes completed run workouts (distance, duration, calories, start/end time) to Apple Health after each run, and optionally reads past workouts to pre-populate baseline stats. This is opt-in and explained in onboarding.
-
-**Test Account:**
-[Fill in before submission — see below.] A brand-new signup starts with zero territory by design (the Territory Map shows an explicit "Be the first to claim your city" empty state for new users) — there is no pre-seeded sample data on first launch. For a faster review, we recommend logging in with the demo account below, which already has run history, claimed territory, and a PACE balance:
-  - Email: [demo account email]
-  - Password: [demo account password]
-  - This account has [N] runs, [N] claimed territory zones, and a Runner Rank of [rank].
-To test live territory claiming yourself, a short walk (as little as ~100m) with location services enabled is enough to trigger GPS lock and claim a small zone — the core loop does not require a long run to demonstrate.
-
----
-
-## Screenshots Required (iOS)
-
-### iPhone 6.9" (iPhone 16 Pro Max) — 1320 × 2868 px
-1. Territory Map — claimed zones (own) vs rival zones, freshness-colored
-2. Active Run screen mid-run with GPS trail, timer, and territory claim progress
-3. Run Summary screen with PACE earned, territory claimed, and Runner Rank
-4. Dashboard with Territory Score, Runner Rank, City Rank, and streak
-5. Leaderboard showing city rankings
-
-### iPhone 6.7" (iPhone 15 Plus) — 1290 × 2796 px
-(Same 5 screenshots, resized)
-
-### iPad 13" (optional) — 2064 × 2752 px
-(Optional — app is iPhone-only, supportsTablet: false)
-
----
-
-## Android Play Store (Additional)
-
-**Short Description (80 chars):**
-Claim running territory. Earn PACE. Rival runners. GPS tracking.
-
-**Full Description:**
-(Same as iOS description above)
-
-**Content Rating:** Everyone
-**Target SDK:** 35 (Android 15)
-
-### Screenshots Required
-- Phone: 1080 × 1920 px minimum, 8 screenshots max
-- Same 5 topics as iOS
+Title 30, short description 80 (both already within limits in `store-metadata/android/`). Content rating questionnaire: same answers as above.

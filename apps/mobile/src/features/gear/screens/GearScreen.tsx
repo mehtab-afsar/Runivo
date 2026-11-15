@@ -1,8 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
-  Platform, ActivityIndicator, RefreshControl, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Platform, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -40,7 +38,7 @@ export default function GearScreen() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.backBtn}>
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
         <Text style={s.title}>Gear</Text>
@@ -50,7 +48,7 @@ export default function GearScreen() {
             <Footprints size={14} color="#fff" strokeWidth={1.5} />
           </Pressable>
           */}
-          <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn}>
+          <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Add shoes">
             <Plus size={16} color={C.alwaysLight} weight="bold" />
           </Pressable>
         </View>

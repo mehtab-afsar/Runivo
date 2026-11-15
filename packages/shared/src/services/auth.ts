@@ -45,18 +45,6 @@ export async function signIn(email: string, password: string, captchaToken?: str
 }
 
 // ----------------------------------------------------------------
-// OAuth sign-in (Google, Apple)
-// ----------------------------------------------------------------
-export async function signInWithProvider(provider: 'google' | 'apple', redirectTo?: string) {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo: redirectTo ?? (typeof window !== 'undefined' ? window.location.origin : undefined) },
-  });
-  if (error) throw error;
-  return data;
-}
-
-// ----------------------------------------------------------------
 // Sign out
 // ----------------------------------------------------------------
 // scope: 'global' revokes refresh tokens on every device, not just this one.

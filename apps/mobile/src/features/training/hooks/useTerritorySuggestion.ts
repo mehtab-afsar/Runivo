@@ -3,6 +3,7 @@
  * refreshes your nearest fading zones, or claims new ground. Uses the last
  * known position only; never asks for location here.
  */
+import { streetLoop } from '@features/territory/services/loopRouting';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
@@ -36,7 +37,9 @@ export function useTerritorySuggestion(enabled: boolean, distanceKm?: number): T
       const fading = zones.filter(z => z.fading && z.ring.length >= 3)
         .map(z => haversineM(pos, ringCentroid(z.ring))).filter(d => d <= 4000).sort((a, b) => a - b);
       const km = distanceKm ? Math.max(2, Math.round(distanceKm)) : suggestedLoopKm(fading[0] ?? null);
-      const plan = planLoop(pos, km * 1000, fading.length ? 'refresh' : 'new', zones);
+      const circle = planLoop(pos, km * 1000, fading.length ? 'refresh' : 'new', zones);
+      // On real streets when the router answers; the circle otherwise.
+      const plan = (await streetLoop(circle, zones, { orsKey: process.env.EXPO_PUBLIC_ORS_KEY })) ?? circle;
       if (!live) return;
       if (distanceKm) {
         setS(fading.length && plan.refreshes

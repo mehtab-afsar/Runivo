@@ -3,12 +3,13 @@
  * steps. Sessions can be started, moved within their week or skipped, and
  * "Not feeling 100%" eases the next 7 days.
  */
+import { SafetyNote } from '@mobile/shared/components/SafetyNote';
 import { supabase } from '@shared/services/supabase';
 import { getWatchWorkouts } from '../../../../modules/runivo-workouts';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Platform, ActivityIndicator, Alert, Modal,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -36,9 +37,16 @@ export default function TrainingPlanScreen() {
   const [weekIdx, setWeekIdx] = useState<number | null>(null);
   const [open, setOpen] = useState<Session | null>(null);
 
+  const [loadError, setLoadError] = useState(false);
   const load = useCallback(() => {
+    setLoadError(false);
     getCachedPlan().then(c => { if (c) setAp(prev => prev ?? c); });
-    fetchActivePlan().then(setAp).catch(() => setAp(prev => prev ?? null));
+    // An offline failure with no cached plan must not look like "No plan yet" — that invites
+    // building a second plan on top of the one we simply couldn't fetch.
+    fetchActivePlan().then(setAp).catch(() => {
+      setAp(prev => prev ?? null);
+      setLoadError(true);
+    });
   }, []);
   useFocusEffect(load);
 
@@ -57,6 +65,7 @@ export default function TrainingPlanScreen() {
     return (
       <SafeAreaView style={s.root}>
         <Header s={s} C={C} title="Training" onBack={() => navigation.goBack()} />
+        {loadError ? <ErrorState title="Couldn't load your plan" onRetry={load} /> : (
         <View style={s.empty}>
           <Text style={s.emptyTitle}>No plan yet</Text>
           <Text style={s.emptySub}>Pick a race and a date. We'll build weeks of sessions around the days you can run.</Text>
@@ -64,6 +73,7 @@ export default function TrainingPlanScreen() {
             <Text style={s.ctaTxt}>Build a plan</Text>
           </Pressable>
         </View>
+        )}
       </SafeAreaView>
     );
   }
@@ -75,7 +85,16 @@ export default function TrainingPlanScreen() {
 
   const menu = () => Alert.alert('Plan', undefined, [
     { text: 'Build a new plan', onPress: () => navigation.navigate('PlanBuilder') },
-    { text: 'End this plan', style: 'destructive', onPress: () => endPlan(ap).then(() => setAp(null)) },
+    { text: 'End this plan', style: 'destructive', onPress: () => Alert.alert(
+      'End this plan?',
+      'Your remaining sessions are removed. Runs you already did stay in your history.',
+      [
+        { text: 'Keep plan', style: 'cancel' },
+        { text: 'End plan', style: 'destructive', onPress: () => {
+          endPlan(ap).then(() => setAp(null)).catch(() => Alert.alert("Couldn't end the plan", 'Check your connection and try again.'));
+        } },
+      ],
+    ) },
     { text: 'Cancel', style: 'cancel' },
   ]);
 
@@ -89,6 +108,7 @@ export default function TrainingPlanScreen() {
     <SafeAreaView style={s.root}>
       <Header s={s} C={C} title={`${RACE_LABEL[plan.race]} plan`} onBack={() => navigation.goBack()} onMenu={menu} />
       <ScrollView contentContainerStyle={s.scroll}>
+        <SafetyNote kind="coach" style={{ marginTop: 0, marginBottom: 10 }} />
         {/* Summary */}
         <View style={s.card}>
           <Text style={s.eyebrow}>{daysToRace > 0 ? `${daysToRace} days to race day` : daysToRace === 0 ? 'Race day' : 'Race done'}</Text>
@@ -114,7 +134,7 @@ export default function TrainingPlanScreen() {
           {plan.weeks.map(w => {
             const on = w.index === week.index;
             return (
-              <Pressable key={w.index} style={[s.weekChip, on && s.weekChipOn]} onPress={() => setWeekIdx(w.index)} accessibilityRole="button" accessibilityState={{ selected: on }}>
+              <Pressable hitSlop={8} key={w.index} style={[s.weekChip, on && s.weekChipOn]} onPress={() => setWeekIdx(w.index)} accessibilityRole="button" accessibilityState={{ selected: on }}>
                 <Text style={[s.weekChipTxt, on && s.weekChipTxtOn]}>W{w.index}</Text>
               </Pressable>
             );
@@ -263,7 +283,7 @@ export default function TrainingPlanScreen() {
 function Header({ s, C, title, onBack, onMenu }: { s: ReturnType<typeof mkStyles>; C: AppColors; title: string; onBack: () => void; onMenu?: () => void }) {
   return (
     <View style={s.header}>
-      <Pressable onPress={onBack} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
+      <Pressable onPress={onBack} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Back">
         <ArrowLeft size={16} color={C.t1} weight="regular" />
       </Pressable>
       <Text style={s.title}>{title}</Text>

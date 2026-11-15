@@ -4,7 +4,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { Timer, PauseCircle, Heartbeat } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -37,16 +37,16 @@ export function RunPrefChips() {
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row} style={{ flexGrow: 0, marginBottom: 12 }}>
-      <Pressable style={s.chip} onPress={nextCountdown} accessibilityRole="button" accessibilityLabel={`Countdown ${countdown ? `${countdown} seconds` : 'off'}. Change`}>
+      <Pressable hitSlop={8} style={s.chip} onPress={nextCountdown} accessibilityRole="button" accessibilityLabel={`Countdown ${countdown ? `${countdown} seconds` : 'off'}. Change`}>
         <Timer size={14} color={C.t1} />
         <Text style={s.txt}>Countdown {countdown ? `${countdown}s` : 'off'}</Text>
       </Pressable>
-      <Pressable style={[s.chip, autoPause && s.chipOn]} onPress={togglePause} accessibilityRole="switch" accessibilityState={{ checked: autoPause }} accessibilityLabel="Auto-pause">
+      <Pressable hitSlop={8} style={[s.chip, autoPause && s.chipOn]} onPress={togglePause} accessibilityRole="switch" accessibilityState={{ checked: autoPause }} accessibilityLabel="Auto-pause">
         <PauseCircle size={14} color={autoPause ? C.bg : C.t1} />
         <Text style={[s.txt, autoPause && s.txtOn]}>Auto-pause {autoPause ? 'on' : 'off'}</Text>
       </Pressable>
       {/* R4: pair a heart-rate strap or watch from here. */}
-      <Pressable style={s.chip} onPress={() => navigation.navigate('ConnectedDevices')} accessibilityRole="button">
+      <Pressable hitSlop={8} style={s.chip} onPress={() => navigation.navigate('ConnectedDevices')} accessibilityRole="button">
         <Heartbeat size={14} color={C.t1} />
         <Text style={s.txt}>Watch or HR strap</Text>
       </Pressable>

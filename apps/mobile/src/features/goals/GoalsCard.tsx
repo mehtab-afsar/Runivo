@@ -31,17 +31,23 @@ export function GoalsCard() {
     <View style={s.card}>
       <View style={s.head}>
         <Text style={s.label}>Goals</Text>
-        <Pressable onPress={() => setOpen(true)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Add a goal" style={s.add}>
+        <Pressable
+          onPress={() => {
+            // Adding a fifth goal used to silently delete the oldest one.
+            if (goals.length >= MAX_GOALS) { Alert.alert(`You can track ${MAX_GOALS} goals`, 'Remove one to add another. Long-press a goal to remove it.'); return; }
+            setOpen(true);
+          }}
+          hitSlop={8} accessibilityRole="button" accessibilityLabel="Add a goal" style={s.add}>
           <Plus size={13} color={C.t1} weight="bold" /><Text style={s.addTxt}>Add</Text>
         </Pressable>
       </View>
       {goals.length === 0 ? (
-        <Pressable onPress={() => setOpen(true)}><Text style={s.empty}>Set a weekly or monthly goal for running, walking or riding.</Text></Pressable>
+        <Pressable onPress={() => setOpen(true)} accessibilityRole="button"><Text style={s.empty}>Set a weekly or monthly goal for running, walking or riding.</Text></Pressable>
       ) : goals.map(g => {
         const done = goalProgress(g, runs);
         const pct = Math.min(1, done / g.target);
         return (
-          <Pressable key={g.id} style={s.goal} onLongPress={() => Alert.alert('Remove this goal?', goalLabel(g), [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => save(goals.filter(x => x.id !== g.id)) }])}>
+          <Pressable key={g.id} style={s.goal} accessibilityHint="Long-press to remove this goal" accessibilityActions={[{ name: 'delete', label: 'Remove goal' }]} onAccessibilityAction={() => Alert.alert('Remove this goal?', goalLabel(g), [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => save(goals.filter(x => x.id !== g.id)) }])} onLongPress={() => Alert.alert('Remove this goal?', goalLabel(g), [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => save(goals.filter(x => x.id !== g.id)) }])}>
             <View style={s.goalHead}>
               <Text style={s.goalName}>{SPORT_NAME[g.sport]} this {g.period}</Text>
               <Text style={[s.goalVal, pct >= 1 && { color: C.red }]}>{done.toFixed(done >= 100 ? 0 : 1)} / {g.target} {g.metric === 'km' ? 'km' : 'h'}</Text>
@@ -50,10 +56,12 @@ export function GoalsCard() {
           </Pressable>
         );
       })}
-      <AddGoal visible={open} onClose={() => setOpen(false)} onAdd={g => { save([...goals, g].slice(-4)); setOpen(false); }} />
+      <AddGoal visible={open} onClose={() => setOpen(false)} onAdd={g => { save([...goals, g].slice(0, MAX_GOALS)); setOpen(false); }} />
     </View>
   );
 }
+
+const MAX_GOALS = 4;
 
 function AddGoal({ visible, onClose, onAdd }: { visible: boolean; onClose: () => void; onAdd: (g: SportGoal) => void }) {
   const C = useTheme();
@@ -63,13 +71,13 @@ function AddGoal({ visible, onClose, onAdd }: { visible: boolean; onClose: () =>
   const [metric, setMetric] = useState<SportGoal['metric']>('km');
   const [target, setTarget] = useState(80);
   const Chip = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
-    <Pressable style={[s.chip, on && s.chipOn]} onPress={onPress}><Text style={[s.chipTxt, on && s.chipTxtOn]}>{label}</Text></Pressable>
+    <Pressable hitSlop={8} style={[s.chip, on && s.chipOn]} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }}><Text style={[s.chipTxt, on && s.chipTxtOn]}>{label}</Text></Pressable>
   );
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={s.scrim} onPress={onClose} />
       <View style={s.sheet}>
-        <View style={s.sheetHead}><Text style={s.sheetTitle}>New goal</Text><Pressable onPress={onClose} accessibilityLabel="Close"><X size={18} color={C.t2} /></Pressable></View>
+        <View style={s.sheetHead}><Text style={s.sheetTitle}>New goal</Text><Pressable onPress={onClose} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close"><X size={18} color={C.t2} /></Pressable></View>
         <Text style={s.lbl}>Sport</Text>
         <View style={s.chips}>{(['run', 'walk', 'ride', 'all'] as const).map(k => <Chip key={k} on={sport === k} label={SPORT_NAME[k]} onPress={() => setSport(k)} />)}</View>
         <Text style={s.lbl}>Every</Text>

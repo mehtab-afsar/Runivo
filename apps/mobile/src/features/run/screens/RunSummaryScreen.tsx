@@ -1,7 +1,7 @@
 import { territoryPalette } from '@theme/territory';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated, ActivityIndicator, Switch } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated, ActivityIndicator, Switch, Platform, ActionSheetIOS } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,7 +21,7 @@ import PaceXSummaryCard     from '../components/PaceXSummaryCard';
 import { sportFor }         from '../constants/activities';
 import PostRunActions       from '../components/PostRunActions';
 import SaveRouteSheet       from '../components/SaveRouteSheet';
-import { buildStorySvg } from '../services/storyCardGenerator';
+import { buildStorySvg, buildRouteStickerSvg } from '../services/storyCardGenerator';
 import { PngCapture, type PngCaptureHandle } from '../components/PngCapture';
 import EditActivitySheet from '../components/EditActivitySheet';
 import { AUDIENCES } from '../services/activityEditService';
@@ -47,8 +47,19 @@ import { fetchActivityMapHidden, setActivityMapHidden } from '@features/settings
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RunSummary'>;
 
-function fmt(s: number) { const m = Math.floor(s / 60); return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; }
-function pace(p: number) { const m = Math.floor(p); return `${m}:${String(Math.floor((p - m) * 60)).padStart(2, '0')}`; }
+/** mm:ss, or h:mm:ss from one hour up (a 65-minute run is "1:05:00", not "65:00"). */
+function fmt(s: number) {
+  const t = Math.max(0, Math.floor(s));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+  const ss = String(sec).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${String(m).padStart(2, '0')}:${ss}`;
+}
+/** Pace in decimal minutes → "m:ss". Zero, NaN and Infinity (zero-distance runs) show "–:––". */
+function pace(p: number) {
+  if (!Number.isFinite(p) || p <= 0) return '–:––';
+  const total = Math.round(p * 60);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
 
 const RANK_ORDER: RunnerRank[] = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'];
 
@@ -186,6 +197,10 @@ export default function RunSummaryScreen() {
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // Not on a run that unlocks an award: that celebration sheet owns the moment, and two
+    // stacked Modals can fail to present on iOS. The prime waits for the next run (the
+    // "seen" flag is only set once it has actually been shown).
+    if ((runData.newAwards?.length ?? 0) > 0) return;
     AsyncStorage.getItem(NOTIF_PRIME_KEY).then(seen => {
       if (seen || cancelled) return;
       timer = setTimeout(() => setShowNotifPrime(true), 3500);
@@ -301,15 +316,55 @@ export default function RunSummaryScreen() {
     );
   }
 
-  const shareRun = async () => {
+  const shareFile = async (make: () => Promise<string>, title: string) => {
     const available = await Sharing.isAvailableAsync();
     if (!available) { Alert.alert('Sharing not available on this device'); return; }
     try {
-      const fileUri = await writeStoryCard(`run_${runId}.png`);
-      await Sharing.shareAsync(fileUri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: 'Share your run' });
+      const fileUri = await make();
+      await Sharing.shareAsync(fileUri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: title });
     } catch {
       Alert.alert('Could not share', 'Please try again.');
     }
+  };
+  const openReplay = (runData.route?.length ?? 0) >= 2
+    ? () => navigation.navigate('RunReplay', { runId, route: (runData.route ?? []).map(p => ({ lat: p.lat, lng: p.lng })), durationSec: runData.duration, pace: runData.pace })
+    : undefined;
+  /** Share: the full card, the transparent route sticker, or the replay. */
+  const shareRun = () => {
+    const options = ['Share card', 'Route sticker (transparent)', ...(openReplay ? ['Play the replay'] : []), 'Cancel'];
+    const pick = (i: number) => {
+      if (i === 0) shareFile(() => writeStoryCard(`run_${runId}.png`), 'Share your run');
+      else if (i === 1) shareFile(writeRouteSticker, 'Share your route');
+      else if (i === 2 && openReplay) openReplay();
+    };
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: options.length - 1 }, pick);
+    } else {
+      Alert.alert('Share', undefined, [
+        ...options.slice(0, -1).map((label, i) => ({ text: label, onPress: () => pick(i) })),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]);
+    }
+  };
+  /** Route and numbers on a transparent PNG (1080 × 1350), to lay over a photo. */
+  const writeRouteSticker = async () => {
+    const svg = buildRouteStickerSvg({
+      route: visibleRoute(runData.route ?? [], { radiusM: settings.mapHideRadiusM, hideAll: settings.mapHideAll, hidden: !!mapHidden, places: settings.privatePlaces }),
+      stats: [
+        { label: distanceUnit, value: convertKm(runData.distance, distanceUnit).toFixed(2) },
+        ride
+          ? { label: `${distanceUnit}/h`, value: runData.duration > 0 ? (convertKm(runData.distance, distanceUnit) / (runData.duration / 3600)).toFixed(1) : '0.0' }
+          : { label: `/${distanceUnit}`, value: pace(convertPaceMinPerKm(runData.pace, distanceUnit)) },
+        { label: 'time', value: fmt(runData.duration) },
+        { label: 'kcal', value: String(calories) },
+      ],
+    });
+    const capture = storyCaptureRef.current;
+    if (!capture) throw new Error('capture not ready');
+    const base64 = await capture.capture(svg, { viewWidth: 400, viewHeight: 500, outWidth: 1080, outHeight: 1350 });
+    const fileUri = FileSystem.cacheDirectory + `route_${runId}.png`;
+    await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+    return fileUri;
   };
   const writeStoryCard = async (name: string) => {
     const svg = buildStorySvg({
@@ -368,6 +423,9 @@ export default function RunSummaryScreen() {
           unit={distanceUnit}
           onClose={() => navigation.navigate('Main')}
           onShare={shareRun}
+          // The replay screen was built but never linked: the button only
+          // shows when this is passed.
+          onReplay={openReplay}
         />
 
         {/* L6: zones count once the server confirms them. */}
@@ -388,6 +446,17 @@ export default function RunSummaryScreen() {
         )}
 
         {!ride && <>
+        {/* The rank-up sits right under the hero with the PACE earned, where the eye already is.
+            It used to be below the charts and splits, so its haptic fired for something unseen. */}
+        {rankedUp && (
+          <Animated.View style={[ss.rankUpBanner, { marginHorizontal: 18, marginTop: 12, marginBottom: 0 }, {
+            transform: [{ scale: rankUpScale }],
+            opacity: rankUpOpacity,
+          }]} accessibilityRole="alert">
+            <Text style={ss.rankUpText}>Rank up. You’re now a {displayRank}</Text>
+          </Animated.View>
+        )}
+
         {/* ── PACE earned ───────────────────────────────────────────────── */}
         <View style={[ss.card, ss.surface, ss.paceCard]}>
           <View style={ss.cardHead}>
@@ -416,7 +485,7 @@ export default function RunSummaryScreen() {
             <Text style={ss.paceZero}>
               {runData.cappedAt != null
                 ? `Weekly cap of ${runData.cappedAt} reached. It resets Monday`
-                : 'PACE starts at 1 per full km on a run'}
+                : 'PACE starts at 2 per full km on a run'}
             </Text>
           )}
           {capped && !plus && (
@@ -477,14 +546,6 @@ export default function RunSummaryScreen() {
 
         {/* ── Runner rank ───────────────────────────────────────────────── */}
         <View style={[ss.card, ss.surface, ss.rankCard]}>
-          {rankedUp && (
-            <Animated.View style={[ss.rankUpBanner, {
-              transform: [{ scale: rankUpScale }],
-              opacity: rankUpOpacity,
-            }]}>
-              <Text style={ss.rankUpText}>Rank up. You’re now a {displayRank}</Text>
-            </Animated.View>
-          )}
           <View style={ss.rankRow}>
             <View style={ss.rankPill}>
               <Diamond size={12} color={zone.own} weight="fill" />

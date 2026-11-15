@@ -1,33 +1,35 @@
-Runivo turns your city into a battlefield. Every run you complete claims territory — your neighborhood, your streets, your empire. Compete against real runners in your city for control of the map.
+Runivo turns running into a game played on the real map. Run a street or a loop to claim it as your territory, defend it, and take ground back from other runners in your city.
 
-TERRITORY WARFARE
-Run through streets to claim hexagonal zones. Fortify your territories to make them harder to steal. Attack enemy-held areas by running through them. Watch the live map update as you move.
+HOW IT WORKS
+Every run you record can claim a zone: a strip along the route you ran, or the whole area inside a loop you close. Run through a rival's zone to take part of it. Zones fade if you leave them alone, so keep running them.
 
-REAL-TIME MISSIONS
-Complete daily and weekly challenges — run 5km before sunrise, claim 3 enemy territories, hit a personal pace record. Earn XP, coins, and rank up your profile.
+TERRITORY MAP
+See your zones and nearby rivals on a live map. Zones are real shapes from your GPS route, sized by how far you ran.
 
 RUN TRACKING
-GPS-accurate route recording with splits, elevation, and pace. Every run is saved to your history and synced with Google Fit / Health Connect.
+GPS route, pace, splits and elevation, with tracking that continues while your screen is locked. Optional auto-pause. 
 
-SOCIAL FEED & STORIES
-Share run highlights, post stories from your runs, follow other runners in your city. Like and comment on their territories and routes.
+PACE REWARDS AND MISSIONS
+Earn PACE by running and completing daily missions. PACE is free to earn and cannot be bought. In selected cities, PACE unlocks partner offers in the Store.
 
-CLUB BATTLES
-Form a club with friends and combine your territory for club-vs-club map wars. Join a lobby, chat with clubmates before a run, coordinate attacks.
+CLUBS AND EVENTS
+Join or start a club, chat with clubmates, and take part in club and community events.
 
-NUTRITION TRACKING
-Log meals and track calories alongside your training. Set daily goals and see how your fuel affects your run performance.
+FEED AND LEADERBOARDS
+Share your runs, follow other runners, like and comment. Weekly, monthly and all-time leaderboards by territory, distance and PACE.
 
 GEAR LOG
-Track your running shoes, log mileage per pair, get retirement alerts before they cause injury. Upload photos of each pair.
+Track mileage on each pair of running shoes.
 
-LEADERBOARD
-Weekly city rankings by territory owned, distance run, and XP earned. Monthly resets keep competition fresh.
+PRIVACY AND SAFETY
+Keep your home out of the game with private places and hide-my-zones. Live location sharing is off by default. Share a live safety link with someone you trust during a run. Report or block anyone, any time.
 
-AI COACH
-Ask your AI running coach anything — training plans, injury prevention, race preparation.
+FREE AND RUNIVO PLUS
+Tracking, territory, clubs, the feed, missions and the Store are free. Free accounts can hold up to 10 zones at a time.
 
-RUNIVO+ SUBSCRIPTION
-Unlock unlimited territory claims, advanced analytics, priority lobby access, and ad-free experience.
+Runivo Plus is an optional auto-renewing subscription that adds unlimited zones, the PaceX AI running coach (post-run debriefs, weekly briefs and chat), training plans, hosting events, extra map styles and a higher weekly PACE cap. The price and billing period are shown in the app before you subscribe. Payment is charged to your Google Play account at confirmation of purchase. The subscription renews automatically unless you turn off auto-renew at least 24 hours before the end of the current period. Manage or cancel any time in Google Play subscriptions.
 
-No subscription required to play — claim up to 50 territories and complete all missions for free.
+PaceX sends your run and fitness data to a third-party AI provider, only after you give permission.
+
+Terms of Use: https://runivo.app/terms
+Privacy Policy: https://runivo.app/privacy

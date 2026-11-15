@@ -5,7 +5,8 @@
  * posts (20261112000001_map_visibility.sql).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, SafeAreaView, Platform, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Switch, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Polyline, Circle } from 'react-native-svg';
 import { ArrowLeft } from 'phosphor-react-native';

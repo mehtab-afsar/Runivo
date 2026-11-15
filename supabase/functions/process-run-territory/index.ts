@@ -1,5 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+import { effectiveTier } from '../_shared/subscriptions.ts';
+import { MAX_GPS_POINTS, runMismatch, type StoredRunFacts } from './consistency.ts';
 import {
   ENGINE,
   buildTerritoryShape,
@@ -79,17 +81,32 @@ Deno.serve(async (req) => {
     distanceKm?:       number;
     durationSec?:      number;
     clientPaceEarned?: number;
+    /** The device reported mock/simulated location during the run. */
+    mockedLocation?:   boolean;
   };
 
   if (body.userId !== user.id) return new Response('Forbidden', { status: 403 });
   if (!body.runId) return json({ error: 'missing_run_id' }, 400);
+  // Bound the work one request can demand before any query runs.
+  if (Array.isArray(body.gpsPoints) && body.gpsPoints.length > MAX_GPS_POINTS) {
+    return json({ error: 'trace_too_large' }, 413);
+  }
 
   // The run must already be synced and belong to this runner — no PACE for
-  // made-up run ids.
+  // made-up run ids — and what the request claims must agree with that row.
   const { data: runRow, error: runErr } = await supabase
-    .from('runs').select('id, user_id').eq('id', body.runId).maybeSingle();
+    .from('runs')
+    .select('id, user_id, activity_type, duration_sec, started_at, finished_at')
+    .eq('id', body.runId).maybeSingle();
   if (runErr) return json({ error: 'run_lookup_failed' }, 500);
-  if (!runRow || (runRow as { user_id: string }).user_id !== user.id) return json({ error: 'run_not_found' }, 404);
+  const storedRun = runRow as (StoredRunFacts & { id: string; user_id: string }) | null;
+  if (!storedRun || storedRun.user_id !== user.id) return json({ error: 'run_not_found' }, 404);
+  if (Array.isArray(body.gpsPoints)) {
+    const mismatch = runMismatch(storedRun, {
+      activityType: body.activityType, durationSec: body.durationSec, gpsPoints: body.gpsPoints,
+    });
+    if (mismatch) return json({ error: 'run_mismatch', reason: mismatch }, 422);
+  }
 
   // Claim the run. A replay (retry, double sync, crafted request) gets the
   // stored result back and changes nothing.
@@ -108,6 +125,27 @@ Deno.serve(async (req) => {
     await supabase.from('run_processing').delete().eq('run_id', body.runId);
     return json({ error }, status);
   };
+
+  // The phone saw mock/simulated location. The run stays on the runner's
+  // history, but earns nothing and claims nothing. Recorded as scored, so the
+  // app stops retrying and drops the PACE it showed optimistically.
+  if (body.mockedLocation === true) {
+    const flagged = {
+      territoryGenerated: false, territoryWkt: null, territoryAreaM2: 0, claimedAreaM2: 0, isLoop: false,
+      newZonesClaimed: 0, rivalZonesStolen: 0, verifiedDistanceKm: 0, paceAdjustment: 0, paceBreakdown: {},
+      paceCapped: false, streakDays: 0, stolenFromUserIds: [] as string[], territoryCapReached: false,
+      newAwards: [] as string[], flagged: 'mock_location',
+    };
+    try {
+      await supabase.from('pace_discrepancy_log').insert({
+        user_id: user.id, run_id: body.runId, client_pace: body.clientPaceEarned ?? 0, server_pace: 0,
+        distance_km: 0, gps_point_count: Array.isArray(body.gpsPoints) ? body.gpsPoints.length : 0,
+        logged_at: new Date().toISOString(),
+      });
+    } catch { /* instrumentation only */ }
+    await supabase.from('run_processing').update({ result: flagged }).eq('run_id', body.runId);
+    return json(flagged);
+  }
 
   if (!Array.isArray(body.gpsPoints) || body.gpsPoints.length < MIN_GPS_POINTS) {
     return release('insufficient_gps', 400);
@@ -132,7 +170,8 @@ Deno.serve(async (req) => {
     streak_days: number | null; last_run_date: string | null; subscription_tier: string | null;
   };
   const attackerUsername = prof.username ?? 'A rival runner';
-  const subscriptionTier = prof.subscription_tier ?? 'free';
+  // Plus for everyone while subscriptions are off (_shared/subscriptions.ts).
+  const subscriptionTier = effectiveTier(prof.subscription_tier);
   const isPremium        = weeklyCapFor(subscriptionTier) > ENGINE.PACE_WEEKLY_CAP_FREE;
 
   // Streak: only the first meaningful run of a UTC day moves it.
@@ -149,13 +188,8 @@ Deno.serve(async (req) => {
     if (error) return release('streak_update_failed');
   }
 
-  // Profile km and run counts are on-foot only (rides are tracked separately).
-  if (onFoot) {
-    const { error: statsErr } = await supabase.rpc('increment_run_stats', {
-      p_user_id: user.id, p_distance_km: serverDistanceKm,
-    });
-    if (statsErr) return release('stats_update_failed');
-  }
+  // (Profile km / run counts are bumped at the very end, once nothing below can
+  // release the claim: doing it here counted a run again on every retry.)
 
   // Free accounts at the zone limit can still run and defend, not expand.
   const { count: ownedTerritoryCount } = await supabase
@@ -436,6 +470,17 @@ Deno.serve(async (req) => {
     territoryCapReached: atTerritoryCap,
     newAwards,
   };
+  // Profile km and run counts are on-foot only (rides are tracked separately).
+  // Last on purpose: every step above can release the claim and be retried, and
+  // this one is not idempotent. A failure here is logged, not retried, so the
+  // runner's PACE is never held up (or double-counted) over a stats counter.
+  if (onFoot) {
+    const { error: statsErr } = await supabase.rpc('increment_run_stats', {
+      p_user_id: user.id, p_distance_km: serverDistanceKm,
+    });
+    if (statsErr) console.error('[process-run-territory] increment_run_stats failed', body.runId, statsErr.message);
+  }
+
   await supabase.from('run_processing').update({ result }).eq('run_id', body.runId);
   return json(result);
 });

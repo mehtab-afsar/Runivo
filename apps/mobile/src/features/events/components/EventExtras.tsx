@@ -79,7 +79,7 @@ export function EventExtras({ event, joined, onFollowRoute }: { event: RunEvent;
       )}
 
       {!!event.route && onFollowRoute && (
-        <Pressable style={s.btn} onPress={onFollowRoute} accessibilityRole="button">
+        <Pressable hitSlop={8} style={s.btn} onPress={onFollowRoute} accessibilityRole="button">
           <MapTrifold size={15} color={C.t1} /><Text style={s.btnTxt}>Follow the route</Text>
         </Pressable>
       )}
@@ -89,7 +89,7 @@ export function EventExtras({ event, joined, onFollowRoute }: { event: RunEvent;
           <Text style={s.label}>Your pace group</Text>
           <View style={s.chips}>
             {groups.map(g => (
-              <Pressable key={g} style={[s.chip, myGroup === g && s.chipOn]} onPress={() => { const v = myGroup === g ? null : g; setMyGroup(v); setPaceGroup(event.id, v).catch(() => {}); }}>
+              <Pressable hitSlop={8} key={g} style={[s.chip, myGroup === g && s.chipOn]} onPress={() => { const v = myGroup === g ? null : g; setMyGroup(v); setPaceGroup(event.id, v).catch(() => {}); }}>
                 <Text style={[s.chipTxt, myGroup === g && s.chipTxtOn]}>{g} /km · {byGroup(g) + (myGroup === g && !people?.some(p => p.paceGroup === g) ? 1 : 0)}</Text>
               </Pressable>
             ))}
@@ -111,7 +111,7 @@ export function EventExtras({ event, joined, onFollowRoute }: { event: RunEvent;
       )}
 
       {live && joined && (
-        <Pressable style={[s.btn, s.btnDark]} onPress={checkIn} disabled={busy} accessibilityRole="button">
+        <Pressable hitSlop={8} style={[s.btn, s.btnDark]} onPress={checkIn} disabled={busy} accessibilityRole="button">
           {busy ? <ActivityIndicator color={C.bg} /> : <><MapPin size={15} color={C.bg} weight="fill" /><Text style={[s.btnTxt, { color: C.bg }]}>I'm here</Text></>}
         </Pressable>
       )}
@@ -130,7 +130,7 @@ export function EventExtras({ event, joined, onFollowRoute }: { event: RunEvent;
               </View>
             ))}
             {result.some(r => r.isMe) && (
-              <Pressable style={[s.btn, badge && { opacity: 0.6 }]} disabled={badge} onPress={() => claimEventFinish(event.id).then(ok => setBadge(ok)).catch(() => {})} accessibilityRole="button">
+              <Pressable hitSlop={8} style={[s.btn, badge && { opacity: 0.6 }]} disabled={badge} onPress={() => claimEventFinish(event.id).then(ok => setBadge(ok)).catch(() => {})} accessibilityRole="button">
                 <Trophy size={15} color={C.red} weight="fill" /><Text style={s.btnTxt}>{badge ? 'Finisher badge added' : 'Get your finisher badge'}</Text>
               </Pressable>
             )}

@@ -4,7 +4,7 @@ import { Apple, Mail, Phone, Plus, X } from 'lucide-react-native';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { track } from '@shared/services/analytics';
 import { linkableMethods, methodLabel, unlinkBlockReason, type LinkedMethod, type SignInMethod } from '@shared/engine/identities';
-import { normalizePhone, otpSendPolicy, isOtpCode } from '@shared/engine/onboarding';
+import { normalizePhone, dialCodeForLocale, otpSendPolicy, isOtpCode } from '@shared/engine/onboarding';
 import CodeInput from '@features/auth/components/CodeInput';
 import {
   loadSignInMethods, linkGoogle, linkApple, sendAddPhoneCode, verifyAddPhoneCode, unlinkMethod,
@@ -175,7 +175,7 @@ function AddPhoneSheet({ visible, onClose, onAdded }: { visible: boolean; onClos
   };
 
   const submitPhone = () => {
-    const n = normalizePhone(phone);
+    const n = normalizePhone(phone, dialCodeForLocale(Intl.DateTimeFormat().resolvedOptions().locale));
     if (!n.ok) { setError(n.error); return; }
     send(n.e164);
   };

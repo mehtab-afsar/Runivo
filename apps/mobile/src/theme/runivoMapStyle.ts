@@ -113,15 +113,18 @@ export function loadRunivoMapStyle(): Promise<string | null> {
 /**
  * Pass any style URL or JSON. The default light style (Positron) comes back
  * as the Runivo-coloured JSON; dark, terrain and satellite pass through.
+ *
+ * A map keeps the style it opened with. It used to switch to the Runivo JSON
+ * whenever the fetch finished, even with the map already on screen, and a
+ * style switch makes MapLibre drop and re-add every zone, heatmap and route
+ * layer (flicker, zones vanishing, layers anchored to each other failing).
+ * The style is fetched at launch (App.tsx), so maps opened after that get it.
  */
 export function useRunivoMapStyle(style: string): string {
   const isDefault = style === MapStyleUrl.positron;
-  const [json, setJson] = useState<string | null>(cached);
+  const [json] = useState<string | null>(cached);
   useEffect(() => {
-    if (!isDefault || json) return;
-    let alive = true;
-    loadRunivoMapStyle().then(s => { if (alive && s) setJson(s); });
-    return () => { alive = false; };
-  }, [isDefault, json]);
+    if (isDefault && !cached) loadRunivoMapStyle();   // ready for the next map
+  }, [isDefault]);
   return isDefault && json ? json : style;
 }

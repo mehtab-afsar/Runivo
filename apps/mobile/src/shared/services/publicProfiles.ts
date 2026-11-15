@@ -43,9 +43,3 @@ export async function fetchPublicProfiles(ids: string[]): Promise<Map<string, Pu
   }
   return new Map((data ?? []).map(p => [p.id as string, p as PublicProfile]));
 }
-
-/** Convenience wrapper for a single id. */
-export async function fetchPublicProfile(id: string): Promise<PublicProfile | null> {
-  const map = await fetchPublicProfiles([id]);
-  return map.get(id) ?? null;
-}

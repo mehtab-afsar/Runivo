@@ -7,6 +7,8 @@ export interface Club {
   total_km: number;
   join_policy: string;
   joined: boolean;
+  /** Local only: a join request was sent to this invite-only club and is awaiting approval. */
+  requested?: boolean;
   /** Rounded km from the runner, when the club is near them. */
   distance_km?: number | null;
   /** Approximate area name the owner set, if any. */

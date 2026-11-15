@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, Pressable,
-  SafeAreaView, Platform, ActivityIndicator,
-} from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from '@theme/hapticsGated';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -70,12 +69,18 @@ export default function MissionsScreen() {
   const [rowStates, setRowStates] = useState<Record<string, CardState>>({});
   const [swappingId, setSwappingId] = useState<string | null>(null);
   const [swapBusy, setSwapBusy]     = useState(false);
+  const [loadError, setLoadError]   = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setLoadError(false);
     Promise.all([ensureTodaysMissions(), getProfile()])
-      .then(([m, p]) => { setMissions(m); setProfile(p ?? null); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(([m, p]) => { setMissions(m); setProfile(p ?? null); })
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const handleClaim = useCallback(async (missionId: string) => {
     setRowStates(prev => ({ ...prev, [missionId]: 'claiming' }));
@@ -106,10 +111,16 @@ export default function MissionsScreen() {
   const selectReplacement = useCallback(async (newTitle: string) => {
     if (!swappingId) return;
     setSwapBusy(true);
-    const updated = await swapMission(swappingId, newTitle);
-    setMissions(updated);
-    setSwapBusy(false);
-    setSwappingId(null);
+    try {
+      const updated = await swapMission(swappingId, newTitle);
+      setMissions(updated);
+      setSwappingId(null);
+    } catch {
+      // Stay on the picker so they can try again; never leave the spinner stuck.
+      Alert.alert("Couldn't change the mission", 'Please try again.');
+    } finally {
+      setSwapBusy(false);
+    }
   }, [swappingId]);
 
   // Date label "Mon · Mar 17"
@@ -128,16 +139,35 @@ export default function MissionsScreen() {
     );
   }
 
+  if (loadError || missions.length === 0) {
+    return (
+      <SafeAreaView style={ss.root}>
+        <View style={ss.header}>
+          <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
+            <Text style={ss.backText} accessible={false}>←</Text>
+          </Pressable>
+        </View>
+        <View style={ss.loader}>
+          <ErrorState
+            title={loadError ? "Couldn't load today's missions" : 'No missions today'}
+            body={loadError ? undefined : 'Check back soon, or pull up your connection and try again.'}
+            onRetry={load}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // ── Change picker (full-screen overlay over a single slot) ────────────────
   if (swappingMission) {
     return (
       <SafeAreaView style={ss.root}>
         <View style={ss.header}>
-          <Pressable onPress={() => setSwappingId(null)} style={ss.backBtn}>
+          <Pressable onPress={() => setSwappingId(null)} style={ss.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
             <X size={15} strokeWidth={2.5} color={T.black} />
           </Pressable>
           <Text style={ss.headerTitle} numberOfLines={1}>Change "{swappingMission.title}"</Text>
-          <View style={{ width: 30 }} />
+          <View style={{ width: 36 }} />
         </View>
         {swapBusy ? (
           <View style={ss.loader}><ActivityIndicator color={T.black} /></View>
@@ -192,14 +222,14 @@ export default function MissionsScreen() {
   return (
     <SafeAreaView style={ss.root}>
       <View style={ss.header}>
-        <Pressable onPress={() => navigation.goBack()} style={ss.backBtn}>
-          <Text style={ss.backText}>←</Text>
+        <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
+          <Text style={ss.backText} accessible={false}>←</Text>
         </Pressable>
         <View style={ss.todayTitleWrap}>
           <Text style={ss.todayTitle}>Today</Text>
           <Text style={ss.dateLabel}>{dateLabel} · {progressLabel}</Text>
         </View>
-        <View style={{ width: 30 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -227,7 +257,9 @@ export default function MissionsScreen() {
                   mission={m}
                   isLast={i === rest.length - 1}
                   onClaim={handleClaim}
-                  onPress={() => setSwappingId(m.id)}
+                  // Only unfinished missions can be swapped. Swapping resets progress and the
+                  // claimed flag, so a stray tap must not be able to wipe a finished mission.
+                  onPress={!m.completed && !m.claimed ? () => setSwappingId(m.id) : undefined}
                 />
               ))}
             </View>
@@ -246,7 +278,7 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
   // Header — no bar, no border, sits directly on the page (only the swap
   // picker's single-line title still uses headerTitle/flex:1 directly).
   header:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 14 : 6, paddingBottom: 10, backgroundColor: T.pageBg },
-  backBtn:         { width: 30, height: 30, borderRadius: 15, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
+  backBtn:         { width: 36, height: 36, borderRadius: 18, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
   backText:        { fontFamily: Fonts.regular, fontSize: 16, color: T.black, lineHeight: 18 },
   headerTitle:     { fontFamily: Fonts.semiBold, fontSize: 18, color: T.black, flex: 1, textAlign: 'center', marginHorizontal: 8 },
   // "Today" screen's title sits in its own flex:1 wrapper (with the date

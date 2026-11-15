@@ -42,3 +42,15 @@ scripts/reports/
 
 # transfer batches dropped by other tooling; not source
 .claude-drop/
+.runivo-sync/
+
+# Per-machine tooling state
+/.expo/
+.claude/worktrees/
+.claude/settings.json
+
+# supabase db pull dumps (not migrations)
+supabase/pull_snapshots/
+
+# Stray root app.json; the real config is apps/mobile/app.config.ts
+/app.json

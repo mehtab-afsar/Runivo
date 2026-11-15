@@ -23,7 +23,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { decideTierUpdates, usersInEvent, type RCEvent } from '../_shared/rcTier.ts';
+import { decideTierUpdates, usersInEvent, isStaleEvent, expiryFor, type RCEvent } from '../_shared/rcTier.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -66,14 +66,16 @@ serve(async (req) => {
   // Current tiers first: admins are never touched, and unchanged rows are skipped.
   const { data: rows, error: readError } = await supabase
     .from('profiles')
-    .select('id, subscription_tier')
+    .select('id, subscription_tier, subscription_event_at')
     .in('id', userIds);
   if (readError) {
     console.error('[rc-webhook] DB read error:', readError.message);
     return new Response('DB error', { status: 500 });
   }
   const currentTiers: Record<string, string | null> = {};
-  for (const r of (rows ?? []) as { id: string; subscription_tier: string | null }[]) {
+  for (const r of (rows ?? []) as { id: string; subscription_tier: string | null; subscription_event_at: string | null }[]) {
+    // Older than what's already applied (a retry, or out of order): skip this runner.
+    if (isStaleEvent(event, r.subscription_event_at)) continue;
     currentTiers[r.id] = r.subscription_tier;
   }
 
@@ -87,7 +89,12 @@ serve(async (req) => {
   for (const u of updates) {
     const { error } = await supabase
       .from('profiles')
-      .update({ subscription_tier: u.tier, updated_at: new Date().toISOString() })
+      .update({
+        subscription_tier: u.tier,
+        subscription_expires_at: expiryFor(event, u.tier),
+        ...(event.event_timestamp_ms ? { subscription_event_at: new Date(event.event_timestamp_ms).toISOString() } : {}),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', u.userId);
     if (error) {
       console.error('[rc-webhook] DB update error:', error.message);

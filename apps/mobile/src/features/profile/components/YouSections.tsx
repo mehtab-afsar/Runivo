@@ -7,6 +7,8 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { CaretRight, PushPin, PencilSimple } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
+import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { RouteThumb } from '@mobile/shared/components/RouteThumb';
 import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
@@ -28,16 +30,20 @@ function fmtClock(sec: number): string {
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.round(sec % 60);
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
 }
-export function activityMeta(r: StoredRun): string {
+export function activityMeta(r: StoredRun, unit: 'km' | 'mi' = 'km'): string {
   const km = r.verifiedDistanceKm ?? r.distanceMeters / 1000;
   const d = new Date(r.startTime);
   const g = sportGroup(r.activityType);
   let pace = '';
   if (km > 0.05 && r.durationSec > 0) {
-    if (g === 'ride') pace = ` · ${(km / (r.durationSec / 3600)).toFixed(1)} km/h`;
-    else { const p = r.durationSec / km; pace = ` · ${Math.floor(p / 60)}:${String(Math.round(p % 60)).padStart(2, '0')} /km`; }
+    if (g === 'ride') pace = ` · ${(convertKm(km, unit) / (r.durationSec / 3600)).toFixed(1)} ${unit === 'mi' ? 'mph' : 'km/h'}`;
+    else {
+      // Round to whole seconds first so 5:59.6 can't print "5:60".
+      const total = Math.round(convertPaceMinPerKm(r.durationSec / km / 60, unit) * 60);
+      pace = ` · ${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')} /${unit}`;
+    }
   }
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} · ${fmtKm(km)} km · ${fmtClock(r.durationSec)}${pace}`;
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} · ${fmtKm(convertKm(km, unit))} ${unit} · ${fmtClock(r.durationSec)}${pace}`;
 }
 export function zonesOf(r: StoredRun): number {
   return r.serverResult ? r.serverResult.newZones + r.serverResult.stolenZones : r.territoriesClaimed.length;
@@ -98,6 +104,7 @@ export function WeekCard({ runs, sport, onSport, goalKm, onEditGoal }: {
 }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
+  const unit = useDistanceUnit();
   const filtered = useMemo(() => filterBySport(runs, sport), [runs, sport]);
   const weeks = useMemo(() => weeklyTotals(filtered), [filtered]);
   const allWeeks = useMemo(() => weeklyTotals(runs), [runs]);
@@ -121,14 +128,14 @@ export function WeekCard({ runs, sport, onSport, goalKm, onEditGoal }: {
         <SportChip value={sport} onChange={onSport} note="Applies to This week, the 12-week chart and Statistics." />
       </View>
       <View style={s.weekGrid}>
-        <View style={s.weekCell}><Text style={s.statLabel}>Distance</Text><Text style={s.statNum}>{fmtKm(thisWeek?.km ?? 0)}<Text style={s.statUnit}> km</Text></Text></View>
+        <View style={s.weekCell}><Text style={s.statLabel}>Distance</Text><Text style={s.statNum}>{fmtKm(convertKm(thisWeek?.km ?? 0, unit))}<Text style={s.statUnit}> {unit}</Text></Text></View>
         <View style={s.weekCell}><Text style={s.statLabel}>Time</Text><Text style={s.statNum}>{fmtDuration(thisWeek?.sec ?? 0)}</Text></View>
         <View style={s.weekCell}><Text style={s.statLabel}>Zones</Text><Text style={[s.statNum, zones > 0 && { color: C.red }]}>{zones > 0 ? `+${zones}` : '0'}</Text></View>
       </View>
-      <Pressable style={s.goalHead} onPress={onEditGoal} accessibilityRole="button" accessibilityLabel={`Weekly goal ${goalKm} km. Edit`}>
+      <Pressable style={s.goalHead} onPress={onEditGoal} accessibilityRole="button" accessibilityLabel={`Weekly goal ${fmtKm(convertKm(goalKm, unit))} ${unit}. Edit`}>
         <Text style={s.small}>Weekly goal</Text>
         <View style={s.goalRight}>
-          <Text style={s.smallStrong}>{fmtKm(goalDone)} / {goalKm} km</Text>
+          <Text style={s.smallStrong}>{fmtKm(convertKm(goalDone, unit))} / {fmtKm(convertKm(goalKm, unit))} {unit}</Text>
           <PencilSimple size={12} color={C.t1} weight="bold" />
         </View>
       </Pressable>
@@ -150,6 +157,7 @@ export function WeekCard({ runs, sport, onSport, goalKm, onEditGoal }: {
 export function PinnedCard({ run, onOpen, onUnpin }: { run: StoredRun; onOpen: () => void; onUnpin?: () => void }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
+  const unit = useDistanceUnit();
   const z = zonesOf(run);
   return (
     <Pressable style={[s.card, { padding: 0, overflow: 'hidden' }]} onPress={onOpen} onLongPress={onUnpin} accessibilityRole="button" accessibilityHint={onUnpin ? 'Long-press to unpin' : undefined}>
@@ -160,7 +168,7 @@ export function PinnedCard({ run, onOpen, onUnpin }: { run: StoredRun; onOpen: (
       <View style={s.pinBody}>
         <View style={{ flex: 1 }}>
           <Text style={s.rowTitle} numberOfLines={1}>{activityName(run)}</Text>
-          <Text style={s.rowSub} numberOfLines={1}>{activityMeta(run)}</Text>
+          <Text style={s.rowSub} numberOfLines={1}>{activityMeta(run, unit)}</Text>
         </View>
         {z > 0 && <Text style={s.zoneTxt}>+{z} {z === 1 ? 'zone' : 'zones'}</Text>}
       </View>

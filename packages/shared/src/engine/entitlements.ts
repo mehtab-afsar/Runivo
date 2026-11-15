@@ -13,8 +13,35 @@ export type Tier = 'free' | 'premium' | 'admin' | string | null | undefined;
 
 export const FREE_ZONE_LIMIT = 10;
 
-export function isPlus(tier: Tier): boolean {
+/**
+ * Subscriptions are switched off while Runivo is still being built: every
+ * runner gets everything Plus has, and no paywall, upgrade prompt or Plus
+ * screen is shown. The server follows its own matching switch
+ * (app_settings.subscriptions_enabled, and SUBSCRIPTIONS_ENABLED for the edge
+ * functions). Flip all three to true at launch; the stored subscription_tier
+ * is never changed, so paying runners keep Plus and everyone else goes back
+ * to Free.
+ */
+export const SUBSCRIPTIONS_ENABLED = false;
+
+/** The tier rule itself: premium and admin are Plus. */
+export function isPlusTier(tier: Tier): boolean {
   return tier === 'premium' || tier === 'admin';
+}
+
+/** The tier the game applies: the stored one, or Plus for all while subscriptions are off. */
+let subscriptionsOn = SUBSCRIPTIONS_ENABLED;
+export function effectiveTier(tier: Tier): Tier {
+  return subscriptionsOn ? tier : 'premium';
+}
+
+/** Tests only: check the Free/Plus rules as they'll run once subscriptions are on. */
+export function setSubscriptionsEnabledForTests(on: boolean): void {
+  subscriptionsOn = on;
+}
+
+export function isPlus(tier: Tier): boolean {
+  return isPlusTier(effectiveTier(tier));
 }
 
 /** Zones a runner can hold at once. */

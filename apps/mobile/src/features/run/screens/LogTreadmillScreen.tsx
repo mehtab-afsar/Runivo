@@ -11,6 +11,8 @@ import { CaretLeft } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { saveRun } from '@shared/services/store';
+import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
+import { KM_TO_MI, fmtPace } from '@mobile/shared/lib/formatters';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const DAYS = [{ label: 'Today', back: 0 }, { label: 'Yesterday', back: 1 }, { label: '2 days ago', back: 2 }];
@@ -22,11 +24,14 @@ export default function LogTreadmillScreen() {
   const navigation = useNavigation<Nav>();
   const [day, setDay] = useState(0);
   const [mins, setMins] = useState('');
-  const [km, setKm] = useState('');
+  const unit = useDistanceUnit();
+  const [km, setKm] = useState('');   // typed in the user's unit (km or mi)
   const [saving, setSaving] = useState(false);
 
   const minutes = Number(mins.replace(',', '.'));
-  const dist = Number(km.replace(',', '.'));
+  // Typed in the user's unit; everything stored and validated below is km.
+  const typed = Number(km.replace(',', '.'));
+  const dist = unit === 'mi' ? typed / KM_TO_MI : typed;
   const ok = minutes > 0 && minutes <= 600 && dist > 0 && dist <= 100;
   const pace = ok ? (minutes * 60) / dist : null;
   const tooFast = pace != null && pace < 1000 / 6.5;
@@ -57,7 +62,7 @@ export default function LogTreadmillScreen() {
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[s.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={s.back} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
         <Text style={s.title}>Log a treadmill run</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 18, gap: 10 }} keyboardShouldPersistTaps="handled">
@@ -65,18 +70,18 @@ export default function LogTreadmillScreen() {
         <Text style={s.lbl}>When</Text>
         <View style={s.chips}>
           {DAYS.map(d => (
-            <Pressable key={d.back} style={[s.chip, day === d.back && s.chipOn]} onPress={() => setDay(d.back)}>
+            <Pressable hitSlop={8} key={d.back} style={[s.chip, day === d.back && s.chipOn]} onPress={() => setDay(d.back)}>
               <Text style={[s.chipTxt, day === d.back && s.chipTxtOn]}>{d.label}</Text>
             </Pressable>
           ))}
         </View>
         <Text style={s.lbl}>Time (minutes)</Text>
-        <TextInput style={s.input} value={mins} onChangeText={setMins} keyboardType="decimal-pad" placeholder="30" placeholderTextColor={C.t3} maxLength={5} />
-        <Text style={s.lbl}>Distance (km, from the treadmill)</Text>
-        <TextInput style={s.input} value={km} onChangeText={setKm} keyboardType="decimal-pad" placeholder="5.0" placeholderTextColor={C.t3} maxLength={5} />
+        <TextInput style={s.input} accessibilityLabel="Time in minutes" value={mins} onChangeText={setMins} keyboardType="decimal-pad" placeholder="30" placeholderTextColor={C.t3} maxLength={5} />
+        <Text style={s.lbl}>Distance ({unit}, from the treadmill)</Text>
+        <TextInput style={s.input} accessibilityLabel={`Distance in ${unit}`} value={km} onChangeText={setKm} keyboardType="decimal-pad" placeholder="5.0" placeholderTextColor={C.t3} maxLength={5} />
         {pace != null && (
           <Text style={[s.note, tooFast && { color: C.red }]}>
-            {tooFast ? "That's faster than anyone runs. Check the numbers." : `Pace ${Math.floor(pace / 60)}:${String(Math.round(pace % 60)).padStart(2, '0')} /km`}
+            {tooFast ? "That's faster than anyone runs. Check the numbers." : `Pace ${fmtPace(unit === 'mi' ? pace / KM_TO_MI : pace)} /${unit}`}
           </Text>
         )}
         <Pressable style={[s.cta, (!ok || tooFast || saving) && { opacity: 0.4 }]} disabled={!ok || tooFast || saving} onPress={save} accessibilityRole="button">

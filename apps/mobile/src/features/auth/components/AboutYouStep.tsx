@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '@theme/hapticsGated';
 import { AGE_RANGES, type AgeRange } from '@shared/engine/onboarding';
 import { useTheme } from '@theme';
 import { mkStep, type StepStyles } from './onboardingStyles';

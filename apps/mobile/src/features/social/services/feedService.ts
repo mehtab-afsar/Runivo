@@ -59,6 +59,14 @@ export async function fetchFeed(opts: {
   return { posts, nextCursor };
 }
 
+/** "Your feed": every post of your own, newest first (get_my_feed). */
+export async function fetchMyFeed(cursorTs?: string | null, lim = 20): Promise<{ posts: FeedPost[]; nextCursor: string | null }> {
+  const { data, error } = await supabase.rpc('get_my_feed', { lim, cursor_ts: cursorTs ?? null });
+  if (error) throw error;
+  const posts = await withCompanions((data ?? []).map(mapRow)).catch(() => (data ?? []).map(mapRow));
+  return { posts, nextCursor: posts.length === lim ? posts[posts.length - 1].createdAt : null };
+}
+
 /** C3: a club's members' activities. */
 export async function fetchClubFeed(clubId: string, cursorTs?: string | null): Promise<FeedPost[]> {
   const { data, error } = await supabase.rpc('get_club_feed', { p_club: clubId, lim: 20, cursor_ts: cursorTs ?? null });

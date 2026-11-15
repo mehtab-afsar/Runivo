@@ -11,8 +11,10 @@ export const Colors = {
   // Text
   black:   '#0C0C0D',
   t1:      '#0C0C0D',
-  t2:      '#64636A',
-  t3:      '#A3A1A8',
+  // t2/t3 are TEXT colours: both pass WCAG AA (4.5:1) on bg and card. t3 was #A3A1A8 (2.3:1),
+  // used for ~140 text styles. Use `border`/`mid` for decoration, not t3.
+  t2:      '#55545B',
+  t3:      '#6F6D75',
 
   // Brand / interactive
   red:     '#FF4518',
@@ -41,7 +43,7 @@ export const Colors = {
   bronze:  '#A0522D',
 
   // Aliases for legacy screen names
-  muted:   '#64636A',
+  muted:   '#55545B',
   greenLo: '#E3F5EA',
   redLo:   '#FFE4DA',
   purple:  '#8B5CF6',
@@ -85,8 +87,8 @@ export const DarkColors = {
   // Text
   black:   '#F2EFE9',
   t1:      '#F2EFE9',
-  t2:      '#9C9AA2',
-  t3:      '#5E5C63',
+  t2:      '#B4B2BA',
+  t3:      '#8E8C94',
 
   // Brand / interactive — the light-mode vermilion (#D93518) reads muddy on near-black;
   // dark mode gets a hotter variant so the accent keeps its energy and passes contrast.

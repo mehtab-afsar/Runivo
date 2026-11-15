@@ -132,7 +132,7 @@ export function TerritoryBottomSheet({ polygon, onClose, onDefend }: Props) {
         <Text style={ss.freshLabel}>Freshness · fading below {ENGINE.FRESHNESS_STALE_AT}%</Text>
         <Text style={ss.freshVal}>{freshPct}%</Text>
       </View>
-      <View style={[ss.trackBg, { backgroundColor: '#ECEAE5' }]}>
+      <View style={[ss.trackBg, { backgroundColor: C.surface }]}>
         <View style={[ss.trackFill, { width: `${freshPct}%`, backgroundColor: color }]} />
       </View>
 
@@ -164,7 +164,7 @@ function mkStyles(C: AppColors) {
       borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 18, zIndex: 40,
       shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 12,
     },
-    handle:    { width: 38, height: 5, borderRadius: 5, backgroundColor: '#DEDCD6', alignSelf: 'center', marginBottom: 14 },
+    handle:    { width: 38, height: 5, borderRadius: 5, backgroundColor: C.border, alignSelf: 'center', marginBottom: 14 },
     topRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
     chip:      { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, flexShrink: 1 },
     chipText:  { fontFamily: Fonts.semiBold, fontSize: 11.5 },

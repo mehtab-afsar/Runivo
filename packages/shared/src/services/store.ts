@@ -59,6 +59,10 @@ export interface StoredSettings {
   territoryAlerts: boolean;
   /** Festive offers, partner drops and city events (notification campaigns). */
   offersEnabled?: boolean;
+  /** When the runner agreed to send their run data to the third-party AI (epoch ms). Absent/null = no consent. Mirrors profiles.ai_consent_at, which the server enforces. */
+  aiConsentAt?: number | null;
+  /** Share product-usage analytics (PostHog). Absent = on, as disclosed in the privacy policy; false = opted out. */
+  analyticsEnabled?: boolean;
   /** Paywall moment → ISO week it was last shown ("2026-W46"); at most once a week each. */
   paywallShown?: Partial<Record<'zone_limit' | 'pace_cap' | 'debrief', string>>;
   /** A reward the runner is saving PACE for (S3); Home counts down to it. */
@@ -134,6 +138,8 @@ export interface StoredRun {
   id: string;
   /** false while the server still has to score this run (territory + PACE); retried on next sync. */
   serverProcessed?: boolean;
+  /** A mock/simulated location provider was seen during the run; the server pays nothing for it. */
+  mockedLocation?: boolean;
   /** Server-verified distance (km), once scored. */
   verifiedDistanceKm?: number;
   /** Server-measured ground: the run's whole shape, and the part that was new land. */

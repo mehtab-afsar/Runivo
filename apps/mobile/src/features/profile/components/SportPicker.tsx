@@ -14,7 +14,7 @@ export function SportChip({ value, onChange, note }: { value: SportFilter; onCha
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Pressable style={s.chip} onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Sport: ${SPORT_LABEL[value]}. Change`}>
+      <Pressable hitSlop={8} style={s.chip} onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={`Sport: ${SPORT_LABEL[value]}. Change`}>
         <Text style={s.chipTxt}>{SHORT[value]}</Text>
         <CaretDown size={12} color={C.t1} weight="bold" />
       </Pressable>

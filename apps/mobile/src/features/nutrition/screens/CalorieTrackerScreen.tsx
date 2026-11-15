@@ -200,9 +200,9 @@ export default function CalorieTrackerScreen() {
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.back}><Text style={s.backText}>←</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.back}><Text style={s.backText}>←</Text></Pressable>
         <Text style={s.title}>Calorie Tracker</Text>
-        <Pressable onPress={() => navigation.navigate('NutritionSetup')} style={s.settingsBtn}>
+        <Pressable onPress={() => navigation.navigate('NutritionSetup')} style={s.settingsBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Nutrition settings">
           <Gear size={16} color={C.t2} weight="light" />
         </Pressable>
       </View>

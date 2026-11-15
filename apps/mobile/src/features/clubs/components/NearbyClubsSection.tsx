@@ -62,13 +62,14 @@ export function NearbyClubsSection({ clubs, nearby, locationOn = false, onPress,
                 <Text style={s.joined}>Joined</Text>
               ) : (
                 <Pressable
-                  style={s.joinBtn}
+                  style={[s.joinBtn, club.requested && { opacity: 0.6 }]}
                   onPress={() => onJoin(club)}
+                  disabled={club.requested}
                   hitSlop={6}
                   accessibilityRole="button"
-                  accessibilityLabel={club.join_policy === 'open' ? `Join ${club.name}` : `Ask to join ${club.name}`}
+                  accessibilityLabel={club.requested ? `Request to join ${club.name} sent` : club.join_policy === 'open' ? `Join ${club.name}` : `Ask to join ${club.name}`}
                 >
-                  <Text style={s.joinText}>{club.join_policy === 'open' ? 'Join' : 'Request'}</Text>
+                  <Text style={s.joinText}>{club.requested ? 'Requested' : club.join_policy === 'open' ? 'Join' : 'Request'}</Text>
                 </Pressable>
               )}
             </Pressable>

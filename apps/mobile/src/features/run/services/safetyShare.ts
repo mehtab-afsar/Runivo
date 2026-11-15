@@ -35,9 +35,12 @@ export function pushSafetyPosition(p: { lat: number; lng: number }, distanceM: n
   const now = Date.now();
   if (!force && now - lastPush < PUSH_EVERY_MS) return;
   lastPush = now;
-  void supabase.rpc('update_safety_share', {
+  // The supabase-js builder is lazy: it only sends when `then` is called, so a
+  // bare `void rpc(...)` never left the phone and the live link stayed empty.
+  // Attaching a handler is what fires it (errors are swallowed on purpose).
+  supabase.rpc('update_safety_share', {
     p_token: token, p_lat: p.lat, p_lng: p.lng, p_distance_m: Math.round(distanceM), p_elapsed_sec: Math.round(elapsedSec),
-  });
+  }).then(() => {}, () => {});
 }
 
 export async function endSafetyShare(): Promise<void> {

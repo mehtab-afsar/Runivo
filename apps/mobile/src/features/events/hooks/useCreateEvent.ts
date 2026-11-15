@@ -19,7 +19,6 @@ const EVENT_TYPES = [
   { value: 'race',            label: 'Race' },
   { value: 'challenge',       label: 'Challenge' },
   { value: 'brand-challenge', label: 'Brand Challenge' },
-  { value: 'king-of-hill',    label: 'King of the Hill' },
   { value: 'survival',        label: 'Survival Run' },
 ];
 

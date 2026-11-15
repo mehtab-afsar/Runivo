@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, Pressable, SafeAreaView,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Modal,
-  TextInput, ScrollView, Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, TextInput, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, ClipboardText, Check, X } from 'phosphor-react-native';
+import { ArrowLeft, ClipboardText, Check, X, Flag } from 'phosphor-react-native';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
@@ -41,6 +38,8 @@ import { ClubInitialsTile } from '../components/ClubHeroCard';
 import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
 import { fetchClubFeed, toggleLike, deletePost } from '@features/social/services/feedService';
+import { blockUser } from '@mobile/shared/services/safetyService';
+import { promptReport } from '@mobile/shared/lib/promptReport';
 import type { FeedPost } from '@features/social/types';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
@@ -188,7 +187,7 @@ export default function ClubDetailScreen() {
 
   // Resolves to '' until the club's lobby id loads — useLobbyChat's fetch/subscribe
   // are harmless no-ops against an empty id (no row can match) until then.
-  const { messages, loading: chatLoading, inputText, setInputText, sending, sendMessage, removeMessage } = useLobbyChat(clubLobbyId ?? '');
+  const { messages, loading: chatLoading, error: chatError, inputText, setInputText, sending, sendMessage, removeMessage, removeMessagesFrom } = useLobbyChat(clubLobbyId ?? '');
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -333,7 +332,18 @@ export default function ClubDetailScreen() {
       return;
     }
     const role = members.find(x => x.id === m.userId)?.role;
-    const buttons: Parameters<typeof Alert.alert>[2] = [{ text: 'Report message', onPress: () => reportMessage(m.id) }];
+    const buttons: Parameters<typeof Alert.alert>[2] = [
+      { text: 'Report message', onPress: () => reportMessage(m.id) },
+      { text: `Block ${m.userName}`, style: 'destructive', onPress: () => {
+        Alert.alert(`Block ${m.userName}?`, "You won't see their messages or posts, and they won't see yours.", [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Block', style: 'destructive', onPress: async () => {
+            try { await blockUser(m.userId); removeMessagesFrom(m.userId); }
+            catch { Alert.alert("Couldn't block", 'Check your connection and try again.'); }
+          } },
+        ]);
+      } },
+    ];
     if (isModerator) buttons.push({ text: 'Delete message', style: 'destructive', onPress: () => confirmDeleteMessage(m.id) });
     if (canRemove(m.userId, role)) buttons.push({ text: `Remove ${m.userName}`, style: 'destructive', onPress: () => confirmRemove(m.userId, m.userName) });
     buttons.push({ text: 'Cancel', style: 'cancel' });
@@ -388,6 +398,12 @@ export default function ClubDetailScreen() {
             {currentUserRole === 'admin' ? ' · admin' : ''}
           </Text>
         </View>
+        {currentUserRole !== 'admin' && (
+          <Pressable onPress={() => promptReport('club', clubId, 'club')} hitSlop={10} style={s.backBtn}
+            accessibilityRole="button" accessibilityLabel="Report this club">
+            <Flag size={16} color={C.t2} weight="regular" />
+          </Pressable>
+        )}
       </View>
 
       <View style={s.seg}>
@@ -407,6 +423,12 @@ export default function ClubDetailScreen() {
         >
           {chatLoading ? (
             <View style={s.loader}><ActivityIndicator color={C.red} /></View>
+          ) : messages.length === 0 && chatError ? (
+            // A failed load is not "No messages yet".
+            <View style={s.empty}>
+              <Text style={s.emptyTitle}>Couldn't load the chat</Text>
+              <Text style={s.emptyText}>{chatError}</Text>
+            </View>
           ) : messages.length === 0 ? (
             <View style={s.empty}>
               <BadgeIcon size={40} color={badgeColor} weight="light" />
@@ -424,6 +446,10 @@ export default function ClubDetailScreen() {
               contentContainerStyle={{ paddingVertical: 12 }}
               showsVerticalScrollIndicator={false}
             />
+          )}
+          {/* Send failures (offline, blocked words, suspended) used to vanish silently. */}
+          {!!chatError && messages.length > 0 && (
+            <Text style={[s.emptyText, { color: C.red, paddingHorizontal: 18, paddingBottom: 6 }]} accessibilityRole="alert">{chatError}</Text>
           )}
           <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} placeholder={`Message ${clubName}`} />
         </KeyboardAvoidingView>
@@ -569,7 +595,7 @@ export default function ClubDetailScreen() {
           <View style={s.adminCard}>
             <View style={s.badgeRow}>
               <View style={s.bigEmoji}><BadgeIcon size={40} color={badgeColor} weight="light" /></View>
-              <Pressable style={s.changeBtn} onPress={() => setShowEmojiPicker(true)}>
+              <Pressable hitSlop={8} style={s.changeBtn} onPress={() => setShowEmojiPicker(true)}>
                 <Text style={s.changeBtnText}>Change badge</Text>
               </Pressable>
             </View>
@@ -587,11 +613,11 @@ export default function ClubDetailScreen() {
                 {rep.reports} report{rep.reports > 1 ? 's' : ''} · {rep.reasons.join(', ')}
               </Text>
               <View style={s.reportActions}>
-                <Pressable style={s.reportBtn} onPress={() => confirmDeleteMessage(rep.messageId)} accessibilityRole="button">
+                <Pressable hitSlop={8} style={s.reportBtn} onPress={() => confirmDeleteMessage(rep.messageId)} accessibilityRole="button">
                   <Text style={s.reportBtnTxt}>Delete message</Text>
                 </Pressable>
                 {canRemove(rep.authorId, members.find(x => x.id === rep.authorId)?.role) && (
-                  <Pressable style={s.reportBtn} onPress={() => confirmRemove(rep.authorId, rep.authorUsername)} accessibilityRole="button">
+                  <Pressable hitSlop={8} style={s.reportBtn} onPress={() => confirmRemove(rep.authorId, rep.authorUsername)} accessibilityRole="button">
                     <Text style={[s.reportBtnTxt, { color: C.red }]}>Remove {rep.authorUsername}</Text>
                   </Pressable>
                 )}
@@ -617,10 +643,10 @@ export default function ClubDetailScreen() {
                   <Text style={s.reqName}>{req.username}</Text>
                   <Text style={s.reqTime}>{new Date(req.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
                 </View>
-                <Pressable style={s.approveBtn} onPress={() => handleApprove(req)}>
+                <Pressable style={s.approveBtn} onPress={() => handleApprove(req)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Approve ${req.username}`}>
                   <Check size={14} color={C.green} weight="regular" />
                 </Pressable>
-                <Pressable style={s.rejectBtn} onPress={() => handleReject(req)}>
+                <Pressable style={s.rejectBtn} onPress={() => handleReject(req)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Decline ${req.username}`}>
                   <X size={14} color={C.red} weight="regular" />
                 </Pressable>
               </View>

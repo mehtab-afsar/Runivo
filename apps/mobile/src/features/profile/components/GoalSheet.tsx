@@ -32,7 +32,7 @@ export function GoalSheet({ visible, current, onClose, onSaved }: {
         </View>
         <View style={s.chips}>
           {GOAL_CHOICES_KM.map(v => (
-            <Pressable key={v} style={[s.chip, km === v && s.chipOn]} onPress={() => setKm(v)}>
+            <Pressable hitSlop={8} key={v} style={[s.chip, km === v && s.chipOn]} onPress={() => setKm(v)}>
               <Text style={[s.chipTxt, km === v && s.chipTxtOn]}>{v}</Text>
             </Pressable>
           ))}

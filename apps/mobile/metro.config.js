@@ -75,9 +75,6 @@ config.resolver.sourceExts = [
 config.resolver.extraNodeModules = {
   // @theme is imported as exactly '@theme' (no sub-path), so exact-match works here.
   '@theme': path.resolve(projectRoot, 'src/theme'),
-  // h3-js shim: pre-installs text-encoding polyfill before h3-js loads
-  // so Hermes doesn't crash on new TextDecoder("utf-16le")
-  'h3-js': path.resolve(projectRoot, 'shims/h3-js.js'),
   // Force the full-featured npm buffer polyfill (supports utf-16le)
   'buffer': path.resolve(workspaceRoot, 'node_modules/buffer'),
   // Pin MapLibre to a single copy — monorepo has two node_modules trees and Metro

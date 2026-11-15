@@ -196,6 +196,50 @@ export function validateUsername(input: string): { ok: true; value: string } | {
 
 // ── Login: phone, email, one-time codes ──────────────────────────────────────
 
+// ── Age gate ─────────────────────────────────────────────────────────────────
+
+export type AgeGateOutcome = 'invalid' | 'under13' | 'teen' | 'adult';
+
+/**
+ * What a birth month and year mean for access. Runivo is for runners 13 and over
+ * (Terms 1; App Store age rating). Only the month and year are asked, and only
+ * the outcome is kept, never the date. The age is worked out as if the birthday
+ * were the LAST day of that month, so a runner is never counted older than they
+ * could be: someone in the month they turn 13 is refused until that month ends.
+ */
+export function ageGateOutcome(month: number, year: number, now: Date = new Date()): AgeGateOutcome {
+  if (!Number.isInteger(month) || !Number.isInteger(year) || month < 1 || month > 12) return 'invalid';
+  if (year < 1900 || year > now.getFullYear()) return 'invalid';
+  const birthdayAt = new Date(year, month, 0); // last day of the birth month
+  if (birthdayAt.getTime() > now.getTime() + 86_400_000) return 'invalid'; // born in the future
+  let age = now.getFullYear() - year;
+  const hadBirthday = now.getMonth() + 1 > month || (now.getMonth() + 1 === month && now.getDate() >= birthdayAt.getDate());
+  if (!hadBirthday) age -= 1;
+  if (age < 13) return 'under13';
+  if (age < 18) return 'teen';
+  return 'adult';
+}
+
+/** Country calling codes by ISO region, for the countries Runivo is likely to see. */
+const DIAL_CODES: Record<string, string> = {
+  US: '+1', CA: '+1', GB: '+44', IE: '+353', AU: '+61', NZ: '+64', IN: '+91', DE: '+49', FR: '+33',
+  ES: '+34', IT: '+39', NL: '+31', BE: '+32', AT: '+43', CH: '+41', SE: '+46', NO: '+47', DK: '+45',
+  FI: '+358', PT: '+351', PL: '+48', BR: '+55', MX: '+52', JP: '+81', KR: '+82', SG: '+65', AE: '+971',
+  ZA: '+27', PH: '+63', ID: '+62', MY: '+60', TH: '+66', HK: '+852',
+};
+
+/**
+ * The dial code to assume for a number typed without one, from the device
+ * locale ("en-US", "en_GB"). It used to be a flat +91, so a US number typed as
+ * (415) 555-0100 became +9141555501 00 and could never receive its code, which
+ * also locked out anyone testing from outside India. An unknown region falls
+ * back to +91, the app's original market.
+ */
+export function dialCodeForLocale(locale: string | null | undefined): string {
+  const region = /[-_]([A-Za-z]{2})(?:[-_]|$)/.exec(locale ?? '')?.[1]?.toUpperCase();
+  return (region && DIAL_CODES[region]) || '+91';
+}
+
 /**
  * Normalises what someone typed into E.164 (+919876543210). A number without
  * a country code gets `defaultDialCode`; a leading trunk 0 is dropped; "00"

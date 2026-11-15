@@ -1,4 +1,4 @@
-import { muteUser as muteUserService } from '../services/safetyService';
+import { muteUser as muteUserService } from '@mobile/shared/services/safetyService';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@shared/services/supabase';
 import {
@@ -34,9 +34,12 @@ export function useFeed() {
   const [suggestedRunners, setSuggestedRunners] = useState<SuggestedRunner[]>([]);
   const [clubActivity,     setClubActivity]     = useState<ClubFeedActivityItem[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  /** The last first-page load / refresh failed (offline or server). Not set by paging. */
+  const [loadError, setLoadError] = useState(false);
 
   const loadingMoreRef = useRef(false);
   const kudosInFlightRef = useRef(new Set<string>());
+  const followInFlightRef = useRef(new Set<string>());
 
   const loadTab = useCallback(async (tab: Tab, refresh = false, uid?: string) => {
     const isDiscover = tab === 'discover';
@@ -44,6 +47,7 @@ export function useFeed() {
     const hasMore    = isDiscover ? discoverHasMore : followingHasMore;
 
     if (!refresh && !hasMore) return;
+    if (refresh) setLoadError(false);
 
     try {
       const { posts, nextCursor } = await fetchFeed({
@@ -61,21 +65,30 @@ export function useFeed() {
         setFollowingCursor(nextCursor);
         setFollowingHasMore(nextCursor !== null);
       }
-    } catch { /* offline */ }
+    } catch {
+      // A failed first page / refresh must not look like an empty feed. A failed
+      // next page just stops paging until the user scrolls again.
+      if (refresh) setLoadError(true);
+    }
   }, [discoverCursor, followingCursor, discoverHasMore, followingHasMore]);
 
   const initLoad = useCallback(async (uid: string) => {
-    const [followIds, suggested, myClubActivity] = await Promise.all([
-      fetchFollowingIds(uid),
-      fetchSuggestedRunners(uid),
-      fetchMyClubActivity().catch(() => []),
-    ]);
-    setFollowingIds(followIds);
-    setSuggestedRunners(uniqById(suggested.filter(r => r.id !== uid)));
-    setClubActivity(myClubActivity);
+    try {
+      // Side data (who I follow, suggestions, club activity) must never block the feed:
+      // each falls back to empty so the posts still load.
+      const [followIds, suggested, myClubActivity] = await Promise.all([
+        fetchFollowingIds(uid).catch(() => [] as string[]),
+        fetchSuggestedRunners(uid).catch(() => [] as SuggestedRunner[]),
+        fetchMyClubActivity().catch(() => [] as ClubFeedActivityItem[]),
+      ]);
+      setFollowingIds(followIds);
+      setSuggestedRunners(uniqById(suggested.filter(r => r.id !== uid)));
+      setClubActivity(myClubActivity);
 
-    await loadTab('following', true, uid);
-    setLoading(false);
+      await loadTab('following', true, uid);
+    } finally {
+      setLoading(false);
+    }
   }, [loadTab]);
 
   useEffect(() => {
@@ -90,8 +103,7 @@ export function useFeed() {
   const loadMore = useCallback(async (tab: Tab) => {
     if (loadingMoreRef.current) return;
     loadingMoreRef.current = true;
-    await loadTab(tab);
-    loadingMoreRef.current = false;
+    try { await loadTab(tab); } finally { loadingMoreRef.current = false; }
   }, [loadTab]);
 
   const switchToDiscover = useCallback(() => {
@@ -133,6 +145,9 @@ export function useFeed() {
 
   const toggleFollow = useCallback(async (targetId: string) => {
     if (!userId || targetId === userId) return;
+    // A double-tap would send two toggles and end up back where it started.
+    if (followInFlightRef.current.has(targetId)) return;
+    followInFlightRef.current.add(targetId);
     const wasFollowing = followingIds.includes(targetId);
     setFollowingIds(prev => wasFollowing ? prev.filter(id => id !== targetId) : [...prev, targetId]);
     try {
@@ -142,22 +157,27 @@ export function useFeed() {
       // no-oping, so a failed request no longer leaves the UI desynced from the
       // server until the next full refresh.
       setFollowingIds(prev => wasFollowing ? [...prev, targetId] : prev.filter(id => id !== targetId));
+    } finally {
+      followInFlightRef.current.delete(targetId);
     }
   }, [userId, followingIds]);
 
   const refresh = useCallback(async (tab: Tab) => {
     setRefreshing(true);
-    const uid = userId;
-    if (uid) {
-      const [followIds, suggested] = await Promise.all([
-        fetchFollowingIds(uid),
-        fetchSuggestedRunners(uid),
-      ]);
-      setFollowingIds(followIds);
-      setSuggestedRunners(uniqById(suggested.filter(r => r.id !== uid)));
+    try {
+      const uid = userId;
+      if (uid) {
+        const [followIds, suggested] = await Promise.all([
+          fetchFollowingIds(uid).catch(() => null),
+          fetchSuggestedRunners(uid).catch(() => null),
+        ]);
+        if (followIds) setFollowingIds(followIds);
+        if (suggested) setSuggestedRunners(uniqById(suggested.filter(r => r.id !== uid)));
+      }
+      await loadTab(tab, true);
+    } finally {
+      setRefreshing(false);
     }
-    await loadTab(tab, true);
-    setRefreshing(false);
   }, [userId, loadTab]);
 
   const onCommentPosted = useCallback((postId: string) => {
@@ -200,6 +220,7 @@ export function useFeed() {
     discoverHasMore,
     loading,
     refreshing,
+    loadError,
     followingIds,
     suggestedRunners,
     clubActivity,

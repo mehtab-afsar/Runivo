@@ -6,6 +6,8 @@
 -- this same database over the local socket.
 \set ON_ERROR_STOP on
 CREATE EXTENSION IF NOT EXISTS dblink;
+-- These checks cover the Free/Plus rules as they'll run once subscriptions are on.
+UPDATE public.app_settings SET value = 'true' WHERE key = 'subscriptions_enabled';
 -- Fixture rows are committed (the race below runs on two real connections), so
 -- clear anything a previous run left, here and again at the end.
 DELETE FROM pace_redemptions WHERE user_id::text LIKE 'b0000000-%';
@@ -224,3 +226,4 @@ DELETE FROM partners WHERE id::text LIKE 'c0000000-%';
 DELETE FROM auth.users WHERE id::text LIKE 'b0000000-%';
 ALTER TABLE public.pace_store_rewards ALTER COLUMN brand DROP DEFAULT,
   ALTER COLUMN description DROP DEFAULT, ALTER COLUMN value_label DROP DEFAULT;
+UPDATE public.app_settings SET value = 'false' WHERE key = 'subscriptions_enabled';

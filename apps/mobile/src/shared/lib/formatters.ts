@@ -29,9 +29,10 @@ export function convertPaceStringPerKm(paceStr: string, unit: 'km' | 'mi'): stri
   const [m, s] = paceStr.split(':').map(Number);
   if (isNaN(m)) return paceStr;
   const converted = convertPaceMinPerKm(m + (s || 0) / 60, unit);
-  const cm = Math.floor(converted);
-  const cs = Math.round((converted - cm) * 60);
-  return `${cm}:${String(cs).padStart(2, '0')}`;
+  // Round to whole seconds first, then split: rounding the seconds part alone
+  // printed "5:60" for 5:59.6.
+  const total = Math.round(converted * 60);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
 export function fmtDuration(totalSec: number): string {
@@ -41,9 +42,8 @@ export function fmtDuration(totalSec: number): string {
 }
 
 export function fmtPace(secPerKm: number): string {
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+  const total = Math.round(secPerKm);
+  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, '0')}`;
 }
 
 export function fmtRelativeTime(iso: string): string {
@@ -53,12 +53,6 @@ export function fmtRelativeTime(iso: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
-}
-
-export function fmtShortDate(tsOrIso: number | string): string {
-  return new Date(tsOrIso).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
 }
 
 export function fmtEventDate(iso: string): string {

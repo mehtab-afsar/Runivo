@@ -16,7 +16,20 @@ import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import * as SQLite from 'expo-sqlite';
 import { AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GAME_CONFIG } from '@shared/services/config';
+
+/** AsyncStorage key prefix of the in-run crash checkpoint (useActiveRun writes `<prefix><runId>`). */
+export const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
+
+/** Sign-out: forget every unfinished-run trace on this phone, buffer and checkpoint alike. */
+export async function wipeRunTrackingState(): Promise<void> {
+  wipeBgGpsState();
+  try {
+    const keys = (await AsyncStorage.getAllKeys()).filter(k => k.startsWith(GPS_CHECKPOINT_PREFIX));
+    if (keys.length > 0) await AsyncStorage.multiRemove(keys);
+  } catch { /* nothing to remove */ }
+}
 
 // ─── Task name ────────────────────────────────────────────────────────────────
 export const BACKGROUND_LOCATION_TASK = 'runivo-background-location';
@@ -86,6 +99,20 @@ export function drainBgGpsBuffer(runId: string): {
     console.warn('[locationTask] Failed to drain bg GPS buffer:', err);
     return [];
   }
+}
+
+/**
+ * Drop every buffered fix and the active-run marker, whatever run they belong
+ * to. For sign-out: a different account on this phone must not be offered the
+ * previous runner's location trace.
+ */
+export function wipeBgGpsState(): void {
+  try {
+    const db = getBgDb();
+    db.runSync('DELETE FROM bg_gps_buffer');
+    // Created lazily by setActiveRunId, so it may not exist yet.
+    try { db.runSync('DELETE FROM bg_gps_meta'); } catch { /* no such table */ }
+  } catch { /* nothing buffered */ }
 }
 
 /** Clear the buffer for a run (called on run cancel). */
