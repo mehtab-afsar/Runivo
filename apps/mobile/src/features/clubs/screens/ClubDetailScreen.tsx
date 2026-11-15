@@ -450,7 +450,7 @@ export default function ClubDetailScreen() {
           )}
           {/* Send failures (offline, blocked words, suspended) used to vanish silently. */}
           {!!chatError && messages.length > 0 && (
-            <Text style={[s.emptyText, { color: C.red, paddingHorizontal: 18, paddingBottom: 6 }]} accessibilityRole="alert">{chatError}</Text>
+            <Text style={[s.emptyText, { color: C.danger, paddingHorizontal: 18, paddingBottom: 6 }]} accessibilityRole="alert">{chatError}</Text>
           )}
           <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} placeholder={`Message ${clubName}`} />
         </KeyboardAvoidingView>

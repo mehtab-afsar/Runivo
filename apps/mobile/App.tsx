@@ -9,12 +9,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import {
-  Outfit_400Regular,
-  Outfit_500Medium,
-  Outfit_600SemiBold,
-  Outfit_700Bold,
-} from '@expo-google-fonts/outfit';
+// One file per weight: the package's index requires all nine weights.
+import { Outfit_400Regular } from '@expo-google-fonts/outfit/400Regular';
+import { Outfit_500Medium } from '@expo-google-fonts/outfit/500Medium';
+import { Outfit_600SemiBold } from '@expo-google-fonts/outfit/600SemiBold';
+import { Outfit_700Bold } from '@expo-google-fonts/outfit/700Bold';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -231,11 +230,6 @@ export default function App() {
     Outfit_500Medium,
     Outfit_600SemiBold,
     Outfit_700Bold,
-    // Archivo at 68% width / 850 weight, cut from Archivo's variable font
-    // (OFL, assets/fonts/Archivo-OFL.txt): headlines and big numbers.
-    ArchivoDisplay:  require('./assets/fonts/ArchivoDisplay.ttf'),
-    // Archivo 100% width / 900: the runivo wordmark.
-    ArchivoWordmark: require('./assets/fonts/ArchivoWordmark.ttf'),
   });
 
   return (

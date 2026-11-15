@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Linking } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { ExternalLink } from 'lucide-react-native';
+import { ExternalLink } from '@mobile/shared/icons/lucideCompat';
 import type { RunEvent } from '../types';
 import { DISCIPLINE_LABEL } from '../types';
 import { useTheme, Fonts, type AppColors } from '@theme';

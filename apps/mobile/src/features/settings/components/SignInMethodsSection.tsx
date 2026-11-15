@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert, Platform, TextInput, Modal, KeyboardAvoidingView } from 'react-native';
-import { Apple, Mail, Phone, Plus, X } from 'lucide-react-native';
+import { Apple, Mail, Phone, Plus, X } from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { track } from '@shared/services/analytics';
 import { linkableMethods, methodLabel, unlinkBlockReason, type LinkedMethod, type SignInMethod } from '@shared/engine/identities';
@@ -261,7 +261,7 @@ function mkStyles(C: AppColors) {
     detail:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, marginTop: 2 },
     remove:     { fontFamily: Fonts.medium, fontSize: 13, color: C.red },
     linked:     { fontFamily: Fonts.medium, fontSize: 13, color: C.t3 },
-    error:      { ...Type.caption, color: C.red, paddingHorizontal: 14, paddingTop: 10 },
+    error:      { ...Type.caption, color: C.danger, paddingHorizontal: 14, paddingTop: 10 },
     footnote:   { ...Type.caption, color: C.t3, paddingHorizontal: 14, paddingVertical: 12 },
     sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(12,12,13,0.35)' },
     sheet:      { backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: Spacing.gutter, paddingBottom: 40, gap: 12 },

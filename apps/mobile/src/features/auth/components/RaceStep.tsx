@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput } from 'react-native';
-import { Minus, Plus } from 'lucide-react-native';
+import { Minus, Plus } from '@mobile/shared/icons/lucideCompat';
 import * as Haptics from '@theme/hapticsGated';
 import { useTheme } from '@theme';
 import { RACE_LABEL, PLAN_WEEKS, fmtPace, RACE_KM, type RaceDistance } from '@shared/engine/training';

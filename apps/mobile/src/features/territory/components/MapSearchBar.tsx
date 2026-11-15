@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, TextInput, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
-import { Search } from 'lucide-react-native';
+import { Search } from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {

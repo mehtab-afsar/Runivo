@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Share, Image, ScrollView } from 'react-native';
-import { Heart, MessageCircle, MoreHorizontal, Share2 } from 'lucide-react-native';
+import { Heart, MessageCircle, MoreHorizontal, Share2 } from '@mobile/shared/icons/lucideCompat';
 import Svg, { Polyline, Polygon, Circle } from 'react-native-svg';
 import { CityBackdrop } from '@mobile/shared/components/CityBackdrop';
 import { Avatar } from '@mobile/shared/components/Avatar';

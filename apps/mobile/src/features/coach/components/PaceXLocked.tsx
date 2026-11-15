@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft } from '@mobile/shared/icons/lucideCompat';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useSubscription } from '@features/subscription/hooks/useSubscription';

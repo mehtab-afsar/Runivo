@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue, withRepeat, withSequence, withTiming, useAnimatedStyle, Easing,
 } from 'react-native-reanimated';
-import { Check, ChevronRight, type LucideIcon } from 'lucide-react-native';
+import { Check, ChevronRight, type LucideIcon } from '@mobile/shared/icons/lucideCompat';
 import type { Mission, MissionType } from '@shared/services/missions';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';

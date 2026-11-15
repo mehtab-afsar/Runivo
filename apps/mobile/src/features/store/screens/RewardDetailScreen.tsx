@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { CaretLeft, SealCheck, Coffee, Flag as FlagIcon, Sneaker } from 'phosphor-react-native';
-import { Lock, Crown, ArrowLeft, Gift } from 'lucide-react-native';
+import { Lock, Crown, ArrowLeft, Gift } from '@mobile/shared/icons/lucideCompat';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from '@theme/hapticsGated';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
@@ -275,7 +275,7 @@ function mkStyles(C: AppColors) {
     claimBtn:           { backgroundColor: C.alwaysDark, borderRadius: 28, height: 56, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     claimBtnDisabled:   { opacity: 0.45 },
     claimBtnText:       { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
-    errorText:          { ...Type.caption, color: C.red, textAlign: 'center' },
+    errorText:          { ...Type.caption, color: C.danger, textAlign: 'center' },
     redeemedRow:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.greenLo, borderRadius: 999, paddingVertical: 14, paddingHorizontal: 18 },
     redeemedText:       { fontFamily: Fonts.medium, fontSize: 14, color: C.green, flexShrink: 1, textAlign: 'center' },
     lockBanner:         { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: C.card, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14, marginBottom: 14, borderWidth: 1, borderColor: C.border },

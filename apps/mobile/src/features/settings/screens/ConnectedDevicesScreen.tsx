@@ -132,7 +132,8 @@ function DeviceCard({
   lastSyncAt:  string | null;
   onConnect:   () => void;
   onDisconnect:() => void;
-  onSync:      () => void;
+  /** Only Apple Health has a manual sync; Garmin and Polar push on their own. */
+  onSync?:     () => void;
   busy:        boolean;
   C:           AppColors;
 }) {
@@ -192,7 +193,7 @@ function DeviceCard({
         <View style={ss.btnRow}>
           {isConnected && (
             <>
-              {device.iosOnly && (
+              {device.iosOnly && onSync && (
                 <Pressable hitSlop={8}
                   style={ss.iconBtn}
                   onPress={onSync}
@@ -465,7 +466,6 @@ export default function ConnectedDevicesScreen() {
               lastSyncAt={oauthLastSync[device.key] ?? null}
               onConnect={() => handleOAuthConnect(device)}
               onDisconnect={() => handleOAuthDisconnect(device)}
-              onSync={() => {}}
               busy={oauthBusy === device.key}
               C={C}
             />

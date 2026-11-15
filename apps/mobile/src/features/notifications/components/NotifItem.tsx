@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import {
   Bell, Heart, MessageCircle, Flag, Shield, Swords, Trophy, Check, Flame, UserPlus,
   CalendarDays, Crown, Diamond, Megaphone, type LucideIcon, Hourglass, Footprints, ChartColumn, Gift,
-} from 'lucide-react-native';
+} from '@mobile/shared/icons/lucideCompat';
 import { fmtRelativeTime } from '@mobile/shared/lib/formatters';
 import type { AppNotification } from '../types';
 import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';

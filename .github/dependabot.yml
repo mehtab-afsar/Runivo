@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Expo SDK packages move together; bump them by hand with `npx expo install`.
+      minor-and-patch:
+        update-types: [minor, patch]
+        exclude-patterns: [expo, "expo-*", react-native, "react-native-*", "@expo/*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

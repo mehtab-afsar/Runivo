@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
-import { setAiConsent } from '@shared/services/aiConsent';
+import { setAiConsent, lastAiConsentFailure } from '@shared/services/aiConsent';
 
 /**
  * Asked before PaceX sends anything to the third-party AI (App Store 5.1.2(i)):
@@ -49,7 +49,15 @@ export default function AiConsentCard({ onGranted, onDecline, compact = false }:
         <Text style={s.link}>Read the privacy policy</Text>
       </Pressable>
 
-      {failed && <Text style={s.error}>Couldn't save that. Check your connection and try again.</Text>}
+      {failed && (
+        <Text style={s.error}>
+          {lastAiConsentFailure() === 'server_not_updated'
+            ? "Runivo's server is missing the latest update, so this can't be saved yet. Run the database update (supabase db push) and try again."
+            : lastAiConsentFailure() === 'signed_out'
+              ? 'Sign in again, then turn PaceX on.'
+              : "Couldn't save that. Check your connection and try again."}
+        </Text>
+      )}
 
       <Pressable
         style={[s.primary, busy && { opacity: 0.6 }]}
@@ -79,7 +87,7 @@ function mkStyles(C: AppColors) {
     list:         { marginTop: 8, gap: 4 },
     item:         { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t1 },
     link:         { fontFamily: Fonts.semiBold, fontSize: 13.5, color: C.red, marginTop: 12 },
-    error:        { fontFamily: Fonts.regular, fontSize: 13, color: C.red, marginTop: 10 },
+    error:        { fontFamily: Fonts.regular, fontSize: 13, color: C.danger, marginTop: 10 },
     primary:      { height: 48, borderRadius: 14, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
     primaryTxt:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.bg },
     secondary:    { height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 4 },

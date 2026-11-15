@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Share, ActivityIndicator } from 'react-native';
-import { Users, Share2, Check } from 'lucide-react-native';
+import { Users, Share2, Check } from '@mobile/shared/icons/lucideCompat';
 import { supabase } from '@shared/services/supabase';
 import { track } from '@shared/services/analytics';
 import { fetchClubsNear, joinClub, lastKnownPositionIfAllowed, requestToJoinClub } from '@features/clubs/services/clubService';

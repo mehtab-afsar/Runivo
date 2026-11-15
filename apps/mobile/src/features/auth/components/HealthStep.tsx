@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { View, Text, Switch, ScrollView, Platform, ActivityIndicator } from 'react-native';
-import { HeartPulse } from 'lucide-react-native';
+import { HeartPulse } from '@mobile/shared/icons/lucideCompat';
 import { healthBaseline, formatDuration, type HealthBaseline } from '@shared/engine/onboarding';
 import { track } from '@shared/services/analytics';
 import { readRecentWorkouts } from '@mobile/shared/services/healthService';

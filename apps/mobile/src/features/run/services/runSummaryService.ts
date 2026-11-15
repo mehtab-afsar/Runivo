@@ -1,35 +1,11 @@
 import { getRunById, saveRun, getDefaultShoe, getShoes, getNutritionProfile } from '@shared/services/store';
 import type { StoredRun, StoredShoe } from '@shared/services/store';
-import { supabase } from '@shared/services/supabase';
 import { writeRunToHealth } from '@mobile/shared/services/healthService';
 import { estimateRunCalories } from '@shared/services/nutrition';
 import { haversineM } from '@shared/services/claimEngine';
 
 export async function fetchRunById(runId: string): Promise<StoredRun | null> {
   return (await getRunById(runId)) ?? null;
-}
-
-export async function saveRunToSupabase(run: StoredRun): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  const { error } = await supabase.from('runs').upsert({
-    id: run.id,
-    user_id: user.id,
-    distance_m: run.distanceMeters,
-    duration_sec: run.durationSec,
-    started_at: new Date(run.startTime).toISOString(),
-    finished_at: new Date(run.endTime).toISOString(),
-    avg_pace: run.avgPace,
-    activity_type: run.activityType,
-    gps_points: run.gpsPoints,
-    territories_claimed: run.territoriesClaimed,
-    territories_fortified: run.territoriesFortified,
-    coins_earned: run.coinsEarned,
-    shoe_id: run.shoeId ?? null,
-    enemy_captured: run.enemyCaptured,
-    pre_run_level: run.preRunLevel,
-  });
-  if (error) console.error('[runSummaryService] saveRunToSupabase failed:', error.message);
 }
 
 interface GpsPoint { lat: number; lng: number; timestamp?: number }
@@ -126,7 +102,7 @@ export interface RunStats {
   paceStr: string;
   duration: number;
   territories: number;
-  calories: number;
+  calories?: number;
 }
 
 export function computeRunStats(run: {
@@ -141,6 +117,7 @@ export function computeRunStats(run: {
     paceStr:     `${m}:${s.toString().padStart(2, '0')}`,
     duration:    run.duration,
     territories: run.territoriesClaimed ?? 0,
-    calories:    estimateRunCalories(run.distance * 1000, run.weightKg ?? 70),
+    // No weight on file: no number, rather than one built on an assumed 70 kg.
+    calories:    run.weightKg ? estimateRunCalories(run.distance * 1000, run.weightKg) : undefined,
   };
 }

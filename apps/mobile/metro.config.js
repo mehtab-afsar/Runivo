@@ -91,7 +91,13 @@ const PREFIX_ALIASES = [
   ['@mobile/shared/', path.resolve(projectRoot, 'src/shared')            + path.sep],
 ];
 
+// RevenueCat's browser simulator is only for Expo Go and web; a native build never uses it.
+const RC_BROWSER = path.resolve(projectRoot, 'stubs/revenuecat-browser.js');
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === './browser/nativeModule' && context.originModulePath.includes(`react-native-purchases${path.sep}dist`)) {
+    return { type: 'sourceFile', filePath: RC_BROWSER };
+  }
   for (const [prefix, target] of PREFIX_ALIASES) {
     if (moduleName.startsWith(prefix)) {
       const rest = moduleName.slice(prefix.length);

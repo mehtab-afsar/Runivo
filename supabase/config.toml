@@ -62,7 +62,9 @@ schema_paths = []
 enabled = true
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+# Reference data only (the moderation word list). Demo data lives in supabase/seed/demo_*.sql
+# and is run by hand against a throwaway project, never by `db reset`.
+sql_paths = ["./seed/blocked_terms.sql"]
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -395,4 +397,14 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 
 # Public safety-share page (R2): viewers have no Runivo account.
 [functions.safety-share]
+verify_jwt = false
+
+# Webhooks authenticate themselves (a shared-secret bearer or a provider signature),
+# not with a Supabase user JWT. With the default verify_jwt = true the gateway would
+# answer 401 before the function ran, so RevenueCat and Garmin could never reach them.
+# Keeping this in config.toml means `supabase functions deploy` always applies it.
+[functions.rc-webhook]
+verify_jwt = false
+
+[functions.device-webhook]
 verify_jwt = false

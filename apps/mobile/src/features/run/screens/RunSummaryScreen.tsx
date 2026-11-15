@@ -125,8 +125,7 @@ export default function RunSummaryScreen() {
   const distanceUnit = useDistanceUnit();
 
   const [showSaveRoute, setShowSaveRoute]             = useState(false);
-  const [weightKg, setWeightKg]                       = useState(70);
-  const [hasNutritionProfile, setHasNutritionProfile] = useState(false);
+  const [weightKg, setWeightKg]                       = useState<number | null>(null);
   const [showAward, setShowAward]                     = useState(false);
   const [showNotifPrime, setShowNotifPrime]           = useState(false);
   // The server's measured area lands on the stored run after sync; until then
@@ -191,7 +190,7 @@ export default function RunSummaryScreen() {
 
   useEffect(() => {
     getNutritionProfile().then(p => {
-      if (p?.weightKg) { setWeightKg(p.weightKg); setHasNutritionProfile(true); }
+      if (p?.weightKg) setWeightKg(p.weightKg);
     }).catch(() => {});
   }, []);
 
@@ -283,7 +282,9 @@ export default function RunSummaryScreen() {
   }, [zoneLimited, capped, plus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Computed display values ───────────────────────────────────────────────
+  // Only with a weight on file: the story card omits kcal rather than show a guess built on an assumed weight.
   const calories = useMemo(() => {
+    if (!weightKg) return null;
     const speedKmh = runData.duration > 0 ? (runData.distance / runData.duration) * 3600 : 0;
     const met = Math.max(3.5, Math.min(18, 2.5 + 0.9 * speedKmh));
     return Math.round((met * weightKg * runData.duration) / 3600);
@@ -383,7 +384,7 @@ export default function RunSummaryScreen() {
           ? { label: `${distanceUnit}/h`, value: runData.duration > 0 ? (convertKm(runData.distance, distanceUnit) / (runData.duration / 3600)).toFixed(1) : '0.0' }
           : { label: `/${distanceUnit}`, value: pace(convertPaceMinPerKm(runData.pace, distanceUnit)) },
         { label: 'time', value: fmt(runData.duration) },
-        { label: 'kcal', value: String(calories) },
+        ...(calories != null ? [{ label: 'kcal', value: String(calories) }] : []),
       ],
     });
     const capture = storyCaptureRef.current;

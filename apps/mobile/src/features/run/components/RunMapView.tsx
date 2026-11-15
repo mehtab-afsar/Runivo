@@ -6,7 +6,7 @@ import * as Haptics from '@theme/hapticsGated';
 import { Stack, X } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { MAP_STYLES, PLUS_MAP_STYLE_IDS } from '@theme/maps';
-import { Lock } from 'lucide-react-native';
+import { Lock } from '@mobile/shared/icons/lucideCompat';
 import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';

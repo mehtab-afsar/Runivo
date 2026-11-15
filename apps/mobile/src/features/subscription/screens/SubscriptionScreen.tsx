@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { X } from 'lucide-react-native';
+import { X } from '@mobile/shared/icons/lucideCompat';
 import * as Haptics from '@theme/hapticsGated';
 import { track } from '@shared/services/analytics';
 import { useSubscription } from '../hooks/useSubscription';

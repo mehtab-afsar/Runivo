@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { ShieldAlert } from 'lucide-react-native';
+import { ShieldAlert } from '@mobile/shared/icons/lucideCompat';
 import { territoryPalette } from '@theme/territory';
 import { useTheme, useIsDark, Fonts } from '@theme';
 import { mkStep } from './onboardingStyles';

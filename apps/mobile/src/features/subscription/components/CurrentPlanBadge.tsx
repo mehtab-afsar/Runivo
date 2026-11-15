@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Linking } from 'react-native';
-import { BadgeCheck, ChevronRight } from 'lucide-react-native';
+import { BadgeCheck, ChevronRight } from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 
 interface CurrentPlanBadgeProps {

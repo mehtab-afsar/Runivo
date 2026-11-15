@@ -36,20 +36,33 @@ export async function hasAiConsent(): Promise<boolean> {
  * granting only counts once the authority has it, otherwise the next AI call
  * would be refused after the screen said "on". Returns false on failure.
  */
+export type AiConsentFailure = 'signed_out' | 'server_not_updated' | 'network' | null;
+let lastFailure: AiConsentFailure = null;
+/** Why the last setAiConsent call failed, so the screen can say something useful. */
+export function lastAiConsentFailure(): AiConsentFailure { return lastFailure; }
+
 export async function setAiConsent(granted: boolean): Promise<boolean> {
+  lastFailure = null;
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return false;
+    if (!session) { lastFailure = 'signed_out'; return false; }
     const { error } = await supabase
       .from('profiles')
       .update({ ai_consent_at: granted ? new Date().toISOString() : null })
       .eq('id', session.user.id);
-    if (error) return false;
+    if (error) {
+      // 42703 / PGRST204: the ai_consent_at column isn't on the server yet
+      // (migration 20261115000014 not pushed).
+      const code = (error as { code?: string }).code ?? '';
+      lastFailure = code === '42703' || code === 'PGRST204' || /ai_consent_at/.test(error.message ?? '') ? 'server_not_updated' : 'network';
+      return false;
+    }
 
     const settings = await getSettings();
     await saveSettings({ ...settings, aiConsentAt: granted ? Date.now() : null });
     return true;
   } catch {
+    lastFailure = 'network';
     return false;
   }
 }

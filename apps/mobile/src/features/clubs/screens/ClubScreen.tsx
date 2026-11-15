@@ -252,7 +252,7 @@ function mkCsStyles(C: AppColors) {
     inputError:        { borderColor: C.red, backgroundColor: C.redLo },
     inputMeta:         { flexDirection: 'row', marginTop: 4 },
     inputHint:         { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
-    inputHintError:    { fontFamily: Fonts.regular, fontSize: 11, color: C.red },
+    inputHintError:    { fontFamily: Fonts.regular, fontSize: 11, color: C.danger },
     // Policy cards (vertical)
     policyCol:         { gap: 8, marginBottom: 4 },
     policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.border, borderRadius: 22, padding: 14, backgroundColor: C.card },

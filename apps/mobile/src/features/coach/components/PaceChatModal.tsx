@@ -92,9 +92,9 @@ export function PaceChatModal({
             {/* Error banner */}
             {!!error && (
               <View style={s.errorBanner}>
-                <Text style={[s.errorText, { color: C.red }]}>{error}</Text>
+                <Text style={[s.errorText, { color: C.danger }]}>{error}</Text>
                 <Pressable onPress={onRetry}>
-                  <Text style={[s.errorRetry, { color: C.red }]}>Retry</Text>
+                  <Text style={[s.errorRetry, { color: C.danger }]}>Retry</Text>
                 </Pressable>
               </View>
             )}

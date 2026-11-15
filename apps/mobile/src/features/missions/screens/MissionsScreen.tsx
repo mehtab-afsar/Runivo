@@ -8,7 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import {
   Route, Flag, Shield, Zap, Flame, UtensilsCrossed, X, Diamond, type LucideIcon,
-} from 'lucide-react-native';
+} from '@mobile/shared/icons/lucideCompat';
 import {
   ACTIVE_MISSION_TEMPLATES,
   MISSION_SOURCE_LABEL,

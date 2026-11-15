@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
-import { Lock, Crown, Check } from 'lucide-react-native';
+import { Lock, Crown, Check } from '@mobile/shared/icons/lucideCompat';
 import type { Reward } from '../types';
 import { lockStateFor } from '../lockState';
 

@@ -66,3 +66,10 @@ export function fmtEventTime(iso: string): string {
     hour: 'numeric', minute: '2-digit', hour12: true,
   });
 }
+
+/** "32:44" or "1:05:12": a duration as a stopwatch reads it. */
+export function fmtClock(sec: number): string {
+  const t = Math.max(0, Math.round(sec));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), x = t % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
+}

@@ -4,6 +4,7 @@
  * saved until they approve.
  */
 import React, { useEffect, useMemo, useState } from 'react';
+import { fmtClock } from '@mobile/shared/lib/formatters';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { RACE_LABEL, fmtPace, hardKm } from '@shared/engine/training';
@@ -115,10 +116,6 @@ function Stat({ label, value, s }: { label: string; value: string; s: ReturnType
   return <View style={s.stat}><Text style={s.statLabel}>{label}</Text><Text style={s.statVal}>{value}</Text></View>;
 }
 const raceKm = (r: string) => ({ '5k': 5, '10k': 10, half: 21.0975, marathon: 42.195 } as Record<string, number>)[r] ?? 10;
-function fmtClock(sec: number): string {
-  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), x = Math.round(sec % 60);
-  return h ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
-}
 
 function mk(C: AppColors) {
   return StyleSheet.create({

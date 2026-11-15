@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Share } from 'react-native';
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
-import { Shield, Swords, Share as ShareIcon, X } from 'lucide-react-native';
+import { Shield, Swords, Share as ShareIcon, X } from '@mobile/shared/icons/lucideCompat';
 import * as Location from 'expo-location';
 import type { TerritoryDetails } from '../types';
 import { ZoneHistory } from './ZoneHistory';

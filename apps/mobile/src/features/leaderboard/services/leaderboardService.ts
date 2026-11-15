@@ -45,7 +45,8 @@ export async function fetchLeaderboard(
     : scope === 'city' || scope === 'area'
       ? await supabase.rpc('get_local_leaderboard', { p_metric: METRIC[tab], p_period: timeFrame, p_radius_km: scope === 'city' ? 10 : 2, p_limit: PAGE_LIMIT })
       : await supabase.rpc('get_leaderboard', { ...args, p_limit: PAGE_LIMIT });
-  if (error) { console.error('[leaderboard] fetch:', error.message); return []; }
+  // A failed request is an error the screen can show with a retry, not an empty board.
+  if (error) throw new Error(`leaderboard: ${error.message}`);
 
   const entries: LeaderboardEntry[] = ((data ?? []) as Row[]).map(r => ({
     rank:       r.rank,

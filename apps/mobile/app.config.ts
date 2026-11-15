@@ -24,6 +24,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     backgroundColor: '#FFFFFF',
   },
   ios: {
+    // iOS 18 darkens light icons on a dark Home Screen (that black tile). A dark
+    // variant that keeps the white tile, plus a tinted one, stops that.
+    icon: {
+      light: './assets/icon.png',
+      dark: './assets/icon.png',
+      tinted: './assets/icon-tinted.png',
+    },
     supportsTablet: false,
     // Must match the identity actually registered with EAS (projectId below) —
     // this used to be 'com.runivo.app' while the real EAS project was

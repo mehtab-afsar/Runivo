@@ -184,7 +184,7 @@ export default function MapVisibilityScreen() {
 
           <View style={s.status}>
             {saving ? <Text style={s.statusTxt}>Saving…</Text>
-              : error ? <Text style={[s.statusTxt, { color: C.red }]}>{error}</Text>
+              : error ? <Text style={[s.statusTxt, { color: C.danger }]}>{error}</Text>
               : note ? <Text style={s.statusTxt}>{note}</Text> : null}
           </View>
 

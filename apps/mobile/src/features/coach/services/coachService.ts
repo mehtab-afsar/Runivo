@@ -112,17 +112,6 @@ export async function requestPostRunAnalysis(runId: string, sessionToken: string
   }
 }
 
-export async function requestTrainingPlan(goal: string, sessionToken: string): Promise<TrainingPlan> {
-  const { data, error } = await supabase.functions.invoke('ai-coach', {
-    body:    { feature: 'training_plan', goal },
-    headers: { Authorization: `Bearer ${sessionToken}` },
-  });
-  if (error) throw error;
-  // Edge function wraps: { data: TrainingPlanPayload }
-  const plan = (data as Record<string, unknown>)?.data ?? data;
-  return plan as TrainingPlan;
-}
-
 export async function requestNutritionAnalysis(sessionToken: string): Promise<{ content: string }> {
   const { data, error } = await supabase.functions.invoke('ai-coach', {
     body:    { feature: 'nutrition_insights' },
@@ -157,13 +146,6 @@ export async function getQuickPrompts(sessionToken: string): Promise<QuickPrompt
     { label: 'Analyse my last run',                   message: 'Analyse my most recent run' },
     { label: 'What to eat before a long run?',        message: 'What should I eat before a long run?' },
   ];
-}
-
-export interface PaceInsightCard {
-  icon: string;
-  headline: string;
-  body: string;
-  recommendation: string;
 }
 
 export async function loadMessageHistory(userId: string): Promise<CoachMessage[]> {

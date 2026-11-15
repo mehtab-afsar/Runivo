@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { fmtClock } from '@mobile/shared/lib/formatters';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { RUNNING_GOALS } from '@shared/engine/onboarding';
 import { RACE_LABEL } from '@shared/engine/training';
@@ -67,10 +68,6 @@ export default function StartSummaryStep({ data, preview, weeklyTargetKm, tone }
   );
 }
 
-function fmtClock(sec: number): string {
-  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.round(sec % 60);
-  return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
-}
 
 function mk(C: AppColors) {
   return StyleSheet.create({

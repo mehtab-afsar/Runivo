@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Search, Check, Plus, UserPlus, X, ChevronLeft } from 'lucide-react-native';
+import { Search, Check, Plus, UserPlus, X, ChevronLeft } from '@mobile/shared/icons/lucideCompat';
 import { useFeed } from '@features/social/hooks/useFeed';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { fetchStolenZone } from '@features/social/services/feedService';

@@ -4,6 +4,7 @@
  * menu rows that open full pages, a trophy strip and clubs.
  */
 import React, { useMemo } from 'react';
+import { fmtClock } from '@mobile/shared/lib/formatters';
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { CaretRight, PushPin } from 'phosphor-react-native';
 import Svg, { Polyline } from 'react-native-svg';
@@ -25,10 +26,6 @@ export function fmtKm(km: number): string { return km >= 100 ? Math.round(km).to
 export function fmtDuration(sec: number): string {
   const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-function fmtClock(sec: number): string {
-  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.round(sec % 60);
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
 }
 export function activityMeta(r: StoredRun, unit: 'km' | 'mi' = 'km'): string {
   const km = r.verifiedDistanceKm ?? r.distanceMeters / 1000;

@@ -111,13 +111,7 @@ export function fmtHours(sec: number): string {
 }
 
 /** Clock time for one activity: "2:10", "1:04:05". */
-export function fmtClock(sec: number): string {
-  const t = Math.max(0, Math.round(sec));
-  const h = Math.floor(t / 3600);
-  const m = Math.floor((t % 3600) / 60);
-  const s = t % 60;
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
-}
+export { fmtClock } from '@mobile/shared/lib/formatters';
 
 /** 0.4 → "0.4", 12.34 → "12.3", 1234.5 → "1,235". */
 export function fmtKm(km: number): string {

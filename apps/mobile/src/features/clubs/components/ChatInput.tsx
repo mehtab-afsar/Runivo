@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, TextInput, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
-import { Send } from 'lucide-react-native';
+import { Send } from '@mobile/shared/icons/lucideCompat';
 import { Fonts, useTheme, type AppColors } from '@theme';
 
 interface Props {

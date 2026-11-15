@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { Lock, ChevronRight } from 'lucide-react-native';
+import { Lock, ChevronRight } from '@mobile/shared/icons/lucideCompat';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { usePostRunInsights } from '../hooks/usePostRunInsights';
 import { buildRunSummary, type RunSummaryInput } from '@shared/engine/runSummary';

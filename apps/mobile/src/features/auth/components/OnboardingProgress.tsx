@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft } from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {

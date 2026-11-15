@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import * as Haptics from '@theme/hapticsGated';
 import {
   Route, Flag, Shield, Zap, Flame, UtensilsCrossed, Check, Diamond, type LucideIcon,
-} from 'lucide-react-native';
+} from '@mobile/shared/icons/lucideCompat';
 import { MISSION_SOURCE_LABEL, type Mission, type MissionType } from '@shared/services/missions';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
@@ -15,7 +15,7 @@ import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 // keep an icon entry each so this map stays exhaustive if that ever changes.
 const mkTypeIcon = (C: AppColors): Record<MissionType, { Icon: LucideIcon; color: string }> => ({
   run_distance:      { Icon: Route,           color: C.t1 },
-  claim_territories: { Icon: Flag,             color: C.red },
+  claim_territories: { Icon: Flag,             color: C.danger },
   capture_enemy:     { Icon: Shield,           color: C.green },
   speed_run:         { Icon: Zap,              color: C.red },
   run_streak:        { Icon: Flame,            color: C.orange },

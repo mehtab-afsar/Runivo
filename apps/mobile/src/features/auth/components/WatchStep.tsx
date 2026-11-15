@@ -4,7 +4,7 @@
  */
 import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
-import { Watch, Check } from 'lucide-react-native';
+import { Watch, Check } from '@mobile/shared/icons/lucideCompat';
 import { track } from '@shared/services/analytics';
 import { connectProvider } from '@features/settings/services/deviceOAuthService';
 import { useTheme } from '@theme';

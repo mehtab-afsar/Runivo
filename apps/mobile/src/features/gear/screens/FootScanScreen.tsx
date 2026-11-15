@@ -133,7 +133,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   preview: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, marginVertical: 8 },
   analysingRow:    { flexDirection: 'row', alignItems: 'center', gap: 10 },
   analysingText:   { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
-  errorText:       { fontFamily: Fonts.regular, fontSize: 13, color: C.red, textAlign: 'center' },
+  errorText:       { fontFamily: Fonts.regular, fontSize: 13, color: C.danger, textAlign: 'center' },
   primaryBtn:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.alwaysDark, paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12, marginTop: 8 },
   primaryBtnText:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
   secondaryBtn:    { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },

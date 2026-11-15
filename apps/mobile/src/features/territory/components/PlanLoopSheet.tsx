@@ -11,7 +11,7 @@ import { planLoop, type LoopMode, type LoopPlan, type LoopZone } from '@shared/e
 import { compass } from '@shared/engine/targetZone';
 import { streetLoop } from '../services/loopRouting';
 
-const LENGTHS = [2, 3, 5, 8];
+const LENGTHS = [3, 5, 8, 10];
 
 interface Props {
   zones: LoopZone[];
@@ -62,7 +62,10 @@ export default function PlanLoopSheet({ zones, bottomInset, onPlan, onStart, onC
   return (
     <View style={[s.sheet, { paddingBottom: Math.max(bottomInset, 16) }]}>
       <View style={s.head}>
-        <Text style={s.title}>Plan a loop</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.title}>Loops made for you</Text>
+          <Text style={s.lead}>On real streets, from where you are, built to claim ground</Text>
+        </View>
         <Pressable onPress={() => { onPlan(null); onClose(); }} hitSlop={10} accessibilityLabel="Close"><X size={18} color={C.t2} /></Pressable>
       </View>
 
@@ -106,18 +109,19 @@ export default function PlanLoopSheet({ zones, bottomInset, onPlan, onStart, onC
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    sheet:   { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingHorizontal: 18, paddingTop: 14, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 16, elevation: 8 },
-    head:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    title:   { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
+    sheet:   { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.card, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 18, shadowColor: '#17181A', shadowOpacity: 0.12, shadowRadius: 20, elevation: 8 },
+    head:    { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
+    title:   { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1 },
+    lead:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, marginTop: 2 },
     row:     { flexDirection: 'row', gap: 8, marginBottom: 10 },
-    chip:    { flex: 1, height: 38, borderRadius: 19, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
-    wide:    { paddingHorizontal: 6 },
-    chipOn:  { backgroundColor: C.t1, borderColor: C.t1 },
-    chipTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
-    chipTxtOn: { color: C.bg },
-    outcome: { fontFamily: Fonts.semiBold, fontSize: 14.5, color: C.t1, marginTop: 4 },
-    sub:     { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, marginTop: 4, lineHeight: 18 },
-    start:   { height: 50, borderRadius: 14, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
+    chip:    { flex: 1, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg },
+    wide:    { paddingHorizontal: 6, height: 44, borderRadius: 22 },
+    chipOn:  { backgroundColor: C.alwaysDark },
+    chipTxt: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    chipTxtOn: { color: C.alwaysLight },
+    outcome: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1, marginTop: 6 },
+    sub:     { fontFamily: Fonts.regular, fontSize: 13.5, color: C.t2, marginTop: 4, lineHeight: 19 },
+    start:   { height: 56, borderRadius: 28, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
     startTxt:{ fontFamily: Fonts.semiBold, fontSize: 16, color: C.alwaysLight },
   });
 }

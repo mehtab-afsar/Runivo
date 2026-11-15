@@ -129,25 +129,6 @@ export default function HomePage() {
           </a>
         </div>
 
-        {/* Phone mockup placeholder */}
-        <div style={{
-          marginTop: 80,
-          width: 280, height: 520,
-          borderRadius: 40,
-          border: '1px solid var(--border)',
-          background: 'linear-gradient(160deg, var(--surface) 0%, var(--bg) 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          position: 'relative', overflow: 'hidden',
-        }}>
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: 'radial-gradient(ellipse at 50% 30%, rgba(200,57,26,0.18) 0%, transparent 65%)',
-          }} />
-          <svg width="64" height="64" viewBox="0 0 32 32" fill="none" style={{ opacity: 0.5 }}>
-            <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" stroke="#C8391A" strokeWidth="1" fill="none" />
-            <text x="16" y="21" textAnchor="middle" fontFamily="serif" fontSize="11" fill="#FFFFFF" fontStyle="italic">R</text>
-          </svg>
-        </div>
       </section>
 
       {/* Features grid */}
@@ -287,7 +268,7 @@ export default function HomePage() {
           fontWeight: 300, lineHeight: 1.7,
           maxWidth: 420, margin: '0 auto 40px',
         }}>
-          Join thousands of runners already claiming their city. Download Runivo and take your first step.
+          Claim the streets you run. Download Runivo and take your first step.
         </p>
         <a href="https://apps.apple.com" style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,

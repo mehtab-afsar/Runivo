@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from '@theme/hapticsGated';
-import { Bell, Search } from 'lucide-react-native';
+import { Bell, Search } from '@mobile/shared/icons/lucideCompat';
 import Svg, { Circle } from 'react-native-svg';
 import { RunivoMark } from '@mobile/shared/components/RunivoMark';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';

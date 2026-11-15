@@ -7,7 +7,7 @@
 import { safeRing } from '@mobile/shared/map/geo';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Linking, Pressable, ScrollView } from 'react-native';
-import { MapPin } from 'lucide-react-native';
+import { MapPin } from '@mobile/shared/icons/lucideCompat';
 import * as Location from 'expo-location';
 import ML from '@maplibre/maplibre-react-native';
 import { track } from '@shared/services/analytics';

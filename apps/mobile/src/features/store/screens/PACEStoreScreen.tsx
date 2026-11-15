@@ -5,7 +5,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { X } from 'lucide-react-native';
+import { X } from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import * as Haptics from '@theme/hapticsGated';
 import { usePACEStore } from '../hooks/usePACEStore';

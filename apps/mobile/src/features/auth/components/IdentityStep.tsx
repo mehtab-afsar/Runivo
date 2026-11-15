@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Image, StyleSheet, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera } from 'lucide-react-native';
+import { Camera } from '@mobile/shared/icons/lucideCompat';
 import { validateUsername } from '@shared/engine/onboarding';
 import { useTheme, Fonts } from '@theme';
 import { mkStep } from './onboardingStyles';

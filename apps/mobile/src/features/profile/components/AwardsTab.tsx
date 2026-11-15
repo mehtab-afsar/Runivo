@@ -10,7 +10,7 @@ import {
   Flag, Swords, TreePine, Landmark, Castle, Crown, Building2, Shield, Star,
   Route, Milestone, Trophy, CalendarCheck, Flame, FlameKindling, Sunrise,
   type LucideIcon,
-} from 'lucide-react-native';
+} from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;

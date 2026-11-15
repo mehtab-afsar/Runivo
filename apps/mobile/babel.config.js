@@ -17,6 +17,8 @@ module.exports = function (api) {
           extensions: ['.native.ts', '.native.tsx', '.native.js', '.ts', '.tsx', '.js', '.jsx', '.json'],
         },
       ],
+      // One file per Phosphor icon instead of the whole 1,500-icon barrel.
+      './babel/phosphor-per-icon',
       // Reanimated MUST be last
       'react-native-reanimated/plugin',
     ],

@@ -10,7 +10,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { SignUpState } from '../hooks/useSignUp';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft } from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 const EASE = Easing.bezier(0.22, 0.68, 0, 1);
@@ -303,14 +303,14 @@ function mkStyles(C: AppColors) {
     labelRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
     label:   { fontFamily: Fonts.medium, fontSize: 13, color: C.t2, marginBottom: 6 },
     counter: { fontFamily: Fonts.medium, fontSize: 11, color: C.t3 },
-    counterOver: { color: C.red },
+    counterOver: { color: C.danger },
     inputRow:{ flexDirection: 'row', alignItems: 'center' },
     input:   { fontFamily: Fonts.regular, fontSize: 16, color: C.t1, paddingVertical: 0, flex: 1 },
     toggleBtn:{ paddingLeft: 12 },
     toggleText: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2 },
 
     // Errors
-    errText:       { ...Type.caption, color: C.red, marginTop: 10 },
+    errText:       { ...Type.caption, color: C.danger, marginTop: 10 },
     emailExistsRow:{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
     emailExistsBase: { fontSize: 12, color: C.t2 },
     emailExistsLink: { fontFamily: Fonts.medium, fontSize: 12, color: C.t1, textDecorationLine: 'underline' },
