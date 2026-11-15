@@ -1,13 +1,19 @@
-import type { RunningGoal, AgeRange, HealthBaseline } from '@shared/engine/onboarding';
+import type { RunningGoal, AgeRange, HealthBaseline, PaceXTone } from '@shared/engine/onboarding';
+import type { RaceDistance } from '@shared/engine/training';
 
 /**
- * The v1 onboarding, in the PRD's order (welcome and sign-in come first and
- * live on their own screens). Optional steps can be skipped.
+ * Onboarding (welcome and sign-in come first, on their own screens). Optional
+ * steps can be skipped. Race only shows for the race goal. Race, week, body
+ * and coach feed PaceX and the plan builder (20261115000026).
  */
 export const ONBOARDING_STEPS = [
   { key: 'location',      label: 'Your area',    optional: false },
   { key: 'goal',          label: 'Your goal',    optional: false },
+  { key: 'race',          label: 'Your race',    optional: true },
   { key: 'running',       label: 'Your running', optional: false },
+  { key: 'week',          label: 'Your week',    optional: true },
+  { key: 'body',          label: 'Your body',    optional: true },
+  { key: 'coach',         label: 'PaceX voice',  optional: true },
   { key: 'health',        label: 'Health app',   optional: true },
   { key: 'watch',         label: 'Your watch',   optional: true },
   { key: 'about',         label: 'About you',    optional: true },
@@ -26,8 +32,37 @@ export type OnboardingStepKey = typeof ONBOARDING_STEPS[number]['key'];
  */
 export type OnboardingVariant = 'full' | 'short';
 export const SHORT_PATH_SKIPS: readonly OnboardingStepKey[] = ['health', 'about'];
-export function stepsFor(variant: OnboardingVariant) {
-  return variant === 'short' ? ONBOARDING_STEPS.filter(s => !SHORT_PATH_SKIPS.includes(s.key)) : ONBOARDING_STEPS;
+export function stepsFor(variant: OnboardingVariant, goal: RunningGoal | null = null) {
+  return ONBOARDING_STEPS.filter(s =>
+    (variant !== 'short' || !SHORT_PATH_SKIPS.includes(s.key)) &&
+    (s.key !== 'race' || goal === 'race'));
+}
+
+export type UsualRunTime = 'early' | 'morning' | 'evening' | 'varies';
+export type Niggle = 'knee' | 'shin' | 'calf' | 'hip' | 'foot';
+export const NIGGLES: { key: Niggle; label: string }[] = [
+  { key: 'knee', label: 'Knee' }, { key: 'shin', label: 'Shin' }, { key: 'calf', label: 'Calf / Achilles' },
+  { key: 'hip', label: 'Hip / back' }, { key: 'foot', label: 'Foot' },
+];
+
+/** A race goal time, "mm:ss" or "h:mm:ss" (10 min to 10 h). Empty is fine (no goal). */
+export function parseGoalTime(input: string): { ok: true; seconds: number | null } | { ok: false } {
+  const t = input.trim();
+  if (!t) return { ok: true, seconds: null };
+  const parts = t.split(':').map(p => (/^\d{1,2}$/.test(p) ? Number(p) : NaN));
+  if (parts.length < 2 || parts.length > 3 || parts.some(n => !Number.isFinite(n))) return { ok: false };
+  const [h, m, sec] = parts.length === 3 ? parts : [0, parts[0], parts[1]];
+  if (m > 59 || sec > 59) return { ok: false };
+  const total = h * 3600 + m * 60 + sec;
+  return total >= 600 && total <= 36000 ? { ok: true, seconds: total } : { ok: false };
+}
+
+/** Sunday of the plan's last week, `weeks` weeks from the coming Monday (as the plan builder counts). */
+export function raceDateForWeeks(today: string, weeks: number): string {
+  const d = new Date(`${today}T00:00:00Z`);
+  const dow = (d.getUTCDay() + 6) % 7;
+  const firstMonday = dow === 0 ? d : new Date(d.getTime() + (7 - dow) * 86_400_000);
+  return new Date(firstMonday.getTime() + (weeks * 7 - 1) * 86_400_000).toISOString().slice(0, 10);
 }
 
 export interface OnboardingData {
@@ -55,6 +90,21 @@ export interface OnboardingData {
   // Alerts
   notificationsEnabled: boolean;
   distanceUnit: 'km' | 'mi';
+  // Race (race goal only)
+  raceDistance: RaceDistance | null;
+  raceWeeks: number;
+  /** As typed, "h:mm:ss" or "mm:ss"; optional. */
+  raceGoalInput: string;
+  // Your week
+  runDays: number[];
+  longRunDay: number;
+  usualTime: UsualRunTime | null;
+  weekdayMinutes: number | null;
+  // Your body
+  niggles: Niggle[];
+  returning: boolean;
+  /** Chosen voice; null means the goal's default. */
+  paceXTone: PaceXTone | null;
 }
 
 /** Wording version recorded with health consent; bump when the text changes. */

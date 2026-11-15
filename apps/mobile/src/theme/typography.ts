@@ -1,56 +1,52 @@
 /**
  * Runivo mobile typography tokens (2026 design system).
  *
- * Two voices:
- *  - Geist                    -> everything you read: titles, body, labels, buttons.
- *  - Archivo Display          -> big numbers (distance, pace, score, PACE) and
- *                                uppercase hero headlines. Archivo cut at 68% width,
- *                                850 weight (assets/fonts/ArchivoDisplay.ttf).
- *  - Archivo Wordmark         -> the runivo logotype only.
+ * One voice: Outfit (2026 redesign) for titles, body, labels, buttons, big
+ * numbers and the runivo wordmark. Numbers use tabular figures.
  *
  * RULES
- *  - Titles are sentence case Geist bold. Only Type.hero is uppercase.
- *  - Small labels are sentence case Geist medium in t2, not tracked caps.
+ *  - Everything is sentence case, including Type.hero.
+ *  - Small labels are sentence case Outfit medium in t2, not tracked caps.
  *  - Live numbers use a metric* style (tabular figures, no digit jitter).
  *  - Never write a raw font-family string; compose Fonts.* or Type.*.
  */
 import type { TextStyle } from 'react-native';
 
 export const Fonts = {
-  /** Kept for older call sites: maps to Geist regular. Prefer `regular`. */
-  light:     'Geist_400Regular',
-  regular:   'Geist_400Regular',
-  medium:    'Geist_500Medium',
-  semiBold:  'Geist_600SemiBold',
-  bold:      'Geist_700Bold',
-  /** Former editorial italic. Now Geist bold: titles and greetings, sentence case. */
-  display:   'Geist_700Bold',
+  /** Kept for older call sites: maps to Outfit regular. Prefer `regular`. */
+  light:     'Outfit_400Regular',
+  regular:   'Outfit_400Regular',
+  medium:    'Outfit_500Medium',
+  semiBold:  'Outfit_600SemiBold',
+  bold:      'Outfit_700Bold',
+  /** Titles and greetings: Outfit semibold, sentence case. */
+  display:   'Outfit_600SemiBold',
   /** Big numbers: distance, pace, time, score, PACE balances. */
-  numeric:   'ArchivoDisplay',
-  /** Hero headlines, uppercase, used sparingly (Run complete, reward value, Plus). */
-  hero:      'ArchivoDisplay',
+  numeric:   'Outfit_600SemiBold',
+  /** Hero moments (Run complete, reward value, Plus): Outfit semibold, sentence case. */
+  hero:      'Outfit_600SemiBold',
   /** The runivo logotype. */
-  wordmark:  'ArchivoWordmark',
+  wordmark:  'Outfit_700Bold',
 } as const;
 
 const tabular: TextStyle['fontVariant'] = ['tabular-nums'];
 
 /** Semantic type scale — compose with a color, e.g. `[Type.title, { color: C.t1 }]`. */
 export const Type = {
-  // Titles (Geist bold, sentence case)
-  display:    { fontFamily: Fonts.bold, fontSize: 30, lineHeight: 34, letterSpacing: -0.8 },
-  displaySm:  { fontFamily: Fonts.bold, fontSize: 22, lineHeight: 27, letterSpacing: -0.5 },
-  // Hero moments only (condensed caps)
-  hero:       { fontFamily: Fonts.hero, fontSize: 54, lineHeight: 49, textTransform: 'uppercase' as const },
+  // Titles (Outfit semibold, sentence case)
+  display:    { fontFamily: Fonts.display, fontSize: 30, lineHeight: 34, letterSpacing: -0.8 },
+  displaySm:  { fontFamily: Fonts.display, fontSize: 22, lineHeight: 27, letterSpacing: -0.5 },
+  // Hero moments only
+  hero:       { fontFamily: Fonts.hero, fontSize: 44, lineHeight: 48, letterSpacing: -1.4 },
 
   // Big data: the numbers are the design in a running app
-  metricXL:   { fontFamily: Fonts.numeric, fontSize: 88, lineHeight: 84, letterSpacing: -1, fontVariant: tabular },
-  metricLg:   { fontFamily: Fonts.numeric, fontSize: 52, lineHeight: 50, letterSpacing: -0.5, fontVariant: tabular },
-  metricMd:   { fontFamily: Fonts.numeric, fontSize: 30, lineHeight: 30, fontVariant: tabular },
-  metricSm:   { fontFamily: Fonts.numeric, fontSize: 20, lineHeight: 20, fontVariant: tabular },
+  metricXL:   { fontFamily: Fonts.numeric, fontSize: 76, lineHeight: 80, letterSpacing: -2.5, fontVariant: tabular },
+  metricLg:   { fontFamily: Fonts.numeric, fontSize: 46, lineHeight: 50, letterSpacing: -1.5, fontVariant: tabular },
+  metricMd:   { fontFamily: Fonts.numeric, fontSize: 28, lineHeight: 32, letterSpacing: -0.6, fontVariant: tabular },
+  metricSm:   { fontFamily: Fonts.numeric, fontSize: 19, lineHeight: 23, letterSpacing: -0.3, fontVariant: tabular },
 
   // UI text
-  title:      { fontFamily: Fonts.bold,     fontSize: 20, letterSpacing: -0.4, lineHeight: 25 },
+  title:      { fontFamily: Fonts.semiBold,     fontSize: 20, letterSpacing: -0.4, lineHeight: 25 },
   headline:   { fontFamily: Fonts.semiBold, fontSize: 15, lineHeight: 20 },
   body:       { fontFamily: Fonts.regular,  fontSize: 15, lineHeight: 22 },
   bodySm:     { fontFamily: Fonts.regular,  fontSize: 13, lineHeight: 18 },

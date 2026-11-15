@@ -124,7 +124,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   dot:          { width: 7, height: 7, borderRadius: 3.5 },
   pillTxt:      { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
   mapBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  picker:       { position: 'absolute', right: 16, top: 60, backgroundColor: C.card, borderRadius: 16, padding: 12, minWidth: 130, borderWidth: 0.5, borderColor: C.border, zIndex: 20 },
+  picker:       { position: 'absolute', right: 16, top: 60, backgroundColor: C.card, borderRadius: 22, padding: 12, minWidth: 130, borderWidth: 0.5, borderColor: C.border, zIndex: 20 },
   pickerLabel:  { ...Type.overline, color: C.muted, marginBottom: 8 },
   pickerRow:    { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   preview:      { width: 28, height: 28, borderRadius: 6, borderWidth: 0.5, borderColor: C.border },

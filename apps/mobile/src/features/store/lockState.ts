@@ -38,7 +38,8 @@ export function lockStateFor(reward: Reward): LockState {
     case 'not_available':
       return { kind: 'upcoming', label: 'Coming soon', blocked: true };
     case 'not_in_region':
-      return { kind: 'region', label: 'Not in your city', blocked: true };
+      // City rewards unlock after a scored run in that city (20261115000024).
+      return { kind: 'region', label: 'Run in this city to unlock', blocked: true };
     case 'already_redeemed':
       return { kind: 'redeemed', label: 'Redeemed', blocked: false };
     default:

@@ -188,31 +188,27 @@ export function RecentActivities({ runs, sport, onOpen, onAll, emptyText, pinned
 
 // ── Best efforts ───────────────────────────────────────────────────────────
 const EFFORTS: { label: string; title: string }[] = [
-  { label: 'Fastest 1K', title: '1K' },
-  { label: 'Fastest 5K', title: '5K' },
-  { label: 'Fastest 10K', title: '10K' },
-  { label: 'Longest Run', title: 'Longest' },
+  { label: 'Fastest 1K', title: '1 km' },
+  { label: 'Fastest 5K', title: '5 km' },
+  { label: 'Fastest 10K', title: '10 km' },
+  { label: 'Longest Run', title: 'Longest run' },
   { label: 'Best Pace', title: 'Best pace' },
 ];
 
+/** Mock: "Best efforts" as label / time rows with hairlines. */
 export function BestEfforts({ records }: { records: { label: string; value: string }[] }) {
   const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
   const byLabel = new Map(records.map(r => [r.label, r.value]));
   if (!EFFORTS.some(e => byLabel.has(e.label))) return null;
   return (
-    <View style={s.card}>
-      <View style={s.cardHead}>
-        <Text style={s.cardLabel}>Best efforts · running</Text>
-      </View>
-      <View style={s.effortGrid}>
-        {EFFORTS.map(e => (
-          <View key={e.label} style={s.effort}>
-            <Text style={s.effortTitle}>{e.title}</Text>
-            <Text style={[s.effortVal, !byLabel.has(e.label) && { color: C.t3 }]}>{byLabel.get(e.label) ?? '–'}</Text>
-          </View>
-        ))}
-      </View>
+    <View style={{ marginHorizontal: 20, borderRadius: 26, backgroundColor: C.card, padding: 18, gap: 12 }}>
+      <Text style={{ fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 }}>Best efforts</Text>
+      {EFFORTS.map((e, i) => (
+        <View key={e.label} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: i < EFFORTS.length - 1 ? 1 : 0, borderBottomColor: C.border }}>
+          <Text style={{ fontFamily: Fonts.regular, fontSize: 15, color: C.t1 }}>{e.title}</Text>
+          <Text style={{ fontFamily: Fonts.semiBold, fontSize: 15, color: byLabel.has(e.label) ? C.t1 : C.t2 }}>{byLabel.get(e.label) ?? '–'}</Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -247,7 +243,7 @@ function GridStat({ label, value, unit, s }: { label: string; value: string; uni
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card: {
-      backgroundColor: C.card, borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16,
+      backgroundColor: C.card, borderRadius: 22, paddingVertical: 14, paddingHorizontal: 16,
       shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1,
     },
     cardHead:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },

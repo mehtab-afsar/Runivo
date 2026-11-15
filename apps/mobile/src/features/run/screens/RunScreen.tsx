@@ -17,6 +17,8 @@ import { useRunSetup } from '../hooks/useRunSetup';
 import { useBeatPacer } from '../hooks/useBeatPacer';
 import RunMapView    from '../components/RunMapView';
 import RunSetupSheet from '../components/RunSetupSheet';
+import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
+import { SportSheet } from '../components/SportSheet';
 import ActivityModal from '../components/ActivityModal';
 import RouteModal    from '../components/RouteModal';
 import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint, type GPSPoint } from '../hooks/useActiveRun';
@@ -99,6 +101,8 @@ export default function RunScreen() {
   const ss = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
+  const [sportsOpen, setSportsOpen] = useState(false);
+  const streakDays = usePlayerStats().player?.streakDays ?? 0;
   const [mapStyle, setMapStyle] = useState(() => mapStyleUrlFor(undefined, isDark));
   const [plus, setPlus] = useState(false);
 
@@ -211,9 +215,15 @@ export default function RunScreen() {
         onPacerPaceChange={p => pacer.setPace(p)}
         onActivityPress={() => setShowActivityModal(true)}
         onSportChange={setActivityType}
+        onMoreSports={() => setSportsOpen(true)}
+        streakDays={streakDays}
         onRoutePress={openRouteModal}
         nearbyLine={nearbyLine}
         onStartPress={() => startRun(mapStyle, { enabled: pacer.enabled, pace: pacer.pace })}
+      />
+      <SportSheet
+        visible={sportsOpen} current={activityType} onClose={() => setSportsOpen(false)}
+        onPick={setActivityType} onTreadmill={() => navigation.navigate('LogTreadmill')}
       />
       <ActivityModal
         visible={showActivityModal}

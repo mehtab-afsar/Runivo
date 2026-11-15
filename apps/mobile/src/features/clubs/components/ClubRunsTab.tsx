@@ -187,7 +187,7 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     content: { padding: 18, gap: 10, paddingBottom: 60 },
-    card:    { backgroundColor: C.card, borderRadius: 16, padding: 14 },
+    card:    { backgroundColor: C.card, borderRadius: 22, padding: 14 },
     title:   { fontFamily: Fonts.semiBold, fontSize: 15.5, color: C.t1, marginBottom: 4 },
     metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
     meta:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },

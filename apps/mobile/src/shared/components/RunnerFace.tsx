@@ -16,7 +16,7 @@ export interface FaceLook {
 // The mock's eight runners, kept as the first looks so the app reads the same.
 const PRESETS: FaceLook[] = [
   { bg: '#EADFD6', skin: '#C68B5E', hair: '#1D1A18', shirt: '#0C0C0D', style: 'short' },
-  { bg: '#ECE3CF', skin: '#E9B48A', hair: '#5A3A22', shirt: '#FF4518', style: 'long'  },
+  { bg: '#ECE3CF', skin: '#E9B48A', hair: '#5A3A22', shirt: '#4E7F1F', style: 'long'  },
   { bg: '#DCE3EE', skin: '#7A4B2E', hair: '#141414', shirt: '#2F56F5', style: 'buzz'  },
   { bg: '#E3DEEE', skin: '#B7794E', hair: '#1A1A1A', shirt: '#5B47C9', style: 'long'  },
   { bg: '#DCE7DF', skin: '#F0C6A3', hair: '#B56A2A', shirt: '#1D6B4A', style: 'short' },

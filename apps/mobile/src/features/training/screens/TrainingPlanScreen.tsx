@@ -98,6 +98,8 @@ export default function TrainingPlanScreen() {
     { text: 'Cancel', style: 'cancel' },
   ]);
 
+  const todaySession = all.find(x => x.date === today);
+
   const notFeeling = () => Alert.alert(
     'Not feeling 100%?',
     'Every session in the next 7 days becomes an easy recovery run, about 30% shorter. Race day is never changed.',
@@ -109,17 +111,32 @@ export default function TrainingPlanScreen() {
       <Header s={s} C={C} title={`${RACE_LABEL[plan.race]} plan`} onBack={() => navigation.goBack()} onMenu={menu} />
       <ScrollView contentContainerStyle={s.scroll}>
         <SafetyNote kind="coach" style={{ marginTop: 0, marginBottom: 10 }} />
-        {/* Summary */}
-        <View style={s.card}>
-          <Text style={s.eyebrow}>{daysToRace > 0 ? `${daysToRace} days to race day` : daysToRace === 0 ? 'Race day' : 'Race done'}</Text>
-          <Text style={s.big}>{fmtDuration(plan.targetSec)}</Text>
-          <Text style={s.sub}>Target for {RACE_LABEL[plan.race]} · {plan.raceDate}</Text>
+        {/* Summary (mock): dark card with week, race and countdown. */}
+        <View style={s.hero}>
+          <Text style={s.heroEyebrow}>{RACE_LABEL[plan.race]} plan · week {current} of {plan.weeks.length}</Text>
+          <View style={s.heroRow}>
+            <Text style={s.heroRace} numberOfLines={2}>Race day · {plan.raceDate}</Text>
+            <Text style={s.heroDays}>{daysToRace > 0 ? `${daysToRace} days` : daysToRace === 0 ? 'Today' : 'Done'}</Text>
+          </View>
+          <Text style={s.heroSub}>Target {fmtDuration(plan.targetSec)}{plan.goalSec && !plan.goalCapped ? ` · goal ${fmtDuration(plan.goalSec)}` : ''}</Text>
           {plan.goalCapped && plan.goalSec ? (
             <Text style={s.note}>Your goal of {fmtDuration(plan.goalSec)} is faster than your 5K suggests, so the plan aims for {fmtDuration(plan.targetSec)} to keep training safe. Update your 5K time as you get fitter.</Text>
           ) : null}
           <View style={s.track}><View style={[s.fill, { width: `${Math.round((done / Math.max(1, all.length)) * 100)}%` }]} /></View>
-          <Text style={s.sub}>{done} of {all.length} sessions done · week {current} of {plan.weeks.length}</Text>
+          <Text style={s.heroSub}>{done} of {all.length} sessions done</Text>
         </View>
+
+        {todaySession && todaySession.status === 'planned' && (
+          <View style={s.todayCard}>
+            <Text style={s.todayEyebrow}>Today</Text>
+            <Text style={s.todayTitle}>{todaySession.title}</Text>
+            <Text style={s.todaySub} numberOfLines={2}>{todaySession.summary}</Text>
+            <Pressable style={s.todayBtn} onPress={() => setOpen(todaySession)} accessibilityRole="button">
+              <Play size={16} color={C.lime} weight="fill" />
+              <Text style={s.todayBtnTxt}>Start session</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Paces */}
         <View style={s.card}>
@@ -162,7 +179,7 @@ export default function TrainingPlanScreen() {
                 {x.status === 'done' ? <Check size={18} color={C.green} weight="bold" />
                   : x.status === 'skipped' ? <Text style={s.tag}>Skipped</Text>
                   : missed ? <Text style={s.tag}>Missed</Text>
-                  : isToday ? <Text style={[s.tag, { color: C.red }]}>Today</Text> : null}
+                  : isToday ? <Text style={[s.tag, { color: C.green }]}>Today</Text> : null}
               </Pressable>
             );
           })}
@@ -304,42 +321,52 @@ function mkStyles(C: AppColors) {
     backBtn:  { width: 32 },
     title:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     scroll:   { paddingHorizontal: 18, paddingBottom: 48, gap: 12 },
-    card:     { backgroundColor: C.card, borderRadius: 16, padding: 16 },
-    eyebrow:  { fontFamily: Fonts.medium, fontSize: 12, color: C.red },
-    big:      { fontFamily: Fonts.numeric, fontSize: 40, lineHeight: 44, color: C.t1, marginTop: 4 },
+    card:     { backgroundColor: C.card, borderRadius: 24, padding: 18 },
+    hero:     { backgroundColor: C.alwaysDark, borderRadius: 28, padding: 20 },
+    heroEyebrow: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.lime },
+    heroRow:  { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginTop: 8 },
+    heroRace: { flex: 1, fontFamily: Fonts.semiBold, fontSize: 20, lineHeight: 25, color: C.alwaysLight },
+    heroDays: { fontFamily: Fonts.numeric, fontSize: 30, color: C.alwaysLight },
+    heroSub:  { fontFamily: Fonts.regular, fontSize: 13.5, color: 'rgba(255,255,255,0.7)', marginTop: 6 },
+    todayCard:{ backgroundColor: C.mint, borderRadius: 24, padding: 18, gap: 4 },
+    todayEyebrow: { fontFamily: Fonts.bold, fontSize: 12, color: C.green },
+    todayTitle: { fontFamily: Fonts.semiBold, fontSize: 19, color: C.t1 },
+    todaySub: { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2 },
+    todayBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', marginTop: 10, height: 44, paddingHorizontal: 20, borderRadius: 22, backgroundColor: C.alwaysDark },
+    todayBtnTxt: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
     sub:      { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.t2, marginTop: 4 },
-    note:     { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.t1, backgroundColor: C.surface, borderRadius: 10, padding: 10, marginTop: 10 },
-    track:    { height: 6, borderRadius: 3, backgroundColor: C.border, marginTop: 14, overflow: 'hidden' },
-    fill:     { height: 6, borderRadius: 3, backgroundColor: C.red },
-    cardLabel:{ fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
+    note:     { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.alwaysLight, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 10, marginTop: 10 },
+    track:    { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.14)', marginTop: 14, overflow: 'hidden' },
+    fill:     { height: 8, borderRadius: 4, backgroundColor: C.lime },
+    cardLabel:{ fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
     paceRow:  { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
     paceKey:  { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
     paceVal:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1, fontVariant: ['tabular-nums'] },
     weeks:    { gap: 6, paddingVertical: 2 },
-    weekChip: { height: 32, minWidth: 44, paddingHorizontal: 10, borderRadius: 16, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    weekChipOn: { backgroundColor: C.t1 },
+    weekChip: { height: 38, minWidth: 48, paddingHorizontal: 12, borderRadius: 19, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    weekChipOn: { backgroundColor: C.alwaysDark },
     weekChipTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
-    weekChipTxtOn: { color: C.bg },
+    weekChipTxtOn: { color: C.alwaysLight },
     weekHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     row:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-    rowBorder:{ borderTopWidth: 1, borderTopColor: C.border },
-    dayBox:   { width: 42, height: 42, borderRadius: 10, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-    dayBoxToday: { backgroundColor: C.red },
+    rowBorder:{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+    dayBox:   { width: 44, height: 44, borderRadius: 22, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    dayBoxToday: { backgroundColor: C.alwaysDark },
     dayName:  { fontFamily: Fonts.medium, fontSize: 10.5, color: C.t2 },
     dayNum:   { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
     dayTxtToday: { color: C.alwaysLight },
-    rowTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
-    rowSub:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
+    rowTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    rowSub:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 2 },
     tag:      { fontFamily: Fonts.medium, fontSize: 12, color: C.t3 },
-    ease:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 22, borderWidth: 1, borderColor: C.border },
+    ease:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 50, borderRadius: 25, backgroundColor: C.card },
     easeTxt:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
     empty:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
     emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1 },
     emptySub: { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2, textAlign: 'center', marginTop: 8, marginBottom: 20 },
-    cta:      { flexDirection: 'row', gap: 8, height: 50, paddingHorizontal: 24, borderRadius: 25, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+    cta:      { flexDirection: 'row', gap: 8, height: 50, paddingHorizontal: 24, borderRadius: 25, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
     ctaTxt:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
     backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
-    sheet:    { backgroundColor: C.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 34 },
+    sheet:    { backgroundColor: C.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingBottom: 34 },
     handle:   { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 12 },
     sheetTitle: { fontFamily: Fonts.semiBold, fontSize: 19, color: C.t1 },
     steps:    { marginTop: 14, gap: 8 },

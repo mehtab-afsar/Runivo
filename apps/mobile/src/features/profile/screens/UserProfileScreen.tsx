@@ -334,7 +334,7 @@ function mkStyles(C: AppColors) {
     followingBtn: { backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border },
     followBtnLabel:   { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
     followingBtnLabel:{ color: C.black },
-    statsGrid:    { flexDirection: 'row', marginHorizontal: 18, backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
+    statsGrid:    { flexDirection: 'row', marginHorizontal: 18, backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden' },
     statCell:     { flex: 1, alignItems: 'center', paddingVertical: 16, borderRightWidth: 0.5, borderRightColor: C.border },
     statValue:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, letterSpacing: -0.5 },
     statLabel:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
@@ -346,7 +346,7 @@ function mkStyles(C: AppColors) {
     awardChip:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 10, paddingVertical: 7, maxWidth: 160 },
     awardIcon:    { fontSize: 16 },
     awardTitle:   { fontFamily: Fonts.medium, fontSize: 11, color: C.black, flexShrink: 1 },
-    privateNotice:     { marginHorizontal: 18, alignItems: 'center', backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, paddingVertical: 32, paddingHorizontal: 20 },
+    privateNotice:     { marginHorizontal: 18, alignItems: 'center', backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, paddingVertical: 32, paddingHorizontal: 20 },
     privateNoticeTitle:{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, marginBottom: 4 },
     privateNoticeText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, textAlign: 'center' },
   });

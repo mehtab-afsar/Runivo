@@ -8,6 +8,7 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { createHmac } from 'node:crypto';
+import { deregisterConnections, type ConnectionRow } from '../_shared/providerRevoke.ts';
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -136,6 +137,8 @@ async function oauth2Exchange(
     refresh_token?: string;
     expires_in?: number;
     token_type: string;
+    /** Polar AccessLink: the runner's Polar user id, needed to deregister them. */
+    x_user_id?: number | string;
   }>;
 }
 
@@ -162,6 +165,15 @@ Deno.serve(async (req) => {
     // ── DELETE → disconnect ────────────────────────────────────────────────────
     if (req.method === 'DELETE') {
       const { provider } = await req.json() as { provider: Provider };
+      // Tell the provider first, while we still hold the token, so it stops
+      // pushing this runner's activities. Best-effort: never blocks the disconnect.
+      const { data: conns } = await supabase
+        .from('device_connections')
+        .select('device_type, secrets, metadata')
+        .eq('user_id', user.id)
+        .eq('device_type', provider);
+      const failures = await deregisterConnections((conns ?? []) as ConnectionRow[], (n) => Deno.env.get(n));
+      if (failures.length) console.warn('[device-oauth] deregister failed', failures);
       await supabase
         .from('device_connections')
         .update({ status: 'disconnected', metadata: {}, secrets: {} })
@@ -336,6 +348,7 @@ Deno.serve(async (req) => {
           expires_at:    tokens.expires_in
             ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
             : '',
+          x_user_id:     tokens.x_user_id != null ? String(tokens.x_user_id) : '',
         };
       } else {
         return new Response('Unknown provider', { status: 400, headers: CORS });

@@ -5,7 +5,7 @@ const ID = '3f1c2b9e-1a2b-4c3d-8e9f-0123456789ab';
 
 describe('notification routes', () => {
   it('opens the feed for kudos and comments (sent with ?post=)', () => {
-    expect(r(`/feed?post=${ID}`)).toEqual({ screen: 'Main', params: { screen: 'Feed' } });
+    expect(r(`/feed?post=${ID}`)).toEqual({ screen: 'Feed' });
   });
   it('opens the activity for /run/:id and the old /run/summary/:id', () => {
     expect(r(`/run/${ID}`)).toEqual({ screen: 'RunSummary', params: { runId: ID } });

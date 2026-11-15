@@ -50,6 +50,19 @@ INSERT INTO profiles (id, username, created_at, total_runs, pace_balance, pace_t
   ('b0000000-0000-0000-0000-000000000006', 'racer',   now() - interval '30 days', 9, 500, 900, 40, 'chaser',  'free',    'IN', ST_SetSRID(ST_MakePoint(77.60, 12.97), 4326))
 ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username, created_at = EXCLUDED.created_at, total_runs = EXCLUDED.total_runs, pace_balance = EXCLUDED.pace_balance, pace_total_earned = EXCLUDED.pace_total_earned, pace_weekly_earned = EXCLUDED.pace_weekly_earned, runner_rank = EXCLUDED.runner_rank, subscription_tier = EXCLUDED.subscription_tier, country = EXCLUDED.country, last_known_location = EXCLUDED.last_known_location;
 
+
+-- City rewards unlock for runners with a recent scored run that started in the
+-- city (20261115000024). Give each runner one where their saved point is, then
+-- put the run counts back (the insert trigger counts the run).
+CREATE FUNCTION pg_temp.ran_in(p_user uuid, p_where geometry) RETURNS void LANGUAGE sql AS $$
+  INSERT INTO public.runs (id, user_id, activity_type, started_at, finished_at, distance_m, duration_sec, avg_pace, verified_distance_m, route)
+  VALUES (gen_random_uuid(), p_user, 'run', now() - interval '2 days', now() - interval '2 days' + interval '30 minutes', 5000, 1800, '6:00', 5000,
+          ST_SetSRID(ST_MakeLine(p_where, ST_Translate(p_where, 0.001, 0)), 4326));
+$$;
+CREATE TEMP TABLE run_counts AS SELECT id, total_runs FROM profiles WHERE id::text LIKE 'b0000000-0000-0000-0000-00000000000_';
+SELECT pg_temp.ran_in(id, last_known_location) FROM profiles WHERE id IN (SELECT id FROM run_counts);
+UPDATE profiles p SET total_runs = c.total_runs FROM run_counts c WHERE p.id = c.id;
+
 SELECT pg_temp.check(city_for_point(last_known_location) = 'Bengaluru', 'a Bengaluru point maps to Bengaluru')
 FROM profiles WHERE username = 'vet';
 SELECT pg_temp.check(city_for_point(ST_SetSRID(ST_MakePoint(0, 51.5), 4326)) IS NULL, 'London is not a launch city');

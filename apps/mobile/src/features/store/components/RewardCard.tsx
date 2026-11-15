@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { useTheme, Fonts, Type, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 import { Lock, Crown, Check } from 'lucide-react-native';
 import type { Reward } from '../types';
 import { lockStateFor } from '../lockState';
@@ -22,6 +22,7 @@ export function RewardCard({ reward, onPress }: Props) {
   const lock = lockStateFor(reward);
   const LockIcon = lock.kind === 'plus' ? Crown : Lock;
 
+  const left = reward.stockLeft != null ? ` · ${reward.stockLeft} LEFT` : '';
   return (
     <Pressable
       onPress={() => onPress(reward)}
@@ -29,52 +30,39 @@ export function RewardCard({ reward, onPress }: Props) {
       accessibilityRole="button"
       accessibilityLabel={`${reward.brand}: ${reward.title}, ${reward.paceCost} PACE${lock.label ? `, ${lock.label}` : ''}`}
     >
-      <View style={[s.band, { backgroundColor: reward.brandColor }, lock.blocked && s.bandMuted]}>
-        <Text style={s.brandName} numberOfLines={1}>{reward.brand} · Featured</Text>
-        <Text style={s.valueLabel} numberOfLines={1} adjustsFontSizeToFit>{reward.valueLabel}</Text>
-      </View>
-
-      <View style={s.footer}>
-        {lock.blocked ? (
-          <View style={s.lockRow}>
-            <LockIcon size={13} color={lock.kind === 'plus' ? C.gold : C.t2} strokeWidth={2.2} />
-            <Text style={[s.footerText, lock.kind === 'plus' && { color: C.gold }]} numberOfLines={1}>{lock.label}</Text>
-          </View>
-        ) : (
-          <Text style={s.footerText} numberOfLines={1}>{reward.description}</Text>
-        )}
-        {lock.kind === 'redeemed' ? (
-          <View style={[s.pricePill, s.pricePillDone]}>
-            <Check size={13} color={C.green} strokeWidth={2.6} />
-            <Text style={[s.priceText, { color: C.green }]}>Redeemed</Text>
-          </View>
-        ) : (
-          <View style={[s.pricePill, lock.blocked && s.pricePillMuted]}>
-            <Text style={[s.priceText, lock.blocked && { color: C.t2 }]}>{reward.paceCost} PACE</Text>
-          </View>
-        )}
-      </View>
+      <Text style={s.eyebrow}>FEATURED{left}</Text>
+      <Text style={s.title} numberOfLines={2}>{reward.title}</Text>
+      <Text style={s.sub} numberOfLines={1}>{reward.brand}{reward.description ? ` · ${reward.description}` : ''}</Text>
+      {lock.blocked && (
+        <View style={s.lockRow}>
+          <LockIcon size={13} color={C.lime} strokeWidth={2.2} />
+          <Text style={s.lockTxt} numberOfLines={1}>{lock.label}</Text>
+        </View>
+      )}
+      {lock.kind === 'redeemed' ? (
+        <View style={[s.pricePill, { backgroundColor: C.lime }]}>
+          <Check size={13} color={C.alwaysDark} strokeWidth={2.6} />
+          <Text style={s.priceText}>Redeemed</Text>
+        </View>
+      ) : (
+        <View style={[s.pricePill, lock.blocked && { opacity: 0.6 }]}>
+          <Text style={s.priceText}>{reward.paceCost} PACE</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card: {
-      backgroundColor: C.card, borderRadius: 16, overflow: 'hidden',
-      shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1,
-    },
-    cardPressed:   { transform: [{ scale: 0.99 }] },
-    band:          { height: 120, paddingHorizontal: 16, paddingBottom: 14, justifyContent: 'flex-end' },
-    bandMuted:     { opacity: 0.55 },
-    brandName:     { fontFamily: Fonts.semiBold, fontSize: 12, color: 'rgba(255,255,255,0.85)' },
-    valueLabel:    { ...Type.hero, fontSize: 40, lineHeight: 36, color: C.alwaysLight, marginTop: 6 },
-    footer:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 16, paddingVertical: 12 },
-    footerText:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, flexShrink: 1 },
-    lockRow:       { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-    pricePill:     { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.red, borderRadius: 999, paddingHorizontal: 12, height: 30 },
-    pricePillMuted:{ backgroundColor: C.border },
-    pricePillDone: { backgroundColor: C.greenLo },
-    priceText:     { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.alwaysLight },
+    card:        { backgroundColor: C.alwaysDark, borderRadius: 28, padding: 18, gap: 8 },
+    cardPressed: { transform: [{ scale: 0.99 }] },
+    eyebrow:     { fontFamily: Fonts.semiBold, fontSize: 13, color: C.lime },
+    title:       { fontFamily: Fonts.medium, fontSize: 22, lineHeight: 27, color: C.alwaysLight },
+    sub:         { fontFamily: Fonts.regular, fontSize: 14, color: '#C9CCC4' },
+    lockRow:     { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    lockTxt:     { fontFamily: Fonts.medium, fontSize: 13, color: C.lime },
+    pricePill:   { alignSelf: 'flex-start', marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFFFFF', borderRadius: 18, paddingHorizontal: 14, height: 36 },
+    priceText:   { fontFamily: Fonts.semiBold, fontSize: 14, color: '#17181A' },
   });
 }

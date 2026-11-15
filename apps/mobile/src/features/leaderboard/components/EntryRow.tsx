@@ -79,12 +79,12 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
-      paddingHorizontal: 14, paddingVertical: 12,
+      paddingHorizontal: 16, paddingVertical: 13,
       marginHorizontal: 18, backgroundColor: C.card,
     },
-    rowFirst:   { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-    rowLast:    { borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
-    rowDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
+    rowFirst:   { borderTopLeftRadius: 22, borderTopRightRadius: 22 },
+    rowLast:    { borderBottomLeftRadius: 22, borderBottomRightRadius: 22 },
+    rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
     rowPressed: { opacity: 0.6 },
     rowMe:      { backgroundColor: C.redLo },
     rank:      { fontFamily: Fonts.numeric, fontSize: 20, color: C.t3, width: 22 },

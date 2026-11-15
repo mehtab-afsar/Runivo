@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Switch, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -27,6 +27,7 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { resetPassword } from '@shared/services/auth';
 import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
 import { restorePurchases, manageSubscriptionUrl } from '@features/subscription/services/purchaseService';
+import { useSubscription } from '@features/subscription/hooks/useSubscription';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,6 +41,9 @@ export default function SettingsScreen() {
   } = useSettings();
   const sw = { trackColor: { true: C.black, false: C.border }, thumbColor: C.white };
   const { user } = useAuth();
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifOnCount = [settings.notificationsEnabled, settings.runReminders, settings.territoryAlerts, settings.announceAchievements, settings.weeklySummary, settings.offersEnabled, settings.planReminderHour !== null].filter(Boolean).length;
+  const { isPremium } = useSubscription();
 
   return (
     <SafeAreaView style={s.root}>
@@ -52,6 +56,13 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
+
+        {/* Plus card (mock): status first, before the grouped rows. */}
+        <Pressable style={s.plusCard} onPress={() => navigation.navigate('Subscription', {})} accessibilityRole="button">
+          <Text style={s.plusEyebrow}>{isPremium ? 'Runivo Plus · active' : 'Runivo Plus'}</Text>
+          <Text style={s.plusBody}>{isPremium ? 'Every Plus feature is on for your account.' : 'More zones, a higher PACE cap and the full PaceX coach.'}</Text>
+          <View style={s.plusBtn}><Text style={s.plusBtnTxt}>{isPremium ? 'Manage' : 'See Plus'}</Text></View>
+        </Pressable>
 
         {/* ── Account ── */}
         <SettingSection title="Account">
@@ -118,8 +129,8 @@ export default function SettingsScreen() {
         {/* ── Sign-in methods: Apple, Google, phone, email on one account ── */}
         <SignInMethodsSection />
 
-        {/* ── Appearance ── */}
-        <SettingSection title="Units">
+        {/* ── Preferences (mock order) ── */}
+        <SettingSection title="Preferences">
           <SettingRow label="Distance unit">
             <SegmentedControl
               options={['km', 'mi']}
@@ -127,10 +138,32 @@ export default function SettingsScreen() {
               onChange={v => updateSetting({ distanceUnit: v as 'km' | 'mi' })}
             />
           </SettingRow>
+          <SettingRow label="Voice cues" sub={getSpeech() ? 'Each km, the loop closing, zones and workout steps' : 'Available after the next app update'}>
+            <Switch
+              value={settings.voiceCues !== false}
+              onValueChange={v => { Promise.resolve(updateSetting({ voiceCues: v })).then(resetVoiceCuesSetting).catch(() => {}); }}
+              disabled={!getSpeech()}
+              {...sw}
+            />
+          </SettingRow>
+          <SettingRow label="Haptics" sub="Taps, countdown and run milestones">
+            <Switch value={settings.hapticEnabled ?? true} onValueChange={v => updateSetting({ hapticEnabled: v })} {...sw} />
+          </SettingRow>
+          <SettingRow label="Sounds" sub="Run start, km and zone-claim sounds">
+            <Switch value={settings.soundEnabled ?? true} onValueChange={v => updateSetting({ soundEnabled: v })} {...sw} />
+          </SettingRow>
         </SettingSection>
 
         {/* ── Notifications ── */}
         <SettingSection title="Notifications">
+          <Pressable style={s.linkRow} onPress={() => setNotifOpen(v => !v)} accessibilityRole="button" accessibilityState={{ expanded: notifOpen }}>
+            <Text style={s.linkLabel}>Notifications</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={s.rowValue}>{notifOnCount} on</Text>
+              <RowChevron />
+            </View>
+          </Pressable>
+          {notifOpen && <>
           <SettingRow label="Push notifications" sub="Master toggle for all notifications">
             <Switch value={settings.notificationsEnabled} onValueChange={v => updateSetting({ notificationsEnabled: v })} {...sw} />
           </SettingRow>
@@ -165,30 +198,10 @@ export default function SettingsScreen() {
           <SettingRow label="Offers and events" sub="Off by default. Partner rewards and community events">
             <Switch value={settings.offersEnabled ?? false} onValueChange={v => updateSetting({ offersEnabled: v })} {...sw} />
           </SettingRow>
+          </>}
         </SettingSection>
 
-        {/* ── Run ── */}
-        <SettingSection title="During a run">
-          <SettingRow label="Voice cues" sub={getSpeech() ? 'Each km, the loop closing, zones and workout steps' : 'Available after the next app update'}>
-            <Switch
-              value={settings.voiceCues !== false}
-              onValueChange={v => { Promise.resolve(updateSetting({ voiceCues: v })).then(resetVoiceCuesSetting).catch(() => {}); }}
-              disabled={!getSpeech()}
-              {...sw}
-            />
-          </SettingRow>
-        </SettingSection>
-
-        <SettingSection title="Sounds and haptics">
-          <SettingRow label="Haptics" sub="Taps, countdown and run milestones">
-            <Switch value={settings.hapticEnabled ?? true} onValueChange={v => updateSetting({ hapticEnabled: v })} {...sw} />
-          </SettingRow>
-          <SettingRow label="Sounds" sub="Run start, km and zone-claim sounds">
-            <Switch value={settings.soundEnabled ?? true} onValueChange={v => updateSetting({ soundEnabled: v })} {...sw} />
-          </SettingRow>
-        </SettingSection>
-
-        <SettingSection title="Privacy">
+        <SettingSection title="Privacy and safety">
           <Pressable style={s.linkRow} onPress={() => navigation.navigate('Privacy')} accessibilityRole="button">
             <View style={{ flex: 1 }}>
               <Text style={s.linkLabel}>Privacy controls</Text>
@@ -199,7 +212,7 @@ export default function SettingsScreen() {
         </SettingSection>
 
         {/* ── Data & Privacy ── */}
-        <SettingSection title="Legal">
+        <SettingSection title="Support">
           <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/privacy')}>
             <Text style={s.linkLabel}>Privacy Policy</Text>
             <RowChevron />
@@ -236,8 +249,14 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   backBtn:     { width: 32 },
   title:       { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   scroll:      { paddingBottom: 40 },
-  linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14 },
-  linkLabel:   { fontFamily: Fonts.regular, fontSize: 14, color: C.black },
+  linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, minHeight: 56 },
+  linkLabel:   { fontFamily: Fonts.regular, fontSize: 16, color: C.t1 },
+  rowValue:    { fontFamily: Fonts.regular, fontSize: 15, color: C.t2 },
+  plusCard:    { marginHorizontal: Spacing.gutter, marginTop: 8, backgroundColor: C.alwaysDark, borderRadius: 26, padding: 20, gap: 6 },
+  plusEyebrow: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.lime },
+  plusBody:    { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21, color: C.alwaysLight },
+  plusBtn:     { alignSelf: 'flex-start', marginTop: 8, height: 38, paddingHorizontal: 18, borderRadius: 19, backgroundColor: C.lime, justifyContent: 'center' },
+  plusBtnTxt:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysDark },
   linkSub:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 1 },
   versionText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
   // Premium card

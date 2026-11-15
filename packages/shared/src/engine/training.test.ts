@@ -106,6 +106,37 @@ describe('building a plan', () => {
   });
 });
 
+describe('cautious plans (a niggle or a comeback)', () => {
+  const opts = { runDays: [1, 3, 5, 6], longRunDay: 6, currentWeeklyKm: 25 };
+  const normal = plan('half', '2027-03-14', opts);
+  const careful = plan('half', '2027-03-14', { ...opts, cautious: true });
+
+  it('start lower', () => {
+    expect(careful.weeks[0].km).toBeLessThan(normal.weeks[0].km);
+  });
+  it('grow at most about 6% a week', () => {
+    let lastFull = careful.weeks[0].km;
+    for (const w of careful.weeks.slice(1)) {
+      if (w.focus === 'base' || w.focus === 'build') {
+        expect(w.km).toBeLessThanOrEqual(lastFull * 1.06 + 0.6);
+        lastFull = w.km;
+      }
+    }
+  });
+  it('keep hard work lighter than a normal plan', () => {
+    const hardShare = (p: typeof normal) => {
+      const all = p.weeks.filter(w => w.focus === 'build');
+      const hard = all.reduce((t, w) => t + w.sessions.reduce((n, x) => n + hardKm(x), 0), 0);
+      return hard / all.reduce((t, w) => t + w.km, 0);
+    };
+    expect(hardShare(careful)).toBeLessThan(hardShare(normal));
+    expect(hardShare(careful)).toBeLessThanOrEqual(0.25);
+  });
+  it('still end on race day', () => {
+    expect(careful.weeks[careful.weeks.length - 1].sessions.find(x => x.kind === 'race')?.date).toBe('2027-03-14');
+  });
+});
+
 describe('using a plan', () => {
   const p = plan('10k', '2027-02-14');
   const first = allSessions(p)[0];

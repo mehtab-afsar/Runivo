@@ -19,7 +19,7 @@ const FILTERS = new Set(['stale', 'mine', 'rivals', 'all']);
 
 const SIMPLE: Record<string, Route> = {
   '/run':           { screen: 'Main', params: { screen: 'Run' } },
-  '/feed':          { screen: 'Main', params: { screen: 'Feed' } },
+  '/feed':          { screen: 'Feed' },
   '/profile':       { screen: 'Main', params: { screen: 'Profile' } },
   '/store':         { screen: 'PACEStore' },
   '/store/mine':    { screen: 'MyRewards' },

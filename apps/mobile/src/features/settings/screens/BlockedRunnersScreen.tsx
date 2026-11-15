@@ -94,7 +94,7 @@ function mkStyles(C: AppColors) {
     list:    { paddingHorizontal: 18, paddingBottom: 40 },
     lead:    { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2, marginBottom: 12 },
     empty:   { fontFamily: Fonts.regular, fontSize: 14, color: C.t3, textAlign: 'center', marginTop: 32 },
-    row:     { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 16, padding: 12, marginBottom: 8 },
+    row:     { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 22, padding: 12, marginBottom: 8 },
     name:    { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
     kind:    { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
     btn:     { minWidth: 84, height: 32, borderRadius: 16, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },

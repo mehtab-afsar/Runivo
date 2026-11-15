@@ -16,6 +16,15 @@ END $$;
 
 SELECT set_config('test.role', 'service_role', false);
 
+-- City rewards unlock for runners with a recent scored run that started in the
+-- city (20261115000024). Give each runner one where their saved point is, then
+-- put the run counts back (the insert trigger counts the run).
+CREATE FUNCTION pg_temp.ran_in(p_user uuid, p_where geometry) RETURNS void LANGUAGE sql AS $$
+  INSERT INTO public.runs (id, user_id, activity_type, started_at, finished_at, distance_m, duration_sec, avg_pace, verified_distance_m, route)
+  VALUES (gen_random_uuid(), p_user, 'run', now() - interval '2 days', now() - interval '2 days' + interval '30 minutes', 5000, 1800, '6:00', 5000,
+          ST_SetSRID(ST_MakeLine(p_where, ST_Translate(p_where, 0.001, 0)), 4326));
+$$;
+
 -- A runner who passes every gate but has never saved a location.
 INSERT INTO auth.users (id, email) VALUES
   ('e1000000-0000-0000-0000-000000000001', 'v1-e1000000-0@example.com'),
@@ -42,8 +51,8 @@ SELECT set_config('test.role', 'authenticated', false);
 SELECT set_config('test.uid', 'e1000000-0000-0000-0000-000000000001', false);
 SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM store_catalog() WHERE title = 'Pune café'),
                      'no saved location, no point: the city reward is hidden, as before');
-SELECT pg_temp.check(EXISTS (SELECT 1 FROM store_catalog(18.52, 73.86) WHERE title = 'Pune café' AND lock_reason IS NULL),
-                     'no saved location, a point inside Pune: the reward shows and can be redeemed');
+SELECT pg_temp.check(EXISTS (SELECT 1 FROM store_catalog(18.52, 73.86) WHERE title = 'Pune café' AND lock_reason = 'not_in_region'),
+                     'no saved location, a point inside Pune: the reward shows (locked until a run there)');
 SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM store_catalog(28.61, 77.21) WHERE title = 'Pune café'),
                      'a point in Delhi: the Pune reward is hidden');
 SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM store_catalog('NaN', 73.86) WHERE title = 'Pune café'),
@@ -58,8 +67,12 @@ SELECT pg_temp.check((redeem_reward('e1000000-0000-0000-0000-000000000002', 'e20
                      'redeeming with a point outside the city is blocked: not_in_region');
 SELECT pg_temp.check((redeem_reward('e1000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 95, 77.21))->>'reason' = 'not_in_region',
                      'redeeming with an invalid point falls back to no location: not_in_region');
+SELECT pg_temp.check((redeem_reward('e1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 18.52, 73.86))->>'reason' = 'not_in_region',
+                     'a point inside Pune alone no longer unlocks it: the app can send any point');
+SELECT pg_temp.ran_in('e1000000-0000-0000-0000-000000000001', ST_SetSRID(ST_MakePoint(73.86, 18.52), 4326));
+UPDATE profiles SET total_runs = 5 WHERE id = 'e1000000-0000-0000-0000-000000000001';
 SELECT pg_temp.check((redeem_reward('e1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', 18.52, 73.86))->>'ok' = 'true',
-                     'redeeming with a point inside Pune works');
+                     'after a scored run in Pune it unlocks');
 SELECT pg_temp.check((SELECT city FROM reward_events WHERE reward_id = 'e2000000-0000-0000-0000-000000000001' AND event = 'redeem') = 'Pune',
                      'the redemption is reported in Pune');
 SELECT pg_temp.check((SELECT last_known_location FROM profiles WHERE id = 'e1000000-0000-0000-0000-000000000001') IS NULL,

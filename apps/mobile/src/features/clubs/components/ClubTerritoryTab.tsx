@@ -61,7 +61,7 @@ export default function ClubTerritoryTab({ clubId, onOpenMap }: { clubId: string
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     content: { padding: 18, gap: 12, paddingBottom: 60 },
-    card:  { backgroundColor: C.card, borderRadius: 16, padding: 16 },
+    card:  { backgroundColor: C.card, borderRadius: 22, padding: 16 },
     label: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
     big:   { fontFamily: Fonts.numeric, fontSize: 34, color: C.t1, marginTop: 4 },
     sub:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 4 },

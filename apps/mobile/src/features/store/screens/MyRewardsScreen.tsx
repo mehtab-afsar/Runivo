@@ -131,11 +131,11 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:     { flex: 1, backgroundColor: C.bg },
     header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
-    backBtn:  { width: 32, height: 32, borderRadius: 16, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    backBtn:  { width: 32, height: 32, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
     title:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     center:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:     { paddingHorizontal: 18, paddingBottom: 40, gap: 10 },
-    card:     { backgroundColor: C.card, borderRadius: 16, padding: 14 },
+    card:     { backgroundColor: C.card, borderRadius: 22, padding: 14 },
     top:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
     brandDot: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     brandInitial: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },

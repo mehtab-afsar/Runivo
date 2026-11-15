@@ -31,26 +31,26 @@ type JoinPolicy = 'open' | 'invite_only';
 
 
 const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; label: string }[] = [
-  { emoji: '🏃',  Icon: Pulse,          color: '#FF4518', bg: '#FDE8E4', label: 'Runner'    },
-  { emoji: '🔥',  Icon: Fire,           color: '#EA580C', bg: '#FFEDD5', label: 'Fire'      },
-  { emoji: '⚡',  Icon: Lightning,      color: Colors.gold, bg: '#FEF9C3', label: 'Lightning' },
-  { emoji: '🏆',  Icon: Trophy,         color: Colors.gold, bg: '#FEF3C7', label: 'Trophy'    },
-  { emoji: '🌍',  Icon: Globe,          color: '#0284C7', bg: '#E0F2FE', label: 'Global'    },
-  { emoji: '🛡️', Icon: Shield,         color: '#059669', bg: '#D1FAE5', label: 'Shield'    },
-  { emoji: '🧭',  Icon: NavigationArrow,color: '#475569', bg: '#F1F5F9', label: 'Compass'   },
-  { emoji: '💪',  Icon: Barbell,        color: Colors.purple, bg: '#EDE9FE', label: 'Strong'    },
-  { emoji: '🎯',  Icon: Target,         color: '#FF4518', bg: '#FDE8E4', label: 'Target'    },
-  { emoji: '🏅',  Icon: Medal,          color: '#B45309', bg: '#FEF3C7', label: 'Medal'     },
-  { emoji: '🚀',  Icon: Rocket,         color: Colors.purple, bg: '#EDE9FE', label: 'Rocket'    },
-  { emoji: '🌟',  Icon: Star,           color: Colors.gold, bg: '#FEF9C3', label: 'Star'      },
-  { emoji: '⚔️', Icon: Sword,          color: '#DC2626', bg: '#FEE2E2', label: 'Battle'    },
-  { emoji: '🌊',  Icon: Waves,          color: '#0EA5E9', bg: '#E0F2FE', label: 'Waves'     },
-  { emoji: '🏔️', Icon: Mountains,      color: '#78716C', bg: '#F5F5F4', label: 'Mountain'  },
-  { emoji: '💎',  Icon: Diamond,        color: '#06B6D4', bg: '#CFFAFE', label: 'Diamond'   },
-  { emoji: '👑',  Icon: Crown,          color: Colors.gold, bg: '#FEF3C7', label: 'Crown'     },
-  { emoji: '👟',  Icon: Footprints,     color: '#6B7280', bg: '#F3F4F6', label: 'Stride'    },
-  { emoji: '🚴',  Icon: Bicycle,        color: '#0284C7', bg: '#E0F2FE', label: 'Cycle'     },
-  { emoji: '🌿',  Icon: Leaf,           color: '#15803D', bg: '#DCFCE7', label: 'Nature'    },
+  { emoji: '🏃',  Icon: Pulse,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Runner'    },
+  { emoji: '🔥',  Icon: Fire,           color: '#A85E06', bg: '#FDF0DF', label: 'Fire'      },
+  { emoji: '⚡',  Icon: Lightning,      color: '#3C3577', bg: '#E4E1F8', label: 'Lightning' },
+  { emoji: '🏆',  Icon: Trophy,         color: '#17181A', bg: '#EEF0EA', label: 'Trophy'    },
+  { emoji: '🌍',  Icon: Globe,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Global'    },
+  { emoji: '🛡️', Icon: Shield,         color: '#A85E06', bg: '#FDF0DF', label: 'Shield'    },
+  { emoji: '🧭',  Icon: NavigationArrow,color: '#3C3577', bg: '#E4E1F8', label: 'Compass'   },
+  { emoji: '💪',  Icon: Barbell,        color: '#17181A', bg: '#EEF0EA', label: 'Strong'    },
+  { emoji: '🎯',  Icon: Target,         color: '#4E7F1F', bg: '#EEF5E4', label: 'Target'    },
+  { emoji: '🏅',  Icon: Medal,          color: '#A85E06', bg: '#FDF0DF', label: 'Medal'     },
+  { emoji: '🚀',  Icon: Rocket,         color: '#3C3577', bg: '#E4E1F8', label: 'Rocket'    },
+  { emoji: '🌟',  Icon: Star,           color: '#17181A', bg: '#EEF0EA', label: 'Star'      },
+  { emoji: '⚔️', Icon: Sword,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Battle'    },
+  { emoji: '🌊',  Icon: Waves,          color: '#A85E06', bg: '#FDF0DF', label: 'Waves'     },
+  { emoji: '🏔️', Icon: Mountains,      color: '#3C3577', bg: '#E4E1F8', label: 'Mountain'  },
+  { emoji: '💎',  Icon: Diamond,        color: '#17181A', bg: '#EEF0EA', label: 'Diamond'   },
+  { emoji: '👑',  Icon: Crown,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Crown'     },
+  { emoji: '👟',  Icon: Footprints,     color: '#A85E06', bg: '#FDF0DF', label: 'Stride'    },
+  { emoji: '🚴',  Icon: Bicycle,        color: '#3C3577', bg: '#E4E1F8', label: 'Cycle'     },
+  { emoji: '🌿',  Icon: Leaf,           color: '#17181A', bg: '#EEF0EA', label: 'Nature'    },
 ];
 
 const JOIN_POLICIES: { value: JoinPolicy; label: string; desc: string; Icon: Icon; color: string }[] = [
@@ -247,7 +247,7 @@ function mkCsStyles(C: AppColors) {
     badgeBtn:          { width: 44, height: 44, borderRadius: 12, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     badgeBtnDot:       { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2 },
     // Inputs
-    input:             { borderWidth: 1, borderColor: C.border, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.t1, backgroundColor: C.card },
+    input:             { borderWidth: 1, borderColor: C.border, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.t1, backgroundColor: C.card },
     inputMulti:        { minHeight: 72, textAlignVertical: 'top', paddingTop: 12 },
     inputError:        { borderColor: C.red, backgroundColor: C.redLo },
     inputMeta:         { flexDirection: 'row', marginTop: 4 },
@@ -255,7 +255,7 @@ function mkCsStyles(C: AppColors) {
     inputHintError:    { fontFamily: Fonts.regular, fontSize: 11, color: C.red },
     // Policy cards (vertical)
     policyCol:         { gap: 8, marginBottom: 4 },
-    policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.border, borderRadius: 16, padding: 14, backgroundColor: C.card },
+    policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.border, borderRadius: 22, padding: 14, backgroundColor: C.card },
     policyCardActive:  { borderColor: C.t1, backgroundColor: C.card },
     policyIconBox:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
     policyLabel:       { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
@@ -273,7 +273,8 @@ function mkCsStyles(C: AppColors) {
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
 
-export default function ClubScreen() {
+/** `embedded`: shown inside the Groups tab, which supplies the title and safe area. */
+export default function ClubScreen({ embedded = false }: { embedded?: boolean }) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
@@ -358,13 +359,16 @@ export default function ClubScreen() {
     </View>
   ) : null;
 
+  const Root = embedded ? View : SafeAreaView;
   return (
-    <SafeAreaView style={s.root}>
+    <Root style={s.root}>
       <View style={s.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Clubs</Text>
+        {embedded ? <View style={{ flex: 1 }} /> : <>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
+            <ArrowLeft size={16} color={C.t1} weight="regular" />
+          </Pressable>
+          <Text style={s.title}>Clubs</Text>
+        </>}
         <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)} testID="clubs-create-btn">
           <Plus size={14} color={C.t1} weight="bold" />
           <Text style={s.createTriggerText}>Create</Text>
@@ -381,9 +385,11 @@ export default function ClubScreen() {
           </Pressable>
         ))}
         {/* C4: group challenges with people you follow (C6: the open lobby room is gone). */}
-        <Pressable hitSlop={8} style={s.tabBtn} onPress={() => navigation.navigate('Challenges')}>
-          <Text style={s.tabLabel}>Challenges</Text>
-        </Pressable>
+        {!embedded && (
+          <Pressable hitSlop={8} style={s.tabBtn} onPress={() => navigation.navigate('Challenges')}>
+            <Text style={s.tabLabel}>Challenges</Text>
+          </Pressable>
+        )}
       </View>
 
       {loading ? (
@@ -411,6 +417,7 @@ export default function ClubScreen() {
           )}
           contentContainerStyle={s.myClubList}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={myClubs.length > 0 ? <Text style={s.sectionHead}>Your clubs</Text> : null}
           ListFooterComponent={
             <View style={{ marginTop: myClubs.length > 0 ? 22 : 0 }}>
               <NearbyClubsSection
@@ -481,7 +488,7 @@ export default function ClubScreen() {
         onCreate={createClub}
       />
 
-    </SafeAreaView>
+    </Root>
   );
 }
 
@@ -491,20 +498,21 @@ function mkStyles(C: AppColors) {
     header:          { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12, backgroundColor: C.bg },
     backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
     title:           { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
-    createTrigger:   { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
+    createTrigger:   { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card },
     createTriggerText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     // Tabs - match web (black underline active)
     // Segmented control: one rounded track, active segment is a raised card.
-    tabBar:          { flexDirection: 'row', marginHorizontal: 18, marginBottom: 4, padding: 3, borderRadius: 999, backgroundColor: C.border },
-    tabBtn:          { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
-    tabBtnActive:    { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-    tabLabel:        { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },
-    tabLabelActive:  { color: C.t1 },
+    tabBar:          { flexDirection: 'row', gap: 8, marginHorizontal: 18, marginBottom: 6 },
+    tabBtn:          { height: 38, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: C.card },
+    tabBtnActive:    { backgroundColor: C.alwaysDark },
+    tabLabel:        { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    tabLabelActive:  { color: C.alwaysLight },
+    sectionHead:     { fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1, marginTop: 6, marginBottom: 2 },
     loader:          { flex: 1, alignItems: 'center', justifyContent: 'center' },
     myClubsHeading:  { ...Type.headline, color: C.t1, marginBottom: 8 },
     // My Clubs tab — 2-column grid
     searchWrap:      { paddingTop: 10, paddingBottom: 6 },
-    myClubList:      { paddingHorizontal: Spacing.gutter, paddingBottom: 100, gap: 10 },
+    myClubList:      { paddingHorizontal: Spacing.gutter, paddingBottom: 130, gap: 10 },
     myClubGridRow:   { gap: 10 },
     myClubRow:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 13, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.mid },
     myClubAvatar:    { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -517,11 +525,11 @@ function mkStyles(C: AppColors) {
     emptyTitle:      { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, marginBottom: 4 },
     emptyTitleServe: { ...Type.title, color: C.t1, marginBottom: 6, textAlign: 'center' },
     emptyText:       { ...Type.bodySm, color: C.t2, textAlign: 'center', marginBottom: 16 },
-    emptyBtn:        { backgroundColor: C.red, paddingHorizontal: 22, height: 46, justifyContent: 'center', borderRadius: 999 },
+    emptyBtn:        { backgroundColor: C.alwaysDark, paddingHorizontal: 22, height: 46, justifyContent: 'center', borderRadius: 999 },
     emptyBtnLabel:   { ...Type.button, color: C.alwaysLight },
     // Rankings tab — one row (scope chip + search toggle) instead of pills + a
     // permanently-open search bar stacked above the list.
-    rankList:        { paddingBottom: 100 },
+    rankList:        { paddingBottom: 130 },
     rankHeaderRow:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingTop: 14, paddingBottom: 4, backgroundColor: C.bg },
     scopeChip:       { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, backgroundColor: C.card, borderRadius: 999, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, paddingHorizontal: 12, paddingVertical: 7 },
     scopeChipText:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
@@ -535,7 +543,7 @@ function mkStyles(C: AppColors) {
     scopeSheetRowLabel:  { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
     scopeSheetRowLabelActive: { fontFamily: Fonts.medium, color: C.red },
     // Dark podium
-    podiumCard:      { marginHorizontal: Spacing.gutter, marginTop: 12, marginBottom: 8, backgroundColor: C.alwaysDark, borderRadius: 20, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' },
+    podiumCard:      { marginHorizontal: Spacing.gutter, marginTop: 12, marginBottom: 8, backgroundColor: C.alwaysDark, borderRadius: 26, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' },
     podiumHeader:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },
     podiumHeading:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight },
     podiumRow:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },

@@ -94,7 +94,7 @@ export function AnalysisCards({ runId }: { runId: string }) {
 
 function mk(C: AppColors) {
   return StyleSheet.create({
-    card: { marginHorizontal: 18, marginTop: 12, backgroundColor: C.card, borderRadius: 16, padding: 16, gap: 8 },
+    card: { marginHorizontal: 18, marginTop: 12, backgroundColor: C.card, borderRadius: 22, padding: 16, gap: 8 },
     head: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     title: { flex: 1, fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
     grid: { flexDirection: 'row', gap: 16 },

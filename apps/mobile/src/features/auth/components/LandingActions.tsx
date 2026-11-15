@@ -16,7 +16,7 @@ export default function LandingActions({ onSignUp, onSignIn }: Props) {
         style={({ pressed }) => [s.primary, pressed && s.pressed]}
         onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {}); onSignUp(); }}
       >
-        <Text style={s.primaryLabel}>Create account</Text>
+        <Text style={s.primaryLabel}>Get started</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -31,12 +31,9 @@ export default function LandingActions({ onSignUp, onSignIn }: Props) {
 
 const s = StyleSheet.create({
   wrap:           { gap: 10 },
-  primary:        { height: 52, borderRadius: 999, backgroundColor: Colors.red, alignItems: 'center', justifyContent: 'center' },
-  primaryLabel:   { fontFamily: Fonts.semiBold, fontSize: 15, color: '#FFFFFF' },
-  secondary:      {
-    height: 52, borderRadius: 999, backgroundColor: '#FFFFFF',
-    borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center',
-  },
-  secondaryLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: Colors.t1 },
+  primary:        { height: 56, borderRadius: 999, backgroundColor: Colors.ink, alignItems: 'center', justifyContent: 'center' },
+  primaryLabel:   { fontFamily: Fonts.semiBold, fontSize: 17, color: '#FFFFFF' },
+  secondary:      { height: 44, alignItems: 'center', justifyContent: 'center' },
+  secondaryLabel: { fontFamily: Fonts.medium, fontSize: 16, color: Colors.t1 },
   pressed:        { transform: [{ scale: 0.985 }], opacity: 0.92 },
 });

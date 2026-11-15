@@ -5,7 +5,7 @@ import type { StoredSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import { resetAnalytics } from '@shared/services/analytics';
 import { unsubscribeFromPush } from '@shared/services/pushNotificationService';
-import { loadSettings, persistSettings, signOut as signOutService, runsOnlyOnThisPhone, SERVER_SYNCED_SETTINGS } from '../services/settingsService';
+import { loadSettings, persistSettings, signOut as signOutService, runsOnlyOnThisPhone, wipeThisPhone, SERVER_SYNCED_SETTINGS } from '../services/settingsService';
 import { useToast } from '@mobile/shared/hooks/useToast';
 import { nativeAppleCredential } from '@features/auth/services/socialAuth';
 interface SettingsContextValue {
@@ -129,10 +129,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       Alert.alert('Something went wrong', 'We couldn\'t delete your account. Please try again, or contact support if this keeps happening.');
       return;
     }
-    resetAnalytics();
     await unsubscribeFromPush().catch(() => {});
-    await supabase.auth.signOut();
-    await clearAllLocalData();
+    await supabase.auth.signOut().catch(() => {});
+    // Local data, GPS buffer, run checkpoint, cached plan, RevenueCat and analytics ids.
+    await wipeThisPhone();
     // No explicit navigation — App.tsx's useAuth()-driven re-render already routes
     // to the auth stack once the session is null, same as normal sign-out.
   }, []);

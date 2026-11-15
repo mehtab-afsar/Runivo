@@ -6,7 +6,7 @@ import { Fonts } from '@theme';
  * The PACE Store's mark: a bold capital X in the display face. Takes the same
  * size/color props as the icon set, so it drops into icon slots.
  */
-export function StoreMark({ size = 20, color = '#141412' }: { size?: number; color?: string; strokeWidth?: number }) {
+export function StoreMark({ size = 20, color = '#17181A' }: { size?: number; color?: string; strokeWidth?: number }) {
   return (
     <Text
       allowFontScaling={false}

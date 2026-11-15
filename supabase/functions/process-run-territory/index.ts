@@ -143,6 +143,7 @@ Deno.serve(async (req) => {
         logged_at: new Date().toISOString(),
       });
     } catch { /* instrumentation only */ }
+    await supabase.from('runs').update({ verified_distance_m: 0 }).eq('id', body.runId);
     await supabase.from('run_processing').update({ result: flagged }).eq('run_id', body.runId);
     return json(flagged);
   }
@@ -158,6 +159,13 @@ Deno.serve(async (req) => {
   const onFoot = isOnFoot(body.activityType);
   const { distanceM } = verifiedDistance(body.gpsPoints, durationSec, body.activityType);
   const serverDistanceKm = distanceM / 1000;
+
+  // Leaderboards, missions, challenges and awards count this number, never the
+  // distance the phone wrote (20261115000021). Stored before anything below
+  // reads it (sync_user_awards); a retry writes the same value again.
+  const { error: verifyErr } = await supabase
+    .from('runs').update({ verified_distance_m: Math.round(distanceM) }).eq('id', body.runId);
+  if (verifyErr) return release('verify_failed');
 
   const { data: attackerProfile, error: profErr } = await supabase
     .from('profiles')

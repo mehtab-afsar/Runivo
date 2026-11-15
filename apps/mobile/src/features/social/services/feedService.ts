@@ -1,5 +1,5 @@
 import { supabase } from '@shared/services/supabase';
-import { photoUrl } from '@features/run/services/activityEditService';
+import { signPhotoUrls } from '@features/run/services/activityEditService';
 import type { FeedPost, SuggestedRunner, Comment, PostLiker } from '../types';
 
 function mapRow(row: any): FeedPost {
@@ -30,8 +30,19 @@ function mapRow(row: any): FeedPost {
     title:              row.title ?? null,
     description:        row.content ?? null,
     visibility:         row.visibility ?? 'everyone',
-    photos:             ((row.photo_paths as string[] | null) ?? []).map(photoUrl),
+    // Storage paths here; withSignedPhotos swaps them for signed links.
+    photos:             (row.photo_paths as string[] | null) ?? [],
   };
+}
+
+/** Swap photo paths for signed links in one request; a photo that can't be signed is dropped. */
+async function withSignedPhotos(posts: FeedPost[]): Promise<FeedPost[]> {
+  const paths = posts.flatMap(p => p.photos ?? []);
+  if (!paths.length) return posts;
+  const signed = await signPhotoUrls(paths).catch(() => new Map<string, string>());
+  return posts.map(p => (p.photos?.length
+    ? { ...p, photos: p.photos.flatMap(path => (signed.has(path) ? [signed.get(path)!] : [])) }
+    : p));
 }
 
 // supabase-js never throws on a DB/RPC error — it resolves { data: null, error }.
@@ -52,7 +63,7 @@ export async function fetchFeed(opts: {
     discover:  opts.discover ?? false,
   });
   if (error) throw error;
-  const posts = await withCompanions((data ?? []).map(mapRow)).catch(() => (data ?? []).map(mapRow));
+  const posts = await withSignedPhotos(await withCompanions((data ?? []).map(mapRow)).catch(() => (data ?? []).map(mapRow)));
   const nextCursor = posts.length === (opts.lim ?? 20)
     ? posts[posts.length - 1].createdAt
     : null;
@@ -63,7 +74,7 @@ export async function fetchFeed(opts: {
 export async function fetchMyFeed(cursorTs?: string | null, lim = 20): Promise<{ posts: FeedPost[]; nextCursor: string | null }> {
   const { data, error } = await supabase.rpc('get_my_feed', { lim, cursor_ts: cursorTs ?? null });
   if (error) throw error;
-  const posts = await withCompanions((data ?? []).map(mapRow)).catch(() => (data ?? []).map(mapRow));
+  const posts = await withSignedPhotos(await withCompanions((data ?? []).map(mapRow)).catch(() => (data ?? []).map(mapRow)));
   return { posts, nextCursor: posts.length === lim ? posts[posts.length - 1].createdAt : null };
 }
 
@@ -71,7 +82,7 @@ export async function fetchMyFeed(cursorTs?: string | null, lim = 20): Promise<{
 export async function fetchClubFeed(clubId: string, cursorTs?: string | null): Promise<FeedPost[]> {
   const { data, error } = await supabase.rpc('get_club_feed', { p_club: clubId, lim: 20, cursor_ts: cursorTs ?? null });
   if (error) throw error;
-  return withCompanions((data ?? []).map(mapRow));
+  return withSignedPhotos(await withCompanions((data ?? []).map(mapRow)));
 }
 
 /** F5: "with Sam and 1 other" — runners who started within 100 m and 5 min. */

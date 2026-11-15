@@ -21,28 +21,30 @@ export interface ActivityMeta {
  * didn't recognize made the summary chip silently fall back to "Run" instead of
  * showing what was actually selected. One shared list covering every ActivityType
  * value makes that mismatch impossible to reintroduce.
+ * Colours follow the 2026 palette: green for running, amber on foot,
+ * lavender for rides and water, ink for gym work.
  */
 export const ACTIVITIES: ActivityMeta[] = [
-  { id: 'run',           label: 'Run',        icon: Pulse,         color: '#D93518', bg: '#FDE8E4' },
-  { id: 'jog',           label: 'Jog',        icon: Gauge,         color: '#D93518', bg: '#FDE8E4' },
-  { id: 'sprint',        label: 'Sprint',     icon: Lightning,     color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'walk',          label: 'Walk',       icon: Footprints,    color: '#059669', bg: '#D1FAE5' },
-  { id: 'hike',          label: 'Hike',       icon: Mountains,     color: '#B45309', bg: '#FEF3C7' },
-  { id: 'trail_run',     label: 'Trail run',  icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
-  { id: 'trail',         label: 'Trail',      icon: TreeEvergreen, color: '#15803D', bg: '#DCFCE7' },
-  { id: 'cycle',         label: 'Ride',       icon: Bicycle,       color: '#0284C7', bg: '#E0F2FE' },
-  { id: 'interval',      label: 'Intervals',  icon: Timer,         color: '#7C3AED', bg: '#EDE9FE' },
-  { id: 'tempo',         label: 'Tempo',      icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
-  { id: 'long_run',      label: 'Long Run',   icon: TrendUp,       color: '#EA580C', bg: '#FFEDD5' },
-  { id: 'fartlek',       label: 'Fartlek',    icon: Shuffle,       color: '#2563EB', bg: '#DBEAFE' },
-  { id: 'race',          label: 'Race',       icon: Fire,          color: '#E11D48', bg: '#FFE4E6' },
-  { id: 'cross_country', label: 'XC',         icon: RouteIcon,     color: '#4338CA', bg: '#E0E7FF' },
-  { id: 'stair_climb',   label: 'Stairs',     icon: TrendUp,       color: '#9333EA', bg: '#F3E8FF' },
-  { id: 'hiit',          label: 'HIIT',       icon: Fire,          color: '#DC2626', bg: '#FEE2E2' },
-  { id: 'strength',      label: 'Strength',   icon: Barbell,       color: '#4B5563', bg: '#F3F4F6' },
-  { id: 'swim',          label: 'Swim',       icon: Waves,         color: '#0369A1', bg: '#E0F2FE' },
-  { id: 'wheelchair',    label: 'Wheelchair', icon: Wheelchair,    color: '#6D28D9', bg: '#EDE9FE' },
-  { id: 'ski',           label: 'Ski',        icon: Snowflake,     color: '#0EA5E9', bg: '#E0F2FE' },
+  { id: 'run',           label: 'Run',        icon: Pulse,         color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'jog',           label: 'Jog',        icon: Gauge,         color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'sprint',        label: 'Sprint',     icon: Lightning,     color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'walk',          label: 'Walk',       icon: Footprints,    color: '#A85E06', bg: '#FDF0DF' },
+  { id: 'hike',          label: 'Hike',       icon: Mountains,     color: '#A85E06', bg: '#FDF0DF' },
+  { id: 'trail_run',     label: 'Trail run',  icon: TreeEvergreen, color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'trail',         label: 'Trail',      icon: TreeEvergreen, color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'cycle',         label: 'Ride',       icon: Bicycle,       color: '#3C3577', bg: '#E4E1F8' },
+  { id: 'interval',      label: 'Intervals',  icon: Timer,         color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'tempo',         label: 'Tempo',      icon: TrendUp,       color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'long_run',      label: 'Long Run',   icon: TrendUp,       color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'fartlek',       label: 'Fartlek',    icon: Shuffle,       color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'race',          label: 'Race',       icon: Fire,          color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'cross_country', label: 'XC',         icon: RouteIcon,     color: '#4E7F1F', bg: '#EEF5E4' },
+  { id: 'stair_climb',   label: 'Stairs',     icon: TrendUp,       color: '#A85E06', bg: '#FDF0DF' },
+  { id: 'hiit',          label: 'HIIT',       icon: Fire,          color: '#17181A', bg: '#EEF0EA' },
+  { id: 'strength',      label: 'Strength',   icon: Barbell,       color: '#17181A', bg: '#EEF0EA' },
+  { id: 'swim',          label: 'Swim',       icon: Waves,         color: '#3C3577', bg: '#E4E1F8' },
+  { id: 'wheelchair',    label: 'Wheelchair', icon: Wheelchair,    color: '#3C3577', bg: '#E4E1F8' },
+  { id: 'ski',           label: 'Ski',        icon: Snowflake,     color: '#3C3577', bg: '#E4E1F8' },
 ];
 
 const BY_ID: Partial<Record<ActivityType, ActivityMeta>> = Object.fromEntries(

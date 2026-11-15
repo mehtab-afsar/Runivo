@@ -373,7 +373,7 @@ export default function CalorieTrackerScreen() {
 }
 
 function mkWcStyles(C: AppColors) { return StyleSheet.create({
-  card:       { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
+  card:       { backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   cardHead:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   cardTitle:  { ...Type.overline, color: C.t3 },
   avg:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
@@ -426,7 +426,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   contextText:  { fontFamily: Fonts.regular, fontSize: 12, color: C.green, lineHeight: 18 },
   burnChip:     { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, backgroundColor: C.orangeBg, borderRadius: 8, borderWidth: 0.5, borderColor: 'rgba(194,90,0,0.20)' },
   burnText:     { fontFamily: Fonts.medium, fontSize: 11, color: C.orange },
-  macroCard:    { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14, gap: 12 },
+  macroCard:    { backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, padding: 14, gap: 12 },
   cardTitle:    { ...Type.overline, color: C.t3, marginBottom: 4 },
   macroRow:     { gap: 4 },
   macroMeta:    { flexDirection: 'row', justifyContent: 'space-between' },
@@ -435,7 +435,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   macroGoal:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
   macroTrack:   { height: 4, backgroundColor: C.mid, borderRadius: 2, overflow: 'hidden' },
   macroFill:    { height: '100%', borderRadius: 2 },
-  statsCard:    { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
+  statsCard:    { backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   statsRow:     { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   statItem:     { flex: 1, alignItems: 'center' },
   statDivider:  { width: 0.5, height: 32, backgroundColor: C.border },

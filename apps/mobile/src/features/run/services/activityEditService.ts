@@ -1,5 +1,6 @@
 import { supabase } from '@shared/services/supabase';
 import { getRunById, saveRun, deleteRun } from '@shared/services/store';
+import { readCleanImage } from '@mobile/shared/lib/cleanImageUpload';
 
 /** Who can see an activity (20261112000004_activity_edit.sql). */
 export type Audience = 'everyone' | 'followers' | 'only_me';
@@ -35,8 +36,10 @@ export async function fetchActivityEdit(runId: string): Promise<ActivityEdit> {
   const paths = (run?.photo_paths as string[] | null) ?? local?.photoPaths ?? [];
   const excluded = (run?.excluded as boolean | null) ?? local?.excluded ?? false;
   opened.set(runId, { paths, excluded });
+  const signed = await signPhotoUrls(paths).catch(() => new Map<string, string>());
   return {
-    photos:          paths.map(path => ({ path, uri: photoUrl(path) })),
+    // An unsigned photo keeps its path (so saving never deletes it), just no preview.
+    photos:          paths.map(path => ({ path, uri: signed.get(path) ?? '' })),
     excluded,
     integrityStatus: (run?.integrity_status as ActivityEdit['integrityStatus'] | null) ?? local?.integrityStatus ?? 'ok',
     integrityReason: (run?.integrity_reason as ActivityEdit['integrityReason']) ?? local?.integrityReason ?? null,
@@ -114,15 +117,38 @@ const BUCKET = 'feed';
 /** A photo in the edit sheet: saved ones have a storage path, new ones only a local uri. */
 export interface ActivityPhoto { path?: string; uri: string }
 
-export const photoUrl = (path: string) => supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+// The feed bucket is private (20261115000020): photos are read through short-lived
+// signed links, and storage only signs them for people allowed to see the post.
+const SIGNED_TTL_S = 60 * 60;
+const signedCache = new Map<string, { url: string; until: number }>();
+
+/** Signed links for photo paths, in one request; paths the viewer can't see are left out. */
+export async function signPhotoUrls(paths: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const now = Date.now();
+  const missing: string[] = [];
+  for (const p of new Set(paths)) {
+    const hit = signedCache.get(p);
+    if (hit && hit.until > now) out.set(p, hit.url);
+    else missing.push(p);
+  }
+  if (missing.length) {
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrls(missing, SIGNED_TTL_S);
+    for (const row of data ?? []) {
+      if (row.path && row.signedUrl && !row.error) {
+        out.set(row.path, row.signedUrl);
+        signedCache.set(row.path, { url: row.signedUrl, until: now + (SIGNED_TTL_S - 300) * 1000 });
+      }
+    }
+  }
+  return out;
+}
 
 async function uploadPhoto(userId: string, runId: string, uri: string): Promise<string> {
-  const ext = (uri.split('?')[0].split('.').pop() ?? 'jpg').toLowerCase();
-  const type = ext === 'png' ? 'png' : ext === 'webp' ? 'webp' : 'jpeg';
-  const name = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}.${type === 'jpeg' ? 'jpg' : type}`;
+  const img = await readCleanImage(uri);
+  const name = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}.${img.ext}`;
   const path = `${userId}/${runId}/${name}`;
-  const body = await fetch(uri).then(r => r.arrayBuffer());
-  const { error } = await supabase.storage.from(BUCKET).upload(path, body, { contentType: `image/${type}` });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, img.body, { contentType: img.contentType });
   if (error) throw new Error(error.message);
   return path;
 }

@@ -4,46 +4,41 @@ import { SafetyNote } from '@mobile/shared/components/SafetyNote';
 import { useAiConsent } from '../hooks/useAiConsent';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput,
-  ActivityIndicator, Platform, KeyboardAvoidingView,
+  View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { X, ArrowLeft, Check, PaperPlaneTilt } from 'phosphor-react-native';
+import { X, ArrowLeft, ArrowUp, CalendarBlank, Hexagon, Flag, ShieldCheck, Pulse, type Icon } from 'phosphor-react-native';
+import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { supabase } from '@shared/services/supabase';
-import { getTerritoryPolygons } from '@shared/services/store';
-import { weeklyCapFor } from '@shared/engine/runEngine';
-import { GAME_CONFIG } from '@shared/services/config';
-import type { TerritoryPolygon } from '@shared/types/game';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { useCoachNav } from '@navigation/CoachNavContext';
 import { useCoachChat } from '../hooks/useCoachChat';
-import { usePlanScreen } from '../hooks/usePlanScreen';
+import { useActivePlan } from '../hooks/useActivePlan';
 import { requestPostRunAnalysis } from '../services/coachService';
-import { CoachWelcome } from '../components/CoachWelcome';
+import { ApprovePlanSheet } from '../components/ApprovePlanSheet';
 import { CoachSidebar } from '../components/CoachSidebar';
 import { PaceAutoCard } from '../components/PaceAutoCard';
 import { MessageBubble } from '../components/MessageBubble';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { PaceChatModal } from '../components/PaceChatModal';
-import { buildInsightMessage, getTodaySession, getStaleZones } from '../utils/insightBuilder';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-function PaceXLogo({ size = 22 }: { size?: number }) {
-  const C = useTheme();
-  return (
-    <Text>
-      <Text style={{ fontFamily: Fonts.semiBold, fontSize: size, color: C.black }}>Pace</Text>
-      <Text style={{ fontFamily: Fonts.bold, fontSize: size + 1, color: C.red }}>X</Text>
-    </Text>
-  );
-}
 
 
 /** PaceX is a Runivo Plus feature (PRD); free runners see what it offers. */
+const START_OPTIONS: { label: string; message: string; plan?: boolean; icon: Icon; color: string }[] = [
+  { label: "Today's session", message: 'What should I run today?', icon: Hexagon, color: '#4E7F1F' },
+  { label: 'Train for a race', message: '', plan: true, icon: Flag, color: '#3C3577' },
+  { label: 'Defend my zones', message: 'Which of my zones are at risk this week, and what run would defend them?', icon: ShieldCheck, color: '#A85E06' },
+  { label: 'Why was I slow?', message: 'Why was my last run slower than usual?', icon: Pulse, color: '#C0434F' },
+  { label: 'My week', message: 'How is my week going?', icon: CalendarBlank, color: '#B88A0C' },
+];
+
 export default function CoachScreen() {
   return <PlusOnlyCoach><AiConsentGate><CoachScreenInner /></AiConsentGate></PlusOnlyCoach>;
 }
@@ -77,15 +72,13 @@ function CoachScreenInner() {
   const { setCoachActive } = useCoachNav();
 
   const coach    = useCoachChat();
-  const planData = usePlanScreen();
+  const planData = useActivePlan();
 
   const [chatVisible,         setChatVisible]         = useState(false);
+  const [atStart,             setAtStart]             = useState(true);
   const [capabilitiesVisible, setCapabilitiesVisible] = useState(false);
   const [planFormVisible,     setPlanFormVisible]     = useState(false);
-  const [staleZones,          setStaleZones]          = useState<TerritoryPolygon[]>([]);
   const [playerName,          setPlayerName]          = useState('Runner');
-  const [paceWeeklyEarned,    setPaceWeeklyEarned]    = useState(0);
-  const [paceWeeklyCap,       setPaceWeeklyCap]       = useState<number>(GAME_CONFIG.PACE_WEEKLY_CAP_FREE);
 
   useFocusEffect(
     useCallback(() => {
@@ -101,18 +94,14 @@ function CoachScreenInner() {
           try {
             const { data } = await supabase
               .from('profiles')
-              .select('username, pace_weekly_earned, subscription_tier')
+              .select('username')
               .eq('id', uid)
               .maybeSingle();
             if (!data) return;
             setPlayerName(data.username ?? 'Runner');
-            setPaceWeeklyEarned(data.pace_weekly_earned ?? 0);
-            setPaceWeeklyCap(weeklyCapFor(data.subscription_tier));
           } catch { /* offline */ }
         };
         fetchProfile();
-
-        getTerritoryPolygons(uid).then(all => setStaleZones(getStaleZones(all, uid)));
       }).catch(() => {});
 
       return () => setCoachActive(false);
@@ -124,15 +113,7 @@ function CoachScreenInner() {
     }, [setCoachActive]),
   );
 
-  const hasActivePlan  = planData.plan?.status === 'active';
-  const todaySession   = useMemo(() => getTodaySession(planData.sessions), [planData.sessions]);
-  const insight        = useMemo(() => buildInsightMessage({
-    todaySession,
-    staleZones,
-    playerName,
-    paceWeeklyEarned,
-    paceWeeklyCap,
-  }), [todaySession, staleZones, playerName, paceWeeklyEarned, paceWeeklyCap]);
+  const hasActivePlan  = !!planData.plan && !!planData.week;
 
   const autoCard = useMemo(() => {
     const triggered = coach.messages.filter(m => m.auto_triggered);
@@ -169,6 +150,7 @@ function CoachScreenInner() {
   }, [coach]);
 
   const handleCapabilitySelect = useCallback((message: string) => {
+    setAtStart(false);
     if (message === 'habit_tracking') {
       setChatVisible(true);
       coach.requestHabitAnalysis();
@@ -190,13 +172,11 @@ function CoachScreenInner() {
     openChatWithPrompt(message);
   }, [openChatWithPrompt, coach, requestPostRunDebrief, requestWeeklyReview]);
 
-  const handleGeneratePlan = useCallback(async () => {
-    const ok = await coach.generatePlan();
-    if (ok) {
-      await planData.reload();
-      setPlanFormVisible(false);
-    }
-  }, [coach, planData]);
+  const handlePlanApproved = useCallback(async () => {
+    await planData.reload();
+    setPlanFormVisible(false);
+    navigation.navigate('TrainingPlan');
+  }, [planData, navigation]);
 
   const scrollRef = useRef<ScrollView>(null);
   const chips: { label: string; message: string }[] = coach.quickPrompts.length > 0
@@ -207,128 +187,8 @@ function CoachScreenInner() {
         { label: 'Pace for my next run', message: 'What pace should my next run be?' },
       ];
 
-  const briefText = coach.brief?.headline
-    ?? (coach.briefLoading ? 'Reading your week…' : `${insight.headline} ${insight.body}`.trim());
-  const todayIdx = (new Date().getDay() + 6) % 7; // Mon = 0
-
-  return (
-    <SafeAreaView style={s.root} edges={['top']}>
-      {/* Header: back · PaceX · AI coach (mock s-coach) */}
-      <View style={s.header}>
-        <Pressable style={s.backBtn} onPress={() => navigation.navigate('Dashboard' as never)} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}
-          accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <PaceXLogo size={22} />
-        <View style={s.aiChip}><Text style={s.aiChipText}>AI coach</Text></View>
-      </View>
-      <SafetyNote kind="coach" style={{ marginTop: 0, marginBottom: 6 }} />
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          ref={scrollRef}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={s.thread}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-        >
-          {/* Weekly brief */}
-          <View style={s.brief}>
-            <Text style={s.briefEyebrow}>
-              Weekly brief{hasActivePlan ? ` · Week ${planData.plan!.weekCurrent} of ${planData.plan!.weeksTotal}` : ''}
-            </Text>
-            {planData.loading
-              ? <ActivityIndicator color={C.alwaysLight} style={{ marginTop: 12 }} />
-              : <Text style={s.briefText}>{briefText}</Text>}
-
-            {hasActivePlan ? (
-              <View style={s.week}>
-                {DAY_ORDER.map((d, i) => {
-                  const sess = planData.sessions.find(x => x.day === d);
-                  const isToday = i === todayIdx;
-                  const done = sess?.status === 'completed';
-                  const label = !sess || sess.type === 'Rest' ? 'Rest' : SESSION_SHORT[sess.type] ?? sess.type;
-                  const km = sess && sess.type !== 'Rest' ? (sess.description.match(/(\d+(?:\.\d+)?)\s*km/i)?.[1] ?? '') : '';
-                  return (
-                    <View key={d} style={[s.day, isToday && s.dayToday, !isToday && i < todayIdx && s.dayPast]}>
-                      <Text style={[s.dayLetter, isToday && s.dayTextToday]}>{d[0]}</Text>
-                      <Text style={[s.dayLabel, isToday && s.dayTextToday]} numberOfLines={1}>{label}</Text>
-                      {km ? <Text style={[s.dayLabel, isToday && s.dayTextToday]}>{km}</Text> : null}
-                      {done && <Check size={12} color={C.alwaysLight} weight="bold" style={{ marginTop: 2 }} />}
-                    </View>
-                  );
-                })}
-              </View>
-            ) : !planData.loading && (
-              <Pressable hitSlop={8} style={s.briefBtn} onPress={() => setPlanFormVisible(true)}>
-                <Text style={s.briefBtnText}>Build a training plan</Text>
-              </Pressable>
-            )}
-          </View>
-
-          {autoCard && <PaceAutoCard message={autoCard} onReadMore={() => setChatVisible(true)} />}
-
-          {/* Conversation */}
-          {coach.messages.filter(m => !m.auto_triggered).map(m => {
-            const isCard = !!m.type && m.type !== 'chat' && m.type !== 'text';
-            if (isCard) {
-              return (
-                <View key={m.id} style={s.cardRow}>
-                  <MessageBubble role={m.role} content={m.content} type={m.type} animate={coach.liveMessageIds.has(m.id)} />
-                </View>
-              );
-            }
-            return m.role === 'user' ? (
-              <View key={m.id} style={s.userBubble}><Text style={s.userText}>{m.content}</Text></View>
-            ) : (
-              <View key={m.id} style={s.coachWrap}>
-                <Text style={s.coachName}>PaceX</Text>
-                <View style={s.coachBubble}><Text style={s.coachText}>{m.content}</Text></View>
-              </View>
-            );
-          })}
-          {coach.sending && <View style={s.coachWrap}><Text style={s.coachName}>PaceX</Text><TypingIndicator /></View>}
-          {coach.error && (
-            <Pressable onPress={coach.retryLastMessage} style={s.errorRow}>
-              <Text style={s.errorText}>{coach.error} · Tap to retry</Text>
-            </Pressable>
-          )}
-        </ScrollView>
-
-        {/* Suggestions + input */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} style={s.chipsWrap}
-          keyboardShouldPersistTaps="handled">
-          {chips.map(c => (
-            <Pressable hitSlop={8} key={c.label} style={s.chip} onPress={() => handleCapabilitySelect(c.message)}>
-              <Text style={s.chipText}>{c.label}</Text>
-            </Pressable>
-          ))}
-          <Pressable hitSlop={8} style={s.chip} onPress={() => setCapabilitiesVisible(true)}>
-            <Text style={s.chipText}>More</Text>
-          </Pressable>
-        </ScrollView>
-        <View style={s.inputBar}>
-          <TextInput
-            style={s.input}
-            placeholder="Ask PaceX"
-            placeholderTextColor={C.t3}
-            value={coach.inputText}
-            onChangeText={coach.setInputText}
-            onSubmitEditing={() => coach.sendMessage()}
-            returnKeyType="send"
-            editable={!coach.sending}
-          />
-          <Pressable
-            style={[s.send, (!coach.inputText.trim() || coach.sending) && { opacity: 0.5 }]}
-            onPress={() => coach.sendMessage()}
-            disabled={!coach.inputText.trim() || coach.sending}
-            accessibilityRole="button"
-            accessibilityLabel="Send"
-          >
-            <PaperPlaneTilt size={18} color={C.alwaysLight} weight="fill" />
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-
+  const modals = (
+    <>
       {/* Full chat history (from capability actions) */}
       <PaceChatModal
         visible={chatVisible}
@@ -353,68 +213,234 @@ function CoachScreenInner() {
       <Modal visible={planFormVisible} animationType="slide" onRequestClose={() => setPlanFormVisible(false)} presentationStyle="pageSheet">
         <SafeAreaView style={s.root}>
           <View style={s.header}>
-            <Text style={s.sheetTitle}>Build a training plan</Text>
+            <Text style={s.sheetTitle}>Your plan from PaceX</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Close" style={s.backBtn} onPress={() => setPlanFormVisible(false)} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
               <X size={16} color={C.t2} weight="bold" />
             </Pressable>
           </View>
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-            <CoachWelcome
-              goalInput={coach.goalInput}
-              onGoalChange={coach.setGoalInput}
-              onGenerate={handleGeneratePlan}
-              planLoading={coach.planLoading}
-              onOpenChat={() => { setPlanFormVisible(false); setChatVisible(true); }}
+          <View style={{ flex: 1 }}>
+            <ApprovePlanSheet
+              onApproved={handlePlanApproved}
+              onChangeDetails={race => { setPlanFormVisible(false); navigation.navigate('PlanBuilder', race ? { race: race as never } : undefined); }}
             />
-          </ScrollView>
+          </View>
         </SafeAreaView>
       </Modal>
+    </>
+  );
+
+  const thread = coach.messages.filter(m => !m.auto_triggered);
+  // Opens on the start screen (mock); any message moves to the chat.
+  const started = !atStart || coach.sending;
+  const firstName = (playerName || 'there').split(/[._\s]/)[0];
+  const ask = (o: (typeof START_OPTIONS)[number]) => {
+    if (o.plan) { setPlanFormVisible(true); return; }
+    setAtStart(false);
+    coach.sendMessage(o.message);
+  };
+  const openPlan = () => (hasActivePlan ? navigation.navigate('TrainingPlan') : setPlanFormVisible(true));
+
+  const inputRow = (big: boolean) => (
+    <View style={s.inputRow}>
+      <View style={[s.inputPill, { height: big ? 60 : 56, borderRadius: big ? 30 : 28 }]}>
+        <TextInput
+          style={s.input}
+          placeholder={started ? 'Write your message…' : 'Ask PaceX anything…'}
+          placeholderTextColor={C.t3}
+          value={coach.inputText}
+          onChangeText={coach.setInputText}
+          onSubmitEditing={() => { setAtStart(false); coach.sendMessage(); }}
+          returnKeyType="send"
+          editable={!coach.sending}
+          accessibilityLabel="Message PaceX"
+        />
+      </View>
+      <Pressable
+        style={[s.send, { width: big ? 60 : 56, height: big ? 60 : 56, borderRadius: big ? 30 : 28 }, (!coach.inputText.trim() || coach.sending) && { opacity: 0.5 }]}
+        onPress={() => { setAtStart(false); coach.sendMessage(); }}
+        disabled={!coach.inputText.trim() || coach.sending}
+        accessibilityRole="button"
+        accessibilityLabel="Send"
+      >
+        <ArrowUp size={22} color={C.alwaysLight} weight="bold" />
+      </Pressable>
+    </View>
+  );
+
+  // ── Start (mock "PaceX start"): lavender glow, big orb, a few ways in ──
+  if (!started) {
+    return (
+      <View style={s.startRoot}>
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" preserveAspectRatio="none">
+          <Defs>
+            <RadialGradient id="pxbg" cx="70%" cy="0%" rx="120%" ry="60%">
+              <Stop offset="0" stopColor="#DCD8F7" />
+              <Stop offset="0.45" stopColor="#EEEDF8" />
+              <Stop offset="1" stopColor={C.bg} />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#pxbg)" />
+        </Svg>
+        <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <View style={s.startTop}>
+              <Pressable style={s.glassBtn} onPress={() => navigation.navigate('Dashboard' as never)} accessibilityRole="button" accessibilityLabel="Close PaceX">
+                <X size={18} color={C.t1} weight="bold" />
+              </Pressable>
+              <Pressable style={s.glassPill} onPress={openPlan} accessibilityRole="button">
+                <CalendarBlank size={16} color={C.t1} weight="bold" />
+                <Text style={s.glassPillTxt}>Your plan</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={s.startScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View style={s.bigOrb}><PaceXOrb size={128} /></View>
+              <Text style={s.startHi}>Hi {firstName},{'\n'}what are we running?</Text>
+              <Text style={s.startSub}>PaceX knows your runs, your zones and your plan.</Text>
+              <View style={s.startChips}>
+                {START_OPTIONS.map((o, i) => {
+                  const Icon = o.icon;
+                  return (
+                    <Pressable key={o.label} style={[s.startChip, i === 0 && s.startChipFirst]} onPress={() => ask(o)} accessibilityRole="button">
+                      <Icon size={18} color={o.color} weight="bold" />
+                      <Text style={s.startChipTxt}>{o.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {thread.length > 0 && (
+                <Pressable onPress={() => setAtStart(false)} hitSlop={8} accessibilityRole="button">
+                  <Text style={s.resume}>Carry on our last chat</Text>
+                </Pressable>
+              )}
+              {coach.error && (
+                <Pressable onPress={coach.retryLastMessage} style={s.errorRow}>
+                  <Text style={s.errorText}>{coach.error} · Tap to retry</Text>
+                </Pressable>
+              )}
+            </ScrollView>
+            <View style={s.startDock}>
+              {inputRow(true)}
+              <SafetyNote kind="coach" style={{ marginTop: 8, marginBottom: 0 }} />
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+        {modals}
+      </View>
+    );
+  }
+
+  // ── Chat (mock "PaceX chat") ──
+  return (
+    <SafeAreaView style={s.chatRoot} edges={['top', 'bottom']}>
+      <View style={s.chatHead}>
+        <Pressable style={s.whiteBtn} onPress={() => setAtStart(true)} accessibilityRole="button" accessibilityLabel="Back">
+          <ArrowLeft size={18} color={C.t1} weight="bold" />
+        </Pressable>
+        <PaceXOrb size={40} />
+        <View style={{ flex: 1 }}>
+          <Text style={s.chatName}>PaceX</Text>
+          <Text style={s.chatRole}>Your running coach</Text>
+        </View>
+        <Pressable style={s.whiteBtn} onPress={openPlan} accessibilityRole="button" accessibilityLabel="Your plan">
+          <CalendarBlank size={18} color={C.t1} weight="bold" />
+        </Pressable>
+      </View>
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.thread}
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+        >
+          {autoCard && <PaceAutoCard message={autoCard} onReadMore={() => setChatVisible(true)} />}
+          {thread.map(m => {
+            const isCard = !!m.type && m.type !== 'chat' && m.type !== 'text';
+            if (isCard) {
+              return (
+                <View key={m.id} style={s.cardRow}>
+                  <MessageBubble role={m.role} content={m.content} type={m.type} animate={coach.liveMessageIds.has(m.id)} />
+                </View>
+              );
+            }
+            return m.role === 'user'
+              ? <View key={m.id} style={s.userBubble}><Text style={s.userText}>{m.content}</Text></View>
+              : <View key={m.id} style={s.coachBubble}><Text style={s.coachText}>{m.content}</Text></View>;
+          })}
+          {coach.sending && <View style={s.coachBubbleWrap}><TypingIndicator /></View>}
+          {coach.error && (
+            <Pressable onPress={coach.retryLastMessage} style={s.errorRow}>
+              <Text style={s.errorText}>{coach.error} · Tap to retry</Text>
+            </Pressable>
+          )}
+        </ScrollView>
+
+        <View style={s.chatDock}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips} keyboardShouldPersistTaps="handled">
+            {chips.map(c => (
+              <Pressable hitSlop={6} key={c.label} style={s.chip} onPress={() => handleCapabilitySelect(c.message)}>
+                <Text style={s.chipText}>{c.label}</Text>
+              </Pressable>
+            ))}
+            <Pressable hitSlop={6} style={s.chip} onPress={() => setCapabilitiesVisible(true)}>
+              <Text style={s.chipText}>More</Text>
+            </Pressable>
+          </ScrollView>
+          {inputRow(false)}
+        </View>
+      </KeyboardAvoidingView>
+      {modals}
     </SafeAreaView>
   );
 }
 
-const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const SESSION_SHORT: Record<string, string> = {
-  'Easy Run': 'Easy', 'Tempo': 'Tempo', 'Long Run': 'Long', 'Intervals': 'Intervals',
-  'Cross-train': 'Cross', 'Race': 'Race', 'Defend': 'Defend',
-};
+
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingVertical: 10 },
     backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    aiChip:       { paddingHorizontal: 10, height: 26, borderRadius: 8, backgroundColor: C.mid, justifyContent: 'center' },
-    aiChipText:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t1 },
     sheetTitle:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
-    thread:       { paddingHorizontal: Spacing.gutter, paddingTop: 6, paddingBottom: 16, gap: 14 },
-    brief:        { backgroundColor: C.alwaysDark, borderRadius: 18, padding: 16 },
-    briefEyebrow: { fontFamily: Fonts.medium, fontSize: 13, color: '#FF9A7A' },
-    briefText:    { fontFamily: Fonts.semiBold, fontSize: 17, lineHeight: 24, color: C.alwaysLight, marginTop: 8 },
-    briefBtn:     { alignSelf: 'flex-start', marginTop: 14, height: 38, paddingHorizontal: 16, borderRadius: 999, backgroundColor: C.alwaysLight, justifyContent: 'center' },
-    briefBtnText: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysDark },
-    week:         { flexDirection: 'row', gap: 6, marginTop: 14 },
-    day:          { flex: 1, minHeight: 72, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', paddingTop: 8, paddingHorizontal: 2 },
-    dayPast:      { backgroundColor: 'rgba(255,255,255,0.16)' },
-    dayToday:     { backgroundColor: C.red },
-    dayLetter:    { fontFamily: Fonts.medium, fontSize: 11, color: 'rgba(255,255,255,0.55)' },
-    dayLabel:     { fontFamily: Fonts.semiBold, fontSize: 11, color: C.alwaysLight, marginTop: 4, textAlign: 'center' },
-    dayTextToday: { color: C.alwaysLight },
+    // Start
+    startRoot:    { flex: 1, backgroundColor: C.bg },
+    startTop:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },
+    glassBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center' },
+    glassPill:    { height: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.8)', flexDirection: 'row', alignItems: 'center', gap: 6 },
+    glassPillTxt: { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
+    startScroll:  { alignItems: 'center', paddingHorizontal: 24, paddingTop: 40, paddingBottom: 24 },
+    bigOrb:       { width: 128, height: 128, borderRadius: 64, shadowColor: '#9C92EA', shadowOpacity: 0.55, shadowRadius: 40, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+    startHi:      { fontFamily: Fonts.semiBold, fontSize: 34, lineHeight: 38, letterSpacing: -0.8, color: C.t1, textAlign: 'center', marginTop: 22 },
+    startSub:     { fontFamily: Fonts.regular, fontSize: 15, color: '#55596A', textAlign: 'center', marginTop: 10 },
+    startChips:   { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 36 },
+    startChip:    { height: 46, paddingHorizontal: 16, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.65)', flexDirection: 'row', alignItems: 'center', gap: 8 },
+    startChipFirst: { backgroundColor: '#FFFFFF', shadowColor: '#3C3577', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 } },
+    startChipTxt: { fontFamily: Fonts.regular, fontSize: 15, color: C.t1 },
+    resume:       { fontFamily: Fonts.medium, fontSize: 14, color: C.lavenderInk, marginTop: 22, textDecorationLine: 'underline' },
+    startDock:    { paddingHorizontal: 16, paddingBottom: 8 },
+    // Shared input
+    inputRow:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    inputPill:    { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', paddingLeft: 20, paddingRight: 12, shadowColor: '#3C3577', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+    input:        { fontFamily: Fonts.regular, fontSize: 16, color: '#17181A' },
+    send:         { backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    // Chat
+    chatRoot:     { flex: 1, backgroundColor: '#F4F4F8' },
+    chatHead:     { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 12 },
+    whiteBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+    chatName:     { fontFamily: Fonts.semiBold, fontSize: 17, color: '#17181A' },
+    chatRole:     { fontFamily: Fonts.regular, fontSize: 13, color: '#55596A' },
+    thread:       { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16, gap: 14 },
     cardRow:      { alignSelf: 'stretch' },
-    userBubble:   { alignSelf: 'flex-end', maxWidth: '80%', backgroundColor: C.alwaysDark, borderRadius: 18, borderBottomRightRadius: 6, paddingVertical: 12, paddingHorizontal: 14 },
-    userText:     { fontFamily: Fonts.medium, fontSize: 15, lineHeight: 21, color: C.alwaysLight },
-    coachWrap:    { alignSelf: 'flex-start', maxWidth: '85%' },
-    coachName:    { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, marginBottom: 6 },
-    coachBubble:  { backgroundColor: C.card, borderRadius: 18, borderTopLeftRadius: 6, paddingVertical: 12, paddingHorizontal: 14, borderWidth: StyleSheet.hairlineWidth, borderColor: C.border },
-    coachText:    { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, color: C.t1 },
-    errorRow:     { alignSelf: 'center', paddingVertical: 6 },
-    errorText:    { fontFamily: Fonts.medium, fontSize: 13, color: C.red },
-    chipsWrap:    { flexGrow: 0 },
-    chips:        { paddingHorizontal: Spacing.gutter, gap: 8, paddingVertical: 8 },
-    chip:         { height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card, borderWidth: StyleSheet.hairlineWidth, borderColor: C.border, justifyContent: 'center' },
-    chipText:     { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
-    inputBar:     { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingTop: 6, paddingBottom: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, backgroundColor: C.bg },
-    input:        { flex: 1, height: 46, borderRadius: 999, backgroundColor: C.mid, paddingHorizontal: 18, fontFamily: Fonts.regular, fontSize: 15, color: C.t1 },
-    send:         { width: 46, height: 46, borderRadius: 23, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
+    userBubble:   { alignSelf: 'flex-end', maxWidth: '76%', paddingVertical: 12, paddingHorizontal: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomLeftRadius: 22, borderBottomRightRadius: 6, backgroundColor: '#17181A' },
+    userText:     { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21, color: '#FFFFFF' },
+    coachBubble:  { alignSelf: 'flex-start', maxWidth: '90%', paddingVertical: 12, paddingHorizontal: 16, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderBottomRightRadius: 22, borderBottomLeftRadius: 6, backgroundColor: '#FFFFFF' },
+    coachBubbleWrap: { alignSelf: 'flex-start' },
+    coachText:    { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21, color: '#17181A' },
+    errorRow:     { alignSelf: 'center', paddingVertical: 8 },
+    errorText:    { fontFamily: Fonts.medium, fontSize: 13, color: C.danger, textAlign: 'center' },
+    chatDock:     { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8, gap: 12, backgroundColor: '#F4F4F8' },
+    chips:        { gap: 8 },
+    chip:         { height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: '#E4E1F8', justifyContent: 'center' },
+    chipText:     { fontFamily: Fonts.regular, fontSize: 14, color: '#2A2560' },
   });
 }

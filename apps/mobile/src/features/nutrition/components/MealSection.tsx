@@ -65,7 +65,7 @@ export function MealSection({ meal, entries, expanded, onToggle, onDelete, onEdi
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
   section: {
-    backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5,
+    backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5,
     borderColor: C.border, overflow: 'hidden',
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },

@@ -19,8 +19,8 @@ export const Spacing = {
     xs:   6,
     sm:   10,
     md:   12,
-    lg:   16,
-    xl:   20,
+    lg:   22,   // cards, as on the mock
+    xl:   28,
     full: 999,
   },
 

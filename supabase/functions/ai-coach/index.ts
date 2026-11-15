@@ -1,6 +1,7 @@
 import { effectiveTier } from '../_shared/subscriptions.ts';
 import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 /** Runivo Plus: 'premium' or the internal 'admin' tier (entitlements.isPlus). */
@@ -127,6 +128,16 @@ interface UserContext {
     recent5kSeconds: number | null;
     ageRange: string | null;
     healthBaseline: unknown;
+    /** 20261115000026: race, week and body from onboarding. */
+    raceDistance: string | null;
+    raceDate: string | null;
+    raceGoalSeconds: number | null;
+    runDays: number[] | null;
+    longRunDay: number | null;
+    usualRunTime: string | null;
+    weekdayMinutes: number | null;
+    niggles: string[];
+    returningFromBreak: boolean;
   };
   planCompliance: PlanCompliance | null;
   nutrition: {
@@ -166,7 +177,18 @@ function runnerProfileLine(ctx: UserContext): string {
     parts.push(`recent 5K ${m}:${sec}`);
   }
   if (r.ageRange) parts.push(`age ${r.ageRange}`);
+  const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  if (r.raceDistance && r.raceDate) {
+    const goal = r.raceGoalSeconds ? `, goal ${Math.floor(r.raceGoalSeconds / 3600)}:${String(Math.floor((r.raceGoalSeconds % 3600) / 60)).padStart(2, '0')}:${String(r.raceGoalSeconds % 60).padStart(2, '0')}` : '';
+    parts.push(`racing a ${r.raceDistance} on ${r.raceDate}${goal}`);
+  }
+  if (r.runDays?.length) parts.push(`runs on ${r.runDays.map(d => DAYS[d] ?? '?').join('/')}${r.longRunDay != null ? `, long run ${DAYS[r.longRunDay]}` : ''}`);
+  if (r.usualRunTime) parts.push(`usually runs ${r.usualRunTime}`);
+  if (r.weekdayMinutes) parts.push(`about ${r.weekdayMinutes} min on weekdays`);
   let line = `RUNNER: ${parts.length ? parts.join(', ') : 'no onboarding answers yet'}. Coach in a ${r.tone} tone.`;
+  if (r.niggles.length || r.returningFromBreak) {
+    line += `\nBODY: ${[r.niggles.length ? `reported niggles: ${r.niggles.join(', ')}` : '', r.returningFromBreak ? 'coming back from an injury or a break' : ''].filter(Boolean).join('; ')}. Keep load conservative, space hard days, avoid loading these areas (for a sore knee or shin: fewer downhills and hard surfaces). Never encourage running through pain; suggest rest and a physio if pain persists.`;
+  }
   // New runners have little history here; use the imported baseline instead.
   if (ctx.runs90d.length < 5 && r.healthBaseline) {
     line += `\nIMPORTED 90-DAY BASELINE (health app, consented): ${JSON.stringify(r.healthBaseline).slice(0, 600)}`;
@@ -227,56 +249,50 @@ async function contextHash(obj: unknown): Promise<string> {
 const DAILY_CAP_USD         = 0.12;  // ~22 coach_chat messages / user / day
 const CHAT_DAILY_CAP_USD    = 0.08;  // ~15 messages for coach_chat alone
 
+// Worst case for one request (a long context plus max output at Sonnet prices),
+// held while the request runs so parallel requests can't overrun the cap.
+const RESERVE_USD = 0.02;
+
 /**
- * Check whether the user has exceeded their daily spend cap.
- * Throws a Response with status 429 if they have.
+ * Reserve this request's worst-case cost against the runner's daily caps, in
+ * one locked step (ai_reserve_spend, 20261115000023): parallel requests see
+ * each other's reservations. Throws a 429 Response when a cap is reached.
+ * Returns the reservation id; release it when the request ends.
  */
+// deno-lint-ignore no-explicit-any
+type AnyDb = SupabaseClient<any, any, any>;
+
 async function enforceDailyCap(
-  supabase: ReturnType<typeof createClient>,
+  supabase: AnyDb,
   userId: string,
   feature: Feature,
   corsHeaders: Record<string, string>,
-): Promise<void> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  // Total spend across all features in the last 24 hours
-  const { data: totalRows } = await supabase
-    .from('ai_usage_log')
-    .select('cost_usd')
-    .eq('user_id', userId)
-    .gte('created_at', since);
-
-  const totalUsd = (totalRows ?? []).reduce(
-    (s: number, r: { cost_usd: number }) => s + (r.cost_usd ?? 0), 0,
-  );
-
-  if (totalUsd >= DAILY_CAP_USD) {
-    throw new Response(
-      JSON.stringify({ error: 'daily_limit_reached', detail: 'Daily AI usage limit reached. Try again tomorrow.' }),
-      { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    );
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc('ai_reserve_spend', {
+    p_user: userId, p_feature: feature, p_estimate_usd: RESERVE_USD,
+    p_daily_cap_usd: DAILY_CAP_USD, p_chat_cap_usd: CHAT_DAILY_CAP_USD,
+  });
+  // Fail closed: if the cap can't be checked, don't spend.
+  if (error) {
+    throw new Response(JSON.stringify({ error: 'limit_check_failed' }), {
+      status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-
-  // Tighter cap for coach_chat specifically
-  if (feature === 'coach_chat') {
-    const { data: chatRows } = await supabase
-      .from('ai_usage_log')
-      .select('cost_usd')
-      .eq('user_id', userId)
-      .eq('feature', 'coach_chat')
-      .gte('created_at', since);
-
-    const chatUsd = (chatRows ?? []).reduce(
-      (s: number, r: { cost_usd: number }) => s + (r.cost_usd ?? 0), 0,
-    );
-
-    if (chatUsd >= CHAT_DAILY_CAP_USD) {
-      throw new Response(
-        JSON.stringify({ error: 'chat_limit_reached', detail: 'Daily coach chat limit reached. Try again tomorrow.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
+  const row = (Array.isArray(data) ? data[0] : data ?? null) as { reservation_id: string | null; refused: string | null } | null;
+  if (row?.refused) {
+    const detail = row.refused === 'chat_limit_reached'
+      ? 'Daily coach chat limit reached. Try again tomorrow.'
+      : 'Daily AI usage limit reached. Try again tomorrow.';
+    throw new Response(JSON.stringify({ error: row.refused, detail }), {
+      status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
+  return row?.reservation_id ?? null;
+}
+
+async function releaseReservation(supabase: AnyDb, id: string | null): Promise<void> {
+  if (!id) return;
+  await supabase.from('ai_usage_log').delete().eq('id', id).eq('reservation', true).then(() => {}, () => {});
 }
 
 // ─── Cost logging ─────────────────────────────────────────────────────────────
@@ -531,7 +547,7 @@ async function buildUserContext(
       .limit(100),
     supabase
       .from('profiles')
-      .select('runner_rank, pace_weekly_earned, pace_total_earned, subscription_tier, territory_score, streak_days, primary_goal, experience_level, weekly_frequency, weekly_goal_km, usual_distance_km, recent_5k_seconds, pacex_tone, age_range, health_baseline, health_consent_at')
+      .select('runner_rank, pace_weekly_earned, pace_total_earned, subscription_tier, territory_score, streak_days, primary_goal, experience_level, weekly_frequency, weekly_goal_km, usual_distance_km, recent_5k_seconds, pacex_tone, age_range, health_baseline, health_consent_at, race_distance, race_date, race_goal_seconds, run_days, long_run_day, usual_run_time, weekday_minutes, niggles, returning_from_break')
       .eq('id', userId)
       .single(),
     supabase
@@ -669,6 +685,8 @@ async function buildUserContext(
     primary_goal: string | null; experience_level: string | null; weekly_frequency: number | null;
     weekly_goal_km: number | null; usual_distance_km: number | null; recent_5k_seconds: number | null;
     pacex_tone: string | null; age_range: string | null; health_baseline: unknown; health_consent_at: string | null;
+    race_distance: string | null; race_date: string | null; race_goal_seconds: number | null; run_days: number[] | null;
+    long_run_day: number | null; usual_run_time: string | null; weekday_minutes: number | null; niggles: string[] | null; returning_from_break: boolean | null;
   } | null;
 
   const MS_PER_DAY  = 86_400_000;
@@ -845,6 +863,15 @@ async function buildUserContext(
       ageRange:         profileRow?.age_range ?? null,
       // Health data is used only while consent stands.
       healthBaseline:   profileRow?.health_consent_at ? profileRow.health_baseline : null,
+      raceDistance:       profileRow?.race_distance ?? null,
+      raceDate:           profileRow?.race_date ?? null,
+      raceGoalSeconds:    profileRow?.race_goal_seconds ?? null,
+      runDays:            profileRow?.run_days ?? null,
+      longRunDay:         profileRow?.long_run_day ?? null,
+      usualRunTime:       profileRow?.usual_run_time ?? null,
+      weekdayMinutes:     profileRow?.weekday_minutes ?? null,
+      niggles:            profileRow?.niggles ?? [],
+      returningFromBreak: profileRow?.returning_from_break ?? false,
     },
     planCompliance,
     nutrition,
@@ -1120,111 +1147,6 @@ ${isPR ? 'Acknowledge the PR in the praise.' : ''}`,
   }, { onConflict: 'user_id,feature' });
 
   return payload;
-}
-
-async function handleTrainingPlan(
-  anthropic: Anthropic,
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  goal: string,
-  ctx: UserContext,
-): Promise<TrainingPlanPayload> {
-  // Check for an existing active plan with the same goal first
-  const { data: activePlan } = await supabase
-    .from('training_plans')
-    .select('id, plan_data, goal')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (activePlan && activePlan.goal === (goal || '')) {
-    return { ...(activePlan.plan_data as TrainingPlanPayload), planId: activePlan.id };
-  }
-
-  const hashInput = { goal, weeklyKm: ctx.weeklyKm, runCount: ctx.runs90d.length, staleZoneCount: ctx.staleZoneCount };
-  const hash      = await contextHash(hashInput);
-
-  const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system:     withGuardrails('You are Runivo Intelligence — a running coach. Return only valid JSON.'),
-    messages: [{
-      role:    'user',
-      content: `Create a 4-week running training plan.
-Current weekly avg: ${ctx.weeklyKm} km/week.
-${runnerProfileLine(ctx)}
-Pace zones: ${ctx.paceZones.easy}% easy / ${ctx.paceZones.moderate}% moderate / ${ctx.paceZones.tempo}% tempo / ${ctx.paceZones.hard}% hard.
-Easy pace: ~${ctx.easyPace}/km. Tempo pace: ~${ctx.tempoPace}/km.
-${ctx.prs.longestRun > 0 ? `Longest run ever: ${ctx.prs.longestRun} km.` : ''}
-Territory: ${ctx.staleZoneCount} stale zones need defense runs. Territory Score: ${ctx.territoryScore} TS.
-Goal: ${goal || 'improve general fitness and consistency'}.
-
-Include zone-specific target paces in session descriptions (e.g. "5km at ${ctx.easyPace}/km easy").
-Respond ONLY with valid JSON (no markdown):
-{"weeks":[{"week":1,"focus":"short focus label","sessions":[{"day":"Mon","type":"Easy Run","description":"brief description with target pace"},{"day":"Wed","type":"Tempo","description":"brief description with target pace"},{"day":"Fri","type":"Long Run","description":"brief description with target pace"},{"day":"Sun","type":"Rest","description":"light stretching or walk"}]},{"week":2,...},{"week":3,...},{"week":4,...}]}
-
-Keep descriptions under 15 words. Progressively overload each week.`,
-    }],
-  });
-
-  await logUsage(supabase, userId, 'training_plan', response.usage);
-
-  let payload: TrainingPlanPayload;
-  try {
-    const text = (response.content[0] as { type: 'text'; text: string }).text;
-    payload = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
-  } catch {
-    const wkly = ctx.weeklyKm;
-    payload = {
-      weeks: [1, 2, 3, 4].map(w => ({
-        week: w,
-        focus: `Week ${w}: Build base`,
-        sessions: [
-          { day: 'Mon', type: 'Easy Run',  description: `${(wkly * 0.3 + w).toFixed(1)} km at ${ctx.easyPace}/km` },
-          { day: 'Wed', type: 'Tempo',     description: `20 min at ${ctx.tempoPace}/km` },
-          { day: 'Fri', type: 'Easy Run',  description: `${(wkly * 0.25 + w * 0.5).toFixed(1)} km easy recovery` },
-          { day: 'Sun', type: 'Long Run',  description: `${(wkly * 0.4 + w).toFixed(1)} km at ${ctx.easyPace}/km` },
-        ],
-      })),
-    };
-  }
-
-  await supabase.from('ai_cache').upsert({
-    user_id:      userId,
-    feature:      'training_plan',
-    payload,
-    context_hash: hash,
-    generated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id,feature' });
-
-  // Persist into training_plans table
-  let planId: string = '';
-  if (activePlan) {
-    // Replace existing plan with fresh generation for new goal
-    await supabase
-      .from('training_plans')
-      .update({ goal, plan_data: payload, week_current: 1, updated_at: new Date().toISOString() })
-      .eq('id', activePlan.id);
-    planId = activePlan.id;
-  } else {
-    const { data: newPlan } = await supabase
-      .from('training_plans')
-      .insert({
-        user_id:     userId,
-        goal:        goal || 'improve general fitness',
-        weeks_total: payload.weeks.length,
-        week_current: 1,
-        status:      'active',
-        plan_data:   payload,
-      })
-      .select('id')
-      .single();
-    planId = newPlan?.id ?? '';
-  }
-
-  return { ...payload, planId };
 }
 
 async function handleCoachChat(
@@ -1589,87 +1511,6 @@ function handleQuickPrompts(ctx: UserContext): Array<{ label: string; message: s
   return prompts.slice(0, 4);
 }
 
-async function handleAdaptPlan(
-  anthropic: Anthropic,
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  planId: string,
-  ctx: UserContext,
-): Promise<{ planId: string; adaptedWeek: Array<{ day: string; type: string; description: string }> }> {
-  const { data: plan } = await supabase
-    .from('training_plans')
-    .select('id, goal, week_current, weeks_total, plan_data')
-    .eq('id', planId)
-    .eq('user_id', userId)
-    .single();
-
-  if (!plan) throw new Error('Plan not found');
-
-  const weekIdx     = (plan.week_current as number) - 1;
-  const planData    = plan.plan_data as TrainingPlanPayload;
-  const currentWeek = planData.weeks[weekIdx];
-
-  // Find runs from the past 7 days to assess adherence
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const recentRuns   = ctx.runs90d.filter(r => r.started_at >= sevenDaysAgo);
-  const totalRecentKm = recentRuns.reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
-  const runDays       = new Set(recentRuns.map(r => r.started_at.split('T')[0])).size;
-
-  // Count completed vs planned sessions
-  const plannedActive = currentWeek?.sessions.filter(s => s.type !== 'Rest').length ?? 0;
-
-  const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
-    max_tokens: 512,
-    system:     withGuardrails('You are Runivo Intelligence — a running coach. Return only valid JSON.'),
-    messages: [{
-      role:    'user',
-      content: `Adapt training plan for next week (Week ${(plan.week_current as number) + 1}).
-Goal: ${plan.goal}.
-Last week planned: ${plannedActive} active sessions. Actual: ${runDays} run days, ${totalRecentKm.toFixed(1)} km.
-Weekly avg (90d): ${ctx.weeklyKm} km/wk. Easy pace: ~${ctx.easyPace}/km. Tempo: ~${ctx.tempoPace}/km.
-Trend: ${ctx.trend}.
-
-Rules: if actual km < 70% of planned, reduce next week by 10%. If actual km ≥ planned, increase by 5–10%.
-Respond ONLY with valid JSON:
-{"note":"one sentence explaining the adaptation ≤20 words","sessions":[{"day":"Mon","type":"Easy Run","description":"brief ≤12 words"},{"day":"Wed","type":"Tempo","description":"brief ≤12 words"},{"day":"Fri","type":"Long Run","description":"brief ≤12 words"},{"day":"Sun","type":"Rest","description":"light stretching"}]}`,
-    }],
-  });
-
-  await logUsage(supabase, userId, 'adapt_plan', response.usage);
-
-  let adaptedNote    = 'Adapted based on last week\'s performance.';
-  let adaptedSessions: Array<{ day: string; type: string; description: string }> = currentWeek?.sessions ?? [];
-
-  try {
-    const text   = (response.content[0] as { type: 'text'; text: string }).text;
-    const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
-    adaptedNote    = parsed.note ?? adaptedNote;
-    adaptedSessions = parsed.sessions ?? adaptedSessions;
-  } catch { /* use defaults */ }
-
-  // Update plan_data for current week with adapted sessions
-  const updatedWeeks = planData.weeks.map((w, i) =>
-    i === weekIdx ? { ...w, sessions: adaptedSessions } : w
-  );
-
-  await supabase
-    .from('training_plans')
-    .update({ plan_data: { weeks: updatedWeeks }, updated_at: new Date().toISOString() })
-    .eq('id', planId);
-
-  await supabase
-    .from('plan_adaptations')
-    .insert({
-      plan_id:          planId,
-      week_number:      plan.week_current,
-      adaptation_note:  adaptedNote,
-      adapted_sessions: adaptedSessions,
-    });
-
-  return { planId, adaptedWeek: adaptedSessions };
-}
-
 // ─── Habit tracking ───────────────────────────────────────────────────────────
 async function handleHabitTracking(
   anthropic: Anthropic,
@@ -1762,6 +1603,8 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: CORS_HEADERS });
   }
 
+  // Set once this request has reserved spend; always run when it ends.
+  let releaseSpend: (() => Promise<void>) | null = null;
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -1825,7 +1668,8 @@ Deno.serve(async (req) => {
       if (!imageBase64) return new Response('Missing imageBase64', { status: 400, headers: CORS_HEADERS });
       if (imageBase64.length > 7_000_000) return new Response('Image too large', { status: 413, headers: CORS_HEADERS });
 
-      await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);
+      const scanReservation = await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);
+      releaseSpend = () => releaseReservation(supabase, scanReservation);
 
       const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
       const msg = await anthropic.messages.create({
@@ -1847,6 +1691,7 @@ Deno.serve(async (req) => {
         }],
       });
 
+      await logUsage(supabase, user.id, 'food_scan', msg.usage);
       const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
       const match = raw.match(/\{[\s\S]*\}/);
       if (!match) return new Response(JSON.stringify({ error: 'Could not identify food' }), { status: 422, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
@@ -1856,8 +1701,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Enforce per-user daily spend cap before touching Claude
-    await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);
+    // Reserve against the per-user daily spend cap before touching Claude;
+    // released when this request ends, whatever happens (finally below).
+    const reservationId = await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);
+    releaseSpend = () => releaseReservation(supabase, reservationId);
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
 
@@ -1876,9 +1723,14 @@ Deno.serve(async (req) => {
         result = await handlePostRun(anthropic, supabase, user.id, runId, ctx);
         break;
 
+      // Retired: these wrote an older plan format into training_plans, which
+      // overwrote the runner's real plan. Plans now come from the plan engine
+      // (PaceX → Approve this plan, the plan builder, onboarding).
       case 'training_plan':
-        result = await handleTrainingPlan(anthropic, supabase, user.id, goal ?? '', ctx);
-        break;
+      case 'adapt_plan':
+        return new Response(JSON.stringify({ error: 'retired', detail: 'Plans are built in the app now. Update Runivo.' }), {
+          status: 410, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+        });
 
       case 'coach_chat':
         if (!message) return new Response('Missing message', { status: 400, headers: CORS_HEADERS });
@@ -1901,12 +1753,6 @@ Deno.serve(async (req) => {
         result = await handleTerritoryStrategy(anthropic, ctx);
         break;
 
-      case 'adapt_plan': {
-        const apPlanId = body.planId;
-        if (!apPlanId) return new Response('Missing planId', { status: 400, headers: CORS_HEADERS });
-        result = await handleAdaptPlan(anthropic, supabase, user.id, apPlanId, ctx);
-        break;
-      }
 
       case 'habit_tracking':
         result = await handleHabitTracking(anthropic, supabase, user.id, ctx);
@@ -1927,5 +1773,7 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
+  } finally {
+    await releaseSpend?.();
   }
 });

@@ -21,7 +21,7 @@ export const MARK_PATH = hexPath(MARK_RADIUS);
 /** Length of the outline in the 100-unit box (six sides of length r). */
 export const MARK_PERIMETER = 6 * MARK_RADIUS;
 
-export function RunivoMark({ size = 32, color = '#FF4518', strokeWidth = MARK_STROKE }: { size?: number; color?: string; strokeWidth?: number }) {
+export function RunivoMark({ size = 32, color = '#F2A43A', strokeWidth = MARK_STROKE }: { size?: number; color?: string; strokeWidth?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityElementsHidden importantForAccessibility="no">
       <Path d={MARK_PATH} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />

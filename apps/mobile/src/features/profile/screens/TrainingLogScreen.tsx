@@ -25,7 +25,7 @@ export default function TrainingLogScreen() {
   const navigation = useNavigation<Nav>();
   const [runs, setRuns] = useState<StoredRun[]>([]);
   useEffect(() => { getRuns(1000).then(setRuns).catch(() => {}); }, []);
-  const colour = { run: C.red, walk: '#1A8F5A', ride: '#2F6FEB' } as const;
+  const colour = { run: C.red, walk: C.amber, ride: C.lavenderInk } as const;
 
   const weeks = useMemo(() => {
     const thisWeek = weekStart(Date.now());

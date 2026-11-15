@@ -24,6 +24,7 @@ import {
 } from '../services/locationTask';
 import { freshScreenOffFixes } from '../services/screenOffMerge';
 import { addFixes, MAX_FOOT_SPEED_MS, MAX_RIDE_SPEED_MS, type Fix } from '../services/gpsFilter';
+import { isOnFoot } from '@shared/engine/runEngine';
 
 const GPS_CHECKPOINT_INTERVAL_MS = 30_000;
 // How often a running position reaches friends — not every GPS tick (~1/sec):
@@ -42,7 +43,8 @@ const AUTO_PAUSE_DELAY_MS = 8_000;
 // 'standard' still needs to be good enough for territory-corridor accuracy —
 // this is one step down from BestForNavigation, not a big drop to Balanced/Low,
 // since claimed-zone geometry and the PACE economy both depend on this track.
-const maxSpeedFor = (activityType: string) => (activityType === 'cycle' ? MAX_RIDE_SPEED_MS : MAX_FOOT_SPEED_MS);
+// Same split as the server: every territory sport is on foot, everything else rides.
+const maxSpeedFor = (activityType: string) => (isOnFoot(activityType) ? MAX_FOOT_SPEED_MS : MAX_RIDE_SPEED_MS);
 
 function resolveGpsAccuracy(setting: 'standard' | 'high'): Location.Accuracy {
   return setting === 'standard' ? Location.Accuracy.High : Location.Accuracy.BestForNavigation;

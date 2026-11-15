@@ -3,6 +3,12 @@
 \set ON_ERROR_STOP on
 
 BEGIN;
+-- These runs stand in for runs the server has scored: in production
+-- process-run-territory writes verified_distance_m (20261115000021).
+CREATE FUNCTION pg_temp.as_scored() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN NEW.verified_distance_m := COALESCE(NEW.verified_distance_m, NEW.distance_m); RETURN NEW; END $$;
+CREATE TRIGGER runs_z_test_scored BEFORE INSERT ON public.runs FOR EACH ROW EXECUTE FUNCTION pg_temp.as_scored();
+
 -- These checks cover the Free/Plus rules as they'll run once subscriptions are on.
 UPDATE public.app_settings SET value = 'true' WHERE key = 'subscriptions_enabled';
 -- Rewards gained required brand/description/value_label after these tests were written;

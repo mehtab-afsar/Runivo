@@ -239,7 +239,7 @@ function mkStyles(C: AppColors) {
     chipOn:  { backgroundColor: C.t1, borderColor: C.t1 },
     chipTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
     chipTxtOn: { color: C.bg },
-    card:    { backgroundColor: C.card, borderRadius: 16 },
+    card:    { backgroundColor: C.card, borderRadius: 22 },
     stepper: { flexDirection: 'row', alignItems: 'center', padding: 10 },
     stepBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
     dateTxt: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },

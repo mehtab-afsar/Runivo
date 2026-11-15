@@ -24,6 +24,7 @@ import RunSummaryScreen      from '@features/run/screens/RunSummaryScreen';
 import RunScreen             from '@features/run/screens/RunScreen';
 import TerritoryMapScreen    from '@features/territory/screens/TerritoryMapScreen';
 import FeedScreen            from '@features/social/screens/FeedScreen';
+import GroupsScreen          from '@features/groups/screens/GroupsScreen';
 import ProfileScreen         from '@features/profile/screens/ProfileScreen';
 import UserProfileScreen     from '@features/profile/screens/UserProfileScreen';
 import FollowersScreen       from '@features/profile/screens/FollowersScreen';
@@ -165,6 +166,7 @@ export type RootStackParamList = {
   MyRewards:    undefined;
   YearInRunivo: { year?: number } | undefined;
   MyFeed: undefined;
+  Feed: { search?: boolean } | undefined;
   RunReplay: {
     runId: string;
     route: { lat: number; lng: number }[];
@@ -175,7 +177,7 @@ export type RootStackParamList = {
 
 export type TabParamList = {
   Dashboard: undefined;
-  Feed:      undefined;
+  Groups:    undefined;
   Run:       undefined;
   Map:       undefined;
   Profile:   undefined;
@@ -195,12 +197,12 @@ function TabNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      {/* v1 tab order: Home, Map, Run, Feed, You. PaceX lives behind Home and the
-          post-run debrief until the full coach ships in v2. */}
+      {/* 2026 tab order: Home, Map, Record, Groups, You. The feed lives on Home;
+          Groups holds Challenges, Clubs and Events. */}
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Map"       component={TerritoryMapTab} />
       <Tab.Screen name="Run"       component={RunScreen}       />
-      <Tab.Screen name="Feed"  component={FEATURES.SOCIAL_FEED ? FeedScreen  : comingSoon(FEATURE_LABELS.SOCIAL_FEED!)} />
+      <Tab.Screen name="Groups"    component={GroupsScreen}    />
       <Tab.Screen name="Profile"   component={ProfileScreen}   />
     </Tab.Navigator>
   );
@@ -363,6 +365,7 @@ export function AppNavigator({
             <Stack.Screen name="LogTreadmill"    component={LogTreadmillScreen} />
             <Stack.Screen name="RunReplay"       component={RunReplayScreen}   options={{ headerShown: false }} />
             <Stack.Screen name="MyFeed"          component={MyFeedScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Feed"            component={FEATURES.SOCIAL_FEED ? FeedScreen : comingSoon(FEATURE_LABELS.SOCIAL_FEED!)} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

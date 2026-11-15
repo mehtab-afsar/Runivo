@@ -4,7 +4,7 @@ import { parseFiveKTime, validateUsername, startingWeeklyTargetKm } from '@share
 import { track } from '@shared/services/analytics';
 import { supabase } from '@shared/services/supabase';
 import { saveOnboardingData, saveIdentity } from '../services/onboardingService';
-import { stepsFor, type OnboardingData, type OnboardingStepKey, type OnboardingVariant } from '../types';
+import { stepsFor, parseGoalTime, type OnboardingData, type OnboardingStepKey, type OnboardingVariant } from '../types';
 
 const DEFAULT_DATA: OnboardingData = {
   lastKnownLocation: null, country: null,
@@ -15,6 +15,10 @@ const DEFAULT_DATA: OnboardingData = {
   username: '', avatarUri: null,
   notificationsEnabled: false,
   distanceUnit: 'km',
+  raceDistance: null, raceWeeks: 10, raceGoalInput: '',
+  runDays: [1, 3, 5, 6], longRunDay: 6, usualTime: null, weekdayMinutes: 45,
+  niggles: [], returning: false,
+  paceXTone: null,
 };
 
 export interface OnboardingState {
@@ -51,7 +55,7 @@ export function useOnboarding(): OnboardingState {
       track('onboarding_variant', { variant: pick });
     }).catch(() => {});
   }, []);
-  const STEPS = stepsFor(variant);
+  const STEPS = stepsFor(variant, data.goal);
 
   // Draft: answers and step survive the app being killed mid-onboarding (an OS kill at step 7
   // used to send people back to step 1). Keyed by account so another user on this phone never
@@ -97,11 +101,13 @@ export function useOnboarding(): OnboardingState {
   const canContinue = useCallback(() => {
     switch (step.key) {
       case 'goal':     return data.goal != null;
+      case 'race':     return data.raceDistance != null && parseGoalTime(data.raceGoalInput).ok;
       case 'running':  return parseFiveKTime(data.fiveKInput).ok;
+      case 'week':     return data.runDays.length > 0;
       case 'identity': return validateUsername(data.username).ok;
       default:         return true;
     }
-  }, [step.key, data.goal, data.fiveKInput, data.username]);
+  }, [step.key, data.goal, data.fiveKInput, data.username, data.raceDistance, data.raceGoalInput, data.runDays.length]);
 
   const advance = useCallback(() => {
     track('onboarding_step_done', { step: step.key, index, variant });
@@ -132,6 +138,12 @@ export function useOnboarding(): OnboardingState {
     }
     if (step.key === 'health') {
       setData(d => ({ ...d, healthConsent: false, healthBaseline: null }));
+    }
+    if (step.key === 'race') {
+      setData(d => ({ ...d, raceDistance: null, raceGoalInput: '' }));
+    }
+    if (step.key === 'body') {
+      setData(d => ({ ...d, niggles: [], returning: false }));
     }
     setIndex(i => Math.min(i + 1, STEPS.length - 1));
   }, [step, variant, STEPS.length]);

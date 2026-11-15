@@ -87,7 +87,7 @@ function MemberRow({ member, rank, onPress, onLongPress }: { member: ClubMember;
 
 function mkMrStyles(C: AppColors) {
   return StyleSheet.create({
-    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 12, marginBottom: 6 },
+    row:       { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 22, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 12, marginBottom: 6 },
     rank:      { width: 30, textAlign: 'center', fontFamily: Fonts.numeric, fontSize: 22, lineHeight: 24, color: C.t2, fontVariant: ['tabular-nums'] },
     rankTop:   { color: C.red },
     avatar:    { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -385,31 +385,32 @@ export default function ClubDetailScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      {/* Header: back, club tile, name and member line — as in the mock */}
+      {/* Header (mock): top bar, then the club centred with its member line. */}
       <View style={s.header}>
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
-        <ClubInitialsTile name={clubName} size={38} />
-        <View style={{ flex: 1 }}>
-          <Text style={s.title} numberOfLines={1}>{clubName}</Text>
-          <Text style={s.subLine} numberOfLines={1}>
-            {memberCount} {memberCount === 1 ? 'member' : 'members'} · {Math.round(totalKm).toLocaleString()} km
-            {currentUserRole === 'admin' ? ' · admin' : ''}
-          </Text>
-        </View>
-        {currentUserRole !== 'admin' && (
+        <Text style={[s.title, { flex: 1, textAlign: 'center' }]}>Club</Text>
+        {currentUserRole !== 'admin' ? (
           <Pressable onPress={() => promptReport('club', clubId, 'club')} hitSlop={10} style={s.backBtn}
             accessibilityRole="button" accessibilityLabel="Report this club">
             <Flag size={16} color={C.t2} weight="regular" />
           </Pressable>
-        )}
+        ) : <View style={{ width: 36 }} />}
+      </View>
+      <View style={s.clubHero}>
+        <ClubInitialsTile name={clubName} size={72} />
+        <Text style={s.clubName} numberOfLines={2}>{clubName}</Text>
+        <Text style={s.subLine} numberOfLines={1}>
+          {memberCount} {memberCount === 1 ? 'member' : 'members'} · {Math.round(totalKm).toLocaleString()} km
+          {currentUserRole === 'admin' ? ' · admin' : ''}
+        </Text>
       </View>
 
       <View style={s.seg}>
         {tabs.map(t => (
           <Pressable key={t.key} style={[s.segItem, tab === t.key && s.segItemOn]} onPress={() => setTab(t.key)}>
-            <Text style={[s.segLabel, tab === t.key && s.segLabelOn]}>{t.label}</Text>
+            <Text style={[s.segLabel, tab === t.key && s.segLabelOn]} numberOfLines={1} adjustsFontSizeToFit>{t.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -683,11 +684,13 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1, backgroundColor: C.bg },
     header:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
     backBtn:     { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
-    subLine:     { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, marginTop: 1 },
-    seg:         { flexDirection: 'row', backgroundColor: C.border, borderRadius: 999, padding: 4, marginHorizontal: Spacing.gutter, marginBottom: 8 },
-    segItem:     { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, borderRadius: 999 },
-    segItemOn:   { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-    segLabel:    { fontFamily: Fonts.medium, fontSize: 14, color: C.t2 },
+    subLine:     { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    clubHero:    { alignItems: 'center', paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 14, gap: 6 },
+    clubName:    { fontFamily: Fonts.semiBold, fontSize: 24, lineHeight: 29, color: C.t1, textAlign: 'center', marginTop: 6 },
+    seg:         { flexDirection: 'row', marginBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    segItem:     { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 12, paddingBottom: 11, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    segItemOn:   { borderBottomColor: C.t1 },
+    segLabel:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
     segLabelOn:  { fontFamily: Fonts.semiBold, color: C.t1 },
     backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     hero:        { marginHorizontal: Spacing.gutter, marginBottom: 12, backgroundColor: C.alwaysDark, borderRadius: Spacing.radius.xl, padding: 18 },
@@ -716,9 +719,9 @@ function mkStyles(C: AppColors) {
     sectionLabel:{ fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1, marginBottom: 10 },
     // Admin
     adminContent:{ paddingHorizontal: Spacing.gutter, paddingTop: 16, paddingBottom: 100, gap: 0 },
-    adminCard:   { backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 14, marginBottom: 4 },
+    adminCard:   { backgroundColor: C.card, borderRadius: 24, padding: 16, marginBottom: 4 },
     descInput:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
-    saveBtn:     { marginTop: 10, backgroundColor: C.red, borderRadius: 999, height: 44, justifyContent: 'center', alignItems: 'center' },
+    saveBtn:     { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 999, height: 44, justifyContent: 'center', alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
     saveBtnText: { ...Type.button, fontSize: 14, color: C.alwaysLight },
     badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
@@ -730,7 +733,7 @@ function mkStyles(C: AppColors) {
     reportBtn:   { height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: C.border, justifyContent: 'center' },
     reportBtnTxt:{ fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     noRequestsText: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, textAlign: 'center' },
-    requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 16, shadowColor: C.t1, shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 1, padding: 12, marginBottom: 6 },
+    requestRow:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 22, padding: 12, marginBottom: 6 },
     reqAvatar:   { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
     reqAvatarText: { fontFamily: Fonts.bold, fontSize: 12, color: C.white },
     reqName:     { fontFamily: Fonts.medium, fontSize: 13, color: C.t1 },
@@ -742,7 +745,7 @@ function mkStyles(C: AppColors) {
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
     pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     // Badge picker
-    badgePickerSheet: { backgroundColor: C.card, borderRadius: 20, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
+    badgePickerSheet: { backgroundColor: C.card, borderRadius: 28, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
     badgeGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
     badgePickerBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
   });

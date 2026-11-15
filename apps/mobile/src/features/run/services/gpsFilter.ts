@@ -1,4 +1,5 @@
 import { haversineM } from '@shared/services/claimEngine';
+import { ENGINE } from '@shared/engine/runEngine';
 
 /**
  * How each GPS fix affects the distance of a live run.
@@ -17,9 +18,14 @@ import { haversineM } from '@shared/services/claimEngine';
 export interface Fix { lat: number; lng: number; timestamp: number; accuracy?: number }
 export type StepAction = 'base' | 'count' | 'hold' | 'outlier';
 
-/** Fastest believable speed between two fixes, m/s. */
-export const MAX_FOOT_SPEED_MS = 12;   // ~43 km/h: a sprint plus GPS slack
-export const MAX_RIDE_SPEED_MS = 25;   // ~90 km/h
+/**
+ * Fastest believable speed between two fixes, m/s: the same ceilings the server
+ * applies when it re-measures the run (ENGINE in runEngine, shared with
+ * process-run-territory), so the distance the phone shows is the distance the
+ * server will verify. They used to differ (12 and 25 here, 7.5 and 22 there).
+ */
+export const MAX_FOOT_SPEED_MS = ENGINE.MAX_SEGMENT_SPEED_MS;
+export const MAX_RIDE_SPEED_MS = ENGINE.MAX_RIDE_SEGMENT_SPEED_MS;
 export const OUTLIERS_BEFORE_REBASE = 3;
 
 export function stepFor(prev: Fix | null, next: Fix, maxSpeedMs: number): { action: StepAction; metres: number } {

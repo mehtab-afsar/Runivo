@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { CaretLeft, SealCheck } from 'phosphor-react-native';
-import { Lock, Crown, Share2, ArrowLeft, Gift } from 'lucide-react-native';
+import { CaretLeft, SealCheck, Coffee, Flag as FlagIcon, Sneaker } from 'phosphor-react-native';
+import { Lock, Crown, ArrowLeft, Gift } from 'lucide-react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from '@theme/hapticsGated';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
@@ -123,18 +123,25 @@ export default function RewardDetailScreen() {
 
   return (
     <View style={s.root}>
-      {/* Brand hero */}
-      <View style={[s.hero, { backgroundColor: reward.brandColor, paddingTop: insets.top + 8 }]}>
-        <View style={[s.heroTop, { top: insets.top + 8 }]}>
-          <Pressable style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={10} accessibilityLabel="Back">
-            <ArrowLeft size={16} color={C.alwaysLight} strokeWidth={1.8} />
+      {/* Hero (mock): mint panel, status chip, icon, offer and partner. */}
+      <View style={[s.hero, { paddingTop: insets.top + 8 }]}>
+        <View style={s.heroTop}>
+          <Pressable style={s.backBtn} onPress={() => navigation.goBack()} hitSlop={10} accessibilityLabel="Back to store">
+            <ArrowLeft size={18} color="#17181A" strokeWidth={2} />
           </Pressable>
           <View style={s.heroChip}>
-            <Text style={s.heroChipText}>{CATEGORY_LABEL[reward.category] ?? 'Reward'} · Partner</Text>
+            <Text style={s.heroChipText}>{alreadyMine ? `Redeemed · ${reward.paceCost} PACE` : `${reward.paceCost} PACE · ${CATEGORY_LABEL[reward.category] ?? 'Reward'}`}</Text>
           </View>
         </View>
-        <Text style={s.brand}>{reward.brand}</Text>
-        <Text style={s.heroValue} numberOfLines={1} adjustsFontSizeToFit>{reward.valueLabel}</Text>
+        <View style={s.heroMid}>
+          <View style={s.heroIcon}>
+            {reward.category === 'nutrition' ? <Coffee size={30} color="#4E7F1F" weight="bold" />
+              : reward.category === 'events' ? <FlagIcon size={30} color="#4E7F1F" weight="bold" />
+              : <Sneaker size={30} color="#4E7F1F" weight="bold" />}
+          </View>
+          <Text style={s.heroValue} numberOfLines={2}>{reward.title}</Text>
+          <Text style={s.brand}>{reward.brand}{reward.valueLabel ? ` · ${reward.valueLabel}` : ''}</Text>
+        </View>
       </View>
 
       <ScrollView style={s.content} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
@@ -169,15 +176,28 @@ export default function RewardDetailScreen() {
         )}
 
         {code ? (
-          <View style={s.codeCard}>
-            <Text style={s.codeLabel}>Your code</Text>
-            <Text style={s.codeText} selectable adjustsFontSizeToFit numberOfLines={1}>{code}</Text>
-            {!!howToUse && <Text style={s.codeHow}>{howToUse}</Text>}
-            <Pressable style={s.codeShare} onPress={shareCode} accessibilityRole="button">
-              <Share2 size={15} color={C.t1} strokeWidth={2.2} />
-              <Text style={s.codeShareText}>Copy or share</Text>
-            </Pressable>
-          </View>
+          <>
+            <View style={s.codeCard}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={s.codeLabel}>Your code</Text>
+                <Text style={s.codeText} selectable adjustsFontSizeToFit numberOfLines={1}>{code}</Text>
+              </View>
+              <Pressable style={s.copyBtn} onPress={shareCode} accessibilityRole="button" accessibilityLabel="Copy or share your code">
+                <Text style={s.copyTxt}>Copy</Text>
+              </Pressable>
+            </View>
+            {!!howToUse && (
+              <View style={{ gap: 10, marginBottom: 16 }}>
+                <Text style={s.howTitle}>How to use it</Text>
+                {howToUse.split(/(?<=\.)\s+/).filter(Boolean).slice(0, 4).map((step, i) => (
+                  <View key={i} style={s.stepRow}>
+                    <View style={s.stepNum}><Text style={s.stepNumTxt}>{i + 1}</Text></View>
+                    <Text style={s.stepTxt}>{step}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
         ) : null}
 
         {alreadyMine ? (
@@ -218,24 +238,26 @@ export default function RewardDetailScreen() {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    root:               { flex: 1, backgroundColor: C.bg },
-    hero:               { paddingHorizontal: 18, paddingBottom: 26, height: 300, justifyContent: 'flex-end' },
-    heroTop:            { position: 'absolute', top: 0, left: 18, right: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    heroChip:           { backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-    heroChipText:       { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysLight },
-    backBtn:            { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },
+    root:               { flex: 1, backgroundColor: C.card },
+    hero:               { paddingHorizontal: 20, paddingBottom: 26, backgroundColor: '#EEF5E4', borderBottomLeftRadius: 36, borderBottomRightRadius: 36, gap: 20 },
+    heroMid:            { alignItems: 'center', gap: 10 },
+    heroIcon:           { width: 72, height: 72, borderRadius: 36, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+    heroTop:            { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    heroChip:           { backgroundColor: '#C9F06B', borderRadius: 16, paddingHorizontal: 12, height: 32, justifyContent: 'center' },
+    heroChipText:       { fontFamily: Fonts.semiBold, fontSize: 13, color: '#17181A' },
+    backBtn:            { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
     backBtnPlain:       { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginLeft: Spacing.gutter, marginTop: 8, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
     heroBrandRow:       { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 28 },
     brandCircle:        { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: C.alwaysLight },
     brandInitial:       { fontFamily: Fonts.bold, fontSize: 14, color: C.alwaysDark },
-    brand:              { fontFamily: Fonts.medium, fontSize: 12, color: 'rgba(255,255,255,0.8)' },
-    heroValue:          { ...Type.hero, fontSize: 52, lineHeight: 46, color: C.alwaysLight, marginTop: 8 },
+    brand:              { fontFamily: Fonts.regular, fontSize: 14, color: '#4E5A44', textAlign: 'center' },
+    heroValue:          { fontFamily: Fonts.medium, fontSize: 28, lineHeight: 33, letterSpacing: -0.5, color: '#17181A', textAlign: 'center' },
     costRow:            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 },
     costLabel:          { ...Type.labelSm, color: C.t2 },
     costNum:            { fontFamily: Fonts.numeric, fontSize: 40, lineHeight: 36, color: C.t1, marginTop: 6, fontVariant: ['tabular-nums'] },
     costUnit:           { fontFamily: Fonts.numeric, fontSize: 16, color: C.t3 },
     needMore:           { ...Type.label, color: C.red, marginTop: 10 },
-    content:            { flex: 1, paddingHorizontal: 18, paddingTop: 18 },
+    content:            { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
     title:              { ...Type.displaySm, color: C.t1, marginBottom: 8 },
     description:        { fontFamily: Fonts.regular, fontSize: 14.5, lineHeight: 22, color: C.t2, marginBottom: 14 },
     expires:            { ...Type.caption, color: C.t3, marginTop: 8 },
@@ -250,7 +272,7 @@ function mkStyles(C: AppColors) {
     breakdownValueBig:  { fontFamily: Fonts.numeric, fontSize: 28, lineHeight: 30, color: C.t1, fontVariant: ['tabular-nums'] },
     breakdownUnit:      { fontFamily: Fonts.semiBold, fontSize: 13, color: C.red },
     breakdownNegative:  { color: C.red },
-    claimBtn:           { backgroundColor: C.red, borderRadius: 999, height: 52, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    claimBtn:           { backgroundColor: C.alwaysDark, borderRadius: 28, height: 56, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
     claimBtnDisabled:   { opacity: 0.45 },
     claimBtnText:       { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
     errorText:          { ...Type.caption, color: C.red, textAlign: 'center' },
@@ -261,11 +283,18 @@ function mkStyles(C: AppColors) {
     lockBannerText:     { ...Type.label, color: C.t2 },
     plusBtn:            { backgroundColor: C.t1, flexDirection: 'row', gap: 8 },
     codeCard:           {
-      backgroundColor: C.card, borderRadius: Spacing.radius.lg, padding: 18, marginBottom: 16, alignItems: 'center',
-      borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.border,
+      flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 24, padding: 18, marginBottom: 16,
+      borderWidth: 2, borderStyle: 'dashed', borderColor: '#CFD3CA',
     },
-    codeLabel:          { ...Type.label, color: C.t2 },
-    codeText:           { fontFamily: Fonts.numeric, fontSize: 44, lineHeight: 48, color: C.t1, letterSpacing: 1, marginTop: 6, fontVariant: ['tabular-nums'] },
+    copyBtn:            { height: 42, paddingHorizontal: 16, borderRadius: 21, backgroundColor: C.alwaysDark, justifyContent: 'center' },
+    copyTxt:            { fontFamily: Fonts.medium, fontSize: 14, color: C.alwaysLight },
+    howTitle:           { fontFamily: Fonts.medium, fontSize: 17, color: C.t1 },
+    stepRow:            { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+    stepNum:            { width: 26, height: 26, borderRadius: 13, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    stepNumTxt:         { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    stepTxt:            { flex: 1, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21, color: C.t1 },
+    codeLabel:          { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    codeText:           { fontFamily: Fonts.semiBold, fontSize: 26, color: C.t1, letterSpacing: 2 },
     codeHow:            { ...Type.bodySm, color: C.t2, textAlign: 'center', marginTop: 8 },
     codeShare:          { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, paddingVertical: 9, paddingHorizontal: 16, borderRadius: 999, backgroundColor: C.bg },
     codeShareText:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },

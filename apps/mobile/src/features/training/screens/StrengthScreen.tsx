@@ -122,7 +122,7 @@ function mk(C: AppColors) {
     back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
     title: { flex: 1, fontFamily: Fonts.bold, fontSize: 20, color: C.t1 },
     intro: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
-    card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 16, padding: 16 },
+    card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.card, borderRadius: 22, padding: 16 },
     icon: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
     cardTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     cardSub: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },

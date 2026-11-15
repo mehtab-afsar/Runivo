@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { Coffee, Flag, Watch, Sneaker } from 'phosphor-react-native';
 import type { Reward } from '../types';
 import { lockStateFor } from '../lockState';
 
@@ -16,42 +17,35 @@ export function RewardTile({ reward, onPress }: Props) {
   const lock = lockStateFor(reward);
   const muted = lock.blocked;
 
+  const Icon = reward.category === 'nutrition' ? Coffee : reward.category === 'events' ? Flag : reward.category === 'tech' ? Watch : Sneaker;
   return (
     <Pressable
       onPress={() => onPress(reward)}
-      style={({ pressed }) => [s.card, muted && s.cardMuted, pressed && s.cardPressed]}
+      style={({ pressed }) => [s.card, pressed && s.cardPressed]}
       accessibilityRole="button"
       accessibilityLabel={`${reward.title} from ${reward.brand}, ${reward.paceCost} PACE${lock.label ? `, ${lock.label}` : ''}`}
     >
-      <View style={[s.band, { backgroundColor: muted ? C.t2 : reward.brandColor }]} />
-      <View style={s.body}>
-        <Text style={[s.title, muted && { color: C.t2 }]} numberOfLines={2}>{reward.title}</Text>
-        <Text style={s.partner} numberOfLines={1}>
-          {lock.blocked || lock.kind === 'redeemed' ? lock.label : reward.brand}
-        </Text>
-        <Text style={s.priceRow}>
-          <Text style={[s.price, muted && { color: C.t3 }]}>{reward.paceCost.toLocaleString()}</Text>
-          <Text style={s.unit}> PACE</Text>
-        </Text>
+      <View style={[s.icon, { backgroundColor: muted ? C.bg : C.mint }]}>
+        <Icon size={20} color={muted ? C.t2 : C.green} weight="bold" />
       </View>
+      <Text style={s.title} numberOfLines={2}>{reward.title}</Text>
+      {muted || lock.kind === 'redeemed' ? (
+        <View style={s.lockPill}><Text style={s.lockTxt} numberOfLines={1}>{lock.label}</Text></View>
+      ) : (
+        <Text style={s.partner} numberOfLines={1}>{reward.brand} · {reward.paceCost.toLocaleString()} PACE</Text>
+      )}
     </Pressable>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card: {
-      backgroundColor: C.card, borderRadius: 16, overflow: 'hidden', flex: 1,
-      shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1,
-    },
-    cardMuted:   { opacity: 0.6 },
+    card:        { backgroundColor: C.card, borderRadius: 24, padding: 14, gap: 6, flex: 1, minHeight: 138 },
     cardPressed: { transform: [{ scale: 0.98 }] },
-    band:        { height: 72 },
-    body:        { paddingHorizontal: 12, paddingVertical: 10 },
-    title:       { fontFamily: Fonts.semiBold, fontSize: 13, lineHeight: 17, color: C.t1 },
-    partner:     { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t2, marginTop: 2 },
-    priceRow:    { marginTop: 8 },
-    price:       { fontFamily: Fonts.numeric, fontSize: 20, color: C.t1, fontVariant: ['tabular-nums'] },
-    unit:        { fontFamily: Fonts.numeric, fontSize: 12, color: C.t3 },
+    icon:        { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+    title:       { fontFamily: Fonts.medium, fontSize: 15, lineHeight: 19, color: C.t1 },
+    partner:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    lockPill:    { alignSelf: 'flex-start', height: 26, paddingHorizontal: 10, borderRadius: 13, backgroundColor: C.lavender, justifyContent: 'center', maxWidth: '100%' },
+    lockTxt:     { fontFamily: Fonts.regular, fontSize: 12, color: C.lavenderInk },
   });
 }

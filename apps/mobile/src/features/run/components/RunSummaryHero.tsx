@@ -7,9 +7,9 @@
 import { safeRing, safeLine } from '@mobile/shared/map/geo';
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { X, Export, Play } from 'phosphor-react-native';
+import { CaretLeft, Export, Play, Trophy, EyeSlash } from 'phosphor-react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
-import { useTheme, useIsDark, Type, Fonts, Spacing, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { MapStyleUrl } from '@theme/maps';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
@@ -36,11 +36,21 @@ interface Props {
   onClose:    () => void;
   onShare:    () => void;
   onReplay?:  () => void;
+  /** Mock activity page: who, when, what they wrote, a PR line, more stats. */
+  authorName?: string;
+  whenLine?:   string;
+  description?: string;
+  pr?:         { title: string; sub?: string } | null;
+  extraStats?: { label: string; value: string }[];
+  /** Title in the top bar, e.g. "Run". */
+  sportLabel?: string;
+  onOpenMap?:  () => void;
 }
 
 export default function RunSummaryHero({
   topInset, eyebrow, headline, route, zoneRing, zoneLabel, stolenLabel,
   distance, time, pace, paceLabel, unit = 'km', onClose, onShare, onReplay,
+  authorName, whenLine, description, pr, extraStats = [], sportLabel, onOpenMap,
 }: Props) {
   const C = useTheme();
   const isDark = useIsDark();
@@ -72,20 +82,63 @@ export default function RunSummaryHero({
     ? { type: 'Feature' as const, properties: {}, geometry: { type: 'Polygon' as const, coordinates: [ring] } }
     : null;
 
+  const initials = (authorName ?? '').replace(/[^a-z0-9 ]/gi, '').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const stats = [
+    { label: 'Distance', value: `${distance} ${unit}` },
+    { label: paceLabel ? 'Speed' : 'Pace', value: paceLabel ? `${pace} ${unit}/h` : `${pace} /${unit}` },
+    { label: 'Time', value: time },
+    ...extraStats,
+  ];
+
   return (
-    <View style={{ paddingTop: topInset + 8 }}>
+    <View style={{ paddingTop: topInset + 6, backgroundColor: C.card }}>
       <View style={ss.topBar}>
-        <Pressable onPress={onClose} style={ss.roundBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close">
-          <X size={18} color={C.t1} weight="bold" />
+        <Pressable onPress={onClose} style={ss.roundBtn} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back">
+          <CaretLeft size={18} color={C.t1} weight="bold" />
         </Pressable>
-        <Text style={ss.eyebrow} numberOfLines={1}>{eyebrow}</Text>
-        <Pressable onPress={onShare} style={ss.sharePill} hitSlop={8} accessibilityRole="button" accessibilityLabel="Share your run">
-          <Export size={15} color={C.t1} weight="bold" />
-          <Text style={ss.shareTxt}>Share</Text>
-        </Pressable>
+        <Text style={ss.barTitle} numberOfLines={1}>{sportLabel ?? eyebrow}</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Pressable onPress={onShare} style={ss.roundBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Share">
+            <Export size={18} color={C.t1} weight="bold" />
+          </Pressable>
+          {onReplay && (
+            <Pressable onPress={onReplay} style={ss.roundBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Replay this run">
+              <Play size={16} color={C.t1} weight="fill" />
+            </Pressable>
+          )}
+        </View>
       </View>
 
-      <Text style={ss.headline} accessibilityRole="header">{headline}</Text>
+      <View style={ss.top}>
+        {!!authorName && (
+          <View style={ss.author}>
+            <View style={ss.authorAv}><Text style={ss.authorAvTxt}>{initials}</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={ss.authorName} numberOfLines={1}>{authorName}</Text>
+              {!!whenLine && <Text style={ss.authorWhen} numberOfLines={1}>{whenLine}</Text>}
+            </View>
+          </View>
+        )}
+        <Text style={ss.headline} accessibilityRole="header">{headline}</Text>
+        {!!description && <Text style={ss.desc}>{description}</Text>}
+        {pr && (
+          <View style={ss.pr}>
+            <Trophy size={26} color={C.amber} weight="fill" />
+            <View style={{ flex: 1 }}>
+              <Text style={ss.prTitle}>{pr.title}</Text>
+              {!!pr.sub && <Text style={ss.prSub}>{pr.sub}</Text>}
+            </View>
+          </View>
+        )}
+        <View style={ss.grid}>
+          {stats.map(x => (
+            <View key={x.label} style={ss.cell}>
+              <Text style={ss.cellLbl}>{x.label}</Text>
+              <Text style={ss.cellVal} numberOfLines={1} adjustsFontSizeToFit>{x.value}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
 
       {bounds && (
         <View style={ss.mapCard}>
@@ -100,7 +153,7 @@ export default function RunSummaryHero({
             rotateEnabled={false}
           >
             <MapLibreGL.Camera
-              bounds={{ ...bounds, paddingTop: 44, paddingBottom: 24, paddingLeft: 24, paddingRight: 24 }}
+              bounds={{ ...bounds, paddingTop: 50, paddingBottom: 50, paddingLeft: 24, paddingRight: 24 }}
               animationDuration={0}
             />
             {zoneShape && (
@@ -111,74 +164,56 @@ export default function RunSummaryHero({
             )}
             {routeShape && (
               <MapLibreGL.ShapeSource id="done-route" shape={routeShape}>
-                <MapLibreGL.LineLayer id="done-route-line" style={{ lineColor: zone.trail, lineWidth: zoneShape ? 2 : 4, lineOpacity: zoneShape ? 0.7 : 1, lineCap: 'round', lineJoin: 'round' }} />
+                <MapLibreGL.LineLayer id="done-route-line" style={{ lineColor: zone.trail, lineWidth: zoneShape ? 2.5 : 4, lineCap: 'round', lineJoin: 'round' }} />
               </MapLibreGL.ShapeSource>
-            )}
-            {coords.length > 0 && (
-              <MapLibreGL.PointAnnotation id="done-start" coordinate={coords[0]}>
-                <View style={ss.startMarker} />
-              </MapLibreGL.PointAnnotation>
             )}
           </MapLibreGL.MapView>
           <View style={ss.mapChips} pointerEvents="box-none">
-            {zoneLabel ? <View style={ss.zoneChip}><Text style={ss.zoneChipTxt}>{zoneLabel}</Text></View> : <View />}
+            <View style={ss.hiddenChip}><EyeSlash size={14} color="#17181A" weight="bold" /><Text style={ss.hiddenTxt}>Start and end hidden</Text></View>
+            {zoneLabel ? <View style={ss.zoneChip}><Text style={ss.zoneChipTxt}>{zoneLabel}</Text></View> : null}
             {stolenLabel ? <View style={ss.stolenChip}><Text style={[ss.stolenChipTxt, { color: zone.rival }]}>{stolenLabel}</Text></View> : null}
           </View>
-          {onReplay && (
-            <Pressable style={ss.replayBtn} onPress={onReplay} hitSlop={8} accessibilityRole="button">
-              <Play size={11} color={C.t1} weight="fill" />
-              <Text style={ss.replayTxt}>Replay</Text>
+          {onOpenMap && (
+            <Pressable style={ss.openMap} onPress={onOpenMap} hitSlop={8} accessibilityRole="button">
+              <Text style={ss.openMapTxt}>Open on map</Text>
             </Pressable>
           )}
         </View>
       )}
-
-      <View style={ss.statsCard}>
-        <Stat value={distance} label={unit} ss={ss} />
-        <Stat value={time} label="Time" ss={ss} divided />
-        <Stat value={pace} label={paceLabel ?? `Avg /${unit}`} ss={ss} divided />
-      </View>
-    </View>
-  );
-}
-
-function Stat({ value, label, divided, ss }: { value: string; label: string; divided?: boolean; ss: ReturnType<typeof mkStyles> }) {
-  return (
-    <View style={[ss.stat, divided && ss.statDivided]}>
-      <Text style={ss.statValue} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={ss.statLabel}>{label}</Text>
     </View>
   );
 }
 
 function mkStyles(C: AppColors) {
-  const card = {
-    backgroundColor: C.card, borderRadius: 18, marginHorizontal: Spacing.gutter,
-    shadowColor: '#14120F', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1,
-  } as const;
   return StyleSheet.create({
-    topBar:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, gap: 10 },
-    roundBtn:    { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    eyebrow:     { flex: 1, textAlign: 'center', fontFamily: Fonts.medium, fontSize: 12, color: C.red },
-    sharePill:   { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-    shareTxt:    { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    topBar:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, gap: 10, height: 50 },
+    roundBtn:    { width: 44, height: 44, borderRadius: 22, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    barTitle:    { flex: 1, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    top:         { paddingHorizontal: 20, paddingTop: 10, gap: 14 },
+    author:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    authorAv:    { width: 42, height: 42, borderRadius: 21, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    authorAvTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.lime },
+    authorName:  { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    authorWhen:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    headline:    { fontFamily: Fonts.semiBold, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: C.t1 },
+    desc:        { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, color: C.t1 },
+    pr:          { borderRadius: 18, backgroundColor: C.amberBg, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    prTitle:     { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    prSub:       { fontFamily: Fonts.regular, fontSize: 13, color: '#7A5525' },
+    grid:        { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, paddingVertical: 4 },
+    cell:        { width: '33.33%', paddingRight: 8 },
+    cellLbl:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    cellVal:     { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1, fontVariant: ['tabular-nums'] },
 
-    headline:    { ...Type.hero, fontSize: 46, lineHeight: 41, color: C.t1, paddingHorizontal: 18, marginTop: 12, marginBottom: 12 },
-
-    mapCard:     { ...card, height: 170, overflow: 'hidden', marginBottom: 12 },
-    mapChips:    { position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    zoneChip:    { backgroundColor: C.alwaysDark, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-    zoneChipTxt: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysLight },
-    stolenChip:  { backgroundColor: C.card, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-    stolenChipTxt: { fontFamily: Fonts.semiBold, fontSize: 11.5 },
-    startMarker: { width: 14, height: 14, borderRadius: 7, borderWidth: 3, borderColor: C.t1, backgroundColor: C.card },
-    replayBtn:   { position: 'absolute', right: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 5, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: C.card },
-    replayTxt:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t1 },
-
-    statsCard:   { ...card, flexDirection: 'row', paddingVertical: 16, marginBottom: 12 },
-    stat:        { flex: 1, paddingHorizontal: 15 },
-    statDivided: { borderLeftWidth: 1, borderLeftColor: C.border },
-    statValue:   { fontFamily: Fonts.numeric, fontSize: 30, lineHeight: 28, color: C.t1, fontVariant: ['tabular-nums'] },
-    statLabel:   { ...Type.labelSm, color: C.t2, marginTop: 5 },
+    mapCard:     { height: 230, overflow: 'hidden', marginTop: 6, backgroundColor: C.bg },
+    mapChips:    { position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'flex-start' },
+    hiddenChip:  { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: '#FFFFFF' },
+    hiddenTxt:   { fontFamily: Fonts.semiBold, fontSize: 13, color: '#17181A' },
+    zoneChip:    { height: 30, justifyContent: 'center', backgroundColor: C.alwaysDark, borderRadius: 15, paddingHorizontal: 12 },
+    zoneChipTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.alwaysLight },
+    stolenChip:  { height: 30, justifyContent: 'center', backgroundColor: '#FFFFFF', borderRadius: 15, paddingHorizontal: 12 },
+    stolenChipTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5 },
+    openMap:     { position: 'absolute', right: 12, bottom: 12, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: C.alwaysDark, justifyContent: 'center' },
+    openMapTxt:  { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
   });
 }

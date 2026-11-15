@@ -2,13 +2,13 @@
  * Territory colours — the one place every map gets its zone, trail and friend
  * colours from, so "mine", "rival" and "fading" look the same everywhere.
  *
- *   Mine        accent red, fill strength follows freshness
- *   Mine fading amber, dashed outline: defend it
- *   Rival       blue, lighter
- *   Rival fading grey-blue, thin: easy to take
+ *   Mine        green, fill strength follows freshness
+ *   Mine fading pale green, dashed outline: defend it
+ *   Rival       amber, lighter
+ *   Rival fading pale amber, thin: easy to take
  *   Selected    thick outline only, keeps the zone's own colour
  *   New capture white halo for 24 h after the claim
- *   Your trail  accent red; friends get their own palette, never red or blue
+ *   Your trail  ink (lime on dark); friends get their own palette, never green or amber
  */
 import { ENGINE } from '@shared/engine/runEngine';
 
@@ -29,28 +29,28 @@ export interface TerritoryPalette {
 
 export const TerritoryColors: { light: TerritoryPalette; dark: TerritoryPalette } = {
   light: {
-    own: '#FF4518',
-    ownFading: '#F59E0B',
-    rival: '#2F56F5',
-    rivalFading: '#8A94B8',
-    selected: '#0C0C0D',
+    own: '#7DBA3C',
+    ownFading: '#A9C77A',
+    rival: '#F2A43A',
+    rivalFading: '#CDB089',
+    selected: '#17181A',
     newCapture: '#FFFFFF',
-    trail: '#FF4518',
-    trailGlow: '#FF4518',
-    ghost: '#64636A',
+    trail: '#17181A',
+    trailGlow: '#C9F06B',
+    ghost: '#6B6F69',
     ownOpacity: [0.18, 0.42],
     rivalOpacity: [0.10, 0.26],
   },
   dark: {
-    own: '#FF5A2E',
-    ownFading: '#FBBF24',
-    rival: '#5B7BFF',
-    rivalFading: '#6B7394',
+    own: '#9BD25A',
+    ownFading: '#6F8F4A',
+    rival: '#F2A43A',
+    rivalFading: '#8A7556',
     selected: '#FFFFFF',
     newCapture: '#FFFFFF',
-    trail: '#FF5A2E',
-    trailGlow: '#FF5A2E',
-    ghost: '#A3A1A8',
+    trail: '#C9F06B',
+    trailGlow: '#C9F06B',
+    ghost: '#A0A49D',
     ownOpacity: [0.22, 0.50],
     rivalOpacity: [0.14, 0.32],
   },
@@ -59,8 +59,8 @@ export const TerritoryColors: { light: TerritoryPalette; dark: TerritoryPalette 
 export const territoryPalette = (isDark: boolean): TerritoryPalette =>
   isDark ? TerritoryColors.dark : TerritoryColors.light;
 
-/** Friends on the live map: distinct from your red trail and rival blue. */
-export const FRIEND_COLORS = ['#7C3AED', '#0EA5A4', '#DB2777', '#12A150', '#0891B2', '#C026D3'] as const;
+/** Friends on the live map: distinct from your trail, your green and rival amber. */
+export const FRIEND_COLORS = ['#7C3AED', '#0EA5A4', '#DB2777', '#2563EB', '#0891B2', '#C026D3'] as const;
 
 export function friendColor(userId: string): string {
   let h = 0;

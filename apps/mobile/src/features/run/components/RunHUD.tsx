@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import * as Haptics from '@theme/hapticsGated';
-import { useTheme, useIsDark, Type, Fonts, type AppColors } from '@theme';
+import { Lightning, PathIcon, Hexagon } from 'phosphor-react-native';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { convertKm, convertPaceStringPerKm } from '@mobile/shared/lib/formatters';
 
@@ -30,11 +31,6 @@ function formatElapsed(seconds: number): string {
   const s = Math.floor(seconds % 60);
   if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-function formatArea(m2: number): string {
-  if (m2 >= 100_000) return `${(m2 / 1_000_000).toFixed(2)} km²`;
-  return `${Math.round(m2).toLocaleString()} m²`;
 }
 
 type SlotMode = 'avg' | 'now' | 'climb';
@@ -73,75 +69,69 @@ export default function RunHUD({ distance, pace, elapsed, liveAreaM2, unit = 'km
   const hasArea = !!liveAreaM2 && liveAreaM2 > 0;
   const speed = elapsed > 0 ? displayDistance / (elapsed / 3600) : 0;
 
+  const paceValue = mode === 'climb' ? `${Math.round((elevationGainM ?? 0) * (unit === 'mi' ? 3.28084 : 1))}`
+    : mode === 'now' ? nowValue
+    : metric === 'speed' ? (speed > 0 ? speed.toFixed(1) : '0.0') : displayPace;
+  const paceLabel = mode === 'climb' ? `Climb ${unit === 'mi' ? 'ft' : 'm'}`
+    : mode === 'now' ? (metric === 'speed' ? `Now ${unit}/h` : `Now /${unit}`)
+    : metric === 'speed' ? `Avg ${unit}/h` : `Pace /${unit}`;
+
+  // maxFontSizeMultiplier caps are deliberate: read mid-stride in a fixed sheet.
   return (
     <View style={ss.container}>
-      {/*
-        maxFontSizeMultiplier caps are deliberate: this panel is read mid-stride
-        in a fixed-height sheet. Capping still lets numbers grow ~20-30% for
-        larger accessibility sizes (Apple HIG allows capping large numerics).
-      */}
-      <View style={ss.topRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={ss.eyebrow} maxFontSizeMultiplier={1.3}>
-            Distance{stateLabel ? ` · ${stateLabel}` : ''}
-          </Text>
-          <View style={ss.distanceBlock}>
-            <Text style={ss.distanceValue} maxFontSizeMultiplier={1.15}>{displayDistance.toFixed(2)}</Text>
-            <Text style={ss.distanceUnit} maxFontSizeMultiplier={1.2}>{unit}</Text>
-          </View>
+      <View style={ss.tiles}>
+        <Pressable style={ss.tile} onPress={cycle} accessibilityRole="button" accessibilityLabel={`${paceLabel} ${paceValue}`} accessibilityHint="Tap to switch between average, current and climb">
+          <View style={[ss.tileIcon, { backgroundColor: C.mint }]}><Lightning size={16} color={C.green} weight="bold" /></View>
+          <Text style={ss.tileVal} maxFontSizeMultiplier={1.3}>{paceValue}</Text>
+          <Text style={ss.tileLbl} maxFontSizeMultiplier={1.3}>{paceLabel} ⇄</Text>
+        </Pressable>
+        <View style={ss.tile}>
+          <View style={[ss.tileIcon, { backgroundColor: C.amberBg }]}><PathIcon size={16} color={C.amber} weight="bold" /></View>
+          <Text style={ss.tileVal} maxFontSizeMultiplier={1.3}>{displayDistance.toFixed(2)}</Text>
+          <Text style={ss.tileLbl} maxFontSizeMultiplier={1.3}>{unit === 'mi' ? 'Miles' : 'Kilometres'}</Text>
         </View>
-        {lap && (
-          <View style={ss.lap}>
-            <Text style={ss.lapLabel} maxFontSizeMultiplier={1.2}>Lap {lap.n}{metric === 'speed' ? ` · ${unit}/h` : ''}</Text>
-            <Text style={ss.lapPace} maxFontSizeMultiplier={1.2}>{lap.pace}</Text>
+        {showZone && (
+          <View style={ss.tile}>
+            <View style={[ss.tileIcon, { backgroundColor: C.lavender }]}><Hexagon size={16} color={C.lavenderInk} weight="bold" /></View>
+            <Text style={[ss.tileVal, hasArea && { color: zone.own }]} maxFontSizeMultiplier={1.3}>
+              {hasArea ? shortArea(liveAreaM2!) : '—'}
+            </Text>
+            <Text style={ss.tileLbl} maxFontSizeMultiplier={1.3}>{hasArea && liveAreaM2! >= 100_000 ? 'Zone km²' : 'Zone m²'}</Text>
           </View>
         )}
       </View>
 
-      <View style={ss.stats}>
-        <Pressable style={ss.stat} onPress={cycle} accessibilityRole="button" accessibilityHint="Tap to switch between average, current and climb">
-          <Text style={ss.statValue} maxFontSizeMultiplier={1.3}>
-            {mode === 'climb' ? `${Math.round((elevationGainM ?? 0) * (unit === 'mi' ? 3.28084 : 1))}`
-              : mode === 'now' ? nowValue
-              : metric === 'speed' ? (speed > 0 ? speed.toFixed(1) : '0.0') : displayPace}
-          </Text>
-          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>
-            {mode === 'climb' ? `Climb ${unit === 'mi' ? 'ft' : 'm'} ⇄`
-              : mode === 'now' ? (metric === 'speed' ? `Now ${unit}/h ⇄` : `Now /${unit} ⇄`)
-              : metric === 'speed' ? `Avg ${unit}/h ⇄` : `Avg /${unit} ⇄`}
-          </Text>
-        </Pressable>
-        <View style={[ss.stat, ss.statDivided]}>
-          <Text style={ss.statValue} maxFontSizeMultiplier={1.3}>{formatElapsed(elapsed)}</Text>
-          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>Time</Text>
-        </View>
-        {showZone && <View style={[ss.stat, ss.statDivided]}>
-          <Text style={[ss.statValue, hasArea && { color: zone.own }]} maxFontSizeMultiplier={1.3}>
-            {hasArea ? formatArea(liveAreaM2!).replace(/ (k?m²)$/, '') : '—'}
-          </Text>
-          <Text style={ss.statLabel} maxFontSizeMultiplier={1.3}>{hasArea && liveAreaM2! >= 100_000 ? 'Zone km²' : 'Zone m²'}</Text>
-        </View>}
+      <View style={ss.dock}>
+        <Text style={ss.dockLbl} maxFontSizeMultiplier={1.3}>Time{stateLabel ? ` · ${stateLabel}` : ''}</Text>
+        <Text style={ss.time} maxFontSizeMultiplier={1.15}>{formatElapsed(elapsed)}</Text>
+        <Text style={ss.dockSub} maxFontSizeMultiplier={1.3} numberOfLines={1}>
+          <Text style={ss.dockStrong}>{displayDistance.toFixed(2)}</Text> {unit}
+          {lap ? ` · lap ${lap.n} ${lap.pace}${metric === 'speed' ? ` ${unit}/h` : ''}` : ''}
+        </Text>
       </View>
     </View>
   );
 }
 
+/** "18.2K" for big areas, as on the mock's tile. */
+function shortArea(m2: number): string {
+  if (m2 >= 100_000) return (m2 / 1_000_000).toFixed(2);
+  if (m2 >= 10_000) return `${(m2 / 1000).toFixed(1)}K`;
+  return Math.round(m2).toLocaleString();
+}
+
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    container:     { backgroundColor: C.card, paddingTop: 0, paddingHorizontal: 20 },
-    // stats: no bottom rule; the loop row sits under it in the sheet.
-    topRow:        { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
-    eyebrow:       { ...Type.labelSm, color: C.t2 },
-    distanceBlock: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 6 },
-    distanceValue: { fontFamily: Fonts.numeric, fontSize: 96, lineHeight: 84, letterSpacing: -1, color: C.t1, fontVariant: ['tabular-nums'] },
-    distanceUnit:  { fontFamily: Fonts.bold, fontSize: 22, letterSpacing: -0.5, color: C.t3 },
-    lap:           { alignItems: 'flex-end', paddingBottom: 10 },
-    lapLabel:      { ...Type.labelSm, color: C.t2 },
-    lapPace:       { fontFamily: Fonts.numeric, fontSize: 24, lineHeight: 24, color: C.t1, marginTop: 4, fontVariant: ['tabular-nums'] },
-    stats:         { flexDirection: 'row', marginTop: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: C.border },
-    stat:          { flex: 1, paddingVertical: 12 },
-    statDivided:   { borderLeftWidth: 1, borderColor: C.border, paddingLeft: 14 },
-    statValue:     { fontFamily: Fonts.numeric, fontSize: 28, lineHeight: 26, color: C.t1, fontVariant: ['tabular-nums'] },
-    statLabel:     { ...Type.labelSm, color: C.t2, marginTop: 5 },
+    container:  { backgroundColor: C.card, paddingHorizontal: 16, gap: 10 },
+    tiles:      { flexDirection: 'row', gap: 8 },
+    tile:       { flex: 1, borderRadius: 20, backgroundColor: C.bg, paddingVertical: 12, paddingHorizontal: 8, alignItems: 'center', gap: 4 },
+    tileIcon:   { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+    tileVal:    { fontFamily: Fonts.numeric, fontSize: 20, color: C.t1, fontVariant: ['tabular-nums'] },
+    tileLbl:    { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+    dock:       { borderRadius: 28, backgroundColor: C.bg, paddingVertical: 14, paddingHorizontal: 20, gap: 2 },
+    dockLbl:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    time:       { fontFamily: Fonts.numeric, fontSize: 38, lineHeight: 44, letterSpacing: -1, color: C.t1, fontVariant: ['tabular-nums'] },
+    dockSub:    { fontFamily: Fonts.regular, fontSize: 16, color: C.t2 },
+    dockStrong: { fontFamily: Fonts.semiBold, color: C.t1 },
   });
 }

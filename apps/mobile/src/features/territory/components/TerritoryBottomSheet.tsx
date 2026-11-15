@@ -10,7 +10,7 @@ import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette, type TerritoryPalette } from '@theme/territory';
 import { ENGINE, zoneScore } from '@shared/engine/runEngine';
 
-const TIER_LABELS: Record<TerritoryTier, string> = {
+export const TIER_LABELS: Record<TerritoryTier, string> = {
   patch: 'Patch', block: 'Block', district: 'District', quarter: 'Quarter', domain: 'Domain',
 };
 
@@ -38,7 +38,7 @@ function claimedOn(iso: string): string {
  * expo-location): the place or street at its centre. Falls back to
  * "District zone" when there's no answer.
  */
-function useZoneName(polygon: TerritoryDetails): string {
+export function useZoneName(polygon: TerritoryDetails): string {
   const fallback = `${TIER_LABELS[polygon.tier]} zone`;
   const [name, setName] = useState<string>(fallback);
   useEffect(() => {

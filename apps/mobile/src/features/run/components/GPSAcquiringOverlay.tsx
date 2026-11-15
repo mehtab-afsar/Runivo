@@ -7,9 +7,9 @@ interface Props {
 }
 
 function ringColor(acc: number | null): string {
-  if (acc === null || acc > 50) return '#EF4444'; // red
-  if (acc > 15) return '#F59E0B';                  // amber
-  return '#22C55E';                                // green
+  if (acc === null || acc > 50) return '#C9372C'; // weak
+  if (acc > 15) return '#F2A43A';                  // fair
+  return '#7DBA3C';                                // good
 }
 
 // Build a translucent scrim from the theme's bg so the overlay dims the map

@@ -1,4 +1,3 @@
-import { RunivoMark } from '@mobile/shared/components/RunivoMark';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
@@ -15,7 +14,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import type { LoginState } from '../hooks/useLogin';
 import { signInWithGoogle, signInWithApple } from '../services/socialAuth';
 import { ArrowLeft } from 'lucide-react-native';
-import { useTheme, useIsDark, Fonts, Type, Spacing, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, Type, type AppColors } from '@theme';
 
 const EASE = Easing.bezier(0.22, 0.68, 0, 1);
 
@@ -102,7 +101,6 @@ export default function LoginForm({
   }
 
   const navAnim    = useEntrance(0);
-  const heroAnim   = useEntrance(70);
   const h1Anim     = useEntrance(140);
   const formAnim   = useEntrance(210);
   const socialAnim = useEntrance(300);
@@ -118,8 +116,7 @@ export default function LoginForm({
         <Pressable onPress={onGoBack} hitSlop={10} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} strokeWidth={1.8} />
         </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole="header" accessibilityLabel="Runivo"><RunivoMark size={22} /><Text style={s.logoWord}>runivo</Text></View>
-        <View style={s.backSpacer} />
+
       </Animated.View>
 
       <ScrollView
@@ -129,9 +126,43 @@ export default function LoginForm({
         showsVerticalScrollIndicator={false}
       >
         <View style={s.hero}>
-          <Animated.Text style={[s.eyebrow, heroAnim]}>Welcome back</Animated.Text>
-          <Animated.Text style={[s.h1, h1Anim]}>Sign back{'\n'}in.</Animated.Text>
+          <Animated.Text style={[s.h1, h1Anim]} accessibilityRole="header">Welcome <Text style={{ color: C.red }}>back.</Text></Animated.Text>
         </View>
+
+        <Animated.View style={[s.socialRow, socialAnim]}>
+          {Platform.OS === 'ios' ? (
+            // Apple's App Review Guidelines require the native, Apple-rendered
+            // button for Sign in with Apple — not a custom-styled lookalike.
+            <View style={[s.socialBtn, s.appleNativeBtnWrap, socialLoading && { opacity: 0.5 }]} pointerEvents={socialLoading ? 'none' : 'auto'}>
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                buttonStyle={isDark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                cornerRadius={27}
+                style={s.appleNativeBtn}
+                onPress={() => handleSocialSignIn('apple')}
+              />
+            </View>
+          ) : (
+            <Pressable style={s.socialBtn} onPress={() => handleSocialSignIn('apple')} disabled={!!socialLoading}>
+              {socialLoading === 'apple'
+                ? <ActivityIndicator size="small" color={C.t1} />
+                : <AppleIcon color={C.t1} />}
+              <Text style={s.socialText}>Apple</Text>
+            </Pressable>
+          )}
+          <Pressable style={s.socialBtn} onPress={() => handleSocialSignIn('google')} disabled={!!socialLoading}>
+            {socialLoading === 'google'
+              ? <ActivityIndicator size="small" color={C.t1} />
+              : <GoogleIcon />}
+            <Text style={s.socialText}>Google</Text>
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View style={[s.orRow, socialAnim]}>
+          <View style={s.orLine} />
+          <Text style={s.orLabel}>or</Text>
+          <View style={s.orLine} />
+        </Animated.View>
 
         <Animated.View style={formAnim}>
           <View style={s.rule} />
@@ -211,41 +242,6 @@ export default function LoginForm({
                 : null}
         </Animated.View>
 
-        <Animated.View style={[s.orRow, socialAnim]}>
-          <View style={s.orLine} />
-          <Text style={s.orLabel}>or</Text>
-          <View style={s.orLine} />
-        </Animated.View>
-
-        <Animated.View style={[s.socialRow, socialAnim]}>
-          <Pressable style={s.socialBtn} onPress={() => handleSocialSignIn('google')} disabled={!!socialLoading}>
-            {socialLoading === 'google'
-              ? <ActivityIndicator size="small" color={C.t1} />
-              : <GoogleIcon />}
-            <Text style={s.socialText}>Google</Text>
-          </Pressable>
-          {Platform.OS === 'ios' ? (
-            // Apple's App Review Guidelines require the native, Apple-rendered
-            // button for Sign in with Apple — not a custom-styled lookalike.
-            <View style={[s.socialBtn, s.appleNativeBtnWrap, socialLoading && { opacity: 0.5 }]} pointerEvents={socialLoading ? 'none' : 'auto'}>
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={isDark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={24}
-                style={s.appleNativeBtn}
-                onPress={() => handleSocialSignIn('apple')}
-              />
-            </View>
-          ) : (
-            <Pressable style={s.socialBtn} onPress={() => handleSocialSignIn('apple')} disabled={!!socialLoading}>
-              {socialLoading === 'apple'
-                ? <ActivityIndicator size="small" color={C.t1} />
-                : <AppleIcon color={C.t1} />}
-              <Text style={s.socialText}>Apple</Text>
-            </Pressable>
-          )}
-        </Animated.View>
-
         <Animated.View style={[s.ctaWrap, ctaAnim]}>
           <Pressable
             style={[s.ctaBtn, (!valid || lockoutSeconds > 0) && s.ctaDisabled]}
@@ -266,7 +262,7 @@ export default function LoginForm({
 
           <Pressable onPress={onGoSignUp} style={s.signupRow}>
             <Text style={s.signupText}>
-              No account?{'  '}<Text style={s.signupLink}>Create one</Text>
+              New to Runivo? <Text style={s.signupLink}>Create an account</Text>
             </Text>
           </Pressable>
         </Animated.View>
@@ -280,53 +276,53 @@ function mkStyles(C: AppColors) {
     root:    { flex: 1, backgroundColor: C.bg },
     topBar:  { height: 0 },
 
-    nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8 },
-    backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
+    backBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
     backSpacer: { width: 40 },
     backText:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     logoWord:{ fontFamily: Fonts.wordmark, fontSize: 22, letterSpacing: -0.4, color: C.t1 },
 
-    scroll:  { paddingHorizontal: Spacing.gutter + 4 },
-    hero:    { paddingTop: 36 },
+    scroll:  { paddingHorizontal: 22, flexGrow: 1 },
+    hero:    { paddingTop: 28 },
     eyebrow: { ...Type.label, color: C.red, marginBottom: 10 },
-    h1:      { fontFamily: Fonts.hero, fontSize: 54, lineHeight: 50, textTransform: 'uppercase', letterSpacing: -0.3, color: C.t1, marginBottom: 12 },
+    h1:      { fontFamily: Fonts.semiBold, fontSize: 40, lineHeight: 44, letterSpacing: -1.2, color: C.t1, marginBottom: 22 },
 
     rule:    { height: 0, marginTop: 24 },
 
-    field:   { borderWidth: 1, borderColor: C.border, borderRadius: Spacing.radius.md + 2, backgroundColor: C.card, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, marginTop: 12 },
-    label:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginBottom: 6 },
+    field:   { borderWidth: 1, borderColor: 'transparent', borderRadius: 18, backgroundColor: C.card, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 12, marginTop: 12 },
+    label:   { fontFamily: Fonts.medium, fontSize: 13, color: C.t2, marginBottom: 6 },
     inputRow:{ flexDirection: 'row', alignItems: 'center' },
     input:   { fontFamily: Fonts.regular, fontSize: 16, color: C.t1, paddingVertical: 0, flex: 1 },
     toggleBtn: { paddingLeft: 12 },
     toggleText:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2 },
 
     forgotRow: { alignSelf: 'flex-end', paddingTop: 14 },
-    forgotText:{ fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
+    forgotText:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
 
     errText:   { ...Type.caption, color: C.red, marginTop: 10 },
     resetText: { ...Type.caption, color: C.green, marginTop: 10 },
 
-    orRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, marginBottom: 16 },
+    orRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16, marginBottom: 2 },
     orLine:  { flex: 1, height: 1, backgroundColor: C.border },
-    orLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.t3 },
+    orLabel: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
 
-    socialRow: { flexDirection: 'row', gap: 12 },
-    socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: C.border, backgroundColor: C.card, borderRadius: 999, height: 48 },
-    socialText:{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
-    appleNativeBtnWrap: { flex: 1, height: 48, borderRadius: 999, overflow: 'hidden' },
-    appleNativeBtn: { width: '100%', height: 48 },
+    socialRow: { flexDirection: 'row', gap: 10 },
+    socialBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.card, borderRadius: 27, height: 54 },
+    socialText:{ fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    appleNativeBtnWrap: { flex: 1, height: 54, borderRadius: 27, overflow: 'hidden' },
+    appleNativeBtn: { width: '100%', height: 54 },
 
     // Fixed dark/light pair — the primary CTA is a bold "filled" pill regardless of
     // theme, not the adapting ink token (which would invert to near-white in dark
     // mode and render an invisible white-on-white button).
-    ctaWrap:    { marginTop: 24 },
-    ctaBtn:     { backgroundColor: C.red, borderRadius: 999, height: Spacing.height.buttonPrimary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    ctaWrap:    { marginTop: 'auto', paddingTop: 28 },
+    ctaBtn:     { backgroundColor: C.alwaysDark, borderRadius: 28, height: 56, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     ctaDisabled:{ opacity: 0.45 },
     ctaLabel:   { ...Type.button, color: C.alwaysLight },
 
     signupRow:  { marginTop: 20, alignItems: 'center' },
-    signupText: { fontSize: 13, color: C.t2 },
-    signupLink: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, textDecorationLine: 'underline' },
+    signupText: { fontFamily: Fonts.regular, fontSize: 15, color: C.t1 },
+    signupLink: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
   });
 }

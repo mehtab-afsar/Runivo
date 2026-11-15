@@ -15,7 +15,7 @@ interface Sponsored {
 }
 const UNIT = { distance_km: 'km', zones: 'zones', active_days: 'days' } as const;
 
-export function SponsoredChallenges() {
+export function SponsoredChallenges({ title = 'Brand challenges' }: { title?: string } = {}) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
   const [list, setList] = useState<Sponsored[]>([]);
@@ -36,26 +36,26 @@ export function SponsoredChallenges() {
 
   return (
     <View style={s.wrap}>
-      <Text style={s.label}>Brand challenges</Text>
+      <Text style={s.label}>{title}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
         {list.map(c => {
           const pct = Math.min(1, c.progress / c.target);
           const days = Math.max(0, Math.ceil((new Date(c.ends_at).getTime() - Date.now()) / 86_400_000));
           const done = c.progress >= c.target;
           return (
-            <View key={c.id} style={[s.card, { borderTopColor: c.brand_color ?? C.red }]}>
+            <View key={c.id} style={s.card}>
+              <Text style={s.eyebrow}>Featured · {days} {days === 1 ? 'day' : 'days'} left</Text>
               <Text style={s.brand}>{c.brand}</Text>
               <Text style={s.title} numberOfLines={2}>{c.title}</Text>
               <Text style={s.reward} numberOfLines={1}>Reward: {c.reward_value || c.reward_title}</Text>
               {c.joined && (
                 <>
                   <View style={s.track}><View style={[s.fill, { width: `${Math.round(pct * 100)}%` }]} /></View>
-                  <Text style={s.meta}>{c.progress} / {c.target} {UNIT[c.metric]} · {days} {days === 1 ? 'day' : 'days'} left</Text>
+                  <Text style={s.meta}>{c.progress} of {c.target} {UNIT[c.metric]}</Text>
                 </>
               )}
-              {!c.joined && <Text style={s.meta}>{days} {days === 1 ? 'day' : 'days'} left</Text>}
               <Pressable hitSlop={8} style={[s.btn, (c.joined && !done && !c.code) && s.btnQuiet]} disabled={c.joined && !done && !c.code} onPress={() => act(c)} accessibilityRole="button">
-                <Text style={[s.btnTxt, (c.joined && !done && !c.code) && { color: C.t2 }]}>
+                <Text style={[s.btnTxt, (c.joined && !done && !c.code) && { color: C.alwaysLight }]}>
                   {!c.joined ? 'Join' : c.code ? `Code: ${c.code}` : done ? 'Get your reward' : 'In progress'}
                 </Text>
               </Pressable>
@@ -70,17 +70,18 @@ export function SponsoredChallenges() {
 function mk(C: AppColors) {
   return StyleSheet.create({
     wrap: { marginTop: 18 },
-    label: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t2, paddingHorizontal: 18, marginBottom: 8 },
+    label: { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1, paddingHorizontal: 18, marginBottom: 10 },
     row: { gap: 10, paddingHorizontal: 18 },
-    card: { width: 230, backgroundColor: C.card, borderRadius: 16, padding: 14, gap: 6, borderTopWidth: 4 },
-    brand: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2 },
-    title: { fontFamily: Fonts.bold, fontSize: 15, color: C.t1 },
-    reward: { fontFamily: Fonts.medium, fontSize: 12.5, color: C.t1 },
-    track: { height: 6, borderRadius: 3, backgroundColor: C.surface, overflow: 'hidden', marginTop: 2 },
-    fill: { height: 6, borderRadius: 3, backgroundColor: C.red },
-    meta: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
-    btn: { marginTop: 4, height: 36, borderRadius: 18, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center' },
-    btnQuiet: { backgroundColor: C.surface },
-    btnTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.bg },
+    card: { width: 290, backgroundColor: C.alwaysDark, borderRadius: 26, padding: 18, gap: 6 },
+    eyebrow: { fontFamily: Fonts.bold, fontSize: 12, color: C.lime },
+    brand: { fontFamily: Fonts.medium, fontSize: 12.5, color: 'rgba(255,255,255,0.65)' },
+    title: { fontFamily: Fonts.semiBold, fontSize: 20, lineHeight: 25, color: C.alwaysLight },
+    reward: { fontFamily: Fonts.regular, fontSize: 13.5, color: 'rgba(255,255,255,0.8)' },
+    track: { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.14)', overflow: 'hidden', marginTop: 4 },
+    fill: { height: 8, borderRadius: 4, backgroundColor: C.lime },
+    meta: { fontFamily: Fonts.regular, fontSize: 12.5, color: 'rgba(255,255,255,0.65)' },
+    btn: { marginTop: 6, alignSelf: 'flex-start', height: 38, paddingHorizontal: 20, borderRadius: 19, backgroundColor: C.lime, alignItems: 'center', justifyContent: 'center' },
+    btnQuiet: { backgroundColor: 'rgba(255,255,255,0.14)' },
+    btnTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysDark },
   });
 }

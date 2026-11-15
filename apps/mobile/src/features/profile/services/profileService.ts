@@ -1,4 +1,5 @@
 import { getRuns, getSettings } from '@shared/services/store';
+import { readCleanImage } from '@mobile/shared/lib/cleanImageUpload';
 import { calculatePersonalRecords, formatRecordValue, getRecordLabel } from '@shared/services/personalRecords';
 import { supabase } from '@shared/services/supabase';
 
@@ -105,14 +106,11 @@ export async function updateProfile(
 
 export async function uploadAvatar(userId: string, uri: string): Promise<string | null> {
   try {
-    const cleanUri = uri.split('?')[0];
-    const rawExt = cleanUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-    const ext = rawExt === 'jpg' ? 'jpeg' : rawExt;
-    const path = `${userId}/avatar.${ext}`;
-    const arrayBuffer = await fetch(uri).then(r => r.arrayBuffer());
+    const img = await readCleanImage(uri);
+    const path = `${userId}/avatar.${img.ext}`;
     const { error } = await supabase.storage
       .from('avatars')
-      .upload(path, arrayBuffer, { upsert: true, contentType: `image/${ext}` });
+      .upload(path, img.body, { upsert: true, contentType: img.contentType });
     if (error) return null;
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
     return data.publicUrl;

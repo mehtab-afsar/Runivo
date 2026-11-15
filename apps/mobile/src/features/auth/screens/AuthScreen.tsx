@@ -293,7 +293,7 @@ function mkStyles(C: AppColors) {
     legal:         { fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, color: C.t3, textAlign: 'center', paddingHorizontal: 12 },
     legalLink:     { color: C.t2, textDecorationLine: 'underline' },
     input:         {
-      height: 58, borderRadius: 16, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border,
+      height: 58, borderRadius: 22, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border,
       paddingHorizontal: 18, fontFamily: Fonts.medium, fontSize: 19, color: C.t1,
     },
     hint:          { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, marginTop: 10 },

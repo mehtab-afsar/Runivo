@@ -9,12 +9,19 @@ import { CaretLeft, CaretRight, Plus, Check, Flag } from 'phosphor-react-native'
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { Avatar } from '@mobile/shared/components/Avatar';
+import { SponsoredChallenges } from '@features/store/components/SponsoredChallenges';
 import {
   fetchMyChallenges, createChallenge, respondChallenge, fetchFollowing, METRIC_LABEL,
   type Challenge, type ChallengeMetric,
 } from '../services/challengeService';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+/** The square badge on each card (mock: "5Z", "100"). */
+export const BADGE: Record<ChallengeMetric, { suffix: string; bg: (C: AppColors) => string; fg: (C: AppColors) => string }> = {
+  distance_km: { suffix: '', bg: C => C.mint, fg: C => C.green },
+  zones:       { suffix: 'Z', bg: C => C.amberBg, fg: C => C.amber },
+  active_days: { suffix: 'D', bg: C => C.lavender, fg: C => C.lavenderInk },
+};
 const DURATIONS = [{ label: '1 week', days: 7 }, { label: '2 weeks', days: 14 }, { label: '1 month', days: 30 }];
 const TARGETS: Record<ChallengeMetric, number[]> = { distance_km: [20, 50, 100, 200], zones: [5, 10, 20, 50], active_days: [5, 10, 15, 20] };
 
@@ -23,7 +30,8 @@ export function daysLeft(iso: string): string {
   return d < 0 ? 'Finished' : d === 0 ? 'Ends today' : `${d} ${d === 1 ? 'day' : 'days'} left`;
 }
 
-export default function ChallengesScreen() {
+/** `embedded`: shown inside the Groups tab, which supplies the title and safe area. */
+export default function ChallengesScreen({ embedded = false }: { embedded?: boolean }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
   const insets = useSafeAreaInsets();
@@ -41,17 +49,27 @@ export default function ChallengesScreen() {
     try { await respondChallenge(c.id, join); load(); } catch { Alert.alert('Could not reach Runivo', 'Try again in a moment.'); }
   };
 
-  return (
-    <View style={s.root}>
-      <View style={[s.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
-        <Text style={s.title}>Challenges</Text>
+  const topBar = (
+    <View style={[s.top, embedded ? { paddingHorizontal: 0, paddingTop: 6 } : { paddingTop: insets.top + 6 }]}>
+        {embedded
+          ? <Text style={[s.title, { fontSize: 18, fontFamily: Fonts.semiBold }]}>Group challenges</Text>
+          : <>
+              <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
+              <Text style={s.title}>Challenges</Text>
+            </>}
         <Pressable hitSlop={8} style={s.newBtn} onPress={() => setCreating(true)} accessibilityRole="button">
-          <Plus size={14} color={C.bg} weight="bold" /><Text style={s.newTxt}>New</Text>
+          <Plus size={14} color={C.bg} weight="bold" /><Text style={s.newTxt}>{embedded ? 'Create' : 'New'}</Text>
         </Pressable>
       </View>
+  );
+
+  return (
+    <View style={s.root}>
+      {!embedded && topBar}
       {list === null ? <ActivityIndicator color={C.red} style={{ marginTop: 40 }} /> : (
-        <ScrollView contentContainerStyle={{ padding: 18, gap: 12, paddingBottom: 60 }}>
+        <ScrollView contentContainerStyle={{ padding: 18, gap: 12, paddingBottom: embedded ? 130 : 60 }}>
+          {embedded && <View style={{ marginHorizontal: -18, marginTop: -18 }}><SponsoredChallenges title="Featured" /></View>}
+          {embedded && topBar}
           {list.length === 0 && loadError && <ErrorState title="Couldn't load challenges" onRetry={load} />}
           {list.length === 0 && !loadError && (
             <View style={s.empty}>
@@ -63,6 +81,9 @@ export default function ChallengesScreen() {
           )}
           {list.map(c => (
             <Pressable key={c.id} style={s.card} onPress={() => navigation.navigate('ChallengeDetail', { id: c.id })} accessibilityRole="button">
+              <View style={[s.badge, { backgroundColor: BADGE[c.metric].bg(C) }]}>
+                <Text style={[s.badgeTxt, { color: BADGE[c.metric].fg(C) }]} adjustsFontSizeToFit numberOfLines={1}>{c.target}{BADGE[c.metric].suffix}</Text>
+              </View>
               <View style={{ flex: 1, gap: 3 }}>
                 <Text style={s.cardTitle} numberOfLines={1}>{c.title}</Text>
                 <Text style={s.cardSub}>{c.target} {METRIC_LABEL[c.metric].unit} · {daysLeft(c.endsAt)} · {c.people} in</Text>
@@ -74,7 +95,9 @@ export default function ChallengesScreen() {
                   </View>
                 )}
               </View>
-              <CaretRight size={14} color={C.t3} weight="bold" />
+              {c.myStatus === 'joined'
+                ? <View style={s.joinedPill}><Text style={s.joinedTxt}>Joined</Text></View>
+                : <CaretRight size={14} color={C.t3} weight="bold" />}
             </Pressable>
           ))}
         </ScrollView>
@@ -163,12 +186,16 @@ function mk(C: AppColors) {
     title: { flex: 1, fontFamily: Fonts.bold, fontSize: 20, color: C.t1 },
     newBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.t1 },
     newTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.bg },
-    card: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 16, padding: 16 },
-    cardTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
-    cardSub: { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2 },
+    card: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderRadius: 24, padding: 16 },
+    badge: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
+    badgeTxt: { fontFamily: Fonts.numeric, fontSize: 18 },
+    joinedPill: { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: C.mint, justifyContent: 'center' },
+    joinedTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.green },
+    cardTitle: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    cardSub: { fontFamily: Fonts.regular, fontSize: 13.5, color: C.t2 },
     inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' },
-    join: { height: 30, paddingHorizontal: 14, borderRadius: 15, backgroundColor: C.red, justifyContent: 'center' },
-    joinTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: '#fff' },
+    join: { height: 30, paddingHorizontal: 14, borderRadius: 15, backgroundColor: C.alwaysDark, justifyContent: 'center' },
+    joinTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.alwaysLight },
     decline: { height: 30, paddingHorizontal: 10, justifyContent: 'center' },
     declineTxt: { fontFamily: Fonts.medium, fontSize: 12.5, color: C.t2 },
     empty: { alignItems: 'center', gap: 8, paddingVertical: 40, paddingHorizontal: 20 },
@@ -182,7 +209,7 @@ function mk(C: AppColors) {
     label: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, marginTop: 8 },
     input: { height: 46, borderRadius: 12, backgroundColor: C.card, paddingHorizontal: 14, fontFamily: Fonts.medium, fontSize: 15, color: C.t1 },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: { height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, justifyContent: 'center' },
+    chip: { height: 38, paddingHorizontal: 16, borderRadius: 19, backgroundColor: C.card, justifyContent: 'center' },
     chipOn: { backgroundColor: C.t1, borderColor: C.t1 },
     chipTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     chipTxtOn: { color: C.bg },

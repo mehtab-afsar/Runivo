@@ -191,7 +191,7 @@ function mkStyles(C: AppColors) {
       position: 'absolute', left: 14, right: 14, bottom: 12, backgroundColor: C.card, borderRadius: 22, padding: 18,
       shadowColor: '#14120F', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 6,
     },
-    big:       { fontFamily: Fonts.hero, fontSize: 34, lineHeight: 34, textTransform: 'uppercase', color: C.t1 },
+    big:       { fontFamily: Fonts.hero, fontSize: 30, lineHeight: 34, letterSpacing: -0.6, color: C.t1 },
     body:      { fontFamily: Fonts.regular, fontSize: 14.5, lineHeight: 20, color: C.t2, marginTop: 6 },
   });
 }

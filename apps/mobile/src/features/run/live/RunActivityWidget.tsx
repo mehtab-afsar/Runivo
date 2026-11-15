@@ -32,7 +32,7 @@ const RunActivity = (props: RunActivityProps) => {
     banner: (
       <HStack spacing={16} modifiers={[padding({ all: 16 })]}>
         <VStack alignment="leading" spacing={2}>
-          <Text modifiers={[font({ size: 12, weight: 'semibold' }), foregroundStyle('#FF4518')]}>{`${props.sport.toUpperCase()} · ${props.status}`}</Text>
+          <Text modifiers={[font({ size: 12, weight: 'semibold' }), foregroundStyle('#C9F06B')]}>{`${props.sport.toUpperCase()} · ${props.status}`}</Text>
           <HStack spacing={4}>
             <Text modifiers={[font({ size: 34, weight: 'bold', design: 'rounded' }), monospacedDigit()]}>{props.distance}</Text>
             <Text modifiers={[font({ size: 15, weight: 'medium' }), foregroundStyle('#8E8E93')]}>{props.unit}</Text>
@@ -46,11 +46,11 @@ const RunActivity = (props: RunActivityProps) => {
       </HStack>
     ),
     compactLeading: <Text modifiers={[font({ size: 14, weight: 'semibold' }), monospacedDigit()]}>{`${props.distance} ${props.unit}`}</Text>,
-    compactTrailing: <Text modifiers={[font({ size: 14, weight: 'semibold' }), monospacedDigit(), foregroundStyle('#FF4518')]}>{props.time}</Text>,
+    compactTrailing: <Text modifiers={[font({ size: 14, weight: 'semibold' }), monospacedDigit(), foregroundStyle('#C9F06B')]}>{props.time}</Text>,
     minimal: <Text modifiers={[font({ size: 12, weight: 'bold' }), monospacedDigit()]}>{props.distance}</Text>,
     expandedLeading: (
       <VStack alignment="leading" spacing={2}>
-        <Text modifiers={[font({ size: 12, weight: 'semibold' }), foregroundStyle('#FF4518')]}>{props.sport.toUpperCase()}</Text>
+        <Text modifiers={[font({ size: 12, weight: 'semibold' }), foregroundStyle('#C9F06B')]}>{props.sport.toUpperCase()}</Text>
         <Text modifiers={[font({ size: 28, weight: 'bold', design: 'rounded' }), monospacedDigit()]}>{`${props.distance} ${props.unit}`}</Text>
       </VStack>
     ),

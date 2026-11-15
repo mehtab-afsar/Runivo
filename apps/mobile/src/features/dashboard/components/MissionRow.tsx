@@ -46,7 +46,7 @@ function RewardChip({ pace, muted, C, ss }: { pace: number; muted: boolean; C: A
 /** Soft tile behind a mission icon, as in the mock (red → peach, blue → lavender, ink → stone). */
 function tintFor(color: string, C: AppColors): string {
   if (color === C.red) return C.redLo;
-  if (color === C.blue) return '#E5EAFF';
+  if (color === C.blue) return C.lavender;
   return C.stone;
 }
 

@@ -86,7 +86,7 @@ export function CoachMessageCard({ type, content, style }: Props) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:        { backgroundColor: C.card, borderRadius: 14, borderBottomLeftRadius: 4, borderWidth: 0.5, borderColor: C.border, padding: 14, maxWidth: '85%' },
+    card:        { backgroundColor: C.card, borderRadius: 22, borderBottomLeftRadius: 4, borderWidth: 0.5, borderColor: C.border, padding: 14, maxWidth: '85%' },
     praise:      { fontFamily: Fonts.display, fontSize: 16, color: C.t1, lineHeight: 21, marginBottom: 8 },
     headline:    { fontFamily: Fonts.medium, fontSize: 14, color: C.t1, marginBottom: 10 },
     insightRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 6 },

@@ -299,7 +299,7 @@ function mkStyles(C: AppColors) {
     effortTxt:{ fontFamily: Fonts.semiBold, fontSize: 13, color: C.t2 },
     effortTxtOn: { color: C.alwaysLight },
     hint:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, marginTop: 6 },
-    card:     { backgroundColor: C.card, borderRadius: 16 },
+    card:     { backgroundColor: C.card, borderRadius: 22 },
     audRow:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12 },
     audBorder:{ borderTopWidth: 1, borderTopColor: C.border },
     audTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },

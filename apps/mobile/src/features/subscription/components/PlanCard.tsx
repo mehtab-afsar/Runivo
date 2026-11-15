@@ -42,10 +42,10 @@ export function PlanCard({ plan, isSelected, displayPrice, onSelect }: PlanCardP
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card: {
-      flex: 1, backgroundColor: C.card, borderRadius: Spacing.radius.lg, padding: 14,
-      borderWidth: 1.5, borderColor: C.border,
+      flex: 1, backgroundColor: C.card, borderRadius: 24, padding: 16,
+      borderWidth: 2, borderColor: 'transparent',
     },
-    cardSelected: { borderColor: C.red, backgroundColor: C.card },
+    cardSelected: { borderColor: C.t1, backgroundColor: C.card },
     top:       { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
     radio:     { width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, borderColor: C.t3, alignItems: 'center', justifyContent: 'center' },
     radioOn:   { borderColor: C.red },

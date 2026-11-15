@@ -5,7 +5,8 @@
  */
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
-import { CaretRight, PushPin, PencilSimple } from 'phosphor-react-native';
+import { CaretRight, PushPin } from 'phosphor-react-native';
+import Svg, { Polyline } from 'react-native-svg';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
@@ -17,7 +18,6 @@ import type { AwardId } from '@shared/types/game';
 import type { StoredRun } from '@shared/services/store';
 import { sportFor } from '@features/run/constants/activities';
 import { filterBySport, weeklyTotals, sportGroup, type SportFilter } from '../utils/profileStats';
-import { SportChip } from './SportPicker';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -58,99 +58,110 @@ export function activityName(r: StoredRun): string {
 // ── Header ──────────────────────────────────────────────────────────────────
 export function YouHeader(p: {
   name: string; location?: string; avatarUri: string | null; avatarColor: string;
-  rankLabel: string; rankNext: string | null;
-  following: number; followers: number; zonesHeld: number; score: number;
-  onFollowing: () => void; onFollowers: () => void; onZones: () => void; onScore: () => void;
+  rankLabel: string; runCount: number; isPlus: boolean; bio?: string;
+  following: number; followers: number;
+  onFollowing: () => void; onFollowers: () => void;
   onEdit: () => void; onShare: () => void;
 }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
-  const Count = ({ label, value, red, onPress }: { label: string; value: string; red?: boolean; onPress: () => void }) => (
-    <Pressable onPress={onPress} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${value} ${label}`}>
-      <Text style={s.countLabel}>{label}</Text>
-      <Text style={[s.countNum, red && { color: C.red }]}>{value}</Text>
-    </Pressable>
-  );
+  const initials = p.name.replace(/[^a-z0-9 ]/gi, '').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'R';
+  const meta = [p.location, p.rankLabel, `${p.runCount} ${p.runCount === 1 ? 'run' : 'runs'}`].filter(Boolean).join(' · ');
   return (
     <View style={s.headWrap}>
       <View style={s.idRow}>
-        <View style={s.avatarRing}><Avatar uri={p.avatarUri} name={p.name} color={p.avatarColor} size={68} /></View>
+        <View>
+          {p.avatarUri
+            ? <Avatar uri={p.avatarUri} name={p.name} color={p.avatarColor} size={76} />
+            : <View style={s.initials}><Text style={s.initialsTxt}>{initials}</Text></View>}
+          {p.isPlus && <View style={s.plusBadge}><Text style={s.plusBadgeTxt}>PLUS</Text></View>}
+        </View>
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
           <Text style={s.name} numberOfLines={1}>{p.name}</Text>
-          {!!p.location && <Text style={s.loc} numberOfLines={1}>{p.location}</Text>}
-          <View style={s.rankRow}>
-            <View style={s.rankChip}><Text style={s.rankChipTxt}>{p.rankLabel}</Text></View>
-            {p.rankNext && <Text style={s.rankNext} numberOfLines={1}>{p.rankNext}</Text>}
-          </View>
+          <Text style={s.loc} numberOfLines={1}>{meta}</Text>
+          <Text style={s.counts} numberOfLines={1}>
+            <Text style={s.countNum} onPress={p.onFollowers}>{p.followers}</Text><Text style={s.countLbl} onPress={p.onFollowers}> followers</Text>
+            <Text style={s.countLbl}> · </Text>
+            <Text style={s.countNum} onPress={p.onFollowing}>{p.following}</Text><Text style={s.countLbl} onPress={p.onFollowing}> following</Text>
+          </Text>
         </View>
       </View>
-      <View style={s.countRow}>
-        <Count label="Following" value={String(p.following)} onPress={p.onFollowing} />
-        <Count label="Followers" value={String(p.followers)} onPress={p.onFollowers} />
-        <Count label="Zones held" value={String(p.zonesHeld)} red onPress={p.onZones} />
-        <Count label="Score" value={p.score.toLocaleString()} onPress={p.onScore} />
-      </View>
+      {!!p.bio && <Text style={s.bio}>{p.bio}</Text>}
       <View style={s.btnRow}>
-        <Pressable style={s.btnOutline} onPress={p.onEdit} accessibilityRole="button"><Text style={s.btnTxt}>Edit profile</Text></Pressable>
-        <Pressable style={s.btnFill} onPress={p.onShare} accessibilityRole="button"><Text style={s.btnTxt}>Share</Text></Pressable>
+        <Pressable style={s.btnGrey} onPress={p.onEdit} accessibilityRole="button"><Text style={s.btnTxt}>Edit profile</Text></Pressable>
+        <Pressable style={s.btnGrey} onPress={p.onShare} accessibilityRole="button"><Text style={s.btnTxt}>Share profile</Text></Pressable>
       </View>
     </View>
   );
 }
 
+/** Mock's sport chips above the progress cards: dark when on. */
+export function SportChips({ value, onChange }: { value: SportFilter; onChange: (s: SportFilter) => void }) {
+  const C = useTheme();
+  const s = useMemo(() => mk(C), [C]);
+  const opts: { k: SportFilter; label: string }[] = [
+    { k: 'run', label: 'Run' }, { k: 'walk', label: 'Walk' }, { k: 'ride', label: 'Ride' }, { k: 'all', label: 'All' },
+  ];
+  return (
+    <View style={s.chipRow}>
+      {opts.map(o => {
+        const on = o.k === value;
+        return (
+          <Pressable key={o.k} style={[s.sChip, on && s.sChipOn]} onPress={() => onChange(o.k)} accessibilityRole="button" accessibilityState={{ selected: on }}>
+            <Text style={[s.sChipTxt, on && s.sChipTxtOn]}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 // ── This week ───────────────────────────────────────────────────────────────
-export function WeekCard({ runs, sport, onSport, goalKm, onEditGoal }: {
-  runs: StoredRun[]; sport: SportFilter; onSport: (s: SportFilter) => void; goalKm: number; onEditGoal: () => void;
-}) {
+export function WeekCard({ runs, sport }: { runs: StoredRun[]; sport: SportFilter }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
   const unit = useDistanceUnit();
   const filtered = useMemo(() => filterBySport(runs, sport), [runs, sport]);
   const weeks = useMemo(() => weeklyTotals(filtered), [filtered]);
-  const allWeeks = useMemo(() => weeklyTotals(runs), [runs]);
   const thisWeek = weeks[weeks.length - 1];
   const weekStartMs = thisWeek?.start ?? 0;
-  const zones = useMemo(() => filtered.filter(r => !r.excluded && r.startTime >= weekStartMs).reduce((n, r) => n + zonesOf(r), 0), [filtered, weekStartMs]);
+  const climb = useMemo(() => filtered.filter(r => !r.excluded && r.startTime >= weekStartMs).reduce((n, r) => n + (r.elevationGainM ?? 0), 0), [filtered, weekStartMs]);
   const max = Math.max(1, ...weeks.map(w => w.km));
-  // The goal counts every sport, so it reads the same whatever the chip says.
-  const goalDone = allWeeks[allWeeks.length - 1]?.km ?? 0;
-  const goalPct = goalKm > 0 ? Math.min(1, goalDone / goalKm) : 0;
-  const monthLabels = weeks.map((w, i) => {
-    const m = new Date(w.start).getMonth();
-    const prev = i > 0 ? new Date(weeks[i - 1].start).getMonth() : -1;
-    return m !== prev ? MONTHS[m] : '';
-  });
+  const end = new Date(weekStartMs + 6 * 86_400_000);
+  const range = weekStartMs ? `${new Date(weekStartMs).getDate()}–${end.getDate()} ${MONTHS[end.getMonth()]}` : '';
+  const H = 84, W = 100;
+  const pts = weeks.map((w, i) => `${(i / Math.max(1, weeks.length - 1)) * W},${H - 6 - (w.km / max) * (H - 16)}`);
 
   return (
     <View style={s.card}>
       <View style={s.cardHead}>
         <Text style={s.cardTitle}>This week</Text>
-        <SportChip value={sport} onChange={onSport} note="Applies to This week, the 12-week chart and Statistics." />
+        <Text style={s.small}>{range}</Text>
       </View>
       <View style={s.weekGrid}>
-        <View style={s.weekCell}><Text style={s.statLabel}>Distance</Text><Text style={s.statNum}>{fmtKm(convertKm(thisWeek?.km ?? 0, unit))}<Text style={s.statUnit}> {unit}</Text></Text></View>
+        <View style={s.weekCell}><Text style={s.statLabel}>Distance</Text><Text style={s.statNum}>{fmtKm(convertKm(thisWeek?.km ?? 0, unit))} {unit}</Text></View>
         <View style={s.weekCell}><Text style={s.statLabel}>Time</Text><Text style={s.statNum}>{fmtDuration(thisWeek?.sec ?? 0)}</Text></View>
-        <View style={s.weekCell}><Text style={s.statLabel}>Zones</Text><Text style={[s.statNum, zones > 0 && { color: C.red }]}>{zones > 0 ? `+${zones}` : '0'}</Text></View>
+        <View style={s.weekCell}><Text style={s.statLabel}>Elevation</Text><Text style={s.statNum}>{Math.round(unit === 'mi' ? climb * 3.28084 : climb)} {unit === 'mi' ? 'ft' : 'm'}</Text></View>
       </View>
-      <Pressable style={s.goalHead} onPress={onEditGoal} accessibilityRole="button" accessibilityLabel={`Weekly goal ${fmtKm(convertKm(goalKm, unit))} ${unit}. Edit`}>
-        <Text style={s.small}>Weekly goal</Text>
-        <View style={s.goalRight}>
-          <Text style={s.smallStrong}>{fmtKm(convertKm(goalDone, unit))} / {fmtKm(convertKm(goalKm, unit))} {unit}</Text>
-          <PencilSimple size={12} color={C.t1} weight="bold" />
-        </View>
-      </Pressable>
-      <View style={s.track}><View style={[s.fill, { width: `${Math.round(goalPct * 100)}%` }]} /></View>
-      <Text style={[s.small, { marginTop: 16 }]}>Last 12 weeks</Text>
-      <View style={s.bars}>
-        {weeks.map((w, i) => (
-          <View key={w.start} style={[s.bar, { height: w.km > 0 ? `${Math.max(6, Math.round((w.km / max) * 100))}%` : 0, backgroundColor: i === weeks.length - 1 ? C.red : C.surface }]} />
-        ))}
-      </View>
-      <View style={s.months}>
-        {monthLabels.map((m, i) => <Text key={i} style={s.monthTxt}>{m}</Text>)}
-      </View>
+      <Text style={[s.small, { marginTop: 14 }]}>Past 12 weeks</Text>
+      <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ marginTop: 6 }}>
+        <Polyline points={`0,${H} ${pts.join(' ')} ${W},${H}`} fill={C.mint} stroke="none" />
+        <Polyline points={pts.join(' ')} fill="none" stroke={C.brandGreen} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </Svg>
     </View>
   );
+}
+
+/** Weeks in a row with at least one activity, ending this week or last. */
+export function weekStreak(runs: StoredRun[]): { weeks: number; last8: ('done' | 'now' | 'open')[] } {
+  const w = weeklyTotals(runs.filter(r => !r.excluded), Date.now(), 26);
+  const active = w.map(x => x.count > 0);
+  let i = active.length - 1;
+  if (!active[i]) i -= 1; // this week isn't over yet
+  let n = 0;
+  while (i >= 0 && active[i]) { n += 1; i -= 1; }
+  const last8 = active.slice(-8).map((a, j, arr) => (j === arr.length - 1 ? (a ? 'now' : 'open') : a ? 'done' : 'open')) as ('done' | 'now' | 'open')[];
+  return { weeks: n, last8 };
 }
 
 // ── Pinned activity ─────────────────────────────────────────────────────────
@@ -263,34 +274,38 @@ export function ClubsStrip({ clubs, onOpen, onAll }: { clubs: { id: string; name
 
 function mk(C: AppColors) {
   return StyleSheet.create({
-    headWrap: { paddingHorizontal: 18 },
-    idRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
-    avatarRing: { borderWidth: 2, borderColor: C.red, borderRadius: 40, padding: 2 },
-    name: { fontFamily: Fonts.bold, fontSize: 20, color: C.t1, letterSpacing: -0.3 },
-    loc: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
-    rankRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-    rankChip: { backgroundColor: C.t1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-    rankChipTxt: { fontFamily: Fonts.semiBold, fontSize: 11, color: C.bg },
-    rankNext: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, flexShrink: 1 },
-    countRow: { flexDirection: 'row', gap: 22, marginTop: 16 },
-    countLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
-    countNum: { fontFamily: Fonts.bold, fontSize: 17, color: C.t1 },
-    btnRow: { flexDirection: 'row', gap: 8, marginTop: 14 },
-    btnOutline: { flex: 1, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: C.t1, alignItems: 'center', justifyContent: 'center' },
-    btnFill: { flex: 1, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-    btnTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
+    headWrap: { paddingHorizontal: 20, gap: 14 },
+    idRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    initials: { width: 76, height: 76, borderRadius: 38, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    initialsTxt: { fontFamily: Fonts.semiBold, fontSize: 26, color: C.lime },
+    plusBadge: { position: 'absolute', right: -4, bottom: -2, height: 22, paddingHorizontal: 7, borderRadius: 11, backgroundColor: C.lime, justifyContent: 'center', borderWidth: 2, borderColor: C.card },
+    plusBadgeTxt: { fontFamily: Fonts.bold, fontSize: 11, color: C.alwaysDark },
+    name: { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1, letterSpacing: -0.3 },
+    loc: { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    counts: { fontFamily: Fonts.regular, fontSize: 14 },
+    countNum: { fontFamily: Fonts.semiBold, color: C.t1 },
+    countLbl: { color: C.t2 },
+    bio: { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t1 },
+    btnRow: { flexDirection: 'row', gap: 10 },
+    btnGrey: { flex: 1, height: 42, borderRadius: 21, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    btnTxt: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    chipRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
+    sChip: { height: 38, paddingHorizontal: 16, borderRadius: 19, backgroundColor: C.card, justifyContent: 'center' },
+    sChipOn: { backgroundColor: C.alwaysDark },
+    sChipTxt: { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
+    sChipTxtOn: { fontFamily: Fonts.medium, color: C.alwaysLight },
 
-    card: { backgroundColor: C.card, borderRadius: 18, padding: 16, marginHorizontal: 18 },
-    cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    cardTitle: { fontFamily: Fonts.bold, fontSize: 15, color: C.t1 },
+    card: { backgroundColor: C.card, borderRadius: 26, padding: 18, marginHorizontal: 20 },
+    cardHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+    cardTitle: { fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
     weekGrid: { flexDirection: 'row', marginTop: 14 },
     weekCell: { flex: 1, gap: 2 },
-    statLabel: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+    statLabel: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     statNum: { fontFamily: Fonts.numeric, fontSize: 24, color: C.t1 },
     statUnit: { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
     goalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, minHeight: 24 },
     goalRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    small: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+    small: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     smallStrong: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t1 },
     track: { height: 6, borderRadius: 3, backgroundColor: C.surface, marginTop: 6, overflow: 'hidden' },
     fill: { height: 6, borderRadius: 3, backgroundColor: C.red },

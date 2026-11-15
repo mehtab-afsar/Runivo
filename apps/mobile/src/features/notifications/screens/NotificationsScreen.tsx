@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Platform, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SectionList, Pressable, Platform, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { useNavigation } from '@react-navigation/native';
@@ -55,7 +55,14 @@ export default function NotificationsScreen() {
     return undefined;
   }, [following, goRun, markRead]);
 
-  const last = notifs.length - 1;
+  // Today and Earlier, as on the mock.
+  const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+  const today = notifs.filter(n => new Date(n.created_at) >= startOfDay);
+  const earlier = notifs.filter(n => new Date(n.created_at) < startOfDay);
+  const sections = [
+    ...(today.length ? [{ title: 'Today', data: today }] : []),
+    ...(earlier.length ? [{ title: 'Earlier', data: earlier }] : []),
+  ];
 
   return (
     <SafeAreaView style={s.root}>
@@ -63,21 +70,23 @@ export default function NotificationsScreen() {
         <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8} accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} weight="regular" />
         </Pressable>
-        <Text style={s.title}>Activity</Text>
-        {unreadCount > 0 && (
+        <Text style={s.title}>Notifications</Text>
+        {unreadCount > 0 ? (
           <Pressable onPress={markAllRead} hitSlop={8} style={s.markAll} accessibilityRole="button">
-            <Text style={s.markAllText}>Mark all read</Text>
+            <Text style={s.markAllText}>Read all</Text>
           </Pressable>
-        )}
+        ) : <View style={{ width: 44 }} />}
       </View>
 
-      <FlatList
-        data={notifs}
+      <SectionList
+        sections={sections}
         keyExtractor={n => n.id}
-        renderItem={({ item, index }) => (
+        stickySectionHeadersEnabled={false}
+        renderSectionHeader={({ section }) => <Text style={s.section}>{section.title}</Text>}
+        renderItem={({ item, index, section }) => (
           <NotifItem
             notif={item}
-            position={last === 0 ? 'only' : index === 0 ? 'first' : index === last ? 'last' : 'middle'}
+            position={section.data.length === 1 ? 'only' : index === 0 ? 'first' : index === section.data.length - 1 ? 'last' : 'middle'}
             action={actionFor(item)}
             onPress={() => {
               markRead(item.id);
@@ -103,13 +112,14 @@ export default function NotificationsScreen() {
 }
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
-  root:        { flex: 1, backgroundColor: C.bg },
+  root:        { flex: 1, backgroundColor: C.card },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
-  backBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-  markAll:     { backgroundColor: C.card, borderRadius: 999, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, height: 30, justifyContent: 'center' },
-  markAllText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
-  title: { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
-  list:        { paddingHorizontal: 18, paddingBottom: 100 },
+  backBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  markAll:     { backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 14, height: 40, justifyContent: 'center' },
+  section:     { fontFamily: Fonts.medium, fontSize: 14, color: C.t2, paddingTop: 12, paddingBottom: 10, paddingHorizontal: 2 },
+  markAllText: { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
+  title: { fontFamily: Fonts.medium, fontSize: 21, color: C.t1, flex: 1, textAlign: 'center' },
+  list:        { paddingHorizontal: 20, paddingBottom: 100 },
   empty:       { alignItems: 'center' as const, paddingVertical: 64 },
   emptyIcon:   { width: 64, height: 64, borderRadius: 32, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle:  { fontFamily: Fonts.bold, fontSize: 18, color: C.t1, marginBottom: 6 },

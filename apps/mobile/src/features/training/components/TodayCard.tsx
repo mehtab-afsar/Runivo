@@ -7,10 +7,12 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowRight, Check, Play, CalendarBlank } from 'phosphor-react-native';
+import { ArrowRight, Check } from 'phosphor-react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { sessionOn, nextSession, weekday, daysBetween, RACE_LABEL } from '@shared/engine/training';
 import { fetchActivePlan, getCachedPlan, localToday, type ActivePlan } from '../services/planService';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { useTerritorySuggestion } from '../hooks/useTerritorySuggestion';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -39,27 +41,19 @@ export default function TodayCard() {
   if (!ap) {
     const invite = (
       <Pressable style={[s.card, s.invite]} onPress={() => navigation.navigate('PlanBuilder')} accessibilityRole="button">
-        <CalendarBlank size={18} color={C.t1} weight="regular" />
-        <Text style={s.inviteTxt}>Training for a race? Get a plan built around your week</Text>
+        <PaceXOrb size={36} />
+        <Text style={s.inviteTxt}>Training for a race? PaceX builds a plan around your week</Text>
         <ArrowRight size={14} color={C.t2} weight="bold" />
       </Pressable>
     );
     if (!suggestion) return invite;
     return (
       <View style={{ gap: 12 }}>
-        <View style={s.card}>
-          <Text style={s.eyebrow}>Today</Text>
-          <Text style={s.title}>{suggestion.title}</Text>
-          <Text style={s.sub} numberOfLines={2}>{suggestion.sub}</Text>
-          <Pressable
-            style={s.start}
-            onPress={() => navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', ghostRoutePoints: suggestion.points })}
-            accessibilityRole="button"
-          >
-            <Play size={14} color={C.alwaysLight} weight="fill" />
-            <Text style={s.startTxt}>Start this loop</Text>
-          </Pressable>
-        </View>
+        <PaceXRow
+          s={s} C={C} eyebrow="PaceX · today" title={suggestion.title} sub={suggestion.sub}
+          onPlay={() => navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', ghostRoutePoints: suggestion.points })}
+          playLabel="Start this loop"
+        />
         {invite}
       </View>
     );
@@ -74,20 +68,13 @@ export default function TodayCard() {
   // Today's session, still to do.
   if (todays && todays.status === 'planned') {
     return (
-      <View style={s.card}>
-        <Pressable onPress={() => navigation.navigate('TrainingPlan')} accessibilityRole="button">
-          <Text style={s.eyebrow}>Today · {head}</Text>
-          <Text style={s.title}>{todays.title}</Text>
-          <Text style={s.sub} numberOfLines={2}>{todays.summary}</Text>
-        </Pressable>
-        <Pressable
-          style={s.start}
-          onPress={() => navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', sessionId: todays.id })}
-          accessibilityRole="button"
-        >
-          <Play size={14} color={C.alwaysLight} weight="fill" />
-          <Text style={s.startTxt}>Start session</Text>
-        </Pressable>
+      <View style={{ gap: 0 }}>
+        <PaceXRow
+          s={s} C={C} eyebrow={`PaceX · today · ${head}`} title={todays.title} sub={todays.summary}
+          onOpen={() => navigation.navigate('TrainingPlan')}
+          onPlay={() => navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', sessionId: todays.id })}
+          playLabel="Start session"
+        />
         {sessionLoop && (
           <Pressable
             style={s.loopRow}
@@ -106,6 +93,7 @@ export default function TodayCard() {
   return (
     <Pressable style={s.card} onPress={() => navigation.navigate('TrainingPlan')} accessibilityRole="button">
       <View style={s.row}>
+        <PaceXOrb size={44} />
         <View style={{ flex: 1 }}>
           <Text style={s.eyebrow}>{todays?.status === 'done' ? 'Done today' : 'Rest day'} · {head}</Text>
           <Text style={s.title}>{next ? `Next: ${next.title}` : 'Plan complete'}</Text>
@@ -117,15 +105,36 @@ export default function TodayCard() {
   );
 }
 
+/** The mock's PaceX card: orb, what's on today, and a black play button. */
+function PaceXRow({ s, C, eyebrow, title, sub, onOpen, onPlay, playLabel }: {
+  s: ReturnType<typeof mkStyles>; C: AppColors; eyebrow: string; title: string; sub: string;
+  onOpen?: () => void; onPlay: () => void; playLabel: string;
+}) {
+  return (
+    <View style={[s.card, s.row]}>
+      <PaceXOrb size={44} />
+      <Pressable style={{ flex: 1 }} onPress={onOpen} disabled={!onOpen} accessibilityRole={onOpen ? 'button' : undefined}>
+        <Text style={s.eyebrow} numberOfLines={1}>{eyebrow}</Text>
+        <Text style={s.title} numberOfLines={1}>{title}</Text>
+        <Text style={s.sub} numberOfLines={1}>{sub}</Text>
+      </Pressable>
+      <Pressable style={s.play} onPress={onPlay} accessibilityRole="button" accessibilityLabel={playLabel} hitSlop={6}>
+        <Svg width={18} height={18} viewBox="0 0 24 24"><Path d="M8 5.5v13l10.5-6.5Z" fill={C.lime} /></Svg>
+      </Pressable>
+    </View>
+  );
+}
+
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:     { backgroundColor: C.card, borderRadius: 16, padding: 16 },
-    invite:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
-    inviteTxt:{ flex: 1, fontFamily: Fonts.medium, fontSize: 13.5, color: C.t1 },
-    row:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    eyebrow:  { fontFamily: Fonts.medium, fontSize: 12, color: C.red },
-    title:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1, marginTop: 4 },
-    sub:      { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.t2, marginTop: 3 },
+    card:     { backgroundColor: C.card, borderRadius: 26, padding: 16 },
+    invite:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+    inviteTxt:{ flex: 1, fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    row:      { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    eyebrow:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    title:    { fontFamily: Fonts.medium, fontSize: 17, color: C.t1, marginTop: 2 },
+    sub:      { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: C.t2, marginTop: 2 },
+    play:     { width: 44, height: 44, borderRadius: 22, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
     start:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 40, borderRadius: 20, backgroundColor: C.t1, marginTop: 12 },
     startTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.bg },
     loopRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },

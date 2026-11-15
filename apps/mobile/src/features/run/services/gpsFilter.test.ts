@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addFixes, stepFor, MAX_FOOT_SPEED_MS, type Fix } from './gpsFilter';
+import { addFixes, stepFor, MAX_FOOT_SPEED_MS, MAX_RIDE_SPEED_MS, type Fix } from './gpsFilter';
 
 const M = 1 / 111_320; // degrees latitude per metre
 const at = (northM: number, t: number, accuracy = 5): Fix => ({ lat: 12.97 + northM * M, lng: 77.59, timestamp: t * 1000, accuracy });
@@ -37,5 +37,16 @@ describe('gpsFilter', () => {
     const r = addFixes({ base: null, outliers: 0 }, fixes, MAX_FOOT_SPEED_MS);
     expect(r.addedM).toBeCloseTo(3, 0);
     expect(stepFor(null, at(0, 0), MAX_FOOT_SPEED_MS).action).toBe('base');
+  });
+});
+
+describe('speed limits match the server', () => {
+  it('uses the same per-step ceilings process-run-territory applies', async () => {
+    const { ENGINE } = await import('@shared/engine/runEngine');
+    const server = await import('../../../../../../supabase/functions/_shared/runEngine');
+    expect(MAX_FOOT_SPEED_MS).toBe(ENGINE.MAX_SEGMENT_SPEED_MS);
+    expect(MAX_RIDE_SPEED_MS).toBe(ENGINE.MAX_RIDE_SEGMENT_SPEED_MS);
+    expect(server.ENGINE.MAX_SEGMENT_SPEED_MS).toBe(MAX_FOOT_SPEED_MS);
+    expect(server.ENGINE.MAX_RIDE_SEGMENT_SPEED_MS).toBe(MAX_RIDE_SPEED_MS);
   });
 });

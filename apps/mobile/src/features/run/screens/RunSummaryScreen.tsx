@@ -5,7 +5,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated, Activit
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Diamond, CaretRight, PencilSimple } from 'phosphor-react-native';
+import { Diamond, CaretRight, PencilSimple, ShareNetwork, PathIcon, Play } from 'phosphor-react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -42,6 +42,7 @@ import type { RunnerRank } from '@shared/types/game';
 import { visibleRoute, radiusLabel, effectiveRadius } from '@shared/services/mapVisibility';
 import { useSettings } from '@features/settings/hooks/useSettings';
 import { fetchActivityMapHidden, setActivityMapHidden } from '@features/settings/services/mapVisibilityService';
+import { RunCheers } from '@features/cheers/RunCheers';
 
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
@@ -139,6 +140,8 @@ export default function RunSummaryScreen() {
   const [tier, setTier]                               = useState<string>('free');
   const [runsCompleted, setRunsCompleted]             = useState(0);
   const [recentAvgPace, setRecentAvgPace]             = useState<number | null>(null);
+  const [authorName, setAuthorName]                   = useState('');
+  const [stored, setStored]                           = useState<StoredRun | null>(null);
   const plus = isPlus(tier);
   const openPaywallMoment = usePaywallMoment();
 
@@ -173,7 +176,9 @@ export default function RunSummaryScreen() {
       if (!p) return;
       setTier(p.subscriptionTier ?? 'free');
       setRunsCompleted(p.totalRuns ?? 0);
+      setAuthorName(p.username ?? '');
     }).catch(() => {});
+    getRunById(runId).then(r => setStored(r ?? null)).catch(() => {});
     // Recent average pace (s/km) for the free summary, excluding this run.
     getRuns(20).then(rs => {
       const prior = rs.filter(r => r.id !== runId && r.distanceMeters >= 1000 && r.durationSec > 0);
@@ -301,6 +306,28 @@ export default function RunSummaryScreen() {
     : newZones > 0 ? 'New zone.'
     : ride ? 'Ride done.'
     : `${sport.verb.charAt(0).toUpperCase()}${sport.verb.slice(1)} done.`;
+  const startMs = runData.startTime ?? Date.now();
+  const whenLine = (() => {
+    const d = new Date(startMs);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const day = new Date(startMs); day.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - day.getTime()) / 86_400_000);
+    const t = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const label = diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+    const src: Record<string, string> = { apple_health: 'Apple Health', garmin: 'Garmin', coros: 'COROS', polar: 'Polar' };
+    return `${label}, ${t}${stored?.importSource ? ` · ${src[stored.importSource] ?? stored.importSource}` : ''}`;
+  })();
+  const elevM = stored?.elevationGainM;
+  const extraStats = [
+    ...(elevM != null ? [{ label: 'Elevation', value: `${Math.round(distanceUnit === 'mi' ? elevM * 3.28084 : elevM)} ${distanceUnit === 'mi' ? 'ft' : 'm'}` }] : []),
+    ...(stored?.heartRateAvg ? [{ label: 'Avg HR', value: String(Math.round(stored.heartRateAvg)) }] : []),
+    ...(stored?.perceivedEffort ? [{ label: 'Effort', value: stored.perceivedEffort >= 8 ? 'Hard' : stored.perceivedEffort >= 5 ? 'Moderate' : 'Easy' }] : []),
+  ];
+  // Honest "faster than usual" line (not a PR claim) when pace beats the recent average.
+  const thisPaceSec = runData.distance > 0 ? runData.duration / runData.distance : 0;
+  const prLine = !ride && recentAvgPace && runData.distance >= 1 && thisPaceSec > 0 && thisPaceSec < recentAvgPace * 0.97
+    ? { title: 'Faster than your usual pace', sub: `${Math.round(recentAvgPace - thisPaceSec)} s/km quicker than your recent runs` }
+    : null;
   const finishLbl = new Date((runData.startTime ?? Date.now()) + runData.duration * 1000)
     .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
@@ -409,7 +436,7 @@ export default function RunSummaryScreen() {
         <RunSummaryHero
           topInset={insets.top}
           eyebrow={`${sport.verb.charAt(0).toUpperCase()}${sport.verb.slice(1)} complete · ${finishLbl}`}
-          headline={headline}
+          headline={stored?.title || headline}
           route={runData.route ?? []}
           zoneRing={ride ? null : (terr?.polygon ?? null)}
           zoneLabel={zoneLabel}
@@ -421,8 +448,15 @@ export default function RunSummaryScreen() {
             : pace(convertPaceMinPerKm(runData.pace, distanceUnit))}
           paceLabel={ride ? `Avg ${distanceUnit}/h` : undefined}
           unit={distanceUnit}
-          onClose={() => navigation.navigate('Main')}
+          onClose={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main'))}
           onShare={shareRun}
+          sportLabel={sport.label}
+          authorName={authorName || undefined}
+          whenLine={whenLine}
+          description={stored?.description || undefined}
+          pr={prLine}
+          extraStats={extraStats}
+          onOpenMap={() => navigation.navigate('TerritoryMap', {})}
           // The replay screen was built but never linked: the button only
           // shows when this is passed.
           onReplay={openReplay}
@@ -457,6 +491,43 @@ export default function RunSummaryScreen() {
           </Animated.View>
         )}
 
+        {/* Story share row (mock: kudos · comments · story). */}
+        <View style={ss.actRow}>
+          <Pressable style={ss.actBtn} onPress={() => shareFile(() => writeStoryCard(`run_${runId}.png`), 'Share your run')} accessibilityRole="button">
+            <ShareNetwork size={20} color={C.t1} />
+            <Text style={ss.actTxt}>Story</Text>
+          </Pressable>
+          <Pressable style={ss.actBtn} onPress={() => shareFile(writeRouteSticker, 'Share your route')} accessibilityRole="button">
+            <PathIcon size={20} color={C.t1} />
+            <Text style={ss.actTxt}>Sticker</Text>
+          </Pressable>
+          {openReplay && (
+            <Pressable style={ss.actBtn} onPress={openReplay} accessibilityRole="button">
+              <Play size={18} color={C.t1} weight="fill" />
+              <Text style={ss.actTxt}>Replay</Text>
+            </Pressable>
+          )}
+        </View>
+
+        <Text style={ss.h2}>Territory</Text>
+        {/* Territory tiles, as on the mock's activity page. */}
+        <View style={ss.terrRow}>
+          <View style={[ss.terrTile, { backgroundColor: C.mint }]}>
+            <Text style={ss.terrVal}>{stolen}</Text>
+            <Text style={[ss.terrLbl, { color: '#4E5A44' }]}>Taken back</Text>
+          </View>
+          <View style={[ss.terrTile, { backgroundColor: C.mint }]}>
+            <Text style={ss.terrVal}>{newZones}</Text>
+            <Text style={[ss.terrLbl, { color: '#4E5A44' }]}>{runData.actionType === 'fortify' ? 'Refreshed' : 'New zones'}</Text>
+          </View>
+          <View style={[ss.terrTile, { backgroundColor: C.amberBg }]}>
+            <Text style={ss.terrVal}>{paceEarned > 0 ? `+${paceDisplay}` : '0'}</Text>
+            <Text style={[ss.terrLbl, { color: '#7A5525' }]}>PACE</Text>
+          </View>
+        </View>
+
+        <View style={{ marginHorizontal: Spacing.gutter, marginBottom: 12 }}><RunCheers runId={runId} runStart={runData.startTime} /></View>
+        {splits.length > 0 && <View style={ss.card}><SplitsList splits={splits} /></View>}
         {/* ── PACE earned ───────────────────────────────────────────────── */}
         <View style={[ss.card, ss.surface, ss.paceCard]}>
           <View style={ss.cardHead}>
@@ -510,7 +581,6 @@ export default function RunSummaryScreen() {
 
         <View style={ss.card}><ActivityCharts runId={runId} isRide={activityType === 'cycle'} /></View>
         <AnalysisCards runId={runId} />
-        {splits.length > 0 && <View style={ss.card}><SplitsList splits={splits} /></View>}
 
         {/* P5: which shoes, and a nudge when they're near the end of their life. */}
         {allShoes.length > 0 && (
@@ -658,11 +728,19 @@ function mkStyles(C: AppColors) {
     // Close sits over the dark hero.
     close:        { position: 'absolute', right: Spacing.gutter, zIndex: 20, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
     card:         { marginHorizontal: Spacing.gutter, marginBottom: 12 },
-    surface:      { backgroundColor: C.card, borderRadius: 16, shadowColor: '#14120F', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 2, elevation: 1 },
+    surface:      { backgroundColor: C.card, borderRadius: 24 },
+    actRow:       { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border, paddingVertical: 4 },
+    actBtn:       { height: 52, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10 },
+    actTxt:       { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
+    h2:           { fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1, marginHorizontal: Spacing.gutter, marginTop: 18 },
+    terrRow:      { flexDirection: 'row', gap: 8, marginHorizontal: Spacing.gutter, marginTop: 12, marginBottom: 16 },
+    terrTile:     { flex: 1, borderRadius: 18, padding: 12, gap: 2 },
+    terrVal:      { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1, fontVariant: ['tabular-nums'] },
+    terrLbl:      { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
     gridCard:     { marginTop: 16 },
     cardHead:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     cardLabel:    { ...Type.labelSm, color: C.t2 },
-    cardTitle:    { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    cardTitle:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     rideNote:    { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2, marginTop: 6 },
     mapRow:      { flexDirection: 'row', alignItems: 'center' },
     editRow:     { flexDirection: 'row', alignItems: 'center', gap: 12 },

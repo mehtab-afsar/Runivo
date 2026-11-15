@@ -1,3 +1,4 @@
+import { readCleanImage } from '@mobile/shared/lib/cleanImageUpload';
 import {
   getShoes,
   getRuns,
@@ -41,14 +42,15 @@ export async function deleteShoeById(id: string): Promise<void> {
 
 export async function uploadShoePhoto(localUri: string, shoeId: string): Promise<string | null> {
   try {
-    const response = await fetch(localUri);
-    const blob = await response.blob();
-    const ext = localUri.split('.').pop() ?? 'jpg';
-    const path = `shoes/${shoeId}.${ext}`;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const img = await readCleanImage(localUri);
+    // Under the runner's own folder, so account deletion finds and removes it.
+    const path = `${user.id}/shoes/${shoeId}.${img.ext}`;
 
     const { error: uploadErr } = await supabase.storage
       .from('user-media')
-      .upload(path, blob, { contentType: `image/${ext}`, upsert: true });
+      .upload(path, img.body, { contentType: img.contentType, upsert: true });
 
     if (uploadErr) { console.warn('[gear] photo upload failed:', uploadErr); return null; }
 

@@ -1,17 +1,19 @@
 /**
  * "You": the runner's own profile, laid out like Strava's with Runivo's game
- * on top (see the Runivo profile redesign canvas). Detail lives on pages the
- * menu rows open, not on this one.
+ * on top (Runivo final app mock). Header, then four tabs: Progress (this
+ * week, streak, territory, best efforts, PACE), Activities, Gallery (route
+ * shapes) and More (statistics, gear, trophies, clubs).
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ShareNetwork, GearSix, Pulse, ChartBar, Hexagon, MapTrifold, Timer, Sneaker, Crown, CaretRight, CalendarDots, Barbell, Rows } from 'phosphor-react-native';
+import { GoalsCard } from '@features/goals/GoalsCard';
+import { ActivityCards } from '../components/ActivityCards';
+import { MagnifyingGlass, GearSix, Pulse, ChartBar, Hexagon, MapTrifold, Timer, Sneaker, Crown, CaretRight, CalendarDots, Barbell, Rows, Plus, ChartLineUp, ImagesSquare, DotsThree } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { usePlayerStats } from '@mobile/shared/hooks/usePlayerStats';
-import { GAME_CONFIG } from '@shared/services/config';
 import { getTerritoryPolygons, getSavedRoutes } from '@shared/services/store';
 import { fetchClubs } from '@features/clubs/services/clubService';
 import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
@@ -22,13 +24,21 @@ import { useProfile } from '../hooks/useProfile';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import { AwardsTab } from '../components/AwardsTab';
 import { GoalSheet } from '../components/GoalSheet';
-import {
-  YouHeader, WeekCard, PinnedCard, MenuList, TrophyStrip, ClubsStrip, activityName, fmtKm, type MenuItem,
-} from '../components/YouSections';
+import { YouHeader, WeekCard, MenuList, TrophyStrip, ClubsStrip, activityName, fmtKm, type MenuItem, SportChips, weekStreak } from '../components/YouSections';
+import { BestEfforts } from '../components/ProfileActivity';
+import { RouteGallery } from '../components/RouteGallery';
 import { periodStats, filterBySport, type SportFilter } from '../utils/profileStats';
 
+type YouTab = 'progress' | 'activities' | 'gallery' | 'more';
+const TABS: { key: YouTab; label: string; Icon: typeof ChartLineUp }[] = [
+  { key: 'progress',   label: 'Progress',   Icon: ChartLineUp },
+  { key: 'activities', label: 'Activities', Icon: Pulse },
+  { key: 'gallery',    label: 'Gallery',    Icon: ImagesSquare },
+  { key: 'more',       label: 'More',       Icon: DotsThree },
+];
+
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const RANK_ORDER = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'] as const;
+type RankName = 'pacer' | 'strider' | 'chaser' | 'hunter' | 'sovereign';
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function ProfileScreen() {
@@ -39,7 +49,7 @@ export default function ProfileScreen() {
   const { player, totalAreaM2, loading } = usePlayerStats();
   const {
     runs, weeklyGoalKm, personalRecords, followers, following,
-    avatarColor, avatarUri, displayName, location,
+    avatarColor, avatarUri, displayName, location, bio,
     isEditing, editInitial, startEdit, cancelEdit, saveProfile,
     earnedAwards, refreshCounts, pinnedRunId, pinRun, setWeeklyGoal,
   } = useProfile();
@@ -49,6 +59,7 @@ export default function ProfileScreen() {
   const [sport, setSport] = useState<SportFilter>('all');
   const [goalOpen, setGoalOpen] = useState(false);
   const [showAwards, setShowAwards] = useState(false);
+  const [tab, setTab] = useState<YouTab>('progress');
   const [zonesHeld, setZonesHeld] = useState<number | null>(null);
   const [routeCount, setRouteCount] = useState(0);
   const [legendOf, setLegendOf] = useState(0);
@@ -65,12 +76,10 @@ export default function ProfileScreen() {
   }, [playerId]);
 
   const name = displayName || player?.username || 'Runner';
-  const rank = (player?.runnerRank ?? 'pacer') as typeof RANK_ORDER[number];
+  const rank = (player?.runnerRank ?? 'pacer') as RankName;
   const earned = player?.paceTotalEarned ?? 0;
-  const nextRank = RANK_ORDER[RANK_ORDER.indexOf(rank) + 1];
-  const toNext = nextRank ? Math.max(0, (GAME_CONFIG.RUNNER_RANK_THRESHOLDS[nextRank] ?? 0) - earned) : 0;
 
-  const pinned = pinnedRunId ? runs.find(r => r.id === pinnedRunId) : undefined;
+  const streak = useMemo(() => weekStreak(runs), [runs]);
   const latest = useMemo(() => runs.filter(r => r.distanceMeters >= 50).sort((a, b) => b.startTime - a.startTime)[0], [runs]);
   const year = useMemo(() => periodStats(filterBySport(runs, sport), 'year'), [runs, sport]);
   const best5k = personalRecords.find(r => r.label === 'Fastest 5K')?.value;
@@ -87,6 +96,7 @@ export default function ProfileScreen() {
     { key: 'acts', label: 'Activities', Icon: Pulse, sub: latest ? `${ago(latest.startTime)} · ${activityName(latest)}` : 'Nothing yet', onPress: () => navigation.navigate('History') },
     { key: 'stats', label: 'Statistics', Icon: ChartBar, sub: `${new Date().getFullYear()} · ${fmtKm(year.km)} km · ${year.count} ${year.count === 1 ? 'activity' : 'activities'}`, onPress: () => navigation.navigate('ProfileStats', { sport }) },
     { key: 'log', label: 'Training log', Icon: CalendarDots, sub: 'Every day of the last 16 weeks', onPress: () => navigation.navigate('TrainingLog') },
+    { key: 'goal', label: 'Weekly goal', Icon: ChartLineUp, sub: `${fmtKm(weeklyGoalKm)} km a week · tap to change`, onPress: () => setGoalOpen(true) },
     { key: 'strength', label: 'Strength and mobility', Icon: Barbell, sub: '8–17 minute guided sessions', onPress: () => navigation.navigate('Strength') },
     { key: 'terr', label: 'Territory', Icon: Hexagon, red: true, sub: `${zonesHeld ?? 0} ${zonesHeld === 1 ? 'zone' : 'zones'} · ${areaKm2 >= 0.01 ? areaKm2.toFixed(2) : '0'} km² ${legendOf > 0 ? ` · legend of ${legendOf}` : ''} · ${player?.totalTerritoriesClaimed ?? 0} claimed ever`, onPress: () => navigation.navigate('TerritoryMap', {}) },
     { key: 'routes', label: 'Routes', Icon: MapTrifold, sub: routeCount > 0 ? `${routeCount} saved` : 'Save one from any activity', onPress: () => navigation.navigate('Main', { screen: 'Run' }) },
@@ -98,95 +108,151 @@ export default function ProfileScreen() {
 
   return (
     <View style={s.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 120, gap: 12 }}>
-        <View style={s.topBar}>
-          <Text style={s.title}>You</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <Pressable style={s.iconBtn} accessibilityLabel="Share profile" onPress={() => Share.share({ message: `Follow me on Runivo: runivo://runner/${playerId}` }).catch(() => {})}>
-              <ShareNetwork size={18} color={C.t1} />
-            </Pressable>
-            <Pressable style={s.iconBtn} accessibilityLabel="Settings" onPress={() => navigation.navigate('Settings')}>
-              <GearSix size={18} color={C.t1} />
-            </Pressable>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130, gap: 16 }}>
+        {/* White header block (mock): title and actions, identity, tabs. */}
+        <View style={[s.headBlock, { paddingTop: insets.top + 8 }]}>
+          <View style={s.topBar}>
+            <Text style={s.title}>You</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Pressable style={s.iconBtn} accessibilityLabel="Add a manual activity" accessibilityRole="button" onPress={() => navigation.navigate('LogTreadmill')}>
+                <Plus size={20} color={C.t1} weight="bold" />
+              </Pressable>
+              <Pressable style={s.iconBtn} accessibilityLabel="Search" accessibilityRole="button" onPress={() => navigation.navigate('Feed', { search: true })}>
+                <MagnifyingGlass size={20} color={C.t1} />
+              </Pressable>
+              <Pressable style={s.iconBtn} accessibilityLabel="Settings" accessibilityRole="button" onPress={() => navigation.navigate('Settings')}>
+                <GearSix size={20} color={C.t1} />
+              </Pressable>
+            </View>
+          </View>
+
+          <YouHeader
+            name={name} location={location} avatarUri={avatarUri} avatarColor={avatarColor}
+            rankLabel={cap(rank)} runCount={runs.filter(r => !r.excluded && r.distanceMeters >= 50).length}
+            isPlus={gate.isPremium} bio={bio}
+            following={following} followers={followers}
+            onFollowing={() => navigation.navigate('Following', { userId: playerId ?? '' })}
+            onFollowers={() => navigation.navigate('Followers', { userId: playerId ?? '' })}
+            onEdit={startEdit}
+            onShare={() => Share.share({ message: `Follow me on Runivo: runivo://runner/${playerId}` }).catch(() => {})}
+          />
+
+          <View style={s.tabs} accessibilityRole="tablist">
+            {TABS.map(t => {
+              const on = t.key === tab;
+              return (
+                <Pressable
+                  key={t.key} style={[s.tab, on && s.tabOn]} onPress={() => setTab(t.key)}
+                  accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t.label}
+                >
+                  <t.Icon size={22} color={on ? C.t1 : '#9A9E96'} weight={on ? 'fill' : 'regular'} />
+                  <Text style={[s.tabTxt, on && s.tabTxtOn]}>{t.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
 
-        <YouHeader
-          name={name} location={location} avatarUri={avatarUri} avatarColor={avatarColor}
-          rankLabel={cap(rank)} rankNext={nextRank ? `${toNext.toLocaleString()} PACE to ${cap(nextRank)}` : 'Top rank'}
-          following={following} followers={followers} zonesHeld={zonesHeld ?? 0} score={player?.territoryScore ?? 0}
-          onFollowing={() => navigation.navigate('Following', { userId: playerId ?? '' })}
-          onFollowers={() => navigation.navigate('Followers', { userId: playerId ?? '' })}
-          onZones={() => navigation.navigate('TerritoryMap', {})}
-          onScore={() => navigation.navigate('Leaderboard')}
-          onEdit={startEdit}
-          onShare={() => Share.share({ message: `Follow me on Runivo: runivo://runner/${playerId}` }).catch(() => {})}
-        />
+        {tab === 'progress' && (
+          <>
+            <SportChips value={sport} onChange={setSport} />
+            <WeekCard runs={runs} sport={sport} />
+            <View style={s.tiles}>
+              <Pressable style={[s.tile, { backgroundColor: C.card }]} onPress={() => navigation.navigate('TrainingLog')} accessibilityRole="button">
+                <Text style={s.tileLabel}>Streak</Text>
+                <Text style={s.tileNum}>{streak.weeks}<Text style={s.tileUnit}> {streak.weeks === 1 ? 'week' : 'weeks'}</Text></Text>
+                <View style={s.streakBars}>
+                  {streak.last8.map((k, i) => (
+                    <View key={i} style={[s.streakBar, { backgroundColor: k === 'done' ? C.brandGreen : k === 'now' ? C.lime : C.border }]} />
+                  ))}
+                </View>
+                <Text style={s.tileSub}>{streak.last8[streak.last8.length - 1] === 'now' ? 'This week counts. Nice.' : 'Run once by Sunday to keep it'}</Text>
+              </Pressable>
+              <Pressable style={[s.tile, { backgroundColor: C.alwaysDark }]} onPress={() => navigation.navigate('TerritoryMap', {})} accessibilityRole="button">
+                <Text style={[s.tileLabel, { color: C.alwaysLight }]}>Territory</Text>
+                <Text style={[s.tileNum, { color: C.alwaysLight }]}>{zonesHeld ?? 0}<Text style={[s.tileUnit, { color: '#C9CCC4' }]}> {zonesHeld === 1 ? 'zone' : 'zones'}</Text></Text>
+                <Text style={[s.tileSub, { color: C.lime, fontSize: 13 }]}>{Math.round(totalAreaM2).toLocaleString()} m² held</Text>
+                <Text style={[s.tileSub, { color: '#C9CCC4' }]}>Score {(player?.territoryScore ?? 0).toLocaleString()}</Text>
+              </Pressable>
+            </View>
+            <BestEfforts records={personalRecords} />
+            <Pressable style={s.pace} onPress={() => navigation.navigate('PACEStore')} accessibilityRole="button" accessibilityLabel={`${(player?.paceBalance ?? 0).toLocaleString()} PACE. Open the PACE Store`}>
+              <Hexagon size={30} color={C.rivalAmber} weight="fill" />
+              <View style={{ flex: 1 }}>
+                <Text style={s.paceTitle}>{(player?.paceBalance ?? 0).toLocaleString()} PACE</Text>
+                <Text style={s.paceSub}>{earned.toLocaleString()} earned all time · PACE Store</Text>
+              </View>
+              <CaretRight size={14} color={C.amber} weight="bold" />
+            </Pressable>
+            {!gate.isPremium && Number.isFinite(gate.territoryLimit) && (
+              <Pressable style={s.plus} onPress={() => navigation.navigate('Subscription', { reason: 'zone_limit' })} accessibilityRole="button">
+                <Crown size={20} color={C.lime} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.plusTitle}>{Math.min(zonesHeld ?? 0, gate.territoryLimit)} of {gate.territoryLimit} zones used</Text>
+                  <Text style={s.plusSub}>Runivo Plus removes the cap</Text>
+                </View>
+                <CaretRight size={14} color={C.alwaysLight} weight="bold" />
+              </Pressable>
+            )}
+          </>
+        )}
 
-        <View style={{ height: 8 }} />
-        <WeekCard runs={runs} sport={sport} onSport={setSport} goalKm={weeklyGoalKm} onEditGoal={() => setGoalOpen(true)} />
-
-        {pinned && (
-          <PinnedCard
-            run={pinned}
-            onOpen={() => navigation.navigate('RunSummary', { runId: pinned.id, activityType: pinned.activityType })}
-            onUnpin={() => pinRun(null)}
+        {tab === 'activities' && (
+          <ActivityCards
+            runs={runs} sport="all" pinnedId={pinnedRunId} onPin={pinRun}
+            onOpen={(r) => navigation.navigate('RunSummary', { runId: r.id, activityType: r.activityType })}
+            onAll={() => navigation.navigate('History')}
           />
         )}
 
-        <MenuList items={menu} />
-
-        {!gate.isPremium && Number.isFinite(gate.territoryLimit) && (
-          <Pressable style={s.plus} onPress={() => navigation.navigate('Subscription', { reason: 'zone_limit' })} accessibilityRole="button">
-            <Crown size={20} color={C.red} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.plusTitle}>{Math.min(zonesHeld ?? 0, gate.territoryLimit)} of {gate.territoryLimit} zones used</Text>
-              <Text style={s.plusSub}>Runivo Plus removes the cap</Text>
-            </View>
-            <CaretRight size={14} color={C.alwaysLight} weight="bold" />
-          </Pressable>
+        {tab === 'gallery' && (
+          <RouteGallery runs={runs} onOpen={(r) => navigation.navigate('RunSummary', { runId: r.id, activityType: r.activityType })} />
         )}
 
-        <View style={{ height: 8 }} />
-        <TrophyStrip earned={earnedAwards} onAll={() => setShowAwards(v => !v)} />
-        {showAwards && (
-          <View style={{ paddingHorizontal: 18 }}>
-            <AwardsTab
-              earnedAwards={earnedAwards}
-              totalKm={runs.filter(r => !r.excluded).reduce((n, r) => n + r.distanceMeters / 1000, 0)}
-              streakDays={player?.streakDays ?? 0}
-              totalTerritoriesClaimed={player?.totalTerritoriesClaimed ?? 0}
-              paceTotalEarned={earned}
-              runs={runs}
+        {tab === 'more' && (
+          <>
+            <GoalsCard />
+            <MenuList items={menu} />
+            <View style={{ height: 8 }} />
+            <TrophyStrip earned={earnedAwards} onAll={() => setShowAwards(v => !v)} />
+            {showAwards && (
+              <View style={{ paddingHorizontal: 18 }}>
+                <AwardsTab
+                  earnedAwards={earnedAwards}
+                  totalKm={runs.filter(r => !r.excluded).reduce((n, r) => n + r.distanceMeters / 1000, 0)}
+                  streakDays={player?.streakDays ?? 0}
+                  totalTerritoriesClaimed={player?.totalTerritoriesClaimed ?? 0}
+                  paceTotalEarned={earned}
+                  runs={runs}
+                />
+              </View>
+            )}
+            <View style={{ height: 8 }} />
+            <ClubsStrip
+              clubs={clubs}
+              onAll={() => navigation.navigate('Main', { screen: 'Groups' })}
+              onOpen={(id) => {
+                const c = clubs.find(x => x.id === id);
+                if (c) navigation.navigate('ClubDetail', { clubId: c.id, clubName: c.name, badgeEmoji: c.emoji, memberCount: c.memberCount, totalKm: c.totalKm, description: c.description ?? undefined });
+              }}
             />
-          </View>
+            <View style={{ height: 8 }} />
+            <View style={s.footer}>
+              <Pressable style={[s.footRow, s.footBorder]} onPress={() => navigation.navigate('MyRewards')} accessibilityRole="button">
+                <Text style={s.footTxt}>My rewards</Text>
+                <Text style={s.footVal}>{(player?.paceBalance ?? 0).toLocaleString()} PACE</Text>
+              </Pressable>
+              <Pressable style={[s.footRow, s.footBorder]} onPress={() => navigation.navigate('YearInRunivo')} accessibilityRole="button">
+                <Text style={s.footTxt}>Year in Runivo</Text>
+                <Text style={s.footVal}>{new Date().getFullYear()}</Text>
+              </Pressable>
+              <Pressable style={s.footRow} onPress={() => navigation.navigate('ConnectedDevices')} accessibilityRole="button">
+                <Text style={s.footTxt}>Connected apps and devices</Text>
+                <CaretRight size={14} color={C.t3} weight="bold" />
+              </Pressable>
+            </View>
+          </>
         )}
-
-        <View style={{ height: 8 }} />
-        <ClubsStrip
-          clubs={clubs}
-          onAll={() => navigation.navigate('Club')}
-          onOpen={(id) => {
-            const c = clubs.find(x => x.id === id);
-            if (c) navigation.navigate('ClubDetail', { clubId: c.id, clubName: c.name, badgeEmoji: c.emoji, memberCount: c.memberCount, totalKm: c.totalKm, description: c.description ?? undefined });
-          }}
-        />
-
-        <View style={{ height: 8 }} />
-        <View style={s.footer}>
-          <Pressable style={[s.footRow, s.footBorder]} onPress={() => navigation.navigate('MyRewards')} accessibilityRole="button">
-            <Text style={s.footTxt}>My rewards</Text>
-            <Text style={s.footVal}>{(player?.paceBalance ?? 0).toLocaleString()} PACE</Text>
-          </Pressable>
-          <Pressable style={[s.footRow, s.footBorder]} onPress={() => navigation.navigate('YearInRunivo')} accessibilityRole="button">
-            <Text style={s.footTxt}>Year in Runivo</Text>
-            <Text style={s.footVal}>{new Date().getFullYear()}</Text>
-          </Pressable>
-          <Pressable style={s.footRow} onPress={() => navigation.navigate('ConnectedDevices')} accessibilityRole="button">
-            <Text style={s.footTxt}>Connected apps and devices</Text>
-            <CaretRight size={14} color={C.t3} weight="bold" />
-          </Pressable>
-        </View>
       </ScrollView>
 
       <GoalSheet visible={goalOpen} current={weeklyGoalKm} onClose={() => setGoalOpen(false)} onSaved={setWeeklyGoal} />
@@ -208,12 +274,29 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
     center: { alignItems: 'center', justifyContent: 'center' },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
-    title: { fontFamily: Fonts.bold, fontSize: 26, color: C.t1, letterSpacing: -0.5 },
-    iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-    plus: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 18, padding: 16, borderRadius: 18, backgroundColor: C.t1 },
-    plusTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.bg },
-    plusSub: { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, marginTop: 2 },
+    headBlock: { backgroundColor: C.card, gap: 14 },
+    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
+    title: { fontFamily: Fonts.semiBold, fontSize: 26, color: C.t1, letterSpacing: -0.5 },
+    iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    plus: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 18, padding: 16, borderRadius: 22, backgroundColor: C.alwaysDark },
+    plusTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
+    plusSub: { fontFamily: Fonts.regular, fontSize: 12, color: '#C9CCC4', marginTop: 2 },
+    tabs: { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+    tab: { flex: 1, height: 52, alignItems: 'center', justifyContent: 'center', gap: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    tabOn: { borderBottomColor: C.t1 },
+    tabTxt: { fontFamily: Fonts.regular, fontSize: 12, color: '#9A9E96' },
+    tabTxtOn: { fontFamily: Fonts.semiBold, color: C.t1 },
+    tiles: { flexDirection: 'row', gap: 12, marginHorizontal: 20 },
+    tile: { flex: 1, borderRadius: 24, padding: 16, gap: 10 },
+    streakBars: { flexDirection: 'row', gap: 4 },
+    streakBar: { flex: 1, height: 22, borderRadius: 6 },
+    tileLabel: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    tileNum: { fontFamily: Fonts.numeric, fontSize: 32, letterSpacing: -0.8, color: C.t1 },
+    tileUnit: { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    tileSub: { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
+    pace: { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: 20, padding: 16, borderRadius: 24, backgroundColor: C.amberBg },
+    paceTitle: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    paceSub: { fontFamily: Fonts.regular, fontSize: 13, color: '#7A5525', marginTop: 2 },
     footer: { marginHorizontal: 18, backgroundColor: C.card, borderRadius: 18, paddingHorizontal: 14 },
     footRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 52 },
     footBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },

@@ -1,27 +1,27 @@
 import { StyleSheet } from 'react-native';
-import { Fonts, Type, type AppColors } from '@theme';
+import { Fonts, type AppColors } from '@theme';
 
 /**
- * Shared look for the onboarding steps (matches the welcome screen): big
- * Archivo uppercase titles, Geist body, white 20px cards on the paper canvas,
- * an orange border for what's chosen.
+ * Shared look for the onboarding steps (2026 redesign): Outfit sentence-case
+ * titles, white 20px cards on the light grey canvas, an ink border and mint
+ * fill for what's chosen, and a lavender "Why PaceX asks" note.
  */
 export function mkStep(C: AppColors) {
   return StyleSheet.create({
     content:     { paddingHorizontal: 22, paddingTop: 26, paddingBottom: 32 },
-    eyebrow:     { fontFamily: Fonts.semiBold, fontSize: 13, color: C.red, marginBottom: 8 },
-    title:       { ...Type.hero, fontSize: 52, lineHeight: 47, color: C.t1 },
-    sub:         { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, color: C.t2, marginTop: 12, marginBottom: 24 },
+    eyebrow:     { fontFamily: Fonts.semiBold, fontSize: 13, color: C.green, marginBottom: 8 },
+    title:       { fontFamily: Fonts.semiBold, fontSize: 32, lineHeight: 37, letterSpacing: -0.9, color: C.t1 },
+    sub:         { fontFamily: Fonts.regular, fontSize: 16, lineHeight: 23, color: C.t2, marginTop: 10, marginBottom: 18 },
     label:       { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1, marginBottom: 10, marginTop: 6 },
     note:        { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: C.t3, marginTop: 12 },
 
     card:        {
       flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, paddingHorizontal: 16, minHeight: 72, marginBottom: 10,
-      borderRadius: 20, backgroundColor: C.card, borderWidth: 2, borderColor: C.card,
+      borderRadius: 20, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border,
     },
-    cardOn:      { borderColor: C.red },
+    cardOn:      { borderWidth: 2, borderColor: C.t1, backgroundColor: C.mint },
     cardIcon:    { width: 44, height: 44, borderRadius: 14, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
-    cardIconOn:  { backgroundColor: C.redLo },
+    cardIconOn:  { backgroundColor: C.mint2 },
     cardTitle:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
     cardSub:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 2 },
 
@@ -38,12 +38,17 @@ export function mkStep(C: AppColors) {
       height: 56, borderRadius: 18, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border,
       paddingHorizontal: 16, fontFamily: Fonts.medium, fontSize: 18, color: C.t1,
     },
-    inputError:  { borderColor: C.red },
-    error:       { fontFamily: Fonts.medium, fontSize: 13, color: C.red, marginTop: 8 },
+    inputError:  { borderColor: C.danger },
+    error:       { fontFamily: Fonts.medium, fontSize: 13, color: C.danger, marginTop: 8 },
 
     statCard:    { backgroundColor: C.card, borderRadius: 20, padding: 18, marginTop: 4 },
     statNum:     { fontFamily: Fonts.numeric, fontSize: 40, lineHeight: 42, color: C.t1, fontVariant: ['tabular-nums'] },
     statUnit:    { fontFamily: Fonts.medium, fontSize: 14, color: C.t2 },
+
+    why:         { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 16, backgroundColor: C.lavender, marginTop: 16 },
+    whyOrb:      { width: 20, height: 20, borderRadius: 10, backgroundColor: '#7C72D8', marginTop: 1 },
+    whyText:     { flex: 1, fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: C.lavenderInk },
+    whyStrong:   { fontFamily: Fonts.semiBold },
   });
 }
 

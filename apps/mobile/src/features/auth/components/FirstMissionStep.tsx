@@ -41,7 +41,7 @@ export default function FirstMissionStep({ goal, weeklyTargetKm }: { goal: Runni
 const st = StyleSheet.create({
   mission: { borderRadius: 22, padding: 20, marginTop: 4 },
   flag:    { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  big:     { fontFamily: Fonts.hero, fontSize: 40, lineHeight: 40, textTransform: 'uppercase' },
+  big:     { fontFamily: Fonts.hero, fontSize: 34, lineHeight: 38, letterSpacing: -0.8 },
   small:   { fontFamily: Fonts.regular, fontSize: 14, marginTop: 6 },
   row:     { flexDirection: 'row', gap: 10, marginTop: 10 },
   half:    { flex: 1, marginTop: 0 },

@@ -210,11 +210,11 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:    { flex: 1, backgroundColor: C.bg },
     header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
-    backBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    backBtn: { width: 32, height: 32, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
     title:   { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     scroll:  { paddingHorizontal: 18, paddingBottom: 48 },
     section: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 20, marginBottom: 8 },
-    card:    { backgroundColor: C.card, borderRadius: 16 },
+    card:    { backgroundColor: C.card, borderRadius: 22 },
     row:     { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
     rowCol:  { paddingHorizontal: 14, paddingVertical: 14 },
     border:  { borderTopWidth: 1, borderTopColor: C.border },

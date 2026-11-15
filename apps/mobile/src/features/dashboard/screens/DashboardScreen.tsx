@@ -1,4 +1,3 @@
-import { StoreMark } from '@mobile/shared/components/StoreMark';
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { fetchUnreadCount } from '@features/notifications/services/notificationsService';
@@ -6,27 +5,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from '@theme/hapticsGated';
-import { ArrowRight, Bell, Play, Shield, Users, CalendarDays, Sparkles } from 'lucide-react-native';
+import { Bell, Search } from 'lucide-react-native';
+import Svg, { Circle } from 'react-native-svg';
+import { RunivoMark } from '@mobile/shared/components/RunivoMark';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
+import { ZonePreview } from '@mobile/shared/components/ZonePreview';
+import { getTerritoryPolygons } from '@shared/services/store';
+import { ENGINE } from '@shared/engine/runEngine';
 import { useLiveFriendRuns } from '@features/run/hooks/useLiveFriendRuns';
-import { useGpsStatus } from '../hooks/useGpsStatus';
-import { getLastSport } from '@features/run/constants/lastSport';
 import TodayCard from '@features/training/components/TodayCard';
 import { GoalSheet } from '@features/profile/components/GoalSheet';
-import { GoalsCard } from '@features/goals/GoalsCard';
+import { RivalAlert } from '../components/RivalAlert';
 import { useWeatherLine } from '../hooks/useWeatherLine';
-import { getSettings } from '@shared/services/store';
-import { PencilSimple } from 'phosphor-react-native';
 import FriendsActivityCard from '../components/FriendsActivityCard';
-import { sportFor } from '@features/run/constants/activities';
-import type { ActivityType } from '@features/run/types';
+import { HappeningNow } from '../components/HappeningNow';
+import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
-import { Avatar } from '@mobile/shared/components/Avatar';
 import { FEATURES } from '../../../config/features';
 import { useDashboard } from '../hooks/useDashboard';
-import { MissionRow } from '../components/MissionRow';
 import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -39,21 +38,24 @@ export default function DashboardScreen() {
   const dash       = useDashboard();
   const gate       = useFeatureGate();
   const liveFriends = useLiveFriendRuns();
-  const gps        = useGpsStatus();
   const [unreadCount, setUnreadCount] = useState(0);
-  // Start uses the sport last picked on the record screen, as Strava does.
-  const [lastSport, setLastSportState] = useState<ActivityType>('run');
-  useFocusEffect(useCallback(() => { getLastSport().then(setLastSportState); }, []));
-  const sport = sportFor(lastSport);
   const [tsDisplay, setTsDisplay]     = useState(0);
   const tsShownRef                    = useRef(0);   // value currently on screen, so later changes animate from it
-  const paceStoreRef = useRef<View>(null);
-  const bentoRef     = useRef<View>(null);
   const [goalOpen, setGoalOpen] = useState(false);
+  const [cheerFor, setCheerFor] = useState<CheerTarget | null>(null);
+  const [feedDiscover, setFeedDiscover] = useState(false);
+  const [mapW, setMapW] = useState(0);
+  const [zoneRings, setZoneRings] = useState<{ own: [number, number][][]; fading: [number, number][][] }>({ own: [], fading: [] });
+  const playerIdForZones = dash.player?.id;
+  useFocusEffect(useCallback(() => {
+    if (!playerIdForZones) return;
+    getTerritoryPolygons(playerIdForZones).then(zs => setZoneRings({
+      own: zs.filter(z => z.freshness >= ENGINE.FRESHNESS_STALE_AT).map(z => z.polygon),
+      fading: zs.filter(z => z.freshness < ENGINE.FRESHNESS_STALE_AT).map(z => z.polygon),
+    })).catch(() => {});
+  }, [playerIdForZones, dash.ownedCount]));
   const weather = useWeatherLine();
   // S3: the reward they're saving for, set on its detail page.
-  const [goalReward, setGoalReward] = useState<{ brand: string; valueLabel: string; paceCost: number } | null>(null);
-  useFocusEffect(useCallback(() => { getSettings().then(st => setGoalReward(st.goalReward ?? null)).catch(() => {}); }, []));
 
   // Count the headline score to its target, and again whenever it changes (after a run,
   // a refresh or a sync), starting from what is on screen rather than only on first load.
@@ -105,40 +107,47 @@ export default function DashboardScreen() {
   const streakDays = dash.player.streakDays || 0;
   const weeklyEarned = dash.player.paceWeeklyEarned ?? 0;
   const weeklyCap = dash.weeklyCapLimit || 100;
-  const capPct = Math.min(100, Math.round((weeklyEarned / weeklyCap) * 100));
-  const maxDayKm = Math.max(1, ...dash.dayKm);
-  const todayIdx = (now.getDay() + 6) % 7; // Monday = 0
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const doneCount = dash.missions.filter(m => m.completed).length;
+  const toClaim = dash.missions.filter(m => m.completed && !m.claimed).reduce((n, m) => n + (m.rewards?.pace ?? 0), 0);
 
-  const quick: { key: string; label: string; Icon: typeof Users; onPress: () => void; accent?: boolean }[] = [
-    { key: 'clubs', label: 'Clubs', Icon: Users, onPress: () => { tap(); navigation.navigate('Club'); } },
-    ...(FEATURES.EVENTS ? [{ key: 'events', label: 'Events', Icon: CalendarDays, onPress: () => { tap(); navigation.navigate('Events'); } }] : []),
-    ...(FEATURES.AI_COACH ? [{ key: 'pacex', label: 'PaceX', Icon: Sparkles, accent: true, onPress: () => { tap(); navigation.navigate('Coach'); } }] : []),
-    { key: 'store', label: 'Store', Icon: StoreMark as unknown as typeof Users, onPress: () => { tap(); navigation.navigate('PACEStore'); } },
-  ];
 
   return (
     <View style={[s.fill, { backgroundColor: C.bg }]}>
       <ScrollView
         style={s.fill}
-        contentContainerStyle={{ paddingBottom: 110, paddingTop: Math.max(18, insets.top) + 4, paddingHorizontal: 18, gap: 12 }}
+        contentContainerStyle={{ paddingBottom: 130, paddingTop: Math.max(18, insets.top) + 4, paddingHorizontal: 20, gap: 22 }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={dash.refreshing} onRefresh={dash.refresh} tintColor={C.t3} />}
       >
-        {/* Header */}
+        {/* Header: search · runivo · PaceX and alerts (mock) */}
         <View style={s.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.dateLine}>{dateLine}</Text>
-            <Text style={s.hello} numberOfLines={1}>{greeting}, {firstName}</Text>
+          <Pressable onPress={() => { tap(); navigation.navigate('Feed', { search: true }); }} style={s.iconBtn} hitSlop={6} accessibilityLabel="Search runners and clubs" accessibilityRole="button">
+            <Search size={20} color={C.t1} strokeWidth={1.8} />
+          </Pressable>
+          <View style={s.logo} accessibilityRole="header" accessibilityLabel="Runivo">
+            <RunivoMark size={20} />
+            <Text style={s.word}>runivo</Text>
           </View>
-          <Pressable onPress={() => { go('Notifications'); setUnreadCount(0); }} style={s.iconBtn} hitSlop={6} accessibilityLabel="Notifications">
-            <Bell size={16} color={C.t1} strokeWidth={1.8} />
-            {unreadCount > 0 && <View style={s.dot} />}
-          </Pressable>
-          <Pressable onPress={() => navigation.navigate('Main', { screen: 'Profile' })} hitSlop={4} accessibilityLabel="Your profile">
-            <Avatar uri={dash.avatarUrl} name={dash.player.username} size={36} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {FEATURES.AI_COACH && (
+              <Pressable onPress={() => { tap(); navigation.navigate('Coach'); }} style={s.iconBtn} hitSlop={6} accessibilityLabel="Ask PaceX" accessibilityRole="button">
+                <PaceXOrb size={24} />
+              </Pressable>
+            )}
+            <Pressable onPress={() => { go('Notifications'); setUnreadCount(0); }} style={s.iconBtn} hitSlop={6} accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} new` : 'Notifications'} accessibilityRole="button">
+              <Bell size={20} color={C.t1} strokeWidth={1.8} />
+              {unreadCount > 0 && <View style={s.dot} />}
+            </Pressable>
+          </View>
         </View>
+
+        <View style={{ gap: 4, marginTop: 6 }}>
+          <Text style={s.hello} numberOfLines={1}>{greeting}, {firstName}</Text>
+          <Text style={s.dateLine} numberOfLines={1}>{weather ? `${dateLine} · ${weather}` : dateLine}</Text>
+        </View>
+
+
 
         {dash.syncError && (
           <Pressable style={s.syncChip} onPress={() => dash.refresh()}>
@@ -147,183 +156,90 @@ export default function DashboardScreen() {
           </Pressable>
         )}
 
-        {/* Territory score */}
-        <Pressable style={[s.card, s.scoreCard]} onPress={() => { tap(); navigation.navigate('Leaderboard'); }}>
-          <Text style={s.label}>Territory score</Text>
-          <View style={s.scoreRow}>
-            <Text style={s.scoreNum} numberOfLines={1} adjustsFontSizeToFit>{tsDisplay.toLocaleString()}</Text>
-            {dash.cityRank != null && (
-              <View style={s.rankBlock}>
-                <Text style={s.rankNum}>#{dash.cityRank}</Text>
-                <Text style={s.rankWhere}>near you</Text>
+        {/* Territory: your zones drawn from the map, score and rank (mock) */}
+        <Pressable style={s.terrCard} onPress={() => { tap(); navigation.navigate('Main', { screen: 'Map' }); }} accessibilityRole="button" accessibilityLabel={`Territory score ${tsDisplay.toLocaleString()}, ${dash.ownedCount} zones. Open the map`}>
+          <View onLayout={e => setMapW(e.nativeEvent.layout.width)}>
+            {mapW > 0 && <ZonePreview own={zoneRings.own} fading={zoneRings.fading} width={mapW} height={150} />}
+            {dash.staleCount > 0 && (
+              <View style={s.mapChip}>
+                <View style={[s.mapChipDot, { backgroundColor: C.rivalAmber }]} />
+                <Text style={s.mapChipTxt}>{dash.staleCount === 1 ? '1 zone fading' : `${dash.staleCount} zones fading`}</Text>
               </View>
             )}
-            <ArrowRight size={20} color={C.t2} strokeWidth={1.8} style={s.scoreArrow} />
           </View>
-          <View style={s.statRow}>
-            <View style={s.stat}>
-              <Text style={s.statNum}>{dash.ownedCount}{!gate.isPremium && <Text style={s.statOf}> / {gate.territoryLimit}</Text>}</Text>
-              <Text style={s.statLabel}>Zones held</Text>
+          <View style={s.terrBody}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={s.label}>Territory score</Text>
+              <Text style={s.scoreNum} numberOfLines={1}>{tsDisplay.toLocaleString()}</Text>
+              <Text style={s.terrSub} numberOfLines={1}>
+                {dash.ownedCount}{!gate.isPremium ? ` / ${gate.territoryLimit}` : ''} {dash.ownedCount === 1 ? 'zone' : 'zones'}
+                {dash.cityRank != null ? ` · #${dash.cityRank} near you` : ''}{streakDays > 0 ? ` · ${streakDays}-day streak` : ''}
+              </Text>
             </View>
-            <View style={[s.stat, s.statDivider]}>
-              <Text style={[s.statNum, dash.staleCount > 0 && { color: C.red }]}>{dash.staleCount}</Text>
-              <Text style={s.statLabel}>Fading</Text>
-            </View>
-            <View style={[s.stat, s.statDivider]}>
-              <Text style={s.statNum}>{streakDays}<Text style={[s.statOf, { color: C.t1 }]}> {streakDays === 1 ? 'day' : 'days'}</Text></Text>
-              <Text style={s.statLabel}>Streak</Text>
-            </View>
+            <Pressable
+              style={s.defend} hitSlop={6} accessibilityRole="button"
+              onPress={() => { tap(); navigation.navigate('TerritoryMap', dash.staleCount > 0 ? { initialFilter: 'stale' } : {}); }}
+            >
+              <Text style={s.defendTxt}>{dash.staleCount > 0 ? 'Defend' : 'Map'}</Text>
+            </Pressable>
           </View>
         </Pressable>
 
-        {/* Start run */}
-        <Pressable
-          style={({ pressed }) => [s.startBtn, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            // As in the mock: with a GPS fix, Start run starts the run; otherwise the run tab finds GPS first.
-            if (gps === 'ready') navigation.navigate('ActiveRun', { autoStart: true, activityType: lastSport });
-            else navigation.navigate('Main', { screen: 'Run' });
-          }}
-          accessibilityRole="button"
-        >
-          <View style={s.rowCenter}>
-            <Play size={14} color="#fff" fill="#fff" />
-            <Text style={s.startText}>{dash.hasRunToday ? `${sport.verb.charAt(0).toUpperCase()}${sport.verb.slice(1)} again` : `Start ${sport.verb}`}</Text>
-          </View>
-          <View style={s.startChip}>
-            {gps === 'ready' && <View style={s.gpsDot} />}
-            <Text style={s.startChipText}>
-              {gps === 'ready' ? 'GPS ready' : gps === 'off' ? 'Location off' : 'Finding GPS…'}
-            </Text>
-          </View>
-        </Pressable>
-        {!!weather && <Text style={s.weather}>{weather}</Text>}
+        {/* Live friends (with Cheer), challenges you're in, events you're going to */}
+        <HappeningNow friends={liveFriends} onCheer={f => setCheerFor({ userId: f.userId, username: f.username, avatarColor: f.avatarColor })} />
 
-        {/* Today's training session (or an invitation to build a plan) */}
+        {/* Today's session from PaceX (or an invitation to build a plan) */}
         <TodayCard />
 
-        {/* Friends running now */}
-        {liveFriends.length > 0 && (
-          <Pressable style={[s.card, s.liveCard]} onPress={() => { tap(); navigation.navigate('Main', { screen: 'Map' }); }}>
-            <View style={s.liveAvatars}>
-              {liveFriends.slice(0, 3).map((f, i) => (
-                <View key={f.userId} style={[s.liveAvatarRing, i > 0 && { marginLeft: -12 }]}>
-                  <Avatar name={f.username} color={f.avatarColor} size={34} />
-                </View>
-              ))}
+
+        {/* Missions and the PACE Store */}
+        <View style={s.tiles}>
+          <Pressable style={[s.card, s.tile]} onPress={() => go('Missions')} accessibilityRole="button" accessibilityLabel={`Missions, ${doneCount} of ${dash.missions.length} done`}>
+            <Text style={s.tileTitle}>Missions</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <Svg width={34} height={34} viewBox="0 0 38 38">
+                <Circle cx={19} cy={19} r={15} fill="none" stroke={C.stone} strokeWidth={5} />
+                <Circle
+                  cx={19} cy={19} r={15} fill="none" stroke={C.brandGreen} strokeWidth={5} strokeLinecap="round"
+                  strokeDasharray={`${(dash.missions.length ? doneCount / dash.missions.length : 0) * 94.2} 94.2`} transform="rotate(-90 19 19)"
+                />
+              </Svg>
+              <Text style={s.tileNum}>{doneCount}<Text style={s.tileOf}> / {dash.missions.length}</Text></Text>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.liveTitle}>
-                {liveFriends.length === 1 ? '1 friend running now' : `${liveFriends.length} friends running now`}
-              </Text>
-              <Text style={s.alertSub} numberOfLines={1}>
-                {liveFriends.length === 1 ? `${liveFriends[0].username} is out now` : `${liveFriends[0].username} and ${liveFriends.length - 1} more`}
-              </Text>
-            </View>
-            <View style={s.liveChip}><View style={s.liveDot} /><Text style={s.liveChipText}>Live</Text></View>
+            {toClaim > 0
+              ? <View style={s.claimPill}><Text style={s.claimTxt}>Claim +{toClaim} PACE</Text></View>
+              : <Text style={s.small}>Resets at midnight</Text>}
           </Pressable>
-        )}
-
-        {/* Latest from people you follow, with kudos */}
-        <FriendsActivityCard />
-
-        {/* Fading zones */}
-        {dash.staleCount > 0 && (
-          <View style={[s.card, s.alertCard]}>
-            <View style={s.alertIcon}><Shield size={18} color="#fff" strokeWidth={2} /></View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.alertTitle}>{dash.staleCount === 1 ? 'A zone is fading' : `${dash.staleCount} zones are fading`}</Text>
-              <Text style={s.alertSub}>{dash.lowestFreshness}% fresh · run through {dash.staleCount === 1 ? 'it' : 'them'} to defend</Text>
-            </View>
-            <Pressable hitSlop={8} style={s.inkPill} onPress={() => { tap(); navigation.navigate('TerritoryMap', { initialFilter: 'stale' }); }}>
-              <Text style={s.inkPillText}>Defend</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* Quick actions */}
-        <View style={s.quickRow}>
-          {quick.map(q => (
-            <Pressable key={q.key} style={({ pressed }) => [s.quick, pressed && { opacity: 0.8 }]} onPress={q.onPress}>
-              <q.Icon size={20} color={q.accent ? C.red : C.t1} strokeWidth={1.8} />
-              <Text style={s.quickText}>{q.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* PACE this week */}
-        <View ref={paceStoreRef} collapsable={false}>
-          <Pressable style={[s.card, s.wideCard]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('PACEStore'); }}>
-            <View style={s.rowBetween}>
-              <Text style={s.label}>PACE this week</Text>
-              <Text style={s.ofText}><Text style={s.inlineNum}>{weeklyEarned}</Text>  / {weeklyCap} cap</Text>
-            </View>
-            <View style={s.track}><View style={[s.fillBar, { width: `${capPct}%`, backgroundColor: C.red }]} /></View>
-            <View style={s.rowBetween}>
-              <Text style={s.small} numberOfLines={1}>
-                {goalReward
-                  ? (dash.player.paceBalance ?? 0) >= goalReward.paceCost
-                    ? `Ready: ${goalReward.brand} ${goalReward.valueLabel}`
-                    : `${(goalReward.paceCost - (dash.player.paceBalance ?? 0)).toLocaleString()} PACE to go · ${goalReward.brand}`
-                  : `${(dash.player.paceBalance ?? 0).toLocaleString()} PACE to spend`}
-              </Text>
-              <View style={s.rowCenterTight}>
-                <Text style={s.smallStrong}>PACE Store</Text>
-                <ArrowRight size={14} color={C.t1} strokeWidth={2} />
-              </View>
-            </View>
+          <Pressable
+            style={[s.card, s.tile, { backgroundColor: C.amberBg }]}
+            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); navigation.navigate('PACEStore'); }}
+            accessibilityRole="button" accessibilityLabel={`PACE Store, ${(dash.player.paceBalance ?? 0).toLocaleString()} PACE to spend`}
+          >
+            <Text style={s.tileTitle}>PACE this week</Text>
+            <Text style={s.tileNum}>{weeklyEarned}<Text style={[s.tileOf, { color: '#7A5525' }]}> / {weeklyCap}</Text></Text>
+            <Text style={[s.small, { color: '#7A5525' }]} numberOfLines={1}>{(dash.player.paceBalance ?? 0).toLocaleString()} to spend ›</Text>
           </Pressable>
         </View>
 
-        {/* This week */}
-        <View ref={bentoRef} collapsable={false} style={[s.card, s.wideCard]}>
-          <Pressable style={s.rowBetween} onPress={() => setGoalOpen(true)} accessibilityRole="button" accessibilityLabel={`Weekly goal ${dash.weeklyGoal} km. Edit`} hitSlop={6}>
-            <Text style={s.label}>This week</Text>
-            <View style={s.rowCenterTight}>
-              <Text style={s.ofText}><Text style={s.inlineNum}>{dash.weeklyKm.toFixed(1)}</Text>  / {dash.weeklyGoal} km</Text>
-              <PencilSimple size={12} color={C.t2} weight="bold" />
-            </View>
-          </Pressable>
-          <View style={s.bars}>
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => {
-              const km = dash.dayKm[i] ?? 0;
-              const today = i === todayIdx;
-              const future = i > todayIdx;
-              const h = km > 0 ? Math.max(10, Math.round((km / maxDayKm) * BAR_H)) : 0;
+        {/* People you follow */}
+        <View style={s.feedHead}>
+          <Text style={s.sectionTitle} accessibilityRole="header">Your feed</Text>
+          <View style={s.feedSeg}>
+            {(['Following', 'Discover'] as const).map(k => {
+              const on = (k === 'Discover') === feedDiscover;
               return (
-                <View key={i} style={s.barCol}>
-                  <View style={s.barSlot}>
-                    {km > 0 ? (
-                      <View style={[s.bar, { height: h }]} />
-                    ) : today || future ? (
-                      <View style={[s.barEmpty, today && { borderColor: C.red }]} />
-                    ) : (
-                      <View style={s.barNone} />
-                    )}
-                  </View>
-                  <Text style={[s.dayLabel, today && { color: C.red, fontFamily: Fonts.semiBold }]}>{d}</Text>
-                </View>
+                <Pressable key={k} style={[s.feedSegBtn, on && s.feedSegOn]} onPress={() => setFeedDiscover(k === 'Discover')} accessibilityRole="tab" accessibilityState={{ selected: on }}>
+                  <Text style={[s.feedSegTxt, on && { color: C.alwaysLight }]}>{k}</Text>
+                </Pressable>
               );
             })}
           </View>
         </View>
-
-        {/* Goals per sport (P3) */}
-        <GoalsCard />
-
-        {/* Missions */}
-        <View style={[s.card, s.missionsCard]}>
-          <View style={s.missionsHead}>
-            <Text style={s.label}>Today's missions · {dash.missions.length}</Text>
-            <Text style={s.small}>Resets at midnight</Text>
-          </View>
-          {dash.missions.map((m, i) => (
-            <MissionRow key={m.id} mission={m} isLast={i === dash.missions.length - 1} onClaim={dash.claimMission} />
-          ))}
-        </View>
+        <FriendsActivityCard discover={feedDiscover} />
+        <RivalAlert />
 
       </ScrollView>
+      <CheerSheet target={cheerFor} onClose={() => setCheerFor(null)} />
       <GoalSheet visible={goalOpen} current={dash.weeklyGoal} onClose={() => setGoalOpen(false)} onSaved={() => { dash.refresh(); }} />
 
     </View>
@@ -334,23 +250,33 @@ const BAR_H = 64;
 
 function mkStyles(C: AppColors) {
   const card = {
-    backgroundColor: C.card, borderRadius: 16, padding: 16,
-    shadowColor: '#14120F', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    backgroundColor: C.card, borderRadius: 24, padding: 16,
+    shadowColor: '#17181A', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1,
   } as const;
   return StyleSheet.create({
     fill:           { flex: 1 },
     bonusToastWrap: { position: 'absolute', left: 0, right: 0, zIndex: 50 },
 
-    header:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    dateLine:    { ...Type.labelSm, color: C.t2 },
-    hello:       { fontFamily: Fonts.bold, fontSize: 24, lineHeight: 26, letterSpacing: -0.6, color: C.t1, marginTop: 6 },
-    iconBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    dot:         { position: 'absolute', top: 7, right: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: C.red, borderWidth: 1.5, borderColor: C.card },
+    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    logo:        { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    word:        { fontFamily: Fonts.wordmark, fontSize: 21, letterSpacing: -0.6, color: C.t1 },
+    terrCard:    { backgroundColor: C.card, borderRadius: 30, overflow: 'hidden' },
+    terrBody:    { flexDirection: 'row', alignItems: 'flex-end', gap: 12, padding: 16, paddingTop: 14 },
+    terrSub:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    mapChip:     { position: 'absolute', top: 12, left: 12, height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.95)', flexDirection: 'row', alignItems: 'center', gap: 6 },
+    mapChipDot:  { width: 8, height: 8, borderRadius: 4 },
+    mapChipTxt:  { fontFamily: Fonts.medium, fontSize: 13, color: '#17181A' },
+    defend:      { height: 42, paddingHorizontal: 18, borderRadius: 21, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    defendTxt:   { fontFamily: Fonts.medium, fontSize: 14, color: C.alwaysLight },
+    dateLine:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    hello:       { fontFamily: Fonts.semiBold, fontSize: 28, lineHeight: 32, letterSpacing: -0.6, color: C.t1 },
+    iconBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    dot:         { position: 'absolute', top: 10, right: 11, width: 7, height: 7, borderRadius: 4, backgroundColor: C.rivalAmber, borderWidth: 1.5, borderColor: C.card },
 
     card,
     rowBetween:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     rowCenter:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    label:       { ...Type.labelSm, color: C.t2 },
+    label:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     ofText:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     scoreCard:   { paddingTop: 18, paddingHorizontal: 18, paddingBottom: 16 },
     wideCard:    { paddingVertical: 16, paddingHorizontal: 18 },
@@ -358,7 +284,6 @@ function mkStyles(C: AppColors) {
     missionsHead:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 4 },
     small:       { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 16, color: C.t2 },
     smallStrong: { fontFamily: Fonts.semiBold, fontSize: 12.5, lineHeight: 16, color: C.t1 },
-    sectionTitle:{ fontFamily: Fonts.bold, fontSize: 17, letterSpacing: -0.3, color: C.t1 },
     inlineNum:   { fontFamily: Fonts.numeric, fontSize: 20, color: C.t1 },
     rowCenterTight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     rankBlock:   { paddingBottom: 8, marginLeft: 10 },
@@ -367,7 +292,8 @@ function mkStyles(C: AppColors) {
     scoreArrow:  { marginLeft: 'auto', marginBottom: 10 },
 
     scoreRow:    { flexDirection: 'row', alignItems: 'flex-end', marginTop: 10 },
-    scoreNum:    { fontFamily: Fonts.numeric, fontSize: 88, lineHeight: 80, letterSpacing: -0.9, color: C.t1, fontVariant: ['tabular-nums'], flexShrink: 1 },
+    // No negative tracking or shrink-to-fit: both clipped the last digit on iOS.
+    scoreNum:    { fontFamily: Fonts.numeric, fontSize: 34, lineHeight: 42, letterSpacing: -0.3, color: C.t1, fontVariant: ['tabular-nums'], paddingRight: 2, includeFontPadding: false },
     statRow:     { flexDirection: 'row', marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
     stat:        { flex: 1 },
     statDivider: { borderLeftWidth: 1, borderLeftColor: C.border, paddingLeft: 14 },
@@ -389,7 +315,6 @@ function mkStyles(C: AppColors) {
     liveDot:     { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
     liveChipText:{ fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.green },
 
-    alertCard:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16, backgroundColor: '#FFF6F2', borderWidth: 1, borderColor: '#FFD2C4', shadowOpacity: 0 },
     alertIcon:   { width: 40, height: 40, borderRadius: 12, backgroundColor: C.blue, alignItems: 'center', justifyContent: 'center' },
     alertTitle:  { fontFamily: Fonts.semiBold, fontSize: 14, lineHeight: 18, color: C.t1 },
     alertSub:    { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 16, color: C.t2, marginTop: 2 },
@@ -412,6 +337,21 @@ function mkStyles(C: AppColors) {
 
     syncChip:    { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 6, backgroundColor: C.red, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 },
     syncText:    { ...Type.labelSm, color: C.alwaysLight },
-    weather: { fontFamily: Fonts.medium, fontSize: 12.5, color: C.t2, textAlign: 'center', marginTop: -4 },
+    weather: { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, marginTop: -6 },
+    orb:         { width: 22, height: 22, borderRadius: 11, backgroundColor: '#7C72D8', alignItems: 'center', justifyContent: 'center' },
+    orbCore:     { width: 12, height: 12, borderRadius: 6, backgroundColor: '#C9C2F6', marginLeft: -4, marginTop: -4 },
+    tiles:       { flexDirection: 'row', gap: 12 },
+    tile:        { flex: 1, gap: 8, borderRadius: 24 },
+    tileTitle:   { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    tileNum:     { fontFamily: Fonts.numeric, fontSize: 24, letterSpacing: -0.5, color: C.t1 },
+    tileOf:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    claimPill:   { height: 32, borderRadius: 16, backgroundColor: C.lime, alignItems: 'center', justifyContent: 'center' },
+    claimTxt:    { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysDark },
+    feedHead:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
+    feedSeg:     { flexDirection: 'row', gap: 4, padding: 4, borderRadius: 20, backgroundColor: C.card },
+    feedSegBtn:  { height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center' },
+    feedSegOn:   { backgroundColor: C.alwaysDark },
+    feedSegTxt:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t1 },
+    sectionTitle:{ fontFamily: Fonts.semiBold, fontSize: 20, letterSpacing: -0.3, color: C.t1 },
   });
 }

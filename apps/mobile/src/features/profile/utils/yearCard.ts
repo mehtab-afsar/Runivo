@@ -32,11 +32,11 @@ export function buildYearSvg(y: YearStats, username: string): string {
   }).join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" width="400" height="700">
 <rect width="400" height="700" fill="#F7F6F4"/>
-<rect width="400" height="8" fill="#FF4518"/>
+<rect width="400" height="8" fill="#7DBA3C"/>
 <text x="36" y="70" font-family="Helvetica" font-size="13" letter-spacing="3" fill="#A39E98">RUNIVO</text>
 <text x="36" y="150" font-family="Helvetica" font-size="72" font-weight="800" fill="#0A0A0A">${y.year}</text>
 <text x="36" y="190" font-family="Helvetica" font-size="20" fill="#0A0A0A">${esc(username)}'s year</text>
-<text x="36" y="242" font-family="Helvetica" font-size="46" font-weight="800" fill="#FF4518">${esc(`${Math.round(y.km).toLocaleString('en')} km`)}</text>
+<text x="36" y="242" font-family="Helvetica" font-size="46" font-weight="800" fill="#7DBA3C">${esc(`${Math.round(y.km).toLocaleString('en')} km`)}</text>
 ${lines}
 <text x="36" y="670" font-family="Helvetica" font-size="12" fill="#A39E98">Run. Claim. Defend. · runivo</text>
 </svg>`;

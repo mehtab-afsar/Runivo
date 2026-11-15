@@ -84,7 +84,7 @@ export function ShoeCard({ shoe, kmRun, onSetDefault, onRetire, onDelete }: Shoe
 }
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
-  card: { backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 14 },
+  card: { backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, padding: 14 },
   retired: { opacity: 0.6 },
   top: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   icon: { width: 44, height: 44, borderRadius: 12, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

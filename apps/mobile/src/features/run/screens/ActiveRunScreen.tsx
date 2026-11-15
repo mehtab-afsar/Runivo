@@ -11,7 +11,7 @@ import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Play, X, ShieldCheck } from 'phosphor-react-native';
+import { Play, X, ShieldCheck, Hexagon } from 'phosphor-react-native';
 import * as Location from 'expo-location';
 import { useActiveRun }          from '../hooks/useActiveRun';
 import { postRunSync, createFeedPost } from '@shared/services/sync';
@@ -58,6 +58,9 @@ import { targetProgress, routeThroughZone } from '@shared/engine/targetZone';
 import LoopCoachCard, { useLoopCoach } from '../components/LoopCoachCard';
 import { recordRunAgainstPlan } from '@features/training/services/planService';
 import { fmtDuration } from '@shared/engine/training';
+import { useIncomingCheers } from '../hooks/useIncomingCheers';
+import { CheerToast } from '@features/cheers/CheerToast';
+import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
@@ -122,6 +125,9 @@ export default function ActiveRunScreen() {
   const [claimEvent,    setClaimEvent]    = useState<{ type: string; paceEarned?: number } | null>(null);
   const [friendsShown,  setFriendsShown]  = useState(true);
   const [sharingLive,   setSharingLive]   = useState(false);
+  // Cheers only reach a runner whose live position friends can see.
+  const [cheerFor, setCheerFor] = useState<CheerTarget | null>(null);
+  const cheers = useIncomingCheers(run.isRunning && sharingLive, run.player?.id, run.player?.username ?? '');
   const lapStartRef  = useRef({ idx: 0, elapsed: 0, dist: 0 });
   const farthestRef  = useRef(0);
   useEffect(() => { getSettings().then(st => setSharingLive(!!st?.liveRunSharingEnabled)).catch(() => {}); }, []);
@@ -522,14 +528,19 @@ export default function ActiveRunScreen() {
             <View style={ss.pill}><Text style={ss.pillTxt}>Ready to {sport.verb}</Text></View>
           )}
           {nearestFriend && friendsShown ? (
-            <View style={ss.pill}>
+            <Pressable
+              style={ss.pill} hitSlop={6}
+              onPress={() => setCheerFor({ userId: nearestFriend.f.userId, username: nearestFriend.f.username, avatarColor: nearestFriend.f.avatarColor })}
+              accessibilityRole="button" accessibilityLabel={`Cheer ${nearestFriend.f.username}`}
+            >
               <View style={[ss.friendDot, { backgroundColor: nearestFriend.f.avatarColor }]}>
                 <Text style={ss.friendInitial}>{(nearestFriend.f.username[0] ?? '?').toUpperCase()}</Text>
               </View>
               <Text style={ss.pillTxt} numberOfLines={1}>
                 {nearestFriend.f.username} · {nearestFriend.m >= 1000 ? `${(nearestFriend.m / 1000).toFixed(1)} km` : `${Math.round(nearestFriend.m)} m`}
               </Text>
-            </View>
+              <Text style={ss.pillTxt}>👏</Text>
+            </Pressable>
           ) : run.isRunning ? (
             <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} onToggle={() => pacer.setEnabled(!pacer.enabled)} />
           ) : <View style={{ width: 36 }} />}
@@ -548,6 +559,13 @@ export default function ActiveRunScreen() {
           </Pressable>
         )}
 
+        {cheers.current && (
+          <CheerToast
+            cheer={cheers.current} runnerName={run.player?.username ?? ''} extra={Math.max(0, cheers.count - 1)}
+            top={insets.top + 100} onThank={cheers.thank} onMute={cheers.mute} onDismiss={cheers.dismiss}
+          />
+        )}
+
         {run.isRunning && !run.gpsLocked && (
           <View style={ss.gpsAcquiring}>
             <ActivityIndicator size="small" color={C.red} />
@@ -561,7 +579,7 @@ export default function ActiveRunScreen() {
             // Tappable: a permission/location-services problem is fixed in Settings, so
             // say so and take them there instead of showing a dead-end message.
             <Pressable
-              style={[ss.banner, { borderLeftColor: C.red }]}
+              style={ss.banner}
               onPress={() => { Linking.openSettings().catch(() => {}); }}
               accessibilityRole="button"
               accessibilityHint="Opens Settings"
@@ -570,8 +588,8 @@ export default function ActiveRunScreen() {
             </Pressable>
           )}
           {banner && (
-            <View style={[ss.banner, { borderLeftColor: bannerColor }]}>
-              <View style={[ss.bannerDot, { backgroundColor: bannerColor }]} />
+            <View style={ss.banner}>
+              <View style={[ss.bannerDot, { backgroundColor: bannerColor, alignItems: 'center', justifyContent: 'center' }]}><Hexagon size={14} color={C.alwaysDark} weight="bold" /></View>
               <Text style={ss.bannerTxt}>{banner.text}</Text>
             </View>
           )}
@@ -643,7 +661,7 @@ export default function ActiveRunScreen() {
           {!run.isRunning
             ? (
               <Pressable style={({ pressed }) => [ss.startBtn, pressed && { opacity: 0.9 }]} onPress={handleStartPress} accessibilityRole="button" accessibilityLabel={`Start ${sport.verb}`}>
-                <Play size={20} color={C.white} weight="fill" />
+                <Play size={20} color={C.lime} weight="fill" />
                 <Text style={ss.startTxt}>Start {sport.verb}</Text>
               </Pressable>
             )
@@ -704,6 +722,7 @@ export default function ActiveRunScreen() {
           onFinish={doFinish}
         />
       )}
+      <CheerSheet target={cheerFor} onClose={() => setCheerFor(null)} />
     </View>
   );
 }
@@ -722,28 +741,28 @@ function mkStyles(C: AppColors) {
     pill:        { ...floating, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30 },
     pillDot:     { width: 7, height: 7, borderRadius: 4 },
     pillTxt:     { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
-    gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 14, elevation: 6 },
+    gpsAcquiring:     { position: 'absolute', top: '35%', alignSelf: 'center', alignItems: 'center', gap: 6, backgroundColor: C.card, paddingHorizontal: 24, paddingVertical: 16, borderRadius: 22, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 14, elevation: 6 },
     gpsAcquiringText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
     gpsAcquiringSub:  { ...Type.caption, color: C.t2 },
     bannerStack: { position: 'absolute', left: 16, right: 16, bottom: 28, gap: 8 },
-    banner:      { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.card, borderRadius: 14, borderLeftWidth: 4, paddingVertical: 11, paddingHorizontal: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 3 },
-    bannerDot:   { width: 8, height: 8, borderRadius: 4 },
-    bannerTxt:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, flex: 1 },
-    sheet:       { backgroundColor: C.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, marginTop: -18, paddingTop: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 8 },
+    banner:      { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.alwaysDark, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 5 },
+    bannerDot:   { width: 28, height: 28, borderRadius: 14 },
+    bannerTxt:   { fontFamily: Fonts.regular, fontSize: 14, color: C.alwaysLight, flex: 1 },
+    sheet:       { backgroundColor: C.card, borderTopLeftRadius: 34, borderTopRightRadius: 34, marginTop: -24, paddingTop: 10, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 8 },
     grab:        { width: 38, height: 5, borderRadius: 5, backgroundColor: C.border, alignSelf: 'center', marginBottom: 14 },
     friendDot:   { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginLeft: -4 },
     friendInitial: { fontFamily: Fonts.bold, fontSize: 10, color: '#fff' },
-    loopRow:     { paddingHorizontal: 20, paddingTop: 14 },
+    loopRow:     { marginHorizontal: 16, marginTop: 10, padding: 12, borderRadius: 18, backgroundColor: C.mint },
     loopHead:    { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
-    loopLabel:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
+    loopLabel:   { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     loopDetail:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
-    loopTrack:   { height: 8, borderRadius: 9, backgroundColor: C.surface, overflow: 'hidden', marginTop: 8 },
+    loopTrack:   { height: 8, borderRadius: 4, backgroundColor: C.mint2, overflow: 'hidden', marginTop: 8 },
     loopFill:    { height: 8, borderRadius: 9 },
     metaRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 12 },
     metaTxt:     { ...Type.caption, color: C.t2 },
-    controls:    { paddingHorizontal: 20, paddingTop: 18 },
-    startBtn:    { height: 60, borderRadius: 30, backgroundColor: C.red, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, shadowColor: C.red, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6 },
-    startTxt:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.white },
+    controls:    { paddingHorizontal: 20, paddingTop: 16 },
+    startBtn:    { height: 60, borderRadius: 30, backgroundColor: C.alwaysDark, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    startTxt:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.alwaysLight },
     // Pause card
     pauseOverlay:      { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 10 },
     pauseCard:         { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, paddingHorizontal: 24, zIndex: 11, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 20 },

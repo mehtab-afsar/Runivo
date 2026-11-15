@@ -3,6 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { collectFilePaths, type StorageEntry } from './storageWalk.ts';
 import { appleConfigFromEnv, revokeAppleSignIn } from './appleRevoke.ts';
 import { deletePostHogPerson, posthogConfigFromEnv } from './posthogDelete.ts';
+import { deregisterConnections, type ConnectionRow } from '../_shared/providerRevoke.ts';
 
 // Buckets that store user-owned files under a `{userId}/...` path (RLS-scoped via
 // storage.foldername(name)[1] = auth.uid()::text — see migrations 022 and 039).
@@ -58,6 +59,17 @@ Deno.serve(async (req) => {
   // the user account still exists and the client can show an error instead of the
   // user being deleted with orphaned files left behind silently either way.
   await clearUserStorage(supabase.storage, user.id);
+
+  // Cut ties with outside providers while we still hold their tokens. Both are
+  // best-effort and logged: a provider being down must not trap someone in an
+  // account they asked to delete.
+  const { data: conns } = await supabase
+    .from('device_connections')
+    .select('device_type, secrets, metadata')
+    .eq('user_id', user.id)
+    .eq('status', 'connected');
+  const deviceFailures = await deregisterConnections((conns ?? []) as ConnectionRow[], (n) => Deno.env.get(n));
+  if (deviceFailures.length) console.warn('[delete-account] provider deregister failed', deviceFailures);
 
   // Sign in with Apple (App Store 5.1.1(v), TN3194): the app re-authenticated with
   // Apple just now and sent its one-time authorization code. Revoking the token

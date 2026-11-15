@@ -57,7 +57,7 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
     box:       {
-      flex: 1, height: 60, borderRadius: 14, backgroundColor: C.card,
+      flex: 1, height: 60, borderRadius: 22, backgroundColor: C.card,
       borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center',
     },
     boxActive: { borderColor: C.t1 },

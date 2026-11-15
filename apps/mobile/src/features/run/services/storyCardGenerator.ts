@@ -135,7 +135,7 @@ export function buildRouteStickerSvg(data: RouteStickerData): string {
     path = 'M ' + xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L ');
     const [sx, sy] = xy[0], [ex, ey] = xy[xy.length - 1];
     start = `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="7" fill="#FFFFFF" stroke="rgba(0,0,0,0.35)" stroke-width="2"/>`;
-    end = `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="7" fill="#FF4518" stroke="#FFFFFF" stroke-width="3"/>`;
+    end = `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="7" fill="#7DBA3C" stroke="#FFFFFF" stroke-width="3"/>`;
   }
   const n = Math.max(1, data.stats.length);
   const colW = W / n;
@@ -146,10 +146,10 @@ export function buildRouteStickerSvg(data: RouteStickerData): string {
     // A dark halo (a stroked copy underneath), so white text reads on light photos too.
     const halo = 'fill="rgba(0,0,0,0.45)" stroke="rgba(0,0,0,0.45)" stroke-width="5" stroke-linejoin="round"';
     return `
-      <text x="${cx}" y="${MAP + 72}" text-anchor="middle" font-family="ArchivoDisplay" font-size="36" ${halo}>${value}</text>
-      <text x="${cx}" y="${MAP + 72}" text-anchor="middle" font-family="ArchivoDisplay" font-size="36" fill="#FFFFFF">${value}</text>
-      <text x="${cx}" y="${MAP + 104}" text-anchor="middle" font-family="Geist_600SemiBold" font-size="14" letter-spacing="1.5" ${halo.replace('stroke-width="5"', 'stroke-width="4"')}>${label}</text>
-      <text x="${cx}" y="${MAP + 104}" text-anchor="middle" font-family="Geist_600SemiBold" font-size="14" letter-spacing="1.5" fill="#FFFFFF">${label}</text>`;
+      <text x="${cx}" y="${MAP + 72}" text-anchor="middle" font-family="Outfit_600SemiBold" font-size="36" ${halo}>${value}</text>
+      <text x="${cx}" y="${MAP + 72}" text-anchor="middle" font-family="Outfit_600SemiBold" font-size="36" fill="#FFFFFF">${value}</text>
+      <text x="${cx}" y="${MAP + 104}" text-anchor="middle" font-family="Outfit_600SemiBold" font-size="14" letter-spacing="1.5" ${halo.replace('stroke-width="5"', 'stroke-width="4"')}>${label}</text>
+      <text x="${cx}" y="${MAP + 104}" text-anchor="middle" font-family="Outfit_600SemiBold" font-size="14" letter-spacing="1.5" fill="#FFFFFF">${label}</text>`;
   }).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
     ${path ? `<path d="${path}" fill="none" stroke="rgba(0,0,0,0.45)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>

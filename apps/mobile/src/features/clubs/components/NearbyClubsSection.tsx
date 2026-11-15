@@ -28,7 +28,7 @@ export function NearbyClubsSection({ clubs, nearby, locationOn = false, onPress,
   return (
     <View style={s.wrap}>
       <View style={s.headRow}>
-        <Text style={s.heading}>{nearby ? 'Discover near you' : clubsSectionTitle(nearby)}</Text>
+        <Text style={s.heading}>{nearby ? 'Near you' : clubsSectionTitle(nearby)}</Text>
       </View>
       {!nearby && (
         <Text style={s.hint}>
@@ -84,21 +84,18 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     wrap:      { marginBottom: 18 },
     headRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-    heading:   { ...Type.labelSm, color: C.t2 },
+    heading:   { fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
     hint:      { ...Type.caption, color: C.t2, marginBottom: 8, marginTop: -4 },
-    card:      {
-      backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 16,
-      shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1,
-    },
+    card:      { backgroundColor: C.card, borderRadius: 24, paddingHorizontal: 14 },
     row:       { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-    rowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+    rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
     pressed:   { opacity: 0.7 },
     badge:     { width: 36, height: 36, borderRadius: 10, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
     middle:    { flex: 1 },
-    name:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
-    meta:      { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, marginTop: 2 },
-    joinBtn:   { height: 30, paddingHorizontal: 12, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    joinText:  { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    name:      { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    meta:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 2 },
+    joinBtn:   { height: 34, paddingHorizontal: 16, borderRadius: 17, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    joinText:  { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight },
     joined:    { fontFamily: Fonts.medium, fontSize: 12, color: C.t3 },
   });
 }

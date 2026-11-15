@@ -1,8 +1,7 @@
-import { RunivoMark } from '@mobile/shared/components/RunivoMark';
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, TextInput, Pressable, ScrollView, StyleSheet,
-  ActivityIndicator, Alert, Platform, Linking,
+  ActivityIndicator, Linking,
 } from 'react-native';
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, withDelay,
@@ -10,12 +9,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import type { SignUpState } from '../hooks/useSignUp';
-import { signInWithGoogle, signInWithApple } from '../services/socialAuth';
 import { ArrowLeft } from 'lucide-react-native';
-import { useTheme, useIsDark, Fonts, Type, Spacing, type AppColors } from '@theme';
+import { useTheme, Fonts, Type, type AppColors } from '@theme';
 
 const EASE = Easing.bezier(0.22, 0.68, 0, 1);
 
@@ -51,28 +47,8 @@ function useFieldBorder(C: AppColors) {
 }
 
 // ── Google icon ───────────────────────────────────────────────────────────────
-function GoogleIcon() {
-  return (
-    <Svg width={15} height={15} viewBox="0 0 48 48">
-      <Path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-      <Path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-      <Path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-      <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-    </Svg>
-  );
-}
 
 // ── Apple icon ────────────────────────────────────────────────────────────────
-function AppleIcon({ color }: { color: string }) {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 24 24">
-      <Path
-        fill={color}
-        d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.32.07 2.24.74 3.01.75.84-.15 1.64-.84 3.03-.91 1.81.1 3.17.9 3.95 2.35-3.44 2.08-2.64 6.89.88 8.25-.65 1.4-1.5 2.79-2.87 4.44zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"
-      />
-    </Svg>
-  );
-}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 interface Props extends Omit<SignUpState, 'emailExists' | 'rateLimitSeconds'> {
@@ -89,32 +65,15 @@ export default function SignUpForm({
   onGoBack, onGoLogin,
 }: Props) {
   const C = useTheme();
-  const isDark = useIsDark();
   const s = useMemo(() => mkStyles(C), [C]);
   const emailRef = useRef<TextInput>(null);
   const pwdRef = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
-  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
-
-  async function handleSocialSignIn(provider: 'google' | 'apple') {
-    setSocialLoading(provider);
-    try {
-      if (provider === 'google') await signInWithGoogle();
-      else await signInWithApple();
-    } catch {
-      Alert.alert('Sign in failed', 'Please try again.');
-    } finally {
-      setSocialLoading(null);
-    }
-  }
 
   // Staggered entrance — 70ms between groups
   const navAnim     = useEntrance(0);
-  const eyebrowAnim = useEntrance(70);
   const h1Anim      = useEntrance(140);
-  const subAnim     = useEntrance(210);
   const formAnim    = useEntrance(280);
-  const socialAnim  = useEntrance(350);
   const ctaAnim     = useEntrance(420);
 
   // Per-field animated border
@@ -132,8 +91,7 @@ export default function SignUpForm({
         <Pressable onPress={onGoBack} hitSlop={10} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} strokeWidth={1.8} />
         </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole="header" accessibilityLabel="Runivo"><RunivoMark size={22} /><Text style={s.logoWord}>runivo</Text></View>
-        <View style={s.backSpacer} />
+
       </Animated.View>
 
       <ScrollView
@@ -144,11 +102,7 @@ export default function SignUpForm({
       >
         {/* Hero */}
         <View style={s.hero}>
-          <Animated.Text style={[s.eyebrow, eyebrowAnim]}>Create account</Animated.Text>
-          <Animated.Text style={[s.h1, h1Anim]}>Join the{'\n'}conquest.</Animated.Text>
-          <Animated.Text style={[s.subtext, subAnim]}>
-            Claim territory. Defend your city.{'\n'}Every run matters.
-          </Animated.Text>
+          <Animated.Text style={[s.h1, h1Anim]} accessibilityRole="header">Create your account</Animated.Text>
         </View>
 
         {/* Rule + form */}
@@ -243,6 +197,19 @@ export default function SignUpForm({
             </View>
           </Animated.View>
 
+          {pwd.length > 0 && (() => {
+            const score = [pwd.length >= 12, /[0-9]/.test(pwd), /[A-Z]/.test(pwd) && /[a-z]/.test(pwd), /[^A-Za-z0-9]/.test(pwd)].filter(Boolean).length;
+            const hint = score >= 4 ? 'Strong' : score === 3 ? 'Strong · add a symbol to max it out' : score === 2 ? 'Okay · longer is better' : 'Weak · use 12 characters or more';
+            return (
+              <View style={{ gap: 6, marginTop: 10 }}>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  {[0, 1, 2, 3].map(i => <View key={i} style={{ flex: 1, height: 5, borderRadius: 3, backgroundColor: i < score ? C.brandGreen : '#DDE0D8' }} />)}
+                </View>
+                <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: score >= 3 ? C.green : C.t2 }}>{hint}</Text>
+              </View>
+            );
+          })()}
+
           {/* Inline errors */}
           {needsEmailConfirmation ? (
             <Text style={s.emailExistsBase}>Check your email to confirm your account, then sign in.</Text>
@@ -259,51 +226,6 @@ export default function SignUpForm({
           {rateLimitSeconds > 0 ? (
             <Text style={s.rateLimitText}>Too many attempts — try again in {rateLimitSeconds}s</Text>
           ) : null}
-        </Animated.View>
-
-        {/* OR divider */}
-        <Animated.View style={[s.orRow, socialAnim]}>
-          <View style={s.orLine} />
-          <Text style={s.orLabel}>or</Text>
-          <View style={s.orLine} />
-        </Animated.View>
-
-        {/* Social buttons */}
-        <Animated.View style={[s.socialRow, socialAnim]}>
-          <Pressable
-            style={s.socialBtn}
-            onPress={() => handleSocialSignIn('google')}
-            disabled={!!socialLoading}
-          >
-            {socialLoading === 'google'
-              ? <ActivityIndicator size="small" color={C.t1} />
-              : <GoogleIcon />}
-            <Text style={s.socialText}>Google</Text>
-          </Pressable>
-          {Platform.OS === 'ios' ? (
-            // Apple's App Review Guidelines require the native, Apple-rendered
-            // button for Sign in with Apple — not a custom-styled lookalike.
-            <View style={[s.socialBtn, s.appleNativeBtnWrap, socialLoading && { opacity: 0.5 }]} pointerEvents={socialLoading ? 'none' : 'auto'}>
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
-                buttonStyle={isDark ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-                cornerRadius={24}
-                style={s.appleNativeBtn}
-                onPress={() => handleSocialSignIn('apple')}
-              />
-            </View>
-          ) : (
-            <Pressable
-              style={s.socialBtn}
-              onPress={() => handleSocialSignIn('apple')}
-              disabled={!!socialLoading}
-            >
-              {socialLoading === 'apple'
-                ? <ActivityIndicator size="small" color={C.t1} />
-                : <AppleIcon color={C.t1} />}
-              <Text style={s.socialText}>Apple</Text>
-            </Pressable>
-          )}
         </Animated.View>
 
         {/* CTA */}
@@ -327,7 +249,7 @@ export default function SignUpForm({
               <Text style={s.ctaLabel}>
                 {rateLimitSeconds > 0
                   ? `Wait ${rateLimitSeconds}s`
-                  : 'Create account'}
+                  : 'Continue'}
               </Text>
             )}
           </Pressable>
@@ -344,8 +266,7 @@ export default function SignUpForm({
 
           <Pressable onPress={onGoLogin} style={s.signinRow}>
             <Text style={s.signinText}>
-              Already a runner?{'  '}
-              <Text style={s.signinLink}>Sign in</Text>
+              Have an account? <Text style={s.signinLink}>Sign in</Text>
             </Text>
           </Pressable>
         </Animated.View>
@@ -360,27 +281,27 @@ function mkStyles(C: AppColors) {
     topBar:  { height: 0 },
 
     // Nav
-    nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8 },
-    backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
+    nav:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 8 },
+    backBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
     backSpacer: { width: 40 },
     backText:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     logoWord:{ fontFamily: Fonts.wordmark, fontSize: 22, letterSpacing: -0.4, color: C.t1 },
 
     // Scroll / hero
-    scroll:  { paddingHorizontal: Spacing.gutter + 4 },
-    hero:    { paddingTop: 36 },
+    scroll:  { paddingHorizontal: 22, flexGrow: 1 },
+    hero:    { paddingTop: 28 },
     eyebrow: { ...Type.label, color: C.red, marginBottom: 10 },
-    h1:      { fontFamily: Fonts.hero, fontSize: 54, lineHeight: 50, textTransform: 'uppercase', letterSpacing: -0.3, color: C.t1, marginBottom: 12 },
+    h1:      { fontFamily: Fonts.semiBold, fontSize: 34, lineHeight: 39, letterSpacing: -1, color: C.t1, marginBottom: 4 },
     subtext: { ...Type.body, color: C.t2, maxWidth: 300 },
 
     // Divider
-    rule:    { height: 0, marginTop: 24 },
+    rule:    { height: 0, marginTop: 14 },
 
     // Fields
-    field:   { borderWidth: 1, borderColor: C.border, borderRadius: Spacing.radius.md + 2, backgroundColor: C.card, paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, marginTop: 12 },
+    field:   { borderWidth: 1, borderColor: 'transparent', borderRadius: 18, backgroundColor: C.card, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 12, marginTop: 12 },
     labelRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    label:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginBottom: 6 },
+    label:   { fontFamily: Fonts.medium, fontSize: 13, color: C.t2, marginBottom: 6 },
     counter: { fontFamily: Fonts.medium, fontSize: 11, color: C.t3 },
     counterOver: { color: C.red },
     inputRow:{ flexDirection: 'row', alignItems: 'center' },
@@ -408,8 +329,8 @@ function mkStyles(C: AppColors) {
     appleNativeBtn: { width: '100%', height: 48 },
 
     // CTA — fixed dark/light pair, same reasoning as LoginForm's ctaBtn.
-    ctaWrap:    { marginTop: 24 },
-    ctaBtn:     { backgroundColor: C.red, borderRadius: 999, height: Spacing.height.buttonPrimary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    ctaWrap:    { marginTop: 'auto', paddingTop: 28 },
+    ctaBtn:     { backgroundColor: C.alwaysDark, borderRadius: 28, height: 56, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
     ctaDisabled:{ opacity: 0.45 },
     ctaLabel:   { ...Type.button, color: C.alwaysLight },
 
@@ -417,7 +338,7 @@ function mkStyles(C: AppColors) {
     legal:      { fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, color: C.t3, textAlign: 'center', marginTop: 14, paddingHorizontal: 8 },
     legalLink:  { color: C.t2, textDecorationLine: 'underline' },
     signinRow:  { marginTop: 20, alignItems: 'center' },
-    signinText: { fontSize: 13, color: C.t2 },
+    signinText: { fontFamily: Fonts.regular, fontSize: 15, color: C.t1 },
     signinLink: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, textDecorationLine: 'underline' },
   });
 }

@@ -10,11 +10,11 @@ import { View, StyleSheet, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import {
-  Geist_400Regular,
-  Geist_500Medium,
-  Geist_600SemiBold,
-  Geist_700Bold,
-} from '@expo-google-fonts/geist';
+  Outfit_400Regular,
+  Outfit_500Medium,
+  Outfit_600SemiBold,
+  Outfit_700Bold,
+} from '@expo-google-fonts/outfit';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -74,6 +74,7 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
     setSoundEnabled(settings.soundEnabled ?? true);
     setHapticEnabled(settings.hapticEnabled ?? true);
   }, [settings.soundEnabled, settings.hapticEnabled]);
+
   const [needsOnboarding, setNeedsOnboarding]       = useState(false);
   // Not yet through the age screen (profiles.age_confirmed_at is null): shown before anything else.
   const [needsAgeGate, setNeedsAgeGate]               = useState(false);
@@ -226,10 +227,10 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    Geist_400Regular,
-    Geist_500Medium,
-    Geist_600SemiBold,
-    Geist_700Bold,
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
     // Archivo at 68% width / 850 weight, cut from Archivo's variable font
     // (OFL, assets/fonts/Archivo-OFL.txt): headlines and big numbers.
     ArchivoDisplay:  require('./assets/fonts/ArchivoDisplay.ttf'),

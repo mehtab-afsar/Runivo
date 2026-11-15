@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme, useIsDark, Type, Fonts, type AppColors } from '@theme';
+import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 
 export interface Split { km: number; pace: number }
@@ -27,9 +27,10 @@ export default function SplitsList({ splits }: SplitsListProps) {
   const min = Math.min(...splits.map(s => s.pace));
   const range = max - min || 1;
   const fastestIdx = splits.findIndex(s => s.pace === min);
-  // Label every km up to 12 splits, then thin the axis so labels never collide.
-  const labelEvery = splits.length <= 12 ? 1 : Math.ceil(splits.length / 8);
 
+  // One row per km, as on the mock: number, bar (longer is faster), pace.
+  // Past 20 km, show every other row so a marathon stays scannable.
+  const rows = splits.length > 20 ? splits.filter((_, i) => i % 2 === 0 || i === fastestIdx) : splits;
   return (
     <View style={ss.card}>
       <View style={ss.header}>
@@ -38,22 +39,20 @@ export default function SplitsList({ splits }: SplitsListProps) {
           Fastest, km {splits[fastestIdx].km}: <Text style={ss.metaStrong}>{formatPace(min)}</Text>
         </Text>
       </View>
-      <View style={ss.chart}>
-        {splits.map((s, i) => {
-          const h = 30 + ((max - s.pace) / range) * 70;
+      <View style={ss.rows}>
+        {rows.map(s => {
+          const fast = s.pace === min;
+          const w = 35 + ((max - s.pace) / range) * 65;
           return (
-            <View key={i} style={ss.col} accessibilityLabel={`Kilometre ${s.km}, ${formatPace(s.pace)} per km`}>
-              <View style={[ss.bar, { height: `${h}%`, backgroundColor: i === fastestIdx ? zone.own : C.t1, opacity: i === fastestIdx ? 1 : 0.85 }]} />
+            <View key={s.km} style={ss.row} accessibilityLabel={`Kilometre ${s.km}, ${formatPace(s.pace)} per km`}>
+              <Text style={[ss.km, fast && { color: zone.own }]}>{s.km}</Text>
+              <View style={ss.track}>
+                <View style={[ss.bar, { width: `${w}%`, backgroundColor: fast ? zone.own : C.mint2 }]} />
+              </View>
+              <Text style={[ss.pace, fast && { color: zone.own }]}>{formatPace(s.pace)}</Text>
             </View>
           );
         })}
-      </View>
-      <View style={ss.axis}>
-        {splits.map((s, i) => (
-          <Text key={i} style={[ss.axisLbl, i === fastestIdx && { color: zone.own }]}>
-            {i % labelEvery === 0 || i === fastestIdx ? s.km : ''}
-          </Text>
-        ))}
       </View>
     </View>
   );
@@ -61,15 +60,16 @@ export default function SplitsList({ splits }: SplitsListProps) {
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:       { backgroundColor: C.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1 },
+    card:       { backgroundColor: C.card, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 16 },
     header:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    title:      { ...Type.overline, color: C.t2 },
+    title:      { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     meta:       { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },
     metaStrong: { fontFamily: Fonts.semiBold, color: C.t1 },
-    chart:      { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 64, marginTop: 12 },
-    col:        { flex: 1, height: '100%', justifyContent: 'flex-end' },
-    bar:        { width: '100%', borderRadius: 4 },
-    axis:       { flexDirection: 'row', gap: 6, marginTop: 6 },
-    axisLbl:    { flex: 1, textAlign: 'center', fontFamily: Fonts.medium, fontSize: 11, color: C.t3, fontVariant: ['tabular-nums'] },
+    rows:       { marginTop: 12, gap: 8 },
+    row:        { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    km:         { width: 22, fontFamily: Fonts.medium, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
+    track:      { flex: 1, height: 10, borderRadius: 5, backgroundColor: C.bg, overflow: 'hidden' },
+    bar:        { height: 10, borderRadius: 5 },
+    pace:       { width: 40, textAlign: 'right', fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, fontVariant: ['tabular-nums'] },
   });
 }

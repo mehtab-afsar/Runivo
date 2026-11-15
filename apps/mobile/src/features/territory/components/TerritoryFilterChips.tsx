@@ -20,9 +20,9 @@ export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn
   const z = territoryPalette(useIsDark());
   const ss = useMemo(() => mkStyles(C), [C]);
   const filters: { id: TerritoryFilter; label: string; dot?: string }[] = [
-    { id: 'all',    label: 'All' },
-    { id: 'mine',   label: `Mine ${counts.mine}`,     dot: z.own },
-    { id: 'rivals', label: `Rivals ${counts.rivals}`, dot: z.rival },
+    { id: 'all',    label: 'Zones' },
+    { id: 'mine',   label: `Mine ${counts.mine}` },
+    { id: 'rivals', label: `Rivals ${counts.rivals}` },
     { id: 'stale',  label: `Fading ${counts.stale}` },
   ];
   return (
@@ -49,7 +49,6 @@ export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn
           accessibilityRole="switch"
           accessibilityState={{ checked: !!heatmapOn }}
         >
-          <View style={[ss.dot, { backgroundColor: z.own, opacity: 0.5 }]} />
           <Text style={[ss.label, heatmapOn && ss.labelActive]}>Heatmap</Text>
         </Pressable>
       )}
@@ -60,10 +59,14 @@ export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row:        { gap: 8, paddingRight: 8 },
-    pill:       { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 30, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-    pillActive: { backgroundColor: C.t1, borderColor: C.t1 },
-    dot:        { width: 8, height: 8, borderRadius: 2 },
-    label:      { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
-    labelActive:{ color: C.card },
+    pill:       {
+      flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, height: 38, borderRadius: 19, backgroundColor: C.card,
+      borderWidth: 2, borderColor: 'transparent',
+      shadowColor: '#17181A', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    },
+    pillActive: { borderColor: C.t1 },
+    dot:        { width: 9, height: 9, borderRadius: 3 },
+    label:      { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
+    labelActive:{ fontFamily: Fonts.semiBold },
   });
 }

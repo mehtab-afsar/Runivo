@@ -7,13 +7,15 @@ import { useTheme, Fonts, type AppColors } from '@theme';
 interface Props {
   /** Called with [lng, lat] of the place found. */
   onFound: (coord: [number, number]) => void;
+  /** Shown at the right end of the bar (the Saved button on the map). */
+  trailing?: React.ReactNode;
 }
 
 /**
  * "Search a street or park": the phone's own geocoder (expo-location), then
  * the map flies there. Nothing typed here is stored.
  */
-export function MapSearchBar({ onFound }: Props) {
+export function MapSearchBar({ onFound, trailing }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const [q, setQ] = useState('');
@@ -39,12 +41,12 @@ export function MapSearchBar({ onFound }: Props) {
   return (
     <View>
       <View style={ss.field}>
-        <Search size={16} color={C.t2} strokeWidth={1.8} />
+        <View style={ss.lead}><Search size={20} color={C.t1} strokeWidth={1.8} /></View>
         <TextInput
           style={ss.input}
           value={q}
           onChangeText={t => { setQ(t); setMiss(false); }}
-          placeholder="Search a street or park"
+          placeholder="Zones near me"
           placeholderTextColor={C.t2}
           returnKeyType="search"
           onSubmitEditing={search}
@@ -52,6 +54,7 @@ export function MapSearchBar({ onFound }: Props) {
           accessibilityLabel="Search a street or park"
         />
         {busy && <ActivityIndicator size="small" color={C.t2} />}
+        {trailing}
       </View>
       {miss && <Text style={ss.miss}>No place found for “{q.trim()}”</Text>}
     </View>
@@ -61,11 +64,12 @@ export function MapSearchBar({ onFound }: Props) {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     field: {
-      height: 46, borderRadius: 16, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center',
-      gap: 10, paddingHorizontal: 14,
-      shadowColor: '#14120F', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+      height: 56, borderRadius: 28, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center',
+      gap: 10, overflow: 'hidden',
+      shadowColor: '#17181A', shadowOpacity: 0.10, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4,
     },
-    input: { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.t1, paddingVertical: 0 },
+    lead:  { height: 56, paddingLeft: 18, paddingRight: 12, justifyContent: 'center', borderRightWidth: 1, borderRightColor: C.border },
+    input: { flex: 1, fontFamily: Fonts.regular, fontSize: 16, color: C.t1, paddingVertical: 0, paddingLeft: 4 },
     miss:  { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 6, marginLeft: 6 },
   });
 }

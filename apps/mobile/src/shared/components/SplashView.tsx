@@ -5,8 +5,8 @@ import { MARK_PATH, MARK_PERIMETER, MARK_STROKE } from './RunivoMark';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-const ORANGE = '#FF4518';
-const INK = '#141412';
+const ORANGE = '#F2A43A';
+const INK = '#17181A';
 const MARK_SIZE = 112;
 
 // Timeline (ms). The phone's own launch screen is the same plain white, so the
@@ -102,6 +102,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 9999,
   },
-  // Wordmark: Archivo 900, already loaded before this view mounts (App.tsx).
-  word: { marginTop: 22, fontFamily: 'ArchivoWordmark', fontSize: 34, letterSpacing: -0.5, color: INK },
+  // Wordmark: Outfit bold, already loaded before this view mounts (App.tsx).
+  word: { marginTop: 22, fontFamily: 'Outfit_700Bold', fontSize: 34, letterSpacing: -1.2, color: INK },
 });

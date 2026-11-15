@@ -78,7 +78,7 @@ function SkeletonRows() {
 function mkPsStyles(C: AppColors) {
   return StyleSheet.create({
     wrap:          { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 18, paddingBottom: 12, gap: 8 },
-    card:          { flex: 1, alignItems: 'center', justifyContent: 'flex-end', borderRadius: 16, padding: 12, gap: 6 },
+    card:          { flex: 1, alignItems: 'center', justifyContent: 'flex-end', borderRadius: 24, padding: 12, gap: 6 },
     cardSide:      { backgroundColor: C.card },
     cardFirst:     { backgroundColor: C.alwaysDark, flex: 1.15 },
     ring:          { borderWidth: 2, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
@@ -91,7 +91,7 @@ function mkPsStyles(C: AppColors) {
     valUnit:       { fontFamily: Fonts.medium, fontSize: 11, color: C.t2 },
     valUnitFirst:  { color: 'rgba(255,255,255,0.6)' },
     rankLabel:     { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
-    rankLabelFirst:{ color: '#FFB59F' },
+    rankLabelFirst:{ color: C.lime },
   });
 }
 
@@ -215,13 +215,13 @@ function mkStyles(C: AppColors) {
     empty:         { alignItems: 'center' as const, paddingVertical: 48, paddingHorizontal: 16 },
     emptyTitle:    { fontFamily: Fonts.bold, fontSize: 20, lineHeight: 25, color: C.t1, marginBottom: 6, textAlign: 'center' },
     emptyText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
-    playerFooter:  { position: 'absolute', left: 14, right: 14, bottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: C.red, borderRadius: 20, shadowColor: C.red, shadowOpacity: 0.45, shadowRadius: 12, shadowOffset: { width: 0, height: 12 }, elevation: 8 },
+    playerFooter:  { position: 'absolute', left: 14, right: 14, bottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: C.alwaysDark, borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
     playerRank:    { fontFamily: Fonts.numeric, fontSize: 24, color: C.alwaysLight, width: 30 },
     playerAvatar:  { width: 34, height: 34, borderRadius: 17, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
     playerAvatarText: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
     playerName:    { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
     playerLvl:     { fontFamily: Fonts.regular, fontSize: 12, color: 'rgba(255,255,255,0.85)' },
-    playerValue:   { fontFamily: Fonts.numeric, fontSize: 22, color: C.alwaysLight },
+    playerValue:   { fontFamily: Fonts.numeric, fontSize: 22, color: C.lime },
     playerUnit:    { fontFamily: Fonts.medium, fontSize: 11, color: 'rgba(255,255,255,0.8)' },
   });
 }

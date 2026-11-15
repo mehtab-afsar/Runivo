@@ -62,7 +62,7 @@ export function LogWeightModal({ visible, currentWeightKg, onSave, onClose }: Lo
 function mkStyles(C: AppColors) { return StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
   card: {
-    backgroundColor: C.card, borderRadius: 16, padding: 20,
+    backgroundColor: C.card, borderRadius: 22, padding: 20,
     borderWidth: 0.5, borderColor: C.border,
   },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },

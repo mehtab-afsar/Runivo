@@ -75,17 +75,23 @@ export async function signOut(): Promise<{ ok: boolean }> {
   const { error } = await supabase.auth.signOut({ scope: 'global' });
   if (error) return { ok: false };
 
+  await wipeThisPhone();
+  return { ok: true };
+}
+
+/**
+ * Everything this phone kept for the runner who just left (signed out or
+ * deleted): local data, the screen-off GPS buffer, an unfinished-run checkpoint
+ * (which the next account would be offered to "recover" into its own history),
+ * the cached training plan, the RevenueCat identity and the analytics id.
+ */
+export async function wipeThisPhone(): Promise<void> {
   await clearAllLocalData();
-  // Everything else this phone kept for the runner who just left: the screen-off
-  // GPS buffer, an unfinished-run checkpoint (which the next account would be
-  // offered to "recover" into its own history), the cached training plan, and
-  // the RevenueCat identity.
   await stopBackgroundTracking().catch(() => {});
   await wipeRunTrackingState();
   await clearCachedPlan().catch(() => {});
   await logOutRevenueCat();
   resetAnalytics();
-  return { ok: true };
 }
 
 

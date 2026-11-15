@@ -269,7 +269,7 @@ function mkStyles(C: AppColors) {
     sheetTitle: { ...Type.title, color: C.t1 },
     sheetSub:   { ...Type.bodySm, color: C.t2 },
     input:      {
-      height: 52, borderRadius: 14, borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
+      height: 52, borderRadius: 22, borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
       paddingHorizontal: 16, fontFamily: Fonts.medium, fontSize: 17, color: C.t1,
     },
     primary:    { height: 52, borderRadius: 999, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },

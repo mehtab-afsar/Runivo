@@ -49,49 +49,57 @@ function tileFor(type: string, C: AppColors, z: TerritoryPalette): { Icon: Lucid
   }
 }
 
+/** Mock: each notification is its own rounded card; steals amber, ranks dark, the rest soft grey. */
+function cardFor(type: string, C: AppColors): { bg: string; fg: string; sub: string; dot: string } {
+  if (type === 'territory_lost' || type === 'zone_attacked') return { bg: C.amberBg, fg: C.t1, sub: '#5C4320', dot: C.rivalAmber };
+  if (type === 'rank_up' || type === 'achievement') return { bg: C.alwaysDark, fg: C.alwaysLight, sub: '#C9CCC4', dot: C.lime };
+  return { bg: C.bg, fg: C.t1, sub: C.t2, dot: C.t1 };
+}
+
 export function NotifItem({ notif, onPress, action, position = 'middle' }: Props) {
   const C = useTheme();
   const zone = territoryPalette(useIsDark());
   const s = useMemo(() => mkStyles(C), [C]);
-  const { Icon, bg, fg } = tileFor(notif.type, C, zone);
-  const first = position === 'first' || position === 'only';
-  const last = position === 'last' || position === 'only';
+  const { Icon } = tileFor(notif.type, C, zone);
+  const card = cardFor(notif.type, C);
+  const tileBg = notif.type === 'territory_lost' || notif.type === 'zone_attacked' ? C.rivalAmber
+    : notif.type === 'rank_up' || notif.type === 'achievement' ? C.lime
+    : notif.type === 'territory_claimed' || notif.type === 'territory_captured' || notif.type === 'kudos' ? C.mint2 : C.lavender;
+  const tileFg = notif.type === 'rank_up' || notif.type === 'achievement' || notif.type === 'territory_lost' || notif.type === 'zone_attacked' ? '#17181A'
+    : tileBg === C.mint2 ? C.green : C.lavenderInk;
+  void position;
   return (
     <Pressable
-      style={({ pressed }) => [s.row, first && s.rowFirst, last && s.rowLast, !last && s.rowDivider, pressed && { opacity: 0.7 }]}
+      style={({ pressed }) => [s.row, { backgroundColor: card.bg }, pressed && { opacity: 0.8 }]}
       onPress={onPress}
       accessibilityRole="button"
     >
-      <View style={[s.tile, { backgroundColor: bg }]}>
-        <Icon size={18} color={fg} strokeWidth={2.1} />
+      <View style={[s.tile, { backgroundColor: tileBg }]}>
+        <Icon size={20} color={tileFg} strokeWidth={2.1} />
       </View>
       <View style={s.text}>
-        <Text style={s.title} numberOfLines={2}>{notif.title}</Text>
-        <Text style={s.body} numberOfLines={2}>
-          {notif.body ? `${notif.body} · ` : ''}{fmtRelativeTime(notif.created_at)}
-        </Text>
+        <Text style={[s.title, { color: card.fg }]} numberOfLines={2}>{notif.title}</Text>
+        {!!notif.body && <Text style={[s.body, { color: card.sub }]} numberOfLines={2}>{notif.body}</Text>}
+        <Text style={[s.time, { color: card.sub }]}>{fmtRelativeTime(notif.created_at)}</Text>
+        {action ? (
+          <Pressable style={[s.action, card.bg === C.alwaysDark && { backgroundColor: C.lime }]} onPress={action.onPress} hitSlop={6} accessibilityRole="button">
+            <Text style={[s.actionText, card.bg === C.alwaysDark && { color: '#17181A' }]}>{action.label}</Text>
+          </Pressable>
+        ) : null}
       </View>
-      {/* Unread dot always shows for unread rows, including ones with an action button. */}
-      {!notif.read ? <View style={s.dot} accessibilityLabel="Unread" /> : null}
-      {action ? (
-        <Pressable style={s.action} onPress={action.onPress} hitSlop={6} accessibilityRole="button">
-          <Text style={s.actionText}>{action.label}</Text>
-        </Pressable>
-      ) : null}
+      {!notif.read ? <View style={[s.dot, { backgroundColor: card.dot }]} accessibilityLabel="Unread" /> : null}
     </Pressable>
   );
 }
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
-  row:        { backgroundColor: C.card, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowFirst:   { borderTopLeftRadius: 16, borderTopRightRadius: 16 },
-  rowLast:    { borderBottomLeftRadius: 16, borderBottomRightRadius: 16 },
-  rowDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
-  tile:       { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  text:       { flex: 1 },
-  title:      { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1, lineHeight: 18 },
-  body:       { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, lineHeight: 17, marginTop: 2 },
-  action:     { backgroundColor: C.alwaysDark, borderRadius: 999, paddingHorizontal: 12, height: 30, justifyContent: 'center' },
-  actionText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.alwaysLight },
-  dot:        { width: 7, height: 7, borderRadius: 4, backgroundColor: C.red, flexShrink: 0 },
+  row:        { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 24, marginBottom: 10 },
+  tile:       { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  text:       { flex: 1, gap: 2 },
+  title:      { fontFamily: Fonts.medium, fontSize: 15, lineHeight: 20 },
+  body:       { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 19 },
+  time:       { fontFamily: Fonts.regular, fontSize: 12, marginTop: 1 },
+  action:     { alignSelf: 'flex-start', marginTop: 8, backgroundColor: C.alwaysDark, borderRadius: 17, paddingHorizontal: 14, height: 34, justifyContent: 'center' },
+  actionText: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight },
+  dot:        { width: 9, height: 9, borderRadius: 5, marginTop: 6, flexShrink: 0 },
 }); }

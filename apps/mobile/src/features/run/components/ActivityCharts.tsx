@@ -124,7 +124,7 @@ export default function ActivityCharts({ runId, isRide }: { runId: string; isRid
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:    { backgroundColor: C.card, borderRadius: 16, padding: 16 },
+    card:    { backgroundColor: C.card, borderRadius: 22, padding: 16 },
     head:    { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 },
     title:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     range:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2 },

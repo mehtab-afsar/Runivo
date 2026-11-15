@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChevronLeft, Sparkles } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useSubscription } from '@features/subscription/hooks/useSubscription';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
@@ -41,7 +42,7 @@ export default function PaceXLocked() {
         <ChevronLeft size={20} color={C.t1} />
       </Pressable>
       <View style={s.body}>
-        <View style={s.icon}><Sparkles size={22} color={C.red} strokeWidth={2.2} /></View>
+        <PaceXOrb size={56} />
         <Text style={s.eyebrow}>PaceX · Runivo Plus</Text>
         <Text style={s.hero}>Meet your <Text style={{ color: C.red }}>coach.</Text></Text>
         <Text style={s.sub}>PaceX reads every run you log and tells you exactly what to do next.</Text>

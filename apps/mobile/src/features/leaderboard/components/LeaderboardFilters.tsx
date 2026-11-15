@@ -133,26 +133,18 @@ export function LeaderboardFilters({ tab, timeFrame, scope, onTabChange, onTimeF
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    seg: {
-      flexDirection: 'row', backgroundColor: C.border,
-      borderRadius: 999, padding: 3, marginHorizontal: 18, marginBottom: 12,
-    },
-    segItem: {
-      flex: 1, alignItems: 'center', justifyContent: 'center',
-      height: 32, borderRadius: 999,
-    },
-    segItemActive: {
-      backgroundColor: C.card,
-      shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2,
-    },
-    segLabel:       { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },
-    segLabelActive: { color: C.t1 },
+    // Underline tabs, as on the Groups tab and the mock.
+    seg:            { flexDirection: 'row', marginBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    segItem:        { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 12, paddingBottom: 11, borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    segItemActive:  { borderBottomColor: C.t1 },
+    segLabel:       { fontFamily: Fonts.regular, fontSize: 15, color: C.t2 },
+    segLabelActive: { fontFamily: Fonts.semiBold, color: C.t1 },
     scopeChip: {
       flexDirection: 'row', alignItems: 'center', gap: 6,
-      backgroundColor: C.card, borderRadius: 999, borderWidth: 1, borderColor: C.border,
-      paddingHorizontal: 12, height: 30,
+      backgroundColor: C.card, borderRadius: 999,
+      paddingHorizontal: 14, height: 36,
     },
-    scopeChipText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    scopeChipText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     sheetContent:  { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl },
     sheetLabel:    { ...Type.overline, color: C.t3, marginBottom: 10 },
     sheetRow:      { flexDirection: 'row', gap: 8 },

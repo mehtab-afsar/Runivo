@@ -206,7 +206,7 @@ function mkStyles(C: AppColors) {
     loading:     { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scroll:      { paddingHorizontal: 18, paddingBottom: 40, gap: 12 },
     lead:        { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2, marginBottom: 4 },
-    card:        { backgroundColor: C.card, borderRadius: 16, padding: 16 },
+    card:        { backgroundColor: C.card, borderRadius: 22, padding: 16 },
     previewHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
     label:       { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
     legend:      { flexDirection: 'row', alignItems: 'center' },

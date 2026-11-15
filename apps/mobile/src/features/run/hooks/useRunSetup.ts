@@ -28,8 +28,8 @@ export interface GpsState {
 export interface IntelStats { enemy: number; neutral: number; weak: number }
 
 // v1: the sheet holds the sport chips, the rule line and Start.
-const SHEET_COLLAPSED = 336; // +44 for the countdown / auto-pause chips (R6)
-const SHEET_EXPANDED  = 336;
+const SHEET_COLLAPSED = 392; // follow card, rule chips, prefs (R6), sport · START · route (mock)
+const SHEET_EXPANDED  = 392;
 
 export function useRunSetup() {
   const navigation = useNavigation<Nav>();

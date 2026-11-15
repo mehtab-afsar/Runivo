@@ -91,7 +91,7 @@ function mkStyles(C: AppColors) {
     title:      { ...Type.displaySm, color: C.t1, marginBottom: 12 },
     body:       { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, color: C.t2, marginBottom: 24 },
     row:        { flexDirection: 'row', gap: 12 },
-    input:      { height: 52, borderRadius: 14, backgroundColor: C.card, paddingHorizontal: 16, fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
+    input:      { height: 52, borderRadius: 22, backgroundColor: C.card, paddingHorizontal: 16, fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
     error:      { fontFamily: Fonts.regular, fontSize: 13.5, color: C.red, marginTop: 12 },
     primary:    { height: 52, borderRadius: 14, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
     primaryTxt: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.bg },

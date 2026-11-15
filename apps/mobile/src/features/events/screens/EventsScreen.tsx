@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, ArrowLeft, ArrowSquareOut, Flag } from 'phosphor-react-native';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventExtras } from '../components/EventExtras';
@@ -20,7 +21,7 @@ import { canAddToCalendar, addEventToCalendar, hasEventReminder, setEventReminde
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 function avatarColor(initial: string): string {
-  const COLORS = ['#FF4518', '#1A6B40', '#9E6800', '#1E4D8C', '#6B2D8C', '#8C2D1E', '#2D6B5C'];
+  const COLORS = ['#4E7F1F', '#A85E06', '#3C3577', '#17181A', '#2F4D12', '#7A5525', '#7C72D8'];
   return COLORS[initial.charCodeAt(0) % COLORS.length];
 }
 
@@ -232,7 +233,7 @@ function mkEdStyles(C: AppColors) {
     closeBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: C.mid, alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginLeft: 8 },
     eventTitle:      { ...Type.displaySm, color: C.black, marginBottom: 8 },
     eventDesc:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, lineHeight: 22, marginBottom: 16 },
-    detailCard:      { backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
+    detailCard:      { backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, overflow: 'hidden', marginBottom: 20 },
     detailRow:       { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 13 },
     detailRowBorder: { borderBottomWidth: 0.5, borderBottomColor: C.mid },
     detailIconBox:   { width: 30, height: 30, borderRadius: 8, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
@@ -245,7 +246,7 @@ function mkEdStyles(C: AppColors) {
     orgName:         { fontFamily: Fonts.regular, fontSize: 13, color: C.black },
     disclaimer:      { fontFamily: Fonts.regular, fontSize: 11.5, color: C.t3, lineHeight: 15, marginBottom: 14 },
     footer:          { flexDirection: 'row', gap: 8, alignItems: 'center' },
-    iconBtn:         { width: 48, height: 48, borderRadius: 14, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    iconBtn:         { width: 48, height: 48, borderRadius: 22, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     iconBtnSaved:    { backgroundColor: C.redLo, borderColor: 'rgba(217,53,24,0.3)' },
     calRow:          { flexDirection: 'row', gap: 8, marginBottom: 12, flexWrap: 'wrap' },
     calBtn:          { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 12, borderRadius: 19, borderWidth: 1, borderColor: C.border },
@@ -261,7 +262,8 @@ function mkEdStyles(C: AppColors) {
   });
 }
 
-export default function EventsScreen() {
+/** `embedded`: shown inside the Groups tab, which supplies the title and safe area. */
+export default function EventsScreen({ embedded = false }: { embedded?: boolean }) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
@@ -290,13 +292,16 @@ export default function EventsScreen() {
     return () => navigation.navigate('PlanBuilder', { race, raceDate, raceName: e.title || RACE_LABEL[race] });
   };
 
+  const Root = embedded ? View : SafeAreaView;
   return (
-    <SafeAreaView style={s.root}>
+    <Root style={s.root}>
       <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8} accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Events</Text>
+        {embedded ? <View style={{ flex: 1 }} /> : <>
+          <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8} accessibilityLabel="Back">
+            <ArrowLeft size={16} color={C.t1} weight="regular" />
+          </Pressable>
+          <Text style={s.title}>Events</Text>
+        </>}
         <View style={{ flexDirection: 'row', gap: 8 }}>
           {canCreate && (
             <Pressable hitSlop={8} style={s.chip} onPress={() => navigation.navigate('CreateEvent')}>
@@ -311,15 +316,76 @@ export default function EventsScreen() {
         </View>
       </View>
 
-      <View style={s.seg}>
+      {!embedded && <View style={s.seg}>
         {(['upcoming', 'going', 'past'] as const).map(k => (
           <Pressable key={k} style={[s.segItem, tab === k && s.segItemOn]} onPress={() => setTab(k)}>
             <Text style={[s.segLabel, tab === k && s.segLabelOn]}>{k === 'upcoming' ? 'Upcoming' : k === 'going' ? 'Going' : 'Past'}</Text>
           </Pressable>
         ))}
-      </View>
+      </View>}
 
-      {loading ? (
+      {embedded && !loading ? (
+        <ScrollView
+          contentContainerStyle={s.secList}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={C.red} />}
+        >
+          {loadError && events.length === 0 && <ErrorState title="Couldn't load events" onRetry={refresh} />}
+          {(() => {
+            const now = Date.now();
+            const up = events.filter(e => new Date(e.startsAt).getTime() >= now);
+            const runs = up.filter(e => e.source !== 'curated').slice(0, 8);
+            const races = up.filter(e => e.source === 'curated').slice(0, 6);
+            const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            return (
+              <>
+                <View style={s.secHead}><Text style={s.secTitle}>Club runs this week</Text></View>
+                {runs.length === 0
+                  ? <Text style={s.secEmpty}>No club runs coming up. Clubs you join post them here.</Text>
+                  : (
+                    <View style={s.rowsCard}>
+                      {runs.map((e, i) => {
+                        const d = new Date(e.startsAt);
+                        const going = joinedIds.has(e.id);
+                        return (
+                          <Pressable key={e.id} style={[s.evRow, i > 0 && s.evRowBorder]} onPress={() => setSelectedEvent(e)} accessibilityRole="button">
+                            <View style={s.dateTile}>
+                              <Text style={s.dateDow}>{DOW[d.getDay()]}</Text>
+                              <Text style={s.dateNum}>{d.getDate()}</Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={s.evTitle} numberOfLines={1}>{e.title}</Text>
+                              <Text style={s.evSub} numberOfLines={1}>{[e.time, e.distance, e.location, `${e.participants} going`].filter(Boolean).join(' · ')}</Text>
+                            </View>
+                            {going && <View style={s.goingPill}><Text style={s.goingTxt}>Going ✓</Text></View>}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+                <View style={s.secHead}><Text style={s.secTitle}>Races near you</Text></View>
+                {races.length === 0 && <Text style={s.secEmpty}>No races listed near you yet.</Text>}
+                {races.map(e => {
+                  const train = trainFor(e);
+                  return (
+                    <Pressable key={e.id} style={s.raceCard} onPress={() => setSelectedEvent(e)} accessibilityRole="button">
+                      <Text style={s.raceWhen}>{e.date}{e.location ? ` · ${e.location}` : ''}</Text>
+                      <Text style={s.raceTitle} numberOfLines={2}>{e.title}</Text>
+                      {!!e.distance && <Text style={s.raceSub}>{e.distance}</Text>}
+                      {train && (
+                        <Pressable style={s.trainBtn} onPress={train} accessibilityRole="button">
+                          <PaceXOrb size={22} />
+                          <Text style={s.trainTxt}>Train for this with PaceX</Text>
+                        </Pressable>
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </>
+            );
+          })()}
+        </ScrollView>
+      ) : loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color={C.red} />
         </View>
@@ -363,7 +429,7 @@ export default function EventsScreen() {
           onFollowRoute={selectedEvent.route ? () => { const r = selectedEvent.route!; setSelectedEvent(null); navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', ghostRoutePoints: r }); } : undefined}
         />
       )}
-    </SafeAreaView>
+    </Root>
   );
 }
 
@@ -372,16 +438,36 @@ function mkStyles(C: AppColors) {
     root:       { flex: 1, backgroundColor: C.bg },
     header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
     backBtn:    { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    chip:       { backgroundColor: C.card, borderRadius: 999, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12, height: 30, justifyContent: 'center' },
+    chip:       { backgroundColor: C.card, borderRadius: 999, paddingHorizontal: 16, height: 38, justifyContent: 'center' },
     chipOn:     { backgroundColor: C.t1, borderColor: C.t1 },
-    chipText:   { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    chipText:   { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     title: { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
     seg:        { flexDirection: 'row', backgroundColor: C.border, borderRadius: 999, padding: 3, marginHorizontal: 18, marginBottom: 12 },
     segItem:    { flex: 1, alignItems: 'center', justifyContent: 'center', height: 32, borderRadius: 999 },
     segItemOn:  { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
     segLabel:   { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t2 },
     segLabelOn: { fontFamily: Fonts.semiBold, color: C.t1 },
-    list:       { paddingTop: 2, paddingBottom: 120 },
+    list:       { paddingTop: 2, paddingBottom: 130 },
+    secList:    { paddingHorizontal: 18, paddingBottom: 130, gap: 12 },
+    secHead:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 6 },
+    secTitle:   { fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
+    secEmpty:   { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    rowsCard:   { backgroundColor: C.card, borderRadius: 24, paddingHorizontal: 14 },
+    evRow:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+    evRowBorder:{ borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+    dateTile:   { width: 48, height: 52, borderRadius: 14, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    dateDow:    { fontFamily: Fonts.bold, fontSize: 11, color: C.t2 },
+    dateNum:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1, lineHeight: 24 },
+    evTitle:    { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    evSub:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 2 },
+    goingPill:  { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: C.mint, justifyContent: 'center' },
+    goingTxt:   { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.green },
+    raceCard:   { backgroundColor: C.card, borderRadius: 26, padding: 18, gap: 6 },
+    raceWhen:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
+    raceTitle:  { fontFamily: Fonts.semiBold, fontSize: 22, lineHeight: 27, color: C.t1 },
+    raceSub:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    trainBtn:   { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', marginTop: 8, height: 44, paddingLeft: 12, paddingRight: 18, borderRadius: 22, backgroundColor: C.lavender },
+    trainTxt:   { fontFamily: Fonts.medium, fontSize: 14, color: C.lavenderInk },
     empty:      { alignItems: 'center' as const, paddingVertical: 56, paddingHorizontal: 32, gap: 8 },
     emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1, textAlign: 'center' },
     emptyText:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18 },

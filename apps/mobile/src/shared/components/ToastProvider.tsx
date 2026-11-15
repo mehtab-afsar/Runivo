@@ -19,7 +19,7 @@ import {
 
 // ─── Colours per toast type ──────────────────────────────────────────────────
 const BG: Record<ToastType, string> = {
-  success: '#0F7F40',   // darker than Colors.green: white text on it passes 4.5:1
+  success: '#4E7F1F',   // darker than Colors.green: white text on it passes 4.5:1
   error:   '#C0392B',
   warning: Colors.amber,
   info:    Colors.alwaysDark,

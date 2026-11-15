@@ -22,7 +22,8 @@ export function getTodaySession(sessions: SessionWithStatus[]): SessionWithStatu
 }
 
 export function buildInsightMessage(params: {
-  todaySession: SessionWithStatus | null;
+  /** Today's planned session, if any: its name and one-line summary. */
+  todaySession: Pick<SessionWithStatus, 'type' | 'description'> | null;
   staleZones: TerritoryPolygon[];
   playerName: string;
   paceWeeklyEarned: number;

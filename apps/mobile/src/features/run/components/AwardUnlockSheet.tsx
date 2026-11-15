@@ -12,7 +12,7 @@ interface Props {
 }
 
 const PARTICLE_COUNT = 24;
-const PARTICLE_COLORS = ['#C8391A', '#FFD60A', '#FFFFFF', '#FF453A', '#FF9F0A'];
+const PARTICLE_COLORS = ['#C9F06B', '#7DBA3C', '#FFFFFF', '#F2A43A', '#C9C2F6'];
 
 interface Particle {
   x: Animated.Value;

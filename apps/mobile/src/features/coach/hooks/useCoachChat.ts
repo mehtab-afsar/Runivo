@@ -3,7 +3,6 @@ import { supabase } from '@shared/services/supabase';
 import {
   sendMessage as apiSendMessage,
   loadMessageHistory,
-  requestTrainingPlan,
   requestHabitTracking,
   requestNutritionAnalysis,
   requestWeeklyBrief,
@@ -21,9 +20,7 @@ export function useCoachChat() {
   const [error, setError]               = useState<string | null>(null);
   const [inputText, setInputText]       = useState('');
   const [trainingPlan, setTrainingPlan] = useState<TrainingPlan | null>(null);
-  const [planLoading, setPlanLoading]   = useState(false);
   const [planOpen, setPlanOpen]         = useState(false);
-  const [goalInput, setGoalInput]       = useState('');
   const [brief, setBrief]               = useState<WeeklyBriefPayload | null>(null);
   const [briefLoading, setBriefLoading] = useState(false);
   const [quickPrompts, setQuickPrompts] = useState<QuickPrompt[]>([]);
@@ -74,23 +71,6 @@ export function useCoachChat() {
     }
   }, [inputText, sending]);
 
-  const generatePlan = useCallback(async (): Promise<boolean> => {
-    if (!goalInput.trim() || planLoading) return false;
-    setPlanLoading(true);
-    setError(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-      const plan = await requestTrainingPlan(goalInput.trim(), session.access_token);
-      setTrainingPlan(plan);
-      return true;
-    } catch (e: unknown) {
-      setError((e as Error)?.message ?? 'Failed to generate plan');
-      return false;
-    } finally {
-      setPlanLoading(false);
-    }
-  }, [goalInput, planLoading]);
 
   const requestHabitAnalysis = useCallback(async () => {
     if (sending) return;
@@ -178,22 +158,18 @@ export function useCoachChat() {
     error,
     inputText,
     trainingPlan,
-    planLoading,
     planOpen,
-    goalInput,
     brief,
     briefLoading,
     quickPrompts,
     sendMessage,
     retryLastMessage,
-    generatePlan,
     requestHabitAnalysis,
     requestNutritionCoach,
     showCard,
     loadBrief,
     loadQuickPrompts,
     setInputText,
-    setGoalInput,
     togglePlanOpen,
   };
 }

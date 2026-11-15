@@ -1,10 +1,10 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl, Platform, Animated, ScrollView, Modal, TextInput, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Search, Check, Plus, UserPlus, X } from 'lucide-react-native';
+import { Search, Check, Plus, UserPlus, X, ChevronLeft } from 'lucide-react-native';
 import { useFeed } from '@features/social/hooks/useFeed';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { fetchStolenZone } from '@features/social/services/feedService';
@@ -29,7 +29,9 @@ export default function FeedScreen() {
 
   const [tab, setTab]                     = useState<Tab>('following');
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
-  const [searchVisible, setSearchVisible] = useState(false);
+  // Home's search button opens straight into runner search.
+  const route = useRoute<RouteProp<RootStackParamList, 'Feed'>>();
+  const [searchVisible, setSearchVisible] = useState(!!route.params?.search);
   const [runnerQuery, setRunnerQuery]     = useState('');
 
   const tabX = useRef(new Animated.Value(0)).current;
@@ -170,7 +172,12 @@ export default function FeedScreen() {
     <SafeAreaView style={s.root}>
       {/* Header: title + runner search (there's no direct-messages feature to link yet) */}
       <View style={s.titleRow}>
-        <Text style={s.title}>Feed</Text>
+        {navigation.canGoBack() && (
+          <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={s.searchIcon} accessibilityLabel="Back" accessibilityRole="button">
+            <ChevronLeft size={18} color={C.t1} strokeWidth={2} />
+          </Pressable>
+        )}
+        <Text style={[s.title, navigation.canGoBack() && { flex: 1, marginLeft: 10 }]}>Feed</Text>
         <Pressable onPress={() => setSearchVisible(true)} hitSlop={10} style={s.searchIcon} accessibilityLabel="Search runners">
           <Search size={16} color={C.t1} strokeWidth={1.8} />
         </Pressable>
@@ -224,10 +231,11 @@ export default function FeedScreen() {
       {/* Runner search modal */}
       <Modal visible={searchVisible} animationType="slide" transparent={false} onRequestClose={() => setSearchVisible(false)}>
         <SafeAreaView style={s.searchModal}>
+          <Text style={s.searchTitle}>Search</Text>
           <View style={s.searchHeader}>
             <TextInput
               style={s.searchInput}
-              placeholder="Search runners…"
+              placeholder="Runners by name"
               placeholderTextColor={C.t3}
               value={runnerQuery}
               onChangeText={setRunnerQuery}
@@ -334,7 +342,7 @@ function mkStyles(C: AppColors) {
     searchIcon:     { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
     list:           { paddingTop: 4, paddingBottom: 100 },
     // Suggested runners
-    suggestedSection: { backgroundColor: C.card, marginHorizontal: 18, marginBottom: 12, borderRadius: 16, paddingTop: 16, paddingBottom: 14 },
+    suggestedSection: { backgroundColor: C.card, marginHorizontal: 18, marginBottom: 12, borderRadius: 22, paddingTop: 16, paddingBottom: 14 },
     suggestedLabel:   { color: C.t2, paddingHorizontal: 14, marginBottom: 12 },
     suggestedScroll:  { paddingHorizontal: 14, gap: 12 },
     runnerCard:       { alignItems: 'center', gap: 5, minWidth: 68 },
@@ -344,8 +352,9 @@ function mkStyles(C: AppColors) {
     runnerScore:      { fontFamily: Fonts.numeric, fontSize: 14, color: C.t2, textAlign: 'center', marginTop: -2 },
     // Search modal
     searchModal:  { flex: 1, backgroundColor: C.bg },
-    searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: C.border },
-    searchInput:  { flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: C.t1, height: 42, backgroundColor: C.card, borderRadius: 999, paddingHorizontal: 16 },
+    searchTitle:  { fontFamily: Fonts.semiBold, fontSize: 28, color: C.t1, paddingHorizontal: Spacing.gutter, paddingTop: 12 },
+    searchHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingVertical: 12 },
+    searchInput:  { flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: C.t1, height: 52, backgroundColor: C.card, borderRadius: 26, paddingHorizontal: 18 },
     searchEmpty:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, textAlign: 'center', paddingTop: 40, paddingHorizontal: 32 },
   });
 }

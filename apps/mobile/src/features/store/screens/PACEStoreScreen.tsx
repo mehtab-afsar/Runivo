@@ -40,6 +40,10 @@ export default function PACEStoreScreen() {
   );
   const shown = category === 'all' ? rewards : rewards.filter(r => r.category === category);
   const [featured, ...rest] = shown;
+  // The cheapest reward still out of reach: what the next runs are for.
+  const savingFor = rewards
+    .filter(r => !r.redeemed && r.paceCost > paceBalance)
+    .sort((x, y) => x.paceCost - y.paceCost)[0];
   const displayRank = runnerRank.charAt(0).toUpperCase() + runnerRank.slice(1);
 
   const open = (reward: Reward) => {
@@ -64,26 +68,26 @@ export default function PACEStoreScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}>
-        {/* Balance */}
-        <View style={s.balanceBlock}>
-          <Text style={s.eyebrow}>PACE Store</Text>
+        <Text style={s.title}>PACE Store</Text>
+
+        {/* Balance card (mock): to spend, this week, and what you're saving for. */}
+        <View style={s.balCard}>
+          <Text style={s.balLbl}>To spend</Text>
           <View style={s.balanceRow}>
             <Text style={s.balanceNum} adjustsFontSizeToFit numberOfLines={1}>{paceBalance.toLocaleString()}</Text>
             <Text style={s.balanceUnit}>PACE</Text>
           </View>
-        </View>
-
-        {/* Earned this week */}
-        <View style={s.weekCard}>
-          <View style={s.weekRow}>
-            <Text style={s.weekLabel}>Earned this week</Text>
-            <Text style={s.weekNumbers}>
-              <Text style={s.weekStrong}>{paceWeeklyEarned}</Text> / {capLimit} · resets Monday
-            </Text>
-          </View>
           <View style={s.progressBarBg}>
             <View style={[s.progressBarFill, { width: `${Math.round(weeklyPct * 100)}%` }]} />
           </View>
+          <Text style={s.weekNumbers}>
+            <Text style={s.weekStrong}>{paceWeeklyEarned}</Text> of {capLimit} this week · resets Monday
+          </Text>
+          {savingFor && (
+            <Text style={s.saving} numberOfLines={2}>
+              Saving for {savingFor.title} at {savingFor.brand} · {savingFor.paceCost - paceBalance} to go
+            </Text>
+          )}
         </View>
 
         {/* S4: brand challenges */}
@@ -169,22 +173,21 @@ function mkStyles(C: AppColors) {
     closeBtn:        { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
     rankChip:        { backgroundColor: C.t1, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     rankChipText:    { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.bg },
-    balanceBlock:    { paddingHorizontal: 18, marginBottom: 12 },
-    eyebrow:         { ...Type.labelSm, color: C.t2 },
-    balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 },
-    balanceNum:      { fontFamily: Fonts.numeric, fontSize: 84, lineHeight: 76, color: C.t1, fontVariant: ['tabular-nums'], flexShrink: 1 },
-    balanceUnit:     { fontFamily: Fonts.bold, fontSize: 22, letterSpacing: -0.5, color: C.red, paddingBottom: 8 },
-    weekCard:        { ...card, paddingHorizontal: 16, paddingVertical: 14, marginHorizontal: 18, marginBottom: 12 },
-    weekRow:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-    weekLabel:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
-    weekNumbers:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
-    weekStrong:      { fontFamily: Fonts.bold, color: C.t1 },
-    progressBarBg:   { height: 8, backgroundColor: C.surface, borderRadius: 9, overflow: 'hidden' },
-    progressBarFill: { height: 8, backgroundColor: C.red, borderRadius: 9 },
+    title:           { fontFamily: Fonts.semiBold, fontSize: 30, color: C.t1, paddingHorizontal: 18, marginBottom: 14 },
+    balCard:         { backgroundColor: C.alwaysDark, borderRadius: 28, marginHorizontal: 18, marginBottom: 14, padding: 20, gap: 8 },
+    balLbl:          { fontFamily: Fonts.regular, fontSize: 14, color: 'rgba(255,255,255,0.65)' },
+    saving:          { fontFamily: Fonts.regular, fontSize: 13.5, color: C.lime, marginTop: 2 },
+    balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+    balanceNum:      { fontFamily: Fonts.numeric, fontSize: 56, lineHeight: 58, color: C.alwaysLight, fontVariant: ['tabular-nums'], flexShrink: 1 },
+    balanceUnit:     { fontFamily: Fonts.semiBold, fontSize: 20, color: C.lime, paddingBottom: 8 },
+    weekNumbers:     { fontFamily: Fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.65)', fontVariant: ['tabular-nums'] },
+    weekStrong:      { fontFamily: Fonts.semiBold, color: C.alwaysLight },
+    progressBarBg:   { height: 8, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 4, overflow: 'hidden', marginTop: 4 },
+    progressBarFill: { height: 8, backgroundColor: C.lime, borderRadius: 4 },
     chips:           { paddingHorizontal: 18, gap: 8, marginBottom: 12 },
-    chip:            { height: 30, paddingHorizontal: 12, borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    chip:            { height: 38, paddingHorizontal: 16, borderRadius: 999, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
     chipActive:      { backgroundColor: C.t1, borderColor: C.t1 },
-    chipText:        { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
+    chipText:        { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     chipTextActive:  { color: C.bg },
     section:         { paddingHorizontal: 18, marginBottom: 12 },
     emptyCard:       { ...card, marginHorizontal: 18, marginBottom: 12, padding: 18 },

@@ -8,9 +8,15 @@ import {
   startingWeeklyTargetKm, paceXToneFor, ageForRange, validateUsername,
 } from '@shared/engine/onboarding';
 import { uploadAvatar } from '@features/profile/services/profileService';
-import { HEALTH_CONSENT_VERSION, type OnboardingData } from '../types';
+import { localToday } from '@features/training/services/planService';
+import { HEALTH_CONSENT_VERSION, parseGoalTime, raceDateForWeeks, type OnboardingData } from '../types';
 
 /** What the answers turn into: the runner's starting setup. */
+function goalSeconds(input: string): number | null {
+  const r = parseGoalTime(input);
+  return r.ok ? r.seconds : null;
+}
+
 export function deriveSetup(data: OnboardingData) {
   const fiveK = parseFiveKTime(data.fiveKInput);
   const fiveKSeconds = fiveK.ok ? fiveK.seconds : null;
@@ -22,7 +28,7 @@ export function deriveSetup(data: OnboardingData) {
     experienceLevel,
     missionDifficulty: missionDifficultyFor(experienceLevel),
     preferredDistance: preferredDistanceFor(data.usualKm),
-    paceXTone: paceXToneFor(goal),
+    paceXTone: data.paceXTone ?? paceXToneFor(goal),
     weeklyGoalKm: startingWeeklyTargetKm({
       runsPerWeek: data.runsPerWeek,
       usualKm: data.usualKm,
@@ -114,6 +120,16 @@ export async function saveOnboardingData(data: OnboardingData, variant: 'full' |
       health_consent_at: data.healthConsent ? new Date().toISOString() : null,
       health_consent_version: data.healthConsent ? HEALTH_CONSENT_VERSION : null,
       health_baseline: data.healthConsent ? data.healthBaseline : null,
+      // 20261115000026: race, week and body, for PaceX and the plan builder.
+      race_distance: data.goal === 'race' ? data.raceDistance : null,
+      race_date: data.goal === 'race' && data.raceDistance ? raceDateForWeeks(localToday(), data.raceWeeks) : null,
+      race_goal_seconds: data.goal === 'race' ? goalSeconds(data.raceGoalInput) : null,
+      run_days: data.runDays.length ? data.runDays : null,
+      long_run_day: data.runDays.includes(data.longRunDay) ? data.longRunDay : null,
+      usual_run_time: data.usualTime,
+      weekday_minutes: data.weekdayMinutes,
+      niggles: data.niggles,
+      returning_from_break: data.returning,
     }).eq('id', user.id);
     if (error) console.warn('[onboarding] could not save coaching answers:', error.message);
   }

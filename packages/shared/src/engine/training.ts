@@ -9,7 +9,9 @@
  *   - every 4th week is a recovery week at 80%;
  *   - at most 25% of a week's distance is hard (tempo, intervals, race pace);
  *   - a taper before race week (1 week for 5K/10K, 2 for half, 3 for marathon);
- *   - a goal faster than 5% beyond what the 5K time predicts is capped.
+ *   - a goal faster than 5% beyond what the 5K time predicts is capped;
+ *   - cautious plans (a niggle, or coming back from a break) start 20% lower,
+ *     grow at most 6% a week, and keep hard work to 14% of a week.
  */
 
 export type RaceDistance = '5k' | '10k' | 'half' | 'marathon';
@@ -97,7 +99,13 @@ export interface PlanInput {
   /** Current weekly km (from onboarding or recent runs). */
   currentWeeklyKm?: number | null;
   today: string; // YYYY-MM-DD
+  /** A niggle or a comeback: lower start, slower growth, less hard work. */
+  cautious?: boolean;
 }
+
+/** Weekly growth cap and starting factor, normal vs cautious. */
+const GROWTH = { normal: 1.1, cautious: 1.06 } as const;
+const HARD_SHARE = { normal: 0.2, cautious: 0.14 } as const;
 
 export type PlanError = 'too_soon' | 'bad_days' | 'bad_time';
 
@@ -141,7 +149,7 @@ export const fmtBand = (b: PaceBand) => `${fmtPace(b.fast)}–${fmtPace(b.slow)}
 // ── Volume ───────────────────────────────────────────────────────────────────
 interface WeekShape { focus: WeekFocus; km: number }
 
-export function weeklyShape(race: RaceDistance, weeks: number, startKm: number): WeekShape[] {
+export function weeklyShape(race: RaceDistance, weeks: number, startKm: number, growth: number = GROWTH.normal): WeekShape[] {
   const taper = Math.min(TAPER_WEEKS[race], weeks - 1);
   const peak = Math.max(PEAK_KM[race], startKm);
   const out: WeekShape[] = [];
@@ -154,9 +162,9 @@ export function weeklyShape(race: RaceDistance, weeks: number, startKm: number):
       out.push({ focus: 'taper', km: round1(last * f) });
       continue;
     }
-    if (i <= 2) { out.push({ focus: 'base', km: round1(i === 1 ? startKm : Math.min(peak, last * 1.1)) }); last = out[out.length - 1].km; continue; }
+    if (i <= 2) { out.push({ focus: 'base', km: round1(i === 1 ? startKm : Math.min(peak, last * growth)) }); last = out[out.length - 1].km; continue; }
     if (i % 4 === 0) { out.push({ focus: 'recovery', km: round1(last * 0.8) }); continue; }
-    const km = round1(Math.min(peak, last * 1.1));
+    const km = round1(Math.min(peak, last * growth));
     out.push({ focus: 'build', km });
     last = km;
   }
@@ -259,8 +267,11 @@ export function buildPlan(input: PlanInput): TrainingPlanV2 | { error: PlanError
   const goalCapped = !!goal && goal < floor;
   const paces = pacesFrom(input.fiveKSec, targetSec / RACE_KM[race]);
 
-  const startKm = Math.max(days.length * 3, Math.min(PEAK_KM[race], input.currentWeeklyKm ?? START_KM[race]));
-  const shape = weeklyShape(race, weeks, startKm);
+  const mode = input.cautious ? 'cautious' : 'normal';
+  const usual = Math.min(PEAK_KM[race], input.currentWeeklyKm ?? START_KM[race]);
+  const startKm = Math.max(days.length * 3, input.cautious ? round1(usual * 0.8) : usual);
+  const growth = GROWTH[mode];
+  const shape = weeklyShape(race, weeks, startKm, growth);
 
   // Build week by week. Targets come from the shape, but growth is measured on
   // what was actually scheduled, so minimum session sizes can never push a week
@@ -272,10 +283,10 @@ export function buildPlan(input: PlanInput): TrainingPlanV2 | { error: PlanError
     const index = wi + 1;
     const startDate = addDays(startMonday, wi * 7);
     let target = w.km;
-    if (lastFull != null && (w.focus === 'base' || w.focus === 'build')) target = Math.min(target, lastFull * 1.1);
+    if (lastFull != null && (w.focus === 'base' || w.focus === 'build')) target = Math.min(target, lastFull * growth);
     if (lastFull != null && w.focus === 'recovery') target = Math.min(target, lastFull * 0.8);
     if (w.focus === 'taper') target = Math.min(target, peakSoFar * (race === 'marathon' || race === 'half' ? 0.75 : 0.7));
-    const week = buildWeek({ index, startDate, focus: w.focus, target, days, longRunDay: input.longRunDay, race, raceDate: input.raceDate, targetSec, paces });
+    const week = buildWeek({ index, startDate, focus: w.focus, target, days, longRunDay: input.longRunDay, race, raceDate: input.raceDate, targetSec, paces, hardShare: HARD_SHARE[mode] });
     planWeeks.push(week);
     if (w.focus === 'base' || w.focus === 'build') lastFull = week.km;
     peakSoFar = Math.max(peakSoFar, week.km);
@@ -290,6 +301,8 @@ export function buildPlan(input: PlanInput): TrainingPlanV2 | { error: PlanError
 interface WeekArgs {
   index: number; startDate: string; focus: WeekFocus; target: number; days: number[]; longRunDay: number;
   race: RaceDistance; raceDate: string; targetSec: number; paces: Paces;
+  /** Share of a build week that is hard (lower in cautious plans). */
+  hardShare: number;
 }
 
 function buildWeek(a: WeekArgs): PlanWeek {
@@ -314,7 +327,7 @@ function buildWeek(a: WeekArgs): PlanWeek {
   const easyKind = focus === 'recovery' ? 'recovery' : 'easy';
 
   // Shrink until the week fits its target: hard work first, then easy and long runs, to their minimums.
-  let hardShare = focus === 'taper' || focus === 'recovery' ? 0.12 : 0.2;
+  let hardShare = focus === 'taper' || focus === 'recovery' ? Math.min(0.12, a.hardShare) : a.hardShare;
   let sessions: Session[] = [];
   for (let attempt = 0; attempt < 8; attempt++) {
     const longShare = days.length === 3 ? 0.35 : days.length === 4 ? 0.3 : 0.27;
@@ -347,6 +360,15 @@ function pickQualityDays(others: number[], longDay: number, count: number): numb
   const pool = notBeside.length >= count ? notBeside : others;
   if (count === 1) return [pool[0]];
   return [pool[0], pool[pool.length - 1]].filter((d, i, a) => a.indexOf(d) === i);
+}
+
+/** Up to five run days for a plan, always keeping the long-run day, spread across the week. */
+export function pickPlanDays(runDays: number[], longRunDay: number): number[] {
+  const days = [...new Set(runDays)].sort();
+  if (days.length <= 5) return days;
+  const others = days.filter(d => d !== longRunDay);
+  const keep = [0, 1, 2, 3].map(i => others[Math.round((i * (others.length - 1)) / 3)]);
+  return [...new Set([...keep, longRunDay])].sort();
 }
 
 // ── Using a plan ─────────────────────────────────────────────────────────────

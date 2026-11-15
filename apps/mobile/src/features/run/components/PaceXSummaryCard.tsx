@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
-import { Sparkles, Lock, ChevronRight } from 'lucide-react-native';
+import { Lock, ChevronRight } from 'lucide-react-native';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { usePostRunInsights } from '../hooks/usePostRunInsights';
 import { buildRunSummary, type RunSummaryInput } from '@shared/engine/runSummary';
 import { DEBRIEF_PAYWALL_AFTER_RUNS } from '@shared/engine/entitlements';
@@ -34,7 +35,7 @@ export default function PaceXSummaryCard({ runId, plus, runsCompleted, summary, 
   return (
     <View style={s.card}>
       <View style={s.head}>
-        <View style={s.icon}><Sparkles size={15} color={C.red} strokeWidth={2.2} /></View>
+        <PaceXOrb size={28} />
         <Text style={s.title}>{plus ? 'PaceX debrief' : 'PaceX summary'}</Text>
         {aiOn && loading && <ActivityIndicator size="small" color={C.t3} style={{ marginLeft: 'auto' }} />}
       </View>

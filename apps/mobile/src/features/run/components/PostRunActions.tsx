@@ -45,7 +45,7 @@ function mkStyles(C: AppColors) {
     row:              { flexDirection: 'row', gap: 10 },
     doneBtn:          { height: 58, backgroundColor: C.alwaysDark, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
     doneBtnText:      { fontFamily: Fonts.semiBold, fontSize: 17, color: C.alwaysLight },
-    secondaryBtn:     { flex: 1, height: 46, backgroundColor: C.card, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+    secondaryBtn:     { flex: 1, height: 46, backgroundColor: C.card, borderRadius: 22, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
     secondaryBtnText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
   });
 }

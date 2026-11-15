@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, Share, Image, ScrollView } from 'react-native';
-import { Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
+import { Heart, MessageCircle, MoreHorizontal, Share2 } from 'lucide-react-native';
 import Svg, { Polyline, Polygon, Circle } from 'react-native-svg';
 import { CityBackdrop } from '@mobile/shared/components/CityBackdrop';
 import { Avatar } from '@mobile/shared/components/Avatar';
@@ -26,7 +26,7 @@ function timeAgo(iso: string) {
 function fmtTime(sec: number): string {
   const m = Math.floor(sec / 60);
   if (m >= 60) return `${Math.floor(m / 60)}h ${m % 60}m`;
-  return `${m}m`;
+  return `${m}m ${Math.floor(sec % 60)}s`;
 }
 
 function buildShareMessage(post: FeedPost): string {
@@ -44,7 +44,7 @@ function buildShareMessage(post: FeedPost): string {
 }
 
 const MAP_W = 375;
-const MAP_H = 150;
+const MAP_H = 170;
 const STEAL_MAP_H = 170;
 const PAD   = 22;
 
@@ -102,15 +102,13 @@ function mkRmStyles(C: AppColors) {
   });
 }
 
-function StatBlock({ value, label, icon, color }: { value: string; label: string; icon?: React.ReactNode; color?: string }) {
+/** Mock: small grey label above a 17 pt value, four to a row. */
+function StatBlock({ value, label, color }: { value: string; label: string; color?: string }) {
   const C = useTheme();
   return (
-    <View style={{ gap: 1, flex: 1 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-        {icon}
-        <Text style={{ fontFamily: Fonts.numeric, fontSize: 24, lineHeight: 24, color: color ?? C.t1, fontVariant: ['tabular-nums'] }}>{value}</Text>
-      </View>
-      <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 3 }}>{label}</Text>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: C.t2 }}>{label}</Text>
+      <Text style={{ fontFamily: Fonts.semiBold, fontSize: 17, color: color ?? C.t1, fontVariant: ['tabular-nums'] }} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
@@ -280,10 +278,10 @@ export const FeedPostCard = React.memo(function FeedPostCard({
     <View style={s.card}>
       <View style={s.header}>
         <Pressable style={s.headerTap} onPress={onUserPress}>
-          <Avatar name={post.username} color={post.avatarColor} size={36} uri={post.avatarUrl} />
+          <Avatar name={post.username} color={post.avatarColor} size={42} uri={post.avatarUrl} />
           <View style={s.userInfo}>
-            <Text style={s.username}>{post.username}</Text>
-            <Text style={s.subtitle}>
+            <Text style={[s.username, { fontSize: 16, lineHeight: 21 }]}>{post.username}</Text>
+            <Text style={[s.subtitle, { fontSize: 13 }]}>
               {timeAgo(post.createdAt)}{activitySuffix}
               {post.visibility === 'followers' ? ' · Followers' : post.visibility === 'only_me' ? ' · Only you' : ''}
             </Text>
@@ -326,34 +324,41 @@ export const FeedPostCard = React.memo(function FeedPostCard({
       )}
 
       <View style={s.statsRow}>
-        <StatBlock value={fmtDistShort(post.distanceM)} label="km" />
-        {post.avgPace ? <StatBlock value={post.avgPace} label="/km" /> : null}
-        {tier ? <StatBlock value="+1" label="Zones" color={zone.own} /> : (post.durationSec > 0 ? <StatBlock value={fmtTime(post.durationSec)} label="Time" /> : null)}
-        {post.paceEarned > 0 ? <StatBlock value={`+${post.paceEarned}`} label="PACE" /> : null}
+        <StatBlock value={`${fmtDistShort(post.distanceM)} km`} label="Distance" />
+        {post.avgPace ? <StatBlock value={`${post.avgPace} /km`} label="Pace" /> : null}
+        {post.durationSec > 0 ? <StatBlock value={fmtTime(post.durationSec)} label="Time" /> : null}
+        {post.paceEarned > 0
+          ? <StatBlock value={`+${post.paceEarned}`} label="PACE" color={C.amber} />
+          : tier ? <StatBlock value="+1" label="Zones" color={zone.own} /> : null}
       </View>
 
       {(post.routePoints?.length ?? 0) >= 5 && (
-        <RouteMapHero
-          points={post.routePoints!}
-          seed={post.id}
-          kind={post.territoryAreaM2 ? 'claim' : 'run'}
-        />
+        <View>
+          <RouteMapHero
+            points={post.routePoints!}
+            seed={post.id}
+            kind={post.territoryAreaM2 ? 'claim' : 'run'}
+          />
+          <View style={s.mapChip}><Text style={s.mapChipTxt}>Start and end hidden</Text></View>
+        </View>
       )}
 
       <View style={s.actions}>
         <Pressable style={s.actionBtn} onPress={onKudos} testID="feed-like-btn" accessibilityLabel="Kudos">
-          <Heart size={16} color={post.hasKudos ? C.red : C.t2} fill={post.hasKudos ? C.red : 'none'} strokeWidth={1.8} />
-          {post.kudosCount > 0 && <Text style={[s.actionCount, post.hasKudos && { color: C.red, fontFamily: Fonts.bold }]}>{post.kudosCount}</Text>}
+          <Heart size={20} color={post.hasKudos ? C.red : C.t1} fill={post.hasKudos ? C.red : 'none'} strokeWidth={1.8} />
+          {post.kudosCount > 0 && <Text style={[s.actionCount, post.hasKudos && { color: C.red, fontFamily: Fonts.semiBold }]}>{post.kudosCount}</Text>}
         </Pressable>
         <Pressable style={s.actionBtn} onPress={onComment} testID="feed-comment-btn" accessibilityLabel="Comments">
-          <MessageCircle size={16} color={C.t2} strokeWidth={1.8} />
+          <MessageCircle size={20} color={C.t1} strokeWidth={1.8} />
           {post.commentCount > 0 && <Text style={s.actionCount}>{post.commentCount}</Text>}
         </Pressable>
-        <View style={{ flex: 1 }} />
-        {othersLine
-          ? <Text style={s.othersText} numberOfLines={1}>{othersLine}</Text>
-          : <KudosStack postId={post.id} kudosCount={post.kudosCount} />}
+        <Pressable style={s.actionBtn} onPress={handleShare} accessibilityLabel="Share">
+          <Share2 size={18} color={C.t1} strokeWidth={1.8} />
+        </Pressable>
       </View>
+      {othersLine
+        ? <Text style={[s.othersText, { paddingHorizontal: 16, paddingBottom: 12 }]} numberOfLines={1}>{othersLine}</Text>
+        : <KudosStack postId={post.id} kudosCount={post.kudosCount} />}
 
       <PostActionsSheet
         visible={sheetOpen}
@@ -371,8 +376,8 @@ export const FeedPostCard = React.memo(function FeedPostCard({
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    card:         { backgroundColor: C.card, marginHorizontal: 18, marginBottom: 12, borderRadius: 16, overflow: 'hidden', shadowColor: '#14120F', shadowOpacity: 0.04, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-    header:       { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
+    card:         { backgroundColor: C.card, marginHorizontal: 18, marginBottom: 12, borderRadius: 28, overflow: 'hidden' },
+    header:       { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
     headerCompact:{ paddingBottom: 14 },
     headerTap:    { flex: 1, flexDirection: 'row', alignItems: 'center' },
     kebab:        { padding: 4 },
@@ -383,22 +388,24 @@ function mkStyles(C: AppColors) {
     photo:        { width: 220, height: 165, borderRadius: 12, backgroundColor: C.surface },
     photoSolo:    { width: 320, height: 220 },
     subtitle:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
-    textBlock:    { paddingHorizontal: 16, paddingBottom: 10, gap: 4 },
-    postTitle:    { fontFamily: Fonts.semiBold, fontSize: 16, lineHeight: 21, color: C.t1 },
+    textBlock:    { paddingHorizontal: 16, paddingBottom: 12, gap: 4 },
+    postTitle:    { fontFamily: Fonts.semiBold, fontSize: 20, lineHeight: 25, letterSpacing: -0.3, color: C.t1 },
     postBody:     { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2 },
     lightChip:    { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     lightChipText:{ fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.t1 },
     darkChip:     { backgroundColor: C.alwaysDark, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
     darkChipText: { fontFamily: Fonts.semiBold, fontSize: 11.5, color: C.alwaysLight },
-    statsRow:     { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 14, paddingBottom: 12 },
+    statsRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 6, paddingHorizontal: 16, paddingBottom: 12 },
+    mapChip:      { position: 'absolute', top: 12, left: 12, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+    mapChipTxt:   { fontFamily: Fonts.semiBold, fontSize: 12, color: '#17181A' },
     stealFoot:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
     stealText:    { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     stealArea:    { fontFamily: Fonts.semiBold },
     takeBack:     { borderRadius: 999, paddingHorizontal: 12, height: 34, justifyContent: 'center' },
     takeBackText: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.alwaysLight },
-    actions:      { flexDirection: 'row', alignItems: 'center', gap: 18, paddingHorizontal: 14, paddingVertical: 12 },
-    actionBtn:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    actionCount:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, fontVariant: ['tabular-nums'] },
+    actions:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingVertical: 6 },
+    actionBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, width: 64, height: 48 },
+    actionCount:  { fontFamily: Fonts.regular, fontSize: 14, color: C.t1, fontVariant: ['tabular-nums'] },
     othersText:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, flexShrink: 1 },
   });
 }
