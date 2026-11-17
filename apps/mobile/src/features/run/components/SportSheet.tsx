@@ -3,14 +3,14 @@
  * and earn PACE first, then the ones that are only tracked.
  */
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Check, Barbell } from 'phosphor-react-native';
 import * as Haptics from '@theme/hapticsGated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { ENGINE } from '@shared/engine/runEngine';
 import type { ActivityType } from '../types';
 import { SPORTS, MORE_SPORTS, type Sport } from '../constants/activities';
+import { ModalSheet } from '@mobile/shared/components/ModalSheet';
 
 export function SportSheet({ visible, current, onPick, onTreadmill, onClose }: {
   visible: boolean; current: ActivityType;
@@ -18,7 +18,6 @@ export function SportSheet({ visible, current, onPick, onTreadmill, onClose }: {
 }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
-  const insets = useSafeAreaInsets();
   const all = [...SPORTS, ...MORE_SPORTS];
   const claims = all.filter(sp => sp.claims);
   const tracked = all.filter(sp => !sp.claims);
@@ -41,40 +40,33 @@ export function SportSheet({ visible, current, onPick, onTreadmill, onClose }: {
   return (
     // A real Modal: it sits above the start panel and the map, so it never
     // pushes or hides the panel behind it, and its list scrolls in full.
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={s.scrim} onPress={onClose} accessibilityLabel="Close" />
-      <View style={[s.sheet, { paddingBottom: insets.bottom + 8 }]} accessibilityViewIsModal>
-      <View style={s.grab} />
+    <ModalSheet visible={visible} onClose={onClose} padded={false}>
       <View style={s.head}>
-        <Text style={s.title} accessibilityRole="header">Choose a sport</Text>
+      <Text style={s.title} accessibilityRole="header">Choose a sport</Text>
       </View>
       <ScrollView contentContainerStyle={s.body} accessibilityRole="radiogroup">
-        <View style={s.groupHead}>
-          <Text style={s.group}>Claims zones</Text>
-          <Text style={[s.groupNote, { color: C.green }]}>{ENGINE.PACE_PER_KM} PACE / km</Text>
-        </View>
-        {claims.map(sp => <Row key={sp.id} sp={sp} />)}
-
-        <View style={[s.groupHead, { marginTop: 10 }]}>
-          <Text style={s.group}>Tracked only</Text>
-          <Text style={s.groupNote}>no zones or PACE</Text>
-        </View>
-        {tracked.map(sp => <Row key={sp.id} sp={sp} />)}
-        <Pressable style={s.row} onPress={() => { onClose(); onTreadmill(); }} accessibilityRole="button">
-          <Barbell size={24} color={C.t1} />
-          <Text style={s.rowTxt}>Treadmill <Text style={s.rowSub}>· logged by hand</Text></Text>
-        </Pressable>
-      </ScrollView>
+      <View style={s.groupHead}>
+        <Text style={s.group}>Claims zones</Text>
+        <Text style={[s.groupNote, { color: C.green }]}>{ENGINE.PACE_PER_KM} PACE / km</Text>
       </View>
-    </Modal>
+      {claims.map(sp => <Row key={sp.id} sp={sp} />)}
+
+      <View style={[s.groupHead, { marginTop: 10 }]}>
+        <Text style={s.group}>Tracked only</Text>
+        <Text style={s.groupNote}>no zones or PACE</Text>
+      </View>
+      {tracked.map(sp => <Row key={sp.id} sp={sp} />)}
+      <Pressable style={s.row} onPress={() => { onClose(); onTreadmill(); }} accessibilityRole="button">
+        <Barbell size={24} color={C.t1} />
+        <Text style={s.rowTxt}>Treadmill <Text style={s.rowSub}>· logged by hand</Text></Text>
+      </Pressable>
+      </ScrollView>
+    </ModalSheet>
   );
 }
 
 function mk(C: AppColors) {
   return StyleSheet.create({
-    scrim:     { flex: 1, backgroundColor: 'rgba(23,24,26,0.42)' },
-    sheet:     { maxHeight: '82%', backgroundColor: C.card, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 10 },
-    grab:      { width: 40, height: 5, borderRadius: 3, backgroundColor: C.border, alignSelf: 'center', marginBottom: 12 },
     head:      { paddingHorizontal: 20, paddingBottom: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
     title:     { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1 },
     body:      { paddingHorizontal: 20, paddingBottom: 36 },

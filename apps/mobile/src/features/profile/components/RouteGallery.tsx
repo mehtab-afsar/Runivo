@@ -12,6 +12,7 @@ import { convertKm } from '@mobile/shared/lib/formatters';
 import { fmtKm } from './YouSections';
 import { routePolyline } from '../utils/routeShape';
 import { signPhotoUrls } from '@features/run/services/activityEditService';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 const COLS = 3;
 const GAP = 2;
@@ -42,13 +43,7 @@ export function RouteGallery({ runs, onOpen }: { runs: StoredRun[]; onOpen: (run
   const header = (
     <View style={s.head}>
       <Text style={s.headTxt}>Routes and photos · {list.length}</Text>
-      <View style={s.seg}>
-        {(['routes', 'photos'] as const).map(k => (
-          <Pressable key={k} style={[s.segBtn, mode === k && s.segOn]} onPress={() => setMode(k)} accessibilityRole="tab" accessibilityState={{ selected: mode === k }}>
-            <Text style={[s.segTxt, mode === k && { color: C.alwaysLight }]}>{k === 'routes' ? 'Routes' : 'Photos'}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <Segmented size="sm" fit options={[{ value: 'routes', label: 'Routes' }, { value: 'photos', label: 'Photos' }]} value={mode} onChange={setMode} />
     </View>
   );
 
@@ -118,10 +113,6 @@ function mk(C: AppColors) {
     grid:       { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
     head:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
     headTxt:    { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
-    seg:        { flexDirection: 'row', gap: 4, padding: 3, borderRadius: 16, backgroundColor: C.card },
-    segBtn:     { height: 28, paddingHorizontal: 10, borderRadius: 14, justifyContent: 'center' },
-    segOn:      { backgroundColor: C.alwaysDark },
-    segTxt:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t1 },
     tile:       { overflow: 'hidden' },
     label:      { position: 'absolute', left: 7, bottom: 6, fontFamily: Fonts.semiBold, fontSize: 11, color: C.t1 },
     empty:      { marginHorizontal: 18, padding: 24, borderRadius: 20, backgroundColor: C.card, alignItems: 'center', gap: 4 },

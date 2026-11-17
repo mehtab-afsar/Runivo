@@ -4,6 +4,8 @@ import { Send } from '@mobile/shared/icons/lucideCompat';
 import { Fonts, useTheme, type AppColors } from '@theme';
 
 interface Props {
+  /** Open the keyboard straight away ("New post to a club…" on the Clubs page). */
+  autoFocus?: boolean;
   value: string;
   onChange: (text: string) => void;
   onSend: () => void;
@@ -13,13 +15,14 @@ interface Props {
   placeholder?: string;
 }
 
-export function ChatInput({ value, onChange, onSend, sending, disabled, placeholder = 'Message' }: Props) {
+export function ChatInput({ value, onChange, onSend, sending, disabled, placeholder = 'Message', autoFocus }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const canSend = value.trim().length > 0 && !sending;
   return (
     <View style={s.bar}>
       <TextInput
+        autoFocus={autoFocus}
         style={s.input}
         value={value}
         onChangeText={onChange}

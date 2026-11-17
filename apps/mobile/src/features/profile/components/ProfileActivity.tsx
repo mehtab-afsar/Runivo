@@ -15,6 +15,7 @@ import {
   type SportFilter, filterBySport, weeklyTotals, periodStats, activityTitle,
   paceOrSpeed, fmtHours, fmtKm, fmtClock, sportGroup,
 } from '../utils/profileStats';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -91,13 +92,7 @@ export function StatsCard({ runs, sport }: { runs: StoredRun[]; sport: SportFilt
     <View style={s.card}>
       <View style={s.cardHead}>
         <Text style={s.cardLabel}>Statistics</Text>
-        <View style={s.miniSeg}>
-          {(['year', 'all'] as const).map(p => (
-            <Pressable key={p} style={[s.miniSegItem, period === p && s.miniSegItemOn]} onPress={() => setPeriod(p)} accessibilityRole="button" accessibilityState={{ selected: period === p }}>
-              <Text style={[s.miniSegTxt, period === p && s.segTxtOn]}>{p === 'year' ? String(year) : 'All time'}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <Segmented size="sm" fit options={[{ value: 'year', label: String(year) }, { value: 'all', label: 'All time' }]} value={period} onChange={setPeriod} />
       </View>
       <View style={s.statsGrid}>
         <GridStat label="Activities" value={st.count.toLocaleString('en-US')} s={s} />
@@ -254,15 +249,6 @@ function mkStyles(C: AppColors) {
     footnote:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 10 },
 
     // Segmented control (mock: 3pt padding, 32pt items).
-    seg:          { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 10, padding: 3 },
-    segItem:      { flex: 1, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-    segItemOn:    { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-    segTxt:       { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
-    segTxtOn:     { fontFamily: Fonts.semiBold, color: C.t1 },
-    miniSeg:      { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 8, padding: 2 },
-    miniSegItem:  { height: 24, paddingHorizontal: 10, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
-    miniSegItemOn:{ backgroundColor: C.card },
-    miniSegTxt:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
 
     weekStats:    { flexDirection: 'row', alignItems: 'flex-end' },
     stat:         { flex: 1 },

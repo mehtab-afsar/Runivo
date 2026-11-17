@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { parseCoachReply } from '@shared/engine/coachSession';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import type { CoachMessage } from '../services/coachService';
@@ -15,7 +16,7 @@ export function PaceAutoCard({ message, onReadMore }: Props) {
   return (
     <View style={s.card}>
       <Text style={s.label}>✨ AFTER YOUR LAST RUN</Text>
-      <Text style={s.body} numberOfLines={3}>{message.content}</Text>
+      <Text style={s.body} numberOfLines={3}>{parseCoachReply(message.content).text}</Text>
       <Pressable onPress={onReadMore} hitSlop={8}>
         <Text style={s.readMore}>Read more →</Text>
       </Pressable>

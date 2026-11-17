@@ -3,8 +3,9 @@ import { supabase } from '@shared/services/supabase';
 import { getRuns } from '@shared/services/store';
 import { rescheduleSessionReminders } from './sessionReminders';
 import {
-  RACE_LABEL, matchRun, weekOf, type TrainingPlanV2, type Session, updatePacesFromRun, addDays,
+  RACE_LABEL, matchRun, weekOf, type TrainingPlanV2, type Session, updatePacesFromRun, addDays, estimateFiveK,
 } from '@shared/engine/training';
+import { sessionFromCoach, type CoachSession } from '@shared/engine/coachSession';
 
 /**
  * Structured training plans (packages/shared/src/engine/training.ts), stored in
@@ -67,7 +68,7 @@ export async function createPlan(plan: TrainingPlanV2): Promise<ActivePlan> {
   await supabase.from('training_plans').update({ status: 'abandoned' }).eq('user_id', user.id).eq('status', 'active');
   const { data, error } = await supabase.from('training_plans').insert({
     user_id: user.id,
-    goal: `${RACE_LABEL[plan.race]} on ${plan.raceDate}`,
+    goal: plan.raceRef ? `${plan.raceRef.name} (${RACE_LABEL[plan.race]})` : `${RACE_LABEL[plan.race]} on ${plan.raceDate}`,
     goal_race_date: plan.raceDate,
     weeks_total: plan.weeks.length,
     week_current: 1,
@@ -95,8 +96,11 @@ export async function endPlan(ap: ActivePlan): Promise<void> {
   await supabase.from('training_plans').update({ status: 'abandoned' }).eq('id', ap.id);
 }
 
-/** Starting values for the builder: the 5K time from onboarding and recent weekly distance. */
-export async function fetchPlanDefaults(): Promise<{ fiveKSec: number | null; weeklyKm: number | null }> {
+/**
+ * Starting values for plan setup: the 5K time from onboarding, recent weekly
+ * distance, and a 5K estimate from the best recent run (for "I don't know").
+ */
+export async function fetchPlanDefaults(): Promise<{ fiveKSec: number | null; weeklyKm: number | null; runsKm: number | null; estimate: { fiveKSec: number; runs: number } | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   let fiveKSec: number | null = null;
   let goalKm: number | null = null;
@@ -107,9 +111,12 @@ export async function fetchPlanDefaults(): Promise<{ fiveKSec: number | null; we
   }
   // Average of the last 4 weeks of on-foot running, when there is any.
   const since = Date.now() - 28 * 86_400_000;
-  const runs = (await getRuns(200)).filter(r => r.startTime >= since && !['cycle'].includes(r.activityType));
+  const recent = await getRuns(200);
+  const runs = recent.filter(r => r.startTime >= since && !['cycle'].includes(r.activityType));
   const km = runs.reduce((t, r) => t + r.distanceMeters / 1000, 0) / 4;
-  return { fiveKSec, weeklyKm: km >= 3 ? Math.round(km) : goalKm };
+  const running = recent.filter(r => r.activityType === 'run' || !r.activityType);
+  const estimate = estimateFiveK(running.map(r => ({ distanceKm: r.distanceMeters / 1000, durationSec: r.durationSec, startTime: r.startTime })), Date.now());
+  return { fiveKSec, weeklyKm: km >= 3 ? Math.round(km) : goalKm, runsKm: km >= 3 ? Math.round(km) : null, estimate };
 }
 
 /**
@@ -131,4 +138,28 @@ export async function recordRunAgainstPlan(run: { runId: string; startTime: numb
     session: sessionId ? plan.weeks.flatMap(w => w.sessions).find(s => s.id === sessionId) ?? null : null,
     fasterFiveK: faster?.fiveKSec ?? null,
   };
+}
+
+/**
+ * PaceX "Add to my plan": puts a coach session card on its date in the active
+ * plan. A planned session already on that date is replaced (done or skipped
+ * ones are kept). Returns 'no_plan' when there's no plan, 'outside' when the
+ * date isn't in the plan's weeks.
+ */
+export async function addCoachSessionToPlan(cs: CoachSession): Promise<{ status: 'added'; session: Session } | { status: 'no_plan' | 'outside' }> {
+  const ap = (await fetchActivePlan().catch(() => null)) ?? (await getCachedPlan());
+  if (!ap) return { status: 'no_plan' };
+  const wk = ap.plan.weeks.find(w => cs.date >= w.startDate && cs.date <= addDays(w.startDate, 6));
+  if (!wk) return { status: 'outside' };
+  const id = `pacex-${cs.date}-${Date.now().toString(36)}`;
+  const kept = wk.sessions.filter(s => !(s.date === cs.date && s.status === 'planned'));
+  const added = sessionFromCoach(cs, id);
+  const sessions = [...kept, added].sort((a, b) => a.date.localeCompare(b.date));
+  const plan: TrainingPlanV2 = {
+    ...ap.plan,
+    weeks: ap.plan.weeks.map(w => (w === wk ? { ...w, sessions, km: Math.round(sessions.reduce((t, s) => t + s.distanceKm, 0) * 10) / 10 } : w)),
+  };
+  await savePlan({ id: ap.id, plan });
+  await rescheduleSessionReminders(plan).catch(() => {});
+  return { status: 'added', session: added };
 }

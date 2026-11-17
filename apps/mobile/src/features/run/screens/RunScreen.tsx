@@ -83,7 +83,7 @@ async function recoverRunFromCheckpoint(
 }
 
 function gpsColor(C: AppColors, status: string, acc: number | null): string {
-  if (status === 'error') return C.red;
+  if (status === 'error') return C.danger;
   if (status === 'searching' || acc === null) return C.t3;
   if (acc < 20) return C.green;
   return C.amber;
@@ -234,7 +234,6 @@ export default function RunScreen() {
       <ActivityModal
         visible={showActivityModal}
         selected={activityType}
-        bottomInset={insets.bottom}
         onSelect={type => { setActivityType(type); setShowActivityModal(false); }}
         onClose={() => setShowActivityModal(false)}
       />
@@ -245,7 +244,6 @@ export default function RunScreen() {
         nearbyLoading={nearbyLoading}
         gpsReady={gps.status === 'ready'}
         selectedRouteName={selectedRoute?.name ?? null}
-        bottomInset={insets.bottom}
         onSelectRoute={(name, pts) => setSelectedRoute({ name, gpsPoints: pts })}
         onClearRoute={() => setSelectedRoute(null)}
         todaySession={todaySession}

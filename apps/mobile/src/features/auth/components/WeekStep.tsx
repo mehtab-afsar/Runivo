@@ -27,8 +27,8 @@ export default function WeekStep({ runDays, longRunDay, usualTime, weekdayMinute
     onDays(next);
     if (!next.includes(longRunDay) && next.length) onLong(next[next.length - 1]);
   };
-  const Chip = ({ on, label, onPress, a11y }: { on: boolean; label: string; onPress: () => void; a11y?: string }) => (
-    <Pressable style={[s.chip, on && s.chipOn]} onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={a11y}>
+  const Chip = ({ on, label, onPress, a11y, cell }: { on: boolean; label: string; onPress: () => void; a11y?: string; cell: 'row' | 'grid' }) => (
+    <Pressable style={[s.chip, cell === 'row' ? s.cell : s.gridCell, on && s.chipOn]} onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={a11y}>
       <Text style={[s.chipText, on && s.chipTextOn]}>{label}</Text>
     </Pressable>
   );
@@ -52,18 +52,18 @@ export default function WeekStep({ runDays, longRunDay, usualTime, weekdayMinute
       {runDays.length > 5 && <Text style={[s.note, { marginTop: -8, marginBottom: 12 }]}>Plans use up to 5 of these; the rest stay easy or rest.</Text>}
 
       <Text style={s.label}>Long run day</Text>
-      <View style={s.chips}>
-        {runDays.map(d => <Chip key={d} on={d === longRunDay} label={DAY_NAMES[d]} onPress={() => onLong(d)} />)}
+      <View style={s.grid}>
+        {runDays.map(d => <Chip key={d} cell="grid" on={d === longRunDay} label={DAY_NAMES[d].slice(0, 3)} a11y={DAY_NAMES[d]} onPress={() => onLong(d)} />)}
       </View>
 
       <Text style={s.label}>Usual time</Text>
-      <View style={s.chips}>
-        {TIMES.map(t => <Chip key={t.key} on={t.key === usualTime} label={t.label} onPress={() => onTime(t.key)} />)}
+      <View style={s.grid}>
+        {TIMES.map(t => <Chip key={t.key} cell="grid" on={t.key === usualTime} label={t.label} onPress={() => onTime(t.key)} />)}
       </View>
 
       <Text style={s.label}>Time on a weekday</Text>
-      <View style={s.chips}>
-        {MINUTES.map(m => <Chip key={m} on={m === weekdayMinutes} label={`${m} min`} onPress={() => onMinutes(m)} />)}
+      <View style={s.row}>
+        {MINUTES.map(m => <Chip key={m} cell="row" on={m === weekdayMinutes} label={`${m} min`} onPress={() => onMinutes(m)} />)}
       </View>
 
       <WhyPaceX>sessions go only on these days, the long run on your long-run day, weekday runs fit your time, and reminders come before you usually head out.</WhyPaceX>

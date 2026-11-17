@@ -11,6 +11,7 @@ import * as Haptics from '@theme/hapticsGated';
 import { CaretLeft, Barbell, PersonSimpleTaiChi, Pause, Play, SkipForward } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { STRENGTH_SESSIONS, type StrengthSession } from '@shared/engine/strength';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 export default function StrengthScreen() {
   const C = useTheme();
@@ -92,7 +93,7 @@ function Guided({ session, onDone }: { session: StrengthSession; onDone: () => v
           <>
             <Text style={s.big}>Done</Text>
             <Text style={s.cue}>{session.minutes} minutes in the bank. Nice work.</Text>
-            <Pressable style={s.cta} onPress={onDone} accessibilityRole="button"><Text style={s.ctaTxt}>Finish</Text></Pressable>
+            <PrimaryButton label="Finish" onPress={onDone} fullWidth style={{ marginTop: 20 }} />
           </>
         ) : (
           <>
@@ -134,7 +135,5 @@ function mk(C: AppColors) {
     next: { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, marginTop: 6 },
     controls: { flexDirection: 'row', gap: 16, marginTop: 24 },
     ctrl: { width: 64, height: 64, borderRadius: 32, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center' },
-    cta: { marginTop: 20, height: 50, paddingHorizontal: 40, borderRadius: 25, backgroundColor: C.t1, justifyContent: 'center' },
-    ctaTxt: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.bg },
   });
 }

@@ -75,7 +75,12 @@ export function useLogin(): LoginState {
         const n = failedAttempts.current - FREE_ATTEMPTS - 1;
         setLockoutSeconds(Math.min(BACKOFF_BASE_S * 2 ** n, BACKOFF_MAX_S));
       }
-      setError(e instanceof Error ? e.message : 'Sign in failed.');
+      const msg = e instanceof Error ? e.message : 'Sign in failed.';
+      // Supabase can't say whether the account exists (on purpose); say both
+      // possibilities so a new runner knows to create an account instead.
+      setError(/invalid login credentials/i.test(msg)
+        ? "That email and password don't match an account. New to Runivo? Create an account below."
+        : msg);
     } finally {
       setLoading(false);
     }

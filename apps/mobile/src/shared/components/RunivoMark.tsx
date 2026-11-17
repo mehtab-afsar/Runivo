@@ -21,7 +21,22 @@ export const MARK_PATH = hexPath(MARK_RADIUS);
 /** Length of the outline in the 100-unit box (six sides of length r). */
 export const MARK_PERIMETER = 6 * MARK_RADIUS;
 
-export function RunivoMark({ size = 32, color = '#F2A43A', strokeWidth = MARK_STROKE }: { size?: number; color?: string; strokeWidth?: number }) {
+/** The mock's inline logo geometry (next to the wordmark): the hexagon fills its box. */
+const INLINE_PATH = 'M32 4 56.2 18v28L32 60 7.8 46V18Z';
+
+/**
+ * `inline` draws the hexagon edge to edge, as in the mock's headers next to
+ * "runivo". Without it the mark keeps the app icon's padding (the launch
+ * animation and icon share that shape), which made header logos ~30% small.
+ */
+export function RunivoMark({ size = 32, color = '#F2A43A', strokeWidth = MARK_STROKE, inline = false }: { size?: number; color?: string; strokeWidth?: number; inline?: boolean }) {
+  if (inline) {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 64 64" accessibilityElementsHidden importantForAccessibility="no">
+        <Path d={INLINE_PATH} fill="none" stroke={color} strokeWidth={7} strokeLinejoin="round" />
+      </Svg>
+    );
+  }
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityElementsHidden importantForAccessibility="no">
       <Path d={MARK_PATH} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinejoin="round" />

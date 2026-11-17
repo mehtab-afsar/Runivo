@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { setAiConsent, lastAiConsentFailure } from '@shared/services/aiConsent';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 /**
  * Asked before PaceX sends anything to the third-party AI (App Store 5.1.2(i)):
@@ -59,15 +60,7 @@ export default function AiConsentCard({ onGranted, onDecline, compact = false }:
         </Text>
       )}
 
-      <Pressable
-        style={[s.primary, busy && { opacity: 0.6 }]}
-        onPress={agree}
-        disabled={busy}
-        accessibilityRole="button"
-        accessibilityLabel="Agree and turn on PaceX"
-      >
-        {busy ? <ActivityIndicator color={C.bg} /> : <Text style={s.primaryTxt}>Agree and turn on</Text>}
-      </Pressable>
+      <PrimaryButton label="Agree and turn on" onPress={agree} disabled={busy} loading={busy} fullWidth style={{ marginTop: 16 }} />
       {onDecline && (
         <Pressable style={s.secondary} onPress={onDecline} accessibilityRole="button">
           <Text style={s.secondaryTxt}>Not now</Text>
@@ -88,7 +81,6 @@ function mkStyles(C: AppColors) {
     item:         { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t1 },
     link:         { fontFamily: Fonts.semiBold, fontSize: 13.5, color: C.red, marginTop: 12 },
     error:        { fontFamily: Fonts.regular, fontSize: 13, color: C.danger, marginTop: 10 },
-    primary:      { height: 48, borderRadius: 14, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
     primaryTxt:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.bg },
     secondary:    { height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
     secondaryTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t2 },

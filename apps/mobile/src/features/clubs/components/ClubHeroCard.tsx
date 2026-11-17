@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import type { Club } from '../types';
 
@@ -24,7 +24,10 @@ const TILE = [
   { bg: '#DCEBC8', fg: '#2F4D12' }, { bg: '#E4E1F8', fg: '#3C3577' },
   { bg: '#FDF0DF', fg: '#7A5525' }, { bg: '#17181A', fg: '#C9F06B' },
 ];
-export function ClubInitialsTile({ name, size = 52 }: { name: string; size?: number }) {
+export function ClubInitialsTile({ name, size = 52, uri }: { name: string; size?: number; uri?: string | null }) {
+  if (uri) {
+    return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: '#EEF0EA' }} accessibilityIgnoresInvertColors />;
+  }
   let h = 0;
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const t = TILE[h % TILE.length];
@@ -55,7 +58,7 @@ export const ClubHeroCard = React.memo(function ClubHeroCard({ club, rank, varia
     return (
       <Pressable style={({ pressed }) => [s.card, pressed && s.pressed]} onPress={onPress}
         accessibilityRole="button" accessibilityLabel={`${club.name}, ${meta}`}>
-        <ClubInitialsTile name={club.name} size={44} />
+        <ClubInitialsTile name={club.name} size={44} uri={club.avatar_url} />
         <View style={{ flex: 1 }}>
           <Text style={s.cardName} numberOfLines={1}>{club.name}</Text>
           <Text style={s.cardMeta} numberOfLines={1}>{standing ? `${meta} · ${standing}` : meta}</Text>
@@ -71,7 +74,7 @@ export const ClubHeroCard = React.memo(function ClubHeroCard({ club, rank, varia
         <View style={s.rankChip}><Text style={s.rankText}>{standing}</Text></View>
       )}
       <View style={s.heroRow}>
-        <ClubInitialsTile name={club.name} size={52} />
+        <ClubInitialsTile name={club.name} size={52} uri={club.avatar_url} />
         <View style={{ flex: 1 }}>
           <Text style={s.heroName} numberOfLines={1}>{club.name}</Text>
           <Text style={s.heroMeta} numberOfLines={1}>{meta}</Text>

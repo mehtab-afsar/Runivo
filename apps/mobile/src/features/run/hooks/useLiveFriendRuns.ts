@@ -14,6 +14,9 @@ export interface LiveFriendRunner {
   updatedAt: number;
   username: string;
   avatarColor: string;
+  startedAt?: number;
+  distanceM?: number;
+  elapsedSec?: number;
 }
 
 // Safety net: if a runner's app crashes/loses network without ever clearing
@@ -55,6 +58,7 @@ export function useLiveFriendRuns() {
         lat: pos.lat,
         lng: pos.lng,
         updatedAt: pos.updatedAt,
+        startedAt: pos.startedAt, distanceM: pos.distanceM, elapsedSec: pos.elapsedSec,
         username: profile?.username ?? 'Runner',
         avatarColor: profile?.avatarColor ?? friendColor(pos.userId),
       },
@@ -81,6 +85,7 @@ export function useLiveFriendRuns() {
         const profile = profileCacheRef.current.get(p.userId);
         return [p.userId, {
           userId: p.userId, lat: p.lat, lng: p.lng, updatedAt: p.updatedAt,
+          startedAt: p.startedAt, distanceM: p.distanceM, elapsedSec: p.elapsedSec,
           username: profile?.username ?? 'Runner',
           avatarColor: profile?.avatarColor ?? friendColor(p.userId),
         }];

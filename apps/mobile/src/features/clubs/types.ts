@@ -13,6 +13,9 @@ export interface Club {
   distance_km?: number | null;
   /** Approximate area name the owner set, if any. */
   city?: string | null;
+  /** Club picture and cover (club-media bucket, 20261117000010). */
+  avatar_url?: string | null;
+  banner_url?: string | null;
 }
 
 /** Clubs for the "Near you" list: nearby ones, or the most popular as a fallback. */

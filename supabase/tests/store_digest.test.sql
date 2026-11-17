@@ -13,9 +13,10 @@ CREATE FUNCTION pg_temp.as_user(u uuid) RETURNS void LANGUAGE sql AS $$
   SELECT set_config('test.uid', u::text, true), set_config('test.role', 'authenticated', true) $$;
 SET LOCAL runivo.trusted_writer = 'on';
 INSERT INTO auth.users (id, email) VALUES ('a9000000-0000-4000-8000-000000000001', 'sd-a@example.com') ON CONFLICT (id) DO NOTHING;
-INSERT INTO public.profiles (id, username, pace_balance, timezone, last_run_date) VALUES
-  ('a9000000-0000-4000-8000-000000000001', 'sda', 500, 'UTC', current_date)
-ON CONFLICT (id) DO UPDATE SET pace_balance = 500, timezone = 'UTC', last_run_date = current_date;
+-- Store nudges are promotional, so the runner has opted in to offers.
+INSERT INTO public.profiles (id, username, pace_balance, timezone, last_run_date, offers_enabled) VALUES
+  ('a9000000-0000-4000-8000-000000000001', 'sda', 500, 'UTC', current_date, true)
+ON CONFLICT (id) DO UPDATE SET pace_balance = 500, timezone = 'UTC', last_run_date = current_date, offers_enabled = true;
 INSERT INTO public.pace_store_rewards (id, brand, title, description, pace_cost, value_label, category, status, expires_at, code_mode)
 VALUES ('a9100000-0000-4000-8000-0000000000f1', 'Acme', 'Free socks', 'Socks', 200, 'Free socks', 'gear', 'available', now() + interval '2 days', 'pool');
 INSERT INTO public.reward_codes (reward_id, code) VALUES ('a9100000-0000-4000-8000-0000000000f1', 'SOCKS-1');

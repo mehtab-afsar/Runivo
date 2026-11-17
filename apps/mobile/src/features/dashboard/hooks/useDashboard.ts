@@ -5,6 +5,7 @@ import type { StoredRun } from '@shared/services/store';
 import type { TerritoryPolygon } from '@shared/types/game';
 import type { Mission } from '@shared/services/missions';
 import { computeFreshness, computeTerritoryScore } from '@shared/services/claimEngine';
+import { weeklyPaceNow } from '@shared/engine/runEngine';
 import { weeklyCapFor } from '@shared/engine/runEngine';
 import { supabase } from '@shared/services/supabase';
 import { claimMissionReward } from '@shared/services/missionStore';
@@ -118,9 +119,9 @@ export function useDashboard() {
   const weeklyCapLimit = weeklyCapFor(subscriptionTier);
 
   const pacePct = useMemo(() => {
-    const earned = player?.paceWeeklyEarned ?? 0;
+    const earned = weeklyPaceNow(player?.paceWeeklyEarned, player?.paceWeeklyResetAt);
     return weeklyCapLimit > 0 ? Math.min(100, (earned / weeklyCapLimit) * 100) : 0;
-  }, [player?.paceWeeklyEarned, weeklyCapLimit]);
+  }, [player?.paceWeeklyEarned, player?.paceWeeklyResetAt, weeklyCapLimit]);
 
   const { ownedCount, staleCount, avgFreshness, totalAreaM2, territoryScore, lowestFreshness } = useMemo(() => {
     const owned = player ? territories.filter(t => t.ownerId === player.id) : [];

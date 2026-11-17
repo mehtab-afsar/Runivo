@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, SectionList, Pressable, Platform, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, SectionList, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Bell, ArrowLeft } from 'phosphor-react-native';
+import { Bell } from 'phosphor-react-native';
 import { useNotifications } from '../hooks/useNotifications';
 import { NotifItem, type NotifAction } from '../components/NotifItem';
 import { routeNotificationUrl } from '../services/notificationHandler';
@@ -13,6 +13,7 @@ import type { AppNotification } from '../types';
 import { supabase } from '@shared/services/supabase';
 import { fetchFollowingIds, toggleFollowService } from '@features/social/services/feedService';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -66,17 +67,13 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8} accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Notifications</Text>
-        {unreadCount > 0 ? (
-          <Pressable onPress={markAllRead} hitSlop={8} style={s.markAll} accessibilityRole="button">
-            <Text style={s.markAllText}>Read all</Text>
-          </Pressable>
-        ) : <View style={{ width: 44 }} />}
-      </View>
+      <ScreenHeader title="Notifications" onBack={() => navigation.goBack()} right={<>
+          {unreadCount > 0 ? (
+            <Pressable onPress={markAllRead} hitSlop={8} style={s.markAll} accessibilityRole="button">
+              <Text style={s.markAllText}>Read all</Text>
+            </Pressable>
+          ) : <View style={{ width: 44 }} />}
+        </>} />
 
       <SectionList
         sections={sections}
@@ -113,12 +110,9 @@ export default function NotificationsScreen() {
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.card },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
-  backBtn:     { width: 44, height: 44, borderRadius: 22, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   markAll:     { backgroundColor: C.bg, borderRadius: 20, paddingHorizontal: 14, height: 40, justifyContent: 'center' },
   section:     { fontFamily: Fonts.medium, fontSize: 14, color: C.t2, paddingTop: 12, paddingBottom: 10, paddingHorizontal: 2 },
   markAllText: { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
-  title: { fontFamily: Fonts.medium, fontSize: 21, color: C.t1, flex: 1, textAlign: 'center' },
   list:        { paddingHorizontal: 20, paddingBottom: 100 },
   empty:       { alignItems: 'center' as const, paddingVertical: 64 },
   emptyIcon:   { width: 64, height: 64, borderRadius: 32, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },

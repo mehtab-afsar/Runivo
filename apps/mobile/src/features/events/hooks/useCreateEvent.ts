@@ -15,11 +15,11 @@ export interface CreateEventForm {
 }
 
 const EVENT_TYPES = [
-  { value: 'community-run',   label: 'Community Run' },
+  { value: 'community-run',   label: 'Group run' },
   { value: 'race',            label: 'Race' },
   { value: 'challenge',       label: 'Challenge' },
-  { value: 'brand-challenge', label: 'Brand Challenge' },
-  { value: 'survival',        label: 'Survival Run' },
+  { value: 'brand-challenge', label: 'Brand challenge' },
+  { value: 'survival',        label: 'Survival run' },
 ];
 
 export { EVENT_TYPES };

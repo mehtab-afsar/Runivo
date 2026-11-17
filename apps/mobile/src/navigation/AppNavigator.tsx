@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import FriendLiveScreen from '@features/cheers/FriendLiveScreen';
+import '@features/social/services/inviteLink';
 import { Linking } from 'react-native';
 import { CustomTabBar } from './CustomTabBar';
 import { CoachNavProvider } from './CoachNavContext';
@@ -40,6 +42,7 @@ import BlockedRunnersScreen     from '@features/settings/screens/BlockedRunnersS
 import PrivacyScreen            from '@features/settings/screens/PrivacyScreen';
 import TrainingPlanScreen       from '@features/training/screens/TrainingPlanScreen';
 import PlanBuilderScreen        from '@features/training/screens/PlanBuilderScreen';
+import PlanSessionScreen        from '@features/training/screens/PlanSessionScreen';
 import CoachScreen           from '@features/coach/screens/CoachScreen';
 import EventsScreen          from '@features/events/screens/EventsScreen';
 import CreateEventScreen     from '@features/events/screens/CreateEventScreen';
@@ -54,7 +57,6 @@ import GearScreen            from '@features/gear/screens/GearScreen';
 import GearAddScreen         from '@features/gear/screens/GearAddScreen';
 import FootScanScreen        from '@features/gear/screens/FootScanScreen';
 import type { PaywallReason } from '@shared/engine/entitlements';
-import type { RaceDistance } from '@shared/engine/training';
 import type { TargetZone } from '@shared/engine/targetZone';
 import SubscriptionScreen    from '@features/subscription/screens/SubscriptionScreen';
 import LandingScreen         from '@features/auth/screens/LandingScreen';
@@ -128,7 +130,7 @@ export type RootStackParamList = {
   Events:    undefined;
   CreateEvent: undefined;
   Club:      undefined;
-  ClubDetail: { clubId: string; clubName: string; badgeEmoji: string; memberCount: number; totalKm: number; description?: string };
+  ClubDetail: { clubId: string; clubName: string; badgeEmoji: string; memberCount: number; totalKm: number; description?: string; compose?: boolean };
   Challenges: undefined;
   ChallengeDetail: { id: string };
   Leaderboard: undefined;
@@ -141,7 +143,13 @@ export type RootStackParamList = {
   BlockedRunners:    undefined;
   Privacy:           undefined;
   TrainingPlan:      undefined;
-  PlanBuilder:       { race?: RaceDistance; raceDate?: string; raceName?: string; fromOnboarding?: boolean } | undefined;
+  PlanSession:       { sessionId: string };
+  /** Plan setup. eventId: start on that curated race's page; prefill: answers from onboarding. */
+  PlanBuilder:       {
+    eventId?: string;
+    fromOnboarding?: boolean;
+    prefill?: { runDays?: number[]; longRunDay?: number; fiveKSec?: number | null; weeklyKm?: number | null; cautious?: boolean };
+  } | undefined;
   Gear:      undefined;
   GearAdd:   undefined;
   FootScan:  undefined;
@@ -152,7 +160,7 @@ export type RootStackParamList = {
   // username is optional — deep links from push notifications (e.g. a new-follower
   // push) only carry the userId; the screen fetches the rest itself.
   UserProfile: { userId: string; username?: string };
-  ProfileStats: { sport?: 'all' | 'run' | 'walk' | 'ride' } | undefined;
+  ProfileStats: { sport?: 'all' | 'run' | 'walk' | 'hike' | 'ride' } | undefined;
   TrainingLog: undefined;
   Strength: undefined;
   LogTreadmill: undefined;
@@ -167,6 +175,7 @@ export type RootStackParamList = {
   YearInRunivo: { year?: number } | undefined;
   MyFeed: undefined;
   Feed: { search?: boolean } | undefined;
+  FriendLive: { userId: string; username?: string };
   RunReplay: {
     runId: string;
     route: { lat: number; lng: number }[];
@@ -258,6 +267,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       UserProfile:       'runner/:userId',
       TrainingPlan:      'training',
       PlanBuilder:       'training/new',
+      PlanSession:       'training/session/:sessionId',
       RunSummary:    'run/summary/:runId',
       AwardDetail:   'award/:awardId',
     },
@@ -345,6 +355,7 @@ export function AppNavigator({
             <Stack.Screen name="Privacy"           component={PrivacyScreen} />
             <Stack.Screen name="TrainingPlan"      component={TrainingPlanScreen} />
             <Stack.Screen name="PlanBuilder"       component={PlanBuilderScreen} />
+            <Stack.Screen name="PlanSession"       component={PlanSessionScreen} />
             <Stack.Screen name="Gear"            component={FEATURES.GEAR_TRACKING ? GearScreen    : comingSoon(FEATURE_LABELS.GEAR_TRACKING!)} />
             <Stack.Screen name="GearAdd"         component={FEATURES.GEAR_TRACKING ? GearAddScreen  : comingSoon(FEATURE_LABELS.GEAR_TRACKING!)} />
             <Stack.Screen name="FootScan"        component={FEATURES.GEAR_TRACKING ? FootScanScreen : comingSoon(FEATURE_LABELS.GEAR_TRACKING!)} />
@@ -365,6 +376,7 @@ export function AppNavigator({
             <Stack.Screen name="LogTreadmill"    component={LogTreadmillScreen} />
             <Stack.Screen name="RunReplay"       component={RunReplayScreen}   options={{ headerShown: false }} />
             <Stack.Screen name="MyFeed"          component={MyFeedScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="FriendLive"      component={FriendLiveScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Feed"            component={FEATURES.SOCIAL_FEED ? FeedScreen : comingSoon(FEATURE_LABELS.SOCIAL_FEED!)} options={{ headerShown: false }} />
           </>
         )}

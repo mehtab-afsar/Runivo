@@ -1,7 +1,7 @@
 /** Club runs (PRD C1): upcoming group runs with RSVP; owners and admins schedule them. */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
-import { CalendarBlank, MapPin, Check, MapTrifold } from 'phosphor-react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Modal } from 'react-native';
+import { CalendarBlank, MapPin, Check, MapTrifold, PersonSimpleRun, Hexagon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -9,8 +9,10 @@ import { getSavedRoutes, type StoredSavedRoute } from '@shared/services/store';
 import * as Location from 'expo-location';
 import { createTerritoryEvent } from '@features/events/services/eventService';
 import { useTheme, Fonts, type AppColors } from '@theme';
-import { toggleEventJoin } from '@features/events/services/eventService';
+import { FormScreen, FormField, ChipGroup, ChoiceCards, FormButton } from '@mobile/shared/components/form/FormKit';
+import { cancelEvent, toggleEventJoin } from '@features/events/services/eventService';
 import { fetchClubRuns, scheduleClubRun, type ClubRun } from '../services/clubService';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 const TIMES = ['06:00', '06:30', '07:00', '17:30', '18:00', '18:30', '19:00'];
 const WEEKS = [1, 4, 8, 12];
@@ -80,83 +82,72 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
     }
   };
 
+  // Club owners/admins can cancel a run that hasn't started; people going are told.
+  const cancelRun = (r: { id: string; title: string; going: number }) => {
+    Alert.alert(`Cancel ${r.title}?`, `${r.going} going will be told. You can’t undo this.`, [
+      { text: 'Keep it', style: 'cancel' },
+      { text: 'Cancel run', style: 'destructive', onPress: async () => {
+        try {
+          const res = await cancelEvent(r.id);
+          if (res !== 'cancelled') Alert.alert(res === 'started' ? 'It has already started' : "You can't cancel this run");
+        } catch { Alert.alert("Couldn't cancel the run", 'Check your connection and try again.'); }
+        load();
+      } },
+    ]);
+  };
+
   return (
     <ScrollView contentContainerStyle={s.content}>
       {canSchedule && !form && (
-        <Pressable style={s.cta} onPress={() => setForm(true)} accessibilityRole="button">
-          <Text style={s.ctaTxt}>Schedule a club run</Text>
-        </Pressable>
+        <PrimaryButton label="Schedule a club run" onPress={() => setForm(true)} fullWidth style={{ marginBottom: 4 }} />
       )}
 
-      {form && (
-        <View style={s.card}>
-          <View style={s.chips}>
-            <Pressable hitSlop={8} style={[s.chip, !territory && s.chipOn]} onPress={() => setTerritory(false)}><Text style={[s.chipTxt, !territory && s.chipTxtOn]}>Club run</Text></Pressable>
-            <Pressable hitSlop={8} style={[s.chip, territory && s.chipOn]} onPress={() => { setTerritory(true); if (title === 'Club run') setTitle('Territory hour'); }}><Text style={[s.chipTxt, territory && s.chipTxtOn]}>Territory hour · double zone PACE</Text></Pressable>
-          </View>
-          <Text style={s.label}>Title</Text>
-          <TextInput style={s.input} value={title} onChangeText={setTitle} maxLength={60} />
-          <Text style={s.label}>Day</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
-            {days.map((d, i) => (
-              <Pressable hitSlop={8} key={i} style={[s.chip, day === i && s.chipOn]} onPress={() => setDay(i)}><Text style={[s.chipTxt, day === i && s.chipTxtOn]}>{dayLabel(d)}</Text></Pressable>
-            ))}
-          </ScrollView>
-          <Text style={s.label}>Time</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
-            {TIMES.map(t => (
-              <Pressable hitSlop={8} key={t} style={[s.chip, time === t && s.chipOn]} onPress={() => setTime(t)}><Text style={[s.chipTxt, time === t && s.chipTxtOn]}>{t}</Text></Pressable>
-            ))}
-          </ScrollView>
-          <Text style={s.label}>Meeting point</Text>
-          <TextInput style={s.input} value={place} onChangeText={setPlace} placeholder="e.g. Cubbon Park main gate" placeholderTextColor={C.t3} maxLength={80} />
-          {territory && (
+      {/* Schedule: a full page on the shared form kit, not a cramped inline card. */}
+      <Modal visible={form} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setForm(false)}>
+        <FormScreen
+          title="Schedule a"
+          accent={territory ? 'territory hour.' : 'club run.'}
+          subtitle={territory
+            ? 'Members earn double zone PACE inside the area while it runs.'
+            : 'It goes on the club calendar and members can say they\'re going.'}
+          onClose={() => setForm(false)}
+          footer={<FormButton label={territory ? 'Schedule territory hour' : weeks > 1 ? `Schedule ${weeks} weekly runs` : 'Schedule run'} onPress={schedule} disabled={!place.trim() || !title.trim()} busy={saving} />}
+        >
+          <ChoiceCards
+            options={[
+              { value: 'run', title: 'Club run', sub: 'Meet up, run together, optional route', Icon: PersonSimpleRun },
+              { value: 'territory', title: 'Territory hour', sub: 'Double zone PACE in an area for a set time', Icon: Hexagon },
+            ]}
+            value={territory ? 'territory' : 'run'}
+            onChange={v => { const t = v === 'territory'; setTerritory(t); if (t && title === 'Club run') setTitle('Territory hour'); if (!t && title === 'Territory hour') setTitle('Club run'); }}
+          />
+          <FormField label="Title" value={title} onChangeText={setTitle} maxLength={60} autoCapitalize="sentences" />
+          <ChipGroup label="Day" options={days.map((d, i) => ({ value: i, label: dayLabel(d) }))} value={day} onChange={setDay} wrap={false} />
+          <ChipGroup label="Start" options={TIMES.map(t => ({ value: t, label: t }))} value={time} onChange={setTime} wrap={false} />
+          <FormField label="Meeting point" value={place} onChangeText={setPlace} placeholder="Cubbon Park main gate" maxLength={80} />
+          {territory ? (
             <>
-              <Text style={s.label}>How long</Text>
-              <View style={s.chips}>
-                {[30, 60, 90].map(m => (
-                  <Pressable hitSlop={8} key={m} style={[s.chip, minutes === m && s.chipOn]} onPress={() => setMinutes(m)}><Text style={[s.chipTxt, minutes === m && s.chipTxtOn]}>{m} min</Text></Pressable>
-                ))}
-              </View>
-              <Text style={s.label}>Area around where you are now</Text>
-              <View style={s.chips}>
-                {[500, 800, 1500].map(r => (
-                  <Pressable hitSlop={8} key={r} style={[s.chip, radius === r && s.chipOn]} onPress={() => setRadius(r)}><Text style={[s.chipTxt, radius === r && s.chipTxtOn]}>{r >= 1000 ? `${r / 1000} km` : `${r} m`}</Text></Pressable>
-                ))}
-              </View>
+              <ChipGroup label="How long" options={[30, 60, 90].map(m => ({ value: m, label: `${m} min` }))} value={minutes} onChange={setMinutes} />
+              <ChipGroup label="Area around where you are now" options={[500, 800, 1500].map(r => ({ value: r, label: r >= 1000 ? `${r / 1000} km` : `${r} m` }))} value={radius} onChange={setRadius} />
+            </>
+          ) : (
+            <>
+              <FormField label="Distance (km)" optional value={km} onChangeText={setKm} keyboardType="decimal-pad" placeholder="10" maxLength={5} />
+              {routes.length > 0 && (
+                <ChipGroup
+                  label="Route"
+                  optional
+                  options={[{ value: '', label: 'None' }, ...routes.map(r => ({ value: r.id, label: `${r.emoji} ${r.name} · ${(r.distanceM / 1000).toFixed(1)} km` }))]}
+                  value={routeId ?? ''}
+                  onChange={v => setRouteId(v || null)}
+                  wrap={false}
+                />
+              )}
+              <ChipGroup label="Repeat weekly" options={WEEKS.map(w => ({ value: w, label: w === 1 ? 'Once' : `${w} weeks` }))} value={weeks} onChange={setWeeks} />
             </>
           )}
-          {!territory && <>
-          <Text style={s.label}>Distance (km, optional)</Text>
-          <TextInput style={s.input} value={km} onChangeText={setKm} keyboardType="decimal-pad" placeholder="10" placeholderTextColor={C.t3} maxLength={5} />
-          {routes.length > 0 && (
-            <>
-              <Text style={s.label}>Route (optional, from your saved routes)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chips}>
-                <Pressable hitSlop={8} style={[s.chip, !routeId && s.chipOn]} onPress={() => setRouteId(null)}><Text style={[s.chipTxt, !routeId && s.chipTxtOn]}>None</Text></Pressable>
-                {routes.map(r => (
-                  <Pressable hitSlop={8} key={r.id} style={[s.chip, routeId === r.id && s.chipOn]} onPress={() => setRouteId(r.id)}>
-                    <Text style={[s.chipTxt, routeId === r.id && s.chipTxtOn]} numberOfLines={1}>{r.emoji} {r.name} · {(r.distanceM / 1000).toFixed(1)} km</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </>
-          )}
-          <Text style={s.label}>Repeat weekly</Text>
-          <View style={s.chips}>
-            {WEEKS.map(w => (
-              <Pressable hitSlop={8} key={w} style={[s.chip, weeks === w && s.chipOn]} onPress={() => setWeeks(w)}><Text style={[s.chipTxt, weeks === w && s.chipTxtOn]}>{w === 1 ? 'Once' : `${w} weeks`}</Text></Pressable>
-            ))}
-          </View>
-          </>}
-          <View style={s.formBtns}>
-            <Pressable style={s.secondary} onPress={() => setForm(false)}><Text style={s.secondaryTxt}>Cancel</Text></Pressable>
-            <Pressable style={[s.cta, { flex: 1, marginBottom: 0 }, (saving || !place.trim()) && { opacity: 0.5 }]} onPress={schedule} disabled={saving || !place.trim()}>
-              {saving ? <ActivityIndicator color={C.alwaysLight} /> : <Text style={s.ctaTxt}>Schedule</Text>}
-            </Pressable>
-          </View>
-        </View>
-      )}
+        </FormScreen>
+      </Modal>
 
       {runs === null ? <ActivityIndicator color={C.t2} style={{ marginTop: 24 }} />
         : runs.length === 0 ? <Text style={s.empty}>No club runs coming up.{canSchedule ? ' Schedule one so members can join.' : ''}</Text>
@@ -172,7 +163,9 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
               </Pressable>
             )}
             <View style={s.foot}>
-              <Text style={s.meta}>{r.going} going</Text>
+              <Pressable onLongPress={canSchedule ? () => cancelRun(r) : undefined} delayLongPress={400} disabled={!canSchedule}>
+                <Text style={s.meta}>{r.going} going{canSchedule ? ' · hold to cancel' : ''}</Text>
+              </Pressable>
               <Pressable style={[s.rsvp, r.isGoing && s.rsvpOn]} onPress={() => rsvp(r)} accessibilityRole="button" accessibilityState={{ selected: r.isGoing }}>
                 {r.isGoing && <Check size={13} color={C.bg} weight="bold" />}
                 <Text style={[s.rsvpTxt, r.isGoing && { color: C.bg }]}>{r.isGoing ? 'Going' : "I'm in"}</Text>
@@ -197,8 +190,6 @@ function mkStyles(C: AppColors) {
     rsvp:    { flexDirection: 'row', alignItems: 'center', gap: 5, height: 34, paddingHorizontal: 14, borderRadius: 17, borderWidth: 1, borderColor: C.border },
     rsvpOn:  { backgroundColor: C.t1, borderColor: C.t1 },
     rsvpTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
-    cta:     { height: 48, borderRadius: 14, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
-    ctaTxt:  { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
     label:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 12, marginBottom: 6 },
     input:   { backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 15, color: C.t1 },
     chips:   { flexDirection: 'row', gap: 6 },

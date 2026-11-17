@@ -1,19 +1,29 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Add a shoe, on the shared form kit (mock onboarding style).
+import React, { useState } from 'react';
+import { Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { RoadHorizon, Mountains, Flag, Sneaker } from 'phosphor-react-native';
 import { useGearAdd } from '@features/gear/hooks/useGearAdd';
 import { PhotoPicker } from '@features/gear/components/PhotoPicker';
-import { CATEGORIES } from '@features/gear/types';
-import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { CATEGORIES, type ShoeCategory } from '@features/gear/types';
+import { FormScreen, FormField, ChoiceCards, ChipGroup, FormButton, FormTip } from '@mobile/shared/components/form/FormKit';
+import { useTheme, Fonts } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+const ICON: Record<ShoeCategory, typeof RoadHorizon> = { road: RoadHorizon, trail: Mountains, track: Flag, casual: Sneaker };
+const SUB: Record<ShoeCategory, string> = {
+  road: 'Daily trainers and racers · about 700 km',
+  trail: 'Lugs and rock plates · about 500 km',
+  track: 'Spikes · about 400 km',
+  casual: 'Walking and everyday · about 800 km',
+};
+const LIFE: Record<ShoeCategory, string> = { road: '700', trail: '500', track: '400', casual: '800' };
+
 export default function GearAddScreen() {
   const C = useTheme();
-  const ga = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const {
     brand, model, nickname, category, maxKm, photoUri, setPhotoUri,
@@ -23,73 +33,39 @@ export default function GearAddScreen() {
 
   const handleSave = async () => {
     setError('');
-    const ok = await submit();
-    if (ok) { navigation.goBack(); } else { setError('Failed to save shoe. Please try again.'); }
+    if (await submit()) navigation.goBack();
+    else setError('Check your connection and try again.');
   };
 
   return (
-    <SafeAreaView style={ga.root}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={ga.header}>
-          <Pressable onPress={() => navigation.goBack()} style={ga.backBtn}><Text style={ga.backText}>←</Text></Pressable>
-          <Text style={ga.title}>Add Shoe</Text>
-          <View style={{ width: 32 }} />
-        </View>
-        <ScrollView contentContainerStyle={ga.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <PhotoPicker uri={photoUri} onPick={setPhotoUri} />
-          {uploadingPhoto && <Text style={ga.hint}>Uploading photo…</Text>}
-
-          <Text style={ga.label}>Brand</Text>
-          <TextInput style={ga.input} value={brand} onChangeText={v => updateField('brand', v)} placeholder="Nike, Adidas, Asics..." placeholderTextColor={C.t3} maxLength={40} />
-
-          <Text style={ga.label}>Model</Text>
-          <TextInput style={ga.input} value={model} onChangeText={v => updateField('model', v)} placeholder="Pegasus 41, Gel-Nimbus 26..." placeholderTextColor={C.t3} maxLength={60} />
-
-          <Text style={ga.label}>Nickname — optional</Text>
-          <TextInput style={ga.input} value={nickname} onChangeText={v => updateField('nickname', v)} placeholder="My fast shoes" placeholderTextColor={C.t3} maxLength={40} />
-
-          <Text style={ga.label}>Category</Text>
-          <View style={ga.catGrid}>
-            {CATEGORIES.map(cat => (
-              <Pressable key={cat.value} style={[ga.catBtn, category === cat.value && ga.catBtnActive]} onPress={() => updateCategory(cat.value)}>
-                <Text style={{ fontSize: 18 }}>{cat.emoji}</Text>
-                <Text style={[ga.catLabel, category === cat.value && ga.catLabelActive]}>{cat.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={ga.label}>Max mileage (km)</Text>
-          <TextInput style={ga.input} value={maxKm} onChangeText={v => updateField('maxKm', v)} placeholder="700" placeholderTextColor={C.t3} keyboardType="numeric" maxLength={5} />
-          <Text style={ga.hint}>Typical: road 700 km · trail 500 km · track 400 km</Text>
-
-          {error ? <Text style={ga.error}>{error}</Text> : null}
-
-          <Pressable style={[ga.saveBtn, !isValid && ga.saveBtnDisabled]} onPress={handleSave} disabled={!isValid || submitting}>
-            {submitting ? <ActivityIndicator size="small" color={C.alwaysLight} /> : <Text style={ga.saveLabel}>Add Shoe</Text>}
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <FormScreen
+      title="Add"
+      accent="shoes."
+      subtitle="Every run you record adds to their kilometres, and we'll tell you when they're worn out."
+      onClose={() => navigation.goBack()}
+      closeIcon="back"
+      footer={<>
+        {!!error && <FormTip lead="Couldn't save them.">{error}</FormTip>}
+        <FormButton label="Add shoes" onPress={handleSave} disabled={!isValid} busy={submitting} />
+      </>}
+    >
+      <PhotoPicker uri={photoUri} onPick={setPhotoUri} />
+      {uploadingPhoto && <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: C.t2 }}>Uploading photo…</Text>}
+      <FormField label="Brand" value={brand} onChangeText={v => updateField('brand', v)} placeholder="Nike, Asics, Hoka…" maxLength={40} autoCapitalize="words" />
+      <FormField label="Model" value={model} onChangeText={v => updateField('model', v)} placeholder="Pegasus 41" maxLength={60} autoCapitalize="words" />
+      <FormField label="Nickname" optional value={nickname} onChangeText={v => updateField('nickname', v)} placeholder="Race day pair" maxLength={40} />
+      <ChoiceCards
+        label="Type"
+        options={CATEGORIES.map(c => ({ value: c.value, title: c.label, sub: SUB[c.value], Icon: ICON[c.value] }))}
+        value={category}
+        onChange={v => { updateCategory(v); updateField('maxKm', LIFE[v]); }}
+      />
+      <ChipGroup
+        label="Retire them at"
+        options={['400', '500', '600', '700', '800', '1000'].map(k => ({ value: k, label: `${k} km` }))}
+        value={maxKm}
+        onChange={v => updateField('maxKm', v)}
+      />
+    </FormScreen>
   );
 }
-
-function mkStyles(C: AppColors) { return StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-  backBtn: { width: 32 },
-  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-  title: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
-  content: { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
-  label: { ...Type.overline, color: C.t3, marginTop: 14, marginBottom: 6 },
-  input: { backgroundColor: C.card, borderRadius: 10, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.black },
-  catGrid: { flexDirection: 'row', gap: 8 },
-  catBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: C.card, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', gap: 4 },
-  catBtnActive: { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
-  catLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
-  catLabelActive: { color: C.alwaysLight, fontFamily: Fonts.medium },
-  hint: { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 4 },
-  error: { fontFamily: Fonts.regular, fontSize: 12, color: C.danger, marginTop: 8 },
-  saveBtn: { backgroundColor: C.alwaysDark, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 20 },
-  saveBtnDisabled: { opacity: 0.4 },
-  saveLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
-}); }

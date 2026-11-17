@@ -1,15 +1,16 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Platform, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Plus } from 'phosphor-react-native';
+import { Plus } from 'phosphor-react-native';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import { useShoeTracker } from '@features/gear/hooks/useShoeTracker';
 import { ShoeCard } from '@features/gear/components/ShoeCard';
 import type { StoredShoe } from '@shared/services/store';
 import { useToast } from '@mobile/shared/hooks/useToast';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -37,22 +38,18 @@ export default function GearScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Gear</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {/* V1.1 — foot scan
-          <Pressable onPress={() => navigation.navigate('FootScan')} style={[s.addBtn, { backgroundColor: C.purple }]}>
-            <Footprints size={14} color="#fff" strokeWidth={1.5} />
-          </Pressable>
-          */}
-          <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Add shoes">
-            <Plus size={16} color={C.alwaysLight} weight="bold" />
-          </Pressable>
-        </View>
-      </View>
+      <ScreenHeader title="Gear" onBack={() => navigation.goBack()} right={<>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {/* V1.1 — foot scan
+            <Pressable onPress={() => navigation.navigate('FootScan')} style={[s.addBtn, { backgroundColor: C.purple }]}>
+              <Footprints size={14} color="#fff" strokeWidth={1.5} />
+            </Pressable>
+            */}
+            <Pressable onPress={() => navigation.navigate('GearAdd')} style={s.addBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Add shoes">
+              <Plus size={16} color={C.alwaysLight} weight="bold" />
+            </Pressable>
+          </View>
+        </>} />
 
       {loading ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -101,9 +98,6 @@ export default function GearScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:          { flex: 1, backgroundColor: C.stone },
-    header:        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn:       { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:         { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     addBtn:        { width: 32, height: 32, borderRadius: 8, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
     list:          { paddingHorizontal: Spacing.gutter, paddingTop: 8, paddingBottom: 100, gap: 10 },
     empty:         { alignItems: 'center', paddingVertical: 48 },

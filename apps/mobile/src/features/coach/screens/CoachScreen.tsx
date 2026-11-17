@@ -4,7 +4,7 @@ import { SafetyNote } from '@mobile/shared/components/SafetyNote';
 import { useAiConsent } from '../hooks/useAiConsent';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Platform, KeyboardAvoidingView,
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -19,7 +19,8 @@ import { useCoachNav } from '@navigation/CoachNavContext';
 import { useCoachChat } from '../hooks/useCoachChat';
 import { useActivePlan } from '../hooks/useActivePlan';
 import { requestPostRunAnalysis } from '../services/coachService';
-import { ApprovePlanSheet } from '../components/ApprovePlanSheet';
+import { CoachSessionCard } from '../components/CoachSessionCard';
+import { parseCoachReply } from '@shared/engine/coachSession';
 import { CoachSidebar } from '../components/CoachSidebar';
 import { PaceAutoCard } from '../components/PaceAutoCard';
 import { MessageBubble } from '../components/MessageBubble';
@@ -77,7 +78,6 @@ function CoachScreenInner() {
   const [chatVisible,         setChatVisible]         = useState(false);
   const [atStart,             setAtStart]             = useState(true);
   const [capabilitiesVisible, setCapabilitiesVisible] = useState(false);
-  const [planFormVisible,     setPlanFormVisible]     = useState(false);
   const [playerName,          setPlayerName]          = useState('Runner');
 
   useFocusEffect(
@@ -172,12 +172,6 @@ function CoachScreenInner() {
     openChatWithPrompt(message);
   }, [openChatWithPrompt, coach, requestPostRunDebrief, requestWeeklyReview]);
 
-  const handlePlanApproved = useCallback(async () => {
-    await planData.reload();
-    setPlanFormVisible(false);
-    navigation.navigate('TrainingPlan');
-  }, [planData, navigation]);
-
   const scrollRef = useRef<ScrollView>(null);
   const chips: { label: string; message: string }[] = coach.quickPrompts.length > 0
     ? coach.quickPrompts.slice(0, 4)
@@ -210,22 +204,6 @@ function CoachScreenInner() {
         onSelectCapability={handleCapabilitySelect}
       />
 
-      <Modal visible={planFormVisible} animationType="slide" onRequestClose={() => setPlanFormVisible(false)} presentationStyle="pageSheet">
-        <SafeAreaView style={s.root}>
-          <View style={s.header}>
-            <Text style={s.sheetTitle}>Your plan from PaceX</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close" style={s.backBtn} onPress={() => setPlanFormVisible(false)} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
-              <X size={16} color={C.t2} weight="bold" />
-            </Pressable>
-          </View>
-          <View style={{ flex: 1 }}>
-            <ApprovePlanSheet
-              onApproved={handlePlanApproved}
-              onChangeDetails={race => { setPlanFormVisible(false); navigation.navigate('PlanBuilder', race ? { race: race as never } : undefined); }}
-            />
-          </View>
-        </SafeAreaView>
-      </Modal>
     </>
   );
 
@@ -234,11 +212,11 @@ function CoachScreenInner() {
   const started = !atStart || coach.sending;
   const firstName = (playerName || 'there').split(/[._\s]/)[0];
   const ask = (o: (typeof START_OPTIONS)[number]) => {
-    if (o.plan) { setPlanFormVisible(true); return; }
+    if (o.plan) { navigation.navigate(hasActivePlan ? 'TrainingPlan' : 'PlanBuilder'); return; }
     setAtStart(false);
     coach.sendMessage(o.message);
   };
-  const openPlan = () => (hasActivePlan ? navigation.navigate('TrainingPlan') : setPlanFormVisible(true));
+  const openPlan = () => navigation.navigate(hasActivePlan ? 'TrainingPlan' : 'PlanBuilder');
 
   const inputRow = (big: boolean) => (
     <View style={s.inputRow}>
@@ -365,7 +343,16 @@ function CoachScreenInner() {
             }
             return m.role === 'user'
               ? <View key={m.id} style={s.userBubble}><Text style={s.userText}>{m.content}</Text></View>
-              : <View key={m.id} style={s.coachBubble}><Text style={s.coachText}>{m.content}</Text></View>;
+              : (() => {
+                  // PaceX may end a reply with a <session> card (mock PaceXChat).
+                  const r = parseCoachReply(m.content);
+                  return (
+                    <View key={m.id}>
+                      <View style={s.coachBubble}><Text style={s.coachText}>{r.text}</Text></View>
+                      {r.session && <CoachSessionCard session={r.session} />}
+                    </View>
+                  );
+                })();
           })}
           {coach.sending && <View style={s.coachBubbleWrap}><TypingIndicator /></View>}
           {coach.error && (
@@ -400,8 +387,6 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
     header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.gutter, paddingVertical: 10 },
-    backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    sheetTitle:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     // Start
     startRoot:    { flex: 1, backgroundColor: C.bg },
     startTop:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 },
@@ -412,7 +397,8 @@ function mkStyles(C: AppColors) {
     bigOrb:       { width: 128, height: 128, borderRadius: 64, shadowColor: '#9C92EA', shadowOpacity: 0.55, shadowRadius: 40, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
     startHi:      { fontFamily: Fonts.semiBold, fontSize: 34, lineHeight: 38, letterSpacing: -0.8, color: C.t1, textAlign: 'center', marginTop: 22 },
     startSub:     { fontFamily: Fonts.regular, fontSize: 15, color: '#55596A', textAlign: 'center', marginTop: 10 },
-    startChips:   { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 36 },
+    // alignSelf stretch: inside the centred scroll the row sized to its content and never wrapped, so the second row ran off the screen.
+    startChips:   { alignSelf: 'stretch', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 36 },
     startChip:    { height: 46, paddingHorizontal: 16, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.65)', flexDirection: 'row', alignItems: 'center', gap: 8 },
     startChipFirst: { backgroundColor: '#FFFFFF', shadowColor: '#3C3577', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 } },
     startChipTxt: { fontFamily: Fonts.regular, fontSize: 15, color: C.t1 },

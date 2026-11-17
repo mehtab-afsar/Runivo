@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, TextInput, ScrollView, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, ClipboardText, Check, X, Flag } from 'phosphor-react-native';
+import { ClipboardText, Check, X, Flag } from 'phosphor-react-native';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
+import { ClubImagesPicker } from '../components/ClubImagesPicker';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
 import { ChatInput } from '@features/clubs/components/ChatInput';
 import ClubRunsTab from '@features/clubs/components/ClubRunsTab';
@@ -23,6 +24,10 @@ import {
   getOrCreateClubLobby,
   reportClubMessage,
   deleteClubMessage,
+  fetchClubMedia,
+  uploadClubImage,
+  deleteClub,
+  leaveClub,
   removeClubMember,
   fetchClubReports,
   fetchClubOwnerId,
@@ -32,6 +37,7 @@ import {
 import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
 import type { ClubMember, ActivityItem, JoinRequest } from '@features/clubs/types';
 import { supabase } from '@shared/services/supabase';
+import { ScreenHeader, HeaderButton } from '@mobile/shared/components/ScreenHeader';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { RunnerFace } from '@mobile/shared/components/RunnerFace';
 import { ClubInitialsTile } from '../components/ClubHeroCard';
@@ -41,6 +47,7 @@ import { fetchClubFeed, toggleLike, deletePost } from '@features/social/services
 import { blockUser } from '@mobile/shared/services/safetyService';
 import { promptReport } from '@mobile/shared/lib/promptReport';
 import type { FeedPost } from '@features/social/types';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
@@ -146,8 +153,14 @@ export default function ClubDetailScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { clubId, clubName, badgeEmoji, memberCount, totalKm, description: initialDesc } = useRoute<Route>().params as any;
+  const { clubId, clubName, badgeEmoji, memberCount, totalKm, description: initialDesc, compose } = useRoute<Route>().params as any;
   const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(badgeEmoji);
+  const [media, setMedia] = useState<{ avatar: string | null; banner: string | null }>({ avatar: null, banner: null });
+  const changeMedia = async (kind: 'avatar' | 'banner', uri: string) => {
+    setMedia(m => ({ ...m, [kind]: uri }));
+    try { const url = await uploadClubImage(clubId, kind, uri); setMedia(m => ({ ...m, [kind]: url })); }
+    catch (e) { Alert.alert("Couldn't change it", e instanceof Error ? e.message : 'Try again.'); fetchClubMedia(clubId).then(setMedia).catch(() => {}); }
+  };
   const [tab, setTab] = useState<DetailTab>('chat');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | null>(null);
@@ -202,6 +215,7 @@ export default function ClubDetailScreen() {
         .maybeSingle();
       if (data) setCurrentUserRole(data.role as 'admin' | 'member');
       fetchClubOwnerId(clubId).then(setOwnerId).catch(() => {});
+      fetchClubMedia(clubId).then(setMedia).catch(() => {});
 
       const lobbyId = await getOrCreateClubLobby(clubId, clubName, user.id);
       setClubLobbyId(lobbyId);
@@ -258,6 +272,31 @@ export default function ClubDetailScreen() {
     else if (tab === 'activity') loadActivity();
     else if (tab === 'admin') loadRequests();
   }, [tab, loadMembers, loadLeaderboard, loadActivity, loadRequests]);
+
+  // ── Leave / delete ──────────────────────────────────────────────────────
+  const confirmLeave = () => {
+    Alert.alert(`Leave ${clubName}?`, 'You can join again later.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Leave', style: 'destructive', onPress: async () => {
+        const { error, result } = await leaveClub(clubId);
+        if (result === 'owner') { Alert.alert('You own this club', 'Owners can’t leave. Delete the club from the Admin tab instead.'); return; }
+        if (error) { Alert.alert("Couldn't leave the club", 'Check your connection and try again.'); return; }
+        navigation.goBack();
+      } },
+    ]);
+  };
+  const confirmDelete = () => {
+    Alert.alert(`Delete ${clubName}?`, 'This removes the club, its chat and its upcoming club runs for everyone. Members are told. You can’t undo this.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete club', style: 'destructive', onPress: async () => {
+        try {
+          const r = await deleteClub(clubId);
+          if (r === 'not_owner') { Alert.alert('Only the owner can delete the club'); return; }
+          navigation.goBack();
+        } catch { Alert.alert("Couldn't delete the club", 'Check your connection and try again.'); }
+      } },
+    ]);
+  };
 
   // ── Moderation ──────────────────────────────────────────────────────────
   const isModerator = currentUserRole === 'admin' || (!!ownerId && ownerId === currentUserId);
@@ -386,20 +425,14 @@ export default function ClubDetailScreen() {
   return (
     <SafeAreaView style={s.root}>
       {/* Header (mock): top bar, then the club centred with its member line. */}
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={[s.title, { flex: 1, textAlign: 'center' }]}>Club</Text>
-        {currentUserRole !== 'admin' ? (
-          <Pressable onPress={() => promptReport('club', clubId, 'club')} hitSlop={10} style={s.backBtn}
-            accessibilityRole="button" accessibilityLabel="Report this club">
-            <Flag size={16} color={C.t2} weight="regular" />
-          </Pressable>
-        ) : <View style={{ width: 36 }} />}
-      </View>
-      <View style={s.clubHero}>
-        <ClubInitialsTile name={clubName} size={72} />
+      <ScreenHeader title="Club" onBack={() => navigation.goBack()} right={currentUserRole !== 'admin' ? (
+        <HeaderButton onPress={() => promptReport('club', clubId, 'club')} label="Report this club">
+          <Flag size={16} color={C.t2} weight="regular" />
+        </HeaderButton>
+      ) : undefined} />
+      {!!media.banner && <Image source={{ uri: media.banner }} style={s.banner} resizeMode="cover" accessibilityIgnoresInvertColors />}
+      <View style={[s.clubHero, !!media.banner && { marginTop: -40 }]}>
+        <View style={!!media.banner && s.avatarRing}><ClubInitialsTile name={clubName} size={72} uri={media.avatar} /></View>
         <Text style={s.clubName} numberOfLines={2}>{clubName}</Text>
         <Text style={s.subLine} numberOfLines={1}>
           {memberCount} {memberCount === 1 ? 'member' : 'members'} · {Math.round(totalKm).toLocaleString()} km
@@ -407,13 +440,7 @@ export default function ClubDetailScreen() {
         </Text>
       </View>
 
-      <View style={s.seg}>
-        {tabs.map(t => (
-          <Pressable key={t.key} style={[s.segItem, tab === t.key && s.segItemOn]} onPress={() => setTab(t.key)}>
-            <Text style={[s.segLabel, tab === t.key && s.segLabelOn]} numberOfLines={1} adjustsFontSizeToFit>{t.label}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <Segmented variant="tabs" style={{ marginBottom: 8 }} options={tabs.map(t => ({ value: t.key, label: t.label }))} value={tab} onChange={setTab} />
 
       {/* Chat tab */}
       {tab === 'chat' && (
@@ -452,7 +479,7 @@ export default function ClubDetailScreen() {
           {!!chatError && messages.length > 0 && (
             <Text style={[s.emptyText, { color: C.danger, paddingHorizontal: 18, paddingBottom: 6 }]} accessibilityRole="alert">{chatError}</Text>
           )}
-          <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} placeholder={`Message ${clubName}`} />
+          <ChatInput value={inputText} onChange={setInputText} onSend={sendMessage} sending={sending} placeholder={`Message ${clubName}`} autoFocus={!!compose} />
         </KeyboardAvoidingView>
       )}
 
@@ -487,6 +514,11 @@ export default function ClubDetailScreen() {
                 <Text style={s.emptyTitle}>No members found</Text>
               </View>
             }
+            ListFooterComponent={!isOwner && members.some(m => m.id === currentUserId) ? (
+              <Pressable style={s.dangerRow} onPress={confirmLeave} accessibilityRole="button">
+                <Text style={s.dangerText}>Leave club</Text>
+              </Pressable>
+            ) : null}
           />
         )
       )}
@@ -566,6 +598,15 @@ export default function ClubDetailScreen() {
       {/* Admin tab */}
       {tab === 'admin' && (
         <ScrollView contentContainerStyle={s.adminContent} showsVerticalScrollIndicator={false}>
+          {/* Club picture and cover */}
+          <Text style={s.sectionLabel}>Club picture and cover</Text>
+          <ClubImagesPicker
+            avatar={media.avatar}
+            banner={media.banner}
+            onAvatar={u => changeMedia('avatar', u)}
+            onBanner={u => changeMedia('banner', u)}
+            initials={clubName.split(/\s+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]!.toUpperCase()).join('')}
+          />
           {/* Description edit */}
           <Text style={s.sectionLabel}>Club description</Text>
           <View style={s.adminCard}>
@@ -619,7 +660,7 @@ export default function ClubDetailScreen() {
                 </Pressable>
                 {canRemove(rep.authorId, members.find(x => x.id === rep.authorId)?.role) && (
                   <Pressable hitSlop={8} style={s.reportBtn} onPress={() => confirmRemove(rep.authorId, rep.authorUsername)} accessibilityRole="button">
-                    <Text style={[s.reportBtnTxt, { color: C.red }]}>Remove {rep.authorUsername}</Text>
+                    <Text style={[s.reportBtnTxt, { color: C.danger }]}>Remove {rep.authorUsername}</Text>
                   </Pressable>
                 )}
               </View>
@@ -648,10 +689,18 @@ export default function ClubDetailScreen() {
                   <Check size={14} color={C.green} weight="regular" />
                 </Pressable>
                 <Pressable style={s.rejectBtn} onPress={() => handleReject(req)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Decline ${req.username}`}>
-                  <X size={14} color={C.red} weight="regular" />
+                  <X size={14} color={C.danger} weight="regular" />
                 </Pressable>
               </View>
             ))
+          )}
+          {isOwner && (
+            <>
+              <Text style={[s.sectionLabel, { marginTop: 28 }]}>Danger zone</Text>
+              <Pressable style={s.dangerRow} onPress={confirmDelete} accessibilityRole="button">
+                <Text style={s.dangerText}>Delete club</Text>
+              </Pressable>
+            </>
           )}
         </ScrollView>
       )}
@@ -682,16 +731,11 @@ export default function ClubDetailScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:        { flex: 1, backgroundColor: C.bg },
-    header:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
-    backBtn:     { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
     subLine:     { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
+    banner:      { height: 120, marginHorizontal: Spacing.gutter, borderRadius: 22, backgroundColor: C.card },
+    avatarRing:  { borderWidth: 4, borderColor: C.bg, borderRadius: 26 },
     clubHero:    { alignItems: 'center', paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 14, gap: 6 },
     clubName:    { fontFamily: Fonts.semiBold, fontSize: 24, lineHeight: 29, color: C.t1, textAlign: 'center', marginTop: 6 },
-    seg:         { flexDirection: 'row', marginBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-    segItem:     { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 12, paddingBottom: 11, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    segItemOn:   { borderBottomColor: C.t1 },
-    segLabel:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
-    segLabelOn:  { fontFamily: Fonts.semiBold, color: C.t1 },
     backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     hero:        { marginHorizontal: Spacing.gutter, marginBottom: 12, backgroundColor: C.alwaysDark, borderRadius: Spacing.radius.xl, padding: 18 },
     heroTop:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -720,6 +764,8 @@ function mkStyles(C: AppColors) {
     // Admin
     adminContent:{ paddingHorizontal: Spacing.gutter, paddingTop: 16, paddingBottom: 100, gap: 0 },
     adminCard:   { backgroundColor: C.card, borderRadius: 24, padding: 16, marginBottom: 4 },
+    dangerRow:   { height: 52, borderRadius: 18, backgroundColor: C.card, alignItems: "center", justifyContent: "center", marginTop: 16 },
+    dangerText:  { fontFamily: Fonts.medium, fontSize: 15, color: C.danger },
     descInput:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, minHeight: 72, textAlignVertical: 'top', lineHeight: 20 },
     saveBtn:     { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 999, height: 44, justifyContent: 'center', alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
@@ -740,8 +786,8 @@ function mkStyles(C: AppColors) {
     reqTime:     { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
     approveBtn:  { width: 34, height: 34, borderRadius: 17, backgroundColor: C.greenBg, borderWidth: 0.5, borderColor: C.green, alignItems: 'center', justifyContent: 'center' },
     approveBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.green },
-    rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: C.redLo, borderWidth: 0.5, borderColor: C.red, alignItems: 'center', justifyContent: 'center' },
-    rejectBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.red },
+    rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: C.danger + '14', borderWidth: 0.5, borderColor: C.danger, alignItems: 'center', justifyContent: 'center' },
+    rejectBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.danger },
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
     pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     // Badge picker

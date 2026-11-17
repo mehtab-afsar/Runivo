@@ -30,6 +30,12 @@ export function mkStep(C: AppColors) {
       minWidth: 48, height: 44, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card,
       borderWidth: 1.5, borderColor: C.card, alignItems: 'center', justifyContent: 'center',
     },
+    // Even layouts, so no option sits alone on its own line ("7", "Sunday"):
+    // `row` + `cell` share one line equally; `grid` + `gridCell` make balanced rows of four.
+    row:         { flexDirection: 'row', gap: 6, marginBottom: 18 },
+    cell:        { flex: 1, minWidth: 0, paddingHorizontal: 4 },
+    grid:        { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 },
+    gridCell:    { flexBasis: '22%', flexGrow: 1, paddingHorizontal: 6 },
     chipOn:      { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
     chipText:    { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     chipTextOn:  { color: C.alwaysLight },

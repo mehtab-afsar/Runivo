@@ -1,6 +1,6 @@
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useMemo, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,9 +10,9 @@ import { useLeaderboard } from '../hooks/useLeaderboard';
 import { EntryRow, splitValue } from '../components/EntryRow';
 import { LeaderboardFilters } from '../components/LeaderboardFilters';
 import type { LeaderboardEntry } from '../types';
-import { ArrowLeft } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { RunnerFace } from '@mobile/shared/components/RunnerFace';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -139,17 +139,13 @@ export default function LeaderboardScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={8} accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Leaderboard</Text>
+      <ScreenHeader variant="large" title="Leaderboard" onBack={() => navigation.goBack()} right={
         <LeaderboardFilters
           part="pill"
           tab={tab} timeFrame={timeFrame} scope={scope}
           onTabChange={setTab} onTimeFrameChange={setTimeFrame} onScopeChange={setScope}
         />
-      </View>
+      } />
       <LeaderboardFilters
         part="segment"
         tab={tab} timeFrame={timeFrame} scope={scope}
@@ -206,9 +202,6 @@ export default function LeaderboardScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: C.bg },
-    header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12 },
-    backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    title: { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
     list:          { paddingBottom: 120 },
     skeletonWrap:  { paddingTop: 8 },
     skeletonRow:   { height: 60, marginHorizontal: 12, marginBottom: 8, borderRadius: 18 },

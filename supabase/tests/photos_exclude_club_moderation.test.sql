@@ -63,8 +63,6 @@ SELECT pg_temp.check(EXISTS (SELECT 1 FROM public.leaderboard_values('distance',
 SELECT pg_temp.check(public.set_activity_excluded('d1000000-0000-4000-8000-0000000000d1', true), 'owner marks it don''t count');
 SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM public.leaderboard_values('distance', 'week') WHERE user_id = 'c1000000-0000-4000-8000-000000000001'),
   'an excluded run leaves the leaderboard');
-SELECT pg_temp.check(NOT EXISTS (SELECT 1 FROM public.get_run_km_by_user(now() - interval '1 day', 100) WHERE user_id = 'c1000000-0000-4000-8000-000000000001'),
-  'and the old distance RPC');
 SELECT pg_temp.as_user('c3000000-0000-4000-8000-000000000003');
 SELECT pg_temp.check(NOT public.set_activity_excluded('d1000000-0000-4000-8000-0000000000d1', false), 'someone else cannot un-exclude it');
 

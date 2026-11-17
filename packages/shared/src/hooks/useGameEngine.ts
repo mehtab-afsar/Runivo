@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GAME_CONFIG } from '../services/config';
 import { localDateString } from '../services/store';
 import {
   getPlayer,
@@ -23,6 +22,7 @@ import { canClaimZone } from '../engine/entitlements';
 import { corridorRing, updateStreak, paceWeekStartMs, isOnFoot, type LngLat } from '../engine/runEngine';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
 import { updateMissionsAfterRun } from '../services/missionStore';
+import { ENGINE } from '../engine/runEngine';
 
 // ── Award key → human-readable label ─────────────────────────────────────────
 const AWARD_LABELS: Record<string, string> = {
@@ -210,7 +210,7 @@ export function useGameEngine() {
       const today = localDateString();
       // Rides don't move the running streak (server rule, see isOnFoot).
       const meetsMinimumEffort = isOnFoot(runData.activityType)
-        && runData.distanceMeters >= GAME_CONFIG.MIN_MEANINGFUL_RUN_DISTANCE_M;
+        && runData.distanceMeters >= ENGINE.MIN_MEANINGFUL_RUN_DISTANCE_M;
       const streak = updateStreak({
         streakDays: freshPlayer.streakDays,
         lastRunDay: freshPlayer.lastRunDate,
@@ -331,7 +331,7 @@ export function useGameEngine() {
       const rankOrder: RunnerRank[] = ['pacer', 'strider', 'chaser', 'hunter', 'sovereign'];
       const nextRankName = rankOrder[rankOrder.indexOf(newRunnerRank) + 1];
       const runnerRankPaceToNext = nextRankName
-        ? GAME_CONFIG.RUNNER_RANK_THRESHOLDS[nextRankName] - newPaceTotalEarned
+        ? (ENGINE.RANK_THRESHOLDS as Record<string, number>)[nextRankName] - newPaceTotalEarned
         : 0;
 
       return {

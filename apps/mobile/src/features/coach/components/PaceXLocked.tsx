@@ -8,6 +8,7 @@ import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useSubscription } from '@features/subscription/hooks/useSubscription';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,13 +57,7 @@ export default function PaceXLocked() {
         </View>
         <Text style={s.note}>Free runners get a summary after every run, built from their own numbers.</Text>
       </View>
-      <Pressable
-        style={s.cta}
-        onPress={() => navigation.navigate('Subscription', { reason: 'debrief' })}
-        accessibilityRole="button"
-      >
-        <Text style={s.ctaText}>Try Runivo Plus</Text>
-      </Pressable>
+      <PrimaryButton label="Try Runivo Plus" onPress={() => navigation.navigate('Subscription', { reason: 'debrief' })} size="lg" fullWidth />
     </View>
   );
 }
@@ -81,7 +76,5 @@ function mkStyles(C: AppColors) {
     dot:      { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red, marginTop: 8 },
     itemText: { flex: 1, fontFamily: Fonts.regular, fontSize: 15, lineHeight: 21, color: C.t1 },
     note:     { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: C.t2, marginTop: 22 },
-    cta:      { height: 56, borderRadius: 999, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
-    ctaText:  { fontFamily: Fonts.semiBold, fontSize: 16, color: '#FFFFFF' },
   });
 }

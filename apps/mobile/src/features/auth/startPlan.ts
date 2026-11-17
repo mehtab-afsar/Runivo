@@ -49,6 +49,8 @@ export function startPreview(data: OnboardingData, weeklyTargetKm: number, today
     }
   }
 
+  if (data.goal === 'race' && !data.raceDistance) planNote = 'Next, find your race. PaceX builds the plan to race day.';
+
   // No race plan: easy runs on their days, the long one on the long-run day.
   const target = Math.max(days.length * 2, Math.round(weeklyTargetKm * (cautious ? 0.8 : 1)));
   const longKm = Math.max(3, Math.round(target * (days.length <= 3 ? 0.4 : 0.32)));

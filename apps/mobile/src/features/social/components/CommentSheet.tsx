@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  Modal, View, Text, StyleSheet, Pressable, FlatList,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  View, Text, StyleSheet, Pressable, FlatList,
+  TextInput, ActivityIndicator, Alert,
 } from 'react-native';
 import { PaperPlaneTilt, X, DotsThree } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -11,6 +11,7 @@ import { promptReport } from '@mobile/shared/lib/promptReport';
 import { useAuth } from '@shared/hooks/useAuth';
 import { supabase } from '@shared/services/supabase';
 import type { Comment } from '../types';
+import { ModalSheet } from '@mobile/shared/components/ModalSheet';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -135,73 +136,57 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
   }, [s, C, openMenu]);
 
   return (
-    <Modal
-      visible={postId !== null}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
-    >
-      <Pressable style={s.backdrop} onPress={onClose} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={s.sheet}
-      >
-        <View style={s.handle} />
+    <ModalSheet visible={postId !== null} onClose={onClose} keyboard padded={false} tone="page" style={{ maxHeight: '75%' }}>
+      <View style={s.titleRow}>
+        <Text style={s.title}>Comments{comments.length > 0 ? ` · ${comments.length}` : ''}</Text>
+        <Pressable onPress={onClose} hitSlop={12}>
+          <X size={18} color={C.t2} weight="light" />
+        </Pressable>
+      </View>
 
-        <View style={s.titleRow}>
-          <Text style={s.title}>Comments{comments.length > 0 ? ` · ${comments.length}` : ''}</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <X size={18} color={C.t2} weight="light" />
-          </Pressable>
-        </View>
+      {loading ? (
+        <View style={s.center}><ActivityIndicator color={C.red} /></View>
+      ) : loadError ? (
+        <View style={s.center}><Text style={s.empty}>Couldn't load comments.</Text></View>
+      ) : (
+        <FlatList
+          data={comments}
+          keyExtractor={item => item.id}
+          renderItem={renderItem}
+          contentContainerStyle={s.list}
+          ListEmptyComponent={
+            <Text style={s.empty}>No comments yet. Be first.</Text>
+          }
+        />
+      )}
 
-        {loading ? (
-          <View style={s.center}><ActivityIndicator color={C.red} /></View>
-        ) : loadError ? (
-          <View style={s.center}><Text style={s.empty}>Couldn't load comments.</Text></View>
-        ) : (
-          <FlatList
-            data={comments}
-            keyExtractor={item => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={s.list}
-            ListEmptyComponent={
-              <Text style={s.empty}>No comments yet. Be first.</Text>
-            }
+      <View style={s.inputRow}>
+        <TextInput
+          ref={inputRef}
+          style={s.input}
+          placeholder="Add a comment…"
+          placeholderTextColor={C.t3}
+          value={text}
+          onChangeText={setText}
+          multiline
+          maxLength={280}
+          returnKeyType="send"
+          onSubmitEditing={handleSend}
+        />
+        <Pressable onPress={handleSend} disabled={!text.trim() || sending} hitSlop={8} accessibilityRole="button" accessibilityLabel="Send comment">
+          <PaperPlaneTilt
+            size={18}
+            color={text.trim() ? C.red : C.t3}
+            weight="light"
           />
-        )}
-
-        <View style={s.inputRow}>
-          <TextInput
-            ref={inputRef}
-            style={s.input}
-            placeholder="Add a comment…"
-            placeholderTextColor={C.t3}
-            value={text}
-            onChangeText={setText}
-            multiline
-            maxLength={280}
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
-          />
-          <Pressable onPress={handleSend} disabled={!text.trim() || sending} hitSlop={8} accessibilityRole="button" accessibilityLabel="Send comment">
-            <PaperPlaneTilt
-              size={18}
-              color={text.trim() ? C.red : C.t3}
-              weight="light"
-            />
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        </Pressable>
+      </View>
+    </ModalSheet>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    backdrop:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
-    sheet:        { backgroundColor: C.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '75%', paddingBottom: 24 },
-    handle:       { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
     titleRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 12 },
     title:        { fontFamily: Fonts.semiBold, fontSize: 15, color: C.black },
     center:       { height: 120, alignItems: 'center', justifyContent: 'center' },

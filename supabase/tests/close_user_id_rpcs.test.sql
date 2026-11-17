@@ -53,7 +53,7 @@ INSERT INTO public.pace_store_rewards (brand, title, partner_id, status) VALUES
   ('Brooks', '20% off Brooks Running', gen_random_uuid(), 'available'),
   ('Other',  'Real partner reward',     NULL, 'available');
 
-\ir ../migrations/20261116000001_close_user_id_rpcs.sql
+\ir ../archive/migrations_2026/20261116000001_close_user_id_rpcs.sql
 
 CREATE FUNCTION pg_temp.as_user(uid text, rl text DEFAULT 'authenticated') RETURNS void LANGUAGE plpgsql AS $$
 BEGIN

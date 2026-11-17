@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { UserPlus, Check, MapPin, ArrowLeft, DotsThree, Prohibit } from 'phosphor-react-native';
+import { UserPlus, Check, MapPin, DotsThree, Prohibit } from 'phosphor-react-native';
 import RunnerSafetySheet from '@features/social/components/RunnerSafetySheet';
 import { fetchRelation, unblockUser } from '@mobile/shared/services/safetyService';
 import { supabase } from '@shared/services/supabase';
@@ -22,6 +22,7 @@ import type { StoredRun } from '@shared/services/store';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { RunnerRank } from '@shared/types/game';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { ScreenHeader, HeaderButton } from '@mobile/shared/components/ScreenHeader';
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'UserProfile'>;
@@ -145,17 +146,11 @@ export default function UserProfileScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>{resolvedUsername}</Text>
-        {isOwnProfile ? <View style={{ width: 32 }} /> : (
-          <Pressable onPress={() => setMenuOpen(true)} style={s.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="More options">
-            <DotsThree size={20} color={C.t1} weight="bold" />
-          </Pressable>
-        )}
-      </View>
+      <ScreenHeader title={resolvedUsername} onBack={() => navigation.goBack()} right={isOwnProfile ? undefined : (
+        <HeaderButton onPress={() => setMenuOpen(true)} label="More options">
+          <DotsThree size={20} color={C.t1} weight="bold" />
+        </HeaderButton>
+      )} />
 
       {loading ? (
         <View style={s.center}><ActivityIndicator color={C.red} /></View>
@@ -314,9 +309,6 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 12 },
-    backBtn:      { width: 32 },
-    title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     profileSection:{ alignItems: 'center', padding: 24, gap: 6 },
     displayName:  { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black, marginTop: 8 },
     bio:          { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center', lineHeight: 18, maxWidth: 280 },

@@ -1,13 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Platform, ActivityIndicator, RefreshControl, Modal, TextInput, ScrollView, KeyboardAvoidingView, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Modal, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import {
-  MapPin, Globe, Flag, Pulse, Users, X, Plus, Check,
-  Fire, Lightning, Trophy, Shield, NavigationArrow, Barbell, Target, Medal,
+  MapPin, Globe, Pulse, Users, Plus, Fire, Lightning, Trophy, Shield, NavigationArrow, Barbell, Target, Medal,
   Rocket, Star, Sword, Waves, Mountains, Diamond, Crown, Leaf,
-  Footprints, Bicycle, Lock, ArrowLeft, Seal, CaretDown, MagnifyingGlass,
+  Footprints, Bicycle, Lock, Seal, MagnifyingGlass,
   type Icon,
 } from 'phosphor-react-native';
 import { useClubs } from '@features/clubs/hooks/useClubs';
@@ -15,12 +14,17 @@ import { SearchBar } from '@features/clubs/components/SearchBar';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { avatarColor } from '@shared/lib/avatarUtils';
-import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Club } from '@features/clubs/types';
-import { useTheme, Colors, Fonts, Type, Spacing, type AppColors } from '@theme';
+import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { ClubRankRow } from '../components/ClubRankRow';
 import { ClubHeroCard } from '../components/ClubHeroCard';
 import { NearbyClubsSection } from '../components/NearbyClubsSection';
+import { ClubWarCard } from '../components/ClubWarCard';
+import { ClubImagesPicker } from '../components/ClubImagesPicker';
+import { FormScreen, FormField, IconPicker, ChoiceCards, FormButton } from '@mobile/shared/components/form/FormKit';
+import { NewClubPost } from '../components/NewClubPost';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ClubTab = 'my_clubs' | 'rankings';
@@ -53,222 +57,89 @@ const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; lab
   { emoji: '🌿',  Icon: Leaf,           color: '#17181A', bg: '#EEF0EA', label: 'Nature'    },
 ];
 
-const JOIN_POLICIES: { value: JoinPolicy; label: string; desc: string; Icon: Icon; color: string }[] = [
-  { value: 'open',        label: 'Open',    desc: 'Anyone can join',                Icon: Users, color: '#059669' },
-  { value: 'invite_only', label: 'Request', desc: 'Members must request to join',   Icon: Lock,  color: Colors.purple },
+const JOIN_POLICIES: { value: JoinPolicy; title: string; sub: string; Icon: Icon }[] = [
+  { value: 'open',        title: 'Open',            sub: 'Anyone can join straight away', Icon: Users },
+  { value: 'invite_only', title: 'Approve members', sub: 'People ask, an admin lets them in', Icon: Lock },
 ];
 
-// ── Create Club Sheet ────────────────────────────────────────────────────────
+// ── Create Club ──────────────────────────────────────────────────────────────
+// Full page on the shared form kit (mock onboarding style), not a bottom sheet.
 
 function CreateClubSheet({ visible, onClose, onCreate }: {
   visible: boolean;
   onClose: () => void;
-  onCreate: (name: string, desc: string, emoji: string, policy: JoinPolicy) => Promise<boolean>;
+  onCreate: (name: string, desc: string, emoji: string, policy: JoinPolicy, images: { avatar: string | null; banner: string | null }) => Promise<true | string>;
 }) {
-  const C = useTheme();
-  const cs = useMemo(() => mkCsStyles(C), [C]);
-  const insets = useSafeAreaInsets();
+  const [avatar, setAvatar]     = useState<string | null>(null);
+  const [banner, setBanner]     = useState<string | null>(null);
   const [name, setName]         = useState('');
   const [desc, setDesc]         = useState('');
   const [emoji, setEmoji]       = useState(BADGE_OPTIONS[0].emoji);
   const [policy, setPolicy]     = useState<JoinPolicy>('open');
   const [saving, setSaving]     = useState(false);
-  const [nameError, setNameError] = useState(false);
+  const [touched, setTouched]   = useState(false);
 
   const trimmedName = name.trim();
+  const nameError = touched && trimmedName.length > 0 && trimmedName.length < 3 ? 'At least 3 characters' : null;
   const isValid = trimmedName.length >= 3 && trimmedName.length <= 30;
 
+  const reset = () => { setName(''); setDesc(''); setEmoji(BADGE_OPTIONS[0].emoji); setPolicy('open'); setTouched(false); setAvatar(null); setBanner(null); };
   const handleCreate = async () => {
-    if (saving) return;
-    if (trimmedName.length === 0) { setNameError(true); return; }
-    if (!isValid) return;
+    if (saving || !isValid) return;
     setSaving(true);
-    const ok = await onCreate(name, desc, emoji, policy);
+    const ok = await onCreate(name, desc, emoji, policy, { avatar, banner });
     setSaving(false);
-    if (ok) {
-      setName(''); setDesc(''); setEmoji(BADGE_OPTIONS[0].emoji); setPolicy('open'); setNameError(false);
-      onClose();
-    } else {
-      Alert.alert('Error', 'Could not create club. Please try again.');
-    }
+    if (ok === true) { reset(); onClose(); }
+    else Alert.alert("Couldn't create the club", ok);
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={cs.backdrop} onPress={onClose} />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ justifyContent: 'flex-end' }}
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <FormScreen
+        title="Start a"
+        accent="club."
+        subtitle="Run together, hold ground together. You can change all of this later."
+        onClose={onClose}
+        footer={<FormButton label="Create club" onPress={handleCreate} disabled={!isValid} busy={saving} />}
       >
-        <View style={[cs.sheet, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-          <View style={cs.handle} />
-          <View style={cs.sheetHeader}>
-            <Text style={cs.sheetTitle}>Create Club</Text>
-            <Pressable hitSlop={8} style={cs.closeBtn} onPress={onClose}>
-              <X size={14} color={C.t2} weight="regular" />
-            </Pressable>
-          </View>
-
-          <ScrollView style={{ flexGrow: 0 }} showsVerticalScrollIndicator={false}>
-            {/* Badge */}
-            <Text style={cs.fieldLabel}>Badge</Text>
-            {(() => {
-              const selected = BADGE_OPTIONS.find(b => b.emoji === emoji) ?? BADGE_OPTIONS[0];
-              const SelIcon = selected.Icon;
-              return (
-                <View style={cs.badgePreviewRow}>
-                  <View style={[cs.badgePreview, { backgroundColor: selected.bg }]}>
-                    <SelIcon size={28} color={selected.color} weight="light" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={cs.badgePreviewLabel}>{selected.label}</Text>
-                    <Text style={cs.badgePreviewSub}>Selected badge</Text>
-                  </View>
-                </View>
-              );
-            })()}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={cs.badgeGrid}>
-              {BADGE_OPTIONS.map(opt => {
-                const BIcon = opt.Icon;
-                const active = emoji === opt.emoji;
-                return (
-                  <Pressable
-                    key={opt.emoji}
-                    style={[cs.badgeBtn, active && { backgroundColor: opt.bg, borderColor: opt.color }]}
-                    onPress={() => setEmoji(opt.emoji)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
-                    accessibilityLabel={`Club badge ${BADGE_OPTIONS.indexOf(opt) + 1}`}
-                  >
-                    <BIcon size={18} color={active ? opt.color : C.t3} weight="light" />
-                    {active && <View style={[cs.badgeBtnDot, { backgroundColor: opt.color }]} />}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {/* Club Name */}
-            <Text style={cs.fieldLabel}>Club name <Text style={{ color: C.red }}>*</Text></Text>
-            <TextInput
-              style={[cs.input, (nameError || (name.length > 0 && trimmedName.length < 3)) && cs.inputError]}
-              value={name}
-              onChangeText={t => { setName(t); if (nameError) setNameError(false); }}
-              placeholder="Enter a unique club name..."
-              placeholderTextColor={C.t3}
-              maxLength={30}
-              autoCorrect={false}
-            />
-            <View style={cs.inputMeta}>
-              {nameError
-                ? <Text style={cs.inputHintError}>Enter a club name</Text>
-                : name.length > 0 && trimmedName.length < 3
-                ? <Text style={cs.inputHintError}>At least 3 characters required</Text>
-                : <Text style={cs.inputHint}>{name.length}/30</Text>
-              }
-            </View>
-
-            {/* Description */}
-            <Text style={cs.fieldLabel}>Description <Text style={{ color: C.t3, textTransform: 'none', letterSpacing: 0 }}>(optional)</Text></Text>
-            <TextInput
-              style={[cs.input, cs.inputMulti]}
-              value={desc}
-              onChangeText={setDesc}
-              placeholder="Tell others about your club..."
-              placeholderTextColor={C.t3}
-              multiline
-              numberOfLines={3}
-              maxLength={100}
-            />
-            <Text style={cs.inputHint}>{desc.length}/100</Text>
-
-            {/* Join Policy */}
-            <Text style={cs.fieldLabel}>Join policy</Text>
-            <View style={cs.policyCol}>
-              {JOIN_POLICIES.map(p => {
-                const PIco = p.Icon;
-                const active = policy === p.value;
-                return (
-                  <Pressable
-                    key={p.value}
-                    style={[cs.policyCard, active && cs.policyCardActive]}
-                    onPress={() => setPolicy(p.value)}
-                  >
-                    <View style={[cs.policyIconBox, { backgroundColor: active ? p.color : C.stone }]}>
-                      <PIco size={14} color={active ? C.white : p.color} weight="light" />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[cs.policyLabel, active && cs.policyLabelActive]}>{p.label}</Text>
-                      <Text style={[cs.policyDesc, active && cs.policyDescActive]}>{p.desc}</Text>
-                    </View>
-                    {active && <Check size={14} color={p.color} weight="bold" />}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
-
-          {/* CTAs */}
-          <View style={cs.footer}>
-            <Pressable
-              style={cs.createBtn}
-              onPress={handleCreate}
-              disabled={saving}
-            >
-              <Text style={cs.createBtnLabel}>
-                {saving ? 'Creating...' : 'Create Club'}
-              </Text>
-            </Pressable>
-            <Pressable style={cs.cancelBtn} onPress={onClose}>
-              <Text style={cs.cancelBtnLabel}>Cancel</Text>
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+        <ClubImagesPicker
+          avatar={avatar}
+          banner={banner}
+          onAvatar={setAvatar}
+          onBanner={setBanner}
+          initials={trimmedName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join('')}
+        />
+        <FormField
+          label="Club name"
+          value={name}
+          onChangeText={t => { setName(t); setTouched(true); }}
+          placeholder="Indiranagar Striders"
+          maxLength={30}
+          counter
+          autoCapitalize="words"
+          returnKeyType="next"
+          error={nameError}
+        />
+        <FormField
+          label="What's it about"
+          optional
+          value={desc}
+          onChangeText={setDesc}
+          placeholder="Saturday long runs, 5:30 pace groups, coffee after."
+          maxLength={100}
+          counter
+          multiline
+        />
+        <IconPicker
+          label="Badge"
+          options={BADGE_OPTIONS.slice(0, 12).map(b => ({ value: b.emoji, label: b.label, Icon: b.Icon }))}
+          value={emoji}
+          onChange={setEmoji}
+        />
+        <ChoiceCards label="Who can join" options={JOIN_POLICIES} value={policy} onChange={setPolicy} />
+      </FormScreen>
     </Modal>
   );
-}
-
-function mkCsStyles(C: AppColors) {
-  return StyleSheet.create({
-    backdrop:          { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-    sheet:             { backgroundColor: C.bg, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 20, paddingTop: 12 },
-    handle:            { width: 36, height: 4, backgroundColor: C.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-    sheetHeader:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, borderBottomWidth: 0.5, borderBottomColor: C.border, paddingBottom: 14 },
-    sheetTitle:        { fontFamily: Fonts.display, fontSize: 20, color: C.t1 },
-    closeBtn:          { width: 30, height: 30, borderRadius: 15, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: C.border },
-    fieldLabel:        { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1, marginTop: 16, marginBottom: 8 },
-    // Badge preview row
-    badgePreviewRow:   { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12, backgroundColor: C.surface, borderRadius: 14, padding: 12, borderWidth: 0.5, borderColor: C.border },
-    badgePreview:      { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-    badgePreviewLabel: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
-    badgePreviewSub:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
-    // Badge grid
-    badgeGrid:         { paddingBottom: 4, gap: 8 },
-    badgeBtn:          { width: 44, height: 44, borderRadius: 12, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    badgeBtnDot:       { position: 'absolute', bottom: 4, width: 4, height: 4, borderRadius: 2 },
-    // Inputs
-    input:             { borderWidth: 1, borderColor: C.border, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.regular, fontSize: 14, color: C.t1, backgroundColor: C.card },
-    inputMulti:        { minHeight: 72, textAlignVertical: 'top', paddingTop: 12 },
-    inputError:        { borderColor: C.red, backgroundColor: C.redLo },
-    inputMeta:         { flexDirection: 'row', marginTop: 4 },
-    inputHint:         { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
-    inputHintError:    { fontFamily: Fonts.regular, fontSize: 11, color: C.danger },
-    // Policy cards (vertical)
-    policyCol:         { gap: 8, marginBottom: 4 },
-    policyCard:        { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: C.border, borderRadius: 22, padding: 14, backgroundColor: C.card },
-    policyCardActive:  { borderColor: C.t1, backgroundColor: C.card },
-    policyIconBox:     { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-    policyLabel:       { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
-    policyLabelActive: { color: C.t1 },
-    policyDesc:        { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 1 },
-    policyDescActive:  { color: C.t2 },
-    // Footer
-    footer:            { paddingTop: 16, gap: 8 },
-    createBtn:         { height: Spacing.height.buttonPrimary, justifyContent: 'center', borderRadius: 999, backgroundColor: C.red, alignItems: 'center' },
-    createBtnLabel:    { ...Type.button, color: C.alwaysLight },
-    cancelBtn:         { height: 48, justifyContent: 'center', borderRadius: 999, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center' },
-    cancelBtnLabel:    { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
-  });
 }
 
 // ── Main Screen ──────────────────────────────────────────────────────────────
@@ -362,18 +233,14 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
   const Root = embedded ? View : SafeAreaView;
   return (
     <Root style={s.root}>
-      {!embedded && <View style={s.header}>
-        {embedded ? <View style={{ flex: 1 }} /> : <>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
-            <ArrowLeft size={16} color={C.t1} weight="regular" />
+      {!embedded && (
+        <ScreenHeader variant="large" title="Clubs" onBack={() => navigation.goBack()} right={
+          <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)} testID="clubs-create-btn" accessibilityRole="button" accessibilityLabel="Create a club">
+            <Plus size={14} color={C.t1} weight="bold" />
+            <Text style={s.createTriggerText}>Create</Text>
           </Pressable>
-          <Text style={s.title}>Clubs</Text>
-        </>}
-        <Pressable style={s.createTrigger} onPress={() => setShowCreate(true)} testID="clubs-create-btn">
-          <Plus size={14} color={C.t1} weight="bold" />
-          <Text style={s.createTriggerText}>Create</Text>
-        </Pressable>
-      </View>}
+        } />
+      )}
 
       {/* Tab bar (embedded in Groups: chips on the left, Create on the right, one row) */}
       <View style={[s.tabBar, embedded && { marginTop: 14 }]}>
@@ -423,9 +290,19 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
           )}
           contentContainerStyle={s.myClubList}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={myClubs.length > 0 ? <Text style={s.sectionHead}>Your clubs</Text> : null}
+          ListHeaderComponent={myClubs.length > 0 ? (
+            <>
+              <NewClubPost clubs={myClubs} onPick={c => navigation.navigate('ClubDetail', { clubId: c.id, clubName: c.name, badgeEmoji: c.badge_emoji, memberCount: c.member_count, totalKm: c.total_km, compose: true })} />
+              <Text style={s.sectionHead}>Your clubs</Text>
+            </>
+          ) : null}
           ListFooterComponent={
             <View style={{ marginTop: myClubs.length > 0 ? 22 : 0 }}>
+              {myClubs[0] && (
+                <View style={{ marginBottom: 22 }}>
+                  <ClubWarCard clubId={myClubs[0].id} onPress={() => goToDetail(myClubs[0]!)} />
+                </View>
+              )}
               <NearbyClubsSection
                 clubs={nearClubs.filter(c => !c.joined)}
                 nearby={nearby}
@@ -501,9 +378,6 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:            { flex: 1, backgroundColor: C.bg },
-    header:          { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: Spacing.gutter, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12, backgroundColor: C.bg },
-    backBtn:         { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: C.card },
-    title:           { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 30, letterSpacing: -0.7, color: C.t1, flex: 1 },
     createTrigger:   { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card },
     createTriggerText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     // Tabs - match web (black underline active)

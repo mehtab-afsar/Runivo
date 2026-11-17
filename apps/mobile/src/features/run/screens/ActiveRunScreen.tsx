@@ -42,7 +42,6 @@ import {
   isNearRivalTerritory,
   haversineM,
 } from '@shared/services/claimEngine';
-import { GAME_CONFIG } from '@shared/services/config';
 import { ENGINE } from '@shared/engine/runEngine';
 import { sportFor } from '../constants/activities';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -181,7 +180,7 @@ export default function ActiveRunScreen() {
   useEffect(() => {
     if (!run.isRunning || run.gpsPoints.length < 2) return;
     const last = run.gpsPoints[run.gpsPoints.length - 1];
-    setSpeedWarning(last.speed > (sport.claims ? GAME_CONFIG.MAX_RUN_SPEED_MS : ENGINE.MAX_RIDE_SEGMENT_SPEED_MS));
+    setSpeedWarning(last.speed > (sport.claims ? ENGINE.MAX_TERRITORY_SPEED_MS : ENGINE.MAX_RIDE_SEGMENT_SPEED_MS));
     const first = run.gpsPoints[0];
     // Same test as the finished run: back near any earlier part of the route.
     if (sport.claims) {
@@ -414,11 +413,11 @@ export default function ActiveRunScreen() {
   const toStartM = first && last ? haversineM(last, first) : 0;
   if (toStartM > farthestRef.current) farthestRef.current = toStartM;
   const loopRow: { label: string; detail: string; pct: number } | null = !sport.claims || !run.isRunning || pts.length < 2 ? null
-    : run.distance * 1000 < GAME_CONFIG.MIN_TERRITORY_DIST_M
+    : run.distance * 1000 < ENGINE.MIN_TERRITORY_DIST_M
       ? {
           label: 'Run 200 m to start claiming',
-          detail: `${Math.max(0, Math.round(GAME_CONFIG.MIN_TERRITORY_DIST_M - run.distance * 1000))} m to go`,
-          pct: (run.distance * 1000) / GAME_CONFIG.MIN_TERRITORY_DIST_M,
+          detail: `${Math.max(0, Math.round(ENGINE.MIN_TERRITORY_DIST_M - run.distance * 1000))} m to go`,
+          pct: (run.distance * 1000) / ENGINE.MIN_TERRITORY_DIST_M,
         }
       : loopClosing
         ? { label: 'Loop closed', detail: liveAreaM2 > 0 ? `${fmtArea(liveAreaM2)} on finish` : 'The ground inside is yours on finish', pct: 1 }

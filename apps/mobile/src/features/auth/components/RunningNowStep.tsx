@@ -30,11 +30,11 @@ export default function RunningNowStep({ runsPerWeek, usualKm, fiveKInput, weekl
       <Text style={s.sub}>Be honest. We start where you are, and build from there.</Text>
 
       <Text style={s.label}>Runs a week</Text>
-      <View style={s.chips}>
+      <View style={s.row}>
         {RUNS_PER_WEEK_OPTIONS.map(n => {
           const on = runsPerWeek === n;
           return (
-            <Pressable key={n} style={[s.chip, on && s.chipOn]} onPress={() => { Haptics.selectionAsync().catch(() => {}); onRuns(n); }}
+            <Pressable key={n} style={[s.chip, s.cell, on && s.chipOn]} onPress={() => { Haptics.selectionAsync().catch(() => {}); onRuns(n); }}
               accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`${n} runs a week`}>
               <Text style={[s.chipText, on && s.chipTextOn]}>{n}</Text>
             </Pressable>
@@ -43,11 +43,11 @@ export default function RunningNowStep({ runsPerWeek, usualKm, fiveKInput, weekl
       </View>
 
       <Text style={s.label}>Usual distance</Text>
-      <View style={s.chips}>
+      <View style={s.grid}>
         {USUAL_DISTANCE_OPTIONS_KM.map(km => {
           const on = usualKm === km;
           return (
-            <Pressable key={km} style={[s.chip, on && s.chipOn]} onPress={() => { Haptics.selectionAsync().catch(() => {}); onKm(km); }}
+            <Pressable key={km} style={[s.chip, s.gridCell, on && s.chipOn]} onPress={() => { Haptics.selectionAsync().catch(() => {}); onKm(km); }}
               accessibilityRole="radio" accessibilityState={{ selected: on }}>
               <Text style={[s.chipText, on && s.chipTextOn]}>{km} km</Text>
             </Pressable>

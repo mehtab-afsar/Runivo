@@ -436,6 +436,17 @@ export function zoneScore(areaM2: number, freshness: number): number {
 
 // ── Streak, PACE, caps, rank ──────────────────────────────────────────────────
 
+/**
+ * PACE earned this week. The server zeroes the weekly counter only when it next
+ * credits PACE, so on a Monday before any run the stored number is still last
+ * week's; anything reset before this week's Monday counts as 0.
+ */
+export function weeklyPaceNow(earned: number | null | undefined, resetAt: string | null | undefined, nowMs = Date.now()): number {
+  const reset = resetAt ? Date.parse(resetAt) : NaN;
+  if (!Number.isFinite(reset) || reset < paceWeekStartMs(nowMs)) return 0;
+  return Math.max(0, earned ?? 0);
+}
+
 export function utcDay(ms: number): string {
   return new Date(ms).toISOString().slice(0, 10);
 }

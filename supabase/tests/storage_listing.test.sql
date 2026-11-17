@@ -32,7 +32,7 @@ BEGIN
 END $$;
 
 SELECT pg_temp.check(pg_temp.listed('anon', '') = 3, 'before: a signed-out caller can list everything');
-\i supabase/migrations/20261115000019_storage_no_public_listing.sql
+\i supabase/archive/migrations_2026/20261115000019_storage_no_public_listing.sql
 SELECT pg_temp.check(pg_temp.listed('anon', '') = 0, 'after: a signed-out caller lists nothing');
 SELECT pg_temp.check(pg_temp.listed('authenticated', '00000000-0000-0000-0000-0000000000a1') = 2, 'after: a runner lists only their own files');
 SELECT pg_temp.check(pg_temp.listed('authenticated', '00000000-0000-0000-0000-0000000000b1') = 1, 'after: another runner sees only theirs');

@@ -14,6 +14,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import ChallengesScreen from '@features/challenges/screens/ChallengesScreen';
 import ClubScreen from '@features/clubs/screens/ClubScreen';
 import EventsScreen from '@features/events/screens/EventsScreen';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Segment = 'challenges' | 'clubs' | 'events';
@@ -49,19 +50,7 @@ export default function GroupsScreen() {
             </Pressable>
           </View>
         </View>
-        <View style={s.tabs} accessibilityRole="tablist">
-          {SEGMENTS.map(t => {
-            const on = t.key === seg;
-            return (
-              <Pressable
-                key={t.key} style={[s.tab, on && s.tabOn]} onPress={() => setSeg(t.key)}
-                accessibilityRole="tab" accessibilityState={{ selected: on }}
-              >
-                <Text style={[s.tabTxt, on && s.tabTxtOn]}>{t.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Segmented variant="tabs" style={{ marginHorizontal: -20 }} options={SEGMENTS.map(t => ({ value: t.key, label: t.label }))} value={seg} onChange={setSeg} />
       </View>
       <View style={{ flex: 1 }}>
         {seg === 'challenges' && <ChallengesScreen embedded />}
@@ -80,10 +69,5 @@ function mk(C: AppColors) {
     title:    { fontFamily: Fonts.semiBold, fontSize: 28, letterSpacing: -0.6, color: C.t1 },
     actions:  { flexDirection: 'row', gap: 8 },
     iconBtn:  { width: 44, height: 44, borderRadius: 22, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
-    tabs:     { flexDirection: 'row', marginHorizontal: -20 },
-    tab:      { flex: 1, alignItems: 'center', paddingTop: 12, paddingBottom: 11, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    tabOn:    { borderBottomColor: C.t1 },
-    tabTxt:   { fontFamily: Fonts.regular, fontSize: 15, color: C.t2 },
-    tabTxtOn: { fontFamily: Fonts.semiBold, color: C.t1 },
   });
 }

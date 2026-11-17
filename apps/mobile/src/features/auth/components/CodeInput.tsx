@@ -57,12 +57,12 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row:       { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
     box:       {
-      flex: 1, height: 60, borderRadius: 22, backgroundColor: C.card,
+      flex: 1, height: 62, borderRadius: 16, backgroundColor: C.card,
       borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center',
     },
-    boxActive: { borderColor: C.t1 },
-    boxError:  { borderColor: C.red },
-    digit:     { fontFamily: Fonts.numeric, fontSize: 30, color: C.t1, fontVariant: ['tabular-nums'] },
+    boxActive: { borderColor: C.t1, borderWidth: 2 },
+    boxError:  { borderColor: C.danger },
+    digit:     { fontFamily: Fonts.numeric, fontSize: 26, color: C.t1, fontVariant: ['tabular-nums'] },
     hidden:    { position: 'absolute', width: 1, height: 1, opacity: 0 },
   });
 }

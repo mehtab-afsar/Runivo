@@ -4,8 +4,8 @@
  * so they can be tested without React.
  */
 
-/** The profile's sport filter. Walk covers hikes; Run covers every running type. */
-export type SportFilter = 'all' | 'run' | 'walk' | 'ride';
+/** The profile's sport filter. Walk covers hikes; Run covers every running type; Hike is hikes only (mock chip). */
+export type SportFilter = 'all' | 'run' | 'walk' | 'hike' | 'ride';
 
 export interface ActivityLike {
   activityType?: string | null;
@@ -19,7 +19,7 @@ export interface ActivityLike {
 const WALK_TYPES = new Set(['walk', 'hike']);
 const RIDE_TYPES = new Set(['cycle']);
 
-export function sportGroup(activityType: string | null | undefined): Exclude<SportFilter, 'all'> {
+export function sportGroup(activityType: string | null | undefined): Exclude<SportFilter, 'all' | 'hike'> {
   const t = activityType ?? 'run';
   if (RIDE_TYPES.has(t)) return 'ride';
   if (WALK_TYPES.has(t)) return 'walk';
@@ -27,7 +27,9 @@ export function sportGroup(activityType: string | null | undefined): Exclude<Spo
 }
 
 export function filterBySport<T extends ActivityLike>(runs: T[], sport: SportFilter): T[] {
-  return sport === 'all' ? runs : runs.filter(r => sportGroup(r.activityType) === sport);
+  if (sport === 'all') return runs;
+  if (sport === 'hike') return runs.filter(r => r.activityType === 'hike');
+  return runs.filter(r => sportGroup(r.activityType) === sport);
 }
 
 const DAY_MS = 86_400_000;
@@ -82,7 +84,7 @@ export function periodStats(runs: ActivityLike[], period: 'year' | 'all', now = 
   return s;
 }
 
-const NOUN: Record<Exclude<SportFilter, 'all'>, string> = { run: 'run', walk: 'walk', ride: 'ride' };
+const NOUN: Record<Exclude<SportFilter, 'all'>, string> = { run: 'run', walk: 'walk', hike: 'hike', ride: 'ride' };
 
 /** "Morning run", "Evening ride", "Afternoon hike" — as Strava names untitled activities. */
 export function activityTitle(r: Pick<ActivityLike, 'activityType' | 'startTime'>): string {

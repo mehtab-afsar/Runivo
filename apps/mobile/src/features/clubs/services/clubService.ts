@@ -1,12 +1,13 @@
 import { positionIfAllowed } from '@mobile/shared/location/devicePosition';
 import { supabase } from '@shared/services/supabase';
+import { readCleanImage } from '@mobile/shared/lib/cleanImageUpload';
 import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 import type { Club, NearbyClubs, ActivityItem, ClubFeedActivityItem, ClubMember, JoinRequest } from '@features/clubs/types';
 
 export async function fetchClubs(userId: string | null): Promise<Club[]> {
   const { data: clubsData } = await supabase
     .from('clubs')
-    .select('id, name, description, badge_emoji, member_count, total_km, join_policy')
+    .select('id, name, description, badge_emoji, member_count, total_km, join_policy, avatar_url, banner_url')
     .order('member_count', { ascending: false });
 
   if (!clubsData) return [];
@@ -29,7 +30,31 @@ export async function fetchClubs(userId: string | null): Promise<Club[]> {
     total_km: Number(c.total_km ?? 0),
     join_policy: c.join_policy ?? 'open',
     joined: joinedSet.has(c.id),
+    avatar_url: c.avatar_url ?? null,
+    banner_url: c.banner_url ?? null,
   }));
+}
+
+/** A club's picture and cover URLs. */
+export async function fetchClubMedia(clubId: string): Promise<{ avatar: string | null; banner: string | null }> {
+  const { data } = await supabase.from('clubs').select('avatar_url, banner_url').eq('id', clubId).maybeSingle();
+  return { avatar: (data?.avatar_url as string | null) ?? null, banner: (data?.banner_url as string | null) ?? null };
+}
+
+/**
+ * Upload a club's picture or cover (owner/admin only, enforced by storage
+ * rules) and save its URL on the club. Location data is stripped first. The
+ * URL carries a version so a replaced picture isn't served from cache.
+ */
+export async function uploadClubImage(clubId: string, kind: 'avatar' | 'banner', uri: string): Promise<string> {
+  const img = await readCleanImage(uri);
+  const path = `${clubId}/${kind}.${img.ext}`;
+  const { error } = await supabase.storage.from('club-media').upload(path, img.body, { upsert: true, contentType: img.contentType });
+  if (error) throw new Error("Couldn't upload the picture. Try again.");
+  const url = `${supabase.storage.from('club-media').getPublicUrl(path).data.publicUrl}?v=${Date.now()}`;
+  const { error: saveErr } = await supabase.from('clubs').update({ [`${kind}_url`]: url }).eq('id', clubId);
+  if (saveErr) throw new Error("Couldn't save the picture. Try again.");
+  return url;
 }
 
 /**
@@ -100,13 +125,22 @@ export async function requestToJoinClub(clubId: string, userId: string): Promise
   return { ok: !error || error.code === '23505' };
 }
 
-export async function leaveClub(clubId: string, userId: string): Promise<{ error: unknown }> {
-  const { error } = await supabase
-    .from('club_members')
-    .delete()
-    .eq('club_id', clubId)
-    .eq('user_id', userId);
-  return { error };
+/**
+ * Leave a club (server: leave_club). The owner can't leave their own club,
+ * so they get 'owner' back: transfer isn't built, they delete it instead.
+ */
+export async function leaveClub(clubId: string, _userId?: string): Promise<{ error: unknown; result?: 'left' | 'owner' | 'not_member' }> {
+  const { data, error } = await supabase.rpc('leave_club', { p_club_id: clubId });
+  if (error) return { error };
+  const result = data as 'left' | 'owner' | 'not_member';
+  return { error: result === 'owner' ? new Error('owner') : null, result };
+}
+
+/** Owner only (server: delete_club). Upcoming club runs and the chat go with it; members are told. */
+export async function deleteClub(clubId: string): Promise<'deleted' | 'not_owner' | 'not_found'> {
+  const { data, error } = await supabase.rpc('delete_club', { p_club_id: clubId });
+  if (error) throw error;
+  return data as 'deleted' | 'not_owner' | 'not_found';
 }
 
 export async function createClub(
@@ -115,7 +149,7 @@ export async function createClub(
   description: string,
   badgeEmoji: string,
   joinPolicy: 'open' | 'invite_only',
-): Promise<Club | null> {
+): Promise<Club> {
   const { data, error } = await supabase
     .from('clubs')
     .insert({
@@ -123,14 +157,14 @@ export async function createClub(
       description: description.trim() || null,
       badge_emoji: badgeEmoji,
       join_policy: joinPolicy,
-      member_count: 1,
+      // The server starts every club at 0; the creator's member row makes it 1.
       total_km: 0,
       owner_id: userId,
     })
     .select('id, name, description, badge_emoji, member_count, total_km, join_policy')
     .single();
 
-  if (error || !data) return null;
+  if (error || !data) throw new Error(clubCreateMessage(error));
 
   // Auto-join creator as admin. This used to be fire-and-forget, which hid a
   // real failure: for invite_only clubs the club_members INSERT policy rejected
@@ -146,7 +180,7 @@ export async function createClub(
 
   if (memberError) {
     await supabase.from('clubs').delete().eq('id', data.id);
-    return null;
+    throw new Error(clubCreateMessage(memberError));
   }
 
   return {
@@ -159,6 +193,15 @@ export async function createClub(
     join_policy: data.join_policy ?? 'open',
     joined: true,
   };
+}
+
+/** What to tell the runner when creating a club fails (the reason, not a generic line). */
+function clubCreateMessage(err: { code?: string; message?: string } | null): string {
+  if (!err) return 'Could not create the club. Please try again.';
+  if (err.code === '23505') return 'A club with that name already exists. Try another name.';
+  if (err.code === '42501') return "Your account isn't allowed to create clubs right now.";
+  if (err.code === 'PGRST202' || err.code === '42883' || err.code === '42703') return 'The server needs an update before clubs can be created (run the database push).';
+  return `Could not create the club: ${err.message ?? 'unknown error'}`;
 }
 
 /**
@@ -412,4 +455,24 @@ export async function fetchClubTerritoryRank(clubId: string): Promise<{ rank: nu
   const rows = (data ?? []) as { club_id: string; rank: number }[];
   const me = rows.find(r => r.club_id === clubId);
   return me ? { rank: me.rank, of: rows.length } : null;
+}
+
+/** This week's club war (Mon–Sun UTC) for a club you're in; null when there's no rival yet. */
+export interface ClubWar {
+  clubName: string; rivalId: string; rivalName: string;
+  clubAreaM2: number; rivalAreaM2: number;
+  myAreaM2: number; myRank: number | null; membersScoring: number;
+  endsAt: string;
+}
+export async function fetchClubWar(clubId: string): Promise<ClubWar | null> {
+  const { data, error } = await supabase.rpc('club_war', { p_club_id: clubId });
+  if (error) throw error;
+  const r = (data as Record<string, unknown>[] | null)?.[0];
+  if (!r) return null;
+  return {
+    clubName: String(r.club_name ?? ''), rivalId: String(r.rival_id), rivalName: String(r.rival_name ?? ''),
+    clubAreaM2: Number(r.club_area_m2) || 0, rivalAreaM2: Number(r.rival_area_m2) || 0,
+    myAreaM2: Number(r.my_area_m2) || 0, myRank: r.my_rank == null ? null : Number(r.my_rank),
+    membersScoring: Number(r.members_scoring) || 0, endsAt: String(r.ends_at),
+  };
 }

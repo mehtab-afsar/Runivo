@@ -2,7 +2,7 @@ import { locationGranted } from '@mobile/shared/location/devicePosition';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@shared/services/supabase';
-import { fetchClubs, fetchClubsNear, lastKnownPositionIfAllowed, joinClub, leaveClub, createClub, requestToJoinClub } from '@features/clubs/services/clubService';
+import { fetchClubs, fetchClubsNear, lastKnownPositionIfAllowed, joinClub, leaveClub, createClub, requestToJoinClub, uploadClubImage } from '@features/clubs/services/clubService';
 import type { Club } from '@features/clubs/types';
 
 export function useClubs() {
@@ -73,8 +73,9 @@ export function useClubs() {
         text: 'Leave',
         style: 'destructive',
         onPress: async () => {
-          const { error } = await leaveClub(club.id, userId);
+          const { error, result } = await leaveClub(club.id, userId);
           // Don't show them as out of a club the server still has them in.
+          if (result === 'owner') { Alert.alert("You own this club", 'Owners can’t leave. Open the club’s Admin tab to delete it.'); return; }
           if (error) { Alert.alert("Couldn't leave the club", 'Check your connection and try again.'); return; }
           const markLeft = (prev: Club[]) =>
             prev.map((c) =>
@@ -94,14 +95,24 @@ export function useClubs() {
     description: string,
     badgeEmoji: string,
     joinPolicy: 'open' | 'invite_only',
+    images?: { avatar: string | null; banner: string | null },
   ) => {
-    if (!userId) return false;
-    const newClub = await createClub(userId, name, description, badgeEmoji, joinPolicy);
-    if (newClub) {
+    if (!userId) return 'Sign in again to create a club.';
+    try {
+      const newClub = await createClub(userId, name, description, badgeEmoji, joinPolicy);
+      // Pictures need the club's id, so they go up after it exists. A failed
+      // upload doesn't undo the club: it can be added from the club's Admin tab.
+      for (const kind of ['avatar', 'banner'] as const) {
+        const uri = images?.[kind];
+        if (!uri) continue;
+        try { newClub[`${kind}_url`] = await uploadClubImage(newClub.id, kind, uri); }
+        catch { Alert.alert('Club created', `The ${kind === 'avatar' ? 'picture' : 'cover'} didn't upload. Add it from the club's Admin tab.`); }
+      }
       setClubs(prev => [newClub, ...prev]);
       return true;
+    } catch (e) {
+      return e instanceof Error ? e.message : 'Could not create the club. Please try again.';
     }
-    return false;
   }, [userId]);
 
   const refresh = useCallback(() => {

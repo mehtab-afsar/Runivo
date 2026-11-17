@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
-import { Modal, View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { X, Check } from 'phosphor-react-native';
 import type { StoredSavedRoute } from '@shared/services/store';
 import type { NearbyRoute } from '@shared/services/sync';
 import RouteCard from './RouteCard';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
+import { ModalSheet } from '@mobile/shared/components/ModalSheet';
 
 interface RouteModalProps {
   visible: boolean;
@@ -13,7 +14,6 @@ interface RouteModalProps {
   nearbyLoading: boolean;
   gpsReady: boolean;
   selectedRouteName: string | null;
-  bottomInset: number;
   onSelectRoute: (name: string, gpsPoints: { lat: number; lng: number }[]) => void;
   /** Today's planned session, if there is one (R1). */
   todaySession?: { id: string; title: string; summary: string } | null;
@@ -25,94 +25,76 @@ interface RouteModalProps {
 
 export default function RouteModal({
   visible, savedRoutes, nearbyRoutes, nearbyLoading, gpsReady,
-  selectedRouteName, bottomInset, onSelectRoute, onClearRoute, onFindNearby, onClose, todaySession, onSelectWorkout,
+  selectedRouteName, onSelectRoute, onClearRoute, onFindNearby, onClose, todaySession, onSelectWorkout,
 }: RouteModalProps) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={ss.overlay} onPress={onClose} />
-      <View style={[ss.sheet, { paddingBottom: Math.max(bottomInset, 16) }]}>
-        <View style={ss.header}>
-          <View>
-            <Text style={ss.title}>Follow</Text>
-            <Text style={ss.sub}>A route, or today's workout</Text>
-          </View>
-          <Pressable hitSlop={8} style={ss.closeBtn} onPress={onClose}>
-            <X size={14} color={C.muted} weight="regular" />
+    <ModalSheet visible={visible} onClose={onClose} padded={false} title="Follow" subtitle="A route, or today's workout" showClose>
+      <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={ss.list} showsVerticalScrollIndicator={false}>
+        {selectedRouteName && (
+          <Pressable style={[ss.clearRow]} onPress={() => { onClearRoute(); onClose(); }}>
+            <View style={[ss.routeIcon, { backgroundColor: C.red }]}>
+              <X size={14} color={C.white} weight="regular" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: C.red }}>Clear: {selectedRouteName}</Text>
+              <Text style={{ fontFamily: Fonts.light, fontSize: 11, color: C.danger, opacity: 0.7 }}>Tap to remove route</Text>
+            </View>
           </Pressable>
-        </View>
-        <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={ss.list} showsVerticalScrollIndicator={false}>
-          {selectedRouteName && (
-            <Pressable style={[ss.clearRow]} onPress={() => { onClearRoute(); onClose(); }}>
-              <View style={[ss.routeIcon, { backgroundColor: C.red }]}>
-                <X size={14} color={C.white} weight="regular" />
+        )}
+
+        {todaySession && onSelectWorkout && (
+          <>
+            <Text style={ss.section}>Today's workout</Text>
+            <Pressable style={ss.clearRow} onPress={() => { onSelectWorkout(todaySession); onClose(); }} accessibilityRole="button">
+              <View style={[ss.routeIcon, { backgroundColor: C.t1 }]}>
+                <Check size={14} color={C.bg} weight="bold" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: C.red }}>Clear: {selectedRouteName}</Text>
-                <Text style={{ fontFamily: Fonts.light, fontSize: 11, color: C.red, opacity: 0.7 }}>Tap to remove route</Text>
+                <Text style={{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 }}>{todaySession.title}</Text>
+                <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: C.t2 }} numberOfLines={2}>{todaySession.summary}</Text>
               </View>
             </Pressable>
-          )}
+          </>
+        )}
 
-          {todaySession && onSelectWorkout && (
-            <>
-              <Text style={ss.section}>Today's workout</Text>
-              <Pressable style={ss.clearRow} onPress={() => { onSelectWorkout(todaySession); onClose(); }} accessibilityRole="button">
-                <View style={[ss.routeIcon, { backgroundColor: C.t1 }]}>
-                  <Check size={14} color={C.bg} weight="bold" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 }}>{todaySession.title}</Text>
-                  <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: C.t2 }} numberOfLines={2}>{todaySession.summary}</Text>
-                </View>
-              </Pressable>
-            </>
-          )}
+        <Text style={ss.section}>My Routes</Text>
+        {savedRoutes.length === 0 ? (
+          <Text style={ss.empty}>No saved routes yet. Finish a run to save one.</Text>
+        ) : savedRoutes.map(r => (
+          <RouteCard
+            key={r.id}
+            route={{ id: r.id, name: r.name, emoji: r.emoji, distanceM: r.distanceM, durationSec: r.durationSec ?? undefined }}
+            onSelect={() => { onSelectRoute(`${r.emoji} ${r.name}`, r.gpsPoints); onClose(); }}
+          />
+        ))}
 
-          <Text style={ss.section}>My Routes</Text>
-          {savedRoutes.length === 0 ? (
-            <Text style={ss.empty}>No saved routes yet. Finish a run to save one.</Text>
-          ) : savedRoutes.map(r => (
-            <RouteCard
-              key={r.id}
-              route={{ id: r.id, name: r.name, emoji: r.emoji, distanceM: r.distanceM, durationSec: r.durationSec ?? undefined }}
-              onSelect={() => { onSelectRoute(`${r.emoji} ${r.name}`, r.gpsPoints); onClose(); }}
-            />
-          ))}
-
-          <View style={ss.nearbyHeader}>
-            <Text style={ss.section}>Nearby</Text>
-            <Pressable onPress={onFindNearby} disabled={nearbyLoading || !gpsReady}>
-              <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: nearbyLoading || !gpsReady ? C.t3 : C.black }}>
-                {nearbyLoading ? 'Searching...' : 'Find Routes'}
-              </Text>
-            </Pressable>
-          </View>
-          {nearbyRoutes.length === 0 ? (
-            <Text style={ss.empty}>{nearbyLoading ? 'Searching nearby...' : 'Tap "Find Routes" to discover routes near you.'}</Text>
-          ) : nearbyRoutes.map(r => (
-            <RouteCard
-              key={r.id}
-              route={{ id: r.id, name: r.name, emoji: r.emoji, distanceM: r.distanceM, distanceAwayM: r.distM, username: r.username }}
-              onSelect={() => { onSelectRoute(`${r.emoji} ${r.name}`, r.gpsPoints); onClose(); }}
-              highlighted
-            />
-          ))}
-        </ScrollView>
-      </View>
-    </Modal>
+        <View style={ss.nearbyHeader}>
+          <Text style={ss.section}>Nearby</Text>
+          <Pressable onPress={onFindNearby} disabled={nearbyLoading || !gpsReady}>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 12, color: nearbyLoading || !gpsReady ? C.t3 : C.black }}>
+              {nearbyLoading ? 'Searching...' : 'Find Routes'}
+            </Text>
+          </Pressable>
+        </View>
+        {nearbyRoutes.length === 0 ? (
+          <Text style={ss.empty}>{nearbyLoading ? 'Searching nearby...' : 'Tap "Find Routes" to discover routes near you.'}</Text>
+        ) : nearbyRoutes.map(r => (
+          <RouteCard
+            key={r.id}
+            route={{ id: r.id, name: r.name, emoji: r.emoji, distanceM: r.distanceM, distanceAwayM: r.distM, username: r.username }}
+            onSelect={() => { onSelectRoute(`${r.emoji} ${r.name}`, r.gpsPoints); onClose(); }}
+            highlighted
+          />
+        ))}
+      </ScrollView>
+    </ModalSheet>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)' },
-    sheet:       { backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 4 },
-    header:      { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
-    title:       { fontFamily: Fonts.medium, fontSize: 17, color: C.black },
-    sub:         { fontFamily: Fonts.light, fontSize: 12, color: C.muted, marginTop: 2 },
-    closeBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: C.bg, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
     list:        { paddingHorizontal: 20, paddingBottom: 16, gap: 8 },
     clearRow:    { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.accentMuted, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
     routeIcon:   { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },

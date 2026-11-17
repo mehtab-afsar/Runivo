@@ -181,7 +181,7 @@ export function EditProfileSheet({ username, initial, photoUri, onSave, onClose 
 
             {error && (
               <View style={s.errorBox} accessibilityLiveRegion="polite">
-                <WarningCircle size={18} color={C.red} weight="fill" />
+                <WarningCircle size={18} color={C.danger} weight="fill" />
                 <Text style={s.errorText}>{error}</Text>
               </View>
             )}

@@ -6,7 +6,6 @@
  * only adapts it to the shapes the app already uses, so a number the app shows
  * after a run is the number the server pays.
  */
-import { GAME_CONFIG } from './config';
 import type { TerritoryPolygon, TerritoryTier, RunnerRank } from '../types/game';
 import {
   ENGINE,
@@ -227,7 +226,7 @@ export function detectLoopClose(
   minRunDistM: number,
   trace?: { lat: number; lng: number }[],
 ): boolean {
-  if (minRunDistM < GAME_CONFIG.MIN_TERRITORY_DIST_M) return false;
+  if (minRunDistM < ENGINE.MIN_TERRITORY_DIST_M) return false;
   if (trace && trace.length >= 3) return findLoopStart(trace) >= 0;
   return haversineM(current, start) <= ENGINE.LOOP_CLOSE_DIST_M;
 }

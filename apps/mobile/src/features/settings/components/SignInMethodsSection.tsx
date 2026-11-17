@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert, Platform, TextInput, Modal, KeyboardAvoidingView } from 'react-native';
-import { Apple, Mail, Phone, Plus, X } from '@mobile/shared/icons/lucideCompat';
-import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
+import { Apple, Mail, Phone, Plus } from '@mobile/shared/icons/lucideCompat';
+import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { track } from '@shared/services/analytics';
 import { linkableMethods, methodLabel, unlinkBlockReason, type LinkedMethod, type SignInMethod } from '@shared/engine/identities';
 import { normalizePhone, dialCodeForLocale, otpSendPolicy, isOtpCode } from '@shared/engine/onboarding';
@@ -10,6 +10,8 @@ import {
   loadSignInMethods, linkGoogle, linkApple, sendAddPhoneCode, verifyAddPhoneCode, unlinkMethod,
 } from '@features/auth/services/identityLinking';
 import { SettingSection } from './SettingSection';
+import { ModalSheet } from '@mobile/shared/components/ModalSheet';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 function MethodIcon({ method, color }: { method: SignInMethod; color: string }) {
   if (method === 'apple') return <Apple size={18} color={color} strokeWidth={2} />;
@@ -195,56 +197,46 @@ function AddPhoneSheet({ visible, onClose, onAdded }: { visible: boolean; onClos
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.sheetBackdrop}>
-        <View style={s.sheet}>
-          <View style={s.sheetHead}>
-            <Text style={s.sheetTitle}>{sentTo ? 'Enter the code' : 'Add phone number'}</Text>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close">
-              <X size={20} color={C.t2} />
-            </Pressable>
-          </View>
+    <ModalSheet visible={visible} onClose={onClose} keyboard tone="page" showClose title={sentTo ? 'Enter the code' : 'Add phone number'}>
+      <View style={{ gap: 12 }}>
 
-          {!sentTo ? (
-            <>
-              <Text style={s.sheetSub}>We’ll text a 6-digit code to check it’s yours. Numbers without a country code use +91.</Text>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="+91 98765 43210"
-                placeholderTextColor={C.t3}
-                keyboardType="phone-pad"
-                textContentType="telephoneNumber"
-                autoComplete="tel"
-                autoFocus
-                style={s.input}
-                onSubmitEditing={submitPhone}
-              />
-              <Pressable style={[s.primary, busy && s.primaryBusy]} disabled={busy} onPress={submitPhone} accessibilityRole="button">
-                {busy ? <ActivityIndicator color={C.alwaysLight} /> : <Text style={s.primaryText}>Send code</Text>}
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Text style={s.sheetSub}>Sent to {sentTo}.</Text>
-              <CodeInput value={code} onChange={setCode} onComplete={verify} error={!!error} />
-              <Pressable
-                onPress={() => send(sentTo)}
-                disabled={!policy.allowed || busy}
-                style={s.resend}
-                accessibilityRole="button"
-              >
-                <Text style={[s.resendText, (!policy.allowed || busy) && s.resendOff]}>
-                  {policy.allowed ? 'Send a new code' : policy.resendsLeft === 0 ? 'No more codes for now' : `Send a new code in ${policy.waitSeconds}s`}
-                </Text>
-              </Pressable>
-              {busy ? <ActivityIndicator color={C.red} style={{ marginTop: 8 }} /> : null}
-            </>
-          )}
-          {error ? <Text style={s.error}>{error}</Text> : null}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        {!sentTo ? (
+          <>
+            <Text style={s.sheetSub}>We’ll text a 6-digit code to check it’s yours. Numbers without a country code use +91.</Text>
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="+91 98765 43210"
+              placeholderTextColor={C.t3}
+              keyboardType="phone-pad"
+              textContentType="telephoneNumber"
+              autoComplete="tel"
+              autoFocus
+              style={s.input}
+              onSubmitEditing={submitPhone}
+            />
+            <PrimaryButton label="Send code" onPress={submitPhone} disabled={busy} loading={busy} fullWidth />
+          </>
+        ) : (
+          <>
+            <Text style={s.sheetSub}>Sent to {sentTo}.</Text>
+            <CodeInput value={code} onChange={setCode} onComplete={verify} error={!!error} />
+            <Pressable
+              onPress={() => send(sentTo)}
+              disabled={!policy.allowed || busy}
+              style={s.resend}
+              accessibilityRole="button"
+            >
+              <Text style={[s.resendText, (!policy.allowed || busy) && s.resendOff]}>
+                {policy.allowed ? 'Send a new code' : policy.resendsLeft === 0 ? 'No more codes for now' : `Send a new code in ${policy.waitSeconds}s`}
+              </Text>
+            </Pressable>
+            {busy ? <ActivityIndicator color={C.red} style={{ marginTop: 8 }} /> : null}
+          </>
+        )}
+        {error ? <Text style={s.error}>{error}</Text> : null}
+      </View>
+    </ModalSheet>
   );
 }
 
@@ -259,22 +251,15 @@ function mkStyles(C: AppColors) {
     label:      { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
     addLabel:   { flex: 1, fontFamily: Fonts.medium, color: C.red },
     detail:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t3, marginTop: 2 },
-    remove:     { fontFamily: Fonts.medium, fontSize: 13, color: C.red },
+    remove:     { fontFamily: Fonts.medium, fontSize: 13, color: C.danger },
     linked:     { fontFamily: Fonts.medium, fontSize: 13, color: C.t3 },
     error:      { ...Type.caption, color: C.danger, paddingHorizontal: 14, paddingTop: 10 },
     footnote:   { ...Type.caption, color: C.t3, paddingHorizontal: 14, paddingVertical: 12 },
-    sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(12,12,13,0.35)' },
-    sheet:      { backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: Spacing.gutter, paddingBottom: 40, gap: 12 },
-    sheetHead:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    sheetTitle: { ...Type.title, color: C.t1 },
     sheetSub:   { ...Type.bodySm, color: C.t2 },
     input:      {
       height: 52, borderRadius: 22, borderWidth: 1, borderColor: C.border, backgroundColor: C.card,
       paddingHorizontal: 16, fontFamily: Fonts.medium, fontSize: 17, color: C.t1,
     },
-    primary:    { height: 52, borderRadius: 999, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center' },
-    primaryBusy:{ opacity: 0.6 },
-    primaryText:{ fontFamily: Fonts.semiBold, fontSize: 16, color: C.alwaysLight },
     resend:     { alignItems: 'center', paddingVertical: 6 },
     resendText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     resendOff:  { color: C.t3 },

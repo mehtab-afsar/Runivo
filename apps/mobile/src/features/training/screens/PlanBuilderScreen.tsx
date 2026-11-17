@@ -1,113 +1,178 @@
 /**
- * Build a race plan: distance, race day, current 5K, optional goal, run days.
- * The plan itself comes from the tested engine (packages/shared/src/engine/training.ts).
+ * Plan setup (PRD "Race-first training plans", mocks 1–8), one question per
+ * screen:
+ *
+ *   goal → find race / add race → race & distance → fitness → week → injuries → preview
+ *
+ * Goals without a race skip the race steps and end in a time trial; "Start
+ * running" is a walk-run plan and skips fitness and injuries. Every entry
+ * point opens this screen (Home, Plan, PaceX, Events, onboarding); a race
+ * passed in skips straight to its page. Answers already given in onboarding
+ * are filled in.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Pressable, Alert, Linking, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Minus, Plus } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { FormButton, FormLink, FormTip } from '@mobile/shared/components/form/FormKit';
 import {
-  buildPlan, predictSec, fmtDuration, addDays, mondayOf, weekday, daysBetween,
-  RACE_KM, RACE_LABEL, PLAN_WEEKS, type RaceDistance,
+  buildPlan, buildStartPlan, goalPlanShape, planEndDate, planStartMonday, predictSec, fiveKFromTime, raceForKm, daysBetween,
+  RACE_KM, RACE_LABEL, PLAN_WEEKS, type PlanGoal, type RaceDistance, type TrainingPlanV2, type PlanError,
 } from '@shared/engine/training';
-import { parseFiveKTime } from '@shared/engine/onboarding';
 import { createPlan, fetchPlanDefaults, localToday } from '../services/planService';
+import {
+  addRunnerRace, enterRace, raceForEvent, entrantsLabel, fmtRaceDate, ADD_RACE_MESSAGE, type RaceResult, type RaceDistanceOption,
+} from '../services/raceService';
 import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
+import SetupShell from '../setup/SetupShell';
+import RaceSearchStep from '../setup/RaceSearchStep';
+import AddRaceStep, { newRaceProblem, type NewRace } from '../setup/AddRaceStep';
+import FitnessStep, { BASIS_KM, type FitnessValue } from '../setup/FitnessStep';
+import PreviewStep from '../setup/PreviewStep';
+import { GoalStep, InjuryStep, WeekStep, PillRow, nearestWeekly, type InjuryChoice } from '../setup/steps';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-const RACES: RaceDistance[] = ['5k', '10k', 'half', 'marathon'];
-const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+type StepKey = 'goal' | 'race' | 'addRace' | 'distance' | 'fitness' | 'week' | 'injury' | 'preview';
 
-/** "1:52:30" or "48:10" → seconds; null when blank or invalid. */
-function parseDuration(s: string): number | null {
-  const m = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})$/.exec(s.trim());
-  if (!m) return null;
-  const sec = Number(m[3]), min = Number(m[2]), h = m[1] ? Number(m[1]) : 0;
-  if (sec >= 60 || (m[1] && min >= 60)) return null;
-  return h * 3600 + min * 60 + sec;
+/** The steps a goal goes through, in order (addRace is a detour off race). */
+function stepsFor(goal: PlanGoal, startAt: StepKey): StepKey[] {
+  const all: StepKey[] =
+    goal === 'race' ? ['goal', 'race', 'distance', 'fitness', 'week', 'injury', 'preview']
+    : goal === 'start' ? ['goal', 'week', 'preview']
+    : goal === 'return' ? ['goal', 'fitness', 'week', 'injury', 'preview']
+    : ['goal', 'distance', 'fitness', 'week', 'injury', 'preview'];
+  return all.slice(Math.max(0, all.indexOf(startAt)));
 }
 
-function fmtDate(d: string): string {
-  const [y, m, day] = d.split('-').map(Number);
-  return `${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][weekday(d)]} ${day} ${MONTHS[m - 1]} ${y}`;
-}
+const GOAL_DISTANCES: Record<'faster' | 'further', RaceDistance[]> = { faster: ['5k', '10k'], further: ['10k', 'half', 'marathon'] };
+const SHORT: Record<RaceDistance, string> = { '5k': '5K', '10k': '10K', half: 'Half', marathon: 'Marathon' };
 
 export default function PlanBuilderScreen() {
   const C = useTheme();
-  const s = useMemo(() => mkStyles(C), [C]);
+  const s = useMemo(() => mk(C), [C]);
   const navigation = useNavigation<Nav>();
   const gate = useFeatureGate();
-  const params = useRoute<RouteProp<RootStackParamList, 'PlanBuilder'>>().params;
+  const params = useRoute<RouteProp<RootStackParamList, 'PlanBuilder'>>().params ?? {};
   const today = localToday();
-  // From a race in Events: its distance and date are fixed.
-  const fixedDate = params?.raceDate && params.raceDate > today ? params.raceDate : null;
+  const prefill = params.prefill;
 
-  const [race, setRace] = useState<RaceDistance>(params?.race ?? '10k');
-  const firstMonday = weekday(today) === 0 ? today : mondayOf(addDays(today, 7));
-  // Race day = Sunday of the plan's last week; weeks counted from the first Monday.
-  const [weekPick, setWeeks] = useState(10);
-  const weeks = fixedDate ? Math.max(1, Math.floor(daysBetween(firstMonday, mondayOf(fixedDate)) / 7) + 1) : weekPick;
-  const raceDate = fixedDate ?? addDays(firstMonday, weekPick * 7 - 1);
-  const [fiveK, setFiveK] = useState('');
-  const [goal, setGoal] = useState('');
-  const [runDays, setRunDays] = useState<number[]>([1, 3, 6]);
-  const [longDay, setLongDay] = useState(6);
-  const [weeklyKm, setWeeklyKm] = useState<number | null>(null);
+  // A race handed in (Events "Train for this", a club race): start on its page.
+  const startAt: StepKey = params.eventId ? 'distance' : 'goal';
+  const [goal, setGoal] = useState<PlanGoal>('race');
+  const steps = stepsFor(goal, startAt);
+  const [step, setStep] = useState<StepKey>(startAt);
+
+  const [race, setRace] = useState<RaceResult | null>(null);
+  const [raceLoading, setRaceLoading] = useState(!!params.eventId);
+  const [distanceId, setDistanceId] = useState<string | null>(null);
+  const [goalDistance, setGoalDistance] = useState<RaceDistance>('10k');
+  const [newRace, setNewRace] = useState<NewRace>({ name: '', startsOn: null, distanceM: null, city: '', url: '' });
+  const [adding, setAdding] = useState(false);
+
+  const [fitness, setFitness] = useState<FitnessValue>({ mode: 'time', basis: '5k', sec: prefill?.fiveKSec ?? 30 * 60, level: null });
+  const [estimate, setEstimate] = useState<{ fiveKSec: number; runs: number } | null>(null);
+  const [days, setDays] = useState<number[]>(prefill?.runDays?.length ? prefill.runDays.slice(0, 5) : [1, 3, 6]);
+  const [longDay, setLongDay] = useState(prefill?.longRunDay ?? 6);
+  const [weekly, setWeekly] = useState(nearestWeekly(prefill?.weeklyKm ?? null));
+  const [runsKm, setRunsKm] = useState<number | null>(null);
+  const [injury, setInjury] = useState<InjuryChoice>(prefill?.cautious ? 'minor' : 'none');
+  const [push, setPush] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchPlanDefaults().then(d => {
-      if (d.fiveKSec) setFiveK(fmtDuration(d.fiveKSec));
-      setWeeklyKm(d.weeklyKm);
+      if (!prefill?.fiveKSec && d.fiveKSec) setFitness(f => (f.mode === 'time' && f.basis === '5k' ? { ...f, sec: d.fiveKSec! } : f));
+      if (prefill?.weeklyKm == null && d.weeklyKm != null) setWeekly(nearestWeekly(d.weeklyKm));
+      setRunsKm(d.runsKm);
+      setEstimate(d.estimate);
     }).catch(() => {});
-  }, []);
+  }, [prefill?.fiveKSec, prefill?.weeklyKm]);
 
-  // Keep the race date inside what the distance allows.
-  const { min, max } = PLAN_WEEKS[race];
-  useEffect(() => { setWeeks(w => Math.max(min, Math.min(max + 8, w))); }, [min, max]);
+  useEffect(() => {
+    if (!params.eventId) return;
+    raceForEvent(params.eventId).then(r => {
+      setRaceLoading(false);
+      if (r) pickRace(r);
+      else setStep('race');
+    }).catch(() => { setRaceLoading(false); setStep('race'); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.eventId]);
 
-  const fiveKParsed = parseFiveKTime(fiveK);
-  const fiveKSec = fiveKParsed.ok ? fiveKParsed.seconds : null;
-  const predicted = fiveKSec ? predictSec(fiveKSec, RACE_KM[race]) : null;
-  const goalSec = goal.trim() ? parseDuration(goal) : null;
+  // ── Race helpers ────────────────────────────────────────────────────────────
+  const weeksTo = (date: string) => Math.floor(daysBetween(planStartMonday(today), date) / 7) + 1;
+  const plannable = (d: RaceDistanceOption) => raceForKm(d.distanceM / 1000);
+  const fits = (d: RaceDistanceOption) => {
+    const r = plannable(d);
+    return !!r && !!race && weeksTo(race.startsOn) >= PLAN_WEEKS[r].min;
+  };
+  function pickRace(r: RaceResult) {
+    setRace(r);
+    const ok = r.distances.filter(d => raceForKm(d.distanceM / 1000) && weeksTo(r.startsOn) >= PLAN_WEEKS[raceForKm(d.distanceM / 1000)!].min);
+    setDistanceId(ok.length ? ok[0].id : null);
+    setStep('distance');
+  }
 
-  const toggleDay = (d: number) => {
-    setRunDays(prev => {
-      const next = prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort((a, b) => a - b);
-      if (next.length > 5) return prev;
-      if (!next.includes(longDay) && next.length) setLongDay(next[next.length - 1]);
-      return next;
+  // ── Navigation ──────────────────────────────────────────────────────────────
+  const close = () => navigation.goBack();
+  const back = () => {
+    if (step === 'addRace') return setStep('race');
+    const i = steps.indexOf(step);
+    if (i <= 0) return close();
+    setStep(steps[i - 1]);
+  };
+  const next = () => {
+    const i = steps.indexOf(step);
+    setStep(steps[Math.min(i + 1, steps.length - 1)]);
+  };
+
+  const saveNewRace = async () => {
+    const problem = newRaceProblem(newRace);
+    if (problem) { Alert.alert('Almost there', problem); return; }
+    setAdding(true);
+    const res = await addRunnerRace({ name: newRace.name, startsOn: newRace.startsOn!, distanceM: newRace.distanceM!, city: newRace.city, url: newRace.url });
+    setAdding(false);
+    if ('error' in res) { Alert.alert("Couldn't add the race", ADD_RACE_MESSAGE[res.error]); return; }
+    const label = SHORT[raceForKm(newRace.distanceM! / 1000) ?? '10k'];
+    pickRace({
+      id: res.raceId, name: newRace.name.trim(), city: newRace.city.trim() || null, startsOn: newRace.startsOn!, websiteUrl: newRace.url.trim() || null,
+      source: 'runner', status: 'pending', kmAway: null, entrants: 0, mine: false,
+      distances: [{ id: res.distanceId, distanceM: newRace.distanceM!, label, startTime: null }],
     });
   };
 
-  const problems: string[] = [];
-  if (!fiveKSec) problems.push('Enter your current 5K time, like 27:30.');
-  if (goal.trim() && !goalSec) problems.push('Goal time: use 48:30 or 1:52:00, or leave it blank.');
-  if (runDays.length < 3) problems.push('Pick at least 3 run days.');
-
-  const create = async () => {
-    if (problems.length || !fiveKSec) return;
-    // X6: plans are a Plus feature (one switch in entitlements.ts).
-    if (!gate.loading && !gate.canUse('training_plan')) { navigation.navigate('Subscription', { reason: 'training' }); return; }
-    const result = buildPlan({
-      race, raceDate, fiveKSec, goalSec, runDays, longRunDay: longDay, currentWeeklyKm: weeklyKm, today,
-    });
-    if ('error' in result) {
-      Alert.alert("Can't build that plan",
-        result.error === 'too_soon' ? (fixedDate ? `This race is ${weeks} weeks away; a ${RACE_LABEL[race]} plan needs at least ${result.minWeeks}. Pick a shorter distance or a later race.` : `A ${RACE_LABEL[race]} needs at least ${result.minWeeks} weeks. Pick a later race day.`)
-        : result.error === 'bad_days' ? 'Pick 3 to 5 run days, including your long-run day.'
-        : 'Check your 5K time.');
-      return;
+  // ── The plan ────────────────────────────────────────────────────────────────
+  const fiveKSec = fitness.basis === '5k' ? fitness.sec : fiveKFromTime(BASIS_KM[fitness.basis], fitness.sec);
+  const chosen = race?.distances.find(d => d.id === distanceId) ?? null;
+  const built: TrainingPlanV2 | { error: PlanError; minWeeks?: number } | null = useMemo(() => {
+    if (step !== 'preview') return null;
+    if (goal === 'start') return buildStartPlan({ runDays: days, longRunDay: longDay, today });
+    const inj = injury === 'unsaid' ? 'none' : injury;
+    const common = { fiveKSec, runDays: days, longRunDay: longDay, currentWeeklyKm: weekly, today, injury: inj };
+    if (goal === 'race') {
+      const rd = chosen ? raceForKm(chosen.distanceM / 1000) : null;
+      if (!race || !chosen || !rd) return { error: 'too_soon' };
+      return buildPlan({
+        ...common, race: rd, raceDate: race.startsOn, goal: 'race',
+        goalSec: push ? Math.round(predictSec(fiveKSec, RACE_KM[rd]) * 0.97) : null,
+        raceRef: { raceId: race.id, distanceId: chosen.id, name: race.name, city: race.city },
+      });
     }
+    const shape = goalPlanShape(goal, goalDistance);
+    return buildPlan({
+      ...common, race: shape.race, raceDate: planEndDate(today, shape.weeks), goal, cautious: shape.cautious,
+      goalSec: push && goal === 'faster' ? Math.round(predictSec(fiveKSec, RACE_KM[shape.race]) * 0.97) : null,
+    });
+  }, [step, goal, days, longDay, today, injury, fiveKSec, weekly, race, chosen, push, goalDistance]);
+
+  const start = async () => {
+    if (!built || 'error' in built) return;
+    if (!gate.loading && !gate.canUse('training_plan')) { navigation.navigate('Subscription', { reason: 'training' }); return; }
     setSaving(true);
     try {
-      await createPlan(result);
+      const ap = await createPlan(built);
+      if (built.raceRef) await enterRace(built.raceRef.distanceId, ap.id, built.goalSec).catch(() => false);
       navigation.replace('TrainingPlan');
     } catch {
       Alert.alert("Couldn't save the plan", 'Check your connection and try again.');
@@ -116,142 +181,204 @@ export default function PlanBuilderScreen() {
     }
   };
 
-  const planWeeks = Math.min(weeks, max);
-  const starts = addDays(raceDate, -(planWeeks * 7 - 1));
+  const justEnter = async () => {
+    if (!chosen) return;
+    const ok = await enterRace(chosen.id);
+    Alert.alert(ok ? "You're in" : "Couldn't save that", ok ? `${race?.name} is on your list. Build a plan for it any time.` : 'Check your connection and try again.');
+    if (ok) close();
+  };
 
-  return (
-    <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>New training plan</Text>
-        <View style={{ width: 32 }} />
-      </View>
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-          <Text style={s.label}>Race</Text>
-          <View style={s.chips}>
-            {RACES.map(r => (
-              <Pressable hitSlop={8} key={r} style={[s.chip, race === r && s.chipOn]} onPress={() => setRace(r)} accessibilityRole="button" accessibilityState={{ selected: race === r }}>
-                <Text style={[s.chipTxt, race === r && s.chipTxtOn]}>{RACE_LABEL[r]}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={s.label}>Race day</Text>
-          {fixedDate ? (
-            <View style={[s.card, s.stepper]}>
-              <View style={{ flex: 1, alignItems: 'center' }}>
-                <Text style={s.dateTxt}>{fmtDate(raceDate)}</Text>
-                <Text style={s.sub} numberOfLines={1}>{params?.raceName ? `${params.raceName} · ` : ''}{weeks} weeks away</Text>
-              </View>
-            </View>
-          ) : (
-          <View style={[s.card, s.stepper]}>
-            <Pressable hitSlop={8} style={s.stepBtn} onPress={() => setWeeks(w => Math.max(min, w - 1))} accessibilityRole="button" accessibilityLabel="One week earlier">
-              <Minus size={16} color={C.t1} weight="bold" />
-            </Pressable>
-            <View style={{ flex: 1, alignItems: 'center' }}>
-              <Text style={s.dateTxt}>{fmtDate(raceDate)}</Text>
-              <Text style={s.sub}>{weeks} weeks away{weeks > max ? ` · the plan starts ${fmtDate(starts)}` : ''}</Text>
-            </View>
-            <Pressable hitSlop={8} style={s.stepBtn} onPress={() => setWeeks(w => Math.min(52, w + 1))} accessibilityRole="button" accessibilityLabel="One week later">
-              <Plus size={16} color={C.t1} weight="bold" />
-            </Pressable>
-          </View>
-          )}
-
-          <Text style={s.label}>Your 5K time now</Text>
-          <TextInput
-            style={s.input} value={fiveK} onChangeText={setFiveK} placeholder="27:30" placeholderTextColor={C.t3}
-            keyboardType="numbers-and-punctuation" maxLength={8}
-          />
-          <Text style={s.sub}>Sets your training paces. A recent race or hard effort is best.</Text>
-
-          <Text style={s.label}>Goal time (optional)</Text>
-          <TextInput
-            style={s.input} value={goal} onChangeText={setGoal}
-            placeholder={predicted ? fmtDuration(predicted) : race === 'marathon' || race === 'half' ? '1:55:00' : '50:00'}
-            placeholderTextColor={C.t3} keyboardType="numbers-and-punctuation" maxLength={8}
-          />
-          {predicted ? (
-            <Text style={s.sub}>
-              Your 5K suggests about {fmtDuration(predicted)}.
-              {goalSec && goalSec < predicted * 0.95 ? ' That goal is ambitious; the plan will aim for a safer target.' : ''}
-            </Text>
-          ) : null}
-
-          <Text style={s.label}>Run days ({runDays.length})</Text>
-          <View style={s.days}>
-            {DAYS.map((d, i) => {
-              const on = runDays.includes(i);
-              return (
-                <Pressable key={i} style={[s.day, on && s.dayOn]} onPress={() => toggleDay(i)} accessibilityRole="button" accessibilityLabel={DAY_NAMES[i]} accessibilityState={{ selected: on }}>
-                  <Text style={[s.dayTxt, on && s.dayTxtOn]}>{d}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Text style={s.sub}>3 to 5 days. Rest days between them help.</Text>
-
-          <Text style={s.label}>Long run on</Text>
-          <View style={s.chips}>
-            {runDays.map(d => (
-              <Pressable hitSlop={8} key={d} style={[s.chip, longDay === d && s.chipOn]} onPress={() => setLongDay(d)} accessibilityRole="button" accessibilityState={{ selected: longDay === d }}>
-                <Text style={[s.chipTxt, longDay === d && s.chipTxtOn]}>{DAY_NAMES[d].slice(0, 3)}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {weeklyKm ? <Text style={[s.sub, { marginTop: 18 }]}>Starting from about {weeklyKm} km a week, based on your recent running.</Text> : null}
-
-          {problems.length > 0 && <Text style={s.problem}>{problems[0]}</Text>}
-
-          <Pressable
-            style={[s.cta, (problems.length > 0 || saving) && { opacity: 0.45 }]}
-            onPress={create} disabled={problems.length > 0 || saving} accessibilityRole="button"
-          >
-            {saving ? <ActivityIndicator color={C.alwaysLight} /> : <Text style={s.ctaTxt}>Build my plan</Text>}
-          </Pressable>
-          <Text style={s.foot}>
-            The plan grows your running by at most 10% a week, adds a lighter week every fourth week and tapers before race day. You can move or ease any session.
-          </Text>
-          <Text style={s.foot}>{daysBetween(today, raceDate)} days to go.</Text>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+  // ── Screens ─────────────────────────────────────────────────────────────────
+  const shell = (props: Omit<React.ComponentProps<typeof SetupShell>, 'step' | 'steps' | 'onBack' | 'onClose'>) => (
+    <SetupShell step={Math.max(1, steps.indexOf(step === 'addRace' ? 'race' : step) + 1)} steps={steps.length} onBack={back} onClose={close} {...props} />
   );
+
+  if (step === 'goal') {
+    return shell({
+      title: "What's the", accent: 'plan?', subtitle: 'Pick what fits best. You can change it later.',
+      children: <GoalStep value={goal} onChange={g => { setGoal(g); if (g === 'faster') setGoalDistance('5k'); if (g === 'further') setGoalDistance('half'); }} />,
+      footer: <FormButton label="Continue" onPress={next} />,
+    });
+  }
+
+  if (step === 'race') {
+    return shell({
+      title: 'Find your', accent: 'race.', subtitle: 'Races near you come first.',
+      children: <RaceSearchStep today={today} onPick={pickRace} onAdd={name => { setNewRace(r => ({ ...r, name: name || r.name })); setStep('addRace'); }} />,
+    });
+  }
+
+  if (step === 'addRace') {
+    return shell({
+      title: 'Add your', accent: 'race.', subtitle: 'Your plan works straight away.',
+      children: <AddRaceStep value={newRace} onChange={setNewRace} today={today} />,
+      footer: <FormButton label="Use this race" onPress={saveNewRace} busy={adding} disabled={!!newRaceProblem(newRace)} />,
+    });
+  }
+
+  if (step === 'distance' && goal === 'race') {
+    if (raceLoading || !race) {
+      return shell({ title: 'Loading', accent: 'race…', children: <View /> });
+    }
+    const who = entrantsLabel(race.entrants);
+    const weeks = weeksTo(race.startsOn);
+    const anyFits = race.distances.some(fits);
+    return shell({
+      title: race.name,
+      subtitle: `${fmtRaceDate(race.startsOn)}${race.city ? ` · ${race.city}` : ''}`,
+      children: (
+        <>
+          <View style={s.facts}>
+            <Fact s={s} label="Weeks to go" value={String(Math.max(0, weeks))} />
+            <Fact s={s} label="Training" value={who ? who.replace(' training', '') : 'Be first'} />
+            {race.websiteUrl
+              ? <Pressable style={s.fact} onPress={() => Linking.openURL(race.websiteUrl!)} accessibilityRole="link"><Text style={s.factLabel}>Entry</Text><Text style={[s.factVal, { color: C.green, fontSize: 16 }]}>Website ↗</Text></Pressable>
+              : <Fact s={s} label="Entry" value="—" />}
+          </View>
+          {race.status === 'pending' && <Text style={s.pending}>Only you can see this race until we check it.</Text>}
+          <View>
+            <Text style={s.label}>Your distance</Text>
+            <PillRow
+              options={race.distances.map(d => ({ value: d.id, label: d.label }))}
+              value={distanceId} onChange={setDistanceId} disabled={id => !fits(race.distances.find(d => d.id === id)!)}
+            />
+            {!anyFits && (
+              <Text style={s.warn}>
+                {race.distances.some(plannable)
+                  ? `This race is ${Math.max(0, weeks)} weeks away. That's too soon for a plan at these distances. Pick a later race, or mark it and run it.`
+                  : "We can build plans for 5K, 10K, half and full marathons. You can still mark this race as one you're running."}
+              </Text>
+            )}
+          </View>
+          <FormTip lead="PaceX:">{tipFor(chosen, weeks)}</FormTip>
+        </>
+      ),
+      footer: (
+        <>
+          <FormButton label="Train for this race" onPress={next} disabled={!chosen || !fits(chosen)} />
+          {chosen && <FormLink label="I'm running it, no plan" onPress={justEnter} />}
+        </>
+      ),
+    });
+  }
+
+  if (step === 'distance') {
+    const opts = GOAL_DISTANCES[goal === 'faster' ? 'faster' : 'further'];
+    const shape = goalPlanShape(goal as 'faster' | 'further', goalDistance);
+    return shell({
+      title: goal === 'faster' ? 'Faster at' : 'Build up', accent: goal === 'faster' ? 'which distance?' : 'to what?',
+      subtitle: `${shape.weeks} weeks, ending with a ${SHORT[shape.race]} time trial.`,
+      children: <PillRow options={opts.map(r => ({ value: r, label: SHORT[r] }))} value={goalDistance} onChange={setGoalDistance} />,
+      footer: <FormButton label="Continue" onPress={next} />,
+    });
+  }
+
+  if (step === 'fitness') {
+    const ok = fiveKSec >= 12 * 60 && fiveKSec <= 60 * 60;
+    return shell({
+      title: 'How fast are you', accent: 'right now?', subtitle: "Today's fitness, not an old best or your goal.",
+      children: <FitnessStep value={fitness} onChange={setFitness} estimate={estimate} />,
+      footer: (
+        <>
+          <FormTip lead="Why PaceX asks:">It sets every pace in your plan.</FormTip>
+          <FormButton label="Continue" onPress={next} disabled={!ok} />
+        </>
+      ),
+    });
+  }
+
+  if (step === 'week') {
+    const okDays = days.length >= 3 && days.includes(longDay);
+    return shell({
+      title: 'Your', accent: 'week.', subtitle: goal === 'start' ? 'Pick 3 or more days. Plans use 3 of them with a rest day between.' : 'Sessions only go on these days.',
+      children: (
+        <WeekStep days={days} longDay={longDay} weeklyKm={weekly} fromRuns={runsKm} showVolume={goal !== 'start'}
+          onDays={setDays} onLong={setLongDay} onWeekly={setWeekly} />
+      ),
+      footer: <FormButton label="Continue" onPress={next} disabled={!okDays} />,
+    });
+  }
+
+  if (step === 'injury') {
+    return shell({
+      title: 'Any', accent: 'injuries?', subtitle: 'Optional. It changes how fast your distance builds. Not medical advice.',
+      children: <InjuryStep value={injury} onChange={setInjury} />,
+      footer: <FormButton label="Continue" onPress={next} />,
+    });
+  }
+
+  // Preview
+  const err = built && 'error' in built ? built : null;
+  const plan = built && !('error' in built) ? built : null;
+  const name = goal === 'race' && race ? shortName(race.name) : goal === 'start' ? 'your first 5K' : plan ? SHORT[plan.race] : '';
+  return shell({
+    title: 'Your plan for', accent: `${name}.`,
+    children: err ? (
+      <View style={{ gap: 12 }}>
+        <Text style={s.warn}>{errorText(err, goal, chosen)}</Text>
+        {goal === 'race' && <FormLink label="Pick another race" onPress={() => setStep('race')} />}
+        <FormLink label="Change my days" onPress={() => setStep('week')} />
+      </View>
+    ) : plan ? (
+      <>
+        <PreviewStep plan={plan} today={today} />
+        {(goal === 'race' || goal === 'faster') && (
+          <View>
+            <Text style={s.label}>How hard to aim</Text>
+            <PillRow
+              options={[{ value: 'steady', label: 'Steady' }, { value: 'push', label: 'Push me' }]}
+              value={push ? 'push' : 'steady'} onChange={v => setPush(v === 'push')}
+            />
+            <Text style={s.hint}>{push ? 'Aims about 3% faster than your fitness predicts.' : 'Aims for what your fitness predicts. It speeds up as you get fitter.'}</Text>
+          </View>
+        )}
+      </>
+    ) : <View />,
+    footer: plan ? (
+      <>
+        <FormButton label="Start plan" onPress={start} busy={saving} />
+        <FormLink label="Change details" onPress={() => setStep(goal === 'start' ? 'week' : 'fitness')} />
+      </>
+    ) : undefined,
+  });
 }
 
-function mkStyles(C: AppColors) {
+function shortName(n: string): string {
+  const cut = n.replace(/\b(half marathon|marathon|half|10k|5k|run)\b/gi, '').replace(/\s+/g, ' ').trim();
+  return (cut.length >= 3 ? cut : n).split(' ').slice(0, 2).join(' ');
+}
+
+function tipFor(d: RaceDistanceOption | null, weeks: number): string {
+  const r = d ? raceForKm(d.distanceM / 1000) : null;
+  if (!r) return 'Pick the distance you are running.';
+  const { min, max } = PLAN_WEEKS[r];
+  if (weeks < min) return `A ${RACE_LABEL[r]} plan needs at least ${min} weeks.`;
+  if (weeks > max) return `${weeks} weeks is plenty. The plan starts ${weeks - max} weeks from now; keep running easy until then.`;
+  return `${weeks} weeks is enough for a ${RACE_LABEL[r]} if you keep to the plan.`;
+}
+
+function errorText(e: { error: PlanError; minWeeks?: number }, goal: PlanGoal, d: RaceDistanceOption | null): string {
+  if (e.error === 'too_soon') {
+    const r = d ? raceForKm(d.distanceM / 1000) : null;
+    return goal === 'race' && r ? `This race is too soon for a ${RACE_LABEL[r]} plan, which needs at least ${e.minWeeks ?? PLAN_WEEKS[r].min} weeks. Pick a shorter distance or a later race.` : "Couldn't build a plan for that date.";
+  }
+  if (e.error === 'bad_days') return 'Pick 3 to 5 run days, including your long-run day.';
+  return 'Check your current time and try again.';
+}
+
+function Fact({ s, label, value }: { s: ReturnType<typeof mk>; label: string; value: string }) {
+  return <View style={s.fact}><Text style={s.factLabel}>{label}</Text><Text style={s.factVal} numberOfLines={1} adjustsFontSizeToFit>{value}</Text></View>;
+}
+
+function mk(C: AppColors) {
   return StyleSheet.create({
-    root:    { flex: 1, backgroundColor: C.bg },
-    header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn: { width: 32 },
-    title:   { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
-    scroll:  { paddingHorizontal: 18, paddingBottom: 48 },
-    label:   { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 20, marginBottom: 8 },
-    sub:     { fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, color: C.t2, marginTop: 6 },
-    chips:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip:    { height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    chipOn:  { backgroundColor: C.t1, borderColor: C.t1 },
-    chipTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
-    chipTxtOn: { color: C.bg },
-    card:    { backgroundColor: C.card, borderRadius: 22 },
-    stepper: { flexDirection: 'row', alignItems: 'center', padding: 10 },
-    stepBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' },
-    dateTxt: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
-    input:   { backgroundColor: C.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontFamily: Fonts.numeric, fontSize: 18, color: C.t1 },
-    days:    { flexDirection: 'row', gap: 6 },
-    day:     { flex: 1, height: 42, borderRadius: 12, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    dayOn:   { backgroundColor: C.red, borderColor: C.red },
-    dayTxt:  { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
-    dayTxtOn:{ color: C.alwaysLight },
-    problem: { fontFamily: Fonts.medium, fontSize: 12.5, color: C.red, marginTop: 18 },
-    cta:     { height: 52, borderRadius: 26, backgroundColor: C.red, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-    ctaTxt:  { fontFamily: Fonts.semiBold, fontSize: 16, color: C.alwaysLight },
-    foot:    { fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, color: C.t3, marginTop: 12 },
+    facts:     { flexDirection: 'row', gap: 8 },
+    fact:      { flex: 1, backgroundColor: C.card, borderRadius: 18, padding: 14 },
+    factLabel: { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2 },
+    factVal:   { fontFamily: Fonts.semiBold, fontSize: 22, color: C.t1, marginTop: 2, letterSpacing: -0.5 },
+    label:     { fontFamily: Fonts.medium, fontSize: 14, color: C.t1, marginBottom: 8 },
+    hint:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 8 },
+    warn:      { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.amber, backgroundColor: C.amberBg, borderRadius: 16, padding: 12, marginTop: 10 },
+    pending:   { fontFamily: Fonts.medium, fontSize: 13, color: C.lavenderInk, backgroundColor: C.lavender, borderRadius: 14, padding: 10 },
   });
 }

@@ -15,7 +15,7 @@
     "build": "npm run build --workspace=apps/web",
     "typecheck": "npm run typecheck --workspace=apps/web && npm run typecheck --workspace=apps/mobile && tsc --noEmit -p packages/shared/tsconfig.json",
     "lint:migrations": "node scripts/lint-migrations.mjs",
-    "test:sql": "scripts/run-sql-tests.sh",
+    "test:sql": "supabase/tests/run.sh",
     "lint": "eslint apps/web/app apps/web/components apps/web/lib apps/mobile/src packages/shared/src",
     "test": "vitest run",
     "clean:mobile": "npm run clean --workspace=apps/mobile",

@@ -5,7 +5,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated, Activit
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Diamond, CaretRight, PencilSimple, ShareNetwork, PathIcon, Play } from 'phosphor-react-native';
+import { Diamond, CaretRight, PencilSimple, ShareNetwork, PathIcon, Play, Heart, ChatCircle } from 'phosphor-react-native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -30,7 +30,6 @@ import { getNutritionProfile, getRunById, getPlayer, getRuns, type StoredRun } f
 import { isPlus } from '@shared/engine/entitlements';
 import { usePaywallMoment } from '@features/subscription/hooks/usePaywallMoment';
 import { computeRunnerRank } from '@shared/services/claimEngine';
-import { GAME_CONFIG } from '@shared/services/config';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
 import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
@@ -43,6 +42,9 @@ import { visibleRoute, radiusLabel, effectiveRadius } from '@shared/services/map
 import { useSettings } from '@features/settings/hooks/useSettings';
 import { fetchActivityMapHidden, setActivityMapHidden } from '@features/settings/services/mapVisibilityService';
 import { RunCheers } from '@features/cheers/RunCheers';
+import CommentSheet from '@features/social/components/CommentSheet';
+import { supabase } from '@shared/services/supabase';
+import { ENGINE } from '@shared/engine/runEngine';
 
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
@@ -67,9 +69,9 @@ const RANK_ORDER: RunnerRank[] = ['pacer', 'strider', 'chaser', 'hunter', 'sover
 function rankProgress(totalPace: number, rank: RunnerRank) {
   if (rank === 'sovereign') return { pct: 1, nextName: '', paceToNext: 0 };
   const idx      = RANK_ORDER.indexOf(rank);
-  const current  = GAME_CONFIG.RUNNER_RANK_THRESHOLDS[rank];
+  const current  = (ENGINE.RANK_THRESHOLDS as Record<string, number>)[rank];
   const nextRank = RANK_ORDER[idx + 1] as RunnerRank;
-  const next     = GAME_CONFIG.RUNNER_RANK_THRESHOLDS[nextRank];
+  const next     = (ENGINE.RANK_THRESHOLDS as Record<string, number>)[nextRank];
   const span     = next - current;
   return {
     pct:       span > 0 ? Math.min(1, (totalPace - current) / span) : 0,
@@ -141,6 +143,8 @@ export default function RunSummaryScreen() {
   const [recentAvgPace, setRecentAvgPace]             = useState<number | null>(null);
   const [authorName, setAuthorName]                   = useState('');
   const [stored, setStored]                           = useState<StoredRun | null>(null);
+  const [post, setPost]                               = useState<{ id: string; likes: number; comments: number } | null>(null);
+  const [commentsOpen, setCommentsOpen]               = useState(false);
   const plus = isPlus(tier);
   const openPaywallMoment = usePaywallMoment();
 
@@ -178,6 +182,10 @@ export default function RunSummaryScreen() {
       setAuthorName(p.username ?? '');
     }).catch(() => {});
     getRunById(runId).then(r => setStored(r ?? null)).catch(() => {});
+    // Kudos and comments live on this run's feed post (mock: kudos · comments · story).
+    supabase.from('feed_posts').select('id, likes, comment_count').eq('run_id', runId).limit(1).maybeSingle()
+      .then(({ data }) => { if (data) setPost({ id: data.id, likes: data.likes ?? 0, comments: data.comment_count ?? 0 }); })
+      .then(undefined, () => {});
     // Recent average pace (s/km) for the free summary, excluding this run.
     getRuns(20).then(rs => {
       const prior = rs.filter(r => r.id !== runId && r.distanceMeters >= 1000 && r.durationSec > 0);
@@ -463,6 +471,22 @@ export default function RunSummaryScreen() {
           onReplay={openReplay}
         />
 
+        {/* Name and notes first (asked for): straight after the hero, so the runner
+            can title the run while it's fresh, before any stats. */}
+        <Pressable style={[ss.card, ss.panel, ss.editRow]} onPress={() => setEditOpen(true)} accessibilityRole="button" accessibilityLabel="Name this run and add notes">
+          <View style={ss.editIcon}><PencilSimple size={18} color={C.t1} weight="regular" /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={ss.editTitle} numberOfLines={1}>
+              {edited?.title || activityTitle({ activityType: activityType ?? 'run', startTime: runData.startTime ?? Date.now() })}
+            </Text>
+            <Text style={ss.editSub} numberOfLines={2}>
+              {edited?.description
+                || `Name it, add notes and how it felt · ${AUDIENCES.find(a => a.id === (edited?.visibility ?? 'everyone'))?.label ?? 'Everyone'}`}
+            </Text>
+          </View>
+          <CaretRight size={14} color={C.t3} weight="bold" />
+        </Pressable>
+
         {/* L6: zones count once the server confirms them. */}
         {!ride && passedData && confirm !== 'confirmed' && (runData.territory || runData.actionType) && (
           <View style={{ marginHorizontal: 18, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -494,6 +518,18 @@ export default function RunSummaryScreen() {
 
         {/* Story share row (mock: kudos · comments · story). */}
         <View style={ss.actRow}>
+          {post && (
+            <>
+              <View style={ss.actBtn} accessibilityLabel={`${post.likes} kudos`}>
+                <Heart size={20} color={C.t1} />
+                <Text style={ss.actTxt}>{post.likes}</Text>
+              </View>
+              <Pressable style={ss.actBtn} onPress={() => setCommentsOpen(true)} accessibilityRole="button" accessibilityLabel={`${post.comments} comments`}>
+                <ChatCircle size={20} color={C.t1} />
+                <Text style={ss.actTxt}>{post.comments}</Text>
+              </Pressable>
+            </>
+          )}
           <Pressable style={ss.actBtn} onPress={() => shareFile(() => writeStoryCard(`run_${runId}.png`), 'Share your run')} accessibilityRole="button">
             <ShareNetwork size={20} color={C.t1} />
             <Text style={ss.actTxt}>Story</Text>
@@ -637,23 +673,8 @@ export default function RunSummaryScreen() {
 
         </>}
 
-        {/* Title, notes and who can see it */}
-        <Pressable style={[ss.card, ss.editRow]} onPress={() => setEditOpen(true)} accessibilityRole="button" accessibilityLabel="Edit activity">
-          <PencilSimple size={18} color={C.t1} weight="regular" />
-          <View style={{ flex: 1 }}>
-            <Text style={ss.editTitle} numberOfLines={1}>
-              {edited?.title || activityTitle({ activityType: activityType ?? 'run', startTime: runData.startTime ?? Date.now() })}
-            </Text>
-            <Text style={ss.editSub} numberOfLines={2}>
-              {edited?.description
-                || `Add a title, notes and how it felt · ${AUDIENCES.find(a => a.id === (edited?.visibility ?? 'everyone'))?.label ?? 'Everyone'}`}
-            </Text>
-          </View>
-          <CaretRight size={14} color={C.t3} weight="bold" />
-        </Pressable>
-
         {/* Who sees this activity's map */}
-        <View style={[ss.card, ss.mapRow]}>
+        <View style={[ss.card, ss.panel, ss.mapRow]}>
           <View style={{ flex: 1, paddingRight: 12 }}>
             <Text style={ss.mapRowTitle}>Show map to others</Text>
             <Text style={ss.mapRowSub}>
@@ -707,6 +728,11 @@ export default function RunSummaryScreen() {
         onSaved={e => setEdited({ title: e.title.trim(), description: e.description.trim(), visibility: e.visibility })}
         onDeleted={() => navigation.navigate('Main')}
       />
+      <CommentSheet
+        postId={commentsOpen && post ? post.id : null}
+        onClose={() => setCommentsOpen(false)}
+        onCommentPosted={() => setPost(p => (p ? { ...p, comments: p.comments + 1 } : p))}
+      />
       {showShoeDrawer && (
         <ShoeDrawer shoes={allShoes} selectedShoe={runShoe} bottomInset={insets.bottom} onSelect={selectShoe} onClose={() => setShowShoeDrawer(false)} />
       )}
@@ -744,11 +770,13 @@ function mkStyles(C: AppColors) {
     cardTitle:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     rideNote:    { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2, marginTop: 6 },
     mapRow:      { flexDirection: 'row', alignItems: 'center' },
-    editRow:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    editTitle:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
-    editSub:     { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.t2, marginTop: 2 },
-    mapRowTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1 },
-    mapRowSub:   { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, marginTop: 2 },
+    panel:       { backgroundColor: C.card, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 14 },
+    editRow:     { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
+    editIcon:    { width: 40, height: 40, borderRadius: 20, backgroundColor: C.mint, alignItems: 'center', justifyContent: 'center' },
+    editTitle:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
+    editSub:     { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: C.t2, marginTop: 2 },
+    mapRowTitle: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
+    mapRowSub:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 2 },
     mapLink:     { fontFamily: Fonts.medium, fontSize: 12.5, color: C.t2, textAlign: 'center', marginTop: -2, marginBottom: 4 },
     legend:       { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 6, marginTop: 10 },
     legendItem:   { flexDirection: 'row', alignItems: 'center', gap: 6 },

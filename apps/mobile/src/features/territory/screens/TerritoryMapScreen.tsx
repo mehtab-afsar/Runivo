@@ -3,7 +3,7 @@ import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MapPin, BookmarkSimple, Fire, Crosshair, ArrowsClockwise } from 'phosphor-react-native';
+import { MapPin, BookmarkSimple, Fire, Crosshair, ArrowsClockwise, Stack } from 'phosphor-react-native';
 import * as Location from 'expo-location';
 import Svg, { Path } from 'react-native-svg';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -17,7 +17,6 @@ import { MapSearchBar } from '../components/MapSearchBar';
 import PlanLoopSheet from '../components/PlanLoopSheet';
 import { fetchClubTerritory } from '@features/clubs/services/clubService';
 import type { LoopPlan } from '@shared/engine/planLoop';
-import { GAME_CONFIG } from '@shared/services/config';
 import { getRuns } from '@shared/services/store';
 
 import { MAP_STYLES } from '@theme/maps';
@@ -28,8 +27,11 @@ import { ZoneCard } from '../components/ZoneCard';
 import { useLiveFriendRuns } from '@features/run/hooks/useLiveFriendRuns';
 import { LiveFriendMarker } from '@features/run/components/LiveFriendMarker';
 import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
+import { ENGINE } from '@shared/engine/runEngine';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+const EMPTY_ZONES: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 export default function TerritoryMapScreen() {
   const C      = useTheme();
@@ -63,6 +65,10 @@ export default function TerritoryMapScreen() {
   // M3: personal heatmap. Overlapping lines build up, so streets you run a lot glow.
   const zonePal = territoryPalette(useIsDark());
   const [heatmapOn, setHeatmapOn] = useState(false);
+  // Mock's layers button: choose what the map draws.
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [showZones, setShowZones] = useState(true);
+  const [showFriends, setShowFriends] = useState(true);
   const recentre = async () => {
     const pos = await Location.getLastKnownPositionAsync().catch(() => null)
       ?? await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(() => null);
@@ -104,7 +110,7 @@ export default function TerritoryMapScreen() {
   useEffect(() => { setZoneExpanded(false); }, [selectedPolygon?.id]);
   useHideTabBar(planOpen || (!!selectedPolygon && zoneExpanded));
   const [loop, setLoop] = useState<LoopPlan | null>(null);
-  const loopZones = useMemo(() => ownPolygons.map(p => ({ ring: p.polygon, fading: p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT })), [ownPolygons]);
+  const loopZones = useMemo(() => ownPolygons.map(p => ({ ring: p.polygon, fading: p.freshness < ENGINE.FRESHNESS_STALE_AT })), [ownPolygons]);
   const loopShape = useMemo(() => loop && ({
     type: 'Feature' as const, properties: {},
     geometry: { type: 'LineString' as const, coordinates: loop.points.map(p => [p.lng, p.lat]) },
@@ -194,7 +200,7 @@ export default function TerritoryMapScreen() {
         )}
         {/* Always mounted (empty when there's nothing to draw), so layers that
             reference these ids never point at a missing layer. */}
-        <ML.ShapeSource id="territories" shape={geoJSON} onPress={handlePolygonPress}>
+        <ML.ShapeSource id="territories" shape={showZones ? geoJSON : EMPTY_ZONES} onPress={handlePolygonPress}>
           <ML.LineLayer id="territory-new-halo" style={zoneStyles.newHalo as any} filter={zoneStyles.newFilter as any} />
           {/* Flat list, no Fragment: ShapeSource only hands its id to direct children,
               so layers inside a Fragment looked for a source called "composite" and crashed. */}
@@ -211,8 +217,8 @@ export default function TerritoryMapScreen() {
             <ML.LineLayer id="club-ground-line" style={{ lineColor: '#7C72D8', lineWidth: 2 } as any} />
           </ML.ShapeSource>
         )}
-        {liveFriends.map(f => (
-          <LiveFriendMarker key={f.userId} runner={f} onPress={() => setCheerFor({ userId: f.userId, username: f.username, avatarColor: f.avatarColor })} />
+        {showFriends && liveFriends.map(f => (
+          <LiveFriendMarker key={f.userId} runner={f} onPress={() => navigation.navigate('FriendLive', { userId: f.userId, username: f.username })} />
         ))}
         {loopShape && (
           <ML.ShapeSource id="planned-loop" shape={loopShape}>
@@ -241,7 +247,8 @@ export default function TerritoryMapScreen() {
             style={ss.friendsChip}
             onPress={() => {
               const f = liveFriends[0];
-              cameraRef.current?.setCamera({ centerCoordinate: [f.lng, f.lat], zoomLevel: 15, animationDuration: 700 });
+              if (liveFriends.length === 1) navigation.navigate('FriendLive', { userId: f.userId, username: f.username });
+              else cameraRef.current?.setCamera({ centerCoordinate: [f.lng, f.lat], zoomLevel: 14, animationDuration: 700 });
             }}
             accessibilityRole="button"
           >
@@ -262,6 +269,10 @@ export default function TerritoryMapScreen() {
       {/* Map controls, right side: personal heatmap and back to you. */}
       {!(selectedPolygon && zoneExpanded) && !planOpen && (
         <View style={[ss.controls, { top: Math.max(18, insets.top) + 200 }]}>
+          <Pressable style={ss.ctrl} onPress={() => setLayersOpen(v => !v)} accessibilityRole="button" accessibilityLabel="Map layers" accessibilityState={{ expanded: layersOpen }}>
+            <Stack size={22} color={C.t1} />
+            <View style={ss.layerBadge}><Text style={ss.layerBadgeTxt}>{[showZones, showFriends, heatmapOn].filter(Boolean).length}</Text></View>
+          </Pressable>
           <Pressable
             style={[ss.ctrl, heatmapOn && ss.ctrlOn]} onPress={() => setHeatmapOn(v => !v)}
             accessibilityRole="switch" accessibilityState={{ checked: heatmapOn }} accessibilityLabel="Your heatmap"
@@ -271,6 +282,20 @@ export default function TerritoryMapScreen() {
           <Pressable style={ss.ctrl} onPress={recentre} accessibilityRole="button" accessibilityLabel="Centre on me">
             <Crosshair size={22} color={C.t1} />
           </Pressable>
+          {layersOpen && (
+            <View style={ss.layersCard}>
+              {([
+                ['Zones', showZones, () => setShowZones(v => !v)],
+                ['Friends running', showFriends, () => setShowFriends(v => !v)],
+                ['Your heatmap', heatmapOn, () => setHeatmapOn(v => !v)],
+              ] as const).map(([label, on, toggle]) => (
+                <Pressable key={label} style={ss.layerRow} onPress={toggle} accessibilityRole="switch" accessibilityState={{ checked: on }}>
+                  <View style={[ss.layerTick, on && ss.layerTickOn]} />
+                  <Text style={ss.layerTxt}>{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
           {isLoadingRivals && (
             <View style={ss.ctrl} accessibilityLabel="Loading zones">
               <ArrowsClockwise size={20} color={C.t2} />
@@ -371,6 +396,13 @@ function mkStyles(C: AppColors) {
     container:    { flex: 1, backgroundColor: C.bg },
     map:          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
     topOverlay:   { position: 'absolute', left: 16, right: 16, gap: 10 },
+    layerBadge:   { position: 'absolute', top: 4, right: 4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.brandGreen, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+    layerBadgeTxt:{ fontFamily: Fonts.bold, fontSize: 10, color: '#FFFFFF' },
+    layersCard:   { position: 'absolute', right: 60, top: 0, width: 190, borderRadius: 20, backgroundColor: C.card, paddingVertical: 6, shadowColor: '#17181A', shadowOpacity: 0.14, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+    layerRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44, paddingHorizontal: 14 },
+    layerTick:    { width: 18, height: 18, borderRadius: 6, borderWidth: 2, borderColor: C.border },
+    layerTickOn:  { backgroundColor: C.alwaysDark, borderColor: C.alwaysDark },
+    layerTxt:     { fontFamily: Fonts.regular, fontSize: 15, color: C.t1 },
     friendsChip:  { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.alwaysDark },
     friendsDot:   { width: 8, height: 8, borderRadius: 4, backgroundColor: C.lime },
     friendsTxt:   { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },

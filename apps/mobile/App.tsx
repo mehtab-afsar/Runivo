@@ -1,4 +1,5 @@
 // Register background GPS task at app startup — must be the first import
+import { ensureLocalDataBelongsTo } from '@mobile/shared/services/localOwner';
 import './src/features/run/services/locationTask';
 
 // MapLibre requires an access token call even for non-Mapbox tile sources
@@ -101,9 +102,10 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
     // it, the PREVIOUS user's in-flight profile response could resolve after the
     // new user's effect run and set needsOnboarding for the wrong account.
     let cancelled = false;
-    Promise.resolve(
-      supabase.from('profiles').select('onboarding_completed_at, age_confirmed_at').eq('id', user.id).maybeSingle()
-    )
+    // Another account's data on this phone must not count for this one
+    // (it used to make a new sign-up skip onboarding and show their runs).
+    ensureLocalDataBelongsTo(user.id).catch(() => false)
+      .then(() => supabase.from('profiles').select('onboarding_completed_at, age_confirmed_at').eq('id', user.id).maybeSingle())
       .then(async ({ data, error }) => {
         if (cancelled) return;
         // supabase-js reports a network/RLS failure as { data: null, error }, it
@@ -159,7 +161,7 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
   useEffect(() => {
     if (!user || initialSyncedUserIdRef.current === user.id) return;
     initialSyncedUserIdRef.current = user.id;
-    initialSync().catch(() => {});
+    ensureLocalDataBelongsTo(user.id).catch(() => false).then(() => initialSync()).catch(() => {});
     identify(user.id);
   }, [user?.id]);
 

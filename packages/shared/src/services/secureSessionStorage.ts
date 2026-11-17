@@ -10,8 +10,12 @@
  *    a restored backup's session can be used on another device.
  *  - A session saved by an older build (plain JSON) is read once and immediately
  *    re-saved encrypted, so nobody is signed out by the upgrade.
- *  - If the key cannot be read or created, nothing is persisted and nothing is read
- *    (the runner signs in again next launch). It never falls back to plaintext.
+ *  - If the key cannot be read or created (no Keychain entitlement, e.g. an
+ *    unsigned simulator build, or a Keychain error), the session is kept in
+ *    memory for this run only: nothing reaches the disk, and the runner signs in
+ *    again next launch. It never falls back to plaintext storage.
+ *    (It used to keep nothing at all, so the app looked signed in while every
+ *    server call went out without a session: clubs, challenges, PACE all failed.)
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
@@ -22,6 +26,8 @@ const KEY_NAME = 'runivo-session-key-v1';
 const KEY_OPTIONS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY };
 
 let keyPromise: Promise<Uint8Array | null> | null = null;
+/** This run's session when there is no key to encrypt it with. Never written to disk. */
+const memoryOnly = new Map<string, string>();
 
 const toHex = (b: Uint8Array) => Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
 const fromHex = (h: string) => Uint8Array.from(h.match(/../g) ?? [], x => parseInt(x, 16));
@@ -46,6 +52,7 @@ function getKey(): Promise<Uint8Array | null> {
 
 export const secureSessionStorage = {
   async getItem(name: string): Promise<string | null> {
+    if (memoryOnly.has(name)) return memoryOnly.get(name) ?? null;
     const stored = await AsyncStorage.getItem(name);
     if (stored == null) return null;
     const key = await getKey();
@@ -67,11 +74,13 @@ export const secureSessionStorage = {
 
   async setItem(name: string, value: string): Promise<void> {
     const key = await getKey();
-    if (!key) return;
+    if (!key) { memoryOnly.set(name, value); return; }
+    memoryOnly.delete(name);
     await AsyncStorage.setItem(name, encryptSession(key, getRandomBytes(16), value));
   },
 
   async removeItem(name: string): Promise<void> {
+    memoryOnly.delete(name);
     await AsyncStorage.removeItem(name);
   },
 };

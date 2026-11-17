@@ -37,11 +37,11 @@ export default function AboutYouStep(p: Props) {
       <Text style={s.sub}>Only used to estimate calories and heart-rate zones. Skip any of it.</Text>
 
       <Text style={s.label}>Age</Text>
-      <View style={s.chips}>
+      <View style={s.grid}>
         {AGE_RANGES.map(a => {
           const on = p.ageRange === a.key;
           return (
-            <Pressable key={a.key} style={[s.chip, on && s.chipOn]} onPress={() => { tap(); p.onAge(on ? null : a.key); }}
+            <Pressable key={a.key} style={[s.chip, s.gridCell, on && s.chipOn]} onPress={() => { tap(); p.onAge(on ? null : a.key); }}
               accessibilityRole="radio" accessibilityState={{ selected: on }}>
               <Text style={[s.chipText, on && s.chipTextOn]}>{a.label}</Text>
             </Pressable>
@@ -50,11 +50,11 @@ export default function AboutYouStep(p: Props) {
       </View>
 
       <Text style={s.label}>Sex</Text>
-      <View style={s.chips}>
+      <View style={s.row}>
         {SEXES.map(x => {
           const on = p.gender === x.key;
           return (
-            <Pressable key={x.key} style={[s.chip, on && s.chipOn]} onPress={() => { tap(); p.onGender(on ? null : x.key); }}
+            <Pressable key={x.key} style={[s.chip, s.cell, on && s.chipOn]} onPress={() => { tap(); p.onGender(on ? null : x.key); }}
               accessibilityRole="radio" accessibilityState={{ selected: on }}>
               <Text style={[s.chipText, on && s.chipTextOn]}>{x.label}</Text>
             </Pressable>

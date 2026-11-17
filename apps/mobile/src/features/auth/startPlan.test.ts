@@ -72,8 +72,7 @@ describe('goal time and race date', () => {
 
 describe('steps', () => {
   it('only asks about a race for the race goal', () => {
-    expect(stepsFor('full', 'race').some(s => s.key === 'race')).toBe(true);
-    expect(stepsFor('full', 'get_fit').some(s => s.key === 'race')).toBe(false);
+    expect(stepsFor('full', 'race').some(s => (s.key as string) === 'race')).toBe(false); // the race is picked in plan setup
     expect(stepsFor('short', 'race').some(s => s.key === 'health')).toBe(false);
   });
 });

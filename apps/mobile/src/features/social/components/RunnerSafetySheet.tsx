@@ -2,12 +2,13 @@
  * The "…" menu for another runner: mute, block, report. Used on their profile.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { SpeakerSlash, SpeakerHigh, Prohibit, Flag, Check, CaretLeft } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import {
   blockUser, unblockUser, muteUser, unmuteUser, reportUser, REPORT_REASONS, type ReportReason,
 } from '@mobile/shared/services/safetyService';
+import { ModalSheet } from '@mobile/shared/components/ModalSheet';
 
 interface Props {
   visible: boolean;
@@ -53,87 +54,80 @@ export default function RunnerSafetySheet({ visible, userId, username, blocked, 
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={s.backdrop} onPress={onClose} />
-      <View style={s.sheet}>
-        <View style={s.handle} />
-        {busy && <ActivityIndicator style={s.busy} color={C.t2} />}
+    <ModalSheet visible={visible} onClose={onClose} padded={false}>
+      {busy && <ActivityIndicator style={s.busy} color={C.t2} />}
 
-        {step === 'menu' && (
-          <>
-            {!blocked && (
-              <Pressable
-                style={s.row}
-                disabled={busy}
-                onPress={() => run(() => (muted ? unmuteUser(userId) : muteUser(userId)), { blocked, muted: !muted })}
-                accessibilityRole="button"
-              >
-                {muted ? <SpeakerHigh size={18} color={C.t1} weight="light" /> : <SpeakerSlash size={18} color={C.t1} weight="light" />}
-                <View style={{ flex: 1 }}>
-                  <Text style={s.rowText}>{muted ? `Unmute ${username}` : `Mute ${username}`}</Text>
-                  {!muted && <Text style={s.rowSub}>Hide their activities from your feed. They aren't told.</Text>}
-                </View>
-              </Pressable>
-            )}
+      {step === 'menu' && (
+        <>
+          {!blocked && (
             <Pressable
               style={s.row}
               disabled={busy}
-              onPress={blocked ? () => run(() => unblockUser(userId), { blocked: false, muted }) : confirmBlock}
+              onPress={() => run(() => (muted ? unmuteUser(userId) : muteUser(userId)), { blocked, muted: !muted })}
               accessibilityRole="button"
             >
-              <Prohibit size={18} color={blocked ? C.t1 : C.red} weight="light" />
+              {muted ? <SpeakerHigh size={18} color={C.t1} weight="light" /> : <SpeakerSlash size={18} color={C.t1} weight="light" />}
               <View style={{ flex: 1 }}>
-                <Text style={[s.rowText, !blocked && { color: C.red }]}>{blocked ? `Unblock ${username}` : `Block ${username}`}</Text>
-                {!blocked && <Text style={s.rowSub}>Neither of you sees the other. Follows are removed.</Text>}
+                <Text style={s.rowText}>{muted ? `Unmute ${username}` : `Mute ${username}`}</Text>
+                {!muted && <Text style={s.rowSub}>Hide their activities from your feed. They aren't told.</Text>}
               </View>
             </Pressable>
-            <Pressable style={s.row} disabled={busy} onPress={() => setStep('report')} accessibilityRole="button">
-              <Flag size={18} color={C.t2} weight="light" />
-              <Text style={s.rowText}>Report {username}</Text>
+          )}
+          <Pressable
+            style={s.row}
+            disabled={busy}
+            onPress={blocked ? () => run(() => unblockUser(userId), { blocked: false, muted }) : confirmBlock}
+            accessibilityRole="button"
+          >
+            <Prohibit size={18} color={blocked ? C.t1 : C.danger} weight="light" />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.rowText, !blocked && { color: C.danger }]}>{blocked ? `Unblock ${username}` : `Block ${username}`}</Text>
+              {!blocked && <Text style={s.rowSub}>Neither of you sees the other. Follows are removed.</Text>}
+            </View>
+          </Pressable>
+          <Pressable style={s.row} disabled={busy} onPress={() => setStep('report')} accessibilityRole="button">
+            <Flag size={18} color={C.t2} weight="light" />
+            <Text style={s.rowText}>Report {username}</Text>
+          </Pressable>
+        </>
+      )}
+
+      {step === 'report' && (
+        <>
+          <Pressable style={s.backRow} onPress={() => setStep('menu')} accessibilityRole="button">
+            <CaretLeft size={14} color={C.t2} weight="bold" />
+            <Text style={s.backTxt}>Why are you reporting {username}?</Text>
+          </Pressable>
+          {REPORT_REASONS.map(r => (
+            <Pressable key={r.id} style={s.row} disabled={busy} onPress={() => sendReport(r.id)} accessibilityRole="button">
+              <Text style={s.rowText}>{r.label}</Text>
             </Pressable>
-          </>
-        )}
+          ))}
+        </>
+      )}
 
-        {step === 'report' && (
-          <>
-            <Pressable style={s.backRow} onPress={() => setStep('menu')} accessibilityRole="button">
-              <CaretLeft size={14} color={C.t2} weight="bold" />
-              <Text style={s.backTxt}>Why are you reporting {username}?</Text>
+      {step === 'reported' && (
+        <View style={s.done}>
+          <Check size={22} color={C.green} weight="bold" />
+          <Text style={s.doneTitle}>Thanks, we'll take a look</Text>
+          <Text style={s.doneSub}>Reports are private. You can also block {username} so neither of you sees the other.</Text>
+          {!blocked && (
+            <Pressable hitSlop={8} style={s.doneBtn} onPress={confirmBlock} accessibilityRole="button">
+              <Text style={s.doneBtnTxt}>Block {username}</Text>
             </Pressable>
-            {REPORT_REASONS.map(r => (
-              <Pressable key={r.id} style={s.row} disabled={busy} onPress={() => sendReport(r.id)} accessibilityRole="button">
-                <Text style={s.rowText}>{r.label}</Text>
-              </Pressable>
-            ))}
-          </>
-        )}
+          )}
+        </View>
+      )}
 
-        {step === 'reported' && (
-          <View style={s.done}>
-            <Check size={22} color={C.green} weight="bold" />
-            <Text style={s.doneTitle}>Thanks, we'll take a look</Text>
-            <Text style={s.doneSub}>Reports are private. You can also block {username} so neither of you sees the other.</Text>
-            {!blocked && (
-              <Pressable hitSlop={8} style={s.doneBtn} onPress={confirmBlock} accessibilityRole="button">
-                <Text style={s.doneBtnTxt}>Block {username}</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-
-        <Pressable style={s.cancel} onPress={onClose} accessibilityRole="button">
-          <Text style={s.cancelText}>{step === 'reported' ? 'Done' : 'Cancel'}</Text>
-        </Pressable>
-      </View>
-    </Modal>
+      <Pressable style={s.cancel} onPress={onClose} accessibilityRole="button">
+        <Text style={s.cancelText}>{step === 'reported' ? 'Done' : 'Cancel'}</Text>
+      </Pressable>
+    </ModalSheet>
   );
 }
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
-    backdrop:   { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
-    sheet:      { backgroundColor: C.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 28, paddingTop: 8 },
-    handle:     { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 8 },
     busy:       { position: 'absolute', right: 20, top: 16 },
     row:        { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 22, paddingVertical: 14 },
     rowText:    { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },

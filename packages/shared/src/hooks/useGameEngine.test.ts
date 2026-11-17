@@ -8,7 +8,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { bufferPath, polygonAreaM2 } from './useGameEngine';
-import { GAME_CONFIG } from '../services/config';
 
 // ── bufferPath ────────────────────────────────────────────────────────────────
 
@@ -44,7 +43,7 @@ describe('bufferPath', () => {
     const lngs = ring.map(c => c[0]);
     const lngSpanDeg = Math.max(...lngs) - Math.min(...lngs);
     const avgLat = (north.lat + south.lat) / 2;
-    const lngSpanM = lngSpanDeg * GAME_CONFIG.METERS_PER_DEGREE_LAT * Math.cos((avgLat * Math.PI) / 180);
+    const lngSpanM = lngSpanDeg * 111_320 * Math.cos((avgLat * Math.PI) / 180);
 
     // Corridor should be ~2× radius wide (left side + right side)
     expect(lngSpanM).toBeGreaterThan(radius * 1.5);
@@ -65,8 +64,8 @@ describe('polygonAreaM2', () => {
   it('computes a positive area for a valid polygon', () => {
     // Small square near London (~200 m × 200 m)
     const lat0 = 51.50, lng0 = -0.10;
-    const dLat = 200 / GAME_CONFIG.METERS_PER_DEGREE_LAT;
-    const dLng = 200 / (GAME_CONFIG.METERS_PER_DEGREE_LAT * Math.cos((lat0 * Math.PI) / 180));
+    const dLat = 200 / 111_320;
+    const dLng = 200 / (111_320 * Math.cos((lat0 * Math.PI) / 180));
     const ring: [number, number][] = [
       [lng0,        lat0],
       [lng0 + dLng, lat0],

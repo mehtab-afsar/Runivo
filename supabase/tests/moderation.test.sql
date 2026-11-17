@@ -1,5 +1,5 @@
 -- Moderation: reporting, auto-hide, bans and the word filter (migration 20261115000015).
--- Run after _stub_moderation.sql and the migration. Each check prints "ok  <what>".
+-- Runs on a database built from supabase/migrations (see README). Each check prints "ok  <what>".
 \set ON_ERROR_STOP on
 BEGIN;
 CREATE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
@@ -14,11 +14,14 @@ BEGIN
   RETURN NULL;
 END $$;
 
-INSERT INTO public.profiles (id, username) VALUES
-  ('00000000-0000-0000-0000-0000000000a1', 'author'),
-  ('00000000-0000-0000-0000-0000000000b1', 'rep1'),
-  ('00000000-0000-0000-0000-0000000000b2', 'rep2'),
-  ('00000000-0000-0000-0000-0000000000b3', 'rep3');
+-- Four runners sign up (the sign-up trigger creates their profiles).
+SET LOCAL runivo.trusted_writer = 'on';
+INSERT INTO auth.users (id, email) VALUES
+  ('00000000-0000-0000-0000-0000000000a1', 'author@example.com'),
+  ('00000000-0000-0000-0000-0000000000b1', 'rep1@example.com'),
+  ('00000000-0000-0000-0000-0000000000b2', 'rep2@example.com'),
+  ('00000000-0000-0000-0000-0000000000b3', 'rep3@example.com')
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.feed_posts (id, user_id) VALUES ('00000000-0000-0000-0000-0000000000f1', '00000000-0000-0000-0000-0000000000a1');
 INSERT INTO public.blocked_terms (term) VALUES ('badword') ON CONFLICT DO NOTHING;
 

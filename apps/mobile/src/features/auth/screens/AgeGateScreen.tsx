@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@shared/services/supabase';
 import { ageGateOutcome } from '@shared/engine/onboarding';
 import { clearAllLocalData } from '@shared/services/store';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 /**
  * Shown once to every signed-in account that has not passed it yet, whatever
@@ -55,9 +56,7 @@ export default function AgeGateScreen({ userId, onConfirmed }: { userId: string;
       <View style={[s.root, { paddingTop: insets.top + 40 }]}>
         <Text style={s.title}>Runivo is for runners 13 and over</Text>
         <Text style={s.body}>We can't create an account for you. We will delete the one that was just made, and we keep nothing.</Text>
-        <Pressable style={[s.primary, busy && { opacity: 0.6 }]} onPress={deleteAccount} disabled={busy} accessibilityRole="button">
-          {busy ? <ActivityIndicator color={C.bg} /> : <Text style={s.primaryTxt}>Delete this account</Text>}
-        </Pressable>
+        <PrimaryButton label="Delete this account" onPress={deleteAccount} loading={busy} variant="destructive" fullWidth style={{ marginTop: 24 }} />
       </View>
     );
   }
@@ -76,10 +75,8 @@ export default function AgeGateScreen({ userId, onConfirmed }: { userId: string;
             accessibilityLabel="Birth year, four digits" returnKeyType="done" onSubmitEditing={submit} />
         </View>
         {!!error && <Text style={s.error}>{error}</Text>}
-        <Pressable style={[s.primary, (busy || month.length === 0 || year.length < 4) && { opacity: 0.5 }]}
-          onPress={submit} disabled={busy || month.length === 0 || year.length < 4} accessibilityRole="button">
-          {busy ? <ActivityIndicator color={C.bg} /> : <Text style={s.primaryTxt}>Continue</Text>}
-        </Pressable>
+        <PrimaryButton label="Continue" onPress={submit} disabled={month.length === 0 || year.length < 4} loading={busy}
+          size="md" fullWidth style={{ marginTop: 24 }} />
       </View>
     </KeyboardAvoidingView>
   );
@@ -93,7 +90,5 @@ function mkStyles(C: AppColors) {
     row:        { flexDirection: 'row', gap: 12 },
     input:      { height: 52, borderRadius: 22, backgroundColor: C.card, paddingHorizontal: 16, fontFamily: Fonts.semiBold, fontSize: 18, color: C.t1 },
     error:      { fontFamily: Fonts.regular, fontSize: 13.5, color: C.danger, marginTop: 12 },
-    primary:    { height: 52, borderRadius: 14, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
-    primaryTxt: { fontFamily: Fonts.semiBold, fontSize: 16, color: C.bg },
   });
 }

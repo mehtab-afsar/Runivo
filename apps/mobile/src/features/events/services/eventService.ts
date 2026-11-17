@@ -158,11 +158,13 @@ export async function toggleEventJoin(eventId: string, isJoined: boolean): Promi
 
   // participant_count is maintained atomically by trg_sync_event_participant_count
   // (migration 20260301000016) — writing it here too used to race that trigger.
-  if (isJoined) {
-    await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id);
-  } else {
-    await supabase.from('event_participants').upsert({ event_id: eventId, user_id: user.id }, { onConflict: 'event_id,user_id' });
-  }
+  // Errors are thrown so the screens' optimistic "Going" rolls back: they used
+  // to be dropped, so a refused RSVP (signed out, blocked, removed event) still
+  // showed as joined until the next refresh.
+  const { error } = isJoined
+    ? await supabase.from('event_participants').delete().eq('event_id', eventId).eq('user_id', user.id)
+    : await supabase.from('event_participants').upsert({ event_id: eventId, user_id: user.id }, { onConflict: 'event_id,user_id', ignoreDuplicates: true });
+  if (error) throw new Error(error.message);
 }
 
 // ── E5 / E3 / E4 / E6 ─────────────────────────────────────────────────────
@@ -170,8 +172,10 @@ export async function toggleEventJoin(eventId: string, isJoined: boolean): Promi
 export async function setBookmark(eventId: string, on: boolean): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-  if (on) await supabase.from('event_bookmarks').upsert({ user_id: user.id, event_id: eventId });
-  else await supabase.from('event_bookmarks').delete().eq('user_id', user.id).eq('event_id', eventId);
+  const { error } = on
+    ? await supabase.from('event_bookmarks').upsert({ user_id: user.id, event_id: eventId }, { ignoreDuplicates: true })
+    : await supabase.from('event_bookmarks').delete().eq('user_id', user.id).eq('event_id', eventId);
+  if (error) throw new Error(error.message);
 }
 
 export interface Attendee { userId: string; username: string; avatarColor: string | null; paceGroup: string | null; arrived: boolean }
@@ -205,4 +209,19 @@ export async function createTerritoryEvent(clubId: string, e: { title: string; s
   });
   if (error) throw error;
   return data as string;
+}
+
+/** Whether you posted this event or run the club it belongs to (server: can_manage_event). */
+export async function canManageEvent(eventId: string): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase.rpc('can_manage_event', { p_event: eventId, p_user: user.id });
+  return data === true;
+}
+
+/** Cancel an event that hasn't started; people going are told (server: cancel_event). */
+export async function cancelEvent(eventId: string): Promise<'cancelled' | 'not_allowed' | 'started' | 'not_found'> {
+  const { data, error } = await supabase.rpc('cancel_event', { p_event: eventId });
+  if (error) throw new Error(error.message);
+  return data as 'cancelled' | 'not_allowed' | 'started' | 'not_found';
 }

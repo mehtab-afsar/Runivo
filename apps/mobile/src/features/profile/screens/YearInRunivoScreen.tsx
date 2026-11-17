@@ -8,13 +8,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
-import { ArrowLeft, ShareNetwork } from 'phosphor-react-native';
+import { ShareNetwork } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getPlayer } from '@shared/services/store';
 import { PngCapture, type PngCaptureHandle } from '@features/run/components/PngCapture';
 import { fetchYear, type YearStats } from '../services/yearService';
 import { buildYearSvg, yearHighlights } from '../utils/yearCard';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 export default function YearInRunivoScreen() {
   const C = useTheme();
@@ -48,13 +49,7 @@ export default function YearInRunivoScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>{year} in Runivo</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title={`${year} in Runivo`} onBack={() => navigation.goBack()} />
 
       {stats === undefined ? (
         <View style={s.center}><ActivityIndicator color={C.t2} /></View>
@@ -95,9 +90,6 @@ export default function YearInRunivoScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:    { flex: 1, backgroundColor: C.bg },
-    header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
-    backBtn: { width: 32, height: 32, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    title:   { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     center:  { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
     empty:   { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center' },
     scroll:  { paddingHorizontal: 18, paddingBottom: 40, gap: 12 },

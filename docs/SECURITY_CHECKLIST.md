@@ -24,7 +24,7 @@ Last full audit: 2026-11 (findings and status in [AUDIT_2026-11.md](AUDIT_2026-1
 - [ ] Paste `supabase/tests/audit_function_privileges.sql` into the SQL editor. None of the server-only functions listed in migration `20261115000010` may appear in the result.
 - [ ] Every `SECURITY DEFINER` function in the result either checks `auth.uid()` or reads only data the caller may see, and pins `search_path`.
 - [ ] Any migration that creates or re-creates a privileged function ends with `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated`. Postgres grants new functions to `PUBLIC` by default, and a schema-level default privilege cannot undo that.
-- [ ] Any new server-only function is added to the list in `20261115000010_revoke_server_only_functions.sql` **and** `supabase/tests/function_privileges.test.sql`.
+- [ ] Any new server-only function ends its migration with `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated` **and** is added to `supabase/tests/function_privileges.test.sql`.
 - [ ] Every table has RLS enabled, and client-writable columns exclude anything economic (PACE, rank, territory, awards).
 - [ ] Storage buckets: public only where the content is meant to be public. Anything tied to a post's visibility is private with signed URLs.
 

@@ -2,14 +2,12 @@
  * R5: log a treadmill run by hand — when, how long, how far. No GPS, so it
  * counts for distance, goals and your log, but never claims zones or PACE.
  */
-import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, TextInput, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useState } from 'react';
+import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { CaretLeft } from 'phosphor-react-native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import { FormScreen, FormField, ChipGroup, FormButton, FormTip } from '@mobile/shared/components/form/FormKit';
 import { saveRun } from '@shared/services/store';
 import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { KM_TO_MI, fmtPace } from '@mobile/shared/lib/formatters';
@@ -18,9 +16,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const DAYS = [{ label: 'Today', back: 0 }, { label: 'Yesterday', back: 1 }, { label: '2 days ago', back: 2 }];
 
 export default function LogTreadmillScreen() {
-  const C = useTheme();
-  const s = useMemo(() => mk(C), [C]);
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [day, setDay] = useState(0);
   const [mins, setMins] = useState('');
@@ -60,53 +55,24 @@ export default function LogTreadmillScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[s.top, { paddingTop: insets.top + 6 }]}>
-        <Pressable style={s.back} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} accessibilityLabel="Back"><CaretLeft size={20} color={C.t1} weight="bold" /></Pressable>
-        <Text style={s.title}>Log a treadmill run</Text>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 18, gap: 10 }} keyboardShouldPersistTaps="handled">
-        <Text style={s.note}>Counts toward your distance, goals and training log. Treadmill runs don't claim zones or earn PACE.</Text>
-        <Text style={s.lbl}>When</Text>
-        <View style={s.chips}>
-          {DAYS.map(d => (
-            <Pressable hitSlop={8} key={d.back} style={[s.chip, day === d.back && s.chipOn]} onPress={() => setDay(d.back)}>
-              <Text style={[s.chipTxt, day === d.back && s.chipTxtOn]}>{d.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={s.lbl}>Time (minutes)</Text>
-        <TextInput style={s.input} accessibilityLabel="Time in minutes" value={mins} onChangeText={setMins} keyboardType="decimal-pad" placeholder="30" placeholderTextColor={C.t3} maxLength={5} />
-        <Text style={s.lbl}>Distance ({unit}, from the treadmill)</Text>
-        <TextInput style={s.input} accessibilityLabel={`Distance in ${unit}`} value={km} onChangeText={setKm} keyboardType="decimal-pad" placeholder="5.0" placeholderTextColor={C.t3} maxLength={5} />
+    <FormScreen
+      title="Log a"
+      accent="treadmill run."
+      subtitle="Counts toward your distance, goals and training log. With no GPS it can't claim zones or earn PACE."
+      onClose={() => navigation.goBack()}
+      closeIcon="back"
+      footer={<>
         {pace != null && (
-          <Text style={[s.note, tooFast && { color: C.red }]}>
-            {tooFast ? "That's faster than anyone runs. Check the numbers." : `Pace ${fmtPace(unit === 'mi' ? pace / KM_TO_MI : pace)} /${unit}`}
-          </Text>
+          <FormTip lead={tooFast ? 'Check the numbers.' : 'Pace'}>
+            {tooFast ? "That's faster than anyone runs." : `${fmtPace(unit === 'mi' ? pace / KM_TO_MI : pace)} /${unit}`}
+          </FormTip>
         )}
-        <Pressable style={[s.cta, (!ok || tooFast || saving) && { opacity: 0.4 }]} disabled={!ok || tooFast || saving} onPress={save} accessibilityRole="button">
-          <Text style={s.ctaTxt}>{saving ? 'Saving…' : 'Save run'}</Text>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <FormButton label="Save run" onPress={save} disabled={!ok || tooFast} busy={saving} />
+      </>}
+    >
+      <ChipGroup label="When" options={DAYS.map(d => ({ value: d.back, label: d.label }))} value={day} onChange={setDay} />
+      <FormField label="Time (minutes)" value={mins} onChangeText={setMins} keyboardType="decimal-pad" placeholder="30" maxLength={5} />
+      <FormField label={`Distance (${unit}, from the treadmill)`} value={km} onChangeText={setKm} keyboardType="decimal-pad" placeholder="5.0" maxLength={5} />
+    </FormScreen>
   );
-}
-
-function mk(C: AppColors) {
-  return StyleSheet.create({
-    root: { flex: 1, backgroundColor: C.bg },
-    top: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingBottom: 6 },
-    back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-    title: { flex: 1, fontFamily: Fonts.bold, fontSize: 20, color: C.t1 },
-    note: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
-    lbl: { fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2, marginTop: 8 },
-    chips: { flexDirection: 'row', gap: 8 },
-    chip: { height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, justifyContent: 'center' },
-    chipOn: { backgroundColor: C.t1, borderColor: C.t1 },
-    chipTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
-    chipTxtOn: { color: C.bg },
-    input: { height: 48, borderRadius: 12, backgroundColor: C.card, paddingHorizontal: 14, fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
-    cta: { marginTop: 18, height: 52, borderRadius: 26, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center' },
-    ctaTxt: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.bg },
-  });
 }

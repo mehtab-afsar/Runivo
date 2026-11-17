@@ -206,7 +206,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-calendar',
       {
         calendarPermission: 'Runivo adds the events you choose to your calendar.',
-        remindersPermission: false,
+        // Runivo never asks for Reminders access. The key must still exist: expo-calendar
+        // 55 fatals at startup (MissingCalendarPListValueException) if it is absent, so
+        // `false` (which omits it) crashes the app on launch.
+        remindersPermission: 'Runivo does not use your reminders.',
       },
     ],
     // Live Activity on the lock screen and Dynamic Island during a run (L2).

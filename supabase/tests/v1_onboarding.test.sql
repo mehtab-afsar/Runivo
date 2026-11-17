@@ -1,5 +1,4 @@
 -- v1 onboarding: goal values, new columns, health consent, phone sign-up.
--- Run after _stub_supabase.sql, 20261106000001, _stub_onboarding.sql, 20261106000005.
 \set ON_ERROR_STOP on
 SET client_min_messages = notice;
 BEGIN;

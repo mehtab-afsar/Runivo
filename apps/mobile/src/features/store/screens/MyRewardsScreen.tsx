@@ -7,10 +7,11 @@ import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Alert, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ArrowLeft, Gift } from 'phosphor-react-native';
+import { Gift } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { fetchMyRewards, setRewardUsed, type MyReward, type MyRewardStatus } from '../services/myRewardsService';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -46,13 +47,7 @@ export default function MyRewardsScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>My rewards</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="My rewards" onBack={() => navigation.goBack()} />
 
       {rows === null ? (
         <View style={s.center}><ActivityIndicator color={C.t2} /></View>
@@ -130,9 +125,6 @@ export default function MyRewardsScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:     { flex: 1, backgroundColor: C.bg },
-    header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
-    backBtn:  { width: 32, height: 32, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    title:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     center:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:     { paddingHorizontal: 18, paddingBottom: 40, gap: 10 },
     card:     { backgroundColor: C.card, borderRadius: 22, padding: 14 },

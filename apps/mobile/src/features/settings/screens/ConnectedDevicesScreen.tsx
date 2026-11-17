@@ -19,6 +19,7 @@ import {
   readRecentWorkouts,
 } from '../../../shared/services/healthService';
 import { getOAuthAuthUrl, completeOAuthCallback, disconnectOAuth } from '../services/deviceOAuthService';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -421,13 +422,7 @@ export default function ConnectedDevicesScreen() {
   return (
     <SafeAreaView style={ss.root}>
       {/* Header */}
-      <View style={ss.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={ss.backBtn}>
-          <Text style={ss.backText}>←</Text>
-        </Pressable>
-        <Text style={ss.title}>Connected Devices</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="Connected devices" onBack={() => navigation.goBack()} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -509,16 +504,6 @@ export default function ConnectedDevicesScreen() {
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
   root:   { flex: 1, backgroundColor: C.bg },
-  header: {
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 12 : 0,
-    paddingBottom: 12,
-  },
-  backBtn:  { width: 32 },
-  backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
-  title:    { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   scroll:   { paddingHorizontal: Spacing.gutter, paddingBottom: 40 },
 
   banner: {

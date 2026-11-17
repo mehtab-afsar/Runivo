@@ -56,7 +56,7 @@ export default function AuthScreen({ mode }: Props) {
   if (a.stage === 'password') {
     return (
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <LoginForm {...login} onGoBack={() => a.setStage('choose')} onGoSignUp={() => a.setStage('passwordSignup')} />
+        <LoginForm {...login} onGoBack={() => a.setStage('choose')} onGoSignUp={() => a.setStage('passwordSignup')} onForgot={() => a.setStage('reset')} />
       </KeyboardAvoidingView>
     );
   }
@@ -80,7 +80,7 @@ export default function AuthScreen({ mode }: Props) {
   };
 
   const resendLabel = a.resendIn > 0
-    ? (a.resendsLeft === 0 ? `New codes in ${Math.ceil(a.resendIn / 60)} min` : `Resend in 0:${String(a.resendIn).padStart(2, '0')}`)
+    ? (a.resendsLeft === 0 ? `New codes in ${Math.ceil(a.resendIn / 60)} min` : `Resend in ${Math.floor(a.resendIn / 60)}:${String(a.resendIn % 60).padStart(2, '0')}`)
     : (a.channel === 'sms' ? 'Send a new code' : 'Send a new link');
 
   return (
@@ -89,7 +89,7 @@ export default function AuthScreen({ mode }: Props) {
         <Pressable onPress={onBack} hitSlop={10} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
           <ArrowLeft size={16} color={C.t1} strokeWidth={1.8} />
         </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole="header" accessibilityLabel="Runivo"><RunivoMark size={22} /><Text style={s.logo}>runivo</Text></View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }} accessibilityRole="header" accessibilityLabel="Runivo"><RunivoMark size={22} inline /><Text style={s.logo}>runivo</Text></View>
         <View style={s.backSpacer} />
       </View>
 
@@ -132,8 +132,11 @@ export default function AuthScreen({ mode }: Props) {
               </Pressable>
             </View>
 
-            <Pressable onPress={() => a.setStage('password')} hitSlop={8} style={s.linkWrap}>
-              <Text style={s.link}>Use a password instead</Text>
+            {/* From "Get started" this must open the create-account form: it used to
+                open the sign-in form, so a new runner's email and password came back
+                "Invalid login credentials". */}
+            <Pressable onPress={() => a.setStage(mode === 'signup' ? 'passwordSignup' : 'password')} hitSlop={8} style={s.linkWrap}>
+              <Text style={s.link}>{mode === 'signup' ? 'Sign up with a password instead' : 'Use a password instead'}</Text>
             </Pressable>
             <Text style={s.legal}>
               By continuing you agree to our{' '}
@@ -162,6 +165,45 @@ export default function AuthScreen({ mode }: Props) {
             />
             <Text style={s.hint}>Outside India? Start with your country code, like +44 or +1.</Text>
             <Cta label="Send code" busy={a.busy} disabled={!a.phoneValid} onPress={a.submitPhone} s={s} C={C} />
+          </>
+        )}
+
+        {a.stage === 'reset' && (
+          <>
+            <Text style={s.hero}>Reset your password</Text>
+            <Text style={s.sub}>Enter your email and we’ll send a link to set a new one.</Text>
+            <Text style={s.fieldLabel}>Email</Text>
+            <TextInput
+              value={login.email}
+              onChangeText={login.setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor={C.t3}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoFocus
+              style={s.input}
+              onSubmitEditing={login.handleForgotPassword}
+              accessibilityLabel="Email address"
+            />
+            <Text style={s.resetNote} accessibilityLiveRegion="polite">
+              {login.resetSent
+                ? 'If an account uses that email, a link is on its way.'
+                : 'If an account uses that email, a link is on its way. Signed up with Apple, Google or phone? Use that instead.'}
+            </Text>
+            {!!login.error && <Text style={s.error}>{login.error}</Text>}
+            <Cta
+              label={login.resetCooldownSeconds > 0 ? `Send again in ${login.resetCooldownSeconds}s` : 'Send reset link'}
+              busy={login.loading}
+              disabled={login.resetCooldownSeconds > 0 || !/^\S+@\S+\.\S+$/.test(login.email.trim())}
+              onPress={login.handleForgotPassword}
+              s={s} C={C}
+            />
+            <Pressable onPress={() => a.setStage('password')} hitSlop={8} style={s.linkWrapTight} accessibilityRole="button">
+              <Text style={s.linkPlain}>Back to sign in</Text>
+            </Pressable>
           </>
         )}
 
@@ -209,15 +251,21 @@ export default function AuthScreen({ mode }: Props) {
         {a.stage === 'code' && (
           <>
             <Text style={s.hero}>Enter the code</Text>
-            <Text style={s.sub}>Sent to <Text style={s.strong}>{a.destination}</Text></Text>
+            <Text style={s.sub}>
+              We sent 6 digits to <Text style={s.strong}>{a.destination}</Text>.{a.channel === 'sms' ? '' : ' It works for an hour.'}
+            </Text>
             <CodeInput value={a.code} onChange={a.setCode} onComplete={c => a.submitCode(c)} error={!!a.error} />
-            {a.busy && <ActivityIndicator color={C.red} style={s.mt} />}
-            <Pressable onPress={a.resend} disabled={a.resendIn > 0 || a.busy} hitSlop={8} style={s.linkWrap}>
-              <Text style={[s.link, a.resendIn > 0 && s.linkOff]}>{resendLabel}</Text>
+            <Pressable onPress={a.resend} disabled={a.resendIn > 0 || a.busy} hitSlop={8} style={s.linkWrap} accessibilityRole="button">
+              <Text style={s.resendLine}>
+                Didn’t get it? <Text style={[s.strong, a.resendIn === 0 && s.link]}>{resendLabel}</Text>
+              </Text>
             </Pressable>
-            <Pressable onPress={a.back} hitSlop={8} style={s.linkWrapTight}>
-              <Text style={s.linkQuiet}>{a.channel === 'sms' ? 'Wrong number? Change it' : 'Wrong email? Change it'}</Text>
+            <Pressable onPress={a.back} hitSlop={8} style={s.linkWrapTight} accessibilityRole="button">
+              <Text style={s.linkPlain}>Use a different number or email</Text>
             </Pressable>
+            <View style={s.mt}>
+              <Cta label="Verify" onPress={() => a.submitCode(a.code)} busy={a.busy} disabled={a.code.length < 6} s={s} C={C} />
+            </View>
           </>
         )}
 
@@ -272,6 +320,10 @@ function mkStyles(C: AppColors) {
     linkWrapTight: { alignItems: 'center', paddingBottom: 12 },
     link:          { fontFamily: Fonts.semiBold, fontSize: 14, color: C.t1, textDecorationLine: 'underline' },
     linkOff:       { color: C.t3, textDecorationLine: 'none' },
+    fieldLabel:    { fontFamily: Fonts.medium, fontSize: 14, color: C.t2, marginBottom: 8 },
+    resetNote:     { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2, marginTop: 12, marginBottom: 20 },
+    resendLine:    { fontFamily: Fonts.regular, fontSize: 15, color: C.t2 },
+    linkPlain:     { fontFamily: Fonts.medium, fontSize: 15, color: C.t1 },
     linkQuiet:     { fontFamily: Fonts.medium, fontSize: 14, color: C.t2 },
     legal:         { fontFamily: Fonts.regular, fontSize: 12, lineHeight: 17, color: C.t3, textAlign: 'center', paddingHorizontal: 12 },
     legalLink:     { color: C.t2, textDecorationLine: 'underline' },

@@ -26,16 +26,14 @@ import AboutYouStep from '../components/AboutYouStep';
 import IdentityStep from '../components/IdentityStep';
 import PeopleStep from '../components/PeopleStep';
 import NotificationsStep from '../components/NotificationsStep';
-import RaceStep from '../components/RaceStep';
 import WeekStep from '../components/WeekStep';
 import BodyStep from '../components/BodyStep';
 import CoachStep from '../components/CoachStep';
 import StartSummaryStep from '../components/StartSummaryStep';
 import { startPreview } from '../startPlan';
-import { raceDateForWeeks } from '../types';
 import { paceXToneFor } from '@shared/engine/onboarding';
-import { createPlan, localToday } from '@features/training/services/planService';
-import { useFeatureGate } from '@features/subscription/hooks/useFeatureGate';
+import { localToday } from '@features/training/services/planService';
+import { parseFiveKTime } from '@shared/engine/onboarding';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -48,7 +46,6 @@ export default function OnboardingScreen() {
   const ob = useOnboarding();
   const [locationPhase, setLocationPhase] = useState<LocationPhase>('prime');
   const [asking, setAsking] = useState(false);
-  const gate = useFeatureGate();
   const today = localToday();
   const tone = ob.data.paceXTone ?? paceXToneFor(ob.data.goal ?? 'get_fit');
   const preview = useMemo(() => startPreview(ob.data, ob.weeklyTargetKm, today), [ob.data, ob.weeklyTargetKm, today]);
@@ -70,17 +67,17 @@ export default function OnboardingScreen() {
     const ok = await ob.submit();
     if (!ok) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    // Training for a race: the plan PaceX just showed becomes the real one (plans
-    // are Plus; with Plus off, everyone has it), Home underneath.
+    // Training for a race: plan setup opens on race search, with the answers
+    // from onboarding (days, long run, 5K time, weekly distance) filled in.
     if (ob.data.goal === 'race') {
-      if (preview.kind === 'plan' && gate.canUse('training_plan')) {
-        const saved = await createPlan(preview.plan).then(() => true, () => false);
-        if (saved) {
-          navigation.reset({ index: 1, routes: [{ name: 'Main', params: { screen: 'Dashboard' } }, { name: 'TrainingPlan' }] });
-          return;
-        }
-      }
-      navigation.reset({ index: 1, routes: [{ name: 'Main', params: { screen: 'Dashboard' } }, { name: 'PlanBuilder', params: { fromOnboarding: true, ...(ob.data.raceDistance ? { race: ob.data.raceDistance } : {}) } }] });
+      const fk = parseFiveKTime(ob.data.fiveKInput);
+      navigation.reset({ index: 1, routes: [{ name: 'Main', params: { screen: 'Dashboard' } }, { name: 'PlanBuilder', params: {
+        fromOnboarding: true,
+        prefill: {
+          runDays: ob.data.runDays, longRunDay: ob.data.longRunDay, weeklyKm: ob.weeklyTargetKm,
+          fiveKSec: fk.ok ? fk.seconds : null, cautious: ob.data.niggles.length > 0 || ob.data.returning,
+        },
+      } }] });
       return;
     }
     // Straight to the Run tab: the first mission is one tap away.
@@ -110,7 +107,7 @@ export default function OnboardingScreen() {
   } else if (ob.stepKey === 'notifications') {
     cta = { label: 'Turn on alerts', onPress: turnOnAlerts, disabled: asking };
   } else if (ob.stepKey === 'mission') {
-    cta = { label: preview.kind === 'plan' ? 'Save my plan' : ob.data.goal === 'race' ? 'Build my plan' : 'Start my first run', onPress: finish };
+    cta = { label: ob.data.goal === 'race' ? 'Find my race' : 'Start my first run', onPress: finish };
   }
   const busy = ob.loading || asking;
 
@@ -127,13 +124,6 @@ export default function OnboardingScreen() {
         );
       case 'goal':
         return <GoalStep goal={d.goal} onChange={g => ob.update('goal', g)} />;
-      case 'race':
-        return (
-          <RaceStep
-            race={d.raceDistance} weeks={d.raceWeeks} raceDate={raceDateForWeeks(today, d.raceWeeks)} goalInput={d.raceGoalInput}
-            onRace={r => ob.update('raceDistance', r)} onWeeks={w => ob.update('raceWeeks', w)} onGoal={v => ob.update('raceGoalInput', v)}
-          />
-        );
       case 'week':
         return (
           <WeekStep

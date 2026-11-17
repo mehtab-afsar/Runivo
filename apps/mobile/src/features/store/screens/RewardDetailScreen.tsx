@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share, Alert, Linking, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { CaretLeft, SealCheck, Coffee, Flag as FlagIcon, Sneaker } from 'phosphor-react-native';
@@ -10,6 +10,7 @@ import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { getPlayer, savePlayer, getSettings, saveSettings } from '@shared/services/store';
 import { redeemReward, logRewardView } from '../services/rewardService';
 import { lockStateFor } from '../lockState';
+import { fetchMyRewards, setRewardUsed, type MyReward } from '../services/myRewardsService';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 
 export default function RewardDetailScreen() {
@@ -42,6 +43,15 @@ export default function RewardDetailScreen() {
   // deep link to this screen), it shows the "not found" state below.
   const reward = passedReward;
 
+  // Your redemption of this reward, for "Mark as used" (newest first).
+  const [mine, setMine] = useState<MyReward | null>(null);
+  const [markBusy, setMarkBusy] = useState(false);
+  const ownsIt = reward?.redeemed === true || !!redeemedMsg;
+  useEffect(() => {
+    if (!ownsIt || !reward) return;
+    fetchMyRewards().then(list => setMine(list.filter(r => r.rewardId === reward.id).sort((a, b) => b.redeemedAt.localeCompare(a.redeemedAt))[0] ?? null)).catch(() => {});
+  }, [ownsIt, reward]);
+
   if (!reward) {
     return (
       <View style={[s.root, { paddingTop: insets.top }]}>
@@ -54,6 +64,19 @@ export default function RewardDetailScreen() {
 
   const lock = lockStateFor(reward);
   const alreadyMine = reward.redeemed === true || !!redeemedMsg;
+  const toggleUsed = async () => {
+    if (!mine) return;
+    setMarkBusy(true);
+    try {
+      await setRewardUsed(mine.id, !mine.usedAt);
+      setMine({ ...mine, usedAt: mine.usedAt ? null : new Date().toISOString() });
+    } catch { Alert.alert("Couldn't update that", 'Check your connection and try again.'); }
+    finally { setMarkBusy(false); }
+  };
+  const openDirections = () => {
+    const q = encodeURIComponent(reward.brand);
+    Linking.openURL(Platform.OS === 'ios' ? `maps://?q=${q}` : `geo:0,0?q=${q}`).catch(() => Linking.openURL(`https://www.google.com/maps/search/${q}`));
+  };
   const canAfford = paceBalance >= reward.paceCost;
   const plusLocked = lock.kind === 'plus' || failReason === 'plus_only';
   const LockIcon = lock.kind === 'plus' ? Crown : Lock;
@@ -201,10 +224,23 @@ export default function RewardDetailScreen() {
         ) : null}
 
         {alreadyMine ? (
-          <View style={s.redeemedRow}>
-            <SealCheck size={18} color={C.green} weight="fill" />
-            <Text style={s.redeemedText}>{redeemedMsg ?? (code ? 'Redeemed. Show this code at checkout.' : 'You redeemed this reward.')}</Text>
-          </View>
+          <>
+            <View style={s.redeemedRow}>
+              <SealCheck size={18} color={C.green} weight="fill" />
+              <Text style={s.redeemedText}>{mine?.usedAt ? 'Marked as used.' : redeemedMsg ?? (code ? 'Redeemed. Show this code at checkout.' : 'You redeemed this reward.')}</Text>
+            </View>
+            {/* Mock: Directions + Mark as used */}
+            <View style={s.twoBtns}>
+              <Pressable style={s.ghostBtn} onPress={openDirections} accessibilityRole="button" accessibilityHint={`Finds ${reward.brand} near you in Maps`}>
+                <Text style={s.ghostTxt}>Directions</Text>
+              </Pressable>
+              {mine && (
+                <Pressable style={[s.darkBtn, markBusy && { opacity: 0.6 }]} onPress={toggleUsed} disabled={markBusy} accessibilityRole="button">
+                  <Text style={s.darkTxt}>{mine.usedAt ? 'Mark as unused' : 'Mark as used'}</Text>
+                </Pressable>
+              )}
+            </View>
+          </>
         ) : plusLocked ? (
           <Pressable style={[s.claimBtn, s.plusBtn]} onPress={() => navigation.navigate('Subscription')} accessibilityRole="button">
             <Crown size={16} color={C.alwaysLight} strokeWidth={2.2} />
@@ -286,6 +322,11 @@ function mkStyles(C: AppColors) {
       flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 24, padding: 18, marginBottom: 16,
       borderWidth: 2, borderStyle: 'dashed', borderColor: '#CFD3CA',
     },
+    twoBtns:            { flexDirection: 'row', gap: 10, marginTop: 12 },
+    ghostBtn:           { flex: 1, height: 54, borderRadius: 27, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+    ghostTxt:           { fontFamily: Fonts.medium, fontSize: 16, color: C.t1 },
+    darkBtn:            { flex: 1, height: 54, borderRadius: 27, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    darkTxt:            { fontFamily: Fonts.medium, fontSize: 16, color: C.alwaysLight },
     copyBtn:            { height: 42, paddingHorizontal: 16, borderRadius: 21, backgroundColor: C.alwaysDark, justifyContent: 'center' },
     copyTxt:            { fontFamily: Fonts.medium, fontSize: 14, color: C.alwaysLight },
     howTitle:           { fontFamily: Fonts.medium, fontSize: 17, color: C.t1 },

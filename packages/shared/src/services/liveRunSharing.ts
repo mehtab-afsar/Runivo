@@ -6,6 +6,10 @@ export interface LiveFriendPosition {
   lat: number;
   lng: number;
   updatedAt: number;
+  /** Progress the runner shares with their live position (may be missing on old apps). */
+  startedAt?: number;
+  distanceM?: number;
+  elapsedSec?: number;
 }
 
 /** Upserts the caller's current position — one row per user, overwritten every call. */
@@ -14,11 +18,19 @@ export async function upsertLivePosition(
   runId: string,
   lat: number,
   lng: number,
+  progress?: { startedAt: number; distanceM: number; elapsedSec: number },
 ): Promise<void> {
   await supabase
     .from('live_run_positions')
     .upsert(
-      { user_id: userId, run_id: runId, lat, lng, updated_at: new Date().toISOString() },
+      {
+        user_id: userId, run_id: runId, lat, lng, updated_at: new Date().toISOString(),
+        ...(progress ? {
+          started_at: new Date(progress.startedAt).toISOString(),
+          distance_m: Math.round(progress.distanceM),
+          elapsed_sec: Math.round(progress.elapsedSec),
+        } : {}),
+      },
       { onConflict: 'user_id' },
     );
 }
@@ -36,6 +48,9 @@ function toLiveFriendPosition(row: Record<string, unknown>): LiveFriendPosition 
     lat: row.lat as number,
     lng: row.lng as number,
     updatedAt: new Date(row.updated_at as string).getTime(),
+    startedAt: row.started_at ? new Date(row.started_at as string).getTime() : undefined,
+    distanceM: typeof row.distance_m === 'number' ? row.distance_m : undefined,
+    elapsedSec: typeof row.elapsed_sec === 'number' ? row.elapsed_sec : undefined,
   };
 }
 

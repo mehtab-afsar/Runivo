@@ -4,11 +4,11 @@ November 2026. This covers what was wrong, what changed, and how each fix is tes
 
 ## The rules
 
-All rules live in one file, `packages/shared/src/engine/runEngine.ts`. The server runs a byte-for-byte copy at `supabase/functions/_shared/runEngine.ts`; `runEngine.sync.test.ts` fails if the two differ. After editing the engine, run `npm run engine:sync`.
+All rules live in one file, `packages/shared/src/engine/runEngine.ts` (`ENGINE`). `packages/shared/src/services/config.ts` holds only app-only settings (live GPS gate, legacy coins) and must never copy a rule. The server runs a byte-for-byte copy at `supabase/functions/_shared/runEngine.ts`; `runEngine.sync.test.ts` fails if the two differ. After editing the engine, run `npm run engine:sync`.
 
 | Rule | Value |
 |---|---|
-| Distance PACE | 1 per whole verified km (0.99 km pays 0) |
+| Distance PACE | 2 per whole verified km (0.99 km pays 0). Was 1 at the audit; raised to 2 later, engine tests updated |
 | New zone | +5, once per run, runs of 200 m or more |
 | Stolen zone | +10 per rival zone where ground actually moved |
 | Streak bonus | +3 on the run that takes the streak to 7, 14, 21… days |
@@ -26,10 +26,10 @@ Worked examples (from the tests):
 
 | Run | PACE |
 |---|---|
-| 5.0 km, no zones, free, 0 earned this week | 5 |
-| 7.3 km, 1 new zone, 1 steal, streak hits 14 | 7 + 5 + 10 + 3 = 25 |
+| 5.0 km, no zones, free, 0 earned this week | 10 |
+| 7.3 km, 1 new zone, 1 steal, streak hits 14 | 14 + 5 + 10 + 3 = 32 |
 | 20 km, free, 90 already earned this week | 10 (capped at 100) |
-| Same run, premium | 20 |
+| Same run, premium | 40 |
 | 150 m with a zone | 0 (zones need 200 m, distance needs 1 km) |
 | Same run replayed | 0 (ledger key is the run id) |
 
@@ -77,18 +77,18 @@ Defending a zone still restores it to 100 % freshness. That is deliberate.
 
 Before: three different reds for your zones, two greys for rivals, stale rivals looked like fresh ones, selecting a rival zone painted it your colour, maps ignored dark mode, and friends' markers were close to your trail red.
 
-Now, from `apps/mobile/src/theme/territory.ts`:
+Now, from `apps/mobile/src/theme/territory.ts` (colours updated in the November redesign; the rules stayed: one palette, mine / rival / fading always distinct, dark-mode variants):
 
 | Thing | Light | Dark |
 |---|---|---|
-| Your zones | #FF4518, fill 18–42 % by freshness | #FF5A2E, 22–50 % |
-| Your fading zones | #F59E0B, dashed outline | #FBBF24 |
-| Rival zones | #2F56F5, fill 10–26 % | #5B7BFF |
-| Fading rival zones | #8A94B8, thin outline | #6B7394 |
-| Selected | outline only, #0C0C0D | #FFFFFF |
+| Your zones | #7DBA3C, fill by freshness | #9BD25A |
+| Your fading zones | #A9C77A, dashed outline | #6F8F4A |
+| Rival zones | #F2A43A, fill 10–26 % | #F2A43A |
+| Fading rival zones | #CDB089, thin outline | #8A7556 |
+| Selected | outline only, #17181A | #FFFFFF |
 | New capture (24 h) | white halo | white halo |
-| Your trail | #FF4518 | #FF5A2E |
-| Friends | violet, teal, pink, green, cyan, magenta (by user id) | same |
+| Your trail | ink #17181A | lime #C9F06B |
+| Friends | their own palette, never green or amber (by user id) | same |
 
 ## Tests
 
@@ -96,7 +96,7 @@ Now, from `apps/mobile/src/theme/territory.ts`:
 |---|---|---|
 | `packages/shared/src/engine/runEngine.test.ts` | Engine rules: area at several latitudes, loops, lollipops, figure-8s, teleports, PACE table, caps, streak, ranks, decay | `npx vitest run` |
 | `packages/shared/src/services/claimEngine.test.ts` | The app gives the same answers the server pays | `npx vitest run` |
-| `supabase/tests/v1_integrity.test.sql` | 32 database checks: client lockout, cap, replay, week reset, premium, rank, missions, loop and strip area, steals, decay, redemption | see `supabase/tests/README.md` |
+| `supabase/tests/v1_integrity.test.sql` | 30 database checks: client lockout, cap, replay, week reset, premium, rank, missions, loop and strip area, steals, decay, redemption | `supabase/tests/run.sh v1_integrity` |
 
 ## Deploying
 
@@ -105,4 +105,4 @@ supabase db push
 supabase functions deploy process-run-territory
 ```
 
-The migration is `20261106000001_v1_pace_and_territory_integrity.sql`. Deploy the function after the migration: it calls `build_territory_geom` and `credit_pace_capped`.
+The rules are in `supabase/migrations/20261118000005_territory.sql` (`build_territory_geom`) and `20261118000006_pace.sql` (`credit_pace_capped`); the original change is `supabase/archive/migrations_2026/20261106000001_v1_pace_and_territory_integrity.sql`. Deploy the function after the migrations.

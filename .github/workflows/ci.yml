@@ -84,7 +84,7 @@ jobs:
       # Includes function_privileges.test.sql, which fails if a server-only function
       # becomes callable by clients.
       - name: Tests
-        run: scripts/run-sql-tests.sh
+        run: supabase/tests/run.sh
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 

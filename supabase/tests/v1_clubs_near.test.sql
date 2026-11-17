@@ -1,6 +1,5 @@
 -- Clubs near you: approximate club points, nearest-first, popular fallback,
 -- no coordinates or creator locations reachable by clients.
--- Run after _stub_clubs.sql and 20261106000007 (see README for the full order).
 \set ON_ERROR_STOP on
 BEGIN;
 SET client_min_messages = notice;

@@ -10,7 +10,7 @@ import { onMagicLinkResult } from '../services/magicLink';
  * email    → enter address         → emailSent → code (email)
  * password → the older email + password form, for existing accounts
  */
-export type AuthStage = 'choose' | 'phone' | 'email' | 'emailSent' | 'code' | 'password' | 'passwordSignup';
+export type AuthStage = 'choose' | 'phone' | 'email' | 'emailSent' | 'code' | 'password' | 'passwordSignup' | 'reset';
 
 export interface PasswordlessAuth {
   stage: AuthStage;
@@ -136,7 +136,7 @@ export function usePasswordlessAuth(): PasswordlessAuth {
     setStageRaw(s => {
       if (s === 'code') return channel === 'sms' ? 'phone' : 'emailSent';
       if (s === 'emailSent') return 'email';
-      if (s === 'passwordSignup') return 'password';
+      if (s === 'passwordSignup' || s === 'reset') return 'password';
       return 'choose';
     });
   }, [channel]);

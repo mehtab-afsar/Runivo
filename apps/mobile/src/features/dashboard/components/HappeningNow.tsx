@@ -75,7 +75,7 @@ export function HappeningNow({ friends, onCheer }: {
               <Pressable style={[s.pill, { backgroundColor: C.lime }]} onPress={() => onCheer(f)} accessibilityRole="button" accessibilityLabel={`Cheer ${f.username}`}>
                 <Text style={[s.pillTxt, { color: C.alwaysDark, fontFamily: Fonts.bold }]}>👏 Cheer</Text>
               </Pressable>
-              <Pressable style={[s.pill, { backgroundColor: C.card }]} onPress={() => navigation.navigate('Main', { screen: 'Map' })} accessibilityRole="button">
+              <Pressable style={[s.pill, { backgroundColor: C.card }]} onPress={() => navigation.navigate('FriendLive', { userId: f.userId, username: f.username })} accessibilityRole="button">
                 <Text style={s.pillTxt}>Watch live</Text>
               </Pressable>
             </View>

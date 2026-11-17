@@ -4,22 +4,27 @@
  * "Not feeling 100%" eases the next 7 days.
  */
 import { SafetyNote } from '@mobile/shared/components/SafetyNote';
-import { supabase } from '@shared/services/supabase';
-import { getWatchWorkouts } from '../../../../modules/runivo-workouts';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft, Check, DotsThree, Play, Heartbeat } from 'phosphor-react-native';
+import { Check, DotsThree, Play, Heartbeat } from 'phosphor-react-native';
+import { ScreenHeader, HeaderButton } from '@mobile/shared/components/ScreenHeader';
+import MonthGrid, { monthOf } from '@mobile/shared/components/MonthGrid';
+import { ModalSheet } from '@mobile/shared/components/ModalSheet';
+import { kindColor } from '../sessionLook';
+import { fmtRaceDate } from '../services/raceService';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import {
-  RACE_LABEL, fmtBand, fmtDuration, weekOf, isMissed, moveSession, setStatus, easeNextDays,
-  addDays, weekday, daysBetween, type Session,
+  RACE_LABEL, fmtBand, fmtDuration, weekOf, isMissed, easeNextDays, rebuildForDate, PLAN_WEEKS,
+  addDays, weekday, daysBetween, sessionOn,
 } from '@shared/engine/training';
 import { fetchActivePlan, getCachedPlan, savePlan, endPlan, localToday, type ActivePlan } from '../services/planService';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const DAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -30,12 +35,13 @@ export default function TrainingPlanScreen() {
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
   const today = localToday();
-  // T7: only offered on builds with WorkoutKit and a paired watch that can take it.
-  const [watchOk, setWatchOk] = useState(false);
-  useEffect(() => { getWatchWorkouts()?.isSupported().then(setWatchOk).catch(() => {}); }, []);
   const [ap, setAp] = useState<ActivePlan | null | undefined>(undefined);
   const [weekIdx, setWeekIdx] = useState<number | null>(null);
-  const [open, setOpen] = useState<Session | null>(null);
+  const [view, setView] = useState<'week' | 'month'>('week');
+  const [month, setMonth] = useState(monthOf(today));
+  const [moveRace, setMoveRace] = useState<string | null>(null);
+  const [moveMonth, setMoveMonth] = useState(monthOf(today));
+  const openSession = (id: string) => navigation.navigate('PlanSession', { sessionId: id });
 
   const [loadError, setLoadError] = useState(false);
   const load = useCallback(() => {
@@ -64,14 +70,12 @@ export default function TrainingPlanScreen() {
   if (!plan || !ap) {
     return (
       <SafeAreaView style={s.root}>
-        <Header s={s} C={C} title="Training" onBack={() => navigation.goBack()} />
+        <ScreenHeader title="Training" onBack={() => navigation.goBack()} />
         {loadError ? <ErrorState title="Couldn't load your plan" onRetry={load} /> : (
         <View style={s.empty}>
           <Text style={s.emptyTitle}>No plan yet</Text>
           <Text style={s.emptySub}>Pick a race and a date. We'll build weeks of sessions around the days you can run.</Text>
-          <Pressable style={s.cta} onPress={() => navigation.replace('PlanBuilder')} accessibilityRole="button">
-            <Text style={s.ctaTxt}>Build a plan</Text>
-          </Pressable>
+          <PrimaryButton label="Build a plan" onPress={() => navigation.replace('PlanBuilder')} fullWidth style={{ marginTop: 16 }} />
         </View>
         )}
       </SafeAreaView>
@@ -83,7 +87,9 @@ export default function TrainingPlanScreen() {
   const done = all.filter(x => x.status === 'done').length;
   const daysToRace = daysBetween(today, plan.raceDate);
 
+  const canMoveRace = (plan.goal ?? 'race') === 'race' && daysToRace > 7;
   const menu = () => Alert.alert('Plan', undefined, [
+    ...(canMoveRace ? [{ text: 'Race date changed', onPress: () => { setMoveRace(plan.raceDate); setMoveMonth(monthOf(plan.raceDate)); } }] : []),
     { text: 'Build a new plan', onPress: () => navigation.navigate('PlanBuilder') },
     { text: 'End this plan', style: 'destructive', onPress: () => Alert.alert(
       'End this plan?',
@@ -108,14 +114,16 @@ export default function TrainingPlanScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <Header s={s} C={C} title={`${RACE_LABEL[plan.race]} plan`} onBack={() => navigation.goBack()} onMenu={menu} />
+      <ScreenHeader title={`${RACE_LABEL[plan.race]} plan`} onBack={() => navigation.goBack()} right={<HeaderButton onPress={menu} label="Plan options"><DotsThree size={20} color={C.t1} weight="bold" /></HeaderButton>} />
       <ScrollView contentContainerStyle={s.scroll}>
         <SafetyNote kind="coach" style={{ marginTop: 0, marginBottom: 10 }} />
         {/* Summary (mock): dark card with week, race and countdown. */}
         <View style={s.hero}>
           <Text style={s.heroEyebrow}>{RACE_LABEL[plan.race]} plan · week {current} of {plan.weeks.length}</Text>
           <View style={s.heroRow}>
-            <Text style={s.heroRace} numberOfLines={2}>Race day · {plan.raceDate}</Text>
+            <Text style={s.heroRace} numberOfLines={2}>
+              {plan.raceRef?.name ?? ((plan.goal ?? 'race') === 'race' ? 'Race day' : plan.goal === 'start' ? 'Your first 5K' : 'Time trial')} · {fmtRaceDate(plan.raceDate)}
+            </Text>
             <Text style={s.heroDays}>{daysToRace > 0 ? `${daysToRace} days` : daysToRace === 0 ? 'Today' : 'Done'}</Text>
           </View>
           <Text style={s.heroSub}>Target {fmtDuration(plan.targetSec)}{plan.goalSec && !plan.goalCapped ? ` · goal ${fmtDuration(plan.goalSec)}` : ''}</Text>
@@ -131,10 +139,7 @@ export default function TrainingPlanScreen() {
             <Text style={s.todayEyebrow}>Today</Text>
             <Text style={s.todayTitle}>{todaySession.title}</Text>
             <Text style={s.todaySub} numberOfLines={2}>{todaySession.summary}</Text>
-            <Pressable style={s.todayBtn} onPress={() => setOpen(todaySession)} accessibilityRole="button">
-              <Play size={16} color={C.lime} weight="fill" />
-              <Text style={s.todayBtnTxt}>Start session</Text>
-            </Pressable>
+            <PrimaryButton label="Start session" onPress={() => openSession(todaySession.id)} icon={<Play size={16} color={C.alwaysLight} weight="fill" />} size="sm" style={{ marginTop: 10 }} />
           </View>
         )}
 
@@ -146,6 +151,17 @@ export default function TrainingPlanScreen() {
           ))}
         </View>
 
+        <Segmented options={[{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} value={view} onChange={setView} />
+
+        {view === 'month' ? (
+          <MonthGrid
+            month={month} onMonth={setMonth} today={today}
+            minDate={plan.weeks[0].startDate} maxDate={plan.raceDate}
+            dot={d => { const x = sessionOn(plan, d); return x && x.status !== 'skipped' ? kindColor(C, x.kind) : null; }}
+            done={d => sessionOn(plan, d)?.status === 'done'}
+            onSelect={d => { const x = sessionOn(plan, d); if (x) openSession(x.id); }}
+          />
+        ) : <>
         {/* Week picker */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.weeks}>
           {plan.weeks.map(w => {
@@ -167,7 +183,7 @@ export default function TrainingPlanScreen() {
             const missed = isMissed(x, today);
             const isToday = x.date === today;
             return (
-              <Pressable key={x.id} style={[s.row, i > 0 && s.rowBorder]} onPress={() => setOpen(x)} accessibilityRole="button">
+              <Pressable key={x.id} style={[s.row, i > 0 && s.rowBorder]} onPress={() => openSession(x.id)} accessibilityRole="button">
                 <View style={[s.dayBox, isToday && s.dayBoxToday]}>
                   <Text style={[s.dayName, isToday && s.dayTxtToday]}>{DAY_SHORT[weekday(x.date)]}</Text>
                   <Text style={[s.dayNum, isToday && s.dayTxtToday]}>{Number(x.date.slice(8))}</Text>
@@ -185,131 +201,35 @@ export default function TrainingPlanScreen() {
           })}
         </View>
 
+        </>}
+
         <Pressable style={s.ease} onPress={notFeeling} accessibilityRole="button">
           <Heartbeat size={16} color={C.t1} weight="regular" />
           <Text style={s.easeTxt}>Not feeling 100%</Text>
         </Pressable>
       </ScrollView>
 
-      {/* Session sheet */}
-      <Modal visible={!!open} transparent animationType="slide" onRequestClose={() => setOpen(null)}>
-        <Pressable style={s.backdrop} onPress={() => setOpen(null)} />
-        {open && (
-          <View style={s.sheet}>
-            <View style={s.handle} />
-            <Text style={s.sheetTitle}>{open.title}</Text>
-            <Text style={s.sub}>{DAY_SHORT[weekday(open.date)]} {open.date} · {open.distanceKm} km</Text>
-            <View style={s.steps}>
-              {open.steps.map((st, i) => (
-                <View key={i} style={s.stepRow}>
-                  <View style={[s.stepDot, st.kind === 'run' && open.kind !== 'easy' && open.kind !== 'long' && open.kind !== 'recovery' && { backgroundColor: C.red }]} />
-                  <Text style={s.stepTxt}>
-                    {st.label}{st.distanceM ? ` · ${st.distanceM >= 1000 ? `${(st.distanceM / 1000).toFixed(st.distanceM % 1000 ? 1 : 0)} km` : `${st.distanceM} m`}` : ''}
-                    {st.durationSec ? ` · ${Math.round(st.durationSec)} s` : ''}
-                  </Text>
-                  {st.pace ? <Text style={s.stepPace}>{fmtBand(st.pace)}</Text> : null}
-                </View>
-              ))}
-            </View>
-
-            {open.status === 'planned' && open.date >= today && (
-              <Pressable
-                style={s.cta}
-                onPress={() => { setOpen(null); navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', sessionId: open.id }); }}
-                accessibilityRole="button"
-              >
-                <Play size={16} color={C.alwaysLight} weight="fill" />
-                <Text style={s.ctaTxt}>Start this session</Text>
-              </Pressable>
-            )}
-
-            {/* T7: Apple Watch (WorkoutKit, iOS 17+). */}
-            {watchOk && open.status === 'planned' && open.date >= today && (
-              <Pressable
-                style={[s.cta, { backgroundColor: C.surface, marginTop: 8 }]}
-                onPress={async () => {
-                  const ok = await getWatchWorkouts()?.schedule({
-                    title: open.title, date: open.date,
-                    steps: open.steps.map(st => ({ kind: st.kind, distanceM: st.distanceM, durationSec: st.durationSec })),
-                  }).catch(() => false);
-                  Alert.alert(ok ? 'On your Apple Watch' : "Couldn't add it",
-                    ok ? `Open the Workout app on ${open.date} and it's under Custom.` : 'Allow Runivo to add workouts when asked, and check your watch runs watchOS 10 or later.');
-                }}
-                accessibilityRole="button"
-              >
-                <Text style={[s.ctaTxt, { color: C.t1 }]}>Send to Apple Watch</Text>
-              </Pressable>
-            )}
-
-            {/* T7: put the session on a Garmin watch. */}
-            {open.status === 'planned' && open.date >= today && (
-              <Pressable
-                style={[s.cta, { backgroundColor: C.surface, marginTop: 8 }]}
-                onPress={async () => {
-                  const { data, error } = await supabase.functions.invoke('export-workout', { body: { sessionId: open.id } });
-                  const code = (data as { error?: string } | null)?.error ?? (error ? 'failed' : null);
-                  Alert.alert(code ? "Couldn't send it" : 'Sent to Garmin',
-                    code === 'garmin_not_connected' ? 'Connect Garmin in Connected apps and devices first.'
-                    : code === 'garmin_permission' ? 'Reconnect Garmin and allow workout import.'
-                    : code ? 'Try again in a moment.'
-                    : `It's on your Garmin calendar for ${open.date}. Sync your watch to see it.`);
-                }}
-                accessibilityRole="button"
-              >
-                <Text style={[s.ctaTxt, { color: C.t1 }]}>Send to Garmin</Text>
-              </Pressable>
-            )}
-
-            {open.status === 'planned' && open.kind !== 'race' && (
-              <>
-                <Text style={[s.cardLabel, { marginTop: 16 }]}>Move to</Text>
-                <View style={s.moveRow}>
-                  {Array.from({ length: 7 }, (_, d) => addDays(weekOf(plan, open.date)!.startDate, d)).map(d => {
-                    const on = d === open.date;
-                    return (
-                      <Pressable
-                        key={d}
-                        style={[s.moveDay, on && s.moveDayOn, d < today && { opacity: 0.35 }]}
-                        disabled={on || d < today}
-                        onPress={() => { update({ ...ap, plan: moveSession(plan, open.id, d) }); setOpen(null); }}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Move to ${DAY_SHORT[weekday(d)]}`}
-                      >
-                        <Text style={[s.moveTxt, on && { color: C.bg }]}>{DAY_SHORT[weekday(d)].slice(0, 1)}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <Pressable style={s.skip} onPress={() => { update({ ...ap, plan: setStatus(plan, open.id, 'skipped') }); setOpen(null); }} accessibilityRole="button">
-                  <Text style={s.skipTxt}>Skip this session</Text>
-                </Pressable>
-              </>
-            )}
-            {open.status === 'skipped' && (
-              <Pressable style={s.skip} onPress={() => { update({ ...ap, plan: setStatus(plan, open.id, 'planned') }); setOpen(null); }} accessibilityRole="button">
-                <Text style={s.skipTxt}>Put it back</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-      </Modal>
+      {/* Race date changed: pick the new day, the rest of the plan is rebuilt. */}
+      <ModalSheet visible={!!moveRace} onClose={() => setMoveRace(null)} title="Race moved?"
+        subtitle="Pick the new date. Weeks you've started stay as they are; the rest is rebuilt with a proper taper.">
+        {moveRace && (() => {
+          const rebuilt = moveRace !== plan.raceDate ? rebuildForDate(plan, moveRace, today) : null;
+          const err = rebuilt && 'error' in rebuilt ? rebuilt : null;
+          const ok = rebuilt && !('error' in rebuilt) ? rebuilt : null;
+          return (
+            <>
+              <View style={{ marginTop: 12 }}>
+                <MonthGrid month={moveMonth} onMonth={setMoveMonth} selected={moveRace} today={today}
+                  minDate={addDays(today, 7)} maxDate={addDays(today, 7 * (PLAN_WEEKS[plan.race].max + 20))} onSelect={setMoveRace} />
+              </View>
+              {err && <Text style={[s.sub, { color: C.danger }]}>{err.error === 'too_soon' ? `Too soon: a ${RACE_LABEL[plan.race]} plan needs at least ${err.minWeeks} weeks.` : "Couldn't rebuild for that date."}</Text>}
+              {ok && <Text style={s.sub}>{fmtRaceDate(moveRace)} · {ok.weeks.length} weeks in total · peak {Math.round(Math.max(...ok.weeks.map(w => w.km)))} km</Text>}
+              <PrimaryButton label="Rebuild plan" onPress={() => { if (ok) { update({ ...ap, plan: ok }); setMoveRace(null); setWeekIdx(null); } }} disabled={!ok} fullWidth style={{ marginTop: 16 }} />
+            </>
+          );
+        })()}
+      </ModalSheet>
     </SafeAreaView>
-  );
-}
-
-function Header({ s, C, title, onBack, onMenu }: { s: ReturnType<typeof mkStyles>; C: AppColors; title: string; onBack: () => void; onMenu?: () => void }) {
-  return (
-    <View style={s.header}>
-      <Pressable onPress={onBack} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} accessibilityRole="button" accessibilityLabel="Back">
-        <ArrowLeft size={16} color={C.t1} weight="regular" />
-      </Pressable>
-      <Text style={s.title}>{title}</Text>
-      {onMenu ? (
-        <Pressable onPress={onMenu} style={s.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Plan options">
-          <DotsThree size={20} color={C.t1} weight="bold" />
-        </Pressable>
-      ) : <View style={{ width: 32 }} />}
-    </View>
   );
 }
 
@@ -317,9 +237,6 @@ function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:     { flex: 1, backgroundColor: C.bg },
     center:   { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    header:   { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn:  { width: 32 },
-    title:    { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     scroll:   { paddingHorizontal: 18, paddingBottom: 48, gap: 12 },
     card:     { backgroundColor: C.card, borderRadius: 24, padding: 18 },
     hero:     { backgroundColor: C.alwaysDark, borderRadius: 28, padding: 20 },
@@ -332,8 +249,6 @@ function mkStyles(C: AppColors) {
     todayEyebrow: { fontFamily: Fonts.bold, fontSize: 12, color: C.green },
     todayTitle: { fontFamily: Fonts.semiBold, fontSize: 19, color: C.t1 },
     todaySub: { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2 },
-    todayBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', marginTop: 10, height: 44, paddingHorizontal: 20, borderRadius: 22, backgroundColor: C.alwaysDark },
-    todayBtnTxt: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
     sub:      { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.t2, marginTop: 4 },
     note:     { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.alwaysLight, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: 10, marginTop: 10 },
     track:    { height: 8, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.14)', marginTop: 14, overflow: 'hidden' },
@@ -363,12 +278,6 @@ function mkStyles(C: AppColors) {
     empty:    { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
     emptyTitle: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1 },
     emptySub: { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2, textAlign: 'center', marginTop: 8, marginBottom: 20 },
-    cta:      { flexDirection: 'row', gap: 8, height: 50, paddingHorizontal: 24, borderRadius: 25, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-    ctaTxt:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
-    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
-    sheet:    { backgroundColor: C.card, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingBottom: 34 },
-    handle:   { width: 36, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginBottom: 12 },
-    sheetTitle: { fontFamily: Fonts.semiBold, fontSize: 19, color: C.t1 },
     steps:    { marginTop: 14, gap: 8 },
     stepRow:  { flexDirection: 'row', alignItems: 'center', gap: 10 },
     stepDot:  { width: 8, height: 8, borderRadius: 4, backgroundColor: C.t3 },

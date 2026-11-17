@@ -74,8 +74,19 @@ export interface Paces {
   easy: PaceBand; long: PaceBand; tempo: PaceBand; interval: PaceBand; recovery: PaceBand; race: PaceBand;
 }
 
+/** What the plan is for: a race, or a goal that ends in a time trial. */
+export type PlanGoal = 'race' | 'faster' | 'further' | 'start' | 'return';
+/** Injury history from the setup flow; it changes how fast distance builds. */
+export type InjuryLevel = 'none' | 'minor' | 'often';
+/** The catalogue race a plan is for (races / race_distances). */
+export interface RaceRef { raceId: string; distanceId: string; name: string; city?: string | null }
+
 export interface TrainingPlanV2 {
   version: 2;
+  goal?: PlanGoal;
+  raceRef?: RaceRef | null;
+  injury?: InjuryLevel;
+  cautious?: boolean;
   race: RaceDistance;
   raceDate: string;
   goalSec: number | null;
@@ -101,6 +112,10 @@ export interface PlanInput {
   today: string; // YYYY-MM-DD
   /** A niggle or a comeback: lower start, slower growth, less hard work. */
   cautious?: boolean;
+  /** minor = cautious; often = cautious and no intervals in the first 3 weeks. */
+  injury?: InjuryLevel;
+  goal?: PlanGoal;
+  raceRef?: RaceRef | null;
 }
 
 /** Weekly growth cap and starting factor, normal vs cautious. */
@@ -267,9 +282,12 @@ export function buildPlan(input: PlanInput): TrainingPlanV2 | { error: PlanError
   const goalCapped = !!goal && goal < floor;
   const paces = pacesFrom(input.fiveKSec, targetSec / RACE_KM[race]);
 
-  const mode = input.cautious ? 'cautious' : 'normal';
+  const injury = input.injury ?? 'none';
+  const cautious = !!input.cautious || injury !== 'none';
+  const mode = cautious ? 'cautious' : 'normal';
+  const goalKind = input.goal ?? 'race';
   const usual = Math.min(PEAK_KM[race], input.currentWeeklyKm ?? START_KM[race]);
-  const startKm = Math.max(days.length * 3, input.cautious ? round1(usual * 0.8) : usual);
+  const startKm = Math.max(days.length * 3, cautious ? round1(usual * 0.8) : usual);
   const growth = GROWTH[mode];
   const shape = weeklyShape(race, weeks, startKm, growth);
 
@@ -286,14 +304,15 @@ export function buildPlan(input: PlanInput): TrainingPlanV2 | { error: PlanError
     if (lastFull != null && (w.focus === 'base' || w.focus === 'build')) target = Math.min(target, lastFull * growth);
     if (lastFull != null && w.focus === 'recovery') target = Math.min(target, lastFull * 0.8);
     if (w.focus === 'taper') target = Math.min(target, peakSoFar * (race === 'marathon' || race === 'half' ? 0.75 : 0.7));
-    const week = buildWeek({ index, startDate, focus: w.focus, target, days, longRunDay: input.longRunDay, race, raceDate: input.raceDate, targetSec, paces, hardShare: HARD_SHARE[mode] });
+    const week = buildWeek({ index, startDate, focus: w.focus, target, days, longRunDay: input.longRunDay, race, raceDate: input.raceDate, targetSec, paces, hardShare: HARD_SHARE[mode], noIntervals: injury === 'often' && index <= 3, trial: goalKind !== 'race' });
     planWeeks.push(week);
     if (w.focus === 'base' || w.focus === 'build') lastFull = week.km;
     peakSoFar = Math.max(peakSoFar, week.km);
   });
 
   return {
-    version: 2, race, raceDate: input.raceDate, goalSec: goal, targetSec: Math.round(targetSec), goalCapped,
+    version: 2, goal: goalKind, raceRef: input.raceRef ?? null, injury, cautious,
+    race, raceDate: input.raceDate, goalSec: goal, targetSec: Math.round(targetSec), goalCapped,
     fiveKSec: input.fiveKSec, runDays: days, longRunDay: input.longRunDay, paces, weeks: planWeeks,
   };
 }
@@ -303,6 +322,10 @@ interface WeekArgs {
   race: RaceDistance; raceDate: string; targetSec: number; paces: Paces;
   /** Share of a build week that is hard (lower in cautious plans). */
   hardShare: number;
+  /** Tempo only this week (recent or frequent injuries). */
+  noIntervals?: boolean;
+  /** The last day is a time trial, not a race (goal plans). */
+  trial?: boolean;
 }
 
 function buildWeek(a: WeekArgs): PlanWeek {
@@ -316,7 +339,8 @@ function buildWeek(a: WeekArgs): PlanWeek {
     const before = days.filter(d => d < raceDay);
     const easyDays = before.length > 2 ? [before[0], before[before.length - 2]] : before.slice(0, 2);
     const sessions = easyDays.map(d => easySession(sid(d), dateOf(d), Math.max(3, Math.min(6, a.target * 0.2)), paces));
-    sessions.push(raceSession(sid(raceDay), a.raceDate, race, a.targetSec, paces));
+    const last = raceSession(sid(raceDay), a.raceDate, race, a.targetSec, paces);
+    sessions.push(a.trial ? { ...last, title: `Time trial: ${RACE_LABEL[race]}`, summary: `See how far you've come. Aim for ${fmtDuration(a.targetSec)}.` } : last);
     return { index, startDate, focus, km: total(sessions), sessions };
   }
 
@@ -336,7 +360,7 @@ function buildWeek(a: WeekArgs): PlanWeek {
     const quality = qualityDays.map((d, qi) => {
       // Recovery and taper weeks keep one gentle tempo, never intervals.
       const light = focus === 'base' || focus === 'recovery' || focus === 'taper';
-      const useIntervals = !light && (qualityCount === 2 ? qi === 1 : index % 2 === 0);
+      const useIntervals = !light && !a.noIntervals && (qualityCount === 2 ? qi === 1 : index % 2 === 0);
       return useIntervals
         ? intervalSession(sid(d), dateOf(d), perHard, race, index, paces)
         : tempoSession(sid(d), dateOf(d), perHard, paces);
@@ -526,4 +550,149 @@ export function updatePacesFromRun(
     }),
   }));
   return { plan: { ...p, fiveKSec, paces, weeks }, fiveKSec };
+}
+
+// ── Plan setup helpers (race-first flow) ─────────────────────────────────────
+/** The Monday a new plan starts: today when it is Monday, otherwise next Monday. */
+export const planStartMonday = (today: string) => (weekday(today) === 0 ? today : mondayOf(addDays(today, 7)));
+/** Sunday of week `weeks` of a plan starting now: the end date for goal plans. */
+export const planEndDate = (today: string, weeks: number) => addDays(planStartMonday(today), weeks * 7 - 1);
+
+/** 5K-equivalent of a time over another distance (Riegel). */
+export function fiveKFromTime(km: number, sec: number): number {
+  return Math.round(sec * Math.pow(5 / km, 1.06));
+}
+
+/** Best 5K-equivalent among runs of 3 km or more in the last 6 weeks, or null. */
+export function estimateFiveK(
+  runs: { distanceKm: number; durationSec: number; startTime: number }[], nowMs: number,
+): { fiveKSec: number; runs: number } | null {
+  const since = nowMs - 42 * DAY;
+  const ests = runs.filter(r => r.startTime >= since)
+    .map(r => fiveKFromRun(r.distanceKm, r.durationSec))
+    .filter((x): x is number => x != null);
+  if (ests.length < 2) return null;
+  return { fiveKSec: Math.min(...ests), runs: ests.length };
+}
+
+/** Ability level when there's no time and too few runs to estimate one. */
+export const FIVE_K_BY_LEVEL = { beginner: 40 * 60, regular: 30 * 60, experienced: 24 * 60 } as const;
+
+/** Race distance and length for a goal without a race. */
+export function goalPlanShape(goal: Exclude<PlanGoal, 'race' | 'start'>, distance: RaceDistance): { race: RaceDistance; weeks: number; cautious: boolean } {
+  if (goal === 'return') return { race: '5k', weeks: 6, cautious: true };
+  if (goal === 'faster') {
+    const race = distance === '10k' ? '10k' : '5k';
+    return { race, weeks: race === '5k' ? 8 : 10, cautious: false };
+  }
+  const race = distance === '5k' ? '10k' : distance;
+  return { race, weeks: Math.min(PLAN_WEEKS[race].max, PLAN_WEEKS[race].min + 2), cautious: false };
+}
+
+/** Walk-run progression to a continuous 5K: [run s, walk s, reps] per week. */
+const START_WEEKS: [number, number, number][] = [
+  [60, 90, 8], [90, 120, 6], [120, 90, 6], [180, 90, 5], [300, 120, 4], [480, 120, 3], [600, 90, 3], [900, 120, 2], [1500, 0, 1],
+];
+
+/** "Start running": 9 weeks of walk-run, 3 days a week, ending with a first 5K. */
+export function buildStartPlan(input: { runDays: number[]; longRunDay: number; today: string }): TrainingPlanV2 | { error: PlanError } {
+  const all = [...new Set(input.runDays)].filter(d => d >= 0 && d <= 6).sort((a, b) => a - b);
+  if (all.length < 3 || !all.includes(input.longRunDay)) return { error: 'bad_days' };
+  const others = all.filter(d => d !== input.longRunDay);
+  const days = [...new Set([others[0], others[Math.floor(others.length / 2)] ?? others[0], input.longRunDay])].sort((a, b) => a - b);
+  if (days.length < 3) return { error: 'bad_days' };
+  const fiveKSec = FIVE_K_BY_LEVEL.beginner;
+  const paces = pacesFrom(fiveKSec, fiveKSec / 5);
+  const start = planStartMonday(input.today);
+  const weeks: PlanWeek[] = START_WEEKS.map(([run, walk, reps], wi) => {
+    const index = wi + 1;
+    const startDate = addDays(start, wi * 7);
+    const sessions: Session[] = days.map(d => {
+      const id = `w${index}d${d}`;
+      const date = addDays(startDate, d);
+      if (index === START_WEEKS.length && d === days[days.length - 1]) {
+        return { id, date, kind: 'race', status: 'planned', distanceKm: 5, title: 'Your first 5K', summary: 'Run the whole way at a pace you can talk at.', steps: [{ kind: 'run', label: '5K', distanceM: 5000 }] };
+      }
+      const steps: Step[] = [{ kind: 'warmup', label: 'Brisk walk', durationSec: 300 }];
+      for (let r = 1; r <= reps; r++) {
+        steps.push({ kind: 'run', label: reps > 1 ? `Run ${r} of ${reps}` : 'Run', durationSec: run });
+        if (walk && r < reps) steps.push({ kind: 'recover', label: 'Walk', durationSec: walk });
+      }
+      steps.push({ kind: 'cooldown', label: 'Walk', durationSec: 300 });
+      const km = round1((run * reps) / 450 + (walk * (reps - 1) + 600) / 720);
+      const runTxt = run >= 120 ? `${run / 60} min` : `${run} s`;
+      const walkTxt = walk >= 120 ? `${walk / 60} min` : `${walk} s`;
+      return {
+        id, date, kind: 'easy', status: 'planned', distanceKm: km,
+        title: reps > 1 ? `${reps} × ${runTxt} run` : `${run / 60} min run`,
+        summary: reps > 1 ? `Run ${runTxt}, walk ${walkTxt}, ${reps} times. Easy pace.` : 'One steady run. Walk if you need to.',
+        steps,
+      };
+    });
+    return { index, startDate, focus: index === START_WEEKS.length ? 'race' : 'base', km: round1(sessions.reduce((t, x) => t + x.distanceKm, 0)), sessions };
+  });
+  const last = weeks[weeks.length - 1].sessions[weeks[weeks.length - 1].sessions.length - 1];
+  return {
+    version: 2, goal: 'start', raceRef: null, injury: 'none', cautious: true, race: '5k', raceDate: last.date,
+    goalSec: null, targetSec: fiveKSec, goalCapped: false, fiveKSec, runDays: days, longRunDay: input.longRunDay, paces, weeks,
+  };
+}
+
+/**
+ * The race moved: weeks that started before the new plan's first Monday stay
+ * as they are (done and skipped sessions included); the rest is rebuilt to the
+ * new date, starting from the distance the runner has reached.
+ */
+export function rebuildForDate(p: TrainingPlanV2, newDate: string, today: string): TrainingPlanV2 | { error: PlanError; minWeeks?: number } {
+  if (p.goal === 'start') return { error: 'bad_days' };
+  const start = planStartMonday(today);
+  const kept = p.weeks.filter(w => w.startDate < start);
+  const lastFull = [...kept].reverse().find(w => w.focus === 'base' || w.focus === 'build');
+  const built = buildPlan({
+    race: p.race, raceDate: newDate, fiveKSec: p.fiveKSec, goalSec: p.goalSec, runDays: p.runDays, longRunDay: p.longRunDay,
+    currentWeeklyKm: lastFull?.km ?? p.weeks[0]?.km ?? null, today, cautious: p.cautious, injury: p.injury, goal: p.goal, raceRef: p.raceRef,
+  });
+  if ('error' in built) return built;
+  const offset = kept.length;
+  const weeks = [...kept, ...built.weeks.map(w => ({
+    ...w, index: w.index + offset,
+    sessions: w.sessions.map(s => ({ ...s, id: `w${w.index + offset}d${weekday(s.date)}` })),
+  }))];
+  return { ...built, weeks };
+}
+
+// ── Missed sessions ──────────────────────────────────────────────────────────
+const KEY_KINDS: SessionKind[] = ['tempo', 'intervals', 'long'];
+
+/** The latest key session missed earlier this week, if any. */
+export function missedKeySession(p: TrainingPlanV2, today: string): Session | null {
+  const monday = mondayOf(today);
+  return allSessions(p)
+    .filter(s => isMissed(s, today) && s.date >= monday && KEY_KINDS.includes(s.kind))
+    .sort((a, b) => (a.date < b.date ? 1 : -1))[0] ?? null;
+}
+
+/** Whether a missed session can move to today: same week, and today isn't a long run or race. */
+export function canDoMissedToday(p: TrainingPlanV2, id: string, today: string): boolean {
+  const s = allSessions(p).find(x => x.id === id);
+  if (!s || mondayOf(s.date) !== mondayOf(today)) return false;
+  const t = allSessions(p).find(x => x.date === today && x.status === 'planned');
+  return !t || (t.kind !== 'long' && t.kind !== 'race');
+}
+
+/**
+ * Do a missed session today. Today's own session gives way (skipped) and a
+ * hard session tomorrow becomes easy, so two hard days never stack.
+ */
+export function doMissedToday(p: TrainingPlanV2, id: string, today: string): TrainingPlanV2 {
+  if (!canDoMissedToday(p, id, today)) return setStatus(p, id, 'skipped');
+  const tomorrow = addDays(today, 1);
+  return mapSessions(p, s => {
+    if (s.id === id) return { ...s, date: today };
+    if (s.date === today && s.status === 'planned') return { ...s, status: 'skipped' };
+    if (s.date === tomorrow && s.status === 'planned' && (s.kind === 'tempo' || s.kind === 'intervals')) {
+      return { ...easySession(s.id, s.date, Math.max(2, round1(s.distanceKm * 0.8)), p.paces), eased: true };
+    }
+    return s;
+  });
 }

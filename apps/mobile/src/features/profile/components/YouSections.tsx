@@ -7,7 +7,6 @@ import React, { useMemo } from 'react';
 import { fmtClock } from '@mobile/shared/lib/formatters';
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
 import { CaretRight, PushPin } from 'phosphor-react-native';
-import Svg, { Polyline } from 'react-native-svg';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
@@ -97,7 +96,7 @@ export function SportChips({ value, onChange }: { value: SportFilter; onChange: 
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
   const opts: { k: SportFilter; label: string }[] = [
-    { k: 'run', label: 'Run' }, { k: 'walk', label: 'Walk' }, { k: 'ride', label: 'Ride' }, { k: 'all', label: 'All' },
+    { k: 'run', label: 'Run' }, { k: 'walk', label: 'Walk' }, { k: 'hike', label: 'Hike' }, { k: 'ride', label: 'Ride' }, { k: 'all', label: 'All' },
   ];
   return (
     <View style={s.chipRow}>
@@ -113,6 +112,12 @@ export function SportChips({ value, onChange }: { value: SportFilter; onChange: 
   );
 }
 
+/** A round chart top above `max` km: 10, 20, 40, 60, 80, 100, 150, 200… */
+function niceTop(max: number): number {
+  for (const t of [10, 20, 40, 60, 80, 100, 150, 200, 300, 500, 1000]) if (max <= t) return t;
+  return Math.ceil(max / 500) * 500;
+}
+
 // ── This week ───────────────────────────────────────────────────────────────
 export function WeekCard({ runs, sport }: { runs: StoredRun[]; sport: SportFilter }) {
   const C = useTheme();
@@ -126,9 +131,18 @@ export function WeekCard({ runs, sport }: { runs: StoredRun[]; sport: SportFilte
   const max = Math.max(1, ...weeks.map(w => w.km));
   const end = new Date(weekStartMs + 6 * 86_400_000);
   const range = weekStartMs ? `${new Date(weekStartMs).getDate()}–${end.getDate()} ${MONTHS[end.getMonth()]}` : '';
-  const H = 84, W = 100;
-  const pts = weeks.map((w, i) => `${(i / Math.max(1, weeks.length - 1)) * W},${H - 6 - (w.km / max) * (H - 16)}`);
-
+  // Mock YouProgress: 12 weekly bars (this week in ink), a km scale on the
+  // right and month names under the first week of each month.
+  const top = niceTop(max);
+  const BAR_H = 104;
+  const monthAt = weeks.map((w, i) => {
+    const m = new Date(w.start).getMonth();
+    const starts = i === 0 || new Date(weeks[i - 1].start).getMonth() !== m;
+    // The first week's month is left unnamed when the next month starts right
+    // after it ("AUG SEP" would overlap).
+    const crowded = i === 0 && weeks.slice(1, 3).some(x => new Date(x.start).getMonth() !== m);
+    return starts && !crowded ? MONTHS[m].toUpperCase() : '';
+  });
   return (
     <View style={s.card}>
       <View style={s.cardHead}>
@@ -141,10 +155,34 @@ export function WeekCard({ runs, sport }: { runs: StoredRun[]; sport: SportFilte
         <View style={s.weekCell}><Text style={s.statLabel}>Elevation</Text><Text style={s.statNum}>{Math.round(unit === 'mi' ? climb * 3.28084 : climb)} {unit === 'mi' ? 'ft' : 'm'}</Text></View>
       </View>
       <Text style={[s.small, { marginTop: 14 }]}>Past 12 weeks</Text>
-      <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ marginTop: 6 }}>
-        <Polyline points={`0,${H} ${pts.join(' ')} ${W},${H}`} fill={C.mint} stroke="none" />
-        <Polyline points={pts.join(' ')} fill="none" stroke={C.brandGreen} strokeWidth={2.2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </Svg>
+      <View style={s.chartRow}>
+        <View style={[s.wkBars, { height: BAR_H }]}>
+          {[0, 0.5, 1].map(f => <View key={f} style={[s.gridLine, { bottom: f * BAR_H }]} />)}
+          {weeks.map((w, i) => (
+            <View key={w.start} style={s.barSlot}>
+              <View style={[s.wkBar, {
+                height: Math.max(w.km > 0 ? 4 : 0, (w.km / top) * BAR_H),
+                backgroundColor: i === weeks.length - 1 ? C.t1 : C.brandGreen,
+              }]} />
+            </View>
+          ))}
+        </View>
+        <View style={[s.axis, { height: BAR_H }]}>
+          <Text style={s.axisTxt}>{Math.round(convertKm(top, unit))} {unit}</Text>
+          <Text style={s.axisTxt}>{Math.round(convertKm(top / 2, unit))} {unit}</Text>
+          <Text style={s.axisTxt}>0</Text>
+        </View>
+      </View>
+      {/* Month names start under their first week and may run past it (one
+          bar is too narrow for "AUG"), so they are placed, not squeezed. */}
+      <View style={s.monthRow}>
+        <View style={{ flex: 1, height: 14 }}>
+          {monthAt.map((m, i) => m ? (
+            <Text key={i} style={[s.wkMonth, { left: `${(i / weeks.length) * 100}%` }]} numberOfLines={1}>{m}</Text>
+          ) : null)}
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
     </View>
   );
 }
@@ -272,6 +310,15 @@ export function ClubsStrip({ clubs, onOpen, onAll }: { clubs: { id: string; name
 function mk(C: AppColors) {
   return StyleSheet.create({
     headWrap: { paddingHorizontal: 20, gap: 14 },
+    chartRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 18, gap: 6 },
+    wkBars:   { flex: 1, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+    gridLine: { position: 'absolute', left: 0, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: C.border },
+    barSlot:  { flex: 1, justifyContent: 'flex-end', height: '100%' },
+    wkBar:    { borderRadius: 4, width: '100%' },
+    axis:     { width: 40, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: -6, marginTop: -6 },
+    axisTxt:  { fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
+    monthRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
+    wkMonth:  { position: 'absolute', top: 0, width: 40, fontFamily: Fonts.regular, fontSize: 10, color: C.t2 },
     idRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     initials: { width: 76, height: 76, borderRadius: 38, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
     initialsTxt: { fontFamily: Fonts.semiBold, fontSize: 26, color: C.lime },

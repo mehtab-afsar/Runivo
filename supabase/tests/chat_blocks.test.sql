@@ -1,5 +1,5 @@
 -- Chat blocking holds both ways at the database (migration 20261115000016).
--- Run after _stub_chat_blocks.sql and the migration.
+-- Runs on a database built from supabase/migrations (see README).
 \set ON_ERROR_STOP on
 BEGIN;
 CREATE FUNCTION pg_temp.check(ok boolean, what text) RETURNS void LANGUAGE plpgsql AS $$
@@ -15,8 +15,16 @@ BEGIN
   RETURN n;
 END $$;
 
+-- Ana, Ben and Cy sign up (the sign-up trigger creates their profiles).
+SET LOCAL runivo.trusted_writer = 'on';
+INSERT INTO auth.users (id, email) VALUES
+  ('00000000-0000-0000-0000-0000000000a1', 'ana@example.com'),
+  ('00000000-0000-0000-0000-0000000000b1', 'ben@example.com'),
+  ('00000000-0000-0000-0000-0000000000c1', 'cy@example.com')
+ON CONFLICT (id) DO NOTHING;
+
 -- One public room; Ana and Ben each wrote a message; Cy wrote none.
-INSERT INTO public.lobbies (id, created_by, club_id) VALUES ('00000000-0000-0000-0000-0000000000d1', NULL, NULL);
+INSERT INTO public.lobbies (id, name, created_by, club_id) VALUES ('00000000-0000-0000-0000-0000000000d1', 'Test room', NULL, NULL);
 INSERT INTO public.lobby_messages (lobby_id, user_id, content) VALUES
   ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000a1', 'from ana'),
   ('00000000-0000-0000-0000-0000000000d1', '00000000-0000-0000-0000-0000000000b1', 'from ben');

@@ -14,6 +14,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import type { LoginState } from '../hooks/useLogin';
 import { signInWithGoogle, signInWithApple } from '../services/socialAuth';
 import { ArrowLeft } from '@mobile/shared/icons/lucideCompat';
+import { Eye, EyeSlash } from 'phosphor-react-native';
 import { useTheme, useIsDark, Fonts, Type, type AppColors } from '@theme';
 
 const EASE = Easing.bezier(0.22, 0.68, 0, 1);
@@ -49,6 +50,8 @@ function useFieldBorder(C: AppColors) {
 
 interface Props extends LoginState {
   onGoBack: () => void;
+  /** Opens the "Reset your password" page (mock AuthReset). */
+  onForgot?: () => void;
   onGoSignUp: () => void;
 }
 
@@ -56,7 +59,7 @@ export default function LoginForm({
   email, password, showPwd, loading, error, resetSent, valid,
   lockoutSeconds, resetCooldownSeconds,
   setEmail, setPassword, setShowPwd, handleSignIn, handleForgotPassword,
-  onGoBack, onGoSignUp,
+  onGoBack, onGoSignUp, onForgot,
 }: Props) {
   const C = useTheme();
   const isDark = useIsDark();
@@ -147,8 +150,8 @@ export default function LoginForm({
         <Animated.View style={formAnim}>
           <View style={s.rule} />
 
+          <Text style={s.label}>Email</Text>
           <Animated.View style={[s.field, emailBorder.style]}>
-            <Text style={s.label}>Email</Text>
             <TextInput
               style={s.input}
               value={email}
@@ -170,15 +173,15 @@ export default function LoginForm({
             />
           </Animated.View>
 
+          <Text style={[s.label, { marginTop: 16 }]}>Password</Text>
           <Animated.View style={[s.field, pwBorder.style]}>
-            <Text style={s.label}>Password</Text>
             <View style={s.inputRow}>
               <TextInput
                 ref={pwRef}
                 style={[s.input, { flex: 1 }]}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="••••••••"
+                placeholder="Your password"
                 placeholderTextColor={C.t3}
                 secureTextEntry={!showPwd}
                 returnKeyType="done"
@@ -194,13 +197,13 @@ export default function LoginForm({
                 onBlur={pwBorder.onBlur}
               />
               <Pressable onPress={() => setShowPwd(!showPwd)} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }} style={s.toggleBtn} accessibilityRole="button" accessibilityLabel={showPwd ? 'Hide password' : 'Show password'}>
-                <Text style={s.toggleText}>{showPwd ? 'Hide' : 'Show'}</Text>
+                {showPwd ? <EyeSlash size={20} color={C.t2} /> : <Eye size={20} color={C.t2} />}
               </Pressable>
             </View>
           </Animated.View>
 
           <Pressable
-            onPress={handleForgotPassword}
+            onPress={onForgot ?? handleForgotPassword}
             disabled={loading || resetCooldownSeconds > 0}
             style={s.forgotRow}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -270,15 +273,15 @@ function mkStyles(C: AppColors) {
 
     rule:    { height: 0, marginTop: 24 },
 
-    field:   { borderWidth: 1, borderColor: 'transparent', borderRadius: 18, backgroundColor: C.card, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 12, marginTop: 12 },
-    label:   { fontFamily: Fonts.medium, fontSize: 13, color: C.t2, marginBottom: 6 },
+    field:   { borderWidth: 1.5, borderColor: C.border, borderRadius: 18, backgroundColor: C.card, paddingHorizontal: 18, height: 54, justifyContent: 'center' },
+    label:   { fontFamily: Fonts.medium, fontSize: 14, color: C.t1, marginBottom: 8, marginTop: 4 },
     inputRow:{ flexDirection: 'row', alignItems: 'center' },
     input:   { fontFamily: Fonts.regular, fontSize: 16, color: C.t1, paddingVertical: 0, flex: 1 },
     toggleBtn: { paddingLeft: 12 },
     toggleText:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.t2 },
 
     forgotRow: { alignSelf: 'flex-end', paddingTop: 14 },
-    forgotText:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    forgotText:{ fontFamily: Fonts.medium, fontSize: 14, color: C.t1, textDecorationLine: 'underline' },
 
     errText:   { ...Type.caption, color: C.danger, marginTop: 10 },
     resetText: { ...Type.caption, color: C.green, marginTop: 10 },

@@ -1,57 +1,15 @@
+/**
+ * App-only settings that aren't game rules. Every rule the server also
+ * applies (territory, freshness, PACE, ranks, run minimums) lives in ONE place,
+ * ENGINE in packages/shared/src/engine/runEngine.ts (V1 audit); read it from
+ * there, never copy it here.
+ */
 export const GAME_CONFIG = {
-  // Territory geometry
-  CORRIDOR_WIDTH_M: 12,
-  MAX_RUN_SPEED_MS: 5.5,
-  LOOP_CLOSE_DIST_M: 100,
-  LOOP_MAX_AREA_M2: 500_000,
-  MIN_TERRITORY_DIST_M: 200,
-  MIN_GPS_POINTS: 20,
-  // Post-run territory-polygon filtering (claimEngine.filterPoints) — lenient,
-  // since the trace gets Kalman-smoothed and RDP-simplified afterward.
-  GPS_ACCURACY_THRESHOLD_M: 50,
   // Live run-tracking gate (useActiveRun's foreground watcher + the background
-  // location task) — stricter, since a bad point directly and immediately
-  // inflates the distance/pace the user sees in real time. Deliberately
-  // different from GPS_ACCURACY_THRESHOLD_M above; single-sourced here so the
-  // two call sites can't drift from each other (they used separate 30 literals).
+  // location task): stricter than ENGINE.GPS_ACCURACY_THRESHOLD_M, since a bad
+  // point directly inflates the distance and pace the runner sees live.
   GPS_LIVE_ACCURACY_THRESHOLD_M: 30,
-  GPS_VARIANCE_MIN: 2.0,
 
-  // Freshness
-  FRESHNESS_DECAY_PER_DAY: 10,
-  STEAL_THRESHOLD_FRESH: 0.30,
-  FRESHNESS_STALE_AT: 40,
-
-  // PACE currency
-  PACE_PER_KM: 2,
-  PACE_PER_NEW_ZONE: 5,
-  PACE_PER_STOLEN_ZONE: 10,
-  PACE_STREAK_BONUS: 3,
-  PACE_WEEKLY_CAP_FREE: 100,
-  PACE_WEEKLY_CAP_PREMIUM: 150,
-
-  // Legacy coin economy (secondary to PACE)
+  // Legacy coin economy (secondary to PACE).
   LOGIN_BONUS_COINS_PER_TERRITORY: 2,
-
-  // Subscription / paywall
-  MAX_TERRITORIES_FREE: 10,
-
-  // Minimum effort for a session to count as a real run — below this, no streak
-  // credit and no streak PACE bonus (prevents "start, immediately stop" farming).
-  // Matches the existing "haven't run far enough" warning threshold in ActiveRunScreen.
-  MIN_MEANINGFUL_RUN_DISTANCE_M: 50,
-  MIN_MEANINGFUL_RUN_DURATION_S: 30,
-
-  // Territory Score
-  TS_FRESHNESS_SCALE_MIN: 0.5,
-  TS_FRESHNESS_SCALE_MAX: 1.0,
-
-  // Runner Rank thresholds (total PACE all-time)
-  RUNNER_RANK_THRESHOLDS: { pacer: 0, strider: 200, chaser: 600, hunter: 1500, sovereign: 4000 } as Record<string, number>,
-
-  // Geography / run-processing (kept from previous config)
-  METERS_PER_DEGREE_LAT: 111_320,
-  MIN_CLAIM_DISTANCE_M: 200,
-  MAX_GPS_SAMPLE_POINTS: 200,
-  MS_PER_DAY: 86_400_000,
 } as const;

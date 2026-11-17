@@ -10,6 +10,7 @@ import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { fetchStolenZone } from '@features/social/services/feedService';
 import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
+import { InviteRow } from '@features/social/components/InviteRow';
 import { EmptyFeed } from '@features/social/components/EmptyFeed';
 import { FeedSkeleton } from '@features/social/components/FeedSkeleton';
 import { ClubActivityStrip } from '@features/social/components/ClubActivityStrip';
@@ -247,6 +248,7 @@ export default function FeedScreen() {
               <X size={18} color={C.t2} strokeWidth={1.75} />
             </Pressable>
           </View>
+          {!runnerQuery.trim() && <InviteRow />}
           {!runnerQuery.trim() && (
             <Text style={[Type.overline, s.suggestedLabel]}>Suggested</Text>
           )}

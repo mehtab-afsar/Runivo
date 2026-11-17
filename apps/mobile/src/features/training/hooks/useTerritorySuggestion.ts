@@ -8,11 +8,11 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { getPlayer } from '@shared/services/store';
-import { GAME_CONFIG } from '@shared/services/config';
 import { haversineM } from '@shared/engine/runEngine';
 import { ringCentroid } from '@shared/engine/targetZone';
 import { planLoop, suggestedLoopKm } from '@shared/engine/planLoop';
 import { fetchOwnPolygons } from '@features/territory/services/territoryService';
+import { ENGINE } from '@shared/engine/runEngine';
 
 export interface TerritorySuggestion { title: string; sub: string; points: { lat: number; lng: number }[] }
 
@@ -33,7 +33,7 @@ export function useTerritorySuggestion(enabled: boolean, distanceKm?: number): T
       if (!fix || !me) return;
       const pos = { lat: fix.coords.latitude, lng: fix.coords.longitude };
       const own = await fetchOwnPolygons(me);
-      const zones = own.map(p => ({ ring: p.polygon, fading: p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT }));
+      const zones = own.map(p => ({ ring: p.polygon, fading: p.freshness < ENGINE.FRESHNESS_STALE_AT }));
       const fading = zones.filter(z => z.fading && z.ring.length >= 3)
         .map(z => haversineM(pos, ringCentroid(z.ring))).filter(d => d <= 4000).sort((a, b) => a - b);
       const km = distanceKm ? Math.max(2, Math.round(distanceKm)) : suggestedLoopKm(fading[0] ?? null);

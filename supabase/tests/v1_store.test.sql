@@ -1,7 +1,5 @@
 -- v1 PACE Store partners: every redemption gate, code pools, concurrency,
 -- the PACE ledger, anonymous views and the partner report.
--- Run after _stub_supabase.sql, 20261106000001, _stub_notifications.sql,
--- 20261106000002, _stub_store.sql, 20261106000003 (see README.md).
 -- Uses dblink to run two redemptions at the same time, connecting back to
 -- this same database over the local socket.
 \set ON_ERROR_STOP on

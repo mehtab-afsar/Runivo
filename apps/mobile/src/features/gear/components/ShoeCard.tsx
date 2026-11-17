@@ -106,7 +106,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   retiredLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2},
   actions: { flexDirection: 'row', gap: 8, marginTop: 10 },
   actionBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border },
-  deleteBtn: { backgroundColor: C.redLo, borderColor: C.red + '44' },
+  deleteBtn: { backgroundColor: C.danger + '14', borderColor: C.danger + '44' },
   actionLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
-  deleteLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.red },
+  deleteLabel: { fontFamily: Fonts.regular, fontSize: 11, color: C.danger },
 }); }

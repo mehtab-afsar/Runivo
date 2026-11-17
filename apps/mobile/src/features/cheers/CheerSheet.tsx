@@ -12,7 +12,7 @@ import { CHEERS, sendCheer, type CheerKey, type SendCheerResult } from './cheerS
 
 export interface CheerTarget { userId: string; username: string; avatarColor?: string }
 
-const RESULT_TEXT: Record<Exclude<SendCheerResult, 'sent'>, string> = {
+export const RESULT_TEXT: Record<Exclude<SendCheerResult, 'sent'>, string> = {
   already:     'You already cheered this run.',
   not_live:    'Their run has just ended.',
   too_many:    'That\'s a lot of cheering. Try again in a bit.',

@@ -1,5 +1,4 @@
 -- v1 notifications: local time, quiet hours, daily limit, dedupe, each sender.
--- Run after _stub_supabase.sql, 20261106000001, _stub_notifications.sql, 20261106000002.
 \set ON_ERROR_STOP on
 BEGIN;
 -- These checks cover the Free/Plus rules as they'll run once subscriptions are on.
@@ -104,6 +103,13 @@ FROM notifications WHERE type = 'weekly_summary' AND user_id::text LIKE 'a000000
 DELETE FROM notifications;
 
 -- ── campaigns ───────────────────────────────────────────────────────────────
+-- Promotional pushes are opt-in (offers_enabled, off by default): nobody opted in, nobody gets one.
+INSERT INTO notification_campaigns (name, title, body, send_at, local_hour, countries)
+VALUES ('Opt-in check', 'Offer', 'Offer body', '2026-11-08 00:00Z', 10, '{IN}');
+SELECT pg_temp.check(send_due_campaigns('2026-11-08 04:30Z') = 0, 'no campaign without opting in to offers');
+DELETE FROM notification_campaigns WHERE name = 'Opt-in check';
+DELETE FROM notifications;
+UPDATE profiles SET offers_enabled = true WHERE id::text LIKE 'a0000000-%';
 INSERT INTO notification_campaigns (name, title, body, send_at, local_hour, countries)
 VALUES ('Diwali 2026', 'Diwali double-zone week', 'Every new zone pays double PACE till Sunday.',
         '2026-11-08 00:00Z', 10, '{IN}');

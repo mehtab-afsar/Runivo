@@ -38,12 +38,14 @@ import {
   Calendar, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   ArrowLeft, Pencil, X, AlertCircle, ShieldAlert, ShoppingBag,
   Handshake, BarChart3, BellRing, Flag,
+  Trophy,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import StoreSection from './sections/StoreSection';
 import PartnersSection from './sections/PartnersSection';
 import ReportsSection from './sections/ReportsSection';
 import CampaignsSection from './sections/CampaignsSection';
+import RacesSection from './sections/RacesSection';
 import ModerationSection from './sections/ModerationSection';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -82,7 +84,7 @@ interface PromoRow {
   created_at: string;
 }
 
-type AdminTab = 'moderation' | 'events' | 'promotions' | 'store' | 'partners' | 'reports' | 'campaigns';
+type AdminTab = 'moderation' | 'events' | 'races' | 'promotions' | 'store' | 'partners' | 'reports' | 'campaigns';
 
 const NAV: { id: AdminTab; label: string; Icon: typeof Calendar }[] = [
   { id: 'moderation', label: 'Moderation', Icon: Flag        },
@@ -91,6 +93,7 @@ const NAV: { id: AdminTab; label: string; Icon: typeof Calendar }[] = [
   { id: 'reports',    label: 'Reports',    Icon: BarChart3   },
   { id: 'campaigns',  label: 'Campaigns',  Icon: BellRing    },
   { id: 'events',     label: 'Events',     Icon: Calendar    },
+  { id: 'races',      label: 'Races',      Icon: Trophy      },
   { id: 'promotions', label: 'Promotions', Icon: Megaphone   },
 ];
 
@@ -946,6 +949,7 @@ export default function AdminPage() {
             >
               {tab === 'moderation' && <ModerationSection />}
               {tab === 'events'     && <EventsSection />}
+              {tab === 'races'      && <RacesSection />}
               {tab === 'promotions' && <PromotionsSection />}
               {tab === 'store'      && <StoreSection />}
               {tab === 'partners'   && <PartnersSection />}

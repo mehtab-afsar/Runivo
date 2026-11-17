@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { StatusBarScrim } from '@mobile/shared/components/StatusBarScrim';
+import { weeklyPaceNow } from '@shared/engine/runEngine';
 import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { fetchUnreadCount } from '@features/notifications/services/notificationsService';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -101,11 +103,11 @@ export default function DashboardScreen() {
 
   const now = new Date();
   const h = now.getHours();
-  const greeting = h < 5 ? 'Good night' : h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : h < 21 ? 'Evening' : 'Good night';
+  const greeting = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
   const firstName = (dash.player.username || '').split(/[._\s]/)[0] || dash.player.username;
   const dateLine = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const streakDays = dash.player.streakDays || 0;
-  const weeklyEarned = dash.player.paceWeeklyEarned ?? 0;
+  const weeklyEarned = weeklyPaceNow(dash.player.paceWeeklyEarned, dash.player.paceWeeklyResetAt);
   const weeklyCap = dash.weeklyCapLimit || 100;
   const tap = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   const doneCount = dash.missions.filter(m => m.completed).length;
@@ -126,7 +128,7 @@ export default function DashboardScreen() {
             <Search size={20} color={C.t1} strokeWidth={1.8} />
           </Pressable>
           <View style={s.logo} accessibilityRole="header" accessibilityLabel="Runivo">
-            <RunivoMark size={20} />
+            <RunivoMark size={22} inline />
             <Text style={s.word}>runivo</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -217,9 +219,11 @@ export default function DashboardScreen() {
           >
             <Text style={s.tileTitle}>PACE this week</Text>
             <Text style={s.tileNum}>{weeklyEarned}<Text style={[s.tileOf, { color: '#7A5525' }]}> / {weeklyCap}</Text></Text>
-            <View style={s.storePill}>
-              <Text style={s.storePillTxt} numberOfLines={1}>PACE Store · {(dash.player.paceBalance ?? 0).toLocaleString()} to spend ›</Text>
-            </View>
+            {/* Mock: "212 to spend ›". The PACE Store name stays (asked for), on its own
+                line so the balance is never cut off on narrow phones. */}
+            <Text style={s.storeLine} numberOfLines={2}>
+              {(dash.player.paceBalance ?? 0).toLocaleString()} to spend{'\n'}in the PACE Store ›
+            </Text>
           </Pressable>
         </View>
 
@@ -244,6 +248,7 @@ export default function DashboardScreen() {
       <CheerSheet target={cheerFor} onClose={() => setCheerFor(null)} />
       <GoalSheet visible={goalOpen} current={dash.weeklyGoal} onClose={() => setGoalOpen(false)} onSaved={() => { dash.refresh(); }} />
 
+      <StatusBarScrim />
     </View>
   );
 }
@@ -349,8 +354,7 @@ function mkStyles(C: AppColors) {
     tileOf:      { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     claimPill:   { height: 32, borderRadius: 16, backgroundColor: C.lime, alignItems: 'center', justifyContent: 'center' },
     claimTxt:    { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysDark },
-    storePill:   { alignSelf: 'flex-start', height: 30, paddingHorizontal: 10, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', maxWidth: '100%' },
-    storePillTxt:{ fontFamily: Fonts.semiBold, fontSize: 12, color: '#7A5525' },
+    storeLine:   { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 18, color: '#7A5525' },
     feedHead:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
     feedSeg:     { flexDirection: 'row', gap: 4, padding: 4, borderRadius: 20, backgroundColor: C.card },
     feedSegBtn:  { height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center' },

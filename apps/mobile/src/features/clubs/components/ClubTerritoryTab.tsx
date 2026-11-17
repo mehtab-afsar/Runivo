@@ -1,8 +1,9 @@
 /** Club territory (PRD C2): every zone the members hold, the club's score and rank, top holders. */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { fetchClubTerritory, fetchClubTerritoryRank, type ClubZone } from '../services/clubService';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 const fmtArea = (m2: number) => (m2 >= 1_000_000 ? `${(m2 / 1_000_000).toFixed(2)} km²` : m2 >= 10_000 ? `${(m2 / 10_000).toFixed(1)} ha` : `${Math.round(m2).toLocaleString('en')} m²`);
 
@@ -36,9 +37,7 @@ export default function ClubTerritoryTab({ clubId, onOpenMap }: { clubId: string
         <Text style={s.big}>{fmtArea(total)}</Text>
         <Text style={s.sub}>{zones.length} zones held by members{rank ? ` · #${rank.rank} of ${rank.of} clubs` : ''}</Text>
         {zones.length > 0 && (
-          <Pressable style={s.cta} onPress={() => onOpenMap(zones)} accessibilityRole="button">
-            <Text style={s.ctaTxt}>See it on the map</Text>
-          </Pressable>
+          <PrimaryButton label="See it on the map" onPress={() => onOpenMap(zones)} size="sm" fullWidth style={{ marginTop: 14 }} />
         )}
       </View>
       {byMember.length > 0 && (
@@ -65,8 +64,6 @@ function mkStyles(C: AppColors) {
     label: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
     big:   { fontFamily: Fonts.numeric, fontSize: 34, color: C.t1, marginTop: 4 },
     sub:   { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, marginTop: 4 },
-    cta:   { height: 44, borderRadius: 12, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
-    ctaTxt:{ fontFamily: Fonts.semiBold, fontSize: 14.5, color: C.bg },
     row:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 10 },
     border:{ borderTopWidth: 1, borderTopColor: C.border },
     rank:  { width: 20, fontFamily: Fonts.numeric, fontSize: 16, color: C.t2 },

@@ -1,7 +1,7 @@
 /** C4: your group challenges, and a sheet to start one with people you follow. */
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,10 +10,12 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { SponsoredChallenges } from '@features/store/components/SponsoredChallenges';
+import { FormScreen, FormField, ChipGroup, FieldLabel, FormTip, FormButton } from '@mobile/shared/components/form/FormKit';
 import {
   fetchMyChallenges, createChallenge, respondChallenge, fetchFollowing, METRIC_LABEL,
   type Challenge, type ChallengeMetric,
 } from '../services/challengeService';
+import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 /** The square badge on each card (mock: "5Z", "100"). */
@@ -76,7 +78,7 @@ export default function ChallengesScreen({ embedded = false }: { embedded?: bool
               <Flag size={36} color={C.t3} />
               <Text style={s.emptyTitle}>Race your friends</Text>
               <Text style={s.emptyBody}>Pick a target (distance, zones or days active), a deadline, and up to 19 people you follow.</Text>
-              <Pressable style={s.cta} onPress={() => setCreating(true)} accessibilityRole="button"><Text style={s.ctaTxt}>Start a challenge</Text></Pressable>
+              <PrimaryButton label="Start a challenge" onPress={() => setCreating(true)} fullWidth style={{ marginTop: 8 }} />
             </View>
           )}
           {list.map(c => (
@@ -129,51 +131,48 @@ function CreateSheet({ visible, onClose, onCreated }: { visible: boolean; onClos
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[s.root, { paddingTop: 16 }]}>
-        <View style={s.sheetHead}>
-          <Pressable onPress={onClose} hitSlop={10}><Text style={s.link}>Cancel</Text></Pressable>
-          <Text style={s.sheetTitle}>New challenge</Text>
-          <Pressable onPress={save} disabled={!ok || saving} hitSlop={10}><Text style={[s.link, { color: ok ? C.red : C.t3 }]}>{saving ? '…' : 'Start'}</Text></Pressable>
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <FormScreen
+        title="Start a"
+        accent="challenge."
+        subtitle="Pick a goal and a deadline, then invite people you follow. Everyone's progress counts from today."
+        onClose={onClose}
+        footer={<FormButton label={picked.length ? `Start with ${picked.length} ${picked.length === 1 ? 'runner' : 'runners'}` : 'Invite someone to start'} onPress={save} disabled={!ok} busy={saving} />}
+      >
+        <FormField label="Name" value={title} onChangeText={setTitle} placeholder="November 50" maxLength={60} autoCapitalize="sentences" />
+        <ChipGroup
+          label="Goal"
+          options={(Object.keys(METRIC_LABEL) as ChallengeMetric[]).map(m => ({ value: m, label: METRIC_LABEL[m].name }))}
+          value={metric}
+          onChange={m => { setMetric(m); setTarget(TARGETS[m][1]); }}
+        />
+        <ChipGroup
+          label="Target"
+          options={TARGETS[metric].map(t => ({ value: t, label: `${t} ${METRIC_LABEL[metric].unit}` }))}
+          value={target}
+          onChange={setTarget}
+        />
+        <ChipGroup label="Deadline" options={DURATIONS.map(d => ({ value: d.days, label: d.label }))} value={days} onChange={setDays} />
+        <View>
+          <FieldLabel hint={`${picked.length}/19`}>Invite people you follow</FieldLabel>
+          {people === null ? <ActivityIndicator color={C.t2} style={{ marginTop: 8 }} /> : people.length === 0 ? (
+            <FormTip lead="No one to invite yet.">Follow some runners first: challenges are with people you follow.</FormTip>
+          ) : (
+            <View style={s.peopleCard}>
+              {people.map((p, i) => {
+                const on = picked.includes(p.id);
+                return (
+                  <Pressable key={p.id} style={[s.personRow, i > 0 && s.personBorder]} onPress={() => toggle(p.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on }}>
+                    <Avatar name={p.username} color={p.avatarColor ?? undefined} size={36} />
+                    <Text style={[s.cardTitle, { flex: 1, fontSize: 15 }]}>{p.username}</Text>
+                    <View style={[s.check, on && s.checkOn]}>{on && <Check size={13} color="#FFFFFF" weight="bold" />}</View>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
-        <ScrollView contentContainerStyle={{ padding: 18, gap: 10, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
-          <Text style={s.label}>Name</Text>
-          <TextInput style={s.input} value={title} onChangeText={setTitle} placeholder="November 50" placeholderTextColor={C.t3} maxLength={60} />
-          <Text style={s.label}>Goal</Text>
-          <View style={s.chips}>
-            {(Object.keys(METRIC_LABEL) as ChallengeMetric[]).map(m => (
-              <Pressable hitSlop={8} key={m} style={[s.chip, metric === m && s.chipOn]} onPress={() => { setMetric(m); setTarget(TARGETS[m][1]); }}>
-                <Text style={[s.chipTxt, metric === m && s.chipTxtOn]}>{METRIC_LABEL[m].name}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <View style={s.chips}>
-            {TARGETS[metric].map(t => (
-              <Pressable hitSlop={8} key={t} style={[s.chip, target === t && s.chipOn]} onPress={() => setTarget(t)}>
-                <Text style={[s.chipTxt, target === t && s.chipTxtOn]}>{t} {METRIC_LABEL[metric].unit}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={s.label}>Deadline</Text>
-          <View style={s.chips}>
-            {DURATIONS.map(d => (
-              <Pressable hitSlop={8} key={d.days} style={[s.chip, days === d.days && s.chipOn]} onPress={() => setDays(d.days)}>
-                <Text style={[s.chipTxt, days === d.days && s.chipTxtOn]}>{d.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={s.label}>Invite ({picked.length}/19 · people you follow)</Text>
-          {people === null ? <ActivityIndicator color={C.red} /> : people.length === 0 ? (
-            <Text style={s.cardSub}>Follow some runners first: challenges are for people you follow.</Text>
-          ) : people.map(p => (
-            <Pressable key={p.id} style={s.personRow} onPress={() => toggle(p.id)} accessibilityRole="checkbox" accessibilityState={{ checked: picked.includes(p.id) }}>
-              <Avatar name={p.username} color={p.avatarColor ?? undefined} size={32} />
-              <Text style={[s.cardTitle, { flex: 1, fontSize: 14 }]}>{p.username}</Text>
-              <View style={[s.check, picked.includes(p.id) && s.checkOn]}>{picked.includes(p.id) && <Check size={12} color={C.bg} weight="bold" />}</View>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
+      </FormScreen>
     </Modal>
   );
 }
@@ -201,8 +200,6 @@ function mk(C: AppColors) {
     empty: { alignItems: 'center', gap: 8, paddingVertical: 40, paddingHorizontal: 20 },
     emptyTitle: { fontFamily: Fonts.bold, fontSize: 17, color: C.t1 },
     emptyBody: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
-    cta: { marginTop: 8, height: 46, paddingHorizontal: 22, borderRadius: 23, backgroundColor: C.t1, justifyContent: 'center' },
-    ctaTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.bg },
     sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 8 },
     sheetTitle: { fontFamily: Fonts.bold, fontSize: 16, color: C.t1 },
     link: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
@@ -213,8 +210,10 @@ function mk(C: AppColors) {
     chipOn: { backgroundColor: C.t1, borderColor: C.t1 },
     chipTxt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },
     chipTxtOn: { color: C.bg },
-    personRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
-    check: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-    checkOn: { backgroundColor: C.red, borderColor: C.red },
+    peopleCard: { backgroundColor: C.card, borderRadius: 22, borderWidth: 1.5, borderColor: C.border, paddingHorizontal: 14 },
+    personRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60 },
+    personBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+    check: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
+    checkOn: { backgroundColor: C.brandGreen, borderColor: C.brandGreen },
   });
 }

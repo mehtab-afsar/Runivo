@@ -1,8 +1,10 @@
 /**
- * Home's "Today" card (PRD H1): today's planned session with Start, or the
- * next one on a rest day. Without a plan, a one-line invitation to build one.
+ * Home's plan block (PRD H1, race-first daily mocks A, B, F): with a plan, the
+ * week strip and today's session with Start (or the next one on a rest day),
+ * and a sheet when a key session was missed. Without a plan, the "Make my
+ * plan" card that opens plan setup.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,8 +12,12 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { ArrowRight, Check } from 'phosphor-react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme, Fonts, type AppColors } from '@theme';
-import { sessionOn, nextSession, weekday, daysBetween, RACE_LABEL } from '@shared/engine/training';
-import { fetchActivePlan, getCachedPlan, localToday, type ActivePlan } from '../services/planService';
+import {
+  sessionOn, nextSession, weekday, daysBetween, RACE_LABEL, missedKeySession, canDoMissedToday, doMissedToday, setStatus, type Session,
+} from '@shared/engine/training';
+import { fetchActivePlan, getCachedPlan, savePlan, localToday, type ActivePlan } from '../services/planService';
+import WeekStrip from './WeekStrip';
+import MissedSessionSheet, { missedAlreadySeen, markMissedSeen } from './MissedSessionSheet';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { useTerritorySuggestion } from '../hooks/useTerritorySuggestion';
 
@@ -35,16 +41,31 @@ export default function TodayCard() {
     fetchActivePlan().then(setAp).catch(() => {});
   }, []));
 
+  // A key session missed earlier this week: ask once what to do.
+  const [missed, setMissed] = useState<Session | null>(null);
+  const missedId = ap ? missedKeySession(ap.plan, localToday())?.id ?? null : null;
+  useEffect(() => {
+    if (!ap || !missedId) { setMissed(null); return; }
+    let live = true;
+    missedAlreadySeen(missedId).then(seen => {
+      if (live && !seen) setMissed(ap.plan.weeks.flatMap(w => w.sessions).find(x => x.id === missedId) ?? null);
+    });
+    return () => { live = false; };
+  }, [ap, missedId]);
+
   if (ap === undefined) return null;
   const today = localToday();
 
   if (!ap) {
     const invite = (
-      <Pressable style={[s.card, s.invite]} onPress={() => navigation.navigate('PlanBuilder')} accessibilityRole="button">
-        <PaceXOrb size={36} />
-        <Text style={s.inviteTxt}>Training for a race? PaceX builds a plan around your week</Text>
-        <ArrowRight size={14} color={C.t2} weight="bold" />
-      </Pressable>
+      <View style={[s.card, s.make]}>
+        <Text style={s.makeEyebrow}>NO PLAN YET</Text>
+        <Text style={s.makeTitle}>Training for something?</Text>
+        <Text style={s.makeSub}>A race, a first 5K or just getting faster. About 90 seconds.</Text>
+        <Pressable style={s.makeBtn} onPress={() => navigation.navigate('PlanBuilder')} accessibilityRole="button">
+          <Text style={s.makeBtnTxt}>Make my plan</Text>
+        </Pressable>
+      </View>
     );
     if (!suggestion) return invite;
     return (
@@ -63,15 +84,35 @@ export default function TodayCard() {
   const todays = sessionOn(plan, today);
   const next = nextSession(plan, today);
   const toRace = daysBetween(today, plan.raceDate);
-  const head = `${RACE_LABEL[plan.race]} · ${toRace > 0 ? `${toRace} days to go` : toRace === 0 ? 'race day' : 'race done'}`;
+  const label = plan.raceRef?.name ?? RACE_LABEL[plan.race];
+  const head = `${label} · ${toRace > 0 ? `${toRace} days to go` : toRace === 0 ? 'race day' : 'race done'}`;
+
+  const strip = <WeekStrip plan={plan} today={today} onDay={x => (x ? navigation.navigate('PlanSession', { sessionId: x.id }) : navigation.navigate('TrainingPlan'))} />;
+  const missedSheet = missed && (
+    <MissedSessionSheet
+      session={missed}
+      canToday={canDoMissedToday(plan, missed.id, today)}
+      onClose={() => { markMissedSeen(missed.id); setMissed(null); }}
+      onChoose={c => {
+        markMissedSeen(missed.id);
+        setMissed(null);
+        if (c === 'pacex') { navigation.navigate('Coach'); return; }
+        const updated = { ...ap, plan: c === 'today' ? doMissedToday(plan, missed.id, today) : setStatus(plan, missed.id, 'skipped') };
+        setAp(updated);
+        savePlan(updated).catch(() => {});
+      }}
+    />
+  );
 
   // Today's session, still to do.
   if (todays && todays.status === 'planned') {
     return (
-      <View style={{ gap: 0 }}>
+      <View style={{ gap: 10 }}>
+        {strip}
+        {missedSheet}
         <PaceXRow
           s={s} C={C} eyebrow={`PaceX · today · ${head}`} title={todays.title} sub={todays.summary}
-          onOpen={() => navigation.navigate('TrainingPlan')}
+          onOpen={() => navigation.navigate('PlanSession', { sessionId: todays.id })}
           onPlay={() => navigation.navigate('ActiveRun', { autoStart: false, activityType: 'run', sessionId: todays.id })}
           playLabel="Start session"
         />
@@ -91,7 +132,10 @@ export default function TodayCard() {
 
   // Done today, or a rest day: show what's next.
   return (
-    <Pressable style={s.card} onPress={() => navigation.navigate('TrainingPlan')} accessibilityRole="button">
+    <View style={{ gap: 10 }}>
+    {strip}
+    {missedSheet}
+    <Pressable style={s.card} onPress={() => (next ? navigation.navigate('PlanSession', { sessionId: next.id }) : navigation.navigate('TrainingPlan'))} accessibilityRole="button">
       <View style={s.row}>
         <PaceXOrb size={44} />
         <View style={{ flex: 1 }}>
@@ -102,6 +146,7 @@ export default function TodayCard() {
         {todays?.status === 'done' ? <Check size={20} color={C.green} weight="bold" /> : <ArrowRight size={14} color={C.t2} weight="bold" />}
       </View>
     </Pressable>
+    </View>
   );
 }
 
@@ -128,8 +173,12 @@ function PaceXRow({ s, C, eyebrow, title, sub, onOpen, onPlay, playLabel }: {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     card:     { backgroundColor: C.card, borderRadius: 26, padding: 16 },
-    invite:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
-    inviteTxt:{ flex: 1, fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
+    make:     { backgroundColor: C.alwaysDark, padding: 18, gap: 4 },
+    makeEyebrow: { fontFamily: Fonts.bold, fontSize: 11.5, letterSpacing: 0.6, color: C.lime },
+    makeTitle:{ fontFamily: Fonts.semiBold, fontSize: 19, color: C.alwaysLight },
+    makeSub:  { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: 'rgba(255,255,255,0.72)' },
+    makeBtn:  { height: 44, borderRadius: 22, backgroundColor: C.lime, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+    makeBtnTxt: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysDark },
     row:      { flexDirection: 'row', alignItems: 'center', gap: 14 },
     eyebrow:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },
     title:    { fontFamily: Fonts.medium, fontSize: 17, color: C.t1, marginTop: 2 },

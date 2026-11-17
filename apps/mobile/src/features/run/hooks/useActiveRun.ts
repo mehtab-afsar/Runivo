@@ -453,7 +453,9 @@ export function useActiveRun(activityType: string = 'run') {
         // client-side gate is just "don't even try" when the setting is off.
         if (liveSharingEnabledRef.current && playerIdRef.current && now - lastLiveBroadcastRef.current >= LIVE_SHARE_INTERVAL_MS) {
           lastLiveBroadcastRef.current = now;
-          upsertLivePosition(playerIdRef.current, runIdRef.current, latitude, longitude).catch(() => {});
+          upsertLivePosition(playerIdRef.current, runIdRef.current, latitude, longitude, {
+            startedAt: startTimeRef.current, distanceM: totalDistanceRef.current * 1000, elapsedSec: elapsedRef.current,
+          }).catch(() => {});
         }
 
         // Throttle React state updates to max 1/sec

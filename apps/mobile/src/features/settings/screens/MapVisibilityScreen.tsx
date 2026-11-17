@@ -5,11 +5,10 @@
  * posts (20261112000001_map_visibility.sql).
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Svg, { Polyline, Circle } from 'react-native-svg';
-import { ArrowLeft } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { useIsDark } from '@theme';
@@ -17,6 +16,8 @@ import { getRuns } from '@shared/services/store';
 import { MAP_HIDE_RADII, visibleMask, radiusLabel, type MapHideRadius } from '@shared/services/mapVisibility';
 import { fetchMapVisibility, saveMapVisibility, type MapVisibilitySettings } from '../services/mapVisibilityService';
 import { useSettings } from '../hooks/useSettings';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 type Pt = { lat: number; lng: number };
 
@@ -97,13 +98,7 @@ export default function MapVisibilityScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Map visibility</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="Map visibility" onBack={() => navigation.goBack()} />
 
       {!v ? (
         <View style={s.loading}><ActivityIndicator color={C.t2} /></View>
@@ -149,22 +144,8 @@ export default function MapVisibilityScreen() {
           <View style={[s.card, v.hideAll && { opacity: 0.45 }]} pointerEvents={v.hideAll ? 'none' : 'auto'}>
             <Text style={s.rowTitle}>Hide start and end</Text>
             <Text style={s.rowSub}>On every activity, wherever it starts. Never less than 200 m.</Text>
-            <View style={s.seg}>
-              {MAP_HIDE_RADII.map(r => {
-                const on = r === v.radiusM;
-                return (
-                  <Pressable
-                    key={r}
-                    style={[s.segItem, on && s.segItemOn]}
-                    onPress={() => { if (!on && !saving) apply({ ...v, radiusM: r as MapHideRadius }); }}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: on, disabled: saving }}
-                  >
-                    <Text style={[s.segTxt, on && s.segTxtOn]}>{radiusLabel(r)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <Segmented style={{ marginTop: 12 }} disabled={saving} options={MAP_HIDE_RADII.map(r => ({ value: r, label: radiusLabel(r) }))}
+              value={v.radiusM} onChange={r => apply({ ...v, radiusM: r as MapHideRadius })} />
           </View>
 
           {/* Hide all */}
@@ -200,9 +181,6 @@ export default function MapVisibilityScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:        { flex: 1, backgroundColor: C.bg },
-    header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn:     { width: 32 },
-    title:       { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     loading:     { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scroll:      { paddingHorizontal: 18, paddingBottom: 40, gap: 12 },
     lead:        { fontFamily: Fonts.regular, fontSize: 14, lineHeight: 20, color: C.t2, marginBottom: 4 },
@@ -216,11 +194,6 @@ function mkStyles(C: AppColors) {
     caption:     { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2, marginTop: 10 },
     rowTitle:    { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     rowSub:      { fontFamily: Fonts.regular, fontSize: 12.5, lineHeight: 17, color: C.t2, marginTop: 3 },
-    seg:         { flexDirection: 'row', backgroundColor: C.surface, borderRadius: 10, padding: 3, marginTop: 12 },
-    segItem:     { flex: 1, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-    segItemOn:   { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-    segTxt:      { fontFamily: Fonts.medium, fontSize: 13, color: C.t2 },
-    segTxtOn:    { fontFamily: Fonts.semiBold, color: C.t1 },
     switchRow:   { flexDirection: 'row', alignItems: 'center' },
     status:      { minHeight: 18, paddingHorizontal: 4 },
     statusTxt:   { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2 },

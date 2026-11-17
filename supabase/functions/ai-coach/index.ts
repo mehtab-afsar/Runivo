@@ -97,6 +97,10 @@ interface PlanCompliance {
   streakDays: number;
   consistencyLast8Weeks: number[];
   avgConsistencyLast8Weeks: number | null;
+  /** Planned sessions from today through the next 7 days, one line each (v2 plans). */
+  upcoming: string[];
+  /** Race and target, e.g. "10K on 2027-01-18, target 52:30" (v2 plans). */
+  race: string | null;
 }
 
 interface UserContext {
@@ -770,67 +774,65 @@ async function buildUserContext(
   }
 
   // ── Plan compliance ──────────────────────────────────────────────────────────
+  // Plans are the app's structured format (training_plans.plan_data.version = 2,
+  // packages/shared/src/engine/training.ts): sessions have real dates and a
+  // status the app sets when a run matches. This used to read an older format
+  // (day names and types), so with today's plans every session counted as
+  // Monday's and PaceX misreported what was done and what was next.
+  type V2Session = { date: string; kind: string; title: string; distanceKm: number; status: string; steps?: Array<{ pace?: { fast: number; slow: number } }> };
+  type V2Plan = { version: 2; race: string; raceDate: string; targetSec: number; goal?: string; raceRef?: { name: string; city?: string | null } | null; weeks: Array<{ index: number; startDate: string; focus: string; sessions: V2Session[] }> };
   const activePlanRow = activePlanRes.data as {
-    id: string; goal: string; week_current: number; weeks_total: number;
-    plan_data: { weeks: Array<{ week: number; focus: string; sessions: Array<{ day: string; type: string; description: string }> }> };
+    id: string; goal: string; week_current: number; weeks_total: number; plan_data: V2Plan | Record<string, unknown>;
   } | null;
 
-  const DAY_OFFSET: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  const fmtClock = (sec: number) => {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), x = Math.round(sec % 60);
+    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}` : `${m}:${String(x).padStart(2, '0')}`;
+  };
+  const fmtPaceSec = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
 
   let planCompliance: PlanCompliance | null = null;
-  if (activePlanRow) {
-    const weekIdx       = activePlanRow.week_current - 1;
-    const currentWeek   = activePlanRow.plan_data.weeks[weekIdx];
-    const sessions      = currentWeek?.sessions ?? [];
-    const runSessions   = sessions.filter(s => s.type !== 'Rest');
-
-    // Which of this week's run sessions have a matching run date?
-    const thisWeekRunDates = new Set(
-      runs90d
-        .filter(r => r.started_at >= mondayISO + 'T00:00:00Z')
-        .map(r => r.started_at.split('T')[0])
-    );
-
-    let completed = 0;
-    let missed    = 0;
+  const plan = activePlanRow?.plan_data as V2Plan | undefined;
+  if (activePlanRow && plan && plan.version === 2 && Array.isArray(plan.weeks)) {
     const todayISO = new Date().toISOString().split('T')[0];
-
-    for (const s of runSessions) {
-      const offset = DAY_OFFSET[s.day] ?? 0;
-      const d      = new Date(mondayISO);
-      d.setUTCDate(d.getUTCDate() + offset);
-      const dateStr = d.toISOString().split('T')[0];
-      if (thisWeekRunDates.has(dateStr)) {
-        completed++;
-      } else if (dateStr < todayISO) {
-        missed++;
-      }
-    }
+    const addDaysISO = (d: string, n: number) => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().split('T')[0]; };
+    const week = plan.weeks.find(w => todayISO >= w.startDate && todayISO <= addDaysISO(w.startDate, 6))
+      ?? (todayISO < (plan.weeks[0]?.startDate ?? todayISO) ? plan.weeks[0] : plan.weeks[plan.weeks.length - 1]);
+    const sessions = week?.sessions ?? [];
+    const completed = sessions.filter(x => x.status === 'done').length;
+    const missed = sessions.filter(x => x.status === 'skipped' || (x.status === 'planned' && x.date < todayISO)).length;
+    const horizon = addDaysISO(todayISO, 7);
+    const upcoming = plan.weeks.flatMap(w => w.sessions)
+      .filter(x => x.status === 'planned' && x.date >= todayISO && x.date <= horizon)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, 6)
+      .map(x => {
+        const paced = (x.steps ?? []).find(st => st.pace)?.pace;
+        const day = new Date(x.date + 'T12:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
+        return `${x.date} (${day}${x.date === todayISO ? ', today' : ''}): ${x.title}, ${x.distanceKm} km${paced ? ` at ${fmtPaceSec(paced.fast)}–${fmtPaceSec(paced.slow)}/km` : ''}`;
+      });
 
     const kmThisWeek = runs90d
-      .filter(r => r.started_at >= mondayISO + 'T00:00:00Z')
-      .reduce((s, r) => s + (r.distance_m ?? 0) / 1000, 0);
+      .filter(r => r.started_at >= (week?.startDate ?? mondayISO) + 'T00:00:00Z')
+      .reduce((sum, r) => sum + (r.distance_m ?? 0) / 1000, 0);
 
-    const histRows = (consistencyHistRes.data ?? []) as Array<{
-      week_start: string; consistency_score: number; sessions_completed: number;
-      sessions_planned: number; km_actual: number; streak_days_eow: number;
-    }>;
+    const histRows = (consistencyHistRes.data ?? []) as Array<{ consistency_score: number }>;
     const scores = histRows.map(w => w.consistency_score);
-    const avgScore = scores.length > 0
-      ? Math.round(scores.reduce((s, n) => s + n, 0) / scores.length)
-      : null;
+    const avgScore = scores.length > 0 ? Math.round(scores.reduce((a, n) => a + n, 0) / scores.length) : null;
 
     planCompliance = {
       goal:                      activePlanRow.goal,
-      weekCurrent:               activePlanRow.week_current,
-      weeksTotal:                activePlanRow.weeks_total,
-      sessionsPlannedThisWeek:   runSessions.length,
+      weekCurrent:               week?.index ?? activePlanRow.week_current,
+      weeksTotal:                plan.weeks.length,
+      sessionsPlannedThisWeek:   sessions.length,
       sessionsCompletedThisWeek: completed,
       sessionsMissedThisWeek:    missed,
       kmActualThisWeek:          parseFloat(kmThisWeek.toFixed(1)),
       streakDays:                profileRow?.streak_days ?? 0,
       consistencyLast8Weeks:     scores.reverse(),
       avgConsistencyLast8Weeks:  avgScore,
+      upcoming,
+      race: `${plan.raceRef ? `${plan.raceRef.name}${plan.raceRef.city ? ` (${plan.raceRef.city})` : ''}, ` : plan.goal && plan.goal !== 'race' ? `goal plan (${plan.goal}) ending in a time trial, ` : ''}${plan.race} on ${plan.raceDate}${plan.targetSec ? `, target ${fmtClock(plan.targetSec)}` : ''}${week?.focus ? ` · this week: ${week.focus}` : ''}`,
     };
   }
 
@@ -1252,7 +1254,10 @@ Stale zones (freshness < 40): ${ctx.staleZoneCount} — rivals can steal these n
 Average freshness: ${ctx.avgFreshness}%
 
 == TRAINING PLAN & HABIT ==
-${ctx.planCompliance ? `Goal: ${ctx.planCompliance.goal} (Week ${ctx.planCompliance.weekCurrent}/${ctx.planCompliance.weeksTotal})
+${ctx.planCompliance ? `Goal: ${ctx.planCompliance.goal} (Week ${ctx.planCompliance.weekCurrent}/${ctx.planCompliance.weeksTotal})${ctx.planCompliance.race ? `
+Race: ${ctx.planCompliance.race}` : ''}${ctx.planCompliance.upcoming.length ? `
+Planned next (from their plan in the app):
+${ctx.planCompliance.upcoming.join('\n')}` : ''}
 This week: ${ctx.planCompliance.sessionsCompletedThisWeek}/${ctx.planCompliance.sessionsPlannedThisWeek} sessions completed, ${ctx.planCompliance.kmActualThisWeek} km run${ctx.planCompliance.sessionsMissedThisWeek > 0 ? `, ${ctx.planCompliance.sessionsMissedThisWeek} missed` : ' — on track'}
 Run streak: ${ctx.planCompliance.streakDays} day${ctx.planCompliance.streakDays !== 1 ? 's' : ''}${ctx.planCompliance.avgConsistencyLast8Weeks !== null ? `
 Avg consistency last 8 weeks: ${ctx.planCompliance.avgConsistencyLast8Weeks}%` : ''}` : `No active training plan. Current run streak: ${ctx.planCompliance?.streakDays ?? 0} days.`}
@@ -1271,11 +1276,17 @@ COACHING PHILOSOPHY:
 3. Never give generic advice when you have real data.
 4. Off-topic: redirect warmly — "I'm your running and territory coach."
 
-TONE: Confident, warm, competitive. Like a coach who has run 50 marathons and also plays chess. Keep responses under 180 words unless generating a structured plan.`;
+TONE: Confident, warm, competitive. Like a coach who has run 50 marathons and also plays chess. Keep responses under 180 words unless generating a structured plan.
+
+THE PLAN: When the runner has a plan, it is the source of truth. "What should I run?" means their planned session for that day, adjusted for how they feel; say when you are changing it and why. A session card you send replaces the planned session on that date once they tap Add to my plan, so only send one when you are recommending a change or there is nothing planned.
+
+SESSION CARDS: Today is ${todayISODate()} (UTC). When you recommend ONE specific run for a specific day, end your reply with a session card on its own line, exactly in this form (no code fence), and do not repeat the step list in your text:
+<session>{"date":"YYYY-MM-DD","kind":"easy|long|tempo|intervals|recovery","title":"Intervals","distanceKm":6.4,"durationMin":40,"steps":[{"kind":"warmup","label":"Warm up","distanceM":1500},{"kind":"run","label":"4 × 800 m","distanceM":3200,"pace":{"fast":285,"slow":295}},{"kind":"recover","label":"Recover between","distanceM":400},{"kind":"cooldown","label":"Cool down","distanceM":1500}]}</session>
+Step kinds: warmup, run, recover, cooldown. Paces are seconds per km. At most 8 steps. Never add a card for general advice, rest days or when the runner has a pain or injury question.`;
 
   const response = await anthropic.messages.create({
     model:      'claude-sonnet-4-6',
-    max_tokens: 512,
+    max_tokens: 800,
     // withGuardrails appends the shared SAFETY_GUARDRAILS block — this used to be
     // its own hand-written copy here, which meant this handler (the one with the
     // most actual free-text conversation) could silently drift from the rules

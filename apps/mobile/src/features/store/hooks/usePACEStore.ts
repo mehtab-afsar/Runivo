@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@shared/services/supabase';
 import { getPlayer } from '@shared/services/store';
 import { computeRunnerRank } from '@shared/services/claimEngine';
-import { weeklyCapFor } from '@shared/engine/runEngine';
+import { weeklyCapFor, weeklyPaceNow } from '@shared/engine/runEngine';
+import { pullProfile } from '@shared/services/sync';
 import type { StoredPlayer } from '@shared/services/store';
 import type { Reward } from '../types';
 import { lastKnownPoint, pointParams } from '../services/devicePoint';
@@ -72,11 +73,20 @@ export function usePACEStore() {
   const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
   const [isRedeemVisible, setIsRedeemVisible] = useState(false);
 
-  useEffect(() => {
-    getPlayer().then(p => { if (p) setPlayer(p); }).catch(() => {});
+  // Balance: the cached player first (instant), then the server's copy. Read on
+  // every refresh (the screen refreshes on focus), not just on mount: coming back
+  // from a redemption, or after a refund (review_redemption) or a mission claim,
+  // used to keep showing the old balance.
+  const loadPlayer = useCallback(async () => {
+    const cached = await getPlayer().catch(() => null);
+    if (cached) setPlayer(cached);
+    await pullProfile().catch(() => {});
+    const fresh = await getPlayer().catch(() => null);
+    if (fresh) setPlayer(fresh);
   }, []);
 
   const refresh = useCallback(async () => {
+    loadPlayer();
     try {
       // Whatever the server has for this runner's area, including nothing: rewards
       // are partner offers in selected cities, so an empty list is a real answer.
@@ -85,12 +95,12 @@ export function usePACEStore() {
       setRewards(loaded ?? []);
     } catch { /* keep what is shown; a network error is not "no rewards" */ }
     finally { setRewardsLoaded(true); }
-  }, []);
+  }, [loadPlayer]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
   const paceBalance      = player?.paceBalance      ?? 0;
-  const paceWeeklyEarned = player?.paceWeeklyEarned ?? 0;
+  const paceWeeklyEarned = weeklyPaceNow(player?.paceWeeklyEarned, player?.paceWeeklyResetAt);
   const capLimit         = weeklyCapFor(player?.subscriptionTier);
   const weeklyPct        = capLimit > 0 ? Math.min(1, paceWeeklyEarned / capLimit) : 0;
   const runnerRank       = computeRunnerRank(player?.paceTotalEarned ?? 0);

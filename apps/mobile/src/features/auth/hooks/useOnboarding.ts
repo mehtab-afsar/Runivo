@@ -4,7 +4,7 @@ import { parseFiveKTime, validateUsername, startingWeeklyTargetKm } from '@share
 import { track } from '@shared/services/analytics';
 import { supabase } from '@shared/services/supabase';
 import { saveOnboardingData, saveIdentity } from '../services/onboardingService';
-import { stepsFor, parseGoalTime, type OnboardingData, type OnboardingStepKey, type OnboardingVariant } from '../types';
+import { stepsFor, type OnboardingData, type OnboardingStepKey, type OnboardingVariant } from '../types';
 
 const DEFAULT_DATA: OnboardingData = {
   lastKnownLocation: null, country: null,
@@ -101,13 +101,12 @@ export function useOnboarding(): OnboardingState {
   const canContinue = useCallback(() => {
     switch (step.key) {
       case 'goal':     return data.goal != null;
-      case 'race':     return data.raceDistance != null && parseGoalTime(data.raceGoalInput).ok;
       case 'running':  return parseFiveKTime(data.fiveKInput).ok;
       case 'week':     return data.runDays.length > 0;
       case 'identity': return validateUsername(data.username).ok;
       default:         return true;
     }
-  }, [step.key, data.goal, data.fiveKInput, data.username, data.raceDistance, data.raceGoalInput, data.runDays.length]);
+  }, [step.key, data.goal, data.fiveKInput, data.username, data.runDays.length]);
 
   const advance = useCallback(() => {
     track('onboarding_step_done', { step: step.key, index, variant });
@@ -138,9 +137,6 @@ export function useOnboarding(): OnboardingState {
     }
     if (step.key === 'health') {
       setData(d => ({ ...d, healthConsent: false, healthBaseline: null }));
-    }
-    if (step.key === 'race') {
-      setData(d => ({ ...d, raceDistance: null, raceGoalInput: '' }));
     }
     if (step.key === 'body') {
       setData(d => ({ ...d, niggles: [], returning: false }));

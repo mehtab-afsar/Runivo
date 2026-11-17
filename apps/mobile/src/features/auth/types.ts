@@ -3,13 +3,12 @@ import type { RaceDistance } from '@shared/engine/training';
 
 /**
  * Onboarding (welcome and sign-in come first, on their own screens). Optional
- * steps can be skipped. Race only shows for the race goal. Race, week, body
- * and coach feed PaceX and the plan builder (20261115000026).
+ * steps can be skipped. Week, body and coach feed PaceX and plan setup; the
+ * race itself is picked in plan setup, which opens when onboarding ends.
  */
 export const ONBOARDING_STEPS = [
   { key: 'location',      label: 'Your area',    optional: false },
   { key: 'goal',          label: 'Your goal',    optional: false },
-  { key: 'race',          label: 'Your race',    optional: true },
   { key: 'running',       label: 'Your running', optional: false },
   { key: 'week',          label: 'Your week',    optional: true },
   { key: 'body',          label: 'Your body',    optional: true },
@@ -32,10 +31,10 @@ export type OnboardingStepKey = typeof ONBOARDING_STEPS[number]['key'];
  */
 export type OnboardingVariant = 'full' | 'short';
 export const SHORT_PATH_SKIPS: readonly OnboardingStepKey[] = ['health', 'about'];
-export function stepsFor(variant: OnboardingVariant, goal: RunningGoal | null = null) {
+/** The steps for a variant. (`_goal` is kept for callers; no step depends on it now.) */
+export function stepsFor(variant: OnboardingVariant, _goal: RunningGoal | null = null) {
   return ONBOARDING_STEPS.filter(s =>
-    (variant !== 'short' || !SHORT_PATH_SKIPS.includes(s.key)) &&
-    (s.key !== 'race' || goal === 'race'));
+    variant !== 'short' || !SHORT_PATH_SKIPS.includes(s.key));
 }
 
 export type UsualRunTime = 'early' | 'morning' | 'evening' | 'varies';

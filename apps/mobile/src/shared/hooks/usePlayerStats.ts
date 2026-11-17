@@ -2,11 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { getPlayer, savePlayer, getRuns, getAllTerritories, getTerritoryPolygons } from '@shared/services/store';
 import type { StoredPlayer, StoredRun } from '@shared/services/store';
 import { collectLoginBonus } from '@shared/services/passiveIncome';
+import { computeTerritoryScore } from '@shared/services/claimEngine';
 
 export function usePlayerStats() {
   const [player, setPlayer] = useState<StoredPlayer | null>(null);
   const [recentRuns, setRecentRuns] = useState<StoredRun[]>([]);
   const [totalAreaM2, setTotalAreaM2] = useState(0);
+  // Same formula and data as Home and the map (claimEngine). The profile row's
+  // territoryScore was never filled on the phone, so You showed "Score 0".
+  const [territoryScore, setTerritoryScore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loginBonusCoins, setLoginBonusCoins] = useState(0);
   const [error, setError] = useState(false);
@@ -41,6 +45,7 @@ export function usePlayerStats() {
       ]);
       setRecentRuns(runs);
       setTotalAreaM2(polygons.reduce((s, poly) => s + poly.areaM2, 0));
+      setTerritoryScore(Math.round(computeTerritoryScore(polygons)));
       hasLoadedRef.current = true;
       setError(false);
     } catch {
@@ -53,5 +58,5 @@ export function usePlayerStats() {
 
   const dismissLoginBonus = () => setLoginBonusCoins(0);
 
-  return { player, recentRuns, totalAreaM2, loading, error, loginBonusCoins, dismissLoginBonus, reload: load };
+  return { player, recentRuns, totalAreaM2, territoryScore, loading, error, loginBonusCoins, dismissLoginBonus, reload: load };
 }

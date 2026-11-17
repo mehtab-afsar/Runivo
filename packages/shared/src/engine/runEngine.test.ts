@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   ENGINE, ringAreaM2, enclosedAreaM2, buildTerritoryShape, verifiedDistance, computeRunPace,
   updateStreak, rankFor, weeklyCapFor, decayedFreshness, tierForArea, metresPerDegree,
-  findLoopStart, paceWeekStartMs, zoneScore, lineToWKT, ringToWKT, type EnginePoint, type LngLat,
+  findLoopStart, paceWeekStartMs, weeklyPaceNow, zoneScore, lineToWKT, ringToWKT, type EnginePoint, type LngLat,
 } from './runEngine';
 
 // ── Trace helpers ─────────────────────────────────────────────────────────────
@@ -240,4 +240,15 @@ describe('ranks, freshness, score', () => {
     expect(new Date(paceWeekStartMs(Date.UTC(2026, 10, 8, 23))).toISOString()).toBe('2026-11-02T00:00:00.000Z');
     expect(new Date(paceWeekStartMs(Date.UTC(2026, 10, 9, 0, 1))).toISOString()).toBe('2026-11-09T00:00:00.000Z');
   });
+});
+
+describe('weeklyPaceNow', () => {
+  const wed = Date.UTC(2026, 10, 18, 9); // Wed 18 Nov 2026
+  it('keeps this week', () => expect(weeklyPaceNow(120, '2026-11-16T00:00:00Z', wed)).toBe(120));
+  it('drops last week', () => expect(weeklyPaceNow(300, '2026-11-09T00:00:00Z', wed)).toBe(0));
+  it('handles missing values', () => {
+    expect(weeklyPaceNow(50, null, wed)).toBe(0);
+    expect(weeklyPaceNow(undefined, '2026-11-16T00:00:00Z', wed)).toBe(0);
+  });
+  it('week starts Monday UTC', () => expect(new Date(paceWeekStartMs(wed)).toISOString()).toBe('2026-11-16T00:00:00.000Z'));
 });

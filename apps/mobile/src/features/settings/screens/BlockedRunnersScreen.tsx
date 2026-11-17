@@ -2,14 +2,14 @@
  * Runners you blocked or muted, with Unblock / Unmute.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { fetchBlocksAndMutes, unblockUser, unmuteUser, type HiddenRunner } from '@mobile/shared/services/safetyService';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 export default function BlockedRunnersScreen() {
   const C = useTheme();
@@ -41,13 +41,7 @@ export default function BlockedRunnersScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Blocked and muted</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="Blocked and muted" onBack={() => navigation.goBack()} />
 
       {rows === null ? (
         <View style={s.center}><ActivityIndicator color={C.t2} /></View>
@@ -87,9 +81,6 @@ export default function BlockedRunnersScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:    { flex: 1, backgroundColor: C.bg },
-    header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn: { width: 32 },
-    title:   { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     center:  { flex: 1, alignItems: 'center', justifyContent: 'center' },
     list:    { paddingHorizontal: 18, paddingBottom: 40 },
     lead:    { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2, marginBottom: 12 },

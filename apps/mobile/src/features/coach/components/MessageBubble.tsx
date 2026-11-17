@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { Fonts, useTheme, type AppColors } from '@theme';
 import { CoachMessageCard } from './CoachMessageCard';
+import { CoachSessionCard } from './CoachSessionCard';
+import { parseCoachReply } from '@shared/engine/coachSession';
 
 interface Props {
   role:    'user' | 'assistant';
@@ -60,7 +62,9 @@ export function MessageBubble({ role, content, type, animate = false }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const isUser = role === 'user';
-  const revealed = useTypewriter(content, animate && !isUser);
+  // PaceX may end a reply with a <session> card (ai-coach chat prompt).
+  const reply = useMemo(() => (isUser ? { text: content, session: null } : parseCoachReply(content)), [content, isUser]);
+  const revealed = useTypewriter(reply.text, animate && !isUser);
 
   if (!isUser && type && type !== 'text') {
     return (
@@ -80,10 +84,13 @@ export function MessageBubble({ role, content, type, animate = false }: Props) {
           <PaceXOrb size={16} />
         </View>
       )}
-      <View style={[ss.bubble, isUser ? ss.bubbleUser : ss.bubbleAi]}>
-        <Text style={[ss.text, isUser && ss.textUser]}>
-          {isUser ? content : renderInline(revealed, ss.bold)}
-        </Text>
+      <View style={ss.col}>
+        <View style={[ss.bubble, isUser ? ss.bubbleUser : ss.bubbleAi]}>
+          <Text style={[ss.text, isUser && ss.textUser]}>
+            {isUser ? content : renderInline(revealed, ss.bold)}
+          </Text>
+        </View>
+        {reply.session && revealed === reply.text && <CoachSessionCard session={reply.session} />}
       </View>
       {isUser && <View style={{ width: 32 }} />}
     </View>
@@ -96,7 +103,8 @@ function mkStyles(C: AppColors) {
     wrapUser:   { flexDirection: 'row-reverse' },
     wrapAi:     { alignItems: 'flex-start' },
     avatar:     { width: 32, height: 32, borderRadius: 8, backgroundColor: C.blueBg, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    bubble:     { maxWidth: '75%', paddingHorizontal: 14, paddingVertical: 10 },
+    col:        { maxWidth: '80%', flexShrink: 1 },
+    bubble:     { paddingHorizontal: 14, paddingVertical: 10 },
     bubbleUser: { backgroundColor: C.alwaysDark, borderRadius: 14, borderBottomRightRadius: 4 },
     bubbleAi:   { backgroundColor: C.card, borderRadius: 22, borderBottomLeftRadius: 4, borderWidth: 0.5, borderColor: C.border },
     text:       { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, lineHeight: 20 },

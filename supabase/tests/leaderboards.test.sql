@@ -84,8 +84,7 @@ DO $$ BEGIN
 EXCEPTION WHEN invalid_parameter_value THEN RAISE NOTICE 'ok  unknown metrics are refused';
 END $$;
 
-SELECT pg_temp.check(
-  (SELECT total_km FROM public.get_run_km_by_user('-infinity'::timestamptz, 100) WHERE user_id = 'a0000000-0000-4000-8000-00000000000a') = 5,
-  'the old distance RPC no longer counts rides either');
+-- The old get_run_km_by_user RPC was removed (20261116000001_close_user_id_rpcs).
+SELECT pg_temp.check(to_regprocedure('public.get_run_km_by_user(timestamptz, integer)') IS NULL, 'the old distance RPC is gone');
 
 ROLLBACK;

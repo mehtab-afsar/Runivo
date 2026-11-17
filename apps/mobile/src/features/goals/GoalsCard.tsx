@@ -2,10 +2,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Modal, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { Plus, X } from 'phosphor-react-native';
+import { Plus } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { getRuns, getSettings, saveSettings, type StoredRun } from '@shared/services/store';
 import { goalProgress, goalLabel, SPORT_NAME, type SportGoal } from './sportGoals';
+import { FormScreen, ChipGroup, FormButton } from '@mobile/shared/components/form/FormKit';
 
 const TARGETS: Record<SportGoal['metric'], number[]> = { km: [10, 20, 40, 80, 150, 300], hours: [2, 4, 6, 10, 20] };
 
@@ -64,32 +65,25 @@ export function GoalsCard() {
 const MAX_GOALS = 4;
 
 function AddGoal({ visible, onClose, onAdd }: { visible: boolean; onClose: () => void; onAdd: (g: SportGoal) => void }) {
-  const C = useTheme();
-  const s = useMemo(() => mk(C), [C]);
   const [sport, setSport] = useState<SportGoal['sport']>('run');
   const [period, setPeriod] = useState<SportGoal['period']>('month');
   const [metric, setMetric] = useState<SportGoal['metric']>('km');
   const [target, setTarget] = useState(80);
-  const Chip = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
-    <Pressable hitSlop={8} style={[s.chip, on && s.chipOn]} onPress={onPress} accessibilityRole="button" accessibilityState={{ selected: on }}><Text style={[s.chipTxt, on && s.chipTxtOn]}>{label}</Text></Pressable>
-  );
+  const unit = metric === 'km' ? 'km' : 'h';
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={s.scrim} onPress={onClose} />
-      <View style={s.sheet}>
-        <View style={s.sheetHead}><Text style={s.sheetTitle}>New goal</Text><Pressable onPress={onClose} hitSlop={14} accessibilityRole="button" accessibilityLabel="Close"><X size={18} color={C.t2} /></Pressable></View>
-        <Text style={s.lbl}>Sport</Text>
-        <View style={s.chips}>{(['run', 'walk', 'ride', 'all'] as const).map(k => <Chip key={k} on={sport === k} label={SPORT_NAME[k]} onPress={() => setSport(k)} />)}</View>
-        <Text style={s.lbl}>Every</Text>
-        <View style={s.chips}><Chip on={period === 'week'} label="Week" onPress={() => setPeriod('week')} /><Chip on={period === 'month'} label="Month" onPress={() => setPeriod('month')} /></View>
-        <Text style={s.lbl}>Measure</Text>
-        <View style={s.chips}><Chip on={metric === 'km'} label="Distance" onPress={() => { setMetric('km'); setTarget(40); }} /><Chip on={metric === 'hours'} label="Time" onPress={() => { setMetric('hours'); setTarget(4); }} /></View>
-        <Text style={s.lbl}>Target</Text>
-        <View style={s.chips}>{TARGETS[metric].map(t => <Chip key={t} on={target === t} label={`${t} ${metric === 'km' ? 'km' : 'h'}`} onPress={() => setTarget(t)} />)}</View>
-        <Pressable style={s.done} onPress={() => onAdd({ id: String(Date.now()), sport, period, metric, target })} accessibilityRole="button">
-          <Text style={s.doneTxt}>Add goal</Text>
-        </Pressable>
-      </View>
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <FormScreen
+        title="Set a"
+        accent="goal."
+        subtitle="Progress fills in from every activity you record."
+        onClose={onClose}
+        footer={<FormButton label={`Aim for ${target} ${unit} a ${period}`} onPress={() => onAdd({ id: String(Date.now()), sport, period, metric, target })} />}
+      >
+        <ChipGroup label="Sport" options={(['run', 'walk', 'ride', 'all'] as const).map(k => ({ value: k, label: SPORT_NAME[k] }))} value={sport} onChange={setSport} />
+        <ChipGroup label="Every" options={[{ value: 'week', label: 'Week' }, { value: 'month', label: 'Month' }]} value={period} onChange={v => setPeriod(v as SportGoal['period'])} />
+        <ChipGroup label="Measure" options={[{ value: 'km', label: 'Distance' }, { value: 'hours', label: 'Time' }]} value={metric} onChange={v => { setMetric(v as SportGoal['metric']); setTarget(v === 'km' ? 40 : 4); }} />
+        <ChipGroup label="Target" options={TARGETS[metric].map(t => ({ value: t, label: `${t} ${unit}` }))} value={target} onChange={setTarget} />
+      </FormScreen>
     </Modal>
   );
 }

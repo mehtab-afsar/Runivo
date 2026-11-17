@@ -10,16 +10,14 @@ interface PrimaryButtonProps {
   disabled?: boolean;
   loading?: boolean;
   /**
-   * accent  — vermilion fill, white text (the one CTA on a screen)
-   * dark    — always-dark fill, white text (bold secondary, e.g. "Start run")
-   * surface — bordered neutral fill, ink text (tertiary)
-   * ghost   — no fill, accent text (inline actions)
-   * danger  — red outline, transparent fill, red text (destructive intent —
-   *           visually distinct from `accent` on purpose; same hue as the brand
-   *           accent since there's no separate "danger red," so the shape
-   *           carries the distinction instead of the color)
+   * dark        — ink fill, white text: the main action (final mock's buttons, forms)
+   * accent      — brand green fill, white text
+   * surface     — bordered neutral fill, ink text (secondary)
+   * ghost       — no fill, accent text (inline actions)
+   * danger      — red outline, red text (a destructive option among others)
+   * destructive — red fill, white text (the confirming destructive button)
    */
-  variant?: 'accent' | 'dark' | 'surface' | 'ghost' | 'danger';
+  variant?: 'accent' | 'dark' | 'surface' | 'ghost' | 'danger' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   icon?: React.ReactNode;
@@ -27,7 +25,7 @@ interface PrimaryButtonProps {
 }
 
 const HEIGHT = { sm: 40, md: 52, lg: 56 } as const;
-const FONT_SIZE = { sm: 13, md: 15, lg: 16 } as const;
+const FONT_SIZE = { sm: 13, md: 15, lg: 17 } as const;
 // iOS HIG minimum tap target is 44x44pt. `sm` renders at 40 to keep the visual
 // density of compact/inline CTAs — hitSlop expands the tappable area to 44
 // without changing how the button looks. md/lg already clear 44 on their own.
@@ -35,28 +33,26 @@ const HIT_SLOP = { sm: { top: 2, bottom: 2, left: 2, right: 2 }, md: undefined, 
 
 export function PrimaryButton({
   label, onPress, disabled, loading,
-  variant = 'accent', size = 'md', fullWidth, icon, style,
+  variant = 'dark', size = 'md', fullWidth, icon, style,
 }: PrimaryButtonProps) {
   const C = useTheme();
 
-  const bg = disabled
-    ? C.surface
-    : variant === 'accent' ? C.accent
+  // Disabled keeps its colours and fades (mock), so the button never changes shape.
+  const bg = variant === 'accent' ? C.accent
     : variant === 'dark' ? C.alwaysDark
+    : variant === 'destructive' ? C.danger
     : variant === 'ghost' || variant === 'danger' ? 'transparent'
     : C.surface;
 
-  const textColor = disabled
-    ? C.t3
-    : variant === 'surface' ? C.t1
+  const textColor = variant === 'surface' ? C.t1
     : variant === 'ghost' ? C.accent
-    : variant === 'danger' ? C.red
+    : variant === 'danger' ? C.danger
     : C.alwaysLight;
 
   const borderStyle = variant === 'surface'
     ? { borderWidth: 0.5, borderColor: C.border }
-    : variant === 'danger' && !disabled
-    ? { borderWidth: 1.5, borderColor: C.red }
+    : variant === 'danger'
+    ? { borderWidth: 1.5, borderColor: C.danger }
     : {};
 
   function handlePress() {
@@ -78,6 +74,7 @@ export function PrimaryButton({
         { height: HEIGHT[size], backgroundColor: bg },
         borderStyle,
         fullWidth && styles.fullWidth,
+        (disabled || loading) && !loading && styles.disabled,
         pressed && !disabled && styles.pressed,
         style,
       ]}
@@ -99,4 +96,5 @@ const styles = StyleSheet.create({
   btn:       { borderRadius: 999, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, paddingHorizontal: 20 },
   fullWidth: { alignSelf: 'stretch' },
   pressed:   { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  disabled:  { opacity: 0.35 },
 });

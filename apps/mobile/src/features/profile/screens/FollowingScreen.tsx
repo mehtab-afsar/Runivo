@@ -1,6 +1,6 @@
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Platform, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,9 +10,9 @@ import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 import { toggleFollowService } from '@features/social/services/feedService';
 import { avatarColor as getAvatarColor } from '@shared/lib/avatarUtils';
 import { RANK_COLORS } from '@shared/constants/territory';
-import { ArrowLeft } from 'phosphor-react-native';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = NativeStackScreenProps<RootStackParamList, 'Following'>['route'];
@@ -109,13 +109,7 @@ export default function FollowingScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }}>
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Following</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="Following" onBack={() => navigation.goBack()} />
 
       <View style={s.searchWrap}>
         <TextInput
@@ -175,9 +169,6 @@ export default function FollowingScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:         { flex: 1, backgroundColor: C.bg },
-    header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-    backBtn:      { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-    title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
     searchWrap:   { paddingHorizontal: Spacing.gutter, paddingBottom: 8 },
     search:       { backgroundColor: C.stone, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontFamily: Fonts.regular, fontSize: 13, color: C.black, borderWidth: 0.5, borderColor: C.border },
     center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },

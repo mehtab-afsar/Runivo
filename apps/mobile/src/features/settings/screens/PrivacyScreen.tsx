@@ -2,14 +2,15 @@
  * Privacy controls (PRD X1): every visibility choice on one page. Changes
  * apply to past activities and zones too; the server enforces all of them.
  */
+import { FormScreen, ChipGroup, FieldLabel, FormButton } from '@mobile/shared/components/form/FormKit';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
-import { ArrowLeft, HouseLine, Trash, MapPin } from 'phosphor-react-native';
+import { HouseLine, Trash, MapPin } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { RowChevron } from '@mobile/shared/components/RowChevron';
@@ -23,6 +24,7 @@ import {
   fetchPrivatePlaces, addPrivatePlace, removePrivatePlace, fetchPrivacyControls, savePrivacyControls,
   type PrivatePlace, type PrivacyControls,
 } from '../services/privacyService';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 const AUD_LABEL: Record<Audience, string> = { everyone: 'Everyone', followers: 'Followers', only_me: 'Only you' };
@@ -88,13 +90,7 @@ export default function PrivacyScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable onPress={() => navigation.goBack()} style={s.backBtn} accessibilityRole="button" accessibilityLabel="Back">
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Privacy</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="Privacy" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         {loadFailed && (
@@ -129,7 +125,7 @@ export default function PrivacyScreen() {
                 <Text style={s.sub}>Within {radiusLabel(p.radiusM)}</Text>
               </View>
               <Pressable onPress={() => remove(p)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Remove ${p.label}`}>
-                <Trash size={18} color={C.red} />
+                <Trash size={18} color={C.danger} />
               </Pressable>
             </View>
           ))}
@@ -140,27 +136,24 @@ export default function PrivacyScreen() {
               <RowChevron />
             </Pressable>
           )}
-          {adding && (
-            <View style={[s.rowCol, s.border]}>
-              <View style={s.chips}>
-                {LABELS.map(l => (
-                  <Pressable hitSlop={8} key={l} style={[s.chip, label === l && s.chipOn]} onPress={() => setLabel(l)}><Text style={[s.chipTxt, label === l && s.chipTxtOn]}>{l}</Text></Pressable>
-                ))}
-              </View>
-              <View style={[s.chips, { marginTop: 8 }]}>
-                {MAP_HIDE_RADII.map(r => (
-                  <Pressable hitSlop={8} key={r} style={[s.chip, radius === r && s.chipOn]} onPress={() => setRadius(r)}><Text style={[s.chipTxt, radius === r && s.chipTxtOn]}>{radiusLabel(r)}</Text></Pressable>
-                ))}
-              </View>
-              <Pressable style={s.cta} onPress={addHere} disabled={busy} accessibilityRole="button">
-                {busy ? <ActivityIndicator color={C.alwaysLight} /> : <Text style={s.ctaTxt}>Use where I am now</Text>}
-              </Pressable>
-              <Text style={[s.sub, { marginTop: 10, marginBottom: 6 }]}>Or search for the address</Text>
-              <MapSearchBar onFound={([lng, lat]) => { void add(lat, lng); }} />
-              <Pressable onPress={() => setAdding(false)} style={{ marginTop: 10 }}><Text style={s.link}>Cancel</Text></Pressable>
-            </View>
-          )}
         </View>
+        {/* Add a place: full page on the shared form kit. */}
+        <Modal visible={adding} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setAdding(false)}>
+          <FormScreen
+            title="Add a private"
+            accent="place."
+            subtitle="Others never see a zone of yours near it, or any part of a route inside it. Your zones still count for you."
+            onClose={() => setAdding(false)}
+            footer={<FormButton label="Use where I am now" onPress={addHere} busy={busy} />}
+          >
+            <ChipGroup label="What is it" options={LABELS.map(l => ({ value: l, label: l }))} value={label} onChange={setLabel} />
+            <ChipGroup label="Hide everything within" options={MAP_HIDE_RADII.map(r => ({ value: r, label: radiusLabel(r) }))} value={radius} onChange={setRadius} />
+            <View>
+              <FieldLabel>Or find the address</FieldLabel>
+              <MapSearchBar onFound={([lng, lat]) => { void add(lat, lng); }} />
+            </View>
+          </FormScreen>
+        </Modal>
 
         <Text style={s.section}>Game</Text>
         <View style={s.card}>
@@ -209,9 +202,6 @@ export default function PrivacyScreen() {
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     root:    { flex: 1, backgroundColor: C.bg },
-    header:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
-    backBtn: { width: 32, height: 32, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
-    title:   { fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     scroll:  { paddingHorizontal: 18, paddingBottom: 48 },
     section: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2, marginTop: 20, marginBottom: 8 },
     card:    { backgroundColor: C.card, borderRadius: 22 },

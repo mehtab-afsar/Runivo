@@ -18,7 +18,7 @@ interface TextButtonProps {
  */
 export function TextButton({ label, onPress, tone = 'default', disabled }: TextButtonProps) {
   const C = useTheme();
-  const color = disabled ? C.t3 : tone === 'danger' ? C.red : C.t2;
+  const color = disabled ? C.t3 : tone === 'danger' ? C.danger : C.t2;
 
   function handlePress() {
     if (disabled) return;
@@ -27,7 +27,7 @@ export function TextButton({ label, onPress, tone = 'default', disabled }: TextB
   }
 
   return (
-    <Pressable onPress={handlePress} disabled={disabled} hitSlop={8}>
+    <Pressable onPress={handlePress} disabled={disabled} hitSlop={8} style={styles.wrap} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }}>
       {({ pressed }) => (
         <Text style={[Type.label, styles.text, { color, opacity: pressed && !disabled ? 0.6 : 1 }]}>
           {label}
@@ -38,5 +38,6 @@ export function TextButton({ label, onPress, tone = 'default', disabled }: TextB
 }
 
 const styles = StyleSheet.create({
+  wrap: { alignItems: 'center', paddingVertical: 6, minHeight: 32, justifyContent: 'center' },
   text: { textAlign: 'center' },
 });

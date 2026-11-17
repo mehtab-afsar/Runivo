@@ -5,14 +5,16 @@
 //   - in migrations from FIRST_STRICT on: a SECURITY DEFINER function without
 //     `SET search_path`, or without a REVOKE for it somewhere in the same file
 //     (new functions are executable by PUBLIC/anon/authenticated by default).
-// Older migrations are history and are not edited, so they are only checked for naming.
+// Older migrations (the consolidated feature files) are history and are only checked for naming.
 //
 // Usage: node scripts/lint-migrations.mjs [migrationsDir]
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const dir = process.argv[2] ?? 'supabase/migrations';
-const FIRST_STRICT = '20261116000001';
+// The 13 feature files (20261118000001-13) are the consolidated history, so
+// they're checked for naming only, like the archived files they replace.
+const FIRST_STRICT = '20261118000014';
 
 const files = readdirSync(dir).filter(f => f.endsWith('.sql')).sort();
 const problems = [];

@@ -5,7 +5,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { getPlayer } from '@shared/services/store';
 import { computeTerritoryScore } from '@shared/services/claimEngine';
-import { GAME_CONFIG } from '@shared/services/config';
 import {
   fetchOwnPolygons,
   fetchRivalPolygons,
@@ -15,6 +14,7 @@ import {
 import type { TerritoryPolygon } from '@shared/types/game';
 import type { TerritoryFilter, TerritoryDetails } from '../types';
 import type { FeatureCollection } from 'geojson';
+import { ENGINE } from '@shared/engine/runEngine';
 
 export function useTerritoryMap(initialFilter?: TerritoryFilter) {
   const [ownPolygons, setOwnPolygons]         = useState<TerritoryPolygon[]>([]);
@@ -96,7 +96,7 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
     switch (activeFilter) {
       case 'mine':   return ownPolygons;
       case 'rivals': return rivalPolygons;
-      case 'stale':  return ownPolygons.filter(p => p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT);
+      case 'stale':  return ownPolygons.filter(p => p.freshness < ENGINE.FRESHNESS_STALE_AT);
       default:       return [...ownPolygons, ...rivalPolygons];
     }
   }, [activeFilter, ownPolygons, rivalPolygons]);
@@ -133,7 +133,7 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
       avgFreshness:   totalArea > 0
         ? Math.round(ownPolygons.reduce((s, p) => s + p.freshness * p.areaM2, 0) / totalArea)
         : 100,
-      staleCount:     ownPolygons.filter(p => p.freshness < GAME_CONFIG.FRESHNESS_STALE_AT).length,
+      staleCount:     ownPolygons.filter(p => p.freshness < ENGINE.FRESHNESS_STALE_AT).length,
       rivalCount:     rivalPolygons.length,
       // ownPolygons is already decayed by fetchOwnPolygons (territoryService.ts) —
       // decaying again here from the same lastDefendedAt produced a lower score than

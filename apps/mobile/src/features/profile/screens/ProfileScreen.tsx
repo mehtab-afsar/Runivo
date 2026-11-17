@@ -4,6 +4,7 @@
  * week, streak, territory, best efforts, PACE), Activities, Gallery (route
  * shapes) and More (statistics, gear, trophies, clubs).
  */
+import { StatusBarScrim } from '@mobile/shared/components/StatusBarScrim';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +29,7 @@ import { YouHeader, WeekCard, MenuList, TrophyStrip, ClubsStrip, activityName, f
 import { BestEfforts } from '../components/ProfileActivity';
 import { RouteGallery } from '../components/RouteGallery';
 import { periodStats, filterBySport, type SportFilter } from '../utils/profileStats';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 type YouTab = 'progress' | 'activities' | 'gallery' | 'more';
 const TABS: { key: YouTab; label: string; Icon: typeof ChartLineUp }[] = [
@@ -46,7 +48,7 @@ export default function ProfileScreen() {
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const { player, totalAreaM2, loading } = usePlayerStats();
+  const { player, totalAreaM2, territoryScore, loading } = usePlayerStats();
   const {
     runs, weeklyGoalKm, personalRecords, followers, following,
     avatarColor, avatarUri, displayName, location, bio,
@@ -137,20 +139,14 @@ export default function ProfileScreen() {
             onShare={() => Share.share({ message: `Follow me on Runivo: runivo://runner/${playerId}` }).catch(() => {})}
           />
 
-          <View style={s.tabs} accessibilityRole="tablist">
-            {TABS.map(t => {
-              const on = t.key === tab;
-              return (
-                <Pressable
-                  key={t.key} style={[s.tab, on && s.tabOn]} onPress={() => setTab(t.key)}
-                  accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={t.label}
-                >
-                  <t.Icon size={22} color={on ? C.t1 : '#9A9E96'} weight={on ? 'fill' : 'regular'} />
-                  <Text style={[s.tabTxt, on && s.tabTxtOn]}>{t.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <Segmented variant="tabs" style={{ backgroundColor: C.card }} options={TABS.map(t => ({ value: t.key, label: t.label }))} value={tab} onChange={setTab}
+            renderLabel={(o, on) => {
+              const t = TABS.find(x => x.key === o.value)!;
+              return <>
+                <t.Icon size={22} color={on ? C.t1 : C.t3} weight={on ? 'fill' : 'regular'} />
+                <Text style={[s.tabTxt, on && s.tabTxtOn]}>{t.label}</Text>
+              </>;
+            }} />
         </View>
 
         {tab === 'progress' && (
@@ -172,7 +168,7 @@ export default function ProfileScreen() {
                 <Text style={[s.tileLabel, { color: C.alwaysLight }]}>Territory</Text>
                 <Text style={[s.tileNum, { color: C.alwaysLight }]}>{zonesHeld ?? 0}<Text style={[s.tileUnit, { color: '#C9CCC4' }]}> {zonesHeld === 1 ? 'zone' : 'zones'}</Text></Text>
                 <Text style={[s.tileSub, { color: C.lime, fontSize: 13 }]}>{Math.round(totalAreaM2).toLocaleString()} m² held</Text>
-                <Text style={[s.tileSub, { color: '#C9CCC4' }]}>Score {(player?.territoryScore ?? 0).toLocaleString()}</Text>
+                <Text style={[s.tileSub, { color: '#C9CCC4' }]}>Score {territoryScore.toLocaleString()}</Text>
               </Pressable>
             </View>
             <BestEfforts records={personalRecords} />
@@ -266,6 +262,7 @@ export default function ProfileScreen() {
           onClose={cancelEdit}
         />
       )}
+      <StatusBarScrim />
     </View>
   );
 }
@@ -281,9 +278,6 @@ function mkStyles(C: AppColors) {
     plus: { flexDirection: 'row', alignItems: 'center', gap: 12, marginHorizontal: 18, padding: 16, borderRadius: 22, backgroundColor: C.alwaysDark },
     plusTitle: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.alwaysLight },
     plusSub: { fontFamily: Fonts.regular, fontSize: 12, color: '#C9CCC4', marginTop: 2 },
-    tabs: { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-    tab: { flex: 1, height: 52, alignItems: 'center', justifyContent: 'center', gap: 4, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    tabOn: { borderBottomColor: C.t1 },
     tabTxt: { fontFamily: Fonts.regular, fontSize: 12, color: '#9A9E96' },
     tabTxtOn: { fontFamily: Fonts.semiBold, color: C.t1 },
     tiles: { flexDirection: 'row', gap: 12, marginHorizontal: 20 },

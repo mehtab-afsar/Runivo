@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from '@theme/hapticsGated';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import {
-  Route, Flag, Shield, Zap, Flame, UtensilsCrossed, X, Diamond, type LucideIcon,
+  Route, Flag, Shield, Zap, Flame, UtensilsCrossed, Diamond, type LucideIcon,
 } from '@mobile/shared/icons/lucideCompat';
 import {
   ACTIVE_MISSION_TEMPLATES,
@@ -23,6 +23,7 @@ import type { PlayerProfile } from '@shared/services/profile';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { MissionCard, type CardState } from '../components/MissionCard';
 import { MissionRow } from '@features/dashboard/components/MissionRow';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -142,11 +143,7 @@ export default function MissionsScreen() {
   if (loadError || missions.length === 0) {
     return (
       <SafeAreaView style={ss.root}>
-        <View style={ss.header}>
-          <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
-            <Text style={ss.backText} accessible={false}>←</Text>
-          </Pressable>
-        </View>
+        <ScreenHeader title="Missions" onBack={() => navigation.goBack()} />
         <View style={ss.loader}>
           <ErrorState
             title={loadError ? "Couldn't load today's missions" : 'No missions today'}
@@ -162,13 +159,7 @@ export default function MissionsScreen() {
   if (swappingMission) {
     return (
       <SafeAreaView style={ss.root}>
-        <View style={ss.header}>
-          <Pressable onPress={() => setSwappingId(null)} style={ss.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
-            <X size={15} strokeWidth={2.5} color={T.black} />
-          </Pressable>
-          <Text style={ss.headerTitle} numberOfLines={1}>Change "{swappingMission.title}"</Text>
-          <View style={{ width: 36 }} />
-        </View>
+        <ScreenHeader title={`Change "${swappingMission.title}"`} onBack={() => setSwappingId(null)} backIcon="close" />
         {swapBusy ? (
           <View style={ss.loader}><ActivityIndicator color={T.black} /></View>
         ) : (
@@ -221,16 +212,7 @@ export default function MissionsScreen() {
 
   return (
     <SafeAreaView style={ss.root}>
-      <View style={ss.header}>
-        <Pressable onPress={() => navigation.goBack()} style={ss.backBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Back">
-          <Text style={ss.backText} accessible={false}>←</Text>
-        </Pressable>
-        <View style={ss.todayTitleWrap}>
-          <Text style={ss.todayTitle}>Today</Text>
-          <Text style={ss.dateLabel}>{dateLabel} · {progressLabel}</Text>
-        </View>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader variant="large" title="Today" subtitle={`${dateLabel} · ${progressLabel}`} onBack={() => navigation.goBack()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={ss.todayList}>
@@ -277,17 +259,10 @@ function mkStyles(T: TTokens) { return StyleSheet.create({
 
   // Header — no bar, no border, sits directly on the page (only the swap
   // picker's single-line title still uses headerTitle/flex:1 directly).
-  header:          { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 14 : 6, paddingBottom: 10, backgroundColor: T.pageBg },
-  backBtn:         { width: 36, height: 36, borderRadius: 18, backgroundColor: T.surface, borderWidth: 0.5, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
-  backText:        { fontFamily: Fonts.regular, fontSize: 16, color: T.black, lineHeight: 18 },
-  headerTitle:     { fontFamily: Fonts.semiBold, fontSize: 18, color: T.black, flex: 1, textAlign: 'center', marginHorizontal: 8 },
   // "Today" screen's title sits in its own flex:1 wrapper (with the date
   // subtitle) — the bug was flex:1 living on the Text instead of this View,
   // so the wrapper never actually claimed the space between the two buttons
   // and "Today" got clipped against its own margin.
-  todayTitleWrap:  { flex: 1, alignItems: 'center' },
-  todayTitle:      { fontFamily: Fonts.semiBold, fontSize: 18, color: T.black },
-  dateLabel:       { fontFamily: Fonts.regular, fontSize: 11, color: T.t3, marginTop: 1 },
 
   todayList:       { padding: Spacing.gutter, gap: 14 },
   restCard:        { backgroundColor: T.card, borderRadius: 16, padding: 16, borderWidth: 0.5, borderColor: T.border },

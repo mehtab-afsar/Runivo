@@ -13,6 +13,7 @@
 
 import { supabase } from './supabase';
 import { isPlus } from '../engine/entitlements';
+import { weeklyPaceNow } from '../engine/runEngine';
 
 // ----------------------------------------------------------------
 // AI COACH ENABLEMENT — the app's own FEATURES.AI_COACH flag, mirrored here.
@@ -235,7 +236,9 @@ export async function pullProfile(): Promise<void> {
     // from the existing local record — the server has no authoritative value for them.
     paceBalance:        typeof data.pace_balance       === 'number' ? data.pace_balance       : (existing?.paceBalance       ?? 0),
     paceTotalEarned:    typeof data.pace_total_earned  === 'number' ? data.pace_total_earned   : (existing?.paceTotalEarned   ?? 0),
-    paceWeeklyEarned:   typeof data.pace_weekly_earned === 'number' ? data.pace_weekly_earned  : (existing?.paceWeeklyEarned  ?? 0),
+    paceWeeklyEarned:   typeof data.pace_weekly_earned === 'number'
+      ? weeklyPaceNow(data.pace_weekly_earned, data.pace_weekly_reset_at)
+      : (existing?.paceWeeklyEarned ?? 0),
     paceWeeklyResetAt:  data.pace_weekly_reset_at ?? existing?.paceWeeklyResetAt ?? new Date().toISOString(),
     runnerRank:         (data.runner_rank as RunnerRank | undefined) ?? existing?.runnerRank ?? 'pacer',
     subscriptionTier:   typeof data.subscription_tier === 'string' ? data.subscription_tier : (existing?.subscriptionTier ?? 'free'),

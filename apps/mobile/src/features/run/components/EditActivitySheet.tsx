@@ -269,7 +269,7 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
             </View>
 
             <Pressable style={s.delete} onPress={confirmDelete} disabled={saving} accessibilityRole="button">
-              <Trash size={16} color={C.red} weight="regular" />
+              <Trash size={16} color={C.danger} weight="regular" />
               <Text style={s.deleteTxt}>Delete activity</Text>
             </Pressable>
           </ScrollView>
@@ -319,6 +319,6 @@ function mkStyles(C: AppColors) {
     photoAdd: { alignItems: 'center', justifyContent: 'center', gap: 2, borderWidth: 1, borderStyle: 'dashed', borderColor: C.border },
     photoAddTxt: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
     excludeRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginTop: 18 },
-    deleteTxt:{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.red },
+    deleteTxt:{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.danger },
   });
 }

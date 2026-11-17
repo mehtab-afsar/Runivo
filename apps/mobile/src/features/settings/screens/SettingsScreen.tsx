@@ -1,11 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Switch, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { ArrowLeft } from 'phosphor-react-native';
 import { useSettings } from '../hooks/useSettings';
 import { SettingRow } from '../components/SettingRow';
 import { SettingSection } from '../components/SettingSection';
@@ -28,6 +27,7 @@ import { resetPassword } from '@shared/services/auth';
 import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
 import { restorePurchases, manageSubscriptionUrl } from '@features/subscription/services/purchaseService';
 import { useSubscription } from '@features/subscription/hooks/useSubscription';
+import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,13 +47,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <View style={s.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.backBtn}>
-          <ArrowLeft size={16} color={C.t1} weight="regular" />
-        </Pressable>
-        <Text style={s.title}>Settings</Text>
-        <View style={{ width: 32 }} />
-      </View>
+      <ScreenHeader title="Settings" onBack={() => navigation.goBack()} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
@@ -245,9 +239,6 @@ export default function SettingsScreen() {
 
 function mkStyles(C: AppColors) { return StyleSheet.create({
   root:        { flex: 1, backgroundColor: C.bg },
-  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-  backBtn:     { width: 32 },
-  title:       { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   scroll:      { paddingBottom: 40 },
   linkRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, minHeight: 56 },
   linkLabel:   { fontFamily: Fonts.regular, fontSize: 16, color: C.t1 },
