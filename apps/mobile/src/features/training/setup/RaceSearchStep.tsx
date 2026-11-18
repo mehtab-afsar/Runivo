@@ -76,7 +76,7 @@ export default function RaceSearchStep({ today, onPick, onAdd }: {
 
   const cards = (rows ?? []).map(r => {
     const who = entrantsLabel(r.entrants);
-    const line = [r.city, r.kmAway != null && r.kmAway > 15 ? `${r.kmAway} km away` : null, who].filter(Boolean).join(' · ');
+    const line = [r.city, r.kmAway != null && r.kmAway > 15 && r.kmAway < 3000 ? `${r.kmAway} km away` : null, who].filter(Boolean).join(' · ');
     return (
       <Pressable key={r.id} style={s.card} onPress={() => onPick(r)} accessibilityRole="button" accessibilityLabel={`${r.name}, ${fmtRaceDate(r.startsOn)}`}>
         <Text style={s.when}>{fmtRaceDate(r.startsOn)} · {r.distances.map(d => d.label).join(', ')}</Text>

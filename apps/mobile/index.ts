@@ -20,6 +20,16 @@ if (typeof (global as any).crypto?.randomUUID !== 'function') {
   }
 }
 
+// 0c. Dev only: hide known simulator-only noise. Unsigned simulator builds have no
+//     Keychain entitlement, so expo-notifications and the session key store log
+//     errors that never happen on a signed build.
+if (__DEV__) {
+  require('react-native').LogBox.ignoreLogs([
+    '[expo-notifications] Error reading persisted server registration info',
+    '[session] could not use the secure key store',
+  ]);
+}
+
 // 1. Buffer polyfill — must be absolute first so expo-sqlite can encode utf-16le
 (global as any).Buffer = require('buffer').Buffer;
 

@@ -240,17 +240,17 @@ export default function PlanBuilderScreen() {
             <Text style={s.label}>Your distance</Text>
             <PillRow
               options={race.distances.map(d => ({ value: d.id, label: d.label }))}
-              value={distanceId} onChange={setDistanceId} disabled={id => !fits(race.distances.find(d => d.id === id)!)}
+              value={distanceId} onChange={setDistanceId} disabled={anyFits ? id => !fits(race.distances.find(d => d.id === id)!) : undefined}
             />
             {!anyFits && (
               <Text style={s.warn}>
                 {race.distances.some(plannable)
-                  ? `This race is ${Math.max(0, weeks)} weeks away. That's too soon for a plan at these distances. Pick a later race, or mark it and run it.`
+                  ? `This race is ${Math.max(0, weeks)} ${weeks === 1 ? 'week' : 'weeks'} away. That's too soon for a plan. Pick your distance to mark it as a race you're running, or pick a later race.`
                   : "We can build plans for 5K, 10K, half and full marathons. You can still mark this race as one you're running."}
               </Text>
             )}
           </View>
-          <FormTip lead="PaceX:">{tipFor(chosen, weeks)}</FormTip>
+          <FormTip lead="PaceX:">{tipFor(chosen, weeks, anyFits)}</FormTip>
         </>
       ),
       footer: (
@@ -348,11 +348,12 @@ function shortName(n: string): string {
   return (cut.length >= 3 ? cut : n).split(' ').slice(0, 2).join(' ');
 }
 
-function tipFor(d: RaceDistanceOption | null, weeks: number): string {
+function tipFor(d: RaceDistanceOption | null, weeks: number, anyFits = true): string {
   const r = d ? raceForKm(d.distanceM / 1000) : null;
-  if (!r) return 'Pick the distance you are running.';
+  if (!d) return anyFits ? 'Pick the distance you are running.' : "No plan fits in time, but you can still save it as a race you're running.";
+  if (!r) return "PaceX plans 5K to marathon. You can still save this race as one you're running.";
   const { min, max } = PLAN_WEEKS[r];
-  if (weeks < min) return `A ${RACE_LABEL[r]} plan needs at least ${min} weeks.`;
+  if (weeks < min) return `A ${RACE_LABEL[r]} plan needs at least ${min} weeks. Tap "I'm running it, no plan" to add it anyway.`;
   if (weeks > max) return `${weeks} weeks is plenty. The plan starts ${weeks - max} weeks from now; keep running easy until then.`;
   return `${weeks} weeks is enough for a ${RACE_LABEL[r]} if you keep to the plan.`;
 }
