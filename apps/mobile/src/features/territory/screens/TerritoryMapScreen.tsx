@@ -3,7 +3,8 @@ import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MapPin, BookmarkSimple, Fire, Crosshair, ArrowsClockwise, Stack } from 'phosphor-react-native';
+import { MapPin, BookmarkSimple, Fire, Crosshair, ArrowsClockwise, Stack, CaretLeft } from 'phosphor-react-native';
+import { HeaderButton } from '@mobile/shared/components/ScreenHeader';
 import * as Location from 'expo-location';
 import Svg, { Path } from 'react-native-svg';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -28,6 +29,7 @@ import { useLiveFriendRuns } from '@features/run/hooks/useLiveFriendRuns';
 import { LiveFriendMarker } from '@features/run/components/LiveFriendMarker';
 import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 import { ENGINE } from '@shared/engine/runEngine';
+import { PositionArrow } from '@mobile/shared/components/PositionArrow';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -39,6 +41,7 @@ export default function TerritoryMapScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route  = useRoute<RouteProp<RootStackParamList, 'TerritoryMap'>>();
+  const stacked = route.name === 'TerritoryMap';
   const initialFilter = route.params?.initialFilter;
   const clubId = route.params?.clubId;
   const clubName = route.params?.clubName;
@@ -189,7 +192,6 @@ export default function TerritoryMapScreen() {
           animationDuration={0}
         />
         {/* Native dot: MapLibre's JS-animated puck breaks on React Native 0.83 (see patches/). */}
-        {locationGranted && <ML.UserLocation visible renderMode="native" />}
         {/* Under the zones. It used to be placed below "territory-line", which
             didn't exist whenever there were no zones to draw; the zone layers
             are now always mounted, so this anchor is always there. */}
@@ -225,9 +227,20 @@ export default function TerritoryMapScreen() {
             <ML.LineLayer id="planned-loop-line" style={{ lineColor: C.t1, lineWidth: 4, lineDasharray: [1.5, 1.2], lineCap: 'round', lineJoin: 'round' } as any} />
           </ML.ShapeSource>
         )}
+        {/* The runner's arrow last, above zones and routes. */}
+        {locationGranted && <PositionArrow id="map" />}
       </ML.MapView>
 
       <View style={[ss.topOverlay, { top: Math.max(18, insets.top) }]}>
+        {/* Opened on top of another screen (run summary, club, Home): it needs a way back.
+            As the Map tab it has none, like every tab. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        {stacked && (
+          <HeaderButton label="Back" onPress={() => navigation.goBack()}>
+            <CaretLeft size={20} color={C.t1} weight="bold" />
+          </HeaderButton>
+        )}
+        <View style={{ flex: 1 }}>
         <MapSearchBar
           onFound={coord => cameraRef.current?.setCamera({ centerCoordinate: coord, zoomLevel: 15, animationDuration: 900 })}
           trailing={(
@@ -237,6 +250,8 @@ export default function TerritoryMapScreen() {
             </Pressable>
           )}
         />
+        </View>
+        </View>
         <TerritoryFilterChips
           activeFilter={activeFilter}
           counts={{ mine: ownPolygons.length, rivals: rivalPolygons.length, stale: stats.staleCount }}

@@ -37,7 +37,9 @@ export default function TodayCard() {
   const sessionLoop = useTerritorySuggestion(!!easyKm, easyKm);
 
   useFocusEffect(useCallback(() => {
-    getCachedPlan().then(c => setAp(prev => (prev === undefined ? c : prev)));
+    // The cache is written the moment a plan starts or changes, so show it at once;
+    // the server copy replaces it when it lands (no "No plan yet" flash after setup).
+    getCachedPlan().then(c => setAp(prev => (c ? c : prev === undefined ? null : prev)));
     fetchActivePlan().then(setAp).catch(() => {});
   }, []));
 

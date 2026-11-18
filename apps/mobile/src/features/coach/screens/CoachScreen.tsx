@@ -394,7 +394,7 @@ function mkStyles(C: AppColors) {
     glassPill:    { height: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.8)', flexDirection: 'row', alignItems: 'center', gap: 6 },
     glassPillTxt: { fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
     startScroll:  { alignItems: 'center', paddingHorizontal: 24, paddingTop: 40, paddingBottom: 24 },
-    bigOrb:       { width: 128, height: 128, borderRadius: 64, shadowColor: '#9C92EA', shadowOpacity: 0.55, shadowRadius: 40, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
+    bigOrb:       { width: 128, height: 128, borderRadius: 64, shadowColor: '#8F84F0', shadowOpacity: 0.35, shadowRadius: 36, shadowOffset: { width: 0, height: 0 }, elevation: 0 },
     startHi:      { fontFamily: Fonts.semiBold, fontSize: 34, lineHeight: 38, letterSpacing: -0.8, color: C.t1, textAlign: 'center', marginTop: 22 },
     startSub:     { fontFamily: Fonts.regular, fontSize: 15, color: '#55596A', textAlign: 'center', marginTop: 10 },
     // alignSelf stretch: inside the centred scroll the row sized to its content and never wrapped, so the second row ran off the screen.

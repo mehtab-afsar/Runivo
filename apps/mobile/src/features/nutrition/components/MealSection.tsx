@@ -1,8 +1,11 @@
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, Alert, StyleSheet } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
+import { MEAL_ICONS } from '@mobile/shared/icons';
+import { CaretDown, CaretUp } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface MealSectionProps {
@@ -22,7 +25,7 @@ export function MealSection({ meal, entries, expanded, onToggle, onDelete, onEdi
   const mealKcal = entries.reduce((s, e) => s + e.kcal, 0);
 
   const confirmDelete = (id: number) => {
-    Alert.alert('Delete entry?', undefined, [
+    appAlert('Delete entry?', undefined, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => onDelete(id) },
     ]);
@@ -31,10 +34,10 @@ export function MealSection({ meal, entries, expanded, onToggle, onDelete, onEdi
   return (
     <View style={s.section}>
       <Pressable style={s.header} onPress={onToggle}>
-        <Text style={{ fontSize: 16 }}>{meta.emoji}</Text>
+        {(() => { const I = MEAL_ICONS[meal]; return <I size={18} color={C.t1} />; })()}
         <Text style={s.title}>{meta.label}</Text>
         {mealKcal > 0 && <Text style={s.kcal}>{mealKcal} kcal</Text>}
-        <Text style={s.chevron}>{expanded ? '▲' : '▼'}</Text>
+        {expanded ? <CaretUp size={14} color={C.t3} weight="bold" /> : <CaretDown size={14} color={C.t3} weight="bold" />}
       </Pressable>
 
       {expanded && (
@@ -71,7 +74,6 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14 },
   title: { fontFamily: Fonts.medium, fontSize: 13, color: C.t1, flex: 1 },
   kcal: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, fontVariant: ['tabular-nums'] },
-  chevron: { fontSize: 11, color: C.t3 },
   entry: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10,
     borderTopWidth: 0.5, borderTopColor: C.border,

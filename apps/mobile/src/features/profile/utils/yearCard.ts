@@ -24,20 +24,26 @@ export function yearHighlights(y: YearStats): { label: string; value: string }[]
 }
 
 export function buildYearSvg(y: YearStats, username: string): string {
+  // Same family as the run and profile cards: lime, a white card, Outfit.
   const rows = yearHighlights(y).slice(0, 7);
+  const hexPts = Array.from({ length: 6 }, (_, i) => {
+    const a = (Math.PI / 3) * i - Math.PI / 2;
+    return `${(200 + 13 * Math.cos(a)).toFixed(1)},${(50 + 13 * Math.sin(a)).toFixed(1)}`;
+  }).join(' ');
   const lines = rows.map((r, i) => {
-    const yy = 300 + i * 52;
-    return `<text x="36" y="${yy}" font-family="Helvetica" font-size="13" fill="#8A857F">${esc(r.label.toUpperCase())}</text>
-<text x="36" y="${yy + 24}" font-family="Helvetica" font-size="21" font-weight="700" fill="#0A0A0A">${esc(r.value)}</text>`;
+    const yy = 300 + i * 44;
+    return `<text x="54" y="${yy}" font-family="Outfit_500Medium" font-size="12" fill="#6B6E68">${esc(r.label.toUpperCase())}</text>
+<text x="54" y="${yy + 21}" font-family="Outfit_600SemiBold" font-size="18" fill="#17181A">${esc(r.value)}</text>`;
   }).join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 700" width="400" height="700">
-<rect width="400" height="700" fill="#F7F6F4"/>
-<rect width="400" height="8" fill="#7DBA3C"/>
-<text x="36" y="70" font-family="Helvetica" font-size="13" letter-spacing="3" fill="#A39E98">RUNIVO</text>
-<text x="36" y="150" font-family="Helvetica" font-size="72" font-weight="800" fill="#0A0A0A">${y.year}</text>
-<text x="36" y="190" font-family="Helvetica" font-size="20" fill="#0A0A0A">${esc(username)}'s year</text>
-<text x="36" y="242" font-family="Helvetica" font-size="46" font-weight="800" fill="#7DBA3C">${esc(`${Math.round(y.km).toLocaleString('en')} km`)}</text>
+<rect width="400" height="700" fill="#C9F06B"/>
+<polygon points="${hexPts}" fill="none" stroke="#17181A" stroke-width="2.6" stroke-linejoin="round"/>
+<rect x="30" y="90" width="340" height="540" rx="34" fill="#FFFFFF"/>
+<text x="54" y="170" font-family="Outfit_600SemiBold" font-size="68" fill="#17181A">${y.year}</text>
+<text x="54" y="200" font-family="Outfit_400Regular" font-size="16" fill="#6B6E68">${esc(username)}'s year on Runivo</text>
+<text x="54" y="252" font-family="Outfit_600SemiBold" font-size="42" fill="#4E7F1F">${esc(`${Math.round(y.km).toLocaleString('en')} km`)}</text>
 ${lines}
-<text x="36" y="670" font-family="Helvetica" font-size="12" fill="#A39E98">Run. Claim. Defend. · runivo</text>
+<text x="200" y="672" font-family="Outfit_600SemiBold" font-size="20" fill="#17181A" text-anchor="middle">runivo</text>
 </svg>`;
 }
+

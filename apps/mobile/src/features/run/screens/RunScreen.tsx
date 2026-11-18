@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { useNearbyZones } from '../hooks/useNearbyZones';
 import { useZonesAround } from '../hooks/useZonesAround';
 import { sportFor } from '../constants/activities';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -128,7 +129,7 @@ export default function RunScreen() {
   }, [isDark]);
 
   const {
-    activityType, setActivityType, gps, intel,
+    activityType, setActivityType, gps,
     savedRoutes, nearbyRoutes, nearbyLoading,
     selectedRoute, setSelectedRoute, todaySession,
     showActivityModal, setShowActivityModal,
@@ -154,7 +155,7 @@ export default function RunScreen() {
       let m = 0;
       for (let i = 1; i < cp.points.length; i++) { const d = haversineM(cp.points[i - 1], cp.points[i]); if (d >= 1 && d < 100) m += d; }
       const km = (m / 1000).toFixed(1);
-      Alert.alert(
+      appAlert(
         'Interrupted run found',
         `A run was interrupted (~${km} km of GPS data). Recover it?`,
         [
@@ -168,7 +169,7 @@ export default function RunScreen() {
             } catch {
               // Keep the checkpoint: the GPS data is still on the phone and the
               // prompt will offer recovery again next time.
-              Alert.alert("Couldn't recover the run", 'Your GPS data is still on this phone. Try again from the Run screen.');
+              appAlert("Couldn't recover the run", 'Your GPS data is still on this phone. Try again from the Run screen.');
               return;
             }
             clearInterruptedRunCheckpoint();
@@ -196,8 +197,6 @@ export default function RunScreen() {
         onLockedStyle={() => navigation.navigate('Subscription', { reason: 'map_styles' })}
         sheetAnim={sheetAnim}
         topInset={insets.top}
-        intelEnemy={intel.enemy}
-        intelWeak={intel.weak}
         ownZones={zonesAround.own}
         rivalZones={zonesAround.rivals}
         gpsColor={gpsColor(C, gps.status, gps.accuracy)}

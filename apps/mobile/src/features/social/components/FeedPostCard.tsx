@@ -5,7 +5,9 @@ import Svg, { Polyline, Polygon, Circle } from 'react-native-svg';
 import { CityBackdrop } from '@mobile/shared/components/CityBackdrop';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { avatarColor } from '@shared/lib/avatarUtils';
-import { fmtDistShort } from '@mobile/shared/lib/formatters';
+import { fmtDistShort, fmtClock } from '@mobile/shared/lib/formatters';
+import { buildRunCardSvg, RUN_CARD_W, RUN_CARD_H } from '@mobile/shared/lib/runCard';
+import { shareSvgAsImage } from '@mobile/shared/components/CaptureHost';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
 import { fetchPostLikers, reportPost } from '@features/social/services/feedService';
 import type { FeedPost, PostLiker } from '@features/social/types';
@@ -41,6 +43,27 @@ function buildShareMessage(post: FeedPost): string {
     default:
       return `${post.username} ran ${fmtDistShort(post.distanceM)} km${post.avgPace ? ` at ${post.avgPace}/km` : ''} on Runivo.`;
   }
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** A run post as the shared run card (route, distance, pace, time). */
+function runCardFor(post: FeedPost): string {
+  const d = new Date(post.createdAt);
+  const h = d.getHours();
+  const part = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+  const sport = post.activityType === 'cycle' ? 'ride' : post.activityType === 'walk' ? 'walk' : post.activityType === 'hike' ? 'hike' : 'run';
+  return buildRunCardSvg({
+    name: post.username,
+    sub: `${part} ${sport} · ${d.getDate()} ${MONTHS[d.getMonth()]}`,
+    title: post.title || `${part} ${sport}`,
+    stats: [
+      { value: fmtDistShort(post.distanceM), label: 'km' },
+      ...(post.avgPace ? [{ value: post.avgPace, label: 'pace /km' }] : []),
+      { value: fmtClock(post.durationSec), label: 'time' },
+    ],
+    route: post.routePoints,
+  });
 }
 
 const MAP_W = 375;
@@ -186,8 +209,13 @@ export const FeedPostCard = React.memo(function FeedPostCard({
     ? ` · ${post.activityType === 'long_run' ? 'Long run' : post.activityType === 'cycle' ? 'Ride' : post.activityType === 'trail_run' ? 'Trail run' : post.activityType[0].toUpperCase() + post.activityType.slice(1)}`
     : '';
 
+  // Runs share as a picture (the run card); battle posts, and any run the picture
+  // can't be made for, share as a line of text.
   const handleShare = useCallback(() => {
-    Share.share({ message: buildShareMessage(post) }).catch(() => {});
+    const text = () => Share.share({ message: buildShareMessage(post) }).catch(() => {});
+    if (post.postType !== 'run' || post.distanceM <= 0) { text(); return; }
+    shareSvgAsImage(runCardFor(post), { w: RUN_CARD_W, h: RUN_CARD_H, outW: 1080 }, `runivo_run_${post.id.slice(0, 8)}.png`, 'Share this run')
+      .catch(text);
   }, [post]);
 
   // Errors propagate so the sheet only says "Reported" when the report actually went through.

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
-import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
+import { ClubInitialsTile } from './ClubHeroCard';
 import type { Club } from '../types';
 import { getClubTier } from '../clubTier';
 
@@ -27,7 +27,6 @@ export const ClubRankRow = React.memo(function ClubRankRow({
 }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
-  const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(club.badge_emoji);
   const tier = getClubTier(club.total_km);
   const isPodium = rank <= 3;
 
@@ -43,9 +42,7 @@ export const ClubRankRow = React.memo(function ClubRankRow({
         {rank}
       </Text>
 
-      <View style={s.badge}>
-        <BadgeIcon size={18} color={badgeColor} weight="light" />
-      </View>
+      <ClubInitialsTile name={club.name} size={40} uri={club.avatar_url} />
 
       <View style={s.middle}>
         <Text style={s.name} numberOfLines={1}>{club.name}</Text>

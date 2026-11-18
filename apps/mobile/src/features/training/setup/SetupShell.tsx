@@ -8,6 +8,7 @@ import { View, Text, Pressable, ScrollView, KeyboardAvoidingView, Platform, Styl
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CaretLeft, X } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { FooterFade } from '@mobile/shared/components/FooterFade';
 
 export default function SetupShell({
   step, steps, onBack, onClose, title, accent, subtitle, children, footer,
@@ -41,7 +42,7 @@ export default function SetupShell({
         {!!subtitle && <Text style={s.sub}>{subtitle}</Text>}
         <View style={s.content}>{children}</View>
       </ScrollView>
-      {!!footer && <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) + 4 }]}>{footer}</View>}
+      {!!footer && <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) + 4 }]}><FooterFade />{footer}</View>}
     </KeyboardAvoidingView>
   );
 }

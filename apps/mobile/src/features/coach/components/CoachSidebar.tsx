@@ -1,14 +1,18 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X } from 'phosphor-react-native';
+import {
+  X, SunHorizon, Lightning, ChartBar, Fire, MapTrifold, CalendarDots, ChatCircle, BowlFood, FlagCheckered, ShieldCheck,
+  type Icon,
+} from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
 
 const SCREEN_H = Dimensions.get('window').height;
 const SHEET_H  = SCREEN_H * 0.88;
 
 interface Capability {
-  emoji: string;
+  Icon: Icon;
   name: string;
   desc: string;
   free: boolean;
@@ -16,16 +20,16 @@ interface Capability {
 }
 
 const CAPABILITIES: Capability[] = [
-  { emoji: '☀️', name: 'Morning Brief',      desc: 'Daily readiness + territory alert',    free: true,  prompt: '' },
-  { emoji: '⚡', name: 'Post-Run Debrief',   desc: 'Auto after every run',                 free: true,  prompt: 'Analyse my last run' },
-  { emoji: '📊', name: 'Weekly Review',      desc: 'Auto every Sunday',                    free: true,  prompt: 'Give me my weekly review' },
-  { emoji: '🔥', name: 'Habit Tracking',     desc: 'Consistency score + streak',           free: true,  prompt: 'habit_tracking' },
-  { emoji: '🗺',  name: 'Territory Strategy', desc: 'Which zones to defend or expand',      free: false, prompt: 'Plan my territory strategy for this week' },
-  { emoji: '📅', name: 'Training Plan',      desc: 'Structured 4–8 week curriculum',       free: false, prompt: 'Create me a training plan' },
-  { emoji: '💬', name: 'Ask Anything',       desc: 'Running coach on demand',              free: false, prompt: '' },
-  { emoji: '🥗', name: 'Nutrition Coach',    desc: '14-day food + run pattern analysis',   free: false, prompt: 'nutrition_coach' },
-  { emoji: '🏁', name: 'Race Prep',          desc: 'Goal race → peaking plan',             free: false, prompt: 'Help me prepare for a race' },
-  { emoji: '🛡',  name: 'Injury Prevention',  desc: 'Weekly load + decline monitoring',     free: true,  prompt: 'I have pain — what should I do?' },
+  { Icon: SunHorizon, name: 'Morning Brief',      desc: 'Daily readiness + territory alert',    free: true,  prompt: '' },
+  { Icon: Lightning, name: 'Post-Run Debrief',   desc: 'Auto after every run',                 free: true,  prompt: 'Analyse my last run' },
+  { Icon: ChartBar, name: 'Weekly Review',      desc: 'Auto every Sunday',                    free: true,  prompt: 'Give me my weekly review' },
+  { Icon: Fire, name: 'Habit Tracking',     desc: 'Consistency score + streak',           free: true,  prompt: 'habit_tracking' },
+  { Icon: MapTrifold, name: 'Territory Strategy', desc: 'Which zones to defend or expand',      free: false, prompt: 'Plan my territory strategy for this week' },
+  { Icon: CalendarDots, name: 'Training Plan',      desc: 'Structured 4–8 week curriculum',       free: false, prompt: 'Create me a training plan' },
+  { Icon: ChatCircle, name: 'Ask Anything',       desc: 'Running coach on demand',              free: false, prompt: '' },
+  { Icon: BowlFood, name: 'Nutrition Coach',    desc: '14-day food + run pattern analysis',   free: false, prompt: 'nutrition_coach' },
+  { Icon: FlagCheckered, name: 'Race Prep',          desc: 'Peak on race day',             free: false, prompt: 'Help me prepare for a race' },
+  { Icon: ShieldCheck, name: 'Injury Prevention',  desc: 'Weekly load + decline monitoring',     free: true,  prompt: 'I have pain — what should I do?' },
 ];
 
 interface Props {
@@ -89,14 +93,17 @@ export function CoachSidebar({ visible, onClose, onSelectCapability }: Props) {
                 if (cap.prompt) onSelectCapability(cap.prompt);
               }}
             >
-              <Text style={ss.capEmoji}>{cap.emoji}</Text>
+              <View style={[ss.capIcon, { backgroundColor: C.lavender }]}><cap.Icon size={20} color={C.lavenderInk} weight="fill" /></View>
               <Text style={[ss.capName, { color: C.black }]}>{cap.name}</Text>
               <Text style={[ss.capDesc, { color: C.t3 }]} numberOfLines={2}>{cap.desc}</Text>
-              <View style={[ss.pill, { backgroundColor: cap.free ? C.greenBg : C.amberBg }]}>
-                <Text style={[ss.pillText, { color: cap.free ? C.green : C.amber }]}>
-                  {cap.free ? 'Free' : 'Premium'}
-                </Text>
-              </View>
+              {/* Free and Premium labels only mean something while subscriptions are on. */}
+              {SUBSCRIPTIONS_ENABLED && (
+                <View style={[ss.pill, { backgroundColor: cap.free ? C.greenBg : C.amberBg }]}>
+                  <Text style={[ss.pillText, { color: cap.free ? C.green : C.amber }]}>
+                    {cap.free ? 'Free' : 'Premium'}
+                  </Text>
+                </View>
+              )}
             </Pressable>
           ))}
         </ScrollView>
@@ -115,7 +122,7 @@ function mkStyles(C: AppColors) {
   xRed:        { fontFamily: Fonts.bold },
   grid:        { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 10 },
   capCard:     { width: '47%', borderRadius: 12, borderWidth: 0.5, padding: 12, gap: 4 },
-  capEmoji:    { fontSize: 22, marginBottom: 4 },
+  capIcon:     { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   capName:     { fontFamily: Fonts.medium, fontSize: 12 },
   capDesc:     { fontFamily: Fonts.regular, fontSize: 11, lineHeight: 14 },
   pill:        { alignSelf: 'flex-start', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },

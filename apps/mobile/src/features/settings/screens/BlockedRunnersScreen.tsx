@@ -2,7 +2,8 @@
  * Runners you blocked or muted, with Unblock / Unmute.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -33,7 +34,7 @@ export default function BlockedRunnersScreen() {
       await (r.kind === 'blocked' ? unblockUser(r.userId) : unmuteUser(r.userId));
       setRows(prev => (prev ?? []).filter(x => !(x.userId === r.userId && x.kind === r.kind)));
     } catch {
-      Alert.alert('Something went wrong', 'Check your connection and try again.');
+      appAlert('Something went wrong', 'Check your connection and try again.');
     } finally {
       setBusyId(null);
     }

@@ -43,6 +43,9 @@ async function ensureTable(): Promise<void> {
       id TEXT PRIMARY KEY, data TEXT NOT NULL, expires_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_missions_expires ON missions(expires_at);
+    CREATE TABLE IF NOT EXISTS mission_runs (
+      run_id TEXT PRIMARY KEY, applied_at INTEGER NOT NULL
+    );
   `);
 }
 
@@ -78,11 +81,21 @@ export async function updateMissionsAfterRun(runResult: {
   fastKmCount:         number;
   defendedZonesCount:  number;
   rivalZonesStolen:    number;
+  /** Counts a run once: saving it again after a failed finish (Retry) must not add it twice. */
+  runId?:              string;
 }): Promise<{ missions: Mission[]; newlyCompleted: Mission[] }> {
   const current             = await getTodaysMissions();
+  if (runResult.runId && _db.getFirstSync('SELECT 1 FROM mission_runs WHERE run_id = ?', [runResult.runId])) {
+    return { missions: current, newlyCompleted: [] };
+  }
   const previouslyCompleted = current.filter(m => m.completed).map(m => m.id);
   const updated             = updateMissionProgress(current, runResult);
   await saveMissions(updated);
+  if (runResult.runId) {
+    const now = Date.now();
+    _db.runSync('INSERT OR IGNORE INTO mission_runs (run_id, applied_at) VALUES (?, ?)', [runResult.runId, now]);
+    _db.runSync('DELETE FROM mission_runs WHERE applied_at < ?', [now - 3 * 86_400_000]);
+  }
   const newlyCompleted = updated.filter(m => m.completed && !previouslyCompleted.includes(m.id));
   return { missions: updated, newlyCompleted };
 }

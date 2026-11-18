@@ -6,6 +6,7 @@ import {
   RACE_LABEL, matchRun, weekOf, type TrainingPlanV2, type Session, updatePacesFromRun, addDays, estimateFiveK,
 } from '@shared/engine/training';
 import { sessionFromCoach, type CoachSession } from '@shared/engine/coachSession';
+import { leaveRace } from './raceService';
 
 /**
  * Structured training plans (packages/shared/src/engine/training.ts), stored in
@@ -94,20 +95,37 @@ export async function savePlan(ap: ActivePlan): Promise<void> {
 export async function endPlan(ap: ActivePlan): Promise<void> {
   await cache(null);
   await supabase.from('training_plans').update({ status: 'abandoned' }).eq('id', ap.id);
+  // A plan built for a race entered the runner in it ("42 training"). Ending
+  // the plan takes them back out, or they stayed counted for a race they dropped.
+  if (ap.plan.raceRef && localToday() <= ap.plan.raceDate) await leaveRace(ap.plan.raceRef.distanceId).catch(() => {});
 }
 
 /**
  * Starting values for plan setup: the 5K time from onboarding, recent weekly
  * distance, and a 5K estimate from the best recent run (for "I don't know").
  */
-export async function fetchPlanDefaults(): Promise<{ fiveKSec: number | null; weeklyKm: number | null; runsKm: number | null; estimate: { fiveKSec: number; runs: number } | null }> {
+export async function fetchPlanDefaults(): Promise<{
+  fiveKSec: number | null; weeklyKm: number | null; runsKm: number | null; estimate: { fiveKSec: number; runs: number } | null;
+  /** The week the runner gave in onboarding, so the plan setup doesn't ask again from scratch. */
+  runDays: number[] | null; longRunDay: number | null; cautious: boolean;
+}> {
   const { data: { user } } = await supabase.auth.getUser();
   let fiveKSec: number | null = null;
   let goalKm: number | null = null;
+  let runDays: number[] | null = null;
+  let longRunDay: number | null = null;
+  let cautious = false;
   if (user) {
-    const { data } = await supabase.from('profiles').select('recent_5k_seconds, weekly_goal_km').eq('id', user.id).maybeSingle();
+    const { data } = await supabase.from('profiles')
+      .select('recent_5k_seconds, weekly_goal_km, run_days, long_run_day, niggles, returning_from_break')
+      .eq('id', user.id).maybeSingle();
     fiveKSec = (data?.recent_5k_seconds as number | null) ?? null;
     goalKm = (data?.weekly_goal_km as number | null) ?? null;
+    const days = data?.run_days as number[] | null | undefined;
+    runDays = Array.isArray(days) && days.length >= 3 ? days.filter(d => d >= 0 && d <= 6).slice(0, 5) : null;
+    longRunDay = typeof data?.long_run_day === 'number' ? data.long_run_day : null;
+    const niggles = data?.niggles as string[] | null | undefined;
+    cautious = !!data?.returning_from_break || (Array.isArray(niggles) && niggles.length > 0);
   }
   // Average of the last 4 weeks of on-foot running, when there is any.
   const since = Date.now() - 28 * 86_400_000;
@@ -116,7 +134,7 @@ export async function fetchPlanDefaults(): Promise<{ fiveKSec: number | null; we
   const km = runs.reduce((t, r) => t + r.distanceMeters / 1000, 0) / 4;
   const running = recent.filter(r => r.activityType === 'run' || !r.activityType);
   const estimate = estimateFiveK(running.map(r => ({ distanceKm: r.distanceMeters / 1000, durationSec: r.durationSec, startTime: r.startTime })), Date.now());
-  return { fiveKSec, weeklyKm: km >= 3 ? Math.round(km) : goalKm, runsKm: km >= 3 ? Math.round(km) : null, estimate };
+  return { fiveKSec, weeklyKm: km >= 3 ? Math.round(km) : goalKm, runsKm: km >= 3 ? Math.round(km) : null, estimate, runDays, longRunDay, cautious };
 }
 
 /**

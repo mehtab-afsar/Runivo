@@ -38,6 +38,7 @@ interface Args {
 export function useVoiceCues(a: Args): void {
   const lastKm = useRef(0);
   const lastKmAt = useRef(0);
+  const lastSplit = useRef<number | undefined>(undefined);
   const loopSaid = useRef(false);
   const lastBanner = useRef<string | null>(null);
   const lastBannerAt = useRef(0);
@@ -51,7 +52,9 @@ export function useVoiceCues(a: Args): void {
     if (!a.running) return;
     const km = Math.floor(a.distanceKm);
     if (km > lastKm.current && km >= 1) {
-      say(kmCue(km, a.elapsedSec - lastKmAt.current, a.elapsedSec, a.ride));
+      const split = a.elapsedSec - lastKmAt.current;
+      say(kmCue(km, split, a.elapsedSec, a.ride, lastSplit.current));
+      lastSplit.current = split;
       lastKm.current = km;
       lastKmAt.current = a.elapsedSec;
     }

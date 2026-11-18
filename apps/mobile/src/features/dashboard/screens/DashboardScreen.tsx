@@ -11,6 +11,7 @@ import { Bell, Search } from '@mobile/shared/icons/lucideCompat';
 import Svg, { Circle } from 'react-native-svg';
 import { RunivoMark } from '@mobile/shared/components/RunivoMark';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
+import { useMyIdentity } from '@mobile/shared/hooks/useMyIdentity';
 import { ZonePreview } from '@mobile/shared/components/ZonePreview';
 import { getTerritoryPolygons } from '@shared/services/store';
 import { ENGINE } from '@shared/engine/runEngine';
@@ -38,6 +39,7 @@ export default function DashboardScreen() {
   const insets     = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const dash       = useDashboard();
+  const me         = useMyIdentity();
   const gate       = useFeatureGate();
   const liveFriends = useLiveFriendRuns();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -104,7 +106,8 @@ export default function DashboardScreen() {
   const now = new Date();
   const h = now.getHours();
   const greeting = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : h < 21 ? 'Good evening' : 'Good night';
-  const firstName = (dash.player.username || '').split(/[._\s]/)[0] || dash.player.username;
+  // The runner's own first name once they've set one, else their username.
+  const firstName = (me.name || dash.player.username || '').split(/[._\s]/)[0] || dash.player.username;
   const dateLine = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const streakDays = dash.player.streakDays || 0;
   const weeklyEarned = weeklyPaceNow(dash.player.paceWeeklyEarned, dash.player.paceWeeklyResetAt);

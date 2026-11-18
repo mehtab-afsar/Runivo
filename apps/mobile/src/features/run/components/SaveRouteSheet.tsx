@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, TextInput, Pressable, StyleSheet,
-  ScrollView, Switch, ActivityIndicator, Alert,
-} from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Switch, ActivityIndicator } from 'react-native';
 import * as Haptics from '@theme/hapticsGated';
 import { saveSavedRoute, type StoredSavedRoute } from '@shared/services/store';
 import { pushSavedRoutes } from '@shared/services/sync';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import { fmtDist } from '@mobile/shared/lib/formatters';
-import { ROUTE_ICON_OPTIONS as ICON_OPTIONS } from '@mobile/shared/constants/routeIcons';
+import { GlyphBadge, GlyphIcon, glyphFor, ROUTE_ICON_KEYS } from '@mobile/shared/icons';
 import { ModalSheet } from '@mobile/shared/components/ModalSheet';
 
 interface SaveRouteSheetProps {
@@ -50,7 +48,7 @@ export default function SaveRouteSheet({
     } catch {
       // `saving` used to stay true forever here, leaving the button dead.
       setSaving(false);
-      Alert.alert("Couldn't save the route", 'Please try again.');
+      appAlert("Couldn't save the route", 'Please try again.');
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -66,7 +64,7 @@ export default function SaveRouteSheet({
 
       {/* Route info */}
       <View style={ss.infoRow}>
-        <View style={ss.infoIconWrap}>{ICON_OPTIONS.find(o => o.key === emoji) ? (() => { const { Icon, color } = ICON_OPTIONS.find(o => o.key === emoji)!; return <Icon size={22} color={color} weight="light" />; })() : null}</View>
+        <GlyphBadge glyph={emoji} size={40} shape="square" />
         <View>
           <Text style={ss.infoDistance}>{fmtDist(distanceM)} km</Text>
           {durationSec != null && (
@@ -89,20 +87,20 @@ export default function SaveRouteSheet({
         returnKeyType="done"
       />
 
-      {/* Emoji picker */}
+      {/* Icon picker */}
       <Text style={ss.sectionLabel}>ICON</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
         <View style={ss.emojiRow}>
-          {ICON_OPTIONS.map(({ key, Icon, color }) => (
+          {ROUTE_ICON_KEYS.map(key => (
             <Pressable hitSlop={8}
               key={key}
               style={[ss.emojiBtn, emoji === key && ss.emojiBtnActive]}
               onPress={() => { setEmoji(key); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
               accessibilityRole="radio"
               accessibilityState={{ selected: emoji === key }}
-              accessibilityLabel={`Route icon: ${key}`}
+              accessibilityLabel={`Route icon: ${glyphFor(key).label}`}
             >
-              <Icon size={18} color={emoji === key ? color : C.t2} weight="light" />
+              <GlyphIcon glyph={key} size={20} color={emoji === key ? undefined : C.t2} weight={emoji === key ? 'fill' : 'regular'} />
             </Pressable>
           ))}
         </View>

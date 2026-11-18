@@ -1,5 +1,6 @@
 import { openDB, IDBPDatabase } from 'idb';
 import type { TerritoryPolygon, RunnerRank, TerritoryTier } from '../types/game';
+import { withoutAccountSettings } from './accountSettings';
 
 const DB_NAME = 'runivo';
 const DB_VERSION = 11;
@@ -478,6 +479,11 @@ export async function getRuns(limit?: number): Promise<StoredRun[]> {
 
 /** Returns runs whose startTime >= sinceMs (epoch milliseconds). Much cheaper than
  *  fetching all runs when you only need today's or this-week's data. */
+/** Runs the server still needs: never uploaded, or uploaded but not scored. */
+export async function getRunsNeedingSync(): Promise<StoredRun[]> {
+  return (await getRuns()).filter(r => !r.synced || r.serverProcessed === false).reverse();
+}
+
 export async function getRunsSince(sinceMs: number): Promise<StoredRun[]> {
   const db = await getDB();
   const range = IDBKeyRange.lowerBound(sinceMs);
@@ -884,5 +890,5 @@ export async function clearAllLocalData(): Promise<void> {
     const tx = db.transaction(stores, 'readwrite');
     await Promise.all(stores.map(name => tx.objectStore(name).clear()));
     await tx.done;
-  }, undefined, 'clearAllLocalData');
+  }, undefined, 'clearAllLocalData');  await saveSettings(withoutAccountSettings(await getSettings(), DEFAULT_SETTINGS));
 }

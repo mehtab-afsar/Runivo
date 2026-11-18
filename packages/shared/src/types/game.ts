@@ -2,8 +2,6 @@
 
 export type ActivityType = 'run' | 'walk' | 'cycle' | 'hike' | 'trail' | 'interval' | 'long_run';
 
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
-
 export type SubscriptionTier = 'free' | 'premium';
 
 // Note: MissionType lives in services/missions.ts, not here — this file used to
@@ -72,14 +70,6 @@ export interface TerritoryPolygon {
   isLoopFill: boolean;
   tier: TerritoryTier;
   synced: boolean;
-}
-
-export interface ProcessRunTerritoryResponse {
-  territoryGenerated: boolean;
-  newZonesClaimed:    number;
-  rivalZonesStolen:   number;
-  paceAdjustment:     number;
-  stolenFromUserIds:  string[];
 }
 
 // ── Training plan types ───────────────────────────────────────────────────────

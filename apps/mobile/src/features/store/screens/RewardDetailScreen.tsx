@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share, Alert, Linking, Platform } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView, Share, Linking, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { CaretLeft, SealCheck, Coffee, Flag as FlagIcon, Sneaker } from 'phosphor-react-native';
@@ -70,7 +71,7 @@ export default function RewardDetailScreen() {
     try {
       await setRewardUsed(mine.id, !mine.usedAt);
       setMine({ ...mine, usedAt: mine.usedAt ? null : new Date().toISOString() });
-    } catch { Alert.alert("Couldn't update that", 'Check your connection and try again.'); }
+    } catch { appAlert("Couldn't update that", 'Check your connection and try again.'); }
     finally { setMarkBusy(false); }
   };
   const openDirections = () => {
@@ -99,7 +100,7 @@ export default function RewardDetailScreen() {
   // Spending PACE is not undoable, so the button asks first rather than redeeming on one tap.
   const handleClaim = () => {
     if (redeeming || redeemedMsg || lock.blocked || reward.redeemed) return;
-    Alert.alert(
+    appAlert(
       `Redeem ${reward.brand}?`,
       `${reward.valueLabel} for ${reward.paceCost} PACE. This can't be undone.`,
       [
@@ -193,7 +194,7 @@ export default function RewardDetailScreen() {
           <>
             <Text style={s.needMore}>You need {reward.paceCost - paceBalance} more PACE</Text>
             <Pressable style={[s.codeShare, { alignSelf: 'flex-start', marginBottom: 16 }]} onPress={toggleGoal} accessibilityRole="button">
-              <Text style={s.codeShareText}>{isGoal ? 'Saving for this ✓ · Stop' : 'Save for this'}</Text>
+              <Text style={s.codeShareText}>{isGoal ? 'Saving for this · Stop' : 'Save for this'}</Text>
             </Pressable>
           </>
         )}

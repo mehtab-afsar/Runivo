@@ -7,6 +7,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { AwardId } from '@shared/types/game';
 import { X } from 'phosphor-react-native';
+import { GlyphBadge } from '@mobile/shared/icons';
 import { useTheme, Type, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -38,7 +39,7 @@ export default function AwardDetailScreen() {
       </Pressable>
 
       <View style={s.content}>
-        <Text style={[s.icon, !isEarned && s.iconLocked]}>{isEarned ? def.icon : '🔒'}</Text>
+        <View style={s.icon}><GlyphBadge glyph={isEarned ? def.icon : '🔒'} size={96} muted={!isEarned} /></View>
         <Text style={s.title}>{def.title}</Text>
         <View style={[s.categoryBadge, isEarned && s.categoryBadgeEarned]}>
           <Text style={[s.categoryText, isEarned && s.categoryTextEarned]}>
@@ -63,8 +64,7 @@ function mkStyles(C: AppColors) {
     root:            { flex: 1, backgroundColor: C.bg },
     closeBtn:        { position: 'absolute', top: 52, right: 20, width: 32, height: 32, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
     content:         { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-    icon:            { fontSize: 72, marginBottom: 16 },
-    iconLocked:      { opacity: 0.35 },
+    icon:            { marginBottom: 16 },
     title:           { fontFamily: Fonts.semiBold, fontSize: 28, color: C.black, textAlign: 'center', marginBottom: 12 },
     categoryBadge:   { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6, backgroundColor: C.stone, borderWidth: 0.5, borderColor: C.border, marginBottom: 16 },
     categoryBadgeEarned: { backgroundColor: C.amberBg, borderColor: C.gold },

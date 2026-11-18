@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, Modal, Animated, Easing, StyleSheet, AccessibilityInfo } from 'react-native';
 import { useTheme, Fonts } from '@theme';
-import { Medal } from 'phosphor-react-native';
+import { GlyphIcon, glyphFor, toneColors } from '@mobile/shared/icons';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { AwardId } from '@shared/types/game';
 
@@ -116,8 +116,8 @@ export default function AwardUnlockSheet({ visible, onClose, awards }: Props) {
             ))}
           </View>
 
-          <Animated.View style={[ss.icon, { backgroundColor: C.redLo, transform: [{ scale: iconScale }] }]}>
-            <Medal size={34} color={C.red} weight="fill" />
+          <Animated.View style={[ss.icon, { backgroundColor: toneColors(C, glyphFor(many ? '🏅' : def?.icon).tone).bg, transform: [{ scale: iconScale }] }]}>
+            <GlyphIcon glyph={many ? '🏅' : def?.icon} size={34} weight="fill" />
           </Animated.View>
 
           <Text style={[ss.eyebrow, { color: C.t2 }]}>Award unlocked</Text>

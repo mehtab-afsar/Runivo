@@ -54,3 +54,4 @@ supabase/pull_snapshots/
 
 # Stray root app.json; the real config is apps/mobile/app.config.ts
 /app.json
+mock-pictures/

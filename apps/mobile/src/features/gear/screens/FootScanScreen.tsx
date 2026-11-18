@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, Pressable, Image, ScrollView, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, Image, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from '@theme/hapticsGated';
@@ -7,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Camera, ArrowClockwise, CheckCircle } from 'phosphor-react-native';
 import { analyseFootImage, ARCH_INFO, type FootScanResult } from '../services/footScanService';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { GlyphBadge } from '@mobile/shared/icons';
 
 type Step = 'instructions' | 'preview' | 'analysing' | 'result';
 
@@ -22,7 +24,7 @@ export default function FootScanScreen() {
   const capture = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Camera access needed', 'Enable camera in Settings to scan your foot.');
+      appAlert('Camera access needed', 'Enable camera in Settings to scan your foot.');
       return;
     }
     const res = await ImagePicker.launchCameraAsync({
@@ -64,7 +66,7 @@ export default function FootScanScreen() {
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         {step === 'instructions' && (
           <View style={s.section}>
-            <Text style={s.emoji}>🦶</Text>
+            <View style={s.emoji}><GlyphBadge glyph="🦶" size={88} /></View>
             <Text style={s.heading}>Analyse your arch type</Text>
             <Text style={s.body}>Place your foot flat on a light-coloured floor and take a photo from directly above. Keep the whole foot in frame.</Text>
             <Pressable style={s.primaryBtn} onPress={capture}>
@@ -100,7 +102,7 @@ export default function FootScanScreen() {
               <View style={s.resultHeader}>
                 <CheckCircle size={20} color={C.green} weight="light" />
                 <Text style={[s.resultTitle, { color: C.green }]}>
-                  {archInfo.emoji} {archInfo.label} · {result.confidence}% confidence
+                  {archInfo.label} · {result.confidence}% confidence
                 </Text>
               </View>
               <Text style={s.resultBody}>{result.explanation}</Text>
@@ -127,7 +129,7 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   title:   { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
   scroll:  { padding: 16, paddingTop: 8 },
   section: { alignItems: 'center', gap: 16 },
-  emoji:   { fontSize: 56, marginTop: 24 },
+  emoji:   { marginTop: 24 },
   heading: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1, textAlign: 'center' },
   body:    { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center', lineHeight: 22, maxWidth: 300 },
   preview: { width: '100%', aspectRatio: 3 / 4, borderRadius: 12, marginVertical: 8 },

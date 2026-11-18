@@ -3,7 +3,7 @@
  * aren't buried in Settings. Tapping cycles the value and saves it.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import * as Haptics from '@theme/hapticsGated';
 import { Timer, PauseCircle, Heartbeat } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -36,7 +36,8 @@ export function RunPrefChips() {
   const togglePause = () => { const v = !autoPause; setAutoPause(v); save({ autoPause: v }); };
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row} style={{ flexGrow: 0, marginBottom: 12 }}>
+    // Wraps instead of scrolling sideways: a chip cut at the screen edge read as broken.
+    <View style={[s.row, { marginBottom: 12 }]}>
       <Pressable hitSlop={8} style={s.chip} onPress={nextCountdown} accessibilityRole="button" accessibilityLabel={`Countdown ${countdown ? `${countdown} seconds` : 'off'}. Change`}>
         <Timer size={14} color={C.t1} />
         <Text style={s.txt}>Countdown {countdown ? `${countdown}s` : 'off'}</Text>
@@ -50,13 +51,13 @@ export function RunPrefChips() {
         <Heartbeat size={14} color={C.t1} />
         <Text style={s.txt}>Watch or HR strap</Text>
       </Pressable>
-    </ScrollView>
+    </View>
   );
 }
 
 function mk(C: AppColors) {
   return StyleSheet.create({
-    row: { flexDirection: 'row', gap: 8, paddingHorizontal: 18 },
+    row: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: 18 },
     chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
     chipOn: { backgroundColor: C.t1, borderColor: C.t1 },
     txt: { fontFamily: Fonts.semiBold, fontSize: 12.5, color: C.t1 },

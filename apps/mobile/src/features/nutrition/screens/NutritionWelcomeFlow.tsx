@@ -27,6 +27,7 @@ import {
   type DietType,
 } from '@shared/services/nutrition';
 import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
+import { UI } from '@mobile/shared/icons';
 
 const SCREEN_W = Dimensions.get('window').width;
 
@@ -89,7 +90,7 @@ function WelcomeStep({ onContinue }: { onContinue: () => void }) {
         onPress={() => { Haptics.selectionAsync(); setAcknowledged(a => !a); }}
       >
         <View style={[ss.checkbox, acknowledged && ss.checkboxChecked]}>
-          {acknowledged && <Text style={ss.checkmark}>✓</Text>}
+          {acknowledged && <UI.done size={14} color={C.white} weight="bold" />}
         </View>
         <Text style={ss.disclaimerText}>
           I'm 16 or older. I understand Runivo's targets are general estimates, not medical or
@@ -131,7 +132,6 @@ function mkWelcomeStyles(C: AppColors) {
       alignItems: 'center', justifyContent: 'center',
     },
     checkboxChecked: { backgroundColor: C.red, borderColor: C.red },
-    checkmark:   { fontFamily: Fonts.semiBold, fontSize: 12, color: C.white },
     disclaimerText: {
       flex: 1, fontFamily: Fonts.regular, fontSize: FontSize.footnote, color: C.t2,
       lineHeight: FontSize.footnote * 1.4,

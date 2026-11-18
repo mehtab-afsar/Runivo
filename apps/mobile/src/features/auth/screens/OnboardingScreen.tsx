@@ -17,6 +17,7 @@ import { track } from '@shared/services/analytics';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { useOnboarding } from '../hooks/useOnboarding';
 import OnboardingProgress from '../components/OnboardingProgress';
+import { FooterFade } from '@mobile/shared/components/FooterFade';
 import CityMapPreviewStep, { type LocationPhase } from '../components/CityMapPreviewStep';
 import GoalStep from '../components/GoalStep';
 import WatchStep from '../components/WatchStep';
@@ -204,6 +205,7 @@ export default function OnboardingScreen() {
       </Animated.View>
 
       <View style={[s.footer, { paddingBottom: Math.max(insets.bottom, 16) + 4 }]}>
+        <FooterFade />
         {ob.stepKey === 'mission' && !!ob.error && <Text style={s.error}>{ob.error}</Text>}
         <Pressable
           accessibilityRole="button"

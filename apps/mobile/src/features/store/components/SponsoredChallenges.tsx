@@ -3,7 +3,8 @@
  * brand. Join, watch progress, and get the brand's code when you finish.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Alert, Share } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, ScrollView, Share } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { supabase } from '@shared/services/supabase';
@@ -29,8 +30,8 @@ export function SponsoredChallenges({ title = 'Brand challenges' }: { title?: st
     if (!c.joined) { await supabase.rpc('join_sponsored_challenge', { p_challenge: c.id }); load(); return; }
     if (c.code) { Share.share({ message: `${c.brand}: ${c.code}` }).catch(() => {}); return; }
     const { data, error } = await supabase.rpc('claim_sponsored_reward', { p_challenge: c.id });
-    if (error) { Alert.alert('Not yet', error.message); return; }
-    Alert.alert(`${c.brand} reward`, `Your code: ${data as string}`);
+    if (error) { appAlert('Not yet', error.message); return; }
+    appAlert(`${c.brand} reward`, `Your code: ${data as string}`);
     load();
   };
 

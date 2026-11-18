@@ -3,7 +3,8 @@
  * counts for distance, goals and your log, but never claims zones or PACE.
  */
 import React, { useState } from 'react';
-import { Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -50,7 +51,7 @@ export default function LogTreadmillScreen() {
       });
       navigation.goBack();
     } catch {
-      Alert.alert("Couldn't save it", 'Try again.');
+      appAlert("Couldn't save it", 'Try again.');
     } finally { setSaving(false); }
   };
 

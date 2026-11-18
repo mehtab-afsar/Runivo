@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator, Modal, TextInput, ScrollView, Alert, Image } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import {
+  View, Text, StyleSheet, FlatList, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator, TextInput, ScrollView, Image, Share,
+} from 'react-native';
+import ClubHomeTab from '../components/ClubHomeTab';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { ClipboardText, Check, X, Flag } from 'phosphor-react-native';
-import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
 import { useLobbyChat } from '@features/clubs/hooks/useLobbyChat';
 import { ClubImagesPicker } from '../components/ClubImagesPicker';
 import { ChatBubble } from '@features/clubs/components/ChatBubble';
@@ -20,7 +23,6 @@ import {
   approveJoinRequest,
   rejectJoinRequest,
   updateClubDescription,
-  updateClubBadge,
   getOrCreateClubLobby,
   reportClubMessage,
   deleteClubMessage,
@@ -52,11 +54,6 @@ import { Segmented } from '@mobile/shared/components/Segmented';
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ClubDetail'>;
 
-const BADGE_EMOJIS = [
-  '🏃','⚡','🔥','💪','🏆','🌍','🦅','🐺','🦁','🌟',
-  '🎯','🛡️','⚔️','🏔️','🌊','🦊','🐉','🚀','💎','🎖️',
-];
-
 const ACTION_LABELS: Record<string, string> = {
   captured: 'captured a territory',
   lost: 'lost a territory',
@@ -65,7 +62,7 @@ const ACTION_LABELS: Record<string, string> = {
   leveled_up: 'leveled up',
 };
 
-type DetailTab = 'chat' | 'runs' | 'ground' | 'members' | 'leaderboard' | 'activity' | 'admin';
+type DetailTab = 'home' | 'chat' | 'runs' | 'ground' | 'members' | 'leaderboard' | 'activity' | 'admin';
 
 function MemberRow({ member, rank, onPress, onLongPress }: { member: ClubMember; rank?: number; onPress: () => void; onLongPress?: () => void }) {
   const C = useTheme();
@@ -85,7 +82,7 @@ function MemberRow({ member, rank, onPress, onLongPress }: { member: ClubMember;
             <View style={mr.adminBadge}><Text style={mr.adminText}>Admin</Text></View>
           )}
         </View>
-        <Text style={mr.meta}>Lv. {member.level}</Text>
+        <Text style={mr.meta}>{member.total_km >= 1 ? `${member.total_km.toFixed(0)} km with the club` : 'New member'}</Text>
       </View>
       <Text style={mr.kmVal}>{member.total_km.toFixed(0)}<Text style={mr.kmUnit}> km</Text></Text>
     </Pressable>
@@ -153,15 +150,14 @@ export default function ClubDetailScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { clubId, clubName, badgeEmoji, memberCount, totalKm, description: initialDesc, compose } = useRoute<Route>().params as any;
-  const { icon: BadgeIcon, color: badgeColor } = getEmojiIcon(badgeEmoji);
+  const { clubId, clubName, memberCount, totalKm, description: initialDesc, compose } = useRoute<Route>().params as any;
   const [media, setMedia] = useState<{ avatar: string | null; banner: string | null }>({ avatar: null, banner: null });
   const changeMedia = async (kind: 'avatar' | 'banner', uri: string) => {
     setMedia(m => ({ ...m, [kind]: uri }));
     try { const url = await uploadClubImage(clubId, kind, uri); setMedia(m => ({ ...m, [kind]: url })); }
-    catch (e) { Alert.alert("Couldn't change it", e instanceof Error ? e.message : 'Try again.'); fetchClubMedia(clubId).then(setMedia).catch(() => {}); }
+    catch (e) { appAlert("Couldn't change it", e instanceof Error ? e.message : 'Try again.'); fetchClubMedia(clubId).then(setMedia).catch(() => {}); }
   };
-  const [tab, setTab] = useState<DetailTab>('chat');
+  const [tab, setTab] = useState<DetailTab>(compose ? 'chat' : 'home');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | null>(null);
   const [clubLobbyId, setClubLobbyId] = useState<string | null>(null);
@@ -194,7 +190,6 @@ export default function ClubDetailScreen() {
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [description, setDescription] = useState<string>(initialDesc ?? '');
   const [savingDesc, setSavingDesc] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [ownerId, setOwnerId] = useState<string | null>(null);
   const [reports, setReports] = useState<ChatReport[]>([]);
 
@@ -275,25 +270,25 @@ export default function ClubDetailScreen() {
 
   // ── Leave / delete ──────────────────────────────────────────────────────
   const confirmLeave = () => {
-    Alert.alert(`Leave ${clubName}?`, 'You can join again later.', [
+    appAlert(`Leave ${clubName}?`, 'You can join again later.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Leave', style: 'destructive', onPress: async () => {
         const { error, result } = await leaveClub(clubId);
-        if (result === 'owner') { Alert.alert('You own this club', 'Owners can’t leave. Delete the club from the Admin tab instead.'); return; }
-        if (error) { Alert.alert("Couldn't leave the club", 'Check your connection and try again.'); return; }
+        if (result === 'owner') { appAlert('You own this club', 'Owners can’t leave. Delete the club from the Admin tab instead.'); return; }
+        if (error) { appAlert("Couldn't leave the club", 'Check your connection and try again.'); return; }
         navigation.goBack();
       } },
     ]);
   };
   const confirmDelete = () => {
-    Alert.alert(`Delete ${clubName}?`, 'This removes the club, its chat and its upcoming club runs for everyone. Members are told. You can’t undo this.', [
+    appAlert(`Delete ${clubName}?`, 'This removes the club, its chat and its upcoming club runs for everyone. Members are told. You can’t undo this.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete club', style: 'destructive', onPress: async () => {
         try {
           const r = await deleteClub(clubId);
-          if (r === 'not_owner') { Alert.alert('Only the owner can delete the club'); return; }
+          if (r === 'not_owner') { appAlert('Only the owner can delete the club'); return; }
           navigation.goBack();
-        } catch { Alert.alert("Couldn't delete the club", 'Check your connection and try again.'); }
+        } catch { appAlert("Couldn't delete the club", 'Check your connection and try again.'); }
       } },
     ]);
   };
@@ -307,7 +302,7 @@ export default function ClubDetailScreen() {
     isModerator && userId !== currentUserId && userId !== ownerId && (role !== 'admin' || isOwner);
 
   const confirmRemove = (userId: string, username: string) => {
-    Alert.alert(
+    appAlert(
       `Remove ${username}?`,
       `They leave ${clubName} and can't rejoin unless an admin lets them back.`,
       [
@@ -320,7 +315,7 @@ export default function ClubDetailScreen() {
               setLeaderboard(m => m.filter(x => x.id !== userId));
               setReports(r => r.filter(x => x.authorId !== userId));
             } catch (e) {
-              Alert.alert("Couldn't remove", e instanceof Error ? e.message : 'Try again.');
+              appAlert("Couldn't remove", e instanceof Error ? e.message : 'Try again.');
             }
           },
         },
@@ -329,7 +324,7 @@ export default function ClubDetailScreen() {
   };
 
   const confirmDeleteMessage = (id: string) => {
-    Alert.alert('Delete this message?', 'It is removed for everyone in the club.', [
+    appAlert('Delete this message?', 'It is removed for everyone in the club.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
@@ -338,7 +333,7 @@ export default function ClubDetailScreen() {
             removeMessage(id);
             setReports(r => r.filter(x => x.messageId !== id));
           } catch {
-            Alert.alert("Couldn't delete", 'Check your connection and try again.');
+            appAlert("Couldn't delete", 'Check your connection and try again.');
           }
         },
       },
@@ -349,12 +344,12 @@ export default function ClubDetailScreen() {
     const send = async (reason: ChatReportReason) => {
       try {
         await reportClubMessage(id, reason);
-        Alert.alert('Thanks for reporting', "The club's admins will review it.");
+        appAlert('Thanks for reporting', "The club's admins will review it.");
       } catch (e) {
-        Alert.alert("Couldn't report", e instanceof Error && e.message.includes('too many') ? 'You have sent a lot of reports today. Try again tomorrow.' : 'Try again.');
+        appAlert("Couldn't report", e instanceof Error && e.message.includes('too many') ? 'You have sent a lot of reports today. Try again tomorrow.' : 'Try again.');
       }
     };
-    Alert.alert('Report message', 'Why are you reporting it?', [
+    appAlert('Report message', 'Why are you reporting it?', [
       { text: 'Spam', onPress: () => send('spam') },
       { text: 'Harassment', onPress: () => send('harassment') },
       { text: 'Inappropriate', onPress: () => send('inappropriate') },
@@ -364,21 +359,21 @@ export default function ClubDetailScreen() {
 
   const messageOptions = (m: LobbyMessage) => {
     if (m.userId === currentUserId) {
-      Alert.alert('Your message', undefined, [
+      appAlert('Your message', undefined, [
         { text: 'Delete', style: 'destructive', onPress: () => confirmDeleteMessage(m.id) },
         { text: 'Cancel', style: 'cancel' },
       ]);
       return;
     }
     const role = members.find(x => x.id === m.userId)?.role;
-    const buttons: Parameters<typeof Alert.alert>[2] = [
+    const buttons: Parameters<typeof appAlert>[2] = [
       { text: 'Report message', onPress: () => reportMessage(m.id) },
       { text: `Block ${m.userName}`, style: 'destructive', onPress: () => {
-        Alert.alert(`Block ${m.userName}?`, "You won't see their messages or posts, and they won't see yours.", [
+        appAlert(`Block ${m.userName}?`, "You won't see their messages or posts, and they won't see yours.", [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Block', style: 'destructive', onPress: async () => {
             try { await blockUser(m.userId); removeMessagesFrom(m.userId); }
-            catch { Alert.alert("Couldn't block", 'Check your connection and try again.'); }
+            catch { appAlert("Couldn't block", 'Check your connection and try again.'); }
           } },
         ]);
       } },
@@ -386,18 +381,13 @@ export default function ClubDetailScreen() {
     if (isModerator) buttons.push({ text: 'Delete message', style: 'destructive', onPress: () => confirmDeleteMessage(m.id) });
     if (canRemove(m.userId, role)) buttons.push({ text: `Remove ${m.userName}`, style: 'destructive', onPress: () => confirmRemove(m.userId, m.userName) });
     buttons.push({ text: 'Cancel', style: 'cancel' });
-    Alert.alert(m.userName, m.message.length > 80 ? `${m.message.slice(0, 80)}…` : m.message, buttons);
+    appAlert(m.userName, m.message.length > 80 ? `${m.message.slice(0, 80)}…` : m.message, buttons);
   };
 
   const handleSaveDesc = async () => {
     setSavingDesc(true);
     await updateClubDescription(clubId, description);
     setSavingDesc(false);
-  };
-
-  const handleBadgeSelect = async (emoji: string) => {
-    setShowEmojiPicker(false);
-    await updateClubBadge(clubId, emoji);
   };
 
   const handleApprove = async (req: JoinRequest) => {
@@ -413,34 +403,62 @@ export default function ClubDetailScreen() {
     if (ok) setJoinRequests(prev => prev.filter(r => r.id !== req.id));
   };
 
+  // Mock: Home · Chat · Members · Board. Runs and Territory open from Home.
   const tabs: { key: DetailTab; label: string }[] = [
+    { key: 'home', label: 'Home' },
     { key: 'chat', label: 'Chat' },
-    { key: 'runs', label: 'Runs' },
-    { key: 'ground', label: 'Territory' },
     { key: 'members', label: 'Members' },
     { key: 'leaderboard', label: 'Board' },
     ...(currentUserRole === 'admin' ? [{ key: 'admin' as DetailTab, label: 'Admin' }] : []),
   ];
+  const tabValue: DetailTab = tab === 'runs' || tab === 'ground' ? 'home' : tab;
+  const inviteToClub = () => {
+    Share.share({ message: `Join ${clubName} on Runivo: we run together and hold ground together. Get the app at https://runivo.app/invite and search for the club.` }).catch(() => {});
+  };
 
   return (
     <SafeAreaView style={s.root}>
       {/* Header (mock): top bar, then the club centred with its member line. */}
-      <ScreenHeader title="Club" onBack={() => navigation.goBack()} right={currentUserRole !== 'admin' ? (
-        <HeaderButton onPress={() => promptReport('club', clubId, 'club')} label="Report this club">
-          <Flag size={16} color={C.t2} weight="regular" />
-        </HeaderButton>
-      ) : undefined} />
+      {/* Header (mock): back, Invite; report sits in the menu for non-admins. */}
+      <ScreenHeader title="" onBack={() => navigation.goBack()} right={(
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {currentUserRole !== 'admin' && (
+            <HeaderButton onPress={() => promptReport('club', clubId, 'club')} label="Report this club">
+              <Flag size={16} color={C.t2} weight="regular" />
+            </HeaderButton>
+          )}
+          <Pressable style={s.invite} onPress={inviteToClub} accessibilityRole="button"><Text style={s.inviteTxt}>Invite</Text></Pressable>
+        </View>
+      )} />
       {!!media.banner && <Image source={{ uri: media.banner }} style={s.banner} resizeMode="cover" accessibilityIgnoresInvertColors />}
-      <View style={[s.clubHero, !!media.banner && { marginTop: -40 }]}>
-        <View style={!!media.banner && s.avatarRing}><ClubInitialsTile name={clubName} size={72} uri={media.avatar} /></View>
-        <Text style={s.clubName} numberOfLines={2}>{clubName}</Text>
-        <Text style={s.subLine} numberOfLines={1}>
-          {memberCount} {memberCount === 1 ? 'member' : 'members'} · {Math.round(totalKm).toLocaleString()} km
-          {currentUserRole === 'admin' ? ' · admin' : ''}
-        </Text>
+      <View style={[s.clubHero, !!media.banner && { marginTop: -28 }]}>
+        <View style={!!media.banner && s.avatarRing}><ClubInitialsTile name={clubName} size={58} uri={media.avatar} shape="hex" /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.clubName} numberOfLines={2}>{clubName}</Text>
+          <Text style={s.subLine} numberOfLines={1}>
+            {memberCount} {memberCount === 1 ? 'member' : 'members'} · {Math.round(totalKm).toLocaleString()} km
+            {currentUserRole === 'admin' ? ' · admin' : ''}
+          </Text>
+        </View>
       </View>
 
-      <Segmented variant="tabs" style={{ marginBottom: 8 }} options={tabs.map(t => ({ value: t.key, label: t.label }))} value={tab} onChange={setTab} />
+      <Segmented style={{ marginHorizontal: 18, marginBottom: 10 }} options={tabs.map(t => ({ value: t.key, label: t.label }))} value={tabValue} onChange={setTab} />
+
+      {tab === 'home' && (
+        <ClubHomeTab
+          clubId={clubId}
+          canSchedule={isModerator}
+          chat={messages.slice(-2).map(m => ({ id: m.id, text: m.message, mine: m.userId === currentUserId }))}
+          onOpenChat={() => setTab('chat')}
+          onOpenRuns={() => setTab('runs')}
+          onOpenGround={() => setTab('ground')}
+        />
+      )}
+      {(tab === 'runs' || tab === 'ground') && (
+        <Pressable style={s.backHome} onPress={() => setTab('home')} accessibilityRole="button">
+          <Text style={s.backHomeTxt}>‹ Club home</Text>
+        </Pressable>
+      )}
 
       {/* Chat tab */}
       {tab === 'chat' && (
@@ -459,7 +477,7 @@ export default function ClubDetailScreen() {
             </View>
           ) : messages.length === 0 ? (
             <View style={s.empty}>
-              <BadgeIcon size={40} color={badgeColor} weight="light" />
+              <ClubInitialsTile name={clubName} size={48} uri={media.avatar} shape="hex" />
               <Text style={s.emptyTitle}>No messages yet</Text>
               <Text style={s.emptyText}>Start the conversation with your club!</Text>
             </View>
@@ -605,7 +623,7 @@ export default function ClubDetailScreen() {
             banner={media.banner}
             onAvatar={u => changeMedia('avatar', u)}
             onBanner={u => changeMedia('banner', u)}
-            initials={clubName.split(/\s+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]!.toUpperCase()).join('')}
+            name={clubName}
           />
           {/* Description edit */}
           <Text style={s.sectionLabel}>Club description</Text>
@@ -630,17 +648,6 @@ export default function ClubDetailScreen() {
                 <Text style={s.saveBtnText}>Save</Text>
               )}
             </Pressable>
-          </View>
-
-          {/* Badge emoji edit */}
-          <Text style={[s.sectionLabel, { marginTop: 20 }]}>Club badge</Text>
-          <View style={s.adminCard}>
-            <View style={s.badgeRow}>
-              <View style={s.bigEmoji}><BadgeIcon size={40} color={badgeColor} weight="light" /></View>
-              <Pressable hitSlop={8} style={s.changeBtn} onPress={() => setShowEmojiPicker(true)}>
-                <Text style={s.changeBtnText}>Change badge</Text>
-              </Pressable>
-            </View>
           </View>
 
           {/* Reported messages */}
@@ -705,24 +712,6 @@ export default function ClubDetailScreen() {
         </ScrollView>
       )}
 
-      {/* Badge emoji picker modal */}
-      <Modal visible={showEmojiPicker} transparent animationType="fade" onRequestClose={() => setShowEmojiPicker(false)}>
-        <Pressable style={s.overlay} onPress={() => setShowEmojiPicker(false)}>
-          <View style={s.badgePickerSheet}>
-            <Text style={s.pickerLabel}>Choose a badge</Text>
-            <View style={s.badgeGrid}>
-              {BADGE_EMOJIS.map(emoji => {
-                const { icon: PickIcon, color: pickColor } = getEmojiIcon(emoji);
-                return (
-                  <Pressable key={emoji} style={s.badgePickerBtn} onPress={() => handleBadgeSelect(emoji)}>
-                    <PickIcon size={22} color={pickColor} weight="light" />
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        </Pressable>
-      </Modal>
       <CommentSheet postId={commentPostId} onClose={() => setCommentPostId(null)} onCommentPosted={() => setClubPosts(ps => ps.map(p => p.id === commentPostId ? { ...p, commentCount: p.commentCount + 1 } : p))} />
     </SafeAreaView>
   );
@@ -733,9 +722,13 @@ function mkStyles(C: AppColors) {
     root:        { flex: 1, backgroundColor: C.bg },
     subLine:     { fontFamily: Fonts.regular, fontSize: 14, color: C.t2 },
     banner:      { height: 120, marginHorizontal: Spacing.gutter, borderRadius: 22, backgroundColor: C.card },
-    avatarRing:  { borderWidth: 4, borderColor: C.bg, borderRadius: 26 },
-    clubHero:    { alignItems: 'center', paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 14, gap: 6 },
-    clubName:    { fontFamily: Fonts.semiBold, fontSize: 24, lineHeight: 29, color: C.t1, textAlign: 'center', marginTop: 6 },
+    avatarRing:  { borderWidth: 4, borderColor: C.bg, borderRadius: 22 },
+    clubHero:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.gutter, paddingTop: 4, paddingBottom: 16, gap: 14 },
+    invite:      { height: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: C.card, justifyContent: 'center' },
+    inviteTxt:   { fontFamily: Fonts.medium, fontSize: 14.5, color: C.t1 },
+    backHome:    { paddingHorizontal: 20, paddingBottom: 6 },
+    backHomeTxt: { fontFamily: Fonts.medium, fontSize: 14, color: C.t2 },
+    clubName:    { fontFamily: Fonts.semiBold, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: C.t1 },
     backText:    { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
     hero:        { marginHorizontal: Spacing.gutter, marginBottom: 12, backgroundColor: C.alwaysDark, borderRadius: Spacing.radius.xl, padding: 18 },
     heroTop:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -770,10 +763,6 @@ function mkStyles(C: AppColors) {
     saveBtn:     { marginTop: 10, backgroundColor: C.alwaysDark, borderRadius: 999, height: 44, justifyContent: 'center', alignItems: 'center' },
     saveBtnDisabled: { opacity: 0.5 },
     saveBtnText: { ...Type.button, fontSize: 14, color: C.alwaysLight },
-    badgeRow:    { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    bigEmoji:    { alignItems: 'center', justifyContent: 'center' },
-    changeBtn:   { backgroundColor: C.card, borderRadius: 999, paddingHorizontal: 16, height: 38, justifyContent: 'center', borderWidth: 1, borderColor: C.border },
-    changeBtnText: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
     reportText:  { fontFamily: Fonts.regular, fontSize: 14, color: C.t1, marginTop: 4, lineHeight: 20 },
     reportActions: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
     reportBtn:   { height: 32, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: C.border, justifyContent: 'center' },
@@ -789,10 +778,6 @@ function mkStyles(C: AppColors) {
     rejectBtn:   { width: 34, height: 34, borderRadius: 17, backgroundColor: C.danger + '14', borderWidth: 0.5, borderColor: C.danger, alignItems: 'center', justifyContent: 'center' },
     rejectBtnText: { fontFamily: Fonts.bold, fontSize: 13, color: C.danger },
     overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-    pickerLabel: { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
     // Badge picker
-    badgePickerSheet: { backgroundColor: C.card, borderRadius: 28, padding: 20, alignItems: 'center', gap: 16, width: 320, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
-    badgeGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-    badgePickerBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
   });
 }

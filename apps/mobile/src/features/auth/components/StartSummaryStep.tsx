@@ -7,6 +7,7 @@ import { useTheme, Fonts, type AppColors } from '@theme';
 import { mkStep } from './onboardingStyles';
 import { NIGGLES, type OnboardingData } from '../types';
 import type { StartPreview } from '../startPlan';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 
 const DAY = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const DAY_LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -37,7 +38,7 @@ export default function StartSummaryStep({ data, preview, weeklyTargetKm, tone }
 
   return (
     <ScrollView contentContainerStyle={s.content}>
-      <View style={st.coach}><View style={st.orb} /><Text style={st.coachName}>PaceX</Text></View>
+      <View style={st.coach}><PaceXOrb size={40} /><Text style={st.coachName}>PaceX</Text></View>
       <Text style={[s.title, { fontSize: 30, lineHeight: 34 }]}>Here's your start, {name}.</Text>
       <Text style={s.sub}>{headline}{preview.cautious ? ' Gentle on the body to begin with.' : ''}</Text>
 
@@ -72,7 +73,6 @@ export default function StartSummaryStep({ data, preview, weeklyTargetKm, tone }
 function mk(C: AppColors) {
   return StyleSheet.create({
     coach:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-    orb:       { width: 40, height: 40, borderRadius: 20, backgroundColor: '#9D94E6', borderWidth: 6, borderColor: '#C9C2F6' },
     coachName: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.lavenderInk },
     card:      { backgroundColor: C.card, borderRadius: 22, paddingHorizontal: 16 },
     fact:      { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },

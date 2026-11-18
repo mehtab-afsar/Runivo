@@ -38,10 +38,11 @@ export interface PasswordlessAuth {
   back: () => void;
 }
 
-export function usePasswordlessAuth(): PasswordlessAuth {
+export function usePasswordlessAuth(mode: 'signup' | 'login' = 'login'): PasswordlessAuth {
   // DEV ONLY: open on the email + password form so test accounts (dummy emails that
-  // can't receive mail) skip the magic-link / code screens. Release builds start on 'choose'.
-  const [stage, setStageRaw] = useState<AuthStage>(__DEV__ ? 'password' : 'choose');
+  // can't receive mail) skip the magic-link / code screens; "Get started" opens the
+  // create-account form, not sign-in. Release builds start on 'choose'.
+  const [stage, setStageRaw] = useState<AuthStage>(__DEV__ ? (mode === 'signup' ? 'passwordSignup' : 'password') : 'choose');
   const [channel, setChannel] = useState<'sms' | 'email'>('sms');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');

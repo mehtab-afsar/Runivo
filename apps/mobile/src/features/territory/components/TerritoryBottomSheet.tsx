@@ -9,6 +9,8 @@ import type { TerritoryTier } from '@shared/types/game';
 import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette, type TerritoryPalette } from '@theme/territory';
 import { ENGINE, zoneScore } from '@shared/engine/runEngine';
+import { buildZoneCardSvg, RUN_CARD_W, RUN_CARD_H } from '@mobile/shared/lib/runCard';
+import { shareSvgAsImage } from '@mobile/shared/components/CaptureHost';
 
 export const TIER_LABELS: Record<TerritoryTier, string> = {
   patch: 'Patch', block: 'Block', district: 'District', quarter: 'Quarter', domain: 'Domain',
@@ -87,12 +89,19 @@ export function TerritoryBottomSheet({ polygon, onClose, onDefend }: Props) {
   const chipText = polygon.isOwn ? `Yours · ${tier}` : `${polygon.ownerName || 'Rival'} · ${tier}`;
   const chipBg = polygon.isOwn ? C.redLo : C.bg;
 
+  // The zone as a picture card (its shape, size and freshness); text if the picture can't be made.
   const share = () => {
-    Share.share({
+    const text = () => Share.share({
       message: polygon.isOwn
         ? `I hold ${name} on Runivo: ${area.value} ${area.unit}, ${freshPct}% fresh. Come and take it.`
         : `${name} on Runivo is held by ${polygon.ownerName}. I'm going to take it.`,
     }).catch(() => {});
+    const svg = buildZoneCardSvg({
+      name, isOwn: polygon.isOwn, tier, area: `${area.value} ${area.unit}`, fresh: freshPct,
+      owner: polygon.isOwn ? 'Held by you' : `Held by ${polygon.ownerName || 'a rival'}`,
+      ring: polygon.ring ?? [],
+    });
+    shareSvgAsImage(svg, { w: RUN_CARD_W, h: RUN_CARD_H, outW: 1080 }, `runivo_zone_${polygon.id.slice(0, 8)}.png`, 'Share this zone').catch(text);
   };
 
   return (

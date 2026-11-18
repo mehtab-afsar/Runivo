@@ -7,6 +7,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { useNutritionSetup } from '@features/nutrition/hooks/useNutritionSetup';
 import { NutritionSetupForm } from '@features/nutrition/components/NutritionSetupForm';
+import { CaretLeft } from 'phosphor-react-native';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,7 +31,7 @@ export default function NutritionSetupScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.header}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.back}>
-            <Text style={s.backText}>←</Text>
+            <CaretLeft size={22} color={C.t1} weight="bold" />
           </Pressable>
           <Text style={s.title}>Nutrition Setup</Text>
           <View style={{ width: 32 }} />
@@ -57,7 +58,7 @@ export default function NutritionSetupScreen() {
 function mkStyles(C: AppColors) { return StyleSheet.create({
   root: { flex: 1, backgroundColor: C.stone },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12 },
-  back: { width: 32 }, backText: { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
+  back: { width: 32 },
   title: { fontFamily: Fonts.semiBold, fontSize: 20, color: C.t1 },
   content: { paddingHorizontal: 20, paddingBottom: 60, gap: 4 },
 }); }

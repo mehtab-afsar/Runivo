@@ -46,7 +46,7 @@ export default function PreviewStep({ plan, today }: { plan: TrainingPlanV2; tod
             <Text style={s.day}>{DAY[weekday(se.date)]}</Text>
             <View style={[s.tick, { backgroundColor: kindColor(C, se.kind) }]} />
             <Text style={s.title} numberOfLines={1}>{se.title}</Text>
-            <Text style={s.km}>{se.distanceKm} km</Text>
+            {!/\d km\b/.test(se.title) && <Text style={s.km}>{se.distanceKm} km</Text>}
           </View>
         ))}
       </View>

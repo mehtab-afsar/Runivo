@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { ShareNetwork, Trash, Flag, Check, SpeakerSlash } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { ModalSheet } from '@mobile/shared/components/ModalSheet';
@@ -29,7 +30,7 @@ export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare,
   const handleDelete = useCallback(() => {
     // Deleting is permanent (and removes the post's kudos and comments), so ask first.
     // Asked while the sheet is still up: presenting an alert mid-dismiss can be dropped on iOS.
-    Alert.alert('Delete this post?', 'This can\'t be undone.', [
+    appAlert('Delete this post?', 'This can\'t be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => { onClose(); onDelete(); } },
     ]);
@@ -39,7 +40,7 @@ export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare,
       await onReport();
       setReported(true);
     } catch {
-      Alert.alert("Couldn't send the report", 'Check your connection and try again.');
+      appAlert("Couldn't send the report", 'Check your connection and try again.');
     }
   }, [onReport]);
 

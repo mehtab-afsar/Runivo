@@ -1,8 +1,9 @@
 /** C4: your group challenges, and a sheet to start one with people you follow. */
 import { ErrorState } from '@mobile/shared/components/ErrorState';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, Pressable, StyleSheet, ScrollView, Modal, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CaretLeft, CaretRight, Plus, Check, Flag } from 'phosphor-react-native';
@@ -16,6 +17,7 @@ import {
   type Challenge, type ChallengeMetric,
 } from '../services/challengeService';
 import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
+import { AlertLayer } from '@mobile/shared/components/AppAlert';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 /** The square badge on each card (mock: "5Z", "100"). */
@@ -48,7 +50,7 @@ export default function ChallengesScreen({ embedded = false }: { embedded?: bool
   useFocusEffect(load);
 
   const answer = async (c: Challenge, join: boolean) => {
-    try { await respondChallenge(c.id, join); load(); } catch { Alert.alert('Could not reach Runivo', 'Try again in a moment.'); }
+    try { await respondChallenge(c.id, join); load(); } catch { appAlert('Could not reach Runivo', 'Try again in a moment.'); }
   };
 
   const topBar = (
@@ -60,7 +62,7 @@ export default function ChallengesScreen({ embedded = false }: { embedded?: bool
               <Text style={s.title}>Challenges</Text>
             </>}
         <Pressable hitSlop={8} style={s.newBtn} onPress={() => setCreating(true)} accessibilityRole="button">
-          <Plus size={14} color={C.bg} weight="bold" /><Text style={s.newTxt}>{embedded ? 'Create' : 'New'}</Text>
+          <Plus size={14} color={C.t1} weight="bold" /><Text style={s.newTxt}>Create</Text>
         </Pressable>
       </View>
   );
@@ -126,12 +128,15 @@ function CreateSheet({ visible, onClose, onCreated }: { visible: boolean; onClos
   const save = async () => {
     setSaving(true);
     try { onCreated(await createChallenge({ title: title.trim(), metric, target, days, invitees: picked })); setTitle(''); setPicked([]); }
-    catch (e) { Alert.alert("Couldn't start it", (e as Error).message ?? 'Try again.'); }
+    catch (e) { appAlert("Couldn't start it", (e as Error).message ?? 'Try again.'); }
     finally { setSaving(false); }
   };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      {/* A Modal is a new native root: give it its own safe-area measurement,
+          or the content starts under the status bar. */}
+      <SafeAreaProvider>
       <FormScreen
         title="Start a"
         accent="challenge."
@@ -173,6 +178,8 @@ function CreateSheet({ visible, onClose, onCreated }: { visible: boolean; onClos
           )}
         </View>
       </FormScreen>
+      <AlertLayer />
+      </SafeAreaProvider>
     </Modal>
   );
 }
@@ -183,8 +190,9 @@ function mk(C: AppColors) {
     top: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingBottom: 6 },
     back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
     title: { flex: 1, fontFamily: Fonts.bold, fontSize: 20, color: C.t1 },
-    newBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.t1 },
-    newTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.bg },
+    // Same pill as Clubs' Create, so the two Groups tabs match.
+    newBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card },
+    newTxt: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
     card: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.card, borderRadius: 24, padding: 16 },
     badge: { width: 52, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
     badgeTxt: { fontFamily: Fonts.numeric, fontSize: 18 },

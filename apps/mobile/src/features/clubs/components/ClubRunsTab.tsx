@@ -1,6 +1,7 @@
 /** Club runs (PRD C1): upcoming group runs with RSVP; owners and admins schedule them. */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert, Modal } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Modal } from 'react-native';
 import { CalendarBlank, MapPin, Check, MapTrifold, PersonSimpleRun, Hexagon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,6 +14,8 @@ import { FormScreen, FormField, ChipGroup, ChoiceCards, FormButton } from '@mobi
 import { cancelEvent, toggleEventJoin } from '@features/events/services/eventService';
 import { fetchClubRuns, scheduleClubRun, type ClubRun } from '../services/clubService';
 import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AlertLayer } from '@mobile/shared/components/AppAlert';
 
 const TIMES = ['06:00', '06:30', '07:00', '17:30', '18:00', '18:30', '19:00'];
 const WEEKS = [1, 4, 8, 12];
@@ -60,10 +63,10 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
     try {
       if (territory) {
         const fix = await Location.getLastKnownPositionAsync().catch(() => null);
-        if (!fix) { Alert.alert('Location needed', 'The area is centred on where you are now. Turn on location and try again.'); return; }
+        if (!fix) { appAlert('Location needed', 'The area is centred on where you are now. Turn on location and try again.'); return; }
         await createTerritoryEvent(clubId, { title: title.trim(), startsAt: start, minutes, lat: fix.coords.latitude, lng: fix.coords.longitude, radiusM: radius, place: place.trim() });
         setForm(false);
-        Alert.alert('Territory hour scheduled', `Members earn double zone PACE inside ${radius} m of here for ${minutes} minutes. It's on the Events page.`);
+        appAlert('Territory hour scheduled', `Members earn double zone PACE inside ${radius} m of here for ${minutes} minutes. It's on the Events page.`);
         return;
       }
       const picked = routes.find(r => r.id === routeId);
@@ -74,9 +77,9 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
       });
       setForm(false);
       load();
-      Alert.alert('Scheduled', n > 1 ? `${n} weekly runs are on the club calendar.` : 'The run is on the club calendar.');
+      appAlert('Scheduled', n > 1 ? `${n} weekly runs are on the club calendar.` : 'The run is on the club calendar.');
     } catch (e) {
-      Alert.alert("Couldn't schedule", e instanceof Error ? e.message : 'Try again.');
+      appAlert("Couldn't schedule", e instanceof Error ? e.message : 'Try again.');
     } finally {
       setSaving(false);
     }
@@ -84,13 +87,13 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
 
   // Club owners/admins can cancel a run that hasn't started; people going are told.
   const cancelRun = (r: { id: string; title: string; going: number }) => {
-    Alert.alert(`Cancel ${r.title}?`, `${r.going} going will be told. You can’t undo this.`, [
+    appAlert(`Cancel ${r.title}?`, `${r.going} going will be told. You can’t undo this.`, [
       { text: 'Keep it', style: 'cancel' },
       { text: 'Cancel run', style: 'destructive', onPress: async () => {
         try {
           const res = await cancelEvent(r.id);
-          if (res !== 'cancelled') Alert.alert(res === 'started' ? 'It has already started' : "You can't cancel this run");
-        } catch { Alert.alert("Couldn't cancel the run", 'Check your connection and try again.'); }
+          if (res !== 'cancelled') appAlert(res === 'started' ? 'It has already started' : "You can't cancel this run");
+        } catch { appAlert("Couldn't cancel the run", 'Check your connection and try again.'); }
         load();
       } },
     ]);
@@ -104,6 +107,9 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
 
       {/* Schedule: a full page on the shared form kit, not a cramped inline card. */}
       <Modal visible={form} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setForm(false)}>
+        {/* A Modal is a new native root: give it its own safe-area measurement,
+            or the content starts under the status bar. */}
+        <SafeAreaProvider>
         <FormScreen
           title="Schedule a"
           accent={territory ? 'territory hour.' : 'club run.'}
@@ -137,7 +143,7 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
                 <ChipGroup
                   label="Route"
                   optional
-                  options={[{ value: '', label: 'None' }, ...routes.map(r => ({ value: r.id, label: `${r.emoji} ${r.name} · ${(r.distanceM / 1000).toFixed(1)} km` }))]}
+                  options={[{ value: '', label: 'None' }, ...routes.map(r => ({ value: r.id, label: `${r.name} · ${(r.distanceM / 1000).toFixed(1)} km` }))]}
                   value={routeId ?? ''}
                   onChange={v => setRouteId(v || null)}
                   wrap={false}
@@ -147,6 +153,8 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
             </>
           )}
         </FormScreen>
+        <AlertLayer />
+        </SafeAreaProvider>
       </Modal>
 
       {runs === null ? <ActivityIndicator color={C.t2} style={{ marginTop: 24 }} />

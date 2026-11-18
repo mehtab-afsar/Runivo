@@ -1,9 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Pulse } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { fmtDist, fmtDistShort } from '@mobile/shared/lib/formatters';
-import { ROUTE_ICON_MAP } from '@mobile/shared/constants/routeIcons';
+import { GlyphBadge } from '@mobile/shared/icons';
 
 
 export interface RouteItem {
@@ -37,9 +36,7 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
       style={[ss.row, highlighted && { backgroundColor: C.blueBg }]}
       onPress={() => onSelect(route)}
     >
-      <View style={[ss.icon, highlighted && { backgroundColor: C.blueBg }]}>
-        {(() => { const entry = ROUTE_ICON_MAP[route.emoji]; return entry ? <entry.Icon size={18} color={entry.color} weight="light" /> : <Pulse size={18} color={C.red} weight="light" />; })()}
-      </View>
+      <GlyphBadge glyph={route.emoji || 'run'} size={40} shape="square" />
       <View style={ss.info}>
         <Text style={ss.name} numberOfLines={1}>{route.name}</Text>
         {meta ? <Text style={ss.meta}>{meta}</Text> : null}
@@ -51,7 +48,6 @@ export default function RouteCard({ route, onSelect, highlighted = false }: Rout
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
     row:   { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.stone, borderRadius: 14, borderWidth: 0.5, borderColor: C.border, padding: 10 },
-    icon:  { width: 40, height: 40, borderRadius: 10, backgroundColor: C.alwaysLight, borderWidth: 0.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     emoji: { fontSize: 18 },
     info:  { flex: 1 },
     name:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },

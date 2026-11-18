@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Modal, View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, Alert, ActivityIndicator } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { Modal, View, Text, TextInput, Pressable, ScrollView, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from '@theme/hapticsGated';
@@ -8,6 +9,7 @@ import { useTheme, Type, Fonts, type AppColors } from '@theme';
 import type { NutritionEntry } from '@shared/services/store';
 import type { Meal } from '@features/nutrition/types';
 import { MEALS } from '@features/nutrition/types';
+import { MEAL_ICONS } from '@mobile/shared/icons';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { scanFoodPhoto, type ScannedFood } from '@features/nutrition/services/foodScanService';
 import { fetchRecentFoods } from '@features/nutrition/services/nutritionService';
@@ -121,7 +123,7 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
   async function handlePhotoScan() {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Enable camera access in Settings to scan food photos.');
+      appAlert('Permission needed', 'Enable camera access in Settings to scan food photos.');
       return;
     }
 
@@ -138,7 +140,7 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
     if (food) {
       applyScannedFood(food);
     } else {
-      Alert.alert('Could not identify food', 'Try again with a clearer photo, or enter details manually.');
+      appAlert('Could not identify food', 'Try again with a clearer photo, or enter details manually.');
     }
   }
 
@@ -256,7 +258,7 @@ export function AddFoodModal({ visible, defaultMeal, editingEntry, onAdd, onUpda
                   style={[s.mealBtn, meal === m.value && s.mealBtnActive]}
                   onPress={() => setMeal(m.value)}
                 >
-                  <Text style={{ fontSize: 14 }}>{m.emoji}</Text>
+                  {(() => { const I = MEAL_ICONS[m.value]; return <I size={16} color={meal === m.value ? C.alwaysLight : C.t2} weight={meal === m.value ? 'fill' : 'regular'} />; })()}
                   <Text style={[s.mealLabel, meal === m.value && s.mealLabelActive]}>{m.label}</Text>
                 </Pressable>
               ))}

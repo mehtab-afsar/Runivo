@@ -23,6 +23,7 @@ import {
   GPS_CHECKPOINT_PREFIX,
 } from '../services/locationTask';
 import { freshScreenOffFixes } from '../services/screenOffMerge';
+import { checkpointWrites, readCheckpoint, isPartKey, partKey } from '../services/runCheckpoint';
 import { addFixes, MAX_FOOT_SPEED_MS, MAX_RIDE_SPEED_MS, type Fix } from '../services/gpsFilter';
 import { isOnFoot } from '@shared/engine/runEngine';
 
@@ -54,13 +55,13 @@ function resolveGpsAccuracy(setting: 'standard' | 'high'): Location.Accuracy {
 export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[]; activityType: string } | null> {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const checkpointKey = keys.find(k => k.startsWith(GPS_CHECKPOINT_PREFIX));
+    const checkpointKey = keys.find(k => k.startsWith(GPS_CHECKPOINT_PREFIX) && !isPartKey(k));
     if (!checkpointKey) return null;
     const raw = await AsyncStorage.getItem(checkpointKey);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { startTime: number; points: GPSPoint[]; activityType?: string };
+    const cp = await readCheckpoint(raw, n => AsyncStorage.getItem(partKey(checkpointKey, n)));
     const runId = checkpointKey.slice(GPS_CHECKPOINT_PREFIX.length);
-    return { runId, ...parsed, activityType: parsed.activityType ?? 'run' };
+    return { runId, ...cp };
   } catch {
     return null;
   }
@@ -284,14 +285,15 @@ export function useActiveRun(activityType: string = 'run') {
     // so a crash/force-kill doesn't lose the entire run trace.
     const cpKey = `${GPS_CHECKPOINT_PREFIX}${runIdRef.current}`;
     if (checkpointIntervalRef.current) clearInterval(checkpointIntervalRef.current);
+    // Compact parts, and only the parts that changed (runCheckpoint.ts, audit P1-14).
+    let savedFullParts = 0;
     checkpointIntervalRef.current = setInterval(async () => {
-      if (gpsPointsRef.current.length > 0) {
-        await AsyncStorage.setItem(cpKey, JSON.stringify({
-          startTime: startTimeRef.current,
-          points: gpsPointsRef.current,
-          activityType,
-        })).catch(() => {});
-      }
+      if (gpsPointsRef.current.length === 0) return;
+      const w = checkpointWrites(cpKey, startTimeRef.current, activityType, gpsPointsRef.current, savedFullParts);
+      try {
+        await AsyncStorage.multiSet(w.rows);
+        savedFullParts = w.fullParts;
+      } catch { /* next tick tries again */ }
     }, GPS_CHECKPOINT_INTERVAL_MS);
 
     setState(prev => ({
@@ -318,14 +320,14 @@ export function useActiveRun(activityType: string = 'run') {
         consecutiveGoodPointsRef.current = 0;
         setGpsLocked(false);
       }
-      setState(prev => {
-        if (prev.isPaused) return prev;
-        const totalElapsed = Math.floor(
-          (Date.now() - startTimeRef.current - totalPausedMsRef.current) / 1000,
-        );
-        elapsedRef.current = totalElapsed;
-        return { ...prev, elapsed: totalElapsed };
-      });
+      // Work out values outside the setState updater: React may run an updater
+      // twice (Strict Mode), so updaters must not touch refs or play feedback (P1-13).
+      if (isPausedRef.current) return;
+      const totalElapsed = Math.floor(
+        (Date.now() - startTimeRef.current - totalPausedMsRef.current) / 1000,
+      );
+      elapsedRef.current = totalElapsed;
+      setState(prev => (prev.isPaused ? prev : { ...prev, elapsed: totalElapsed }));
     }, 1000);
 
     // watchPositionAsync rejects when Location Services are off (or the
@@ -358,7 +360,7 @@ export function useActiveRun(activityType: string = 'run') {
         const { latitude, longitude, speed, accuracy, altitude } = location.coords;
         // The fix's own time, the same clock the background buffer stores, so
         // the two can be lined up when merging (mergeBgPoints).
-        const now = location.timestamp || Date.now();
+        const now = Math.round(location.timestamp || Date.now());   // iOS gives fractional ms
         // iOS reports speed = -1 (and some devices null) when a fix has no valid
         // speed. That is "unknown", not "standing still": reading it as 0 made
         // the auto-pause logic stop the run on any poor fix, and put a negative
@@ -462,29 +464,27 @@ export function useActiveRun(activityType: string = 'run') {
         if (now - lastGpsStateUpdateRef.current < 1000) return;
         lastGpsStateUpdateRef.current = now;
 
-        setState(prev => {
-          if (prev.isPaused) return prev;
-          const newDistance = prev.distance + pendingDistanceRef.current;
-          pendingDistanceRef.current = 0;
-          const elapsedSec = elapsedRef.current > 0 ? elapsedRef.current : 1;
-          const pace = formatPace(newDistance / elapsedSec);
-          paceRef.current = pace;
-
-          // Km milestone feedback
-          const currentKm = Math.floor(totalDistanceRef.current);
-          if (currentKm > lastKmRef.current) {
-            lastKmRef.current = currentKm;
-            feedback.kmTick();
-          }
-
-          return {
-            ...prev,
-            distance:     Math.round(newDistance * 1000) / 1000,
-            pace,
-            currentSpeed: gpsSpeed,
-            gpsPoints:    [...gpsPointsRef.current],
-          };
-        });
+        // totalDistanceRef is the one running total (live fixes and merged
+        // screen-off fixes alike); state just mirrors it. Feedback and ref writes
+        // stay out of the updater (P1-13).
+        pendingDistanceRef.current = 0;
+        const newDistance = totalDistanceRef.current;
+        const elapsedSec = elapsedRef.current > 0 ? elapsedRef.current : 1;
+        const pace = formatPace(newDistance / elapsedSec);
+        paceRef.current = pace;
+        const currentKm = Math.floor(newDistance);
+        if (currentKm > lastKmRef.current) {
+          lastKmRef.current = currentKm;
+          feedback.kmTick();
+        }
+        const pointsSnapshot = [...gpsPointsRef.current];
+        setState(prev => (prev.isPaused ? prev : {
+          ...prev,
+          distance:     Math.round(newDistance * 1000) / 1000,
+          pace,
+          currentSpeed: gpsSpeed,
+          gpsPoints:    pointsSnapshot,
+        }));
       },
     ).catch((err: unknown) => { abortStart(err); return null; });
     if (!watchSub) return;
@@ -497,7 +497,7 @@ export function useActiveRun(activityType: string = 'run') {
 
     lastKmRef.current = 0;
     isStartingRef.current = false;
-  }, [gameEngine, mergeBgPoints]);
+  }, [gameEngine, mergeBgPoints, activityType]);
 
   // ── Pause / Resume ──────────────────────────────────────────────────────────
   const pauseRun = useCallback(() => {
@@ -552,10 +552,15 @@ export function useActiveRun(activityType: string = 'run') {
 
     feedback.runComplete();
 
-    // Use refs — not state — so finalElapsed/finalPace are always current
+    // Worked out now, not read from the last throttled update: the live pace
+    // lagged up to a second of fixes, and missed the screen-off tail merged just
+    // above (P1-12). A run finished while paused stops its clock at the pause.
+    const endAt = isPausedRef.current && pauseStartRef.current ? pauseStartRef.current : Date.now();
     const finalDistance = totalDistanceRef.current;
-    const finalElapsed  = elapsedRef.current;
-    const finalPace     = paceRef.current;
+    const finalElapsed  = Math.max(0, Math.floor((endAt - startTimeRef.current - totalPausedMsRef.current) / 1000));
+    const finalPace     = finalElapsed > 0 ? formatPace(finalDistance / finalElapsed) : paceRef.current;
+    elapsedRef.current  = finalElapsed;
+    paceRef.current     = finalPace;
     const finalRunId    = runIdRef.current;
 
     setState(prev => ({ ...prev, isRunning: false, isPaused: false, distance: finalDistance }));
@@ -593,7 +598,11 @@ export function useActiveRun(activityType: string = 'run') {
     }
 
     // Run is now saved to IndexedDB — safe to discard the crash checkpoint
-    await AsyncStorage.removeItem(`${GPS_CHECKPOINT_PREFIX}${finalRunId}`).catch(() => {});
+    const cpKey = `${GPS_CHECKPOINT_PREFIX}${finalRunId}`;
+    try {
+      const keys = (await AsyncStorage.getAllKeys()).filter(k => k === cpKey || k.startsWith(`${cpKey}#`));
+      if (keys.length > 0) await AsyncStorage.multiRemove(keys);
+    } catch { /* a leftover checkpoint is offered for recovery, then cleared */ }
 
     return {
       runId:               finalRunId,
@@ -604,7 +613,7 @@ export function useActiveRun(activityType: string = 'run') {
       territoriesClaimed:  (result as any)?.run?.territoriesClaimed?.length ?? 0,
       ...result,
     };
-  }, [gameEngine, mergeBgPoints]);
+  }, [gameEngine, mergeBgPoints, activityType]);
 
   return {
     ...state,

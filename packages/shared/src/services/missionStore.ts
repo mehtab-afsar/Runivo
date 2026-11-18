@@ -54,6 +54,9 @@ export async function saveMissions(missions: Mission[]): Promise<void> {
   await tx.done;
 }
 
+/** Runs already counted this session (web has no retry-after-restart path). */
+const appliedRuns = new Set<string>();
+
 export async function updateMissionsAfterRun(runResult: {
   distanceKm:          number;
   territoriesClaimed:  string[];
@@ -61,11 +64,17 @@ export async function updateMissionsAfterRun(runResult: {
   fastKmCount:         number;
   defendedZonesCount:  number;
   rivalZonesStolen:    number;
+  /** Counts a run once: saving it again after a failed finish (Retry) must not add it twice. */
+  runId?:              string;
 }): Promise<{ missions: Mission[]; newlyCompleted: Mission[] }> {
   const current             = await getTodaysMissions();
+  if (runResult.runId && appliedRuns.has(runResult.runId)) {
+    return { missions: current, newlyCompleted: [] };
+  }
   const previouslyCompleted = current.filter(m => m.completed).map(m => m.id);
   const updated             = updateMissionProgress(current, runResult);
   await saveMissions(updated);
+  if (runResult.runId) appliedRuns.add(runResult.runId);
   const newlyCompleted = updated.filter(m => m.completed && !previouslyCompleted.includes(m.id));
   return { missions: updated, newlyCompleted };
 }

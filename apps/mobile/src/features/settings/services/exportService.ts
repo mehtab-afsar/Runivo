@@ -1,4 +1,5 @@
-import { Alert } from 'react-native';
+import { } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { getRuns, getTerritoryPolygons } from '@shared/services/store';
@@ -16,18 +17,18 @@ const META: Record<Kind, { mime: string; uti: string; title: string }> = {
 /** Writes the file to the cache folder and opens the share sheet. */
 export async function exportData(kind: Kind): Promise<void> {
   if (!(await Sharing.isAvailableAsync())) {
-    Alert.alert('Sharing is unavailable', "This device can't share files.");
+    appAlert('Sharing is unavailable', "This device can't share files.");
     return;
   }
   let body: string;
   if (kind === 'geojson') {
     const { data: { user } } = await supabase.auth.getUser();
     const zones = await getTerritoryPolygons(user?.id);
-    if (!zones.length) { Alert.alert('No zones yet', 'Close a loop on a run to claim your first zone.'); return; }
+    if (!zones.length) { appAlert('No zones yet', 'Close a loop on a run to claim your first zone.'); return; }
     body = toGeoJson(zones);
   } else {
     const runs = await getRuns();
-    if (!runs.length) { Alert.alert('Nothing to export', 'Record an activity first.'); return; }
+    if (!runs.length) { appAlert('Nothing to export', 'Record an activity first.'); return; }
     body = kind === 'gpx' ? toGpx(runs) : toCsv(runs);
   }
   const uri = `${FileSystem.cacheDirectory}runivo-${kind === 'geojson' ? 'zones' : 'activities'}-${new Date().toISOString().slice(0, 10)}.${kind}`;
@@ -36,8 +37,8 @@ export async function exportData(kind: Kind): Promise<void> {
 }
 
 export function chooseExport(): void {
-  const run = (k: Kind) => () => { exportData(k).catch(() => Alert.alert("Couldn't export", 'Try again.')); };
-  Alert.alert('Export my data', 'Saved from this phone. Activities recorded elsewhere appear once they have synced.', [
+  const run = (k: Kind) => () => { exportData(k).catch(() => appAlert("Couldn't export", 'Try again.')); };
+  appAlert('Export my data', 'Saved from this phone. Activities recorded elsewhere appear once they have synced.', [
     { text: 'Activities as GPX', onPress: run('gpx') },
     { text: 'Activities as CSV', onPress: run('csv') },
     { text: 'Zones as GeoJSON', onPress: run('geojson') },

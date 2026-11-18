@@ -360,11 +360,6 @@ export async function updateClubDescription(clubId: string, description: string)
   await supabase.from('clubs').update({ description: description.trim() }).eq('id', clubId);
 }
 
-/** Update club badge emoji (admin/owner only). */
-export async function updateClubBadge(clubId: string, badgeEmoji: string): Promise<void> {
-  await supabase.from('clubs').update({ badge_emoji: badgeEmoji }).eq('id', clubId);
-}
-
 // ── Moderation (20261113000001) ─────────────────────────────────────────────
 export type ChatReportReason = 'spam' | 'harassment' | 'inappropriate' | 'other';
 

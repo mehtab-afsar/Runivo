@@ -7,6 +7,7 @@ import { pullProfile } from '@shared/services/sync';
 import type { StoredPlayer } from '@shared/services/store';
 import type { Reward } from '../types';
 import { lastKnownPoint, pointParams } from '../services/devicePoint';
+import { effectiveTier } from '@shared/engine/entitlements';
 
 function expiresLabelFor(iso: unknown): string | undefined {
   return iso ? `Ends ${new Date(String(iso)).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : undefined;
@@ -101,7 +102,7 @@ export function usePACEStore() {
 
   const paceBalance      = player?.paceBalance      ?? 0;
   const paceWeeklyEarned = weeklyPaceNow(player?.paceWeeklyEarned, player?.paceWeeklyResetAt);
-  const capLimit         = weeklyCapFor(player?.subscriptionTier);
+  const capLimit         = weeklyCapFor(effectiveTier(player?.subscriptionTier));
   const weeklyPct        = capLimit > 0 ? Math.min(1, paceWeeklyEarned / capLimit) : 0;
   const runnerRank       = computeRunnerRank(player?.paceTotalEarned ?? 0);
 

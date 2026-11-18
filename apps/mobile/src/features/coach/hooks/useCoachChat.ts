@@ -13,9 +13,23 @@ import {
   type WeeklyBriefPayload,
   type QuickPrompt,
 } from '../services/coachService';
+import { CoachError } from '../services/coachService';
+import { forgetLocalAiConsent } from '@shared/services/aiConsent';
 
 /** Turn transport errors into something a runner can act on. */
 function friendlyCoachError(e: unknown, fallback: string): string {
+  if (e instanceof CoachError) {
+    if (e.kind === 'consent') {
+      // The server has no consent on record: drop the phone's stale copy so the
+      // consent screen shows next time, instead of failing on every message.
+      void forgetLocalAiConsent();
+      return 'PaceX needs your OK to use your run data. Reopen PaceX to give it';
+    }
+    if (e.kind === 'limit') return "You've reached today's PaceX limit. It resets tomorrow";
+    if (e.kind === 'plus') return 'PaceX chat is part of Runivo Plus';
+    if (e.kind === 'server') return 'PaceX hit a problem on our side. Try again in a minute';
+    return "Can't reach PaceX. Check your connection";
+  }
   const msg = (e as Error)?.message ?? '';
   if (/non-2xx|FunctionsHttpError|FunctionsFetchError|Failed to send a request|404|500|502|503/i.test(msg)) {
     return "PaceX can't reach its server right now";

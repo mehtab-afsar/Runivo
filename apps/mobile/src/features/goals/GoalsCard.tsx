@@ -1,12 +1,15 @@
 /** P3: Home's goals card, plus the sheet to add and remove goals. */
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Modal, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Plus } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { getRuns, getSettings, saveSettings, type StoredRun } from '@shared/services/store';
 import { goalProgress, goalLabel, SPORT_NAME, type SportGoal } from './sportGoals';
 import { FormScreen, ChipGroup, FormButton } from '@mobile/shared/components/form/FormKit';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AlertLayer } from '@mobile/shared/components/AppAlert';
 
 const TARGETS: Record<SportGoal['metric'], number[]> = { km: [10, 20, 40, 80, 150, 300], hours: [2, 4, 6, 10, 20] };
 
@@ -35,7 +38,7 @@ export function GoalsCard() {
         <Pressable
           onPress={() => {
             // Adding a fifth goal used to silently delete the oldest one.
-            if (goals.length >= MAX_GOALS) { Alert.alert(`You can track ${MAX_GOALS} goals`, 'Remove one to add another. Long-press a goal to remove it.'); return; }
+            if (goals.length >= MAX_GOALS) { appAlert(`You can track ${MAX_GOALS} goals`, 'Remove one to add another. Long-press a goal to remove it.'); return; }
             setOpen(true);
           }}
           hitSlop={8} accessibilityRole="button" accessibilityLabel="Add a goal" style={s.add}>
@@ -48,7 +51,7 @@ export function GoalsCard() {
         const done = goalProgress(g, runs);
         const pct = Math.min(1, done / g.target);
         return (
-          <Pressable key={g.id} style={s.goal} accessibilityHint="Long-press to remove this goal" accessibilityActions={[{ name: 'delete', label: 'Remove goal' }]} onAccessibilityAction={() => Alert.alert('Remove this goal?', goalLabel(g), [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => save(goals.filter(x => x.id !== g.id)) }])} onLongPress={() => Alert.alert('Remove this goal?', goalLabel(g), [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => save(goals.filter(x => x.id !== g.id)) }])}>
+          <Pressable key={g.id} style={s.goal} accessibilityHint="Long-press to remove this goal" accessibilityActions={[{ name: 'delete', label: 'Remove goal' }]} onAccessibilityAction={() => appAlert('Remove this goal?', goalLabel(g), [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => save(goals.filter(x => x.id !== g.id)) }])} onLongPress={() => appAlert('Remove this goal?', goalLabel(g), [{ text: 'Cancel', style: 'cancel' }, { text: 'Remove', style: 'destructive', onPress: () => save(goals.filter(x => x.id !== g.id)) }])}>
             <View style={s.goalHead}>
               <Text style={s.goalName}>{SPORT_NAME[g.sport]} this {g.period}</Text>
               <Text style={[s.goalVal, pct >= 1 && { color: C.red }]}>{done.toFixed(done >= 100 ? 0 : 1)} / {g.target} {g.metric === 'km' ? 'km' : 'h'}</Text>
@@ -72,6 +75,9 @@ function AddGoal({ visible, onClose, onAdd }: { visible: boolean; onClose: () =>
   const unit = metric === 'km' ? 'km' : 'h';
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      {/* A Modal is a new native root: give it its own safe-area measurement,
+          or the content starts under the status bar. */}
+      <SafeAreaProvider>
       <FormScreen
         title="Set a"
         accent="goal."
@@ -84,13 +90,15 @@ function AddGoal({ visible, onClose, onAdd }: { visible: boolean; onClose: () =>
         <ChipGroup label="Measure" options={[{ value: 'km', label: 'Distance' }, { value: 'hours', label: 'Time' }]} value={metric} onChange={v => { setMetric(v as SportGoal['metric']); setTarget(v === 'km' ? 40 : 4); }} />
         <ChipGroup label="Target" options={TARGETS[metric].map(t => ({ value: t, label: `${t} ${unit}` }))} value={target} onChange={setTarget} />
       </FormScreen>
+      <AlertLayer />
+      </SafeAreaProvider>
     </Modal>
   );
 }
 
 function mk(C: AppColors) {
   return StyleSheet.create({
-    card: { backgroundColor: C.card, borderRadius: 18, padding: 16, gap: 10 },
+    card: { backgroundColor: C.card, borderRadius: 26, padding: 18, gap: 10 },
     head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     label: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t2 },
     add: { flexDirection: 'row', alignItems: 'center', gap: 4 },

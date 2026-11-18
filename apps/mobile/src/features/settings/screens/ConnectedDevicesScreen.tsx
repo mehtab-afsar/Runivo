@@ -9,10 +9,11 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Linking, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Heart, Pulse, TrendUp, Brain, DeviceMobile, Check, X } from 'phosphor-react-native';
+import { Heart, Pulse, TrendUp, Brain, DeviceMobile, Check, X, ArrowClockwise } from 'phosphor-react-native';
 import { supabase } from '@shared/services/supabase';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import {
@@ -20,6 +21,7 @@ import {
 } from '../../../shared/services/healthService';
 import { getOAuthAuthUrl, completeOAuthCallback, disconnectOAuth } from '../services/deviceOAuthService';
 import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
+import { FEATURES } from '../../../config/features';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -185,7 +187,7 @@ function DeviceCard({
           ) : isConnected ? (
             <Text style={ss.syncTime}>{formatSyncTime(lastSyncAt)}</Text>
           ) : isUnavailable ? (
-            <Text style={ss.unavailableText}>Not available on this device</Text>
+            <Text style={ss.unavailableText}>{device.oauthProvider ? 'Coming soon' : 'Not available on this device'}</Text>
           ) : (
             <Text style={ss.notConnected}>Not connected</Text>
           )}
@@ -202,7 +204,7 @@ function DeviceCard({
                 >
                   {busy
                     ? <ActivityIndicator size="small" color={C.muted} />
-                    : <Text style={ss.iconBtnText}>↻</Text>
+                    : <ArrowClockwise size={16} color={C.t1} weight="bold" />
                   }
                 </Pressable>
               )}
@@ -346,14 +348,14 @@ export default function ConnectedDevicesScreen() {
       await loadAppleHealth();
       showToast('Apple Health connected!');
     } catch {
-      Alert.alert('Apple Health', 'Could not connect to Apple Health. Make sure you grant permission in Settings > Privacy > Health.');
+      appAlert('Apple Health', 'Could not connect to Apple Health. Make sure you grant permission in Settings > Privacy > Health.');
     } finally {
       setAhBusy(false);
     }
   };
 
   const handleAhDisconnect = () => {
-    Alert.alert('Disconnect Apple Health?', 'Runivo will stop importing your workouts.', [
+    appAlert('Disconnect Apple Health?', 'Runivo will stop importing your workouts.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Disconnect', style: 'destructive', onPress: async () => {
         setAhBusy(true);
@@ -400,7 +402,7 @@ export default function ConnectedDevicesScreen() {
 
   const handleOAuthDisconnect = (device: DeviceInfo) => {
     if (!device.oauthProvider) return;
-    Alert.alert(`Disconnect ${device.name}?`, 'Runivo will stop syncing runs with it.', [
+    appAlert(`Disconnect ${device.name}?`, 'Runivo will stop syncing runs with it.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Disconnect', style: 'destructive', onPress: () => { void doOAuthDisconnect(device); } },
     ]);
@@ -457,7 +459,7 @@ export default function ConnectedDevicesScreen() {
             <DeviceCard
               key={device.key}
               device={device}
-              status={oauthStatus[device.key] ?? 'disconnected'}
+              status={FEATURES.WATCH_OAUTH ? (oauthStatus[device.key] ?? 'disconnected') : 'unavailable'}
               lastSyncAt={oauthLastSync[device.key] ?? null}
               onConnect={() => handleOAuthConnect(device)}
               onDisconnect={() => handleOAuthDisconnect(device)}

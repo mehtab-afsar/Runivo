@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import type { ClubFeedActivityItem } from '@features/clubs/types';
+import { ClubInitialsTile } from '@features/clubs/components/ClubHeroCard';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 
 const ACTION_LABELS: Record<string, string> = {
@@ -29,7 +30,7 @@ export function ClubActivityStrip({ items, onPress }: Props) {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.scroll}>
         {items.map(item => (
           <Pressable key={item.id} style={s.chip} onPress={() => onPress(item)}>
-            <Text style={s.badge}>{item.badgeEmoji}</Text>
+            <ClubInitialsTile name={item.clubName} size={28} shape="hex" />
             <View style={{ flex: 1 }}>
               <Text style={s.text} numberOfLines={1}>
                 <Text style={s.username}>{item.username}</Text> {ACTION_LABELS[item.action] ?? item.action}
@@ -49,7 +50,6 @@ function mkStyles(C: AppColors) {
     label:    { color: C.t2, paddingHorizontal: Spacing.gutter, marginBottom: 10 },
     scroll:   { paddingHorizontal: 12, gap: 10 },
     chip:     { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12, width: 210 },
-    badge:    { fontSize: 18 },
     text:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t1 },
     username: { fontFamily: Fonts.semiBold },
     clubName: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, marginTop: 2 },

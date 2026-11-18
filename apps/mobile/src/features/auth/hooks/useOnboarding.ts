@@ -75,6 +75,11 @@ export function useOnboarding(): OnboardingState {
           if (d.data) setData(prev => ({ ...prev, ...d.data }));
           if (typeof d.index === 'number' && d.index > 0) setIndex(d.index);
         }
+        // The name picked on the sign-up form: don't ask for it twice. Still editable here.
+        const picked = session?.user.user_metadata?.username;
+        if (!cancelled && typeof picked === 'string' && validateUsername(picked).ok) {
+          setData(prev => (prev.username ? prev : { ...prev, username: picked }));
+        }
       } catch { /* a bad or missing draft just means starting fresh */ }
       hydratedRef.current = true;
     })();

@@ -7,7 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Location from 'expo-location';
 import * as Haptics from '@theme/hapticsGated';
 
-import { getAllTerritories, getPlayer, getSavedRoutes } from '@shared/services/store';
+import { getSavedRoutes } from '@shared/services/store';
 import type { StoredSavedRoute } from '@shared/services/store';
 import { findRoutesNearby, type NearbyRoute } from '@shared/services/sync';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -25,7 +25,6 @@ export interface GpsState {
   lng: number | null;
 }
 
-export interface IntelStats { enemy: number; neutral: number; weak: number }
 
 // v1: the sheet holds the sport chips, the rule line and Start.
 const SHEET_COLLAPSED = 392; // follow card, rule chips, prefs (R6), sport · START · route (mock)
@@ -38,7 +37,6 @@ export function useRunSetup() {
   useEffect(() => { getLastSport().then(setActivityTypeState); }, []);
   const setActivityType = useCallback((t: ActivityType) => { setActivityTypeState(t); setLastSport(t); }, []);
   const [gps, setGps] = useState<GpsState>({ status: 'searching', accuracy: null, lat: null, lng: null });
-  const [intel, setIntel] = useState<IntelStats>({ enemy: 0, neutral: 0, weak: 0 });
   const [savedRoutes, setSavedRoutes]   = useState<StoredSavedRoute[]>([]);
   const [nearbyRoutes, setNearbyRoutes] = useState<NearbyRoute[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
@@ -100,19 +98,6 @@ export function useRunSetup() {
     return () => { cancelled = true; locationSubRef.current?.remove(); locationSubRef.current = null; };
   }, [gpsAttempt]);
 
-  // Territory intel
-  useEffect(() => {
-    (async () => {
-      const [p, territories] = await Promise.all([getPlayer(), getAllTerritories()]);
-      if (!p) return;
-      setIntel({
-        enemy:   territories.filter(t => t.ownerId && t.ownerId !== p.id).length,
-        neutral: territories.filter(t => !t.ownerId).length,
-        weak:    territories.filter(t => t.ownerId && t.ownerId !== p.id && t.defense < 40).length,
-      });
-    })();
-  }, []);
-
   // Pan responder for draggable sheet
   const panResponder = useRef(
     PanResponder.create({
@@ -164,7 +149,7 @@ export function useRunSetup() {
 
   return {
     activityType, setActivityType,
-    gps, intel,
+    gps,
     savedRoutes, nearbyRoutes, nearbyLoading,
     selectedRoute, setSelectedRoute, todaySession,
     showActivityModal, setShowActivityModal,

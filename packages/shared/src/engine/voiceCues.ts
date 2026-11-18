@@ -13,13 +13,19 @@ export function spokenDuration(sec: number): string {
   return part(r, 'second');
 }
 
-/** The cue at each whole kilometre. Rides get speed instead of pace. */
-export function kmCue(km: number, splitSec: number, elapsedSec: number, ride = false): string {
-  const dist = `${km} ${km === 1 ? 'kilometre' : 'kilometres'}.`;
-  const split = ride
-    ? `Speed ${Math.round(3600 / Math.max(1, splitSec))} kilometres per hour.`
-    : `Split ${spokenDuration(splitSec)} per kilometre.`;
-  return `${dist} ${split} Time ${spokenDuration(elapsedSec)}.`;
+/**
+ * The cue at each whole kilometre, in plain words:
+ *   "1 kilometre done in 6 minutes 20 seconds."
+ *   "3 kilometres done in 18 minutes 40 seconds. That kilometre took 6 minutes 5 seconds, 12 seconds faster."
+ * Rides get speed instead of the split.
+ */
+export function kmCue(km: number, splitSec: number, elapsedSec: number, ride = false, prevSplitSec?: number): string {
+  const head = `${km} ${km === 1 ? 'kilometre' : 'kilometres'} done in ${spokenDuration(elapsedSec)}.`;
+  if (ride) return `${head} Speed ${Math.round(3600 / Math.max(1, splitSec))} kilometres an hour.`;
+  if (km === 1) return head;
+  const diff = prevSplitSec != null ? Math.round(prevSplitSec - splitSec) : 0;
+  const trend = Math.abs(diff) >= 5 ? `, ${spokenDuration(Math.abs(diff))} ${diff > 0 ? 'faster' : 'slower'}` : '';
+  return `${head} That kilometre took ${spokenDuration(splitSec)}${trend}.`;
 }
 
 /** "Loop closing in 80 metres" once you're heading back near the start. */

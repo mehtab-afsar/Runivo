@@ -5,7 +5,8 @@
  *   E6 the territory-hour rule
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
 import { MapTrifold, MapPin, Trophy } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -61,7 +62,7 @@ export function EventExtras({ event, joined, onFollowRoute }: { event: RunEvent;
       if (perm.status !== 'granted') return;
       const fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       const ok = await checkInEvent(event.id, fix.coords.latitude, fix.coords.longitude);
-      if (!ok) Alert.alert('Not at the start yet', 'Check in within 300 m of the meeting point, from an hour before the start.');
+      if (!ok) appAlert('Not at the start yet', 'Check in within 300 m of the meeting point, from an hour before the start.');
       else setPeople(await fetchAttendees(event.id));
     } catch { /* offline */ } finally { setBusy(false); }
   };

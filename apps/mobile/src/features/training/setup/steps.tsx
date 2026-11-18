@@ -84,7 +84,7 @@ export function WeekStep({ days, longDay, weeklyKm, fromRuns, showVolume, onDays
       <View>
         <FieldLabel hint={`${days.length} picked`}>Days you can run</FieldLabel>
         <PillRow options={DAY_LETTER.map((l, i) => ({ value: i, label: l, a11y: DAY_NAME[i] }))} isOn={d => days.includes(d)} onChange={toggle} />
-        <Text style={s.hint}>3 to 5 days. Sessions only go on these days.</Text>
+        <Text style={s.hint}>Pick 3 to 5.</Text>
       </View>
       {days.length > 0 && (
         <View>

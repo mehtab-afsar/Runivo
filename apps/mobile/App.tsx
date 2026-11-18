@@ -27,6 +27,8 @@ import { pushProfile, initialSync, pushUnsyncedRuns, setAiCoachEnabled } from '@
 import { FEATURES } from './src/config/features';
 import { supabase } from '@shared/services/supabase';
 import { ToastProvider } from './src/shared/components/ToastProvider';
+import { AlertLayer } from './src/shared/components/AppAlert';
+import { CaptureHost } from './src/shared/components/CaptureHost';
 import { ErrorBoundary } from './src/shared/components/ErrorBoundary';
 import { SplashView } from './src/shared/components/SplashView';
 import { initSentry, captureException } from './src/shared/services/sentry';
@@ -214,6 +216,8 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
         ) : authReady && (
           <AppNavigator isAuthenticated={user !== null} needsOnboarding={needsOnboarding} />
         )}
+        <AlertLayer />
+        <CaptureHost />
         {!splashDone && (
           <SplashView
             ready={authReady}

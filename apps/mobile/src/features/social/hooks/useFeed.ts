@@ -41,7 +41,7 @@ export function useFeed() {
   const kudosInFlightRef = useRef(new Set<string>());
   const followInFlightRef = useRef(new Set<string>());
 
-  const loadTab = useCallback(async (tab: Tab, refresh = false, uid?: string) => {
+  const loadTab = useCallback(async (tab: Tab, refresh = false) => {
     const isDiscover = tab === 'discover';
     const cursorTs   = refresh ? null : (isDiscover ? discoverCursor : followingCursor);
     const hasMore    = isDiscover ? discoverHasMore : followingHasMore;
@@ -85,7 +85,7 @@ export function useFeed() {
       setSuggestedRunners(uniqById(suggested.filter(r => r.id !== uid)));
       setClubActivity(myClubActivity);
 
-      await loadTab('following', true, uid);
+      await loadTab('following', true);
     } finally {
       setLoading(false);
     }

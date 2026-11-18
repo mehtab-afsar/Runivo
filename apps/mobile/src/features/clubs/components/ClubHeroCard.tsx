@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import type { Club } from '../types';
+import Svg, { Polygon } from 'react-native-svg';
 
 interface Props {
   club: Club;
@@ -24,7 +25,18 @@ const TILE = [
   { bg: '#DCEBC8', fg: '#2F4D12' }, { bg: '#E4E1F8', fg: '#3C3577' },
   { bg: '#FDF0DF', fg: '#7A5525' }, { bg: '#17181A', fg: '#C9F06B' },
 ];
-export function ClubInitialsTile({ name, size = 52, uri }: { name: string; size?: number; uri?: string | null }) {
+export function ClubInitialsTile({ name, size = 52, uri, shape = 'tile' }: { name: string; size?: number; uri?: string | null; shape?: 'tile' | 'hex' }) {
+  if (shape === 'hex' && !uri) {
+    // The club page's mark (mock): a pointy-top hexagon, ink with lime initials.
+    const w = size, h = size * 1.1;
+    const pts = [[w / 2, 0], [w, h * 0.25], [w, h * 0.75], [w / 2, h], [0, h * 0.75], [0, h * 0.25]].map(p => p.join(',')).join(' ');
+    return (
+      <View style={{ width: w, height: h, alignItems: 'center', justifyContent: 'center' }}>
+        <Svg width={w} height={h} style={StyleSheet.absoluteFill}><Polygon points={pts} fill="#17181A" /></Svg>
+        <Text style={{ fontFamily: Fonts.semiBold, fontSize: size * 0.3, color: '#C9F06B' }}>{clubInitials(name)}</Text>
+      </View>
+    );
+  }
   if (uri) {
     return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: '#EEF0EA' }} accessibilityIgnoresInvertColors />;
   }

@@ -6,7 +6,7 @@
  */
 import { safeRing, safeLine } from '@mobile/shared/map/geo';
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { CaretLeft, Export, Play, Trophy, EyeSlash } from 'phosphor-react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
@@ -38,6 +38,8 @@ interface Props {
   onReplay?:  () => void;
   /** Mock activity page: who, when, what they wrote, a PR line, more stats. */
   authorName?: string;
+  /** The runner's photo, shown instead of initials. */
+  authorPhoto?: string | null;
   whenLine?:   string;
   description?: string;
   pr?:         { title: string; sub?: string } | null;
@@ -50,7 +52,7 @@ interface Props {
 export default function RunSummaryHero({
   topInset, eyebrow, headline, route, zoneRing, zoneLabel, stolenLabel,
   distance, time, pace, paceLabel, unit = 'km', onClose, onShare, onReplay,
-  authorName, whenLine, description, pr, extraStats = [], sportLabel, onOpenMap,
+  authorName, authorPhoto, whenLine, description, pr, extraStats = [], sportLabel, onOpenMap,
 }: Props) {
   const C = useTheme();
   const isDark = useIsDark();
@@ -112,7 +114,7 @@ export default function RunSummaryHero({
       <View style={ss.top}>
         {!!authorName && (
           <View style={ss.author}>
-            <View style={ss.authorAv}><Text style={ss.authorAvTxt}>{initials}</Text></View>
+            <View style={ss.authorAv}>{authorPhoto ? <Image source={{ uri: authorPhoto }} style={ss.authorImg} /> : <Text style={ss.authorAvTxt}>{initials}</Text>}</View>
             <View style={{ flex: 1 }}>
               <Text style={ss.authorName} numberOfLines={1}>{authorName}</Text>
               {!!whenLine && <Text style={ss.authorWhen} numberOfLines={1}>{whenLine}</Text>}
@@ -191,7 +193,8 @@ function mkStyles(C: AppColors) {
     barTitle:    { flex: 1, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
     top:         { paddingHorizontal: 20, paddingTop: 10, gap: 14 },
     author:      { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    authorAv:    { width: 42, height: 42, borderRadius: 21, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center' },
+    authorAv:    { width: 42, height: 42, borderRadius: 21, backgroundColor: C.alwaysDark, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+    authorImg:   { width: 42, height: 42 },
     authorAvTxt: { fontFamily: Fonts.semiBold, fontSize: 14, color: C.lime },
     authorName:  { fontFamily: Fonts.semiBold, fontSize: 16, color: C.t1 },
     authorWhen:  { fontFamily: Fonts.regular, fontSize: 13, color: C.t2 },

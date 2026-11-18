@@ -6,11 +6,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import type { StoredRun } from '@shared/services/store';
 import { AWARD_DEFINITIONS, AWARD_PROGRESS_TARGETS } from '@shared/constants/awards';
 import type { AwardCategory, AwardId } from '@shared/types/game';
-import {
-  Flag, Swords, TreePine, Landmark, Castle, Crown, Building2, Shield, Star,
-  Route, Milestone, Trophy, CalendarCheck, Flame, FlameKindling, Sunrise,
-  type LucideIcon,
-} from '@mobile/shared/icons/lucideCompat';
+import { GlyphBadge } from '@mobile/shared/icons';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -23,28 +19,6 @@ const CATEGORIES: { key: AwardCategory; label: string }[] = [
   { key: 'distance',  label: 'Distance' },
   { key: 'streak',    label: 'Streak' },
 ];
-
-const AWARD_ICONS: Partial<Record<AwardId, LucideIcon>> = {
-  first_claim:        Flag,
-  first_blood:        Swords,
-  park_capture:       TreePine,
-  district_owner:     Landmark,
-  quarter_owner:      Castle,
-  domain_lord:        Crown,
-  city_builder:       Building2,
-  defender:           Shield,
-  sovereign_rank:     Star,
-  first_5k:           Route,
-  first_10k:          Route,
-  first_halfmarathon: Route,
-  km_100:             Milestone,
-  km_500:             Milestone,
-  km_1000:            Trophy,
-  monthly_100:        CalendarCheck,
-  streak_7:           Flame,
-  streak_30:          FlameKindling,
-  early_bird:         Sunrise,
-};
 
 interface Props {
   earnedAwards: { awardId: string; unlockedAt: string }[];
@@ -110,7 +84,6 @@ export function AwardsTab({
             <View style={s.grid}>
               {awards.map(id => {
                 const def = AWARD_DEFINITIONS[id];
-                const Icon = AWARD_ICONS[id] ?? Trophy;
                 const isEarned = earnedSet.has(id);
                 const unlockedAt = earnedSet.get(id);
                 const progress = getProgress(id, isEarned);
@@ -123,9 +96,7 @@ export function AwardsTab({
                     style={[s.card, isEarned && s.cardEarned]}
                     onPress={() => navigation.navigate('AwardDetail', { awardId: id, unlockedAt: unlockedAt ?? null })}
                   >
-                    <View style={[s.cardIconWrap, isEarned && s.cardIconWrapEarned]}>
-                      <Icon size={22} color={isEarned ? C.gold : C.t3} strokeWidth={1.75} />
-                    </View>
+                    <GlyphBadge glyph={def.icon} size={40} muted={!isEarned} />
                     <Text style={[s.cardTitle, isEarned && s.cardTitleEarned]} numberOfLines={1}>
                       {def.title}
                     </Text>
@@ -171,8 +142,6 @@ function mkStyles(C: AppColors) {
     card: { width: '47%', backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, padding: 16, alignItems: 'center', gap: 6 },
     cardEarned: { borderColor: C.gold, backgroundColor: C.amberBg },
 
-    cardIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: C.stone, alignItems: 'center', justifyContent: 'center' },
-    cardIconWrapEarned: { backgroundColor: C.card },
 
     cardTitle: { fontFamily: Fonts.regular, fontSize: 13, color: C.t2, textAlign: 'center' },
     cardTitleEarned: { fontFamily: Fonts.semiBold, color: C.black },

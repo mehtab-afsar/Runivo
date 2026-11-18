@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Footprints } from 'phosphor-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -15,7 +16,7 @@ export function PhotoPicker({ uri, onPick }: PhotoPickerProps) {
   const pickFromLibrary = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Enable photo library access in Settings to add a shoe photo.');
+      appAlert('Permission needed', 'Enable photo library access in Settings to add a shoe photo.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -30,7 +31,7 @@ export function PhotoPicker({ uri, onPick }: PhotoPickerProps) {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Enable camera access in Settings to take a shoe photo.');
+      appAlert('Permission needed', 'Enable camera access in Settings to take a shoe photo.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({

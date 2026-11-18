@@ -3,7 +3,8 @@
  * status, how to use it, copy/share, and "Mark as used".
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Alert, Share } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, Share } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -39,7 +40,7 @@ export default function MyRewardsScreen() {
     const used = r.status !== 'used';
     setRows(prev => (prev ?? []).map(x => x.id === r.id ? { ...x, status: used ? 'used' : (x.code ? 'unused' : 'pending'), usedAt: used ? new Date().toISOString() : null } : x));
     try { await setRewardUsed(r.id, used); }
-    catch { Alert.alert("Couldn't save", 'Check your connection and try again.'); load(); }
+    catch { appAlert("Couldn't save", 'Check your connection and try again.'); load(); }
   };
 
   const tone = (st: MyRewardStatus) =>

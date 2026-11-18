@@ -6,7 +6,8 @@
  * Pause state: custom slide-up card (Reanimated 4) instead of native alert.
  */
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator, Linking } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import Animated, { useSharedValue, withSpring, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -60,6 +61,7 @@ import { fmtDuration } from '@shared/engine/training';
 import { useIncomingCheers } from '../hooks/useIncomingCheers';
 import { CheerToast } from '@features/cheers/CheerToast';
 import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
+import { UI } from '@mobile/shared/icons';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
@@ -252,7 +254,7 @@ export default function ActiveRunScreen() {
     const result = await run.finishRun();
     if (!result) {
       allowLeaveRef.current = false;
-      Alert.alert(
+      appAlert(
         'Could not save run',
         'Something went wrong saving your run. Your GPS data is safe — try again.',
         [{ text: 'Retry', onPress: doFinish }],
@@ -346,14 +348,14 @@ export default function ActiveRunScreen() {
     // save without a warning (&&), and the server rejects anything under
     // MIN_RUN_DURATION_S, so use the engine's limits, not the app's older copy.
     if (run.distance * 1000 < ENGINE.MIN_MEANINGFUL_RUN_DISTANCE_M || run.elapsed < ENGINE.MIN_RUN_DURATION_S) {
-      Alert.alert(`End ${sport.verb}?`, "You haven't gone far enough to save it. End anyway?", [
+      appAlert(`End ${sport.verb}?`, "You haven't gone far enough to save it. End anyway?", [
         { text: 'Keep going', style: 'cancel' },
         { text: `End ${sport.verb}`, style: 'destructive', onPress: doFinish },
       ]);
       return;
     }
     setShowConfirm(true);
-  }, [run.distance, run.elapsed, doFinish]);
+  }, [run.distance, run.elapsed, doFinish, sport.verb]);
 
   // L4: the Apple Watch companion mirrors the run and controls it.
   const [finishedRun, setFinishedRun] = useState(false);
@@ -372,7 +374,7 @@ export default function ActiveRunScreen() {
 
   const handleBack = useCallback(() => {
     if (!run.isRunning) { nav.goBack(); return; }
-    Alert.alert(`Discard this ${sport.verb}?`, `Your ${sport.verb} so far will be lost.`, [
+    appAlert(`Discard this ${sport.verb}?`, `Your ${sport.verb} so far will be lost.`, [
       { text: 'Keep going', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: () => {
         // Remove the crash-recovery checkpoint so the user isn't prompted to
@@ -492,7 +494,7 @@ export default function ActiveRunScreen() {
       setSafetyOn(true);
       if (lastPt) pushSafetyPosition(lastPt, run.distance * 1000, run.elapsed, true);
     } catch {
-      Alert.alert("Couldn't create the link", 'Check your connection and try again.');
+      appAlert("Couldn't create the link", 'Check your connection and try again.');
     }
   };
   useEffect(() => {
@@ -538,7 +540,7 @@ export default function ActiveRunScreen() {
               <Text style={ss.pillTxt} numberOfLines={1}>
                 {nearestFriend.f.username} · {nearestFriend.m >= 1000 ? `${(nearestFriend.m / 1000).toFixed(1)} km` : `${Math.round(nearestFriend.m)} m`}
               </Text>
-              <Text style={ss.pillTxt}>👏</Text>
+              <UI.cheer size={16} color={C.t1} weight="fill" />
             </Pressable>
           ) : run.isRunning ? (
             <BeatPacerChip bpm={pacer.bpm} enabled={pacer.enabled} onToggle={() => pacer.setEnabled(!pacer.enabled)} />

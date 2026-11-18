@@ -4,7 +4,8 @@
  * move it to another day this week, skip it, or send it to a watch.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -44,7 +45,7 @@ export default function PlanSessionScreen() {
 
   const update = (next: ActivePlan) => {
     setAp(next);
-    savePlan(next).catch(() => Alert.alert('Saved on this phone', "We'll sync the change when you're back online."));
+    savePlan(next).catch(() => appAlert('Saved on this phone', "We'll sync the change when you're back online."));
   };
 
   if (ap === undefined) return <View style={[s.root, s.center]}><ActivityIndicator color={C.t2} /></View>;
@@ -98,7 +99,7 @@ export default function PlanSessionScreen() {
             <Pressable style={s.action} onPress={() => setMoving(m => !m)} accessibilityRole="button" accessibilityState={{ expanded: moving }}>
               <Text style={s.actionTxt}>Move day</Text>
             </Pressable>
-            <Pressable style={s.action} onPress={() => Alert.alert('Skip this session?', 'The plan carries on. Nothing piles up.', [
+            <Pressable style={s.action} onPress={() => appAlert('Skip this session?', 'The plan carries on. Nothing piles up.', [
               { text: 'Keep it', style: 'cancel' },
               { text: 'Skip', onPress: () => update({ ...ap, plan: setStatus(plan, session.id, 'skipped') }) },
             ])} accessibilityRole="button">
@@ -106,7 +107,7 @@ export default function PlanSessionScreen() {
             </Pressable>
             <Pressable style={s.action} onPress={async () => {
               const r = watchOk ? await sendToAppleWatch(session) : await sendToGarmin(session);
-              Alert.alert(r.title, r.message);
+              appAlert(r.title, r.message);
             }} accessibilityRole="button" accessibilityLabel={watchOk ? 'Send to Apple Watch' : 'Send to Garmin'}>
               <Watch size={16} color={C.t1} />
               <Text style={s.actionTxt}>Watch</Text>

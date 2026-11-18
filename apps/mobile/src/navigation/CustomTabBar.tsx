@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import {
-  View, Text, Pressable, StyleSheet, Platform, Animated, Easing,
+  View, Text, Image, Pressable, StyleSheet, Platform, Animated, Easing,
 } from 'react-native';
 import { useTabBarHiddenByScreen } from './tabBarVisibility';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import * as Haptics from '@theme/hapticsGated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { getPlayer } from '@shared/services/store';
+import { useMyIdentity } from '@mobile/shared/hooks/useMyIdentity';
 import { FEATURES } from '../config/features';
 import { useCoachNav } from './CoachNavContext';
 
@@ -87,10 +88,12 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const bottomPad = Math.max(insets.bottom - 12, Platform.OS === 'ios' ? 12 : 10);
   const totalH = BAR_H + BAR_GAP + bottomPad;
 
-  const [initials, setInitials] = useState('');
-  useEffect(() => {
-    getPlayer().then(p => setInitials((p?.username ?? '').replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase())).catch(() => {});
-  }, []);
+  const [username, setUsername] = useState('');
+  useEffect(() => { getPlayer().then(p => setUsername(p?.username ?? '')).catch(() => {}); }, []);
+  const me = useMyIdentity();
+  // The runner's photo, else initials of their name (or username).
+  const initials = (me.name || username).split(/\s+/).filter(Boolean).map(w => w.replace(/[^a-z0-9]/gi, '')[0] ?? '').join('').slice(0, 2).toUpperCase()
+    || username.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase();
 
   const { coachActive, tourActive } = useCoachNav();
   const hiddenByScreen = useTabBarHiddenByScreen();
@@ -143,7 +146,9 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 <View style={s.pill}>
                   {name === 'Profile' ? (
                     <View style={[s.avatar, focused && s.avatarOn]}>
-                      {initials
+                      {me.avatarUrl
+                        ? <Image source={{ uri: me.avatarUrl }} style={s.avatarImg} />
+                        : initials
                         ? <Text style={s.avatarTxt} maxFontSizeMultiplier={1.1}>{initials}</Text>
                         : (
                           <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
@@ -188,6 +193,7 @@ function mkStyles(C: AppColors) {
     labelOn:  { fontFamily: Fonts.semiBold },
     avatar:   { width: 26, height: 26, borderRadius: 13, backgroundColor: C.mint2, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.card },
     avatarOn: { borderColor: C.t1 },
+    avatarImg:{ width: 22, height: 22, borderRadius: 11 },
     avatarTxt:{ fontFamily: Fonts.bold, fontSize: 10, color: C.green },
   });
 }

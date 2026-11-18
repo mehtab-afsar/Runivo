@@ -1,26 +1,29 @@
 // Club cover banner with the club picture overlapping its bottom edge, as on
 // club pages. Tap either to choose from the library (cropped to 3:1 and 1:1).
 import React, { useMemo } from 'react';
-import { View, Text, Image, Pressable, StyleSheet, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, ImageSquare } from 'phosphor-react-native';
+import { Camera, ImageSquare, Hexagon } from 'phosphor-react-native';
+import { ClubInitialsTile } from './ClubHeroCard';
 import { useTheme, Fonts, type AppColors } from '@theme';
 
 async function pick(aspect: [number, number]): Promise<string | null> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
-    Alert.alert('Photos needed', 'Allow access to your photos in Settings to add a club picture.');
+    appAlert('Photos needed', 'Allow access to your photos in Settings to add a club picture.');
     return null;
   }
   const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect, quality: 0.8 });
   return !r.canceled && r.assets[0] ? r.assets[0].uri : null;
 }
 
-export function ClubImagesPicker({ avatar, banner, onAvatar, onBanner, initials }: {
+export function ClubImagesPicker({ avatar, banner, onAvatar, onBanner, name }: {
   avatar: string | null; banner: string | null;
   onAvatar: (uri: string) => void; onBanner: (uri: string) => void;
   /** Shown in the picture circle until one is chosen. */
-  initials: string;
+  /** The club's name: its initials on the hexagon until a picture is picked. */
+  name: string;
 }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
@@ -37,10 +40,12 @@ export function ClubImagesPicker({ avatar, banner, onAvatar, onBanner, initials 
           )}
         {!!banner && <View style={s.editPill}><Camera size={14} color="#FFFFFF" weight="bold" /><Text style={s.editPillTxt}>Change</Text></View>}
       </Pressable>
-      <Pressable style={s.avatar} onPress={async () => { const u = await pick([1, 1]); if (u) onAvatar(u); }} accessibilityRole="button" accessibilityLabel={avatar ? 'Change club picture' : 'Add a club picture'}>
+      <Pressable style={[s.avatar, !avatar && s.avatarHex]} onPress={async () => { const u = await pick([1, 1]); if (u) onAvatar(u); }} accessibilityRole="button" accessibilityLabel={avatar ? 'Change club picture' : 'Add a club picture'}>
         {avatar
           ? <Image source={{ uri: avatar }} style={s.avatarImg} />
-          : <Text style={s.initials}>{initials || '·'}</Text>}
+          : name.trim()
+            ? <ClubInitialsTile name={name} size={66} shape="hex" />
+            : <Hexagon size={64} color={C.t3} weight="thin" />}
         <View style={s.camBadge}><Camera size={13} color={C.t1} weight="bold" /></View>
       </Pressable>
     </View>
@@ -57,7 +62,7 @@ function mk(C: AppColors) {
     editPillTxt: { fontFamily: Fonts.medium, fontSize: 12, color: '#FFFFFF' },
     avatar:      { position: 'absolute', left: 18, bottom: 0, width: 80, height: 80, borderRadius: 24, backgroundColor: C.alwaysDark, borderWidth: 4, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' },
     avatarImg:   { width: '100%', height: '100%', borderRadius: 20 },
-    initials:    { fontFamily: Fonts.semiBold, fontSize: 24, color: C.lime },
+    avatarHex:   { backgroundColor: 'transparent', borderWidth: 0 },
     camBadge:    { position: 'absolute', right: -6, bottom: -6, width: 28, height: 28, borderRadius: 14, backgroundColor: C.card, borderWidth: 2, borderColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   });
 }

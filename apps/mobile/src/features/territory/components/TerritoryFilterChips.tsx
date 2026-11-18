@@ -2,8 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, Pressable, Text, View, StyleSheet } from 'react-native';
 import * as Haptics from '@theme/hapticsGated';
 import type { TerritoryFilter } from '../types';
-import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
-import { territoryPalette } from '@theme/territory';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface Props {
   activeFilter: TerritoryFilter;
@@ -17,7 +16,6 @@ interface Props {
 /** "All · Mine 9 · Rivals 48 · Fading 2", each with the map's colour dot. */
 export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn, onHeatmap }: Props) {
   const C = useTheme();
-  const z = territoryPalette(useIsDark());
   const ss = useMemo(() => mkStyles(C), [C]);
   const filters: { id: TerritoryFilter; label: string; dot?: string }[] = [
     { id: 'all',    label: 'Zones' },

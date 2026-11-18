@@ -4,7 +4,8 @@
  * and the territory card. All from the runner's stored runs.
  */
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { CaretRight, Hexagon, PushPin } from 'phosphor-react-native';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
@@ -131,7 +132,7 @@ export function RecentActivities({ runs, sport, onOpen, onAll, emptyText, pinned
   const askPin = (r: StoredRun) => {
     if (!onPin) return;
     const isPinned = r.id === pinnedId;
-    Alert.alert(isPinned ? 'Unpin this activity?' : 'Pin to your profile?',
+    appAlert(isPinned ? 'Unpin this activity?' : 'Pin to your profile?',
       isPinned ? 'It goes back to its place by date.' : 'It stays at the top of Recent activities, for you and anyone who views your profile.',
       [{ text: 'Cancel', style: 'cancel' }, { text: isPinned ? 'Unpin' : 'Pin', onPress: () => onPin(isPinned ? null : r.id) }]);
   };

@@ -13,7 +13,9 @@ let lastPush = 0;
 export const isSharing = () => token != null;
 
 export function shareUrl(t: string): string {
-  return `${process.env.EXPO_PUBLIC_SUPABASE_URL ?? ''}/functions/v1/safety-share?t=${t}`;
+  // Our own domain: Supabase shows HTML from *.supabase.co as plain text, so the
+  // function URL rendered as raw markup for whoever opened it (apps/web/app/live).
+  return `https://runivo.app/live?t=${t}`;
 }
 
 /** Starts (or reuses) the share for this run and opens the share sheet. */

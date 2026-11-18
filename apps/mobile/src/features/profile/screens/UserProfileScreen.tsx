@@ -6,6 +6,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { UserPlus, Check, MapPin, DotsThree, Prohibit } from 'phosphor-react-native';
+import { GlyphIcon } from '@mobile/shared/icons';
 import RunnerSafetySheet from '@features/social/components/RunnerSafetySheet';
 import { fetchRelation, unblockUser } from '@mobile/shared/services/safetyService';
 import { supabase } from '@shared/services/supabase';
@@ -278,7 +279,7 @@ export default function UserProfileScreen() {
                       if (!def) return null;
                       return (
                         <View key={a.awardId} style={s.awardChip}>
-                          <Text style={s.awardIcon}>{def.icon}</Text>
+                          <GlyphIcon glyph={def.icon} size={16} weight="fill" />
                           <Text style={s.awardTitle} numberOfLines={1}>{def.title}</Text>
                         </View>
                       );
@@ -336,7 +337,6 @@ function mkStyles(C: AppColors) {
     awardsEmpty:  { fontFamily: Fonts.regular, fontSize: 12, color: C.t3 },
     awardsGrid:   { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     awardChip:    { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, borderRadius: 20, borderWidth: 0.5, borderColor: C.border, paddingHorizontal: 10, paddingVertical: 7, maxWidth: 160 },
-    awardIcon:    { fontSize: 16 },
     awardTitle:   { fontFamily: Fonts.medium, fontSize: 11, color: C.black, flexShrink: 1 },
     privateNotice:     { marginHorizontal: 18, alignItems: 'center', backgroundColor: C.card, borderRadius: 22, borderWidth: 0.5, borderColor: C.border, paddingVertical: 32, paddingHorizontal: 20 },
     privateNoticeTitle:{ fontFamily: Fonts.semiBold, fontSize: 14, color: C.black, marginBottom: 4 },

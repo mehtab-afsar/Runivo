@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, Linking } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
@@ -51,12 +52,13 @@ export default function SettingsScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
 
-        {/* Plus card (mock): status first, before the grouped rows. */}
-        <Pressable style={s.plusCard} onPress={() => navigation.navigate('Subscription', {})} accessibilityRole="button">
+        {/* Plus card (mock): status first, before the grouped rows. Hidden while
+            subscriptions are off: there is no Plus to buy, and everyone has it all. */}
+        {SUBSCRIPTIONS_ENABLED && <Pressable style={s.plusCard} onPress={() => navigation.navigate('Subscription', {})} accessibilityRole="button">
           <Text style={s.plusEyebrow}>{isPremium ? 'Runivo Plus · active' : 'Runivo Plus'}</Text>
           <Text style={s.plusBody}>{isPremium ? 'Every Plus feature is on for your account.' : 'More zones, a higher PACE cap and the full PaceX coach.'}</Text>
           <View style={s.plusBtn}><Text style={s.plusBtnTxt}>{isPremium ? 'Manage' : 'See Plus'}</Text></View>
-        </Pressable>
+        </Pressable>}
 
         {/* ── Account ── */}
         <SettingSection title="Account">
@@ -64,8 +66,9 @@ export default function SettingsScreen() {
             <Text style={s.linkLabel}>Edit Profile</Text>
             <RowChevron />
           </Pressable>
-          <SettingRow label="Who can see your profile" sub="Stats, zones and awards">
+          <SettingRow label="Who can see your profile" sub="Stats, zones and awards" stacked>
             <SegmentedControl
+              fit={false}
               options={['Everyone', 'Followers', 'Only me']}
               value={
                 settings.privacy === 'public' ? 'Everyone'
@@ -85,8 +88,8 @@ export default function SettingsScreen() {
               // uses the implicit-flow email client — a bare resetPasswordForEmail on
               // the PKCE app client produces a link the web page cannot redeem.
               resetPassword(email)
-                .then(() => Alert.alert('Check your email', `A password reset link has been sent to ${email}.`))
-                .catch((e: unknown) => Alert.alert('Error', e instanceof Error ? e.message : 'Could not send reset email.'));
+                .then(() => appAlert('Check your email', `A password reset link has been sent to ${email}.`))
+                .catch((e: unknown) => appAlert('Error', e instanceof Error ? e.message : 'Could not send reset email.'));
             }}>
               <Text style={s.linkLabel}>Change Password</Text>
               <RowChevron />
@@ -102,9 +105,9 @@ export default function SettingsScreen() {
               </Pressable>
               <Pressable style={s.linkRow} onPress={async () => {
                 const r = await restorePurchases();
-                if (r === 'restored') Alert.alert('Purchases restored', 'Your subscription has been restored.');
-                else if (r === 'none') Alert.alert('No purchases found', 'No active subscription was found for this Apple ID.');
-                else Alert.alert("Couldn't check purchases", 'Check your connection and try again.');
+                if (r === 'restored') appAlert('Purchases restored', 'Your subscription has been restored.');
+                else if (r === 'none') appAlert('No purchases found', 'No active subscription was found for this Apple ID.');
+                else appAlert("Couldn't check purchases", 'Check your connection and try again.');
               }}>
                 <Text style={s.linkLabel}>Restore purchases</Text>
                 <RowChevron />
@@ -153,12 +156,12 @@ export default function SettingsScreen() {
           <Pressable style={s.linkRow} onPress={() => setNotifOpen(v => !v)} accessibilityRole="button" accessibilityState={{ expanded: notifOpen }}>
             <Text style={s.linkLabel}>Notifications</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={s.rowValue}>{notifOnCount} on</Text>
+              <Text style={s.rowValue}>{settings.notificationsEnabled ? `${notifOnCount} on` : 'Off'}</Text>
               <RowChevron />
             </View>
           </Pressable>
           {notifOpen && <>
-          <SettingRow label="Push notifications" sub="Master toggle for all notifications">
+          <SettingRow label="Push notifications" sub={settings.notificationsEnabled ? 'Master switch for every notification below' : 'Off: nothing below is sent until you turn this on'}>
             <Switch value={settings.notificationsEnabled} onValueChange={v => updateSetting({ notificationsEnabled: v })} {...sw} />
           </SettingRow>
           <SettingRow label="Run reminders" sub="Streak at risk, and a nudge after a few quiet days">
@@ -173,8 +176,9 @@ export default function SettingsScreen() {
           <SettingRow label="Achievements and PACE" sub="Rank ups and your weekly PACE cap">
             <Switch value={settings.announceAchievements} onValueChange={v => updateSetting({ announceAchievements: v })} {...sw} />
           </SettingRow>
-          <SettingRow label="Training sessions" sub="A reminder the day before each session in your plan">
+          <SettingRow label="Training sessions" sub="A reminder the day before each session in your plan" stacked>
             <SegmentedControl
+              fit={false}
               options={REMINDER_OPTIONS.map(o => o.label)}
               value={REMINDER_OPTIONS.find(o => o.hour === (settings.planReminderHour === undefined ? DEFAULT_REMINDER_HOUR : settings.planReminderHour))?.label ?? '6 pm'}
               onChange={label => {

@@ -1,6 +1,7 @@
 import { locationGranted } from '@mobile/shared/location/devicePosition';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Alert } from 'react-native';
+import { } from 'react-native';
 import { supabase } from '@shared/services/supabase';
 import { fetchClubs, fetchClubsNear, lastKnownPositionIfAllowed, joinClub, leaveClub, createClub, requestToJoinClub, uploadClubImage } from '@features/clubs/services/clubService';
 import type { Club } from '@features/clubs/types';
@@ -51,14 +52,14 @@ export function useClubs() {
         setClubs(markRequested);
         setNearClubs(markRequested);
       }
-      Alert.alert(
+      appAlert(
         ok ? 'Request sent' : 'Something went wrong',
         ok ? 'The club owner will review your request.' : 'Please try again.',
       );
       return;
     }
     const { error } = await joinClub(club.id, userId);
-    if (error) { Alert.alert('Something went wrong', 'Please try again.'); return; }
+    if (error) { appAlert('Something went wrong', 'Please try again.'); return; }
     const markJoined = (prev: Club[]) =>
       prev.map((c) => (c.id === club.id ? { ...c, joined: true, member_count: c.member_count + 1 } : c));
     setClubs(markJoined);
@@ -67,7 +68,7 @@ export function useClubs() {
 
   const handleLeaveClub = useCallback(async (club: Club) => {
     if (!userId) return;
-    Alert.alert('Leave club?', `Leave ${club.name}?`, [
+    appAlert('Leave club?', `Leave ${club.name}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Leave',
@@ -75,8 +76,8 @@ export function useClubs() {
         onPress: async () => {
           const { error, result } = await leaveClub(club.id, userId);
           // Don't show them as out of a club the server still has them in.
-          if (result === 'owner') { Alert.alert("You own this club", 'Owners can’t leave. Open the club’s Admin tab to delete it.'); return; }
-          if (error) { Alert.alert("Couldn't leave the club", 'Check your connection and try again.'); return; }
+          if (result === 'owner') { appAlert("You own this club", 'Owners can’t leave. Open the club’s Admin tab to delete it.'); return; }
+          if (error) { appAlert("Couldn't leave the club", 'Check your connection and try again.'); return; }
           const markLeft = (prev: Club[]) =>
             prev.map((c) =>
               c.id === club.id
@@ -106,7 +107,7 @@ export function useClubs() {
         const uri = images?.[kind];
         if (!uri) continue;
         try { newClub[`${kind}_url`] = await uploadClubImage(newClub.id, kind, uri); }
-        catch { Alert.alert('Club created', `The ${kind === 'avatar' ? 'picture' : 'cover'} didn't upload. Add it from the club's Admin tab.`); }
+        catch { appAlert('Club created', `The ${kind === 'avatar' ? 'picture' : 'cover'} didn't upload. Add it from the club's Admin tab.`); }
       }
       setClubs(prev => [newClub, ...prev]);
       return true;

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { } from 'react-native';
 import { supabase } from '@shared/services/supabase';
 import type { SubscriptionTier } from '../types';
 import { isPlus } from '@shared/engine/entitlements';
@@ -66,12 +67,12 @@ export function useSubscription() {
         // updated yet (the RC webhook lands async, often a second or two later).
         setCurrentTier('premium');
         refreshTier().catch(() => {});
-        Alert.alert('Welcome to Runivo Plus!', 'All premium features are now unlocked.');
+        appAlert('Welcome to Runivo Plus!', 'All premium features are now unlocked.');
       } else {
-        Alert.alert('Purchase failed', result.error ?? 'Please try again.');
+        appAlert('Purchase failed', result.error ?? 'Please try again.');
       }
     } catch {
-      Alert.alert('Purchase failed', 'Please try again later.');
+      appAlert('Purchase failed', 'Please try again later.');
     } finally {
       setPurchasing(false);
     }
@@ -84,14 +85,14 @@ export function useSubscription() {
       if (result === 'restored') {
         setCurrentTier('premium');
         refreshTier().catch(() => {});
-        Alert.alert('Purchases restored', 'Your subscription has been restored.');
+        appAlert('Purchases restored', 'Your subscription has been restored.');
       } else if (result === 'none') {
-        Alert.alert('No purchases found', 'No active subscription was found for this Apple ID.');
+        appAlert('No purchases found', 'No active subscription was found for this Apple ID.');
       } else {
-        Alert.alert("Couldn't check purchases", 'Check your connection and try again.');
+        appAlert("Couldn't check purchases", 'Check your connection and try again.');
       }
     } catch {
-      Alert.alert('Restore failed', 'Please try again later.');
+      appAlert('Restore failed', 'Please try again later.');
     } finally {
       setPurchasing(false);
     }

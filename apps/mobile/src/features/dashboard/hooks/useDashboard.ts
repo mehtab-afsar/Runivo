@@ -10,6 +10,7 @@ import { weeklyCapFor } from '@shared/engine/runEngine';
 import { supabase } from '@shared/services/supabase';
 import { claimMissionReward } from '@shared/services/missionStore';
 import { estimateRunCalories } from '@shared/services/nutrition';
+import { effectiveTier } from '@shared/engine/entitlements';
 
 export function useDashboard() {
   const { player, loading, error: loadError, loginBonusCoins, dismissLoginBonus, reload: reloadPlayer } = usePlayerStats();
@@ -116,7 +117,8 @@ export function useDashboard() {
     }
   }, [reloadPlayer]);
 
-  const weeklyCapLimit = weeklyCapFor(subscriptionTier);
+  // The tier the game applies (everyone is Plus while subscriptions are off), as the server does.
+  const weeklyCapLimit = weeklyCapFor(effectiveTier(subscriptionTier));
 
   const pacePct = useMemo(() => {
     const earned = weeklyPaceNow(player?.paceWeeklyEarned, player?.paceWeeklyResetAt);

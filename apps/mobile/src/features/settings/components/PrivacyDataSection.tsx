@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Switch, ScrollView, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { Modal, Switch, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SettingRow } from './SettingRow';
 import { SettingSection } from './SettingSection';
@@ -35,14 +36,14 @@ export function PrivacyDataSection() {
 
   const onHealthToggle = (on: boolean) => {
     if (on) return; // consent is given with the import during onboarding; this switch only takes it back
-    Alert.alert(
+    appAlert(
       'Turn off health data?',
       'We will delete the workouts we imported from your health app. Runs you record in Runivo are not affected.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Turn off', style: 'destructive', onPress: async () => {
           if (await withdrawHealthConsent()) setHealthOn(false);
-          else Alert.alert("Couldn't turn it off", 'Check your connection and try again.');
+          else appAlert("Couldn't turn it off", 'Check your connection and try again.');
         } },
       ],
     );
@@ -52,7 +53,7 @@ export function PrivacyDataSection() {
     if (on) { setAsking(true); return; }       // turning ON always shows the disclosure first
     const ok = await setAiConsent(false);
     if (ok) withdrawn();
-    else Alert.alert("Couldn't turn it off", 'Check your connection and try again.');
+    else appAlert("Couldn't turn it off", 'Check your connection and try again.');
   };
 
   return (

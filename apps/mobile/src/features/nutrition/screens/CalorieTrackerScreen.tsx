@@ -4,7 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import { Lightning, Sparkle, Gear } from 'phosphor-react-native';
+import { Lightning, Sparkle, Gear, WarningCircle, CaretRight, CaretLeft } from 'phosphor-react-native';
+import { GlyphBadge, hasGlyph } from '@mobile/shared/icons';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { useCalorieTracker } from '@features/nutrition/hooks/useCalorieTracker';
 import { useNutritionContext } from '@features/nutrition/hooks/useNutritionContext';
 import { useNutritionInsights } from '@features/nutrition/hooks/useNutritionInsights';
@@ -179,7 +181,7 @@ export default function CalorieTrackerScreen() {
     return (
       <SafeAreaView style={s.root}>
         <View style={s.errorState}>
-          <Text style={s.errorEmoji}>⚠️</Text>
+          <View style={s.errorEmoji}><WarningCircle size={44} color={C.t3} /></View>
           <Text style={s.errorTitle}>Couldn't load data</Text>
           <Text style={s.errorMsg}>{loadError}</Text>
           <Pressable style={s.retryBtn} onPress={refresh}>
@@ -200,7 +202,7 @@ export default function CalorieTrackerScreen() {
   return (
     <SafeAreaView style={s.root} edges={['top']}>
       <View style={s.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.back}><Text style={s.backText}>←</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" hitSlop={{ top: 14, bottom: 14, left: 10, right: 10 }} onPress={() => navigation.goBack()} style={s.back}><CaretLeft size={22} color={C.t1} weight="bold" /></Pressable>
         <Text style={s.title}>Calorie Tracker</Text>
         <Pressable onPress={() => navigation.navigate('NutritionSetup')} style={s.settingsBtn} hitSlop={8} accessibilityRole="button" accessibilityLabel="Nutrition settings">
           <Gear size={16} color={C.t2} weight="light" />
@@ -340,7 +342,7 @@ export default function CalorieTrackerScreen() {
                   <ActivityIndicator color={C.red} style={{ marginVertical: 8 }} />
                 ) : aiInsights?.cards.map((card, i) => (
                   <View key={i} style={s.aiRow}>
-                    <Text style={s.aiIcon}>{card.icon}</Text>
+                    <GlyphBadge glyph={hasGlyph(card.icon) ? card.icon : '✨'} size={32} />
                     <View style={{ flex: 1 }}>
                       <Text style={s.aiTitle}>{card.title}</Text>
                       <Text style={s.aiBody}>{card.body}</Text>
@@ -352,7 +354,9 @@ export default function CalorieTrackerScreen() {
 
             {/* Ask Coach CTA */}
             <Pressable style={s.coachBtn} onPress={() => navigation.navigate('Coach')}>
-              <Text style={s.coachBtnText}>✨  Ask Coach for deeper insights →</Text>
+              <PaceXOrb size={20} />
+              <Text style={s.coachBtnText}>Ask PaceX for deeper insights</Text>
+              <CaretRight size={14} color={C.alwaysLight} weight="bold" />
             </Pressable>
           </View>
         )}
@@ -395,14 +399,13 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   root:         { flex: 1, backgroundColor: C.bg },
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
   errorState:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  errorEmoji:   { fontSize: 40, marginBottom: 12 },
+  errorEmoji:   { marginBottom: 12 },
   errorTitle:   { fontFamily: Fonts.bold, fontSize: 18, color: C.t1, marginBottom: 8 },
   errorMsg:     { fontFamily: Fonts.regular, fontSize: 14, color: C.t2, textAlign: 'center', marginBottom: 24 },
   retryBtn:     { backgroundColor: C.red, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
   retryLabel:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.white },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 12 : 0, paddingBottom: 12, backgroundColor: C.card, borderBottomWidth: 0.5, borderBottomColor: C.border },
   back:         { width: 32 },
-  backText:     { fontFamily: Fonts.regular, fontSize: 18, color: C.t2 },
   title:        { fontFamily: Fonts.semiBold, fontSize: 20, color: C.black },
   settingsBtn:  { width: 32, alignItems: 'flex-end' },
   settingsLabel:{ fontFamily: Fonts.regular, fontSize: 16, color: C.t2 },
@@ -443,9 +446,8 @@ function mkStyles(C: AppColors) { return StyleSheet.create({
   statLabel:    { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, marginTop: 2 },
   aiCard:       { backgroundColor: 'rgba(139,92,246,0.10)', borderRadius: 14, borderWidth: 0.5, borderColor: 'rgba(90,58,138,0.15)', padding: 14, gap: 10 },
   aiRow:        { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  aiIcon:       { fontSize: 20, lineHeight: 24 },
   aiTitle:      { fontFamily: Fonts.medium, fontSize: 12, color: C.black, marginBottom: 2 },
   aiBody:       { fontFamily: Fonts.regular, fontSize: 12, color: C.t2, lineHeight: 17 },
-  coachBtn:     { backgroundColor: C.alwaysDark, borderRadius: 10, padding: 14, alignItems: 'center' },
+  coachBtn:     { backgroundColor: C.alwaysDark, borderRadius: 999, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   coachBtnText: { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
 }); }

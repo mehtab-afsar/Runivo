@@ -34,6 +34,9 @@ export const FEATURES = {
   AI_COACH:          true,
   // v2 per the PRD; built, but off for launch.
   NUTRITION_TRACKER: false,
+  // Garmin, COROS and Polar sign-in need each company's partner keys in the
+  // device-oauth secrets. Off until those exist: the rows say "Coming soon".
+  WATCH_OAUTH: false,
 } as const;
 
 export const FEATURE_LABELS: Partial<Record<keyof typeof FEATURES, string>> = {

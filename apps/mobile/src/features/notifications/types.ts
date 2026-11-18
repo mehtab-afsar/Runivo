@@ -7,5 +7,3 @@ export interface AppNotification {
   created_at: string;
   action_url?: string;
 }
-
-export interface NotifConfig { emoji: string; bg: string; fg: string }

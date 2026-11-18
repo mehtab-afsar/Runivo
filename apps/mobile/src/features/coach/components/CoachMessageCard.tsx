@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, type ViewStyle } from 'react-native';
 import { Fonts, useTheme, type AppColors } from '@theme';
+import { UI } from '@mobile/shared/icons';
 
 interface InsightStat {
   label: string;
@@ -71,7 +72,8 @@ export function CoachMessageCard({ type, content, style }: Props) {
         )}
         {data.tip && (
           <View style={ss.tipBox}>
-            <Text style={ss.tipText}>💡 {data.tip}</Text>
+            <UI.tip size={16} color={C.lavenderInk} weight="fill" />
+            <Text style={ss.tipText}>{data.tip}</Text>
           </View>
         )}
         {!data.praise && !data.headline && !data.insights && !data.analysis && !data.stats && (
@@ -97,8 +99,8 @@ function mkStyles(C: AppColors) {
     statLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t2 },
     actionBox:   { marginTop: 8, backgroundColor: C.stone, borderRadius: 8, padding: 10 },
     actionText:  { fontFamily: Fonts.medium, fontSize: 12.5, color: C.t1, lineHeight: 18 },
-    tipBox:      { marginTop: 10, backgroundColor: 'rgba(124,58,237,0.06)', borderRadius: 8, padding: 10 },
-    tipText:     { fontFamily: Fonts.regular, fontSize: 12, color: C.t1, lineHeight: 18 },
+    tipBox:      { marginTop: 10, backgroundColor: C.lavender, borderRadius: 12, padding: 10, flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+    tipText:     { flex: 1, fontFamily: Fonts.regular, fontSize: 12, color: C.lavenderInk, lineHeight: 18 },
     rawText:     { fontFamily: Fonts.regular, fontSize: 13, color: C.t1, lineHeight: 20 },
   });
 }

@@ -96,8 +96,6 @@ export const MAP_STYLES = [
 
 export type MapStyleId = typeof MAP_STYLES[number]['id'];
 
-export const MAP_STYLE_IDS: MapStyleId[] = MAP_STYLES.map(s => s.id);
-
 const BY_ID: Record<string, string> = Object.fromEntries(MAP_STYLES.map(s => [s.id, s.url]));
 
 /** Extra map styles are part of Runivo Plus (PRD "Free vs Runivo Plus"). */

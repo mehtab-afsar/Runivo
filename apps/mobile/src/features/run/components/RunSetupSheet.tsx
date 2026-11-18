@@ -62,8 +62,8 @@ export default function RunSetupSheet({
           <RouteIcon size={22} color={selectedRouteName ? C.green : C.t2} weight="bold" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={ss.followMeta}>{selectedRouteName ? 'FOLLOWING' : 'FREE RUN'}</Text>
-          <Text style={ss.followVal} numberOfLines={1}>{selectedRouteName ?? (sport.claims && nearbyLine ? nearbyLine : 'Run anywhere, close a loop to claim')}</Text>
+          <Text style={ss.followMeta}>{selectedRouteName ? 'FOLLOWING' : sport.claims ? 'FREE RUN' : 'FREE ROUTE'}</Text>
+          <Text style={ss.followVal} numberOfLines={2}>{selectedRouteName ?? (!sport.claims ? 'Go anywhere you like' : nearbyLine ?? 'Run anywhere, close a loop to claim')}</Text>
         </View>
         <Text style={ss.change}>{selectedRouteName ? 'Change' : 'Pick'}</Text>
       </TouchableOpacity>

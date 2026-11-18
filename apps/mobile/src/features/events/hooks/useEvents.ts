@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { } from 'react-native';
 import type { RunEvent, Discipline } from '../types';
 import { fetchEvents, fetchNearbyEvents, toggleEventJoin, setBookmark } from '../services/eventService';
 import { getPlayer } from '@shared/services/store';
@@ -72,7 +73,7 @@ export function useEvents(): EventsState {
     if (!event) return;
 
     if (event.category === 'king-of-hill') {
-      Alert.alert('Coming Soon', 'King of the Hill events are launching soon.');
+      appAlert('Coming Soon', 'King of the Hill events are launching soon.');
       return;
     }
 

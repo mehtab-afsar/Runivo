@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,7 +31,7 @@ export default function GearScreen() {
   }, [retire, shoeKm, showToast]);
 
   const confirmDelete = (shoe: StoredShoe) => {
-    Alert.alert('Delete shoe?', `Remove "${shoe.nickname || shoe.model}"?`, [
+    appAlert('Delete shoe?', `Remove "${shoe.nickname || shoe.model}"?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteShoe(shoe.id) },
     ]);

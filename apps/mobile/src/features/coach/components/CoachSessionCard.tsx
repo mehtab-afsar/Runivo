@@ -1,6 +1,7 @@
 // PaceX chat · session card (mock PaceXChat): title, day and time, steps, "Add to my plan".
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -9,6 +10,7 @@ import { appleWatchSupported, sendToAppleWatch, sendToGarmin } from '@features/t
 import type { CoachSession } from '@shared/engine/coachSession';
 import { addCoachSessionToPlan } from '@features/training/services/planService';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { UI, IconText } from '@mobile/shared/icons';
 
 const km = (m: number) => (m >= 1000 ? `${Math.round(m / 100) / 10} km` : `${Math.round(m)} m`);
 
@@ -45,7 +47,7 @@ export function CoachSessionCard({ session }: { session: CoachSession }) {
     const target = added;
     if (!target) return;
     const r = appleOk ? await sendToAppleWatch(target) : await sendToGarmin(target);
-    Alert.alert(r.title, r.message);
+    appAlert(r.title, r.message);
   };
 
   const note =
@@ -78,7 +80,9 @@ export function CoachSessionCard({ session }: { session: CoachSession }) {
         <View style={s.btnRow}>
           <Pressable style={[s.btn, { flex: 1 }, state === 'added' && s.btnDone]} onPress={add} disabled={state === 'busy' || state === 'added'} accessibilityRole="button">
             {state === 'busy' ? <ActivityIndicator color={C.alwaysLight} /> : (
-              <Text style={[s.btnText, state === 'added' && { color: C.t1 }]}>{state === 'added' ? 'In your plan ✓' : 'Add to my plan'}</Text>
+              state === 'added'
+                ? <IconText Icon={UI.done} text="In your plan" color={C.t1} size={16} weight="bold" gap={6} textStyle={s.btnText} />
+                : <Text style={s.btnText}>Add to my plan</Text>
             )}
           </Pressable>
           {added && (

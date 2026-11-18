@@ -5,11 +5,11 @@
 import React, { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import type { GPSPoint } from '../hooks/useActiveRun';
-import { kalmanSmooth } from '@shared/services/claimEngine';
 import type { LiveFriendRunner } from '../hooks/useLiveFriendRuns';
 import { LiveFriendMarker } from './LiveFriendMarker';
 import type { TerritoryPolygon } from '@shared/types/game';
 import { ZoneLayers } from './ZoneLayers';
+import { PositionArrow } from '@mobile/shared/components/PositionArrow';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { territoryPalette } from '@theme/territory';
@@ -62,12 +62,11 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
   const zone = territoryPalette(isDark);
   const ghostColor = zone.ghost;
 
-  // Kalman-smoothed display path — keeps raw gpsPoints for distance/territory calculation
-  const displayPath = useMemo(() => {
-    if (gpsPoints.length < 3) return gpsPoints;
-    return kalmanSmooth(gpsPoints.slice(-200));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gpsPoints.length]);
+  // The trail is drawn from the same filtered fixes that count for distance and
+  // zones. It used to go through a Kalman smoother tuned in degrees, which lagged
+  // behind the runner and cut every corner, so the line ran over buildings next
+  // to the street (and restarted from the 200th-last point).
+  const displayPath = gpsPoints;
 
   // Build GeoJSON LineString from smoothed display path
   const trailGeoJSON = useMemo((): GeoJSON.Feature<GeoJSON.LineString> | null => {
@@ -122,15 +121,6 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
         animationMode="flyTo"
         animationDuration={800}
       />
-
-      {/* User position dot */}
-      {locationGranted && (
-        <MapLibreGL.UserLocation
-          visible
-          renderMode="native"
-          showsUserHeadingIndicator
-        />
-      )}
 
       {/* Zones around the runner, under everything else. Fill fades with freshness. */}
       <ZoneLayers own={ownZones} rivals={rivalZones} idPrefix="run" />
@@ -187,6 +177,8 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
       {liveFriends?.map(runner => (
         <LiveFriendMarker key={runner.userId} runner={runner} />
       ))}
+      {/* The runner's arrow last, so zones and the trail never cover it. */}
+      {locationGranted && latest && <PositionArrow lat={latest.lat} lng={latest.lng} track={gpsPoints} id="run" />}
     </MapLibreGL.MapView>
   );
 }

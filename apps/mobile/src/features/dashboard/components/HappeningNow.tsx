@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { UI, IconText } from '@mobile/shared/icons';
 import type { LiveFriendRunner } from '@features/run/hooks/useLiveFriendRuns';
 import { fetchMyChallenges, METRIC_LABEL, type Challenge } from '@features/challenges/services/challengeService';
 import { fetchEvents } from '@features/events/services/eventService';
@@ -73,7 +74,7 @@ export function HappeningNow({ friends, onCheer }: {
             </View>
             <View style={s.row}>
               <Pressable style={[s.pill, { backgroundColor: C.lime }]} onPress={() => onCheer(f)} accessibilityRole="button" accessibilityLabel={`Cheer ${f.username}`}>
-                <Text style={[s.pillTxt, { color: C.alwaysDark, fontFamily: Fonts.bold }]}>👏 Cheer</Text>
+                <IconText Icon={UI.cheer} text="Cheer" color={C.alwaysDark} size={16} gap={6} textStyle={[s.pillTxt, { fontFamily: Fonts.bold }]} />
               </Pressable>
               <Pressable style={[s.pill, { backgroundColor: C.card }]} onPress={() => navigation.navigate('FriendLive', { userId: f.userId, username: f.username })} accessibilityRole="button">
                 <Text style={s.pillTxt}>Watch live</Text>
@@ -102,7 +103,7 @@ export function HappeningNow({ friends, onCheer }: {
             <Text style={[s.cardSub, { color: C.lavenderInk }]} numberOfLines={1}>
               {e.participants} going{e.location ? ` · ${e.location}` : ''}
             </Text>
-            <View style={s.goingPill}><Text style={s.goingTxt}>Going ✓</Text></View>
+            <View style={s.goingPill}><IconText Icon={UI.done} text="Going" color={C.alwaysLight} size={14} weight="bold" gap={6} textStyle={s.goingTxt} /></View>
           </Pressable>
         ))}
       </ScrollView>

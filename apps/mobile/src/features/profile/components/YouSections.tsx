@@ -12,7 +12,8 @@ import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { RouteThumb } from '@mobile/shared/components/RouteThumb';
-import { GlyphIcon } from '@mobile/shared/components/GlyphIcon';
+import { GlyphBadge } from '@mobile/shared/icons';
+import { ClubInitialsTile } from '@features/clubs/components/ClubHeroCard';
 import { AWARD_DEFINITIONS } from '@shared/constants/awards';
 import type { AwardId } from '@shared/types/game';
 import type { StoredRun } from '@shared/services/store';
@@ -54,6 +55,8 @@ export function activityName(r: StoredRun): string {
 // ── Header ──────────────────────────────────────────────────────────────────
 export function YouHeader(p: {
   name: string; location?: string; avatarUri: string | null; avatarColor: string;
+  /** Seed of the illustrated face (the username), so it matches the feed and Edit profile. */
+  faceSeed?: string;
   rankLabel: string; runCount: number; isPlus: boolean; bio?: string;
   following: number; followers: number;
   onFollowing: () => void; onFollowers: () => void;
@@ -61,15 +64,12 @@ export function YouHeader(p: {
 }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
-  const initials = p.name.replace(/[^a-z0-9 ]/gi, '').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'R';
   const meta = [p.location, p.rankLabel, `${p.runCount} ${p.runCount === 1 ? 'run' : 'runs'}`].filter(Boolean).join(' · ');
   return (
     <View style={s.headWrap}>
       <View style={s.idRow}>
         <View>
-          {p.avatarUri
-            ? <Avatar uri={p.avatarUri} name={p.name} color={p.avatarColor} size={76} />
-            : <View style={s.initials}><Text style={s.initialsTxt}>{initials}</Text></View>}
+          <Avatar uri={p.avatarUri} name={p.name} seed={p.faceSeed} color={p.avatarColor} size={76} />
           {p.isPlus && <View style={s.plusBadge}><Text style={s.plusBadgeTxt}>PLUS</Text></View>}
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
@@ -208,7 +208,7 @@ export function PinnedCard({ run, onOpen, onUnpin }: { run: StoredRun; onOpen: (
   return (
     <Pressable style={[s.card, { padding: 0, overflow: 'hidden' }]} onPress={onOpen} onLongPress={onUnpin} accessibilityRole="button" accessibilityHint={onUnpin ? 'Long-press to unpin' : undefined}>
       <View>
-        <RouteThumb points={run.gpsPoints} width={Dimensions.get('window').width - 36} height={120} radius={0} stroke={3.5} />
+        <RouteThumb points={run.gpsPoints} width={Dimensions.get('window').width - 40} height={120} radius={0} stroke={3.5} />
         <View style={s.pinTag}><PushPin size={11} color={C.bg} weight="fill" /><Text style={s.pinTagTxt}>Pinned</Text></View>
       </View>
       <View style={s.pinBody}>
@@ -266,11 +266,9 @@ export function TrophyStrip({ earned, onAll }: { earned: { awardId: string; unlo
       <View style={s.trophyRow}>
         {strip.map(({ id, got: g }) => {
           const def = AWARD_DEFINITIONS[id];
-          const bg = !g ? C.surface : STEAL_AWARDS.has(id) ? C.red : def.category === 'territory' ? C.redLo : C.t1;
-          const fg = !g ? C.t3 : def.category === 'territory' && !STEAL_AWARDS.has(id) ? C.red : C.alwaysLight;
           return (
             <View key={id} style={s.trophy}>
-              <View style={[s.trophyBadge, { backgroundColor: bg }]}><GlyphIcon glyph={def.icon} size={22} color={fg} weight="regular" /></View>
+              <GlyphBadge glyph={def.icon} size={54} muted={!g} solid={g && STEAL_AWARDS.has(id)} />
               <Text style={[s.trophyName, !g && { color: C.t3 }]} numberOfLines={2}>{def.title}</Text>
             </View>
           );
@@ -296,7 +294,7 @@ export function ClubsStrip({ clubs, onOpen, onAll }: { clubs: { id: string; name
         <View style={s.clubRow}>
           {clubs.slice(0, 6).map(c => (
             <Pressable key={c.id} style={s.club} onPress={() => onOpen(c.id, c.name)} accessibilityRole="button" accessibilityLabel={c.name}>
-              <View style={s.clubBadge}><Text style={s.clubEmoji}>{c.emoji || c.name.slice(0, 2).toUpperCase()}</Text></View>
+              <ClubInitialsTile name={c.name} size={48} shape="hex" />
               <Text style={s.trophyName} numberOfLines={1}>{c.name}</Text>
             </Pressable>
           ))}
@@ -372,11 +370,8 @@ function mk(C: AppColors) {
     link: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.t1 },
     trophyRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 18, marginTop: 10 },
     trophy: { width: 62, alignItems: 'center', gap: 6 },
-    trophyBadge: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
     trophyName: { fontFamily: Fonts.regular, fontSize: 11, color: C.t2, textAlign: 'center' },
     clubRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 18, marginTop: 10 },
     club: { width: 60, alignItems: 'center', gap: 6 },
-    clubBadge: { width: 52, height: 52, borderRadius: 14, backgroundColor: C.t1, alignItems: 'center', justifyContent: 'center' },
-    clubEmoji: { fontFamily: Fonts.bold, fontSize: 20, color: C.bg },
   });
 }

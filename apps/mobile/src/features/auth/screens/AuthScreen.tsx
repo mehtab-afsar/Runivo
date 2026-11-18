@@ -5,12 +5,10 @@
  * The older email + password forms stay reachable for existing accounts.
  */
 import { RunivoMark } from '@mobile/shared/components/RunivoMark';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { GoogleIcon, AppleIcon } from '@mobile/shared/components/BrandIcons';
 import React, { useMemo, useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator,
-  KeyboardAvoidingView, Platform, Linking, Alert,
-} from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -36,7 +34,7 @@ export default function AuthScreen({ mode }: Props) {
   const s = useMemo(() => mkStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const a = usePasswordlessAuth();
+  const a = usePasswordlessAuth(mode);
   const login = useLogin();
   const signUp = useSignUp();
   const [social, setSocial] = useState<'google' | 'apple' | null>(null);
@@ -46,7 +44,7 @@ export default function AuthScreen({ mode }: Props) {
     try {
       if (provider === 'google') await signInWithGoogle(); else await signInWithApple();
     } catch {
-      Alert.alert('Sign in failed', 'Please try again, or use your phone or email.');
+      appAlert('Sign in failed', 'Please try again, or use your phone or email.');
     } finally {
       setSocial(null);
     }

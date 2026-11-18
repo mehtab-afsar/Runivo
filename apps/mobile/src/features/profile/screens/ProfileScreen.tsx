@@ -6,7 +6,7 @@
  */
 import { StatusBarScrim } from '@mobile/shared/components/StatusBarScrim';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, Share } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,11 +25,12 @@ import { useProfile } from '../hooks/useProfile';
 import { EditProfileSheet } from '../components/EditProfileSheet';
 import { AwardsTab } from '../components/AwardsTab';
 import { GoalSheet } from '../components/GoalSheet';
-import { YouHeader, WeekCard, MenuList, TrophyStrip, ClubsStrip, activityName, fmtKm, type MenuItem, SportChips, weekStreak } from '../components/YouSections';
+import { YouHeader, WeekCard, PinnedCard, MenuList, TrophyStrip, ClubsStrip, activityName, fmtKm, type MenuItem, SportChips, weekStreak } from '../components/YouSections';
 import { BestEfforts } from '../components/ProfileActivity';
 import { RouteGallery } from '../components/RouteGallery';
 import { periodStats, filterBySport, type SportFilter } from '../utils/profileStats';
 import { Segmented } from '@mobile/shared/components/Segmented';
+import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
 
 type YouTab = 'progress' | 'activities' | 'gallery' | 'more';
 const TABS: { key: YouTab; label: string; Icon: typeof ChartLineUp }[] = [
@@ -83,6 +84,9 @@ export default function ProfileScreen() {
 
   const streak = useMemo(() => weekStreak(runs), [runs]);
   const latest = useMemo(() => runs.filter(r => r.distanceMeters >= 50).sort((a, b) => b.startTime - a.startTime)[0], [runs]);
+  // The run pinned from Activities, shown under This week (Runivo profile mock).
+  const pinnedRun = useMemo(() => (pinnedRunId ? runs.find(r => r.id === pinnedRunId) ?? null : null), [runs, pinnedRunId]);
+  const counted = useMemo(() => runs.filter(r => !r.excluded && r.distanceMeters >= 50), [runs]);
   const year = useMemo(() => periodStats(filterBySport(runs, sport), 'year'), [runs, sport]);
   const best5k = personalRecords.find(r => r.label === 'Fastest 5K')?.value;
   const best10k = personalRecords.find(r => r.label === 'Fastest 10K')?.value;
@@ -100,7 +104,7 @@ export default function ProfileScreen() {
     { key: 'log', label: 'Training log', Icon: CalendarDots, sub: 'Every day of the last 16 weeks', onPress: () => navigation.navigate('TrainingLog') },
     { key: 'goal', label: 'Weekly goal', Icon: ChartLineUp, sub: `${fmtKm(weeklyGoalKm)} km a week · tap to change`, onPress: () => setGoalOpen(true) },
     { key: 'strength', label: 'Strength and mobility', Icon: Barbell, sub: '8–17 minute guided sessions', onPress: () => navigation.navigate('Strength') },
-    { key: 'terr', label: 'Territory', Icon: Hexagon, red: true, sub: `${zonesHeld ?? 0} ${zonesHeld === 1 ? 'zone' : 'zones'} · ${areaKm2 >= 0.01 ? areaKm2.toFixed(2) : '0'} km² ${legendOf > 0 ? ` · legend of ${legendOf}` : ''} · ${player?.totalTerritoriesClaimed ?? 0} claimed ever`, onPress: () => navigation.navigate('TerritoryMap', {}) },
+    { key: 'terr', label: 'Territory', Icon: Hexagon, red: true, sub: `${zonesHeld ?? 0} ${zonesHeld === 1 ? 'zone' : 'zones'} · ${areaKm2 >= 0.01 ? areaKm2.toFixed(2) : '0'} km²${legendOf > 0 ? ` · legend of ${legendOf}` : ''}`, onPress: () => navigation.navigate('TerritoryMap', {}) },
     { key: 'routes', label: 'Routes', Icon: MapTrifold, sub: routeCount > 0 ? `${routeCount} saved` : 'Save one from any activity', onPress: () => navigation.navigate('Main', { screen: 'Run' }) },
     { key: 'best', label: 'Best efforts', Icon: Timer, sub: best5k || best10k ? [best5k && `5K ${best5k}`, best10k && `10K ${best10k}`].filter(Boolean).join(' · ') : 'Run a 5K to set one', onPress: () => navigation.navigate('ProfileStats', { sport: 'run' }) },
     ...(FEATURES.GEAR_TRACKING ? [{ key: 'gear', label: 'Gear', Icon: Sneaker, sub: 'Shoes and their distance', onPress: () => navigation.navigate('Gear') } as MenuItem] : []),
@@ -129,14 +133,21 @@ export default function ProfileScreen() {
           </View>
 
           <YouHeader
-            name={name} location={location} avatarUri={avatarUri} avatarColor={avatarColor}
-            rankLabel={cap(rank)} runCount={runs.filter(r => !r.excluded && r.distanceMeters >= 50).length}
-            isPlus={gate.isPremium} bio={bio}
+            name={name} location={location} avatarUri={avatarUri} avatarColor={avatarColor} faceSeed={player?.username}
+            rankLabel={cap(rank)} runCount={counted.length}
+            isPlus={SUBSCRIPTIONS_ENABLED && gate.isPremium} bio={bio}
             following={following} followers={followers}
             onFollowing={() => navigation.navigate('Following', { userId: playerId ?? '' })}
             onFollowers={() => navigation.navigate('Followers', { userId: playerId ?? '' })}
             onEdit={startEdit}
-            onShare={() => Share.share({ message: `Follow me on Runivo: runivo://runner/${playerId}` }).catch(() => {})}
+            onShare={() => {
+              if (!playerId) return;
+              navigation.navigate('ShareProfile', {
+                userId: playerId, name, username: player?.username, rank: cap(rank),
+                runs: counted.length, km: counted.reduce((n, r) => n + (r.verifiedDistanceKm ?? r.distanceMeters / 1000), 0),
+                zones: zonesHeld ?? 0, avatarUri,
+              });
+            }}
           />
 
           <Segmented variant="tabs" style={{ backgroundColor: C.card }} options={TABS.map(t => ({ value: t.key, label: t.label }))} value={tab} onChange={setTab}
@@ -153,6 +164,13 @@ export default function ProfileScreen() {
           <>
             <SportChips value={sport} onChange={setSport} />
             <WeekCard runs={runs} sport={sport} />
+            {pinnedRun && (
+              <PinnedCard
+                run={pinnedRun}
+                onOpen={() => navigation.navigate('RunSummary', { runId: pinnedRun.id, activityType: pinnedRun.activityType })}
+                onUnpin={() => pinRun(null)}
+              />
+            )}
             <View style={s.tiles}>
               <Pressable style={[s.tile, { backgroundColor: C.card }]} onPress={() => navigation.navigate('TrainingLog')} accessibilityRole="button">
                 <Text style={s.tileLabel}>Streak</Text>
@@ -207,7 +225,7 @@ export default function ProfileScreen() {
 
         {tab === 'more' && (
           <>
-            <GoalsCard />
+            <View style={{ marginHorizontal: 20, marginBottom: 12 }}><GoalsCard /></View>
             <MenuList items={menu} />
             <View style={{ height: 8 }} />
             <TrophyStrip earned={earnedAwards} onAll={() => setShowAwards(v => !v)} />

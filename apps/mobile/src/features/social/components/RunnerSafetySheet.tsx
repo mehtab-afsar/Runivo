@@ -2,7 +2,8 @@
  * The "…" menu for another runner: mute, block, report. Used on their profile.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SpeakerSlash, SpeakerHigh, Prohibit, Flag, Check, CaretLeft } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import {
@@ -31,12 +32,12 @@ export default function RunnerSafetySheet({ visible, userId, username, blocked, 
   const run = async (fn: () => Promise<void>, next: { blocked: boolean; muted: boolean }) => {
     setBusy(true);
     try { await fn(); onChange(next); onClose(); }
-    catch { Alert.alert('Something went wrong', 'Check your connection and try again.'); }
+    catch { appAlert('Something went wrong', 'Check your connection and try again.'); }
     finally { setBusy(false); }
   };
 
   const confirmBlock = () => {
-    Alert.alert(
+    appAlert(
       `Block ${username}?`,
       "You'll unfollow each other. They won't see your profile, activities or comments, and can't follow, kudos or comment on you. They aren't told.",
       [
@@ -49,7 +50,7 @@ export default function RunnerSafetySheet({ visible, userId, username, blocked, 
   const sendReport = async (reason: ReportReason) => {
     setBusy(true);
     try { await reportUser(userId, reason); setStep('reported'); }
-    catch { Alert.alert("Couldn't send the report", 'You can send up to 5 reports a day. Try again later.'); }
+    catch { appAlert("Couldn't send the report", 'You can send up to 5 reports a day. Try again later.'); }
     finally { setBusy(false); }
   };
 

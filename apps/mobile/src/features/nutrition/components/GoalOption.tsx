@@ -6,13 +6,12 @@ interface GoalOptionProps {
   goal: string;
   label: string;
   description?: string;
-  emoji?: string;
   iconNode?: React.ReactNode;
   selected: boolean;
   onSelect: (goal: string) => void;
 }
 
-export function GoalOption({ goal, label, emoji, iconNode, selected, onSelect }: GoalOptionProps) {
+export function GoalOption({ goal, label, iconNode, selected, onSelect }: GoalOptionProps) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   return (
@@ -20,7 +19,7 @@ export function GoalOption({ goal, label, emoji, iconNode, selected, onSelect }:
       style={[s.btn, selected && s.btnActive]}
       onPress={() => onSelect(goal)}
     >
-      {iconNode ?? (emoji ? <Text style={{ fontSize: 18 }}>{emoji}</Text> : null)}
+      {iconNode}
       <Text style={[s.label, selected && s.labelActive]}>{label}</Text>
     </Pressable>
   );

@@ -6,8 +6,9 @@
  * Use it for menus, pickers and short forms. (BottomSheet is the in-screen,
  * draggable sheet used over maps.)
  */
-import React, { useMemo } from 'react';
-import { View, Text, Pressable, Modal, KeyboardAvoidingView, Platform, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, Modal, KeyboardAvoidingView, Platform, StyleSheet, Animated, Easing, Dimensions, type StyleProp, type ViewStyle } from 'react-native';
+import { AlertLayer } from './AppAlert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -33,10 +34,37 @@ export function ModalSheet({
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
   const insets = useSafeAreaInsets();
+
+  // Our own open/close motion. The Modal's built-in "slide" moved the whole
+  // screen, dimmed backdrop included, so a dark band swept up from the bottom.
+  // Now the backdrop fades in place and only the sheet rises, quickly.
+  const [mounted, setMounted] = useState(visible);
+  const fade = useRef(new Animated.Value(0)).current;
+  const rise = useRef(new Animated.Value(Dimensions.get('window').height * 0.5)).current;
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      fade.setValue(0); rise.setValue(Dimensions.get('window').height * 0.5);
+      Animated.parallel([
+        Animated.timing(fade, { toValue: 1, duration: 160, useNativeDriver: true }),
+        Animated.timing(rise, { toValue: 0, duration: 240, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      ]).start();
+    } else if (mounted) {
+      Animated.parallel([
+        Animated.timing(fade, { toValue: 0, duration: 140, useNativeDriver: true }),
+        Animated.timing(rise, { toValue: Dimensions.get('window').height * 0.5, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+      ]).start(() => setMounted(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
   const body = (
     <>
-      <Pressable style={s.scrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" />
-      <View style={[s.sheet, tone === 'page' && { backgroundColor: C.bg }, padded && s.padded, { paddingBottom: Math.max(insets.bottom, 16) + 8 }, style]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: fade }]}>
+        <Pressable style={s.scrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" />
+      </Animated.View>
+      <View style={{ flex: 1 }} pointerEvents="none" />
+      <Animated.View style={[s.sheet, { transform: [{ translateY: rise }] }, tone === 'page' && { backgroundColor: C.bg }, padded && s.padded, { paddingBottom: Math.max(insets.bottom, 16) + 8 }, style]}>
         <View style={s.grab} />
         {(!!title || showClose) && (
           <View style={[s.titleRow, !padded && s.padded]}>
@@ -52,11 +80,12 @@ export function ModalSheet({
           </View>
         )}
         {children}
-      </View>
+      </Animated.View>
+      <AlertLayer />
     </>
   );
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       {keyboard
         ? <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>{body}</KeyboardAvoidingView>
         : <View style={{ flex: 1 }}>{body}</View>}

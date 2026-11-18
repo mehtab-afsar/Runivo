@@ -18,6 +18,7 @@ import { territoryPalette, territoryLayerStyles } from '@theme/territory';
 import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { mkStep } from './onboardingStyles';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
+import { PositionArrow } from '@mobile/shared/components/PositionArrow';
 
 export type LocationPhase = 'prime' | 'asking' | 'granted' | 'denied';
 
@@ -147,7 +148,7 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
               ])}
             </ML.ShapeSource>
           )}
-          <ML.UserLocation visible renderMode="native" />
+          {coord && <PositionArrow lat={coord[1]} lng={coord[0]} id="preview" />}
         </ML.MapView>
       ) : locFailed ? (
         <View style={s.loading}>

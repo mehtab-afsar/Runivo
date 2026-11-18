@@ -25,24 +25,6 @@ export interface NearbyClubs {
   nearby: boolean;
 }
 
-export interface LobbyRoom {
-  id: string;
-  name: string;
-  description: string | null;
-  member_count: number;
-  is_active: boolean;
-  badge_emoji: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  user_id: string;
-  username: string;
-  content: string;
-  created_at: string;
-  avatar_color: string;
-}
-
 export type ActivityAction = 'captured' | 'lost' | 'defended' | 'joined' | 'leveled_up';
 
 export interface ActivityItem {

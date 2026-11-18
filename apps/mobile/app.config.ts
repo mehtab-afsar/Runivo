@@ -17,8 +17,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   // Deep-link scheme — used by notification handler, OAuth, and universal links
   scheme: 'runivo',
   splash: {
-    // One launch look: the big orange hexagon on white. The in-app SplashView
-    // draws the same mark at the same size (200 pt box), so the hand-off is invisible.
+    // One launch look: a thin orange hexagon over the runivo wordmark, still (no pulse).
+    // The in-app SplashView shows the same image at the same size (280 pt), so the hand-off is invisible.
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
     backgroundColor: '#FFFFFF',
@@ -52,6 +52,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         'Runivo uses the camera to take your profile photo and photos of your shoes.',
       NSPhotoLibraryUsageDescription:
         'Runivo needs access to your photos so you can set your profile picture, add photos to your runs and posts, and attach photos to your shoe log.',
+      // "Save Image" in the share sheet (run, zone and profile cards). Without
+      // this string iOS ends the app the moment someone taps it.
+      NSPhotoLibraryAddUsageDescription:
+        'Runivo saves your run, zone and profile cards to your photos when you tap Save Image.',
       NSHealthShareUsageDescription:
         'Runivo can read your past running workouts from Apple Health to set your starting baseline, if you choose to import them.',
       NSHealthUpdateUsageDescription:
@@ -183,7 +187,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     [
       'expo-splash-screen',
-      { image: './assets/splash-icon.png', imageWidth: 200, resizeMode: 'contain', backgroundColor: '#FFFFFF' },
+      { image: './assets/splash-icon.png', imageWidth: 280, resizeMode: 'contain', backgroundColor: '#FFFFFF' },
     ],
     [
       'expo-notifications',

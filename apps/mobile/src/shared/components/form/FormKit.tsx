@@ -189,34 +189,6 @@ export function ChoiceCards<T extends string>({
   );
 }
 
-/** A row of square icon tiles (club badge). Selected = ink tile, lime icon. */
-export function IconPicker<T extends string>({
-  label, options, value, onChange,
-}: {
-  label?: string;
-  options: { value: T; label: string; Icon: IconType }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  const C = useTheme();
-  const s = useMemo(() => mk(C), [C]);
-  return (
-    <View>
-      {!!label && <FieldLabel hint={options.find(o => o.value === value)?.label}>{label}</FieldLabel>}
-      <View style={s.iconWrap}>
-        {options.map(o => {
-          const on = o.value === value;
-          return (
-            <Pressable key={o.value} style={[s.iconTile, on && s.iconTileOn]} onPress={() => onChange(o.value)} accessibilityRole="button" accessibilityLabel={o.label} accessibilityState={{ selected: on }}>
-              <o.Icon size={22} color={on ? C.lime : C.t1} weight={on ? 'bold' : 'regular'} />
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 /** A card with a title, a line under it and an on/off switch. */
 export function ToggleRow({ title, sub, value, onChange }: { title: string; sub?: string; value: boolean; onChange: (v: boolean) => void }) {
   const C = useTheme();

@@ -3,6 +3,7 @@
  * notes, who can see it, and delete.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import {
   Modal, View, Text, TextInput, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert,
   KeyboardAvoidingView, Platform, Image, Switch,
@@ -48,7 +49,7 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
   const requestClose = () => {
     const dirty = form != null && initialJson.current != null && JSON.stringify(form) !== initialJson.current;
     if (!dirty || saving) { onClose(); return; }
-    Alert.alert('Discard changes?', 'Your edits to this activity haven\'t been saved.', [
+    appAlert('Discard changes?', 'Your edits to this activity haven\'t been saved.', [
       { text: 'Keep editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: onClose },
     ]);
@@ -62,7 +63,7 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
     if (room <= 0) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Photos are off', 'Allow photo access for Runivo in Settings to add pictures.');
+      appAlert('Photos are off', 'Allow photo access for Runivo in Settings to add pictures.');
       return;
     }
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -75,13 +76,13 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
   const appeal = () => {
     const send = async (note: string) => {
       try { await appealFlag(runId, note); set({ integrityStatus: 'appealed' }); }
-      catch { Alert.alert("Couldn't send", 'Check your connection and try again.'); }
+      catch { appAlert("Couldn't send", 'Check your connection and try again.'); }
     };
     if (Platform.OS === 'ios') {
       Alert.prompt('Ask for a review', 'What happened? For example a tunnel, a ferry, or GPS lost between tall buildings.',
         [{ text: 'Cancel', style: 'cancel' }, { text: 'Send', onPress: (note?: string) => { void send(note ?? ''); } }], 'plain-text');
     } else {
-      Alert.alert('Ask for a review', 'We will check the GPS trace and put it back on the boards if it was a glitch.',
+      appAlert('Ask for a review', 'We will check the GPS trace and put it back on the boards if it was a glitch.',
         [{ text: 'Cancel', style: 'cancel' }, { text: 'Send', onPress: () => { void send(''); } }]);
     }
   };
@@ -94,7 +95,7 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
       onSaved(form);
       onClose();
     } catch (e) {
-      Alert.alert(
+      appAlert(
         "Couldn't save",
         e instanceof Error && e.message === 'not_synced'
           ? 'This activity is still uploading. Try again in a moment.'
@@ -106,7 +107,7 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
   };
 
   const confirmDelete = () => {
-    Alert.alert(
+    appAlert(
       'Delete this activity?',
       "It's removed from your history and the feed. Zones it claimed and PACE it earned stay yours. This can't be undone.",
       [
@@ -115,7 +116,7 @@ export default function EditActivitySheet({ visible, runId, defaultTitle, onClos
           text: 'Delete', style: 'destructive', onPress: async () => {
             setSaving(true);
             try { await deleteActivity(runId); onClose(); onDeleted(); }
-            catch { Alert.alert("Couldn't delete", 'Check your connection and try again.'); }
+            catch { appAlert("Couldn't delete", 'Check your connection and try again.'); }
             finally { setSaving(false); }
           },
         },

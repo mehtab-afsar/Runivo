@@ -147,3 +147,16 @@ describe('sync — pushNutritionLogs', () => {
     expect(supabase.auth.getUser).toHaveBeenCalled();
   });
 });
+
+describe('uploadTrace', () => {
+  it('keeps a point at least every 100 m on a straight road (server needs 10+ for 1 km)', async () => {
+    const { uploadTrace } = await import('./sync');
+    // 1.2 km due north, a fix every ~3 m, perfectly straight.
+    const pts = Array.from({ length: 400 }, (_, i) => ({ lat: 12.9 + i * 0.000027, lng: 77.6, timestamp: 1_700_000_000_000 + i * 1000, accuracy: 5 }));
+    const out = uploadTrace(pts as never);
+    expect(out.length).toBeGreaterThanOrEqual(12);
+    expect(out[0]).toBe(pts[0]);
+    expect(out[out.length - 1]).toBe(pts[pts.length - 1]);
+    expect(out.length).toBeLessThan(40);
+  });
+});

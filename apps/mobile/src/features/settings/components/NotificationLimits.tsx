@@ -33,8 +33,8 @@ export function NotificationLimits() {
 
   return (
     <>
-      <SettingRow label="Quiet hours" sub="No nudges in these hours, your local time. Stolen zones and safety alerts still come through.">
-        <SegmentedControl options={QUIET.map(o => o.label)} value={quiet} onChange={v => { setQuiet(v); save(v, limit); }} />
+      <SettingRow label="Quiet hours" sub="No nudges in these hours, your local time. Stolen zones and safety alerts still come through." stacked>
+        <SegmentedControl fit={false} options={QUIET.map(o => o.label)} value={quiet} onChange={v => { setQuiet(v); save(v, limit); }} />
       </SettingRow>
       <SettingRow label="Nudges a day" sub="Reminders and fading-zone warnings, at most">
         <SegmentedControl options={LIMITS.map(String)} value={String(limit)} onChange={v => { const n = Number(v); setLimit(n); save(quiet, n); }} />

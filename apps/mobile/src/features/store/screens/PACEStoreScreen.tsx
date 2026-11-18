@@ -74,7 +74,7 @@ export default function PACEStoreScreen() {
         <View style={s.balCard}>
           <Text style={s.balLbl}>To spend</Text>
           <View style={s.balanceRow}>
-            <Text style={s.balanceNum} adjustsFontSizeToFit numberOfLines={1}>{paceBalance.toLocaleString()}</Text>
+            <Text style={s.balanceNum} numberOfLines={1}>{paceBalance.toLocaleString()}</Text>
             <Text style={s.balanceUnit}>PACE</Text>
           </View>
           <View style={s.progressBarBg}>
@@ -178,7 +178,7 @@ function mkStyles(C: AppColors) {
     balLbl:          { fontFamily: Fonts.regular, fontSize: 14, color: 'rgba(255,255,255,0.65)' },
     saving:          { fontFamily: Fonts.regular, fontSize: 13.5, color: C.lime, marginTop: 2 },
     balanceRow:      { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-    balanceNum:      { fontFamily: Fonts.numeric, fontSize: 56, lineHeight: 58, color: C.alwaysLight, fontVariant: ['tabular-nums'], flexShrink: 1 },
+    balanceNum:      { fontFamily: Fonts.numeric, fontSize: 56, lineHeight: 58, color: C.alwaysLight, fontVariant: ['tabular-nums'] },
     balanceUnit:     { fontFamily: Fonts.semiBold, fontSize: 20, color: C.lime, paddingBottom: 8 },
     weekNumbers:     { fontFamily: Fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.65)', fontVariant: ['tabular-nums'] },
     weekStrong:      { fontFamily: Fonts.semiBold, color: C.alwaysLight },

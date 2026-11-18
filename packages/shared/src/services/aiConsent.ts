@@ -32,6 +32,31 @@ export async function hasAiConsent(): Promise<boolean> {
 }
 
 /**
+ * The server's answer, ignoring the phone's copy: true/false, or null when it
+ * can't be asked (offline, signed out). A phone copy the server doesn't share
+ * (left by another account, or withdrawn on another device) is cleared.
+ */
+export async function verifyAiConsentWithServer(): Promise<boolean | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+    const { data, error } = await supabase.from('profiles').select('ai_consent_at').eq('id', session.user.id).maybeSingle();
+    if (error) return null;
+    const ok = !!(data as { ai_consent_at: string | null } | null)?.ai_consent_at;
+    if (!ok) await forgetLocalAiConsent();
+    return ok;
+  } catch {
+    return null;
+  }
+}
+
+/** Drop the phone's copy of the consent (the server refused, or it isn't this account's). */
+export async function forgetLocalAiConsent(): Promise<void> {
+  const settings = await getSettings();
+  if (settings.aiConsentAt) await saveSettings({ ...settings, aiConsentAt: null });
+}
+
+/**
  * Record agreeing (granted = true) or withdrawing. The server is written first:
  * granting only counts once the authority has it, otherwise the next AI call
  * would be refused after the screen said "on". Returns false on failure.

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Platform, TextInput } from 'react-native';
 import { Apple, Mail, Phone, Plus } from '@mobile/shared/icons/lucideCompat';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { track } from '@shared/services/analytics';
@@ -58,7 +59,7 @@ export function SignInMethodsSection() {
   }, [reload]);
 
   const confirmUnlink = (row: LinkedMethod) => {
-    Alert.alert(
+    appAlert(
       `Remove ${row.label}?`,
       `You won't be able to sign in with ${row.label} any more. Your runs and zones stay on this account.`,
       [
@@ -91,7 +92,7 @@ export function SignInMethodsSection() {
                   </Pressable>
                 ) : (
                   <Pressable
-                    onPress={() => reason && Alert.alert(row.label, reason)}
+                    onPress={() => reason && appAlert(row.label, reason)}
                     hitSlop={8}
                     accessibilityRole="button"
                     accessibilityLabel={`${row.label}: ${reason ?? 'linked'}`}

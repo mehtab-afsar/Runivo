@@ -62,6 +62,26 @@ function parseReply(raw: unknown): { content: string; type?: string } {
   return { content, type };
 }
 
+/** Why the coach call failed, from the function's status and error body. */
+export type CoachFailure = 'consent' | 'plus' | 'limit' | 'server' | 'offline';
+export class CoachError extends Error {
+  constructor(public readonly kind: CoachFailure, message: string) { super(message); }
+}
+
+/** supabase-js hides the status inside error.context (a Response); read it. */
+async function coachError(error: unknown): Promise<CoachError> {
+  const ctx = (error as { context?: Response })?.context;
+  if (ctx && typeof ctx.status === 'number') {
+    let code = '';
+    try { code = String((await ctx.clone().json())?.error ?? ''); } catch { /* not JSON */ }
+    if (ctx.status === 403 || code === 'ai_consent_required') return new CoachError('consent', code || 'ai_consent_required');
+    if (ctx.status === 402) return new CoachError('plus', code || 'plus_required');
+    if (ctx.status === 429) return new CoachError('limit', code || 'daily_cap');
+    return new CoachError('server', `${ctx.status} ${code}`.trim());
+  }
+  return new CoachError('offline', (error as Error)?.message ?? 'network');
+}
+
 export async function sendMessage(
   message: string,
   sessionToken: string,
@@ -70,7 +90,7 @@ export async function sendMessage(
     body:    { feature: 'coach_chat', message },
     headers: { Authorization: `Bearer ${sessionToken}` },
   });
-  if (error) throw error;
+  if (error) throw await coachError(error);
   return parseReply(data);
 }
 

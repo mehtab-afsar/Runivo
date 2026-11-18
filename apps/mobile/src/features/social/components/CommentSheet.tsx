@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, FlatList,
-  TextInput, ActivityIndicator, Alert,
-} from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, Pressable, FlatList, TextInput, ActivityIndicator } from 'react-native';
 import { PaperPlaneTilt, X, DotsThree } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { getComments, addComment } from '../services/feedService';
@@ -75,9 +73,9 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
       setComments(prev => prev.filter(c => c.id !== optimistic.id));
       setText(trimmed);
       const msg = (e as { message?: string } | null)?.message ?? '';
-      if (msg.includes('content_not_allowed')) Alert.alert("That can't be posted", "It contains language that isn't allowed in Runivo. Please reword it.");
-      else if (msg.includes('account_suspended')) Alert.alert('Commenting is turned off', 'This account is suspended. Contact support if you think that is a mistake.');
-      else Alert.alert("Couldn't post your comment", 'Check your connection and try again. Your text is still in the box.');
+      if (msg.includes('content_not_allowed')) appAlert("That can't be posted", "It contains language that isn't allowed in Runivo. Please reword it.");
+      else if (msg.includes('account_suspended')) appAlert('Commenting is turned off', 'This account is suspended. Contact support if you think that is a mistake.');
+      else appAlert("Couldn't post your comment", 'Check your connection and try again. Your text is still in the box.');
     } finally {
       setSending(false);
     }
@@ -86,24 +84,24 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
   const openMenu = useCallback((item: Comment) => {
     const mine = !!user && item.userId === user.id;
     if (mine) {
-      Alert.alert('Your comment', undefined, [
+      appAlert('Your comment', undefined, [
         { text: 'Delete', style: 'destructive', onPress: async () => {
           const { error } = await supabase.from('feed_post_comments').delete().eq('id', item.id);
-          if (error) Alert.alert("Couldn't delete it", 'Try again in a moment.');
+          if (error) appAlert("Couldn't delete it", 'Try again in a moment.');
           else setComments(prev => prev.filter(c => c.id !== item.id));
         } },
         { text: 'Cancel', style: 'cancel' },
       ]);
       return;
     }
-    Alert.alert(`Comment by ${item.username}`, undefined, [
+    appAlert(`Comment by ${item.username}`, undefined, [
       { text: 'Report comment', onPress: () => promptReport('comment', item.id, 'comment') },
       { text: `Block ${item.username}`, style: 'destructive', onPress: () => {
-        Alert.alert(`Block ${item.username}?`, "You won't see their posts or comments, and they won't see yours.", [
+        appAlert(`Block ${item.username}?`, "You won't see their posts or comments, and they won't see yours.", [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Block', style: 'destructive', onPress: async () => {
             try { await blockUser(item.userId); setComments(prev => prev.filter(c => c.userId !== item.userId)); }
-            catch { Alert.alert("Couldn't block", 'Check your connection and try again.'); }
+            catch { appAlert("Couldn't block", 'Check your connection and try again.'); }
           } },
         ]);
       } },

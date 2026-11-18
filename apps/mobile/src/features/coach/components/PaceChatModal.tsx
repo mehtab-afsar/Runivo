@@ -5,11 +5,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'phosphor-react-native';
+import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { CoachFloatingInput } from './CoachFloatingInput';
 import type { CoachMessage } from '../services/coachService';
+import { AlertLayer } from '@mobile/shared/components/AppAlert';
 
 interface Props {
   visible: boolean;
@@ -74,7 +76,7 @@ export function PaceChatModal({
               renderItem={({ item }) => (
                 <>
                   {item.auto_triggered && (
-                    <Text style={s.autoLabel}>✨ After your run</Text>
+                    <View style={s.autoRow}><PaceXOrb size={14} /><Text style={s.autoLabel}>After your run</Text></View>
                   )}
                   <MessageBubble role={item.role} content={item.content} type={item.type} animate={liveMessageIds.has(item.id)} />
                 </>
@@ -109,6 +111,7 @@ export function PaceChatModal({
           </View>
         </KeyboardAvoidingView>
       </View>
+      <AlertLayer />
     </Modal>
   );
 }
@@ -122,7 +125,8 @@ function mkStyles(C: AppColors) {
     x:           { fontFamily: Fonts.bold, fontSize: 21 },
     closeBtn:    { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
     listContent: { paddingVertical: 12 },
-    autoLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3, textAlign: 'center', marginTop: 16, marginBottom: 4 },
+    autoRow:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 16, marginBottom: 4 },
+    autoLabel:   { fontFamily: Fonts.regular, fontSize: 11, color: C.t3 },
     emptyWrap:   { flex: 1, alignItems: 'center', paddingTop: 48 },
     emptyText:   { fontFamily: Fonts.regular, fontSize: 14 },
     errorBanner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(220,38,38,0.06)', borderTopWidth: 0.5, borderTopColor: 'rgba(220,38,38,0.18)', paddingHorizontal: 16, paddingVertical: 8 },

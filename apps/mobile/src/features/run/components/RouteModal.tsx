@@ -66,7 +66,7 @@ export default function RouteModal({
           <RouteCard
             key={r.id}
             route={{ id: r.id, name: r.name, emoji: r.emoji, distanceM: r.distanceM, durationSec: r.durationSec ?? undefined }}
-            onSelect={() => { onSelectRoute(`${r.emoji} ${r.name}`, r.gpsPoints); onClose(); }}
+            onSelect={() => { onSelectRoute(r.name, r.gpsPoints); onClose(); }}
           />
         ))}
 
@@ -84,7 +84,7 @@ export default function RouteModal({
           <RouteCard
             key={r.id}
             route={{ id: r.id, name: r.name, emoji: r.emoji, distanceM: r.distanceM, distanceAwayM: r.distM, username: r.username }}
-            onSelect={() => { onSelectRoute(`${r.emoji} ${r.name}`, r.gpsPoints); onClose(); }}
+            onSelect={() => { onSelectRoute(r.name, r.gpsPoints); onClose(); }}
             highlighted
           />
         ))}

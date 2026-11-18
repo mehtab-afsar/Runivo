@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@shared/services/supabase';
 import { ageGateOutcome } from '@shared/engine/onboarding';
@@ -45,7 +46,7 @@ export default function AgeGateScreen({ userId, onConfirmed }: { userId: string;
   const deleteAccount = async () => {
     setBusy(true);
     const { error: err } = await supabase.functions.invoke('delete-account', { body: {} });
-    if (err) { setBusy(false); Alert.alert("Couldn't delete the account", 'Check your connection and try again, or email support@runivo.com.'); return; }
+    if (err) { setBusy(false); appAlert("Couldn't delete the account", 'Check your connection and try again, or email support@runivo.com.'); return; }
     await supabase.auth.signOut().catch(() => {});
     await clearAllLocalData().catch(() => {});
     setBusy(false);

@@ -4,9 +4,10 @@
  * "Not feeling 100%" eases the next 7 days.
  */
 import { SafetyNote } from '@mobile/shared/components/SafetyNote';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -62,7 +63,7 @@ export default function TrainingPlanScreen() {
 
   const update = (next: ActivePlan) => {
     setAp(next);
-    savePlan(next).catch(() => Alert.alert('Saved on this phone', "We'll sync the change when you're back online."));
+    savePlan(next).catch(() => appAlert('Saved on this phone', "We'll sync the change when you're back online."));
   };
 
   if (ap === undefined) return <SafeAreaView style={s.root}><View style={s.center}><ActivityIndicator color={C.t2} /></View></SafeAreaView>;
@@ -88,16 +89,16 @@ export default function TrainingPlanScreen() {
   const daysToRace = daysBetween(today, plan.raceDate);
 
   const canMoveRace = (plan.goal ?? 'race') === 'race' && daysToRace > 7;
-  const menu = () => Alert.alert('Plan', undefined, [
+  const menu = () => appAlert('Plan', undefined, [
     ...(canMoveRace ? [{ text: 'Race date changed', onPress: () => { setMoveRace(plan.raceDate); setMoveMonth(monthOf(plan.raceDate)); } }] : []),
     { text: 'Build a new plan', onPress: () => navigation.navigate('PlanBuilder') },
-    { text: 'End this plan', style: 'destructive', onPress: () => Alert.alert(
+    { text: 'End this plan', style: 'destructive', onPress: () => appAlert(
       'End this plan?',
       'Your remaining sessions are removed. Runs you already did stay in your history.',
       [
         { text: 'Keep plan', style: 'cancel' },
         { text: 'End plan', style: 'destructive', onPress: () => {
-          endPlan(ap).then(() => setAp(null)).catch(() => Alert.alert("Couldn't end the plan", 'Check your connection and try again.'));
+          endPlan(ap).then(() => setAp(null)).catch(() => appAlert("Couldn't end the plan", 'Check your connection and try again.'));
         } },
       ],
     ) },
@@ -106,7 +107,7 @@ export default function TrainingPlanScreen() {
 
   const todaySession = all.find(x => x.date === today);
 
-  const notFeeling = () => Alert.alert(
+  const notFeeling = () => appAlert(
     'Not feeling 100%?',
     'Every session in the next 7 days becomes an easy recovery run, about 30% shorter. Race day is never changed.',
     [{ text: 'Cancel', style: 'cancel' }, { text: 'Ease my week', onPress: () => update({ ...ap, plan: easeNextDays(plan, today) }) }],
@@ -121,12 +122,15 @@ export default function TrainingPlanScreen() {
         <View style={s.hero}>
           <Text style={s.heroEyebrow}>{RACE_LABEL[plan.race]} plan · week {current} of {plan.weeks.length}</Text>
           <View style={s.heroRow}>
-            <Text style={s.heroRace} numberOfLines={2}>
-              {plan.raceRef?.name ?? ((plan.goal ?? 'race') === 'race' ? 'Race day' : plan.goal === 'start' ? 'Your first 5K' : 'Time trial')} · {fmtRaceDate(plan.raceDate)}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.heroRace} numberOfLines={2}>
+                {plan.raceRef?.name ?? ((plan.goal ?? 'race') === 'race' ? 'Race day' : plan.goal === 'start' ? 'Your first 5K' : 'Time trial')}
+              </Text>
+              <Text style={s.heroSub}>{fmtRaceDate(plan.raceDate)}</Text>
+            </View>
             <Text style={s.heroDays}>{daysToRace > 0 ? `${daysToRace} days` : daysToRace === 0 ? 'Today' : 'Done'}</Text>
           </View>
-          <Text style={s.heroSub}>Target {fmtDuration(plan.targetSec)}{plan.goalSec && !plan.goalCapped ? ` · goal ${fmtDuration(plan.goalSec)}` : ''}</Text>
+          <Text style={[s.heroSub, { marginTop: 10 }]}>Target {fmtDuration(plan.targetSec)}{plan.goalSec && !plan.goalCapped ? ` · goal ${fmtDuration(plan.goalSec)}` : ''}</Text>
           {plan.goalCapped && plan.goalSec ? (
             <Text style={s.note}>Your goal of {fmtDuration(plan.goalSec)} is faster than your 5K suggests, so the plan aims for {fmtDuration(plan.targetSec)} to keep training safe. Update your 5K time as you get fitter.</Text>
           ) : null}
@@ -242,7 +246,7 @@ function mkStyles(C: AppColors) {
     hero:     { backgroundColor: C.alwaysDark, borderRadius: 28, padding: 20 },
     heroEyebrow: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.lime },
     heroRow:  { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, marginTop: 8 },
-    heroRace: { flex: 1, fontFamily: Fonts.semiBold, fontSize: 20, lineHeight: 25, color: C.alwaysLight },
+    heroRace: { fontFamily: Fonts.semiBold, fontSize: 20, lineHeight: 25, color: C.alwaysLight },
     heroDays: { fontFamily: Fonts.numeric, fontSize: 30, color: C.alwaysLight },
     heroSub:  { fontFamily: Fonts.regular, fontSize: 13.5, color: 'rgba(255,255,255,0.7)', marginTop: 6 },
     todayCard:{ backgroundColor: C.mint, borderRadius: 24, padding: 18, gap: 4 },

@@ -1,58 +1,23 @@
-import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useTheme, Fonts, type AppColors } from '@theme';
+import React from 'react';
+import { Segmented } from '@mobile/shared/components/Segmented';
 
 interface SegmentedProps {
   options: string[];
   value: string;
   onChange: (v: string) => void;
+  /** Hug the labels (beside a row label). False: share the full width (stacked rows). */
+  fit?: boolean;
 }
 
-export function SegmentedControl({ options, value, onChange }: SegmentedProps) {
-  const C = useTheme();
-  const ss = useMemo(() => mkStyles(C), [C]);
+/** Settings' string-option switch, drawn by the shared Segmented control. */
+export function SegmentedControl({ options, value, onChange, fit = true }: SegmentedProps) {
   return (
-    <View style={ss.seg}>
-      {options.map(opt => (
-        <Pressable
-          key={opt}
-          style={[ss.segBtn, value === opt && ss.segBtnActive]}
-          onPress={() => onChange(opt)}
-          hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
-          accessibilityRole="button"
-          accessibilityLabel={opt}
-          accessibilityState={{ selected: value === opt }}
-        >
-          <Text style={[ss.segLabel, value === opt && ss.segLabelActive]}>{opt}</Text>
-        </Pressable>
-      ))}
-    </View>
+    <Segmented
+      options={options.map(o => ({ value: o, label: o }))}
+      value={value}
+      onChange={onChange}
+      size="sm"
+      fit={fit}
+    />
   );
-}
-
-interface PillCycleProps {
-  value: string;
-  onPress: () => void;
-}
-
-export function PillCycle({ value, onPress }: PillCycleProps) {
-  const C = useTheme();
-  const ss = useMemo(() => mkStyles(C), [C]);
-  return (
-    <Pressable style={ss.pill} onPress={onPress} hitSlop={6} accessibilityRole="button" accessibilityLabel={value}>
-      <Text style={ss.pillText}>{value}</Text>
-    </Pressable>
-  );
-}
-
-function mkStyles(C: AppColors) {
-  return StyleSheet.create({
-    seg: { flexDirection: 'row', backgroundColor: C.stone, borderRadius: 6, padding: 2, gap: 2 },
-    segBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 4, backgroundColor: 'transparent' },
-    segBtnActive: { backgroundColor: C.alwaysDark },
-    segLabel: { fontFamily: Fonts.medium, fontSize: 12, color: C.t2 },
-    segLabelActive: { color: C.alwaysLight },
-    pill: { backgroundColor: C.stone, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 6 },
-    pillText: { fontFamily: Fonts.regular, fontSize: 12, color: C.black },
-  });
 }

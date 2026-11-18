@@ -3,9 +3,10 @@
  * apply to past activities and zones too; the server enforces all of them.
  */
 import { FormScreen, ChipGroup, FieldLabel, FormButton } from '@mobile/shared/components/form/FormKit';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -61,31 +62,31 @@ export default function PrivacyScreen() {
   const changeAudience = (l: string) => {
     const next = (Object.keys(AUD_LABEL) as Audience[]).find(k => AUD_LABEL[k] === l) ?? 'everyone';
     const prev = audience; setAudience(next);
-    saveDefaultAudience(next).catch(() => { setAudience(prev); Alert.alert("Couldn't save", 'Check your connection and try again.'); });
+    saveDefaultAudience(next).catch(() => { setAudience(prev); appAlert("Couldn't save", 'Check your connection and try again.'); });
   };
 
   const toggle = (k: keyof PrivacyControls, v: boolean) => {
     if (!controls) return;
     const prev = controls; setControls({ ...controls, [k]: v });
-    savePrivacyControls({ [k]: v }).catch(() => { setControls(prev); Alert.alert("Couldn't save", 'Check your connection and try again.'); });
+    savePrivacyControls({ [k]: v }).catch(() => { setControls(prev); appAlert("Couldn't save", 'Check your connection and try again.'); });
   };
 
   const add = async (lat: number, lng: number) => {
     setBusy(true);
     try { setPlaces(await addPrivatePlace(label, lat, lng, radius)); setAdding(false); }
-    catch (e) { Alert.alert("Couldn't add the place", e instanceof Error ? e.message : 'Try again.'); }
+    catch (e) { appAlert("Couldn't add the place", e instanceof Error ? e.message : 'Try again.'); }
     finally { setBusy(false); }
   };
   const addHere = async () => {
     const perm = await Location.requestForegroundPermissionsAsync();
-    if (perm.status !== 'granted') { Alert.alert('Location is off', 'Search for the address instead, or allow location for Runivo.'); return; }
+    if (perm.status !== 'granted') { appAlert('Location is off', 'Search for the address instead, or allow location for Runivo.'); return; }
     const fix = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).catch(() => null);
-    if (!fix) { Alert.alert('No GPS fix', 'Try again outside, or search for the address.'); return; }
+    if (!fix) { appAlert('No GPS fix', 'Try again outside, or search for the address.'); return; }
     await add(fix.coords.latitude, fix.coords.longitude);
   };
-  const remove = (p: PrivatePlace) => Alert.alert(`Remove ${p.label}?`, 'Zones and routes near it will be visible to others again.', [
+  const remove = (p: PrivatePlace) => appAlert(`Remove ${p.label}?`, 'Zones and routes near it will be visible to others again.', [
     { text: 'Cancel', style: 'cancel' },
-    { text: 'Remove', style: 'destructive', onPress: async () => { try { setPlaces(await removePrivatePlace(p.id)); } catch { Alert.alert("Couldn't remove it", 'Try again.'); } } },
+    { text: 'Remove', style: 'destructive', onPress: async () => { try { setPlaces(await removePrivatePlace(p.id)); } catch { appAlert("Couldn't remove it", 'Try again.'); } } },
   ]);
 
   return (

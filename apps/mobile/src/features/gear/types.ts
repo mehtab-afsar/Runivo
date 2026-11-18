@@ -1,7 +1,6 @@
 import type { StoredShoe } from '@shared/services/store';
 
 export type ShoeCategory = StoredShoe['category'];
-export type ShoeStatus = 'active' | 'retired';
 
 export interface Shoe {
   id: string;
@@ -20,9 +19,9 @@ export interface Shoe {
   synced?: boolean;
 }
 
-export const CATEGORIES: { value: ShoeCategory; label: string; emoji: string }[] = [
-  { value: 'road',   label: 'Road',   emoji: '🛣️' },
-  { value: 'trail',  label: 'Trail',  emoji: '🌲' },
-  { value: 'track',  label: 'Track',  emoji: '🏟️' },
-  { value: 'casual', label: 'Casual', emoji: '👟' },
+export const CATEGORIES: { value: ShoeCategory; label: string }[] = [
+  { value: 'road',   label: 'Road' },
+  { value: 'trail',  label: 'Trail' },
+  { value: 'track',  label: 'Track' },
+  { value: 'casual', label: 'Casual' },
 ];

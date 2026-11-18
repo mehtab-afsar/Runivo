@@ -71,7 +71,7 @@ export function appendBgGpsPoint(
     const db = getBgDb();
     db.runSync(
       `INSERT INTO bg_gps_buffer (run_id, lat, lng, speed, accuracy, ts) VALUES (?, ?, ?, ?, ?, ?)`,
-      [runId, lat, lng, speed, accuracy, ts],
+      [runId, lat, lng, speed, accuracy, Math.round(ts)],
     );
   } catch (err) {
     console.warn('[locationTask] Failed to write bg GPS point:', err);

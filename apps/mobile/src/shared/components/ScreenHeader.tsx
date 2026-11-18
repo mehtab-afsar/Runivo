@@ -71,7 +71,8 @@ function mk(C: AppColors) {
   return StyleSheet.create({
     row:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingTop: Platform.OS === 'android' ? 12 : 4, paddingBottom: 12, gap: 10 },
     largeRow: { gap: 12 },
-    side:     { width: 44, minHeight: 44, justifyContent: 'center' },
+    // At least 44 pt each side (so a centred title stays centred); a wider action ("Invite") grows it.
+    side:     { minWidth: 44, minHeight: 44, justifyContent: 'center', flexShrink: 0 },
     circle:   { width: 44, height: 44, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' },
     title:    { flex: 1, textAlign: 'center', fontFamily: Fonts.semiBold, fontSize: 17, color: C.t1 },
     large:    { fontFamily: Fonts.bold, fontSize: 28, lineHeight: 32, letterSpacing: -0.7, color: C.t1 },

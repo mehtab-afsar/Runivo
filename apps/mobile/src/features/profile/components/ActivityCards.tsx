@@ -4,7 +4,8 @@
  * and a footer. Long-press pins an activity, as before.
  */
 import React, { useMemo, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, useWindowDimensions } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import type { StoredRun } from '@shared/services/store';
 import { RouteThumb } from '@mobile/shared/components/RouteThumb';
@@ -42,7 +43,7 @@ export function ActivityCards({ runs, sport, pinnedId, onPin, onOpen, onAll }: {
   const askPin = (r: StoredRun) => {
     if (!onPin) return;
     const isPinned = r.id === pinnedId;
-    Alert.alert(isPinned ? 'Unpin this activity?' : 'Pin to your profile?', undefined,
+    appAlert(isPinned ? 'Unpin this activity?' : 'Pin to your profile?', undefined,
       [{ text: 'Cancel', style: 'cancel' }, { text: isPinned ? 'Unpin' : 'Pin', onPress: () => onPin(isPinned ? null : r.id) }]);
   };
 

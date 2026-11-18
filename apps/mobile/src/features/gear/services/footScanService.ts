@@ -10,10 +10,10 @@ export interface FootScanResult {
   shoeRecommendation: string;
 }
 
-export const ARCH_INFO: Record<ArchType, { label: string; emoji: string; desc: string }> = {
-  flat:    { label: 'Flat arch',    emoji: '🦶', desc: 'Full foot contact. Look for stability or motion-control shoes.' },
-  neutral: { label: 'Neutral arch', emoji: '👟', desc: 'Moderate contact. Most neutral cushioned shoes work well.' },
-  high:    { label: 'High arch',    emoji: '🏃', desc: 'Minimal mid-foot contact. Cushioned, flexible shoes recommended.' },
+export const ARCH_INFO: Record<ArchType, { label: string; desc: string }> = {
+  flat:    { label: 'Flat arch',    desc: 'Full foot contact. Look for stability or motion-control shoes.' },
+  neutral: { label: 'Neutral arch', desc: 'Moderate contact. Most neutral cushioned shoes work well.' },
+  high:    { label: 'High arch',    desc: 'Minimal mid-foot contact. Cushioned, flexible shoes recommended.' },
 };
 
 /** Converts a local file URI to base64 and sends it to the foot-scan edge function. */

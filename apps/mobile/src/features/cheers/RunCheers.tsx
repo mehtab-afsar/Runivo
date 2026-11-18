@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { useTheme, Fonts, type AppColors } from '@theme';
+import { UI, IconText } from '@mobile/shared/icons';
 import { getPlayer } from '@shared/services/store';
 import { fetchRunCheers, cheerText, type Cheer } from './cheerService';
 
@@ -23,7 +24,7 @@ export function RunCheers({ runId, runStart }: { runId: string; runStart?: numbe
 
   return (
     <View style={s.card}>
-      <Text style={s.title} accessibilityRole="header">👏 {list.length} {list.length === 1 ? 'cheer' : 'cheers'} during this run</Text>
+      <IconText Icon={UI.cheer} text={`${list.length} ${list.length === 1 ? 'cheer' : 'cheers'} during this run`} color={C.t1} textStyle={s.title} style={{ justifyContent: 'flex-start' }} />
       {list.map(c => (
         <View key={c.id} style={s.row}>
           <Avatar name={c.fromName} size={34} />

@@ -23,7 +23,7 @@ export function EmptyFeed({ tab, onCta }: Props) {
         <Text style={s.text}>Follow runners to see their runs, conquests, and defenses.</Text>
         {onCta && (
           <Pressable onPress={onCta} hitSlop={8}>
-            <Text style={s.link}>Find runners on Discover →</Text>
+            <Text style={s.link}>Find runners on Discover</Text>
           </Pressable>
         )}
       </View>

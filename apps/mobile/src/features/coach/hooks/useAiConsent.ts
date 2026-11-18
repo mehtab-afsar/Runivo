@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { hasAiConsent } from '@shared/services/aiConsent';
+import { hasAiConsent, verifyAiConsentWithServer } from '@shared/services/aiConsent';
 
 /**
  * Has this runner agreed to send their data to the AI behind PaceX?
@@ -10,7 +10,13 @@ export function useAiConsent() {
 
   useEffect(() => {
     let alive = true;
-    hasAiConsent().then(v => { if (alive) setConsent(v); });
+    hasAiConsent().then(v => {
+      if (!alive) return;
+      setConsent(v);
+      // A "yes" on the phone the server doesn't have (another account's, or taken
+      // back elsewhere) made every PaceX call fail with 403. Check and correct it.
+      if (v) verifyAiConsentWithServer().then(ok => { if (alive && ok === false) setConsent(false); });
+    });
     return () => { alive = false; };
   }, []);
 

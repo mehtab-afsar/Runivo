@@ -67,6 +67,7 @@ import PACEStoreScreen       from '@features/store/screens/PACEStoreScreen';
 import RewardDetailScreen    from '@features/store/screens/RewardDetailScreen';
 import MyRewardsScreen       from '@features/store/screens/MyRewardsScreen';
 import YearInRunivoScreen    from '@features/profile/screens/YearInRunivoScreen';
+import ShareProfileScreen, { type ShareProfileParams } from '@features/profile/screens/ShareProfileScreen';
 import ProfileStatsScreen    from '@features/profile/screens/ProfileStatsScreen';
 import TrainingLogScreen     from '@features/profile/screens/TrainingLogScreen';
 import StrengthScreen        from '@features/training/screens/StrengthScreen';
@@ -147,6 +148,8 @@ export type RootStackParamList = {
   /** Plan setup. eventId: start on that curated race's page; prefill: answers from onboarding. */
   PlanBuilder:       {
     eventId?: string;
+    /** A catalogue race picked elsewhere (Events): opens on its page. */
+    race?: import('@features/training/services/raceService').RaceResult;
     fromOnboarding?: boolean;
     prefill?: { runDays?: number[]; longRunDay?: number; fiveKSec?: number | null; weeklyKm?: number | null; cautious?: boolean };
   } | undefined;
@@ -173,8 +176,10 @@ export type RootStackParamList = {
   RewardDetail: { rewardId: string; reward?: Reward };
   MyRewards:    undefined;
   YearInRunivo: { year?: number } | undefined;
+  ShareProfile: ShareProfileParams;
   MyFeed: undefined;
-  Feed: { search?: boolean } | undefined;
+  /** post: open that post's comments (Home's comment button, notification links). */
+  Feed: { search?: boolean; post?: string } | undefined;
   FriendLive: { userId: string; username?: string };
   RunReplay: {
     runId: string;
@@ -370,6 +375,7 @@ export function AppNavigator({
             <Stack.Screen name="RewardDetail"    component={RewardDetailScreen} options={{ headerShown: false, presentation: 'modal' }} />
             <Stack.Screen name="MyRewards"       component={MyRewardsScreen} />
             <Stack.Screen name="YearInRunivo"    component={YearInRunivoScreen} />
+            <Stack.Screen name="ShareProfile"    component={ShareProfileScreen} options={{ headerShown: false, animation: 'fade' }} />
             <Stack.Screen name="ProfileStats"    component={ProfileStatsScreen} />
             <Stack.Screen name="TrainingLog"     component={TrainingLogScreen} />
             <Stack.Screen name="Strength"        component={StrengthScreen} />

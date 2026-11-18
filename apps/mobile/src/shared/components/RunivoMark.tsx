@@ -18,8 +18,6 @@ function hexPath(r: number): string {
 
 /** Starts at the top corner and runs clockwise: the order the launch animation draws it. */
 export const MARK_PATH = hexPath(MARK_RADIUS);
-/** Length of the outline in the 100-unit box (six sides of length r). */
-export const MARK_PERIMETER = 6 * MARK_RADIUS;
 
 /** The mock's inline logo geometry (next to the wordmark): the hexagon fills its box. */
 const INLINE_PATH = 'M32 4 56.2 18v28L32 60 7.8 46V18Z';

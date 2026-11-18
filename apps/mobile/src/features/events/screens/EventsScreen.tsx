@@ -1,23 +1,27 @@
 import { ErrorState } from '@mobile/shared/components/ErrorState';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import React, { useEffect, useMemo, useState } from 'react';
 import { canManageEvent, cancelEvent } from '@features/events/services/eventService';
-import { View, Text, StyleSheet, FlatList, ScrollView, Pressable, ActivityIndicator, RefreshControl, Share, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ScrollView, Pressable, ActivityIndicator, RefreshControl, Share, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { Calendar, Clock, MapPin, Users, ShareNetwork, Bookmark, X, Check, ArrowSquareOut, Flag } from 'phosphor-react-native';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
+import { UI, IconText } from '@mobile/shared/icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEvents } from '../hooks/useEvents';
 import { EventExtras } from '../components/EventExtras';
 import { EventCard } from '../components/EventCard';
 import { DISCIPLINE_LABEL, type RunEvent } from '../types';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
-import { raceForKm } from '@shared/engine/training';
+import { raceForKm, PLAN_WEEKS } from '@shared/engine/training';
 import { safeHttpUrl } from '@mobile/shared/lib/safeUrl';
 import { promptReport } from '@mobile/shared/lib/promptReport';
 import { canAddToCalendar, addEventToCalendar, hasEventReminder, setEventReminder } from '../services/eventCalendar';
 import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
+import { searchRaces, fmtRaceDate, type RaceResult } from '@features/training/services/raceService';
+import { positionIfAllowed } from '@mobile/shared/location/devicePosition';
 import { ModalSheet } from '@mobile/shared/components/ModalSheet';
 import { Segmented } from '@mobile/shared/components/Segmented';
 
@@ -52,15 +56,15 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
     return () => { live = false; };
   }, [event.id, event.source, event.startsAt]);
   const confirmCancel = () => {
-    Alert.alert('Cancel this event?', `Everyone going (${event.participants}) is told. You can’t undo this.`, [
+    appAlert('Cancel this event?', `Everyone going (${event.participants}) is told. You can’t undo this.`, [
       { text: 'Keep it', style: 'cancel' },
       { text: 'Cancel event', style: 'destructive', onPress: async () => {
         try {
           const r = await cancelEvent(event.id);
-          if (r === 'started') { Alert.alert('It has already started'); return; }
-          if (r !== 'cancelled') { Alert.alert("You can't cancel this event"); return; }
+          if (r === 'started') { appAlert('It has already started'); return; }
+          if (r !== 'cancelled') { appAlert("You can't cancel this event"); return; }
           onClose(); onCancelled?.();
-        } catch { Alert.alert("Couldn't cancel the event", 'Check your connection and try again.'); }
+        } catch { appAlert("Couldn't cancel the event", 'Check your connection and try again.'); }
       } },
     ]);
   };
@@ -72,14 +76,14 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
   const toggleReminder = async () => {
     const when = await setEventReminder(event, !reminder).catch(() => null);
     if (!reminder && !when) {
-      Alert.alert('No reminder set', 'Turn on notifications for Runivo, or the event is starting too soon.');
+      appAlert('No reminder set', 'Turn on notifications for Runivo, or the event is starting too soon.');
       return;
     }
     setReminder(!reminder);
   };
   const addToCalendar = async () => {
     try { if (await addEventToCalendar(event)) setAdded(true); }
-    catch { Alert.alert("Couldn't open your calendar", 'Allow calendar access for Runivo in Settings.'); }
+    catch { appAlert("Couldn't open your calendar", 'Allow calendar access for Runivo in Settings.'); }
   };
   const categoryLabel = event.discipline
     ? DISCIPLINE_LABEL[event.discipline]
@@ -221,7 +225,7 @@ function EventDetailSheet({ event, joined, onClose, onJoin, onTrain, bookmarked,
             // Tapping "Joined" used to leave the event on the spot. Leaving asks first.
             onPress={() => {
               if (!joined) { onJoin(); onClose(); return; }
-              Alert.alert('Leave this event?', 'You can join again any time.', [
+              appAlert('Leave this event?', 'You can join again any time.', [
                 { text: 'Stay', style: 'cancel' },
                 { text: 'Leave event', style: 'destructive', onPress: () => { onJoin(); onClose(); } },
               ]);
@@ -297,6 +301,17 @@ export default function EventsScreen({ embedded = false }: { embedded?: boolean 
     error: loadError,
   } = useEvents();
   const [selectedEvent, setSelectedEvent] = useState<RunEvent | null>(null);
+  // Races come from the race catalogue (the one list plan setup searches), nearest first.
+  const [catalogue, setCatalogue] = useState<RaceResult[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    const today = new Date().toISOString().slice(0, 10);
+    positionIfAllowed({ timeoutMs: 3000 }).catch(() => null)
+      .then(near => searchRaces({ from: today, near: near ?? null }))
+      .then(r => { if (live) setCatalogue(r); })
+      .catch(() => { if (live) setCatalogue([]); });
+    return () => { live = false; };
+  }, []);
 
   const [tab, setTab] = useState<'upcoming' | 'going' | 'past'>('upcoming');
   const shown = useMemo(() => {
@@ -351,7 +366,6 @@ export default function EventsScreen({ embedded = false }: { embedded?: boolean 
             const now = Date.now();
             const up = events.filter(e => new Date(e.startsAt).getTime() >= now);
             const runs = up.filter(e => e.source !== 'curated').slice(0, 8);
-            const races = up.filter(e => e.source === 'curated').slice(0, 6);
             const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
             return (
               <>
@@ -373,26 +387,30 @@ export default function EventsScreen({ embedded = false }: { embedded?: boolean 
                               <Text style={s.evTitle} numberOfLines={1}>{e.title}</Text>
                               <Text style={s.evSub} numberOfLines={1}>{[e.time, e.distance, e.location, `${e.participants} going`].filter(Boolean).join(' · ')}</Text>
                             </View>
-                            {going && <View style={s.goingPill}><Text style={s.goingTxt}>Going ✓</Text></View>}
+                            {going && <View style={s.goingPill}><IconText Icon={UI.done} text="Going" color={C.green} size={14} weight="bold" gap={5} textStyle={s.goingTxt} /></View>}
                           </Pressable>
                         );
                       })}
                     </View>
                   )}
                 <View style={s.secHead}><Text style={s.secTitle}>Races near you</Text></View>
-                {races.length === 0 && <Text style={s.secEmpty}>No races listed near you yet.</Text>}
-                {races.map(e => {
-                  const train = trainFor(e);
+                {catalogue === null && <ActivityIndicator color={C.t3} style={{ alignSelf: 'flex-start', marginVertical: 8 }} />}
+                {catalogue?.length === 0 && <Text style={s.secEmpty}>No races listed near you yet.</Text>}
+                {(catalogue ?? []).slice(0, 6).map(r => {
+                  // Only offer a plan when one fits before race day (PLAN_WEEKS minimum).
+                  const daysLeft = (Date.parse(r.startsOn) - Date.now()) / 86400e3;
+                  const plannable = r.distances.some(d => { const k = raceForKm(d.distanceM / 1000); return !!k && daysLeft >= PLAN_WEEKS[k].min * 7; });
+                  const where = [r.city, r.kmAway != null && r.kmAway < 3000 ? `${r.kmAway} km away` : null].filter(Boolean).join(' · ');
                   return (
-                    <Pressable key={e.id} style={s.raceCard} onPress={() => setSelectedEvent(e)} accessibilityRole="button">
-                      <Text style={s.raceWhen}>{e.date}{e.location ? ` · ${e.location}` : ''}</Text>
-                      <Text style={s.raceTitle} numberOfLines={2}>{e.title}</Text>
-                      {!!e.distance && <Text style={s.raceSub}>{e.distance}</Text>}
-                      {train && (
-                        <Pressable style={s.trainBtn} onPress={train} accessibilityRole="button">
+                    <Pressable key={r.id} style={s.raceCard} onPress={() => navigation.navigate('PlanBuilder', { race: r })} accessibilityRole="button">
+                      <Text style={s.raceWhen}>{fmtRaceDate(r.startsOn)}{where ? ` · ${where}` : ''}</Text>
+                      <Text style={s.raceTitle} numberOfLines={2}>{r.name}</Text>
+                      {r.distances.length > 0 && <Text style={s.raceSub}>{r.distances.map(d => d.label).join(', ')}</Text>}
+                      {plannable && (
+                        <View style={s.trainBtn}>
                           <PaceXOrb size={22} />
                           <Text style={s.trainTxt}>Train for this with PaceX</Text>
-                        </Pressable>
+                        </View>
                       )}
                     </Pressable>
                   );

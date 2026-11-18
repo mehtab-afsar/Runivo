@@ -18,7 +18,7 @@ import {
   computeRunnerRank,
   polygonAreaM2,
 } from '../services/claimEngine';
-import { canClaimZone } from '../engine/entitlements';
+import { canClaimZone, effectiveTier } from '../engine/entitlements';
 import { corridorRing, updateStreak, paceWeekStartMs, isOnFoot, type LngLat } from '../engine/runEngine';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
 import { updateMissionsAfterRun } from '../services/missionStore';
@@ -122,12 +122,6 @@ function checkAndResetWeeklyPace(p: StoredPlayer): StoredPlayer {
   return p;
 }
 
-export interface GameEngineState {
-  player: StoredPlayer | null;
-  loading: boolean;
-  playerTerritoryCount: number;
-}
-
 // Backward-compat re-export — delegates to claimEngine geometry functions.
 export function bufferPath(
   points: { lat: number; lng: number }[],
@@ -227,6 +221,7 @@ export function useGameEngine() {
         fastKmCount:         0,
         defendedZonesCount:  0,
         rivalZonesStolen:    0,
+        runId:               runData.id,
       });
 
       const defaultShoe = await getDefaultShoe().catch(() => undefined);
@@ -249,7 +244,8 @@ export function useGameEngine() {
         streakDays:       newStreak,
         streakAdvanced:   streak.advanced,
         paceWeeklyEarned: weeklyEarned,
-        tier:             freshPlayer.subscriptionTier ?? 'free',
+        // Same tier the server applies (effectiveTier), so the instant credit matches the paid one.
+        tier:             effectiveTier(freshPlayer.subscriptionTier ?? 'free'),
         activityType:     runData.activityType,
       });
 

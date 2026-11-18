@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { Plan } from '../types';
-import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
+import { useTheme, Fonts, type AppColors } from '@theme';
 
 interface PlanCardProps {
   plan: Plan;

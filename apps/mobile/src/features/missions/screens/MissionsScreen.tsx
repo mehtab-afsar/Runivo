@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from '@theme/hapticsGated';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
@@ -118,7 +119,7 @@ export default function MissionsScreen() {
       setSwappingId(null);
     } catch {
       // Stay on the picker so they can try again; never leave the spinner stuck.
-      Alert.alert("Couldn't change the mission", 'Please try again.');
+      appAlert("Couldn't change the mission", 'Please try again.');
     } finally {
       setSwapBusy(false);
     }

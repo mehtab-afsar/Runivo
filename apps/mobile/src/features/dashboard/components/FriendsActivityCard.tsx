@@ -61,7 +61,7 @@ export default function FriendsActivityCard({ discover = false }: { discover?: b
         <FeedPostCard
           key={p.id} post={p} currentUserId={me}
           onKudos={() => kudos(p)}
-          onComment={() => navigation.navigate('Feed')}
+          onComment={() => navigation.navigate('Feed', { post: p.id })}
           onUserPress={() => navigation.navigate('UserProfile', { userId: p.userId, username: p.username })}
           onDelete={() => {}}
         />

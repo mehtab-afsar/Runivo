@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl, Platform, Animated, ScrollView, Modal, TextInput, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -18,6 +18,7 @@ import { Avatar } from '@mobile/shared/components/Avatar';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import type { FeedPost, SuggestedRunner } from '@features/social/types';
 import type { ClubFeedActivityItem } from '@features/clubs/types';
+import { AlertLayer } from '@mobile/shared/components/AppAlert';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Tab = 'following' | 'discover';
@@ -29,9 +30,9 @@ export default function FeedScreen() {
   const navigation = useNavigation<Nav>();
 
   const [tab, setTab]                     = useState<Tab>('following');
-  const [commentPostId, setCommentPostId] = useState<string | null>(null);
-  // Home's search button opens straight into runner search.
+  // Home's search button opens straight into runner search; its comment button straight into that post's comments.
   const route = useRoute<RouteProp<RootStackParamList, 'Feed'>>();
+  const [commentPostId, setCommentPostId] = useState<string | null>(route.params?.post ?? null);
   const [searchVisible, setSearchVisible] = useState(!!route.params?.search);
   const [runnerQuery, setRunnerQuery]     = useState('');
 
@@ -231,6 +232,9 @@ export default function FeedScreen() {
 
       {/* Runner search modal */}
       <Modal visible={searchVisible} animationType="slide" transparent={false} onRequestClose={() => setSearchVisible(false)}>
+        {/* A Modal is a new native root: give it its own safe-area measurement,
+            or the content starts under the status bar. */}
+        <SafeAreaProvider>
         <SafeAreaView style={s.searchModal}>
           <Text style={s.searchTitle}>Search</Text>
           <View style={s.searchHeader}>
@@ -273,6 +277,8 @@ export default function FeedScreen() {
             }
           />
         </SafeAreaView>
+        <AlertLayer />
+        </SafeAreaProvider>
       </Modal>
     </SafeAreaView>
   );

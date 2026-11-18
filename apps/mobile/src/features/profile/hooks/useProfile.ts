@@ -9,8 +9,10 @@ import {
 } from '../services/profileService';
 import type { ProfileTab } from '../types';
 import type { ProfileStats } from '@shared/types/game';
+import { setMyIdentity } from '@mobile/shared/hooks/useMyIdentity';
 
-const SWATCHES = ['#0A0A0A', '#D93518', '#3B82F6', '#1A6B40', '#F59E0B', '#8B5CF6'];
+// Profile colours from the brand set: ink, green, amber, lavender ink, leaf, violet.
+const SWATCHES = ['#17181A', '#4E7F1F', '#C2700A', '#3C3577', '#7DBA3C', '#6A5FCF'];
 
 export interface PersonalRecord {
   label: string;
@@ -59,6 +61,7 @@ export function useProfile() {
     if (data.instagram) setInstagram(data.instagram);
     if (data.strava) setStrava(data.strava);
     if (data.avatarUrl) setAvatarUri(data.avatarUrl);
+    setMyIdentity({ name: data.displayName || null, avatarUrl: data.avatarUrl ?? null });
     setGender(data.gender === 'male' || data.gender === 'female' || data.gender === 'other' ? data.gender : null);
     setAge(data.age);
     setHeightCm(data.heightCm);
@@ -171,6 +174,7 @@ export function useProfile() {
     setHeightCm(nextHeight != null ? Math.round(nextHeight) : null);
     setWeightKg(nextWeight);
     if (avatarUrl !== undefined) setAvatarUri(avatarUrl);
+    setMyIdentity({ name: form.displayName || null, ...(avatarUrl !== undefined ? { avatarUrl } : {}) });
     setIsEditing(false);
   }, []);
 

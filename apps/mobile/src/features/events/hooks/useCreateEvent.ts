@@ -3,17 +3,6 @@ import * as Location from 'expo-location';
 import { createEvent } from '../services/eventService';
 import type { Discipline } from '../types';
 
-export interface CreateEventForm {
-  title: string;
-  eventType: string;
-  date: string;
-  time: string;
-  location: string;
-  distanceKm: string;
-  description: string;
-  discipline: Discipline | '';
-}
-
 const EVENT_TYPES = [
   { value: 'community-run',   label: 'Group run' },
   { value: 'race',            label: 'Race' },

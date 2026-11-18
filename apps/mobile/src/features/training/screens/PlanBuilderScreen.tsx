@@ -11,7 +11,8 @@
  * are filled in.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, Alert, Linking, StyleSheet } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Pressable, Linking, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
@@ -32,6 +33,8 @@ import AddRaceStep, { newRaceProblem, type NewRace } from '../setup/AddRaceStep'
 import FitnessStep, { BASIS_KM, type FitnessValue } from '../setup/FitnessStep';
 import PreviewStep from '../setup/PreviewStep';
 import { GoalStep, InjuryStep, WeekStep, PillRow, nearestWeekly, type InjuryChoice } from '../setup/steps';
+import { IconText } from '@mobile/shared/icons';
+import { ArrowUpRight } from 'phosphor-react-native';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type StepKey = 'goal' | 'race' | 'addRace' | 'distance' | 'fitness' | 'week' | 'injury' | 'preview';
@@ -59,7 +62,7 @@ export default function PlanBuilderScreen() {
   const prefill = params.prefill;
 
   // A race handed in (Events "Train for this", a club race): start on its page.
-  const startAt: StepKey = params.eventId ? 'distance' : 'goal';
+  const startAt: StepKey = params.eventId || params.race ? 'distance' : 'goal';
   const [goal, setGoal] = useState<PlanGoal>('race');
   const steps = stepsFor(goal, startAt);
   const [step, setStep] = useState<StepKey>(startAt);
@@ -85,10 +88,21 @@ export default function PlanBuilderScreen() {
     fetchPlanDefaults().then(d => {
       if (!prefill?.fiveKSec && d.fiveKSec) setFitness(f => (f.mode === 'time' && f.basis === '5k' ? { ...f, sec: d.fiveKSec! } : f));
       if (prefill?.weeklyKm == null && d.weeklyKm != null) setWeekly(nearestWeekly(d.weeklyKm));
+      if (!prefill?.runDays?.length && d.runDays) {
+        const saved = d.runDays;
+        setDays(saved);
+        setLongDay(d.longRunDay != null && saved.includes(d.longRunDay) ? d.longRunDay : saved[saved.length - 1]);
+      }
+      if (prefill?.cautious == null && d.cautious) setInjury(i => (i === 'none' ? 'minor' : i));
       setRunsKm(d.runsKm);
       setEstimate(d.estimate);
     }).catch(() => {});
-  }, [prefill?.fiveKSec, prefill?.weeklyKm]);
+  }, [prefill?.fiveKSec, prefill?.weeklyKm, prefill?.runDays?.length, prefill?.cautious]);
+
+  useEffect(() => {
+    if (params.race) pickRace(params.race);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.race?.id]);
 
   useEffect(() => {
     if (!params.eventId) return;
@@ -129,11 +143,11 @@ export default function PlanBuilderScreen() {
 
   const saveNewRace = async () => {
     const problem = newRaceProblem(newRace);
-    if (problem) { Alert.alert('Almost there', problem); return; }
+    if (problem) { appAlert('Almost there', problem); return; }
     setAdding(true);
     const res = await addRunnerRace({ name: newRace.name, startsOn: newRace.startsOn!, distanceM: newRace.distanceM!, city: newRace.city, url: newRace.url });
     setAdding(false);
-    if ('error' in res) { Alert.alert("Couldn't add the race", ADD_RACE_MESSAGE[res.error]); return; }
+    if ('error' in res) { appAlert("Couldn't add the race", ADD_RACE_MESSAGE[res.error]); return; }
     const label = SHORT[raceForKm(newRace.distanceM! / 1000) ?? '10k'];
     pickRace({
       id: res.raceId, name: newRace.name.trim(), city: newRace.city.trim() || null, startsOn: newRace.startsOn!, websiteUrl: newRace.url.trim() || null,
@@ -175,7 +189,7 @@ export default function PlanBuilderScreen() {
       if (built.raceRef) await enterRace(built.raceRef.distanceId, ap.id, built.goalSec).catch(() => false);
       navigation.replace('TrainingPlan');
     } catch {
-      Alert.alert("Couldn't save the plan", 'Check your connection and try again.');
+      appAlert("Couldn't save the plan", 'Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -184,7 +198,7 @@ export default function PlanBuilderScreen() {
   const justEnter = async () => {
     if (!chosen) return;
     const ok = await enterRace(chosen.id);
-    Alert.alert(ok ? "You're in" : "Couldn't save that", ok ? `${race?.name} is on your list. Build a plan for it any time.` : 'Check your connection and try again.');
+    appAlert(ok ? "You're in" : "Couldn't save that", ok ? `${race?.name} is on your list. Build a plan for it any time.` : 'Check your connection and try again.');
     if (ok) close();
   };
 
@@ -230,9 +244,9 @@ export default function PlanBuilderScreen() {
         <>
           <View style={s.facts}>
             <Fact s={s} label="Weeks to go" value={String(Math.max(0, weeks))} />
-            <Fact s={s} label="Training" value={who ? who.replace(' training', '') : 'Be first'} />
+            <Fact s={s} label="Going" value={who ? who.replace(' training', '') : 'Be first'} />
             {race.websiteUrl
-              ? <Pressable style={s.fact} onPress={() => Linking.openURL(race.websiteUrl!)} accessibilityRole="link"><Text style={s.factLabel}>Entry</Text><Text style={[s.factVal, { color: C.green, fontSize: 16 }]}>Website ↗</Text></Pressable>
+              ? <Pressable style={s.fact} onPress={() => Linking.openURL(race.websiteUrl!)} accessibilityRole="link"><Text style={s.factLabel}>Entry</Text><IconText Icon={ArrowUpRight} text="Website" color={C.green} size={16} weight="bold" gap={4} textStyle={[s.factVal, { fontSize: 16 }]} style={{ justifyContent: 'flex-start' }} /></Pressable>
               : <Fact s={s} label="Entry" value="—" />}
           </View>
           {race.status === 'pending' && <Text style={s.pending}>Only you can see this race until we check it.</Text>}
@@ -290,7 +304,7 @@ export default function PlanBuilderScreen() {
   if (step === 'week') {
     const okDays = days.length >= 3 && days.includes(longDay);
     return shell({
-      title: 'Your', accent: 'week.', subtitle: goal === 'start' ? 'Pick 3 or more days. Plans use 3 of them with a rest day between.' : 'Sessions only go on these days.',
+      title: 'Your', accent: 'week.', subtitle: goal === 'start' ? 'Pick 3 or more days. Plans use 3 of them with a rest day between.' : 'Sessions only go on these days. Your long run goes on the day you pick below.',
       children: (
         <WeekStep days={days} longDay={longDay} weeklyKm={weekly} fromRuns={runsKm} showVolume={goal !== 'start'}
           onDays={setDays} onLong={setLongDay} onWeekly={setWeekly} />
@@ -321,7 +335,6 @@ export default function PlanBuilderScreen() {
       </View>
     ) : plan ? (
       <>
-        <PreviewStep plan={plan} today={today} />
         {(goal === 'race' || goal === 'faster') && (
           <View>
             <Text style={s.label}>How hard to aim</Text>
@@ -332,6 +345,7 @@ export default function PlanBuilderScreen() {
             <Text style={s.hint}>{push ? 'Aims about 3% faster than your fitness predicts.' : 'Aims for what your fitness predicts. It speeds up as you get fitter.'}</Text>
           </View>
         )}
+        <PreviewStep plan={plan} today={today} />
       </>
     ) : <View />,
     footer: plan ? (

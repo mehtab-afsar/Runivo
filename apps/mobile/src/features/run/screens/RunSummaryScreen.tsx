@@ -1,7 +1,8 @@
 import { territoryPalette } from '@theme/territory';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import * as Haptics from '@theme/hapticsGated';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Alert, Animated, ActivityIndicator, Switch, Platform, ActionSheetIOS } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Animated, ActivityIndicator, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -21,8 +22,12 @@ import PaceXSummaryCard     from '../components/PaceXSummaryCard';
 import { sportFor }         from '../constants/activities';
 import PostRunActions       from '../components/PostRunActions';
 import SaveRouteSheet       from '../components/SaveRouteSheet';
-import { buildStorySvg, buildRouteStickerSvg } from '../services/storyCardGenerator';
+import { buildRouteStickerSvg } from '../services/storyCardGenerator';
+import { buildRunCardSvg, RUN_CARD_W, RUN_CARD_H } from '@mobile/shared/lib/runCard';
+import { svgToPngFile } from '@mobile/shared/components/CaptureHost';
 import { PngCapture, type PngCaptureHandle } from '../components/PngCapture';
+import { useMyIdentity } from '@mobile/shared/hooks/useMyIdentity';
+import { StatusBarScrim } from '@mobile/shared/components/StatusBarScrim';
 import EditActivitySheet from '../components/EditActivitySheet';
 import { AUDIENCES } from '../services/activityEditService';
 import { activityTitle } from '@features/profile/utils/profileStats';
@@ -110,10 +115,10 @@ export default function RunSummaryScreen() {
     setMapHidden(hide); setMapSaving(true);
     try {
       const ok = await setActivityMapHidden(runId, hide);
-      if (!ok) { setMapHidden(prev); Alert.alert('Not posted yet', 'This activity has not reached the feed yet. Try again in a moment.'); }
+      if (!ok) { setMapHidden(prev); appAlert('Not posted yet', 'This activity has not reached the feed yet. Try again in a moment.'); }
     } catch {
       setMapHidden(prev);
-      Alert.alert("Couldn't change the map", 'Check your connection and try again.');
+      appAlert("Couldn't change the map", 'Check your connection and try again.');
     } finally {
       setMapSaving(false);
     }
@@ -142,6 +147,7 @@ export default function RunSummaryScreen() {
   const [runsCompleted, setRunsCompleted]             = useState(0);
   const [recentAvgPace, setRecentAvgPace]             = useState<number | null>(null);
   const [authorName, setAuthorName]                   = useState('');
+  const me = useMyIdentity();
   const [stored, setStored]                           = useState<StoredRun | null>(null);
   const [post, setPost]                               = useState<{ id: string; likes: number; comments: number } | null>(null);
   const [commentsOpen, setCommentsOpen]               = useState(false);
@@ -298,11 +304,6 @@ export default function RunSummaryScreen() {
     return Math.round((met * weightKg * runData.duration) / 3600);
   }, [runData.distance, runData.duration, weightKg]);
 
-  const heading = !runData.success ? `${runData.actionType || 'Action'} failed`
-    : runData.actionType === 'attack'  ? 'Territory conquered'
-    : runData.actionType === 'defend'  ? 'Territory defended'
-    : runData.actionType === 'fortify' ? 'Territory fortified'
-    : runData.territory ? 'Ground claimed' : 'Run complete';
   const stolen = serverResult?.stolenZones ?? (runData.rivalZonesStolen ?? 0);
   const newZones = serverResult?.newZones ?? (runData.territory ? 1 : 0);
   // Hero line says what the run actually did, plainest outcome last.
@@ -354,12 +355,12 @@ export default function RunSummaryScreen() {
 
   const shareFile = async (make: () => Promise<string>, title: string) => {
     const available = await Sharing.isAvailableAsync();
-    if (!available) { Alert.alert('Sharing not available on this device'); return; }
+    if (!available) { appAlert('Sharing not available on this device'); return; }
     try {
       const fileUri = await make();
       await Sharing.shareAsync(fileUri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: title });
     } catch {
-      Alert.alert('Could not share', 'Please try again.');
+      appAlert('Could not share', 'Please try again.');
     }
   };
   const openReplay = (runData.route?.length ?? 0) >= 2
@@ -373,10 +374,8 @@ export default function RunSummaryScreen() {
       else if (i === 1) shareFile(writeRouteSticker, 'Share your route');
       else if (i === 2 && openReplay) openReplay();
     };
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: options.length - 1 }, pick);
-    } else {
-      Alert.alert('Share', undefined, [
+    {
+      appAlert('Share', undefined, [
         ...options.slice(0, -1).map((label, i) => ({ text: label, onPress: () => pick(i) })),
         { text: 'Cancel', style: 'cancel' as const },
       ]);
@@ -402,25 +401,25 @@ export default function RunSummaryScreen() {
     await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
     return fileUri;
   };
+  // The story card: the same run card the feed shares, at story size (1080 × 1920).
   const writeStoryCard = async (name: string) => {
-    const svg = buildStorySvg({
-      distance:    runData.distance.toFixed(2),
-      duration:    fmt(runData.duration),
-      pace:        pace(runData.pace),
-      paceEarned,
-      heading,
-      actionType:  runData.actionType,
+    const d = new Date(startMs);
+    const svg = buildRunCardSvg({
+      name: me.name || authorName || 'Runner',
+      sub: `${sport.label} · ${d.getDate()} ${d.toLocaleDateString(undefined, { month: 'short' })}`,
+      title: stored?.title || headline,
+      stats: [
+        { value: convertKm(runData.distance, distanceUnit).toFixed(2), label: distanceUnit },
+        ride
+          ? { value: runData.duration > 0 ? (convertKm(runData.distance, distanceUnit) / (runData.duration / 3600)).toFixed(1) : '0.0', label: `${distanceUnit}/h` }
+          : { value: pace(convertPaceMinPerKm(runData.pace, distanceUnit)), label: `pace /${distanceUnit}` },
+        { value: fmt(runData.duration), label: 'time' },
+      ],
       // The share card shows only what others may see.
-      route:       visibleRoute(runData.route ?? [], { radiusM: settings.mapHideRadiusM, hideAll: settings.mapHideAll, hidden: !!mapHidden, places: settings.privatePlaces }),
-      runnerRank:  currentRank,
+      route: visibleRoute(runData.route ?? [], { radiusM: settings.mapHideRadiusM, hideAll: settings.mapHideAll, hidden: !!mapHidden, places: settings.privatePlaces }),
+      zones: newZones + stolen,
     });
-    // A PNG at story size (1080 × 1890): apps reject SVG files.
-    const capture = storyCaptureRef.current;
-    if (!capture) throw new Error('capture not ready');
-    const base64 = await capture.capture(svg, { viewWidth: 400, viewHeight: 700, outWidth: 1080, outHeight: 1890 });
-    const fileUri = FileSystem.cacheDirectory + name;
-    await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-    return fileUri;
+    return svgToPngFile(svg, { w: RUN_CARD_W, h: RUN_CARD_H, outW: 1080 }, name);
   };
 
   const terr = runData.territory ?? null;
@@ -460,7 +459,8 @@ export default function RunSummaryScreen() {
           onClose={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main'))}
           onShare={shareRun}
           sportLabel={sport.label}
-          authorName={authorName || undefined}
+          authorName={me.name || authorName || undefined}
+          authorPhoto={me.avatarUrl}
           whenLine={whenLine}
           description={stored?.description || undefined}
           pr={prLine}
@@ -720,6 +720,7 @@ export default function RunSummaryScreen() {
 
       <NotificationPrimeSheet visible={showNotifPrime} onDismiss={dismissNotifPrime} />
       <PngCapture ref={storyCaptureRef} />
+      <StatusBarScrim />
       <EditActivitySheet
         visible={editOpen}
         runId={runId}

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { Alert, Platform } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { Platform } from 'react-native';
 import { DEFAULT_SETTINGS, clearAllLocalData, saveSettings } from '@shared/services/store';
 import type { StoredSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
-import { resetAnalytics } from '@shared/services/analytics';
 import { unsubscribeFromPush } from '@shared/services/pushNotificationService';
 import { loadSettings, persistSettings, signOut as signOutService, runsOnlyOnThisPhone, wipeThisPhone, SERVER_SYNCED_SETTINGS } from '../services/settingsService';
 import { useToast } from '@mobile/shared/hooks/useToast';
@@ -52,20 +52,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [showToast]);
 
   const signOut = useCallback(() => {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+    appAlert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign out', style: 'destructive', onPress: async () => {
         const doSignOut = async () => {
           const { ok } = await signOutService();
           if (!ok) {
-            Alert.alert('Couldn\'t sign out', 'Please check your connection and try again.');
+            appAlert('Couldn\'t sign out', 'Please check your connection and try again.');
           }
         };
         // Signing out clears this phone, so upload any runs that haven't reached
         // the server first, and warn before losing the ones that still can't.
         const pending = await runsOnlyOnThisPhone();
         if (pending === 0) { await doSignOut(); return; }
-        Alert.alert(
+        appAlert(
           pending === 1 ? '1 run hasn\'t uploaded' : `${pending} runs haven't uploaded`,
           'They\'re only on this phone and will be lost if you sign out now. Connect to the internet and try again to keep them.',
           [
@@ -78,13 +78,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearHistory = useCallback(() => {
-    Alert.alert('Clear Run History', 'This will remove all local run data. This cannot be undone.', [
+    appAlert('Clear Run History', 'This will remove all local run data. This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear', style: 'destructive', onPress: () => {
         clearAllLocalData().then(() => {
-          Alert.alert('Cleared', 'Local run history has been cleared.');
+          appAlert('Cleared', 'Local run history has been cleared.');
         }).catch(() => {
-          Alert.alert('Error', 'Failed to clear history. Please try again.');
+          appAlert('Error', 'Failed to clear history. Please try again.');
         });
       }},
     ]);
@@ -126,7 +126,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
     const { error } = await supabase.functions.invoke('delete-account', { body: { appleAuthorizationCode } });
     if (error) {
-      Alert.alert('Something went wrong', 'We couldn\'t delete your account. Please try again, or contact support if this keeps happening.');
+      appAlert('Something went wrong', 'We couldn\'t delete your account. Please try again, or contact support if this keeps happening.');
       return;
     }
     await unsubscribeFromPush().catch(() => {});
@@ -140,14 +140,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const deleteAccount = useCallback(() => {
     // RN's Alert has no text-input confirmation, so two sequential destructive
     // confirms substitute for a "type DELETE to confirm" step.
-    Alert.alert(
+    appAlert(
       'Delete Account',
       'This permanently deletes your profile, run history, territory claims, and PACE balance. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Continue', style: 'destructive', onPress: () => {
-            Alert.alert(
+            appAlert(
               'Are you absolutely sure?',
               'Your account and all its data will be deleted immediately and permanently.',
               [

@@ -19,6 +19,7 @@ import type {
   StoredSettings,
 } from './store';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
+import { withoutAccountSettings } from './accountSettings';
 
 // Re-export types so callers can import from either file without caring which.
 export type {
@@ -247,6 +248,19 @@ export async function getRuns(limit?: number): Promise<StoredRun[]> {
   const rows = limit
     ? _db.getAllSync<{ data: string }>('SELECT data FROM runs ORDER BY start_time DESC LIMIT ?', limit)
     : _db.getAllSync<{ data: string }>('SELECT data FROM runs ORDER BY start_time DESC');
+  return rows.map(r => JSON.parse(r.data) as StoredRun);
+}
+
+/**
+ * Runs the server still needs: never uploaded, or uploaded but not scored.
+ * Reads only those rows (the synced column is indexed) instead of the whole
+ * run history on every sync (audit P1-18).
+ */
+export async function getRunsNeedingSync(): Promise<StoredRun[]> {
+  await ready();
+  const rows = _db.getAllSync<{ data: string }>(
+    "SELECT data FROM runs WHERE synced = 0 OR json_extract(data, '$.serverProcessed') = 0 ORDER BY start_time ASC",
+  );
   return rows.map(r => JSON.parse(r.data) as StoredRun);
 }
 
@@ -649,6 +663,12 @@ export function clearLocalUserData(): void {
   // table, so device-level app preferences (dark mode, sound, GPS accuracy) survive
   // an account switch on a shared device.
   _db.runSync("DELETE FROM settings WHERE key = 'player_profile'");
+  // Account-owned settings (AI consent, live sharing, privacy…) go back to defaults.
+  const row = _db.getFirstSync<{ value: string }>('SELECT value FROM settings WHERE key = ?', 'app');
+  if (row) {
+    const current = { ...DEFAULT_SETTINGS, ...(JSON.parse(row.value) as Partial<StoredSettings>) };
+    _db.runSync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', 'app', JSON.stringify(withoutAccountSettings(current, DEFAULT_SETTINGS)));
+  }
 }
 
 /** Async alias of clearLocalUserData — matches the web store's signature so mobile

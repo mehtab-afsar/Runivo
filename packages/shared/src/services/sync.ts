@@ -13,7 +13,7 @@
 
 import { supabase } from './supabase';
 import { isPlus } from '../engine/entitlements';
-import { weeklyPaceNow } from '../engine/runEngine';
+import { weeklyPaceNow, haversineM } from '../engine/runEngine';
 
 // ----------------------------------------------------------------
 // AI COACH ENABLEMENT — the app's own FEATURES.AI_COACH flag, mirrored here.
@@ -72,7 +72,7 @@ import {
   getDB,
   getPlayer,
   savePlayer,
-  getRuns,
+  getRunsNeedingSync,
   saveRun,
   getRunById,
   getSavedRoutes,
@@ -290,6 +290,30 @@ function rdpSimplify(
   return [start, end];
 }
 
+/** Longest gap allowed between uploaded points. */
+const MAX_UPLOAD_GAP_M = 100;
+
+/**
+ * The trace the server receives: the simplified shape, plus a point at least
+ * every 100 m. Simplifying alone turned a straight 1 km road into 9 points,
+ * and the server refuses any run over 1 km with fewer than 10
+ * ("requires a GPS trace"), so straight runs never uploaded.
+ */
+export function uploadTrace(points: StoredRun['gpsPoints']): StoredRun['gpsPoints'] {
+  if (points.length <= 2) return points;
+  const keep = new Set(rdpSimplify(points).map(p => p.timestamp));
+  const out: StoredRun['gpsPoints'] = [];
+  let last = points[0];
+  points.forEach((p, i) => {
+    const far = haversineM(last, p) >= MAX_UPLOAD_GAP_M;
+    if (i === 0 || i === points.length - 1 || keep.has(p.timestamp) || far) {
+      out.push(p);
+      last = p;
+    }
+  });
+  return out;
+}
+
 // postRunSync (after finish) and initialSync (app launch / recovery) can be triggered
 // concurrently — without this, both snapshot the same unsynced run before either marks
 // it synced, and it gets pushed (and its territory processed) twice. Concurrent callers
@@ -318,17 +342,18 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
   const user = await getAuthenticatedUser();
   if (!user) return;
 
-  const allRuns = await getRuns();
   // Also retry runs that uploaded but were never scored: the server is
   // idempotent per run, so a retry can never pay twice.
-  const unsynced = allRuns.filter(r => !r.synced || r.serverProcessed === false);
+  const unsynced = await getRunsNeedingSync();
   if (unsynced.length === 0) return;
 
   let firstUploadError: unknown = null;
   for (const run of unsynced) {
     // Simplify GPS track before upload: keeps route shape but drops redundant
     // intermediate points (1800-point run → ~60-120 points, ~95% size reduction).
-    const simplifiedPoints = rdpSimplify(run.gpsPoints);
+    // Whole milliseconds: iOS reports fix times with a fraction (…321.3967), and the
+    // server orders the route by (timestamp)::bigint, which rejected the whole run.
+    const simplifiedPoints = uploadTrace(run.gpsPoints).map(p => ({ ...p, timestamp: Math.round(p.timestamp) }));
 
     // A run already uploaded is only retried for scoring: runs are immutable
     // (there is no UPDATE policy), so re-sending it as an upsert hit RLS and

@@ -28,12 +28,6 @@ import {
 
 export type ClaimEventType = 'area_update' | 'rival_nearby' | 'loop_closing' | 'speed_warning';
 
-export interface ClaimEvent {
-  type: ClaimEventType;
-  areaM2?: number;
-  timestamp: number;
-}
-
 export interface ValidGPSPoint {
   lat: number;
   lng: number;

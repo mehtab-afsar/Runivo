@@ -27,7 +27,7 @@ export default function ShoeChip({ shoe, totalKm, onPress }: ShoeChipProps) {
           <Text style={ss.change}>›</Text>
         </>
       ) : (
-        <Text style={ss.add}>Add shoes →</Text>
+        <Text style={ss.add}>Add shoes</Text>
       )}
     </Pressable>
   );

@@ -4,6 +4,7 @@ import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { Avatar } from '@mobile/shared/components/Avatar';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { cheerText, type Cheer } from './cheerService';
+import { UI, IconText } from '@mobile/shared/icons';
 
 export function CheerToast({ cheer, runnerName, extra, onThank, onMute, onDismiss, top }: {
   cheer: Cheer; runnerName: string; extra: number; top: number;
@@ -26,7 +27,7 @@ export function CheerToast({ cheer, runnerName, extra, onThank, onMute, onDismis
       <Pressable style={s.row} onPress={onDismiss} accessibilityLabel={`${cheer.fromName} cheered you on: ${cheerText(cheer.message, runnerName)}. Tap to close`}>
         <View>
           <Avatar name={cheer.fromName} size={44} />
-          <Text style={s.clap}>👏</Text>
+          <View style={s.clap}><UI.cheer size={14} color={C.alwaysDark} weight="fill" /></View>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.from}>{cheer.fromName} cheered you on</Text>
@@ -36,7 +37,7 @@ export function CheerToast({ cheer, runnerName, extra, onThank, onMute, onDismis
       </Pressable>
       <View style={s.actions}>
         <Pressable style={[s.btn, { backgroundColor: C.lime }]} onPress={onThank} accessibilityRole="button">
-          <Text style={[s.btnTxt, { color: C.alwaysDark }]}>👍 Thank</Text>
+          <IconText Icon={UI.thanks} text="Thank" color={C.alwaysDark} size={16} textStyle={s.btnTxt} gap={6} />
         </Pressable>
         <Pressable style={[s.btn, { backgroundColor: '#2A2C2E' }]} onPress={onMute} accessibilityRole="button" accessibilityLabel="Mute cheers for this run">
           <Text style={[s.btnTxt, { color: C.alwaysLight }]}>Mute cheers</Text>
@@ -53,7 +54,7 @@ function mk(C: AppColors) {
       shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 12,
     },
     row:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    clap:    { position: 'absolute', right: -8, bottom: -6, fontSize: 18 },
+    clap:    { position: 'absolute', right: -6, bottom: -4, width: 24, height: 24, borderRadius: 12, backgroundColor: C.lime, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.alwaysDark },
     from:    { fontFamily: Fonts.regular, fontSize: 13, color: '#C9CCC4' },
     msg:     { fontFamily: Fonts.semiBold, fontSize: 19, color: C.alwaysLight, marginTop: 2 },
     more:    { fontFamily: Fonts.regular, fontSize: 12, color: '#C9CCC4', marginTop: 4 },

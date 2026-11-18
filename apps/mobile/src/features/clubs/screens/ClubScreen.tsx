@@ -1,30 +1,25 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Modal, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator, RefreshControl, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
-import {
-  MapPin, Globe, Pulse, Users, Plus, Fire, Lightning, Trophy, Shield, NavigationArrow, Barbell, Target, Medal,
-  Rocket, Star, Sword, Waves, Mountains, Diamond, Crown, Leaf,
-  Footprints, Bicycle, Lock, Seal, MagnifyingGlass,
-  type Icon,
-} from 'phosphor-react-native';
+import { Users, Plus, Lock, MagnifyingGlass, type Icon } from 'phosphor-react-native';
 import { useClubs } from '@features/clubs/hooks/useClubs';
 import { SearchBar } from '@features/clubs/components/SearchBar';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
-import { getEmojiIcon } from '@mobile/shared/lib/emojiIcon';
-import { avatarColor } from '@shared/lib/avatarUtils';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import type { Club } from '@features/clubs/types';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
 import { ClubRankRow } from '../components/ClubRankRow';
-import { ClubHeroCard } from '../components/ClubHeroCard';
+import { ClubHeroCard, ClubInitialsTile } from '../components/ClubHeroCard';
 import { NearbyClubsSection } from '../components/NearbyClubsSection';
 import { ClubWarCard } from '../components/ClubWarCard';
 import { ClubImagesPicker } from '../components/ClubImagesPicker';
-import { FormScreen, FormField, IconPicker, ChoiceCards, FormButton } from '@mobile/shared/components/form/FormKit';
+import { FormScreen, FormField, ChoiceCards, FormButton } from '@mobile/shared/components/form/FormKit';
 import { NewClubPost } from '../components/NewClubPost';
 import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
+import { AlertLayer } from '@mobile/shared/components/AppAlert';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type ClubTab = 'my_clubs' | 'rankings';
@@ -34,28 +29,8 @@ type ClubTab = 'my_clubs' | 'rankings';
 type JoinPolicy = 'open' | 'invite_only';
 
 
-const BADGE_OPTIONS: { emoji: string; Icon: Icon; color: string; bg: string; label: string }[] = [
-  { emoji: '🏃',  Icon: Pulse,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Runner'    },
-  { emoji: '🔥',  Icon: Fire,           color: '#A85E06', bg: '#FDF0DF', label: 'Fire'      },
-  { emoji: '⚡',  Icon: Lightning,      color: '#3C3577', bg: '#E4E1F8', label: 'Lightning' },
-  { emoji: '🏆',  Icon: Trophy,         color: '#17181A', bg: '#EEF0EA', label: 'Trophy'    },
-  { emoji: '🌍',  Icon: Globe,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Global'    },
-  { emoji: '🛡️', Icon: Shield,         color: '#A85E06', bg: '#FDF0DF', label: 'Shield'    },
-  { emoji: '🧭',  Icon: NavigationArrow,color: '#3C3577', bg: '#E4E1F8', label: 'Compass'   },
-  { emoji: '💪',  Icon: Barbell,        color: '#17181A', bg: '#EEF0EA', label: 'Strong'    },
-  { emoji: '🎯',  Icon: Target,         color: '#4E7F1F', bg: '#EEF5E4', label: 'Target'    },
-  { emoji: '🏅',  Icon: Medal,          color: '#A85E06', bg: '#FDF0DF', label: 'Medal'     },
-  { emoji: '🚀',  Icon: Rocket,         color: '#3C3577', bg: '#E4E1F8', label: 'Rocket'    },
-  { emoji: '🌟',  Icon: Star,           color: '#17181A', bg: '#EEF0EA', label: 'Star'      },
-  { emoji: '⚔️', Icon: Sword,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Battle'    },
-  { emoji: '🌊',  Icon: Waves,          color: '#A85E06', bg: '#FDF0DF', label: 'Waves'     },
-  { emoji: '🏔️', Icon: Mountains,      color: '#3C3577', bg: '#E4E1F8', label: 'Mountain'  },
-  { emoji: '💎',  Icon: Diamond,        color: '#17181A', bg: '#EEF0EA', label: 'Diamond'   },
-  { emoji: '👑',  Icon: Crown,          color: '#4E7F1F', bg: '#EEF5E4', label: 'Crown'     },
-  { emoji: '👟',  Icon: Footprints,     color: '#A85E06', bg: '#FDF0DF', label: 'Stride'    },
-  { emoji: '🚴',  Icon: Bicycle,        color: '#3C3577', bg: '#E4E1F8', label: 'Cycle'     },
-  { emoji: '🌿',  Icon: Leaf,           color: '#17181A', bg: '#EEF0EA', label: 'Nature'    },
-];
+// A club's mark is its photo or its initials on the hexagon; badge_emoji stays only for older builds.
+const DEFAULT_BADGE = '🏃';
 
 const JOIN_POLICIES: { value: JoinPolicy; title: string; sub: string; Icon: Icon }[] = [
   { value: 'open',        title: 'Open',            sub: 'Anyone can join straight away', Icon: Users },
@@ -74,7 +49,6 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
   const [banner, setBanner]     = useState<string | null>(null);
   const [name, setName]         = useState('');
   const [desc, setDesc]         = useState('');
-  const [emoji, setEmoji]       = useState(BADGE_OPTIONS[0].emoji);
   const [policy, setPolicy]     = useState<JoinPolicy>('open');
   const [saving, setSaving]     = useState(false);
   const [touched, setTouched]   = useState(false);
@@ -83,18 +57,21 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
   const nameError = touched && trimmedName.length > 0 && trimmedName.length < 3 ? 'At least 3 characters' : null;
   const isValid = trimmedName.length >= 3 && trimmedName.length <= 30;
 
-  const reset = () => { setName(''); setDesc(''); setEmoji(BADGE_OPTIONS[0].emoji); setPolicy('open'); setTouched(false); setAvatar(null); setBanner(null); };
+  const reset = () => { setName(''); setDesc(''); setPolicy('open'); setTouched(false); setAvatar(null); setBanner(null); };
   const handleCreate = async () => {
     if (saving || !isValid) return;
     setSaving(true);
-    const ok = await onCreate(name, desc, emoji, policy, { avatar, banner });
+    const ok = await onCreate(name, desc, DEFAULT_BADGE, policy, { avatar, banner });
     setSaving(false);
     if (ok === true) { reset(); onClose(); }
-    else Alert.alert("Couldn't create the club", ok);
+    else appAlert("Couldn't create the club", ok);
   };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      {/* A Modal is a new native root: give it its own safe-area measurement,
+          or the content starts under the status bar. */}
+      <SafeAreaProvider>
       <FormScreen
         title="Start a"
         accent="club."
@@ -107,7 +84,7 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
           banner={banner}
           onAvatar={setAvatar}
           onBanner={setBanner}
-          initials={trimmedName.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join('')}
+          name={trimmedName}
         />
         <FormField
           label="Club name"
@@ -130,14 +107,10 @@ function CreateClubSheet({ visible, onClose, onCreate }: {
           counter
           multiline
         />
-        <IconPicker
-          label="Badge"
-          options={BADGE_OPTIONS.slice(0, 12).map(b => ({ value: b.emoji, label: b.label, Icon: b.Icon }))}
-          value={emoji}
-          onChange={setEmoji}
-        />
         <ChoiceCards label="Who can join" options={JOIN_POLICIES} value={policy} onChange={setPolicy} />
       </FormScreen>
+      <AlertLayer />
+      </SafeAreaProvider>
     </Modal>
   );
 }
@@ -195,38 +168,25 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
     </>
   );
 
+  // Podium in the leaderboard mock's style: No. 1 on a warm orange block,
+  // No. 2 and 3 on light cards, each club's own mark, its km beneath.
   const PodiumSection = rankedClubs.length >= 3 && !filteredRanked ? (
-    <View style={s.podiumCard}>
-      <View style={s.podiumHeader}>
-        <MapPin size={12} color="rgba(255,255,255,0.4)" weight="light" />
-        <Text style={s.podiumHeading}>
-          Top clubs
-        </Text>
-      </View>
-      <View style={s.podiumRow}>
-        {[rankedClubs[1], rankedClubs[0], rankedClubs[2]].map((club, idx) => {
-          if (!club) return null;
-          const podiumHeights = [72, 96, 56];
-          const avatarSizes = [44, 52, 38];
-          const ranks = [2, 1, 3];
-          const bg = avatarColor(club.name);
-          const { icon: BIco, color: bColor } = getEmojiIcon(club.badge_emoji);
-          return (
-            <Pressable key={club.id} style={s.podiumSlot} onPress={() => goToDetail(club)}>
-              {idx === 1 && <Seal size={16} color={C.gold} weight="light" style={{ marginBottom: 6 }} />}
-              {idx !== 1 && <View style={{ height: 22 }} />}
-              <View style={[s.podiumAvatar, { width: avatarSizes[idx], height: avatarSizes[idx], borderRadius: avatarSizes[idx] * 0.25, backgroundColor: bg + '40', borderWidth: idx === 1 ? 1.5 : 0, borderColor: C.gold }]}>
-                <BIco size={avatarSizes[idx] * 0.44} color={bColor} weight="light" />
-              </View>
-              <Text style={[s.podiumName, { fontSize: idx === 1 ? 13 : 11 }]} numberOfLines={1}>{club.name}</Text>
-              <Text style={s.podiumMeta}>{club.total_km.toFixed(0)} km</Text>
-              <View style={[s.podiumBlock, { height: podiumHeights[idx] }]}>
-                <Text style={s.podiumRank}>{ranks[idx]}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+    <View style={s.podiumWrap}>
+      {[rankedClubs[1], rankedClubs[0], rankedClubs[2]].map((club, idx) => {
+        if (!club) return null;
+        const first = idx === 1;
+        const rank = [2, 1, 3][idx];
+        return (
+          <Pressable key={club.id} style={s.podiumSlot} onPress={() => goToDetail(club)} accessibilityRole="button" accessibilityLabel={`Number ${rank}, ${club.name}, ${club.total_km.toFixed(0)} kilometres`}>
+            <ClubInitialsTile name={club.name} size={first ? 54 : 44} uri={club.avatar_url} shape="hex" />
+            <Text style={[s.podiumName, first && s.podiumNameFirst]} numberOfLines={2}>{club.name}</Text>
+            <View style={[s.podiumBlock, first ? s.podiumBlockFirst : s.podiumBlockSide, { height: first ? 118 : idx === 0 ? 96 : 82 }]}>
+              <Text style={[s.podiumRank, first && s.podiumRankFirst]}>{rank}</Text>
+              <Text style={[s.podiumKm, first && s.podiumKmFirst]}>{club.total_km.toFixed(0)} km</Text>
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   ) : null;
 
@@ -377,6 +337,17 @@ export default function ClubScreen({ embedded = false }: { embedded?: boolean })
 
 function mkStyles(C: AppColors) {
   return StyleSheet.create({
+    podiumWrap:       { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 14 },
+    podiumSlot:       { flex: 1, alignItems: 'center', gap: 6 },
+    podiumName:       { fontFamily: Fonts.medium, fontSize: 13, lineHeight: 17, color: C.t1, textAlign: 'center', minHeight: 34 },
+    podiumNameFirst:  { fontFamily: Fonts.semiBold },
+    podiumBlock:      { alignSelf: 'stretch', borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 2 },
+    podiumBlockFirst: { backgroundColor: '#F2A43A' },
+    podiumBlockSide:  { backgroundColor: C.card },
+    podiumRank:       { fontFamily: Fonts.semiBold, fontSize: 26, color: C.t1 },
+    podiumRankFirst:  { fontSize: 32, color: C.alwaysDark },
+    podiumKm:         { fontFamily: Fonts.regular, fontSize: 12.5, color: C.t2 },
+    podiumKmFirst:    { color: 'rgba(23,24,26,0.75)' },
     root:            { flex: 1, backgroundColor: C.bg },
     createTrigger:   { flexDirection: 'row', alignItems: 'center', gap: 6, height: 36, paddingHorizontal: 14, borderRadius: 999, backgroundColor: C.card },
     createTriggerText: { fontFamily: Fonts.medium, fontSize: 14, color: C.t1 },
@@ -423,15 +394,5 @@ function mkStyles(C: AppColors) {
     scopeSheetRowLabel:  { flex: 1, fontFamily: Fonts.regular, fontSize: 14, color: C.t1 },
     scopeSheetRowLabelActive: { fontFamily: Fonts.medium, color: C.red },
     // Dark podium
-    podiumCard:      { marginHorizontal: Spacing.gutter, marginTop: 12, marginBottom: 8, backgroundColor: C.alwaysDark, borderRadius: 26, paddingHorizontal: 16, paddingTop: 18, overflow: 'hidden' },
-    podiumHeader:    { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },
-    podiumHeading:   { fontFamily: Fonts.semiBold, fontSize: 13, color: C.alwaysLight },
-    podiumRow:       { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 6 },
-    podiumSlot:      { flex: 1, alignItems: 'center' },
-    podiumAvatar:    { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-    podiumName:      { fontFamily: Fonts.semiBold, color: C.alwaysLight, textAlign: 'center', marginBottom: 2, paddingHorizontal: 4 },
-    podiumMeta:      { fontFamily: Fonts.numeric, fontSize: 16, color: C.alwaysLight, opacity: 0.7, marginBottom: 8, fontVariant: ['tabular-nums'] },
-    podiumBlock:     { width: '100%', borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-    podiumRank:      { fontFamily: Fonts.numeric, fontSize: 34, lineHeight: 36, color: C.alwaysLight },
   });
 }

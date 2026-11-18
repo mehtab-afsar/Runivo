@@ -3,7 +3,8 @@
  * share card (PNG at story size).
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
@@ -41,7 +42,7 @@ export default function YearInRunivoScreen() {
       await FileSystem.writeAsStringAsync(uri, b64, { encoding: FileSystem.EncodingType.Base64 });
       await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: `My ${year} in Runivo` });
     } catch {
-      Alert.alert("Couldn't make the card", 'Try again.');
+      appAlert("Couldn't make the card", 'Try again.');
     } finally {
       setSharing(false);
     }

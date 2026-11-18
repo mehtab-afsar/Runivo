@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, StyleSheet, Image, ScrollView, Modal, Switch,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, ActionSheetIOS,
-} from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, TextInput, Pressable, StyleSheet, Image, ScrollView, Modal, Switch, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, LockSimple, WarningCircle } from 'phosphor-react-native';
@@ -10,6 +8,7 @@ import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { RunnerFace, faceLook, FACE_TINTS } from '@mobile/shared/components/RunnerFace';
 import { useSettings } from '@features/settings/hooks/useSettings';
 import { SegmentedControl } from '@features/settings/components/SettingToggle';
+import { AlertLayer } from '@mobile/shared/components/AppAlert';
 
 // Mirrors the CHECK constraints on profiles (20260810000001_profile_field_limits.sql and later).
 const NAME_MAX = 40;
@@ -93,7 +92,7 @@ export function EditProfileSheet({ username, initial, photoUri, onSave, onClose 
 
   const close = () => {
     if (!dirty || saving) { if (!saving) onClose(); return; }
-    Alert.alert('Discard changes?', "Your edits to your profile won't be saved.", [
+    appAlert('Discard changes?', "Your edits to your profile won't be saved.", [
       { text: 'Keep editing', style: 'cancel' },
       { text: 'Discard', style: 'destructive', onPress: onClose },
     ]);
@@ -104,7 +103,7 @@ export function EditProfileSheet({ username, initial, photoUri, onSave, onClose 
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert(from === 'camera' ? 'Camera is off for Runivo' : 'Photos are off for Runivo', 'You can allow it in Settings.');
+      appAlert(from === 'camera' ? 'Camera is off for Runivo' : 'Photos are off for Runivo', 'You can allow it in Settings.');
       return;
     }
     const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.85 };
@@ -114,19 +113,13 @@ export function EditProfileSheet({ username, initial, photoUri, onSave, onClose 
 
   const editPhoto = () => {
     const hasPhoto = !!shownPhoto;
-    const options = ['Take photo', 'Choose from library', ...(hasPhoto ? ['Remove photo'] : []), 'Cancel'];
     const run = (i: number) => {
       if (i === 0) pick('camera');
       else if (i === 1) pick('library');
       else if (hasPhoto && i === 2) setPhoto({ kind: 'remove' });
     };
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions(
-        { options, cancelButtonIndex: options.length - 1, destructiveButtonIndex: hasPhoto ? 2 : undefined },
-        run,
-      );
-    } else {
-      Alert.alert('Profile photo', undefined, [
+    {
+      appAlert('Profile photo', undefined, [
         { text: 'Take photo', onPress: () => run(0) },
         { text: 'Choose from library', onPress: () => run(1) },
         ...(hasPhoto ? [{ text: 'Remove photo', style: 'destructive' as const, onPress: () => run(2) }] : []),
@@ -286,6 +279,7 @@ export function EditProfileSheet({ username, initial, photoUri, onSave, onClose 
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      <AlertLayer />
     </Modal>
   );
 }

@@ -12,6 +12,7 @@ import { GPSAcquiringOverlay } from './GPSAcquiringOverlay';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import type { TerritoryPolygon } from '@shared/types/game';
 import { ZoneLayers } from './ZoneLayers';
+import { PositionArrow } from '@mobile/shared/components/PositionArrow';
 import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 
@@ -27,8 +28,6 @@ interface RunMapViewProps {
   onLockedStyle?: () => void;
   sheetAnim: Animated.Value;
   topInset: number;
-  intelEnemy: number;
-  intelWeak: number;
   /** Zones around the runner (yours and rivals'). */
   ownZones?: TerritoryPolygon[];
   rivalZones?: TerritoryPolygon[];
@@ -42,7 +41,7 @@ interface RunMapViewProps {
 
 export default function RunMapView({
   lat, lng, gpsStatus, gpsAccuracy, mapStyle, onMapStyleChange, plus = true, onLockedStyle,
-  sheetAnim, topInset, intelEnemy, intelWeak, ownZones, rivalZones, gpsColor: dotColor, gpsLabel: gpsTxt,
+  sheetAnim, topInset, ownZones, rivalZones, gpsColor: dotColor, gpsLabel: gpsTxt,
   onClose, liveFriends = [], onFriend,
 }: RunMapViewProps) {
   const C = useTheme();
@@ -64,7 +63,7 @@ export default function RunMapView({
         )}
         <ZoneLayers own={ownZones} rivals={rivalZones} idPrefix="setup" />
         {liveFriends.map(f => <LiveFriendMarker key={f.userId} runner={f} onPress={onFriend ? () => onFriend(f) : undefined} />)}
-        {locationGranted && <MapLibreGL.UserLocation visible renderMode="native" showsUserHeadingIndicator />}
+        {locationGranted && <PositionArrow lat={lat} lng={lng} id="setup" />}
       </MapLibreGL.MapView>
 
       <View style={[ss.header, { top: topInset + 8 }]}>

@@ -1,4 +1,5 @@
-import { Alert } from 'react-native';
+import { } from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { reportContent, REPORT_REASONS, type ReportableContent, type ReportReason } from '../services/safetyService';
 
 const ASKED: ReportReason[] = ['harassment', 'spam', 'inappropriate', 'other'];
@@ -12,12 +13,12 @@ export function promptReport(type: ReportableContent, id: string, noun: string):
   const send = async (reason: ReportReason) => {
     try {
       await reportContent(type, id, reason);
-      Alert.alert('Thanks, we got it', 'We review every report and act within 24 hours if it breaks our rules.');
+      appAlert('Thanks, we got it', 'We review every report and act within 24 hours if it breaks our rules.');
     } catch {
-      Alert.alert("Couldn't send the report", 'Check your connection and try again.');
+      appAlert("Couldn't send the report", 'Check your connection and try again.');
     }
   };
-  Alert.alert(`Report this ${noun}`, 'What is wrong with it?', [
+  appAlert(`Report this ${noun}`, 'What is wrong with it?', [
     ...REPORT_REASONS.filter(r => ASKED.includes(r.id)).map(r => ({ text: r.label, onPress: () => { send(r.id); } })),
     { text: 'Cancel', style: 'cancel' as const },
   ]);

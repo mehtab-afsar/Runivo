@@ -14,8 +14,15 @@ const NAME = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 export default function WeekStrip({ plan, today, onDay }: { plan: TrainingPlanV2; today: string; onDay: (session: Session | null) => void }) {
   const C = useTheme();
   const s = useMemo(() => mk(C), [C]);
-  const monday = mondayOf(today);
+  // This week, unless it has no sessions yet (a plan that starts next Monday):
+  // then the week of the next session, labelled, so the strip is never all blank.
+  const thisMonday = mondayOf(today);
+  const hasThisWeek = Array.from({ length: 7 }, (_, i) => sessionOn(plan, addDays(thisMonday, i))).some(Boolean);
+  const next = hasThisWeek ? null : plan.weeks.flatMap(w => w.sessions).find(x => x.date > today);
+  const monday = next ? mondayOf(next.date) : thisMonday;
   return (
+    <View>
+    {next && <Text style={s.caption}>Your plan starts {fmtDay(monday)}</Text>}
     <View style={s.strip}>
       {Array.from({ length: 7 }, (_, i) => {
         const d = addDays(monday, i);
@@ -26,8 +33,8 @@ export default function WeekStrip({ plan, today, onDay }: { plan: TrainingPlanV2
         const state = !x ? 'rest' : x.status === 'done' ? 'done' : x.status === 'skipped' ? 'skipped' : missed ? 'missed' : 'planned';
         return (
           <Pressable
-            key={d} style={[s.day, isToday && s.today]} onPress={() => onDay(x)} disabled={!x}
-            accessibilityRole="button" accessibilityLabel={`${NAME[i]} ${+d.slice(8)}: ${x ? `${KIND_LABEL[x.kind]}, ${state}` : 'rest'}`}
+            key={d} style={[s.day, isToday && s.today]} onPress={() => onDay(x)}
+            accessibilityRole="button" accessibilityLabel={`${NAME[i]} ${+d.slice(8)}: ${x ? `${KIND_LABEL[x.kind]}, ${state}` : 'rest day. Opens your plan'}`}
           >
             <Text style={[s.letter, isToday && s.todayLetter]}>{LETTER[i]}</Text>
             <Text style={[s.num, isToday && s.todayNum]}>{+d.slice(8)}</Text>
@@ -36,11 +43,19 @@ export default function WeekStrip({ plan, today, onDay }: { plan: TrainingPlanV2
         );
       })}
     </View>
+    </View>
   );
+}
+
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "Mon 23 Nov" from YYYY-MM-DD (always a Monday here). */
+function fmtDay(iso: string): string {
+  return `Mon ${+iso.slice(8)} ${MON.at(+iso.slice(5, 7) - 1) ?? ''}`;
 }
 
 function mk(C: AppColors) {
   return StyleSheet.create({
+    caption:     { fontFamily: Fonts.medium, fontSize: 13, color: C.t2, marginBottom: 6, marginLeft: 4 },
     strip:       { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 22, padding: 6 },
     day:         { flex: 1, alignItems: 'center', gap: 2, paddingTop: 6, paddingBottom: 7, borderRadius: 16 },
     today:       { backgroundColor: C.alwaysDark },

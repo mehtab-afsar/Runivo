@@ -1,8 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View, Text, Modal, Pressable, StyleSheet,
-  ActivityIndicator, Alert,
-} from 'react-native';
+import { appAlert } from '@mobile/shared/components/AppAlert';
+import { View, Text, Modal, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { X, Barcode } from 'phosphor-react-native';
@@ -31,7 +29,7 @@ export function BarcodeScannerModal({ visible, onResult, onClose }: BarcodeScann
     if (food) {
       onResult(food);
     } else {
-      Alert.alert(
+      appAlert(
         'Not found',
         'This product isn\'t in our database yet. Enter details manually.',
         [
