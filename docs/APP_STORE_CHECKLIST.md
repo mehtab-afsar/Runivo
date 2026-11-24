@@ -29,7 +29,7 @@ Status: **Done** = changed and verified here (typecheck, 435 tests, SQL on a scr
 | 2.3 Listing matches the build | `store-metadata/` rewritten; `grep -ri "nutrition\|hexagon\|50 territor\|ad-free" apps/mobile/store-metadata` is empty | Done |
 | 2.3 Field limits | `wc -m` on subtitle (29/30), keywords (98/100), Android title (30), short description (80) | Done |
 | 2.5.2 OTA updates do not change purpose | `expo-updates`, bug fixes only | Pass |
-| 2.5.4 Background modes justified | `UIBackgroundModes` is `location` only (the unused `fetch` is removed) | Done; confirm in a prebuild |
+| 2.5.4 Background modes justified | `UIBackgroundModes` is `location` + `audio` (the unused `fetch` is removed); both are justified in `APP_REVIEW_NOTES.md` | Done; confirmed in a prebuild |
 
 ## 3. Business (Guideline 3)
 
@@ -103,3 +103,24 @@ Recipients to name: Supabase, Anthropic (only with consent), PostHog, Sentry, Re
 ## Not done (needs you or more work)
 
 Apple token revocation needs your Apple key (above). Plus needs the App Store Connect products and the three-way switch. A hate-speech word list, a licensed map tile key, the demo account, App Store Connect forms and a device test of HealthKit are yours. In-app medical-disclaimer lines, an age gate and server-side two-way chat blocking are open.
+
+## Native config check (run before every submission)
+
+`apps/mobile/ios` is generated and gitignored, so what ships is whatever the config plugins write. Regenerate and read it:
+
+```
+cd apps/mobile
+RUNIVO_WATCH=0 EAS_BUILD_PROFILE=production CI=1 npx expo prebuild --platform ios --clean --no-install
+plutil -convert json -o - ios/Runivo/Info.plist | python3 -m json.tool | grep -E "NSLocation|UIBackgroundModes|Orientation"
+cat ios/Runivo/Runivo.entitlements
+plutil -p ios/Runivo/PrivacyInfo.xcprivacy
+```
+
+Expected: only `NSLocationWhenInUseUsageDescription` (no `NSLocationAlways*`); `UIBackgroundModes` `location` and `audio` (spoken cues); `UISupportedInterfaceOrientations` = Portrait only; `aps-environment` = `production`; no `com.apple.developer.healthkit.background-delivery`; the manifest lists the 15 collected data types in `app.config.ts` and 4 required-reason APIs.
+
+Why each is set where it is (all in `apps/mobile/app.config.ts` unless noted):
+
+- **Location:** iOS tracks a run with the screen locked on "While Using" (background mode plus the blue indicator), so the app never asks for "Always". The expo-location plugin would add both `NSLocationAlways*` strings; passing `false` removes them. Android is the platform that requests background location.
+- **HealthKit:** `@kingstinct/react-native-healthkit` adds the background-delivery entitlement unless `background: false`. The app registers no HealthKit observer queries.
+- **Privacy manifest:** Expo reads `ios.privacyManifests`. The same object under the `expo-build-properties` plugin is ignored, which is how an earlier version of this config shipped no manifest at all.
+- **Orientation and push environment:** `plugins/withIosReleaseConfig.js`. Expo's `portrait` includes upside-down, and `expo-widgets` hard-codes `aps-environment` to `development`; EAS sets `EAS_BUILD_PROFILE`, so only a production build gets `production`. The plugin must stay listed before `expo-widgets`.

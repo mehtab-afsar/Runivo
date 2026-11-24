@@ -1,34 +1,52 @@
-Runivo turns running into a game played on the real map. Run a street or a loop to claim it as your territory, defend it, and take ground back from other runners in your city.
+Every run claims real ground. Run a street to make it yours, close a loop to own everything inside it, and take zones from rivals in your city. Runivo is a GPS running tracker, a territory game and a free AI coach in one app.
 
-HOW IT WORKS
-Every run you record can claim a zone: a strip along the route you ran, or the whole area inside a loop you close. Run through a rival's zone to take part of it. Zones fade if you leave them alone, so keep running them.
-
-TERRITORY MAP
-See your zones and nearby rivals on a live map. Zones are real shapes from your GPS route, sized by how far you ran.
-
-RUN TRACKING
-GPS route, pace, splits and elevation, with tracking that continues while your screen is locked. Optional auto-pause. Completed runs can be saved to Apple Health, and past workouts imported, if you allow it.
-
-PACE REWARDS AND MISSIONS
-Earn PACE by running and completing daily missions. PACE is free to earn and cannot be bought. In selected cities, PACE unlocks partner offers in the Store.
-
-CLUBS AND EVENTS
-Join or start a club, chat with clubmates, and take part in club and community events.
-
-FEED AND LEADERBOARDS
-Share your runs, follow other runners, like and comment. Weekly, monthly and all-time leaderboards by territory, distance and PACE.
-
-GEAR LOG
-Track mileage on each pair of running shoes.
-
-PRIVACY AND SAFETY
-Keep your home out of the game with private places and hide-my-zones. Live location sharing is off by default. Share a live safety link with someone you trust during a run. Report or block anyone, any time.
+CLAIM YOUR CITY
+• Run a street and it becomes your zone, drawn from your GPS route
+• Close a loop around a park or a block to claim the whole area inside
+• Run through a rival's zone to take part of it
+• Zones fade if you leave them, so keep running them to hold your ground
+• See your zones and nearby rivals on a live map
 
 PACEX, YOUR AI RUNNING COACH
-Post-run debriefs, a weekly review and a coach you can ask anything about your running, built on your own runs and plan. Plus training plans for 5K to marathon that fit the days you can run.
+• A debrief after every run: what went well, what to work on
+• A weekly review of your running and your plan
+• Ask anything about pace, recovery or race prep
+• Every Monday, PaceX checks last week and offers to ease your plan if you missed sessions. Nothing changes without your OK
 
-FREE
-Everything in Runivo is free: tracking, territory, PaceX, training plans, clubs, the feed and missions. There are no subscriptions or in-app purchases.
+TRAINING PLANS
+• Plans for 5K, 10K, half marathon and marathon
+• Built around the days you can run and your race date
+• Each run you record ticks off its session automatically
+• A reminder the evening before each session
+
+TRACK EVERY RUN
+• GPS route, distance, pace, splits and elevation
+• Keeps tracking with your screen locked
+• Live stats on your lock screen while you run
+• Optional auto-pause and voice updates
+• Save runs to Apple Health if you allow it; your past workouts set your starting fitness
+
+RUN WITH FRIENDS
+• See which friends are running right now and cheer them on mid-run
+• Share runs, give kudos, comment and follow other runners
+• Start or join a club, chat with clubmates and join events
+• Weekly, monthly and all-time leaderboards
+• Share cards for every run, zone and year
+
+REWARDS AND MISSIONS
+• Daily missions and streaks to keep you moving
+• Earn PACE points by running. PACE is free to earn and can't be bought
+• Spend PACE on rewards in the Store where partners are available
+
+PRIVACY AND SAFETY
+• Keep home private: hide your zones and set private places
+• Profile visibility: everyone, followers you approve, or only you
+• Live location sharing is off until you turn it on
+• Send a live safety link to someone you trust during a run
+• Report or block anyone, any time
+
+COMPLETELY FREE
+Tracking, territory, PaceX, training plans, clubs, the feed and missions are all free. No subscriptions, no in-app purchases.
 
 PaceX and Foot scan send your run and fitness data, or the photo you take, to a third-party AI provider (Anthropic), only after you give permission. PaceX gives general running guidance, not medical advice.
 

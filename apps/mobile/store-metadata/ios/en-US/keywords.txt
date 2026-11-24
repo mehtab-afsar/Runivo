@@ -1,1 +1,1 @@
-running,GPS,territory,map,run tracker,jogging,running game,city,compete,missions,leaderboard,clubs
+territory,map,jog,game,conquer,zone,5k,10k,half,marathon,training,plan,pace,club,leaderboard,streak
