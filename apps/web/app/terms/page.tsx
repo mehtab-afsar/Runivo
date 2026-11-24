@@ -93,12 +93,9 @@ export default function TermsPage() {
               <a href="mailto:support@runivo.com" style={{ color: 'var(--accent)' }}>support@runivo.com</a>.
             </p>
 
-            <h2 style={h2Style}>7. Runivo Plus Subscription</h2>
+            <h2 style={h2Style}>7. Paid Features</h2>
             <p style={prose}>
-              Runivo Plus is an optional auto-renewing subscription that adds features such as unlimited zones, the PaceX AI coach and training plans. The price and billing period are shown in the app before you subscribe, and the price may vary by country. Payment is charged to your Apple ID account when you confirm the purchase. The subscription renews automatically for the same period unless you turn off auto-renew at least 24 hours before the end of the current period; your account is charged for renewal within 24 hours before the period ends.
-            </p>
-            <p style={{ ...prose, marginTop: 12 }}>
-              You can manage or cancel your subscription at any time in your Apple ID account settings (Settings → your name → Subscriptions); deleting the app does not cancel it. If we offer a free trial, any unused part of it ends when you purchase a subscription. Refunds are handled by Apple under its policies. If a subscription lapses, you keep your account and runs, and Plus features stop.
+              Runivo is free and has no subscriptions or in-app purchases at this time. If paid features are offered later, their price, billing and cancellation terms will be shown in the app before you buy, and these Terms will be updated first.
             </p>
 
             <h2 style={h2Style}>8. Disclaimers</h2>

@@ -35,7 +35,9 @@ export async function fetchRivalPolygons(
 
 export function subscribeToOwnPolygons(userId: string, onUpdate: () => void): () => void {
   const channel = supabase
-    .channel('territory-map-own')
+    // Unique per subscriber: two screens sharing one name meant leaving one
+    // removed the other's live updates (B06).
+    .channel(`territory-map-own:${userId}:${Date.now()}:${Math.random()}`)
     .on('postgres_changes', {
       event: '*',
       schema: 'public',

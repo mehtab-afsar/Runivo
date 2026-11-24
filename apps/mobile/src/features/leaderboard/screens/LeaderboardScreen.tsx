@@ -11,7 +11,7 @@ import { EntryRow, splitValue } from '../components/EntryRow';
 import { LeaderboardFilters } from '../components/LeaderboardFilters';
 import type { LeaderboardEntry } from '../types';
 import { useTheme, Fonts, type AppColors } from '@theme';
-import { RunnerFace } from '@mobile/shared/components/RunnerFace';
+import { Avatar } from '@mobile/shared/components/Avatar';
 import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -38,7 +38,7 @@ function Podium({ entries, unit }: { entries: LeaderboardEntry[]; unit: string }
           <View key={entry.rank} style={[ps.card, { height: h }, first ? ps.cardFirst : ps.cardSide]}>
             <View style={[ps.ring, first && { borderColor: C.red }, { width: size + 8, height: size + 8, borderRadius: (size + 8) / 2 }]}>
               <View style={[ps.avatar, { width: size, height: size, borderRadius: size / 2, overflow: 'hidden' }]}>
-                <RunnerFace seed={entry.name} size={size} />
+                <Avatar name={entry.name} uri={entry.avatarUrl ?? null} size={size} />
               </View>
             </View>
             <Text style={[ps.name, first && ps.nameFirst]} numberOfLines={1}>{entry.isPlayer ? 'You' : entry.name}</Text>
@@ -186,7 +186,7 @@ export default function LeaderboardScreen() {
         <View style={s.playerFooter}>
           <Text style={s.playerRank}>{playerEntry.rank}</Text>
           <View style={s.playerAvatar}>
-            <RunnerFace seed={playerEntry.name} size={34} />
+            <Avatar name={playerEntry.name} uri={playerEntry.avatarUrl ?? null} size={34} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={s.playerName} numberOfLines={1}>You</Text>

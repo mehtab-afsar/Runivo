@@ -15,6 +15,7 @@ import { ZoneLayers } from './ZoneLayers';
 import { PositionArrow } from '@mobile/shared/components/PositionArrow';
 import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
+import { MapAttribution } from '@theme/MapAttribution';
 
 interface RunMapViewProps {
   lat: number | null;
@@ -65,6 +66,7 @@ export default function RunMapView({
         {liveFriends.map(f => <LiveFriendMarker key={f.userId} runner={f} onPress={onFriend ? () => onFriend(f) : undefined} />)}
         {locationGranted && <PositionArrow lat={lat} lng={lng} id="setup" />}
       </MapLibreGL.MapView>
+      <MapAttribution style={{ bottom: 30 }} />
 
       <View style={[ss.header, { top: topInset + 8 }]}>
         {/* Close button */}

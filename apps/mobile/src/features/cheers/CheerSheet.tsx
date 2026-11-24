@@ -11,8 +11,9 @@ import { useTheme, Fonts, type AppColors } from '@theme';
 import { CheerChips } from './CheerChips';
 import { UI, IconText } from '@mobile/shared/icons';
 import { CHEERS, sendCheer, type CheerKey, type SendCheerResult } from './cheerService';
+import { usePublicProfiles } from '@features/social/hooks/usePublicProfiles';
 
-export interface CheerTarget { userId: string; username: string; avatarColor?: string }
+export interface CheerTarget { userId: string; username: string; avatarColor?: string; avatarUrl?: string | null }
 
 export const RESULT_TEXT: Record<Exclude<SendCheerResult, 'sent'>, string> = {
   already:     'You already cheered this run.',
@@ -30,7 +31,10 @@ export function CheerSheet({ target, onClose }: { target: CheerTarget | null; on
 
   useEffect(() => { if (target) { setPick('go'); setState('idle'); setNote(''); } }, [target]);
 
-  const name = target?.username ?? '';
+  // The live-runner hook can't read other runners' names; the public profile can.
+  const profile = usePublicProfiles(target ? [target.userId] : []).get(target?.userId ?? '');
+  const name = profile?.username ?? target?.username ?? '';
+  const avatarUrl = profile?.avatar_url ?? target?.avatarUrl ?? null;
   const send = async () => {
     if (!target || state === 'sending') return;
     setState('sending');
@@ -53,7 +57,7 @@ export function CheerSheet({ target, onClose }: { target: CheerTarget | null; on
     <BottomSheet visible={!!target} onClose={onClose} maxHeight={0.5}>
       <View style={s.body}>
         <View style={s.head}>
-          <Avatar name={name} color={target?.avatarColor} size={46} />
+          <Avatar name={name} color={target?.avatarColor} size={46} uri={avatarUrl} />
           <View style={{ flex: 1 }}>
             <Text style={s.title}>{name} is running</Text>
             <Text style={s.sub}>They hear your cheer as a voice cue.</Text>

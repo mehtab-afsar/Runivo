@@ -1,5 +1,6 @@
 import { supabase } from '@shared/services/supabase';
 import { getPlayer } from '@shared/services/store';
+import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 import type { LeaderboardEntry, LeaderboardTab, LeaderboardTimeFrame, LeaderboardScope } from '../types';
 
 const PAGE_LIMIT = 100;
@@ -75,5 +76,7 @@ export async function fetchLeaderboard(
       });
     }
   }
-  return entries;
+  // The board functions carry no photo column; the public profiles do.
+  const photos = await fetchPublicProfiles(entries.map(e => e.userId)).catch(() => new Map());
+  return entries.map(e => ({ ...e, avatarUrl: photos.get(e.userId)?.avatar_url ?? null }));
 }

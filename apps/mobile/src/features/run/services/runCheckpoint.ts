@@ -18,7 +18,11 @@ import type { GPSPoint } from '../hooks/useActiveRun';
 export const PART_SIZE = 4000;
 export type PackedPoint = [number, number, number, number, number, number];
 
-export interface CheckpointMeta { v: 2; startTime: number; activityType: string; parts: number }
+export interface CheckpointMeta {
+  v: 2; startTime: number; activityType: string; parts: number;
+  /** A fix came from a mock location provider: a recovered run must stay flagged. */
+  mocked?: boolean;
+}
 
 const r = (n: number, dp: number) => { const f = 10 ** dp; return Math.round(n * f) / f; };
 
@@ -39,7 +43,7 @@ export const isPartKey = (key: string) => key.includes('#');
  * count of stored full parts.
  */
 export function checkpointWrites(
-  metaKey: string, startTime: number, activityType: string, points: GPSPoint[], writtenFullParts: number,
+  metaKey: string, startTime: number, activityType: string, points: GPSPoint[], writtenFullParts: number, mocked = false,
 ): { rows: [string, string][]; fullParts: number } {
   const parts = Math.ceil(points.length / PART_SIZE);
   const rows: [string, string][] = [];
@@ -47,7 +51,7 @@ export function checkpointWrites(
     const slice = points.slice(n * PART_SIZE, (n + 1) * PART_SIZE);
     rows.push([partKey(metaKey, n), JSON.stringify(slice.map(p => packPoint(p, startTime)))]);
   }
-  const meta: CheckpointMeta = { v: 2, startTime, activityType, parts };
+  const meta: CheckpointMeta = { v: 2, startTime, activityType, parts, ...(mocked && { mocked: true }) };
   rows.push([metaKey, JSON.stringify(meta)]);
   return { rows, fullParts: Math.floor(points.length / PART_SIZE) };
 }
@@ -55,10 +59,10 @@ export function checkpointWrites(
 /** Rebuilds the checkpoint from its meta row and a reader for part rows. */
 export async function readCheckpoint(
   metaRaw: string, readPart: (n: number) => Promise<string | null>,
-): Promise<{ startTime: number; activityType: string; points: GPSPoint[] }> {
+): Promise<{ startTime: number; activityType: string; points: GPSPoint[]; mocked: boolean }> {
   const parsed = JSON.parse(metaRaw) as Partial<CheckpointMeta> & { points?: GPSPoint[]; startTime: number; activityType?: string };
   if (parsed.v !== 2) {
-    return { startTime: parsed.startTime, activityType: parsed.activityType ?? 'run', points: parsed.points ?? [] };
+    return { startTime: parsed.startTime, activityType: parsed.activityType ?? 'run', points: parsed.points ?? [], mocked: false };
   }
   const points: GPSPoint[] = [];
   for (let n = 0; n < (parsed.parts ?? 0); n++) {
@@ -66,5 +70,5 @@ export async function readCheckpoint(
     if (!raw) break; // a missing part: keep what came before it
     for (const a of JSON.parse(raw) as PackedPoint[]) points.push(unpackPoint(a, parsed.startTime));
   }
-  return { startTime: parsed.startTime, activityType: parsed.activityType ?? 'run', points };
+  return { startTime: parsed.startTime, activityType: parsed.activityType ?? 'run', points, mocked: parsed.mocked === true };
 }

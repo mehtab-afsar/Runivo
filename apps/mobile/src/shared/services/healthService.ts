@@ -18,6 +18,8 @@
  */
 
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@shared/services/supabase';
 import * as HealthKit from '@kingstinct/react-native-healthkit';
 import { WorkoutActivityType, WorkoutTypeIdentifier } from '@kingstinct/react-native-healthkit';
 import type { ObjectTypeIdentifier, SampleTypeIdentifierWriteable } from '@kingstinct/react-native-healthkit';
@@ -27,6 +29,81 @@ export interface HealthRun {
   endTime:        number;  // unix ms
   distanceMeters: number;
   calories?:      number;
+  /** Runivo sport ('run' | 'walk' | 'hike' | 'cycle' | 'treadmill'); absent = run. */
+  activityType?:  string;
+}
+
+/** HealthKit workout type for a Runivo sport. A ride is not a run (B08). */
+export function appleWorkoutType(activityType: string | undefined): WorkoutActivityType {
+  switch (activityType) {
+    case 'walk':  return WorkoutActivityType.walking;
+    case 'hike':  return WorkoutActivityType.hiking;
+    case 'cycle': return WorkoutActivityType.cycling;
+    default:      return WorkoutActivityType.running;
+  }
+}
+
+/** Health Connect ExerciseSessionRecord types (RUNNING 56, WALKING 79, BIKING 8, HIKING 37). */
+export function healthConnectExerciseType(activityType: string | undefined): number {
+  switch (activityType) {
+    case 'walk':  return 79;
+    case 'hike':  return 37;
+    case 'cycle': return 8;
+    default:      return 56;
+  }
+}
+
+// ── Consent: only write while Apple Health is connected in Runivo (B08) ───────
+// "Disconnect" in Connected devices used to change a database row only; every
+// finished activity was still written to Health. The answer is cached per
+// account so a run that ends offline still follows the runner's last choice.
+const connKey = (uid: string) => `runivo.appleHealthConnected.${uid}`;
+
+/** Called by Connected devices whenever the Apple Health connection changes or loads. */
+export async function rememberHealthConnection(connected: boolean): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await AsyncStorage.setItem(connKey(session.user.id), connected ? '1' : '0').catch(() => {});
+}
+
+/**
+ * Turn saving runs to Apple Health on or off for this account (Settings →
+ * Connected devices, and the onboarding Health step). The phone follows at once;
+ * the device_connections row keeps the choice across phones and reinstalls.
+ */
+export async function setAppleHealthConnected(connected: boolean): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+  await rememberHealthConnection(connected);
+  const { error } = await supabase.from('device_connections').upsert({
+    user_id:      session.user.id,
+    device_type:  'apple_health',
+    status:       connected ? 'connected' : 'disconnected',
+    last_sync_at: connected ? new Date().toISOString() : null,
+  }, { onConflict: 'user_id,device_type' });
+  if (error) throw new Error(error.message);
+}
+
+async function healthWriteAllowed(): Promise<boolean> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return false;
+    const uid = session.user.id;
+    const { data, error } = await supabase
+      .from('device_connections')
+      .select('status')
+      .eq('user_id', uid)
+      .eq('device_type', 'apple_health')
+      .maybeSingle();
+    if (!error) {
+      const on = (data as { status?: string } | null)?.status === 'connected';
+      await AsyncStorage.setItem(connKey(uid), on ? '1' : '0').catch(() => {});
+      return on;
+    }
+    return (await AsyncStorage.getItem(connKey(uid))) === '1';
+  } catch {
+    return false;
+  }
 }
 
 export interface HealthWorkout {
@@ -83,7 +160,7 @@ async function writeRunToAppleHealth(run: HealthRun): Promise<void> {
     // set, unlike react-native-health's distanceUnit option. The old dead
     // code divided by 1000 assuming km; that conversion no longer applies.
     await HealthKit.saveWorkoutSample(
-      WorkoutActivityType.running,
+      appleWorkoutType(run.activityType),
       [],
       new Date(run.startTime),
       new Date(run.endTime),
@@ -146,8 +223,8 @@ async function writeRunToHealthConnect(run: HealthRun): Promise<void> {
         recordType: 'ExerciseSession',
         startTime:  new Date(run.startTime).toISOString(),
         endTime:    new Date(run.endTime).toISOString(),
-        exerciseType: 79,  // EXERCISE_TYPE_RUNNING
-        title:      'Run',
+        exerciseType: healthConnectExerciseType(run.activityType),
+        title:      'Runivo activity',
       },
       {
         recordType: 'Distance',
@@ -184,7 +261,7 @@ async function readHealthConnectWorkouts(days: number): Promise<HealthWorkout[]>
     });
 
     return (records ?? [])
-      .filter((r: any) => r.exerciseType === 79)
+      .filter((r: any) => r.exerciseType === healthConnectExerciseType('run'))
       .map((r: any) => ({
         startTime:      new Date(r.startTime).getTime(),
         endTime:        new Date(r.endTime).getTime(),
@@ -204,6 +281,9 @@ async function readHealthConnectWorkouts(days: number): Promise<HealthWorkout[]>
  * Silent no-op if the SDK is not installed or permission is denied.
  */
 export async function writeRunToHealth(run: HealthRun): Promise<void> {
+  // Treadmill runs are typed in by hand; nothing measured to save.
+  if (run.activityType === 'treadmill') return;
+  if (!(await healthWriteAllowed())) return;
   if (Platform.OS === 'ios') {
     await writeRunToAppleHealth(run);
   } else if (Platform.OS === 'android') {

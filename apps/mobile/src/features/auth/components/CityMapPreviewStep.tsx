@@ -19,6 +19,7 @@ import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { mkStep } from './onboardingStyles';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
 import { PositionArrow } from '@mobile/shared/components/PositionArrow';
+import { MapAttribution } from '@theme/MapAttribution';
 
 export type LocationPhase = 'prime' | 'asking' | 'granted' | 'denied';
 
@@ -131,6 +132,7 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
   return (
     <View style={s.container}>
       {coord ? (
+        <View style={{ flex: 1 }}>
         <ML.MapView
           style={{ flex: 1 }}
           mapStyle={baseStyle}
@@ -150,6 +152,8 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
           )}
           {coord && <PositionArrow lat={coord[1]} lng={coord[0]} id="preview" />}
         </ML.MapView>
+        <MapAttribution />
+        </View>
       ) : locFailed ? (
         <View style={s.loading}>
           <Text style={[s.body, { textAlign: 'center', paddingHorizontal: 32 }]}>

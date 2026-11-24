@@ -251,6 +251,7 @@ export async function fetchClubMembers(clubId: string): Promise<ClubMember[]> {
         level: p?.level ?? 1,
         total_km: Math.round(Number(p?.total_distance_km ?? 0)),
         role: (m.role as 'admin' | 'member') ?? 'member',
+        avatarUrl: p?.avatar_url ?? null,
       };
     })
     .sort((a, b) => b.total_km - a.total_km);
@@ -265,6 +266,7 @@ export async function fetchClubActivity(clubId: string): Promise<ActivityItem[]>
     .order('created_at', { ascending: false })
     .limit(30);
   if (!data) return [];
+  const profiles = await fetchPublicProfiles(data.map(d => d.user_id as string)).catch(() => new Map());
   return data.map(d => ({
     id: d.id,
     userId: d.user_id,
@@ -272,6 +274,7 @@ export async function fetchClubActivity(clubId: string): Promise<ActivityItem[]>
     action: d.action,
     detail: d.detail ?? '',
     time: d.created_at,
+    avatarUrl: profiles.get(d.user_id)?.avatar_url ?? null,
   }));
 }
 
@@ -332,6 +335,7 @@ export async function fetchJoinRequests(clubId: string): Promise<JoinRequest[]> 
     id: r.id as string,
     userId: r.user_id as string,
     username: profiles.get(r.user_id as string)?.username ?? 'Runner',
+    avatarUrl: profiles.get(r.user_id as string)?.avatar_url ?? null,
     requestedAt: r.created_at as string,
   }));
 }
@@ -470,4 +474,46 @@ export async function fetchClubWar(clubId: string): Promise<ClubWar | null> {
     myAreaM2: Number(r.my_area_m2) || 0, myRank: r.my_rank == null ? null : Number(r.my_rank),
     membersScoring: Number(r.members_scoring) || 0, endsAt: String(r.ends_at),
   };
+}
+
+/** What ClubDetail shows in its header, for a club opened from a link (only the id is known). */
+export async function fetchClubSummary(clubId: string): Promise<{
+  name: string; badgeEmoji: string; memberCount: number; totalKm: number; description: string | null; joinPolicy: 'open' | 'invite_only';
+} | null> {
+  const { data } = await supabase
+    .from('clubs')
+    .select('name, badge_emoji, member_count, total_km, description, join_policy')
+    .eq('id', clubId)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    name: data.name as string,
+    badgeEmoji: (data.badge_emoji as string | null) ?? '🏃',
+    memberCount: Number(data.member_count ?? 0),
+    totalKm: Number(data.total_km ?? 0),
+    description: (data.description as string | null) ?? null,
+    joinPolicy: (data.join_policy as 'open' | 'invite_only') ?? 'open',
+  };
+}
+
+/** Links that open this club in the app; with the invite code, opening one joins (invite-only clubs too). */
+export function clubLinks(clubId: string, code: string): { app: string; web: string } {
+  const q = `invite=${encodeURIComponent(code)}`;
+  return { app: `runivo://club/${clubId}?${q}`, web: `https://runivo.app/club/${clubId}?${q}` };
+}
+
+/** The club's invite code (members only; made on first ask). */
+export async function fetchClubInviteCode(clubId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('get_club_invite', { p_club: clubId });
+  if (error || typeof data !== 'string') throw new Error(error?.message ?? 'no invite code');
+  return data;
+}
+
+export type InviteJoinResult = 'joined' | 'already' | 'bad_code' | 'banned';
+
+/** Join with an invite link's code. */
+export async function joinClubWithInvite(clubId: string, code: string): Promise<InviteJoinResult> {
+  const { data, error } = await supabase.rpc('join_club_with_invite', { p_club: clubId, p_code: code });
+  if (error) throw new Error(error.message);
+  return (data as InviteJoinResult | null) ?? 'bad_code';
 }

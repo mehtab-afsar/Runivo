@@ -5,7 +5,7 @@ import {
   subscribeLiveFriendPositions,
   type LiveFriendPosition,
 } from '@shared/services/liveRunSharing';
-import { supabase } from '@shared/services/supabase';
+import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
 
 export interface LiveFriendRunner {
   userId: string;
@@ -14,6 +14,7 @@ export interface LiveFriendRunner {
   updatedAt: number;
   username: string;
   avatarColor: string;
+  avatarUrl?: string | null;
   startedAt?: number;
   distanceM?: number;
   elapsedSec?: number;
@@ -31,19 +32,18 @@ const PRUNE_INTERVAL_MS = 10_000;
  *  opted in to Live Run Sharing and are actively running right now. */
 export function useLiveFriendRuns() {
   const [runners, setRunners] = useState<Record<string, LiveFriendRunner>>({});
-  const profileCacheRef = useRef<Map<string, { username: string; avatarColor: string }>>(new Map());
+  const profileCacheRef = useRef<Map<string, { username: string; avatarColor: string; avatarUrl: string | null }>>(new Map());
 
   const resolveProfiles = useCallback(async (userIds: string[]) => {
     const missing = userIds.filter(id => !profileCacheRef.current.has(id));
     if (missing.length === 0) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_color')
-      .in('id', missing);
-    for (const row of data ?? []) {
-      profileCacheRef.current.set(row.id, {
-        username: row.username ?? 'Runner',
-        avatarColor: row.avatar_color ?? friendColor(row.id),
+    // profiles is owner-only; other runners' names and photos come from profiles_public.
+    const got = await fetchPublicProfiles(missing).catch(() => new Map());
+    for (const [id, p] of got) {
+      profileCacheRef.current.set(id, {
+        username: p.username ?? 'Runner',
+        avatarColor: p.avatar_color ?? friendColor(id),
+        avatarUrl: p.avatar_url ?? null,
       });
     }
   }, []);
@@ -61,6 +61,7 @@ export function useLiveFriendRuns() {
         startedAt: pos.startedAt, distanceM: pos.distanceM, elapsedSec: pos.elapsedSec,
         username: profile?.username ?? 'Runner',
         avatarColor: profile?.avatarColor ?? friendColor(pos.userId),
+        avatarUrl: profile?.avatarUrl ?? null,
       },
     }));
   }, [resolveProfiles]);

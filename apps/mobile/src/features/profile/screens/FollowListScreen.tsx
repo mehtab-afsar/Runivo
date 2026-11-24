@@ -7,7 +7,9 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { supabase } from '@shared/services/supabase';
 import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
-import { toggleFollowService } from '@features/social/services/feedService';
+import { setFollow, removeFollower } from '@features/social/services/feedService';
+import { fetchMyBlockedIds } from '@mobile/shared/services/safetyService';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { avatarColor as getAvatarColor } from '@shared/lib/avatarUtils';
 import { RANK_COLORS } from '@shared/constants/territory';
 import { Avatar } from '@mobile/shared/components/Avatar';
@@ -86,8 +88,12 @@ export function FollowListScreen({ mode }: { mode: FollowListMode }) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!cancelled) setCurrentUserId(user?.id ?? null);
-        const list = await loadList(mode, userId, user?.id ?? '');
-        if (!cancelled) setEntries(list);
+        const [list, blocked] = await Promise.all([
+          loadList(mode, userId, user?.id ?? ''),
+          fetchMyBlockedIds().catch(() => new Set<string>()),
+        ]);
+        // Runners you blocked stay out of every list, other people's too.
+        if (!cancelled) setEntries(list.filter(e => !blocked.has(e.userId)));
       } catch {
         // A rejection used to leave the spinner up forever.
         if (!cancelled) setLoadError(true);
@@ -115,13 +121,27 @@ export function FollowListScreen({ mode }: { mode: FollowListMode }) {
     const flip = (id: string) => setEntries(prev => prev.map(e => e.userId === id ? { ...e, isFollowing: !e.isFollowing } : e));
     flip(entry.userId);
     try {
-      await toggleFollowService(entry.userId);
+      const state = await setFollow(entry.userId, !entry.isFollowing);
+      // A runner who isn't public gets a request: the row stays "Follow" until they accept.
+      if (state === 'requested') { flip(entry.userId); appAlert('Request sent', `${entry.username} will see your request.`); }
     } catch {
       flip(entry.userId); // revert just this row, not a stale copy of the whole list
     } finally {
       inFlightRef.current.delete(entry.userId);
     }
   }, [currentUserId]);
+
+  // Your own Followers list: take someone off it (they are not told).
+  const ownFollowers = mode === 'followers' && !!currentUserId && userId === currentUserId;
+  const confirmRemove = useCallback((entry: FollowEntry) => {
+    appAlert(`Remove ${entry.username}?`, "They stop seeing your followers-only activities. They aren't told.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: async () => {
+        try { await removeFollower(entry.userId); setEntries(prev => prev.filter(e => e.userId !== entry.userId)); }
+        catch { appAlert("Couldn't remove them", 'Check your connection and try again.'); }
+      } },
+    ]);
+  }, []);
 
   return (
     <SafeAreaView style={s.root}>
@@ -164,7 +184,12 @@ export function FollowListScreen({ mode }: { mode: FollowListMode }) {
                     </View>
                   </View>
                 </View>
-                {!isSelf && (
+                {ownFollowers && !isSelf && (
+                  <Pressable style={s.followBtn} onPress={() => confirmRemove(item)} accessibilityRole="button" accessibilityLabel={`Remove ${item.username} from your followers`}>
+                    <Text style={s.followBtnText}>Remove</Text>
+                  </Pressable>
+                )}
+                {!isSelf && !ownFollowers && (
                   <Pressable
                     style={[s.followBtn, item.isFollowing && s.followBtnActive]}
                     onPress={() => toggle(item)}

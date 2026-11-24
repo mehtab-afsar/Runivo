@@ -11,7 +11,7 @@ import { NotifItem, type NotifAction } from '../components/NotifItem';
 import { routeNotificationUrl } from '../services/notificationHandler';
 import type { AppNotification } from '../types';
 import { supabase } from '@shared/services/supabase';
-import { fetchFollowingIds, toggleFollowService } from '@features/social/services/feedService';
+import { fetchFollowingIds, setFollow } from '@features/social/services/feedService';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
@@ -42,12 +42,13 @@ export default function NotificationsScreen() {
   const actionFor = useCallback((n: AppNotification): NotifAction | undefined => {
     if (n.type === 'follow') {
       const id = followerIdOf(n);
-      if (!id || following.has(id)) return undefined;
+      // A follow request is answered on their profile (tapping the row opens it).
+      if (!id || following.has(id) || / asked to follow you$/.test(n.title)) return undefined;
       return {
         label: 'Follow',
         onPress: () => {
           setFollowing(prev => new Set(prev).add(id));
-          toggleFollowService(id).catch(() => setFollowing(prev => { const x = new Set(prev); x.delete(id); return x; }));
+          setFollow(id, true).catch(() => setFollowing(prev => { const x = new Set(prev); x.delete(id); return x; }));
         },
       };
     }

@@ -24,10 +24,6 @@ import {
   type LngLat,
 } from '../engine/runEngine';
 
-// ── Event types for live HUD ───────────────────────────────────────────────────
-
-export type ClaimEventType = 'area_update' | 'rival_nearby' | 'loop_closing' | 'speed_warning';
-
 export interface ValidGPSPoint {
   lat: number;
   lng: number;
@@ -187,12 +183,35 @@ export function estimateLiveArea(
   bufferedPoints: (ValidGPSPoint & { accuracy?: number })[],
   activityType: string,
 ): number {
-  if (!ENGINE.TERRITORY_ACTIVITIES.includes(activityType as 'run') || bufferedPoints.length < 2) return 0;
+  return liveTerritory(bufferedPoints, activityType).areaM2;
+}
+
+/**
+ * What the run would claim if it ended now: the area, and whether that is a
+ * filled loop (true) or only the strip along the route (false). The live
+ * "loop closed" reward keys off `isLoop`, so it never promises the inside of
+ * an out-and-back or of a loop too big to fill.
+ */
+export function liveTerritory(
+  bufferedPoints: (ValidGPSPoint & { accuracy?: number })[],
+  activityType: string,
+): { areaM2: number; isLoop: boolean } {
+  if (!ENGINE.TERRITORY_ACTIVITIES.includes(activityType as 'run') || bufferedPoints.length < 2) return { areaM2: 0, isLoop: false };
   const shape = buildTerritoryShape(bufferedPoints, activityType);
-  if (shape) return shape.estimatedAreaM2;
+  if (shape) return { areaM2: shape.estimatedAreaM2, isLoop: shape.kind === 'loop' };
   const clean = cleanPoints(bufferedPoints);
-  if (clean.length < 2) return 0;
-  return coverageAreaM2(clean.map(p => [p.lng, p.lat] as LngLat), null);
+  if (clean.length < 2) return { areaM2: 0, isLoop: false };
+  return { areaM2: coverageAreaM2(clean.map(p => [p.lng, p.lat] as LngLat), null), isLoop: false };
+}
+
+/** Even-odd point-in-ring test on [lng, lat] rings. */
+function insideRing(lat: number, lng: number, ring: [number, number][]): boolean {
+  let odd = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) odd = !odd;
+  }
+  return odd;
 }
 
 export function isNearRivalTerritory(
@@ -201,7 +220,10 @@ export function isNearRivalTerritory(
   cachedPolygons: TerritoryPolygon[],
   radiusDeg = 0.001,
 ): boolean {
+  // Inside a zone counts too: a big zone's corners can be far from a runner
+  // standing in the middle of it.
   return cachedPolygons.some(t =>
+    insideRing(lat, lng, t.polygon) ||
     t.polygon.some(([pLng, pLat]) =>
       Math.abs(pLat - lat) < radiusDeg && Math.abs(pLng - lng) < radiusDeg,
     ),

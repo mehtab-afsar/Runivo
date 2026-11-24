@@ -23,7 +23,8 @@ import {
   RACE_LABEL, fmtBand, fmtDuration, weekOf, isMissed, easeNextDays, rebuildForDate, PLAN_WEEKS,
   addDays, weekday, daysBetween, sessionOn,
 } from '@shared/engine/training';
-import { fetchActivePlan, getCachedPlan, savePlan, endPlan, localToday, type ActivePlan } from '../services/planService';
+import { fetchActivePlan, getCachedPlan, savePlan, endPlan, localToday, catchUpPlan, type ActivePlan } from '../services/planService';
+import { WeekCheckIn } from '../components/WeekCheckIn';
 import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
 import { Segmented } from '@mobile/shared/components/Segmented';
 
@@ -50,7 +51,7 @@ export default function TrainingPlanScreen() {
     getCachedPlan().then(c => { if (c) setAp(prev => prev ?? c); });
     // An offline failure with no cached plan must not look like "No plan yet" — that invites
     // building a second plan on top of the one we simply couldn't fetch.
-    fetchActivePlan().then(setAp).catch(() => {
+    fetchActivePlan().then(a => (a ? catchUpPlan(a) : a)).then(setAp).catch(() => {
       setAp(prev => prev ?? null);
       setLoadError(true);
     });
@@ -118,6 +119,7 @@ export default function TrainingPlanScreen() {
       <ScreenHeader title={`${RACE_LABEL[plan.race]} plan`} onBack={() => navigation.goBack()} right={<HeaderButton onPress={menu} label="Plan options"><DotsThree size={20} color={C.t1} weight="bold" /></HeaderButton>} />
       <ScrollView contentContainerStyle={s.scroll}>
         <SafetyNote kind="coach" style={{ marginTop: 0, marginBottom: 10 }} />
+        <WeekCheckIn ap={ap} onChange={setAp} style={{ marginBottom: 12 }} />
         {/* Summary (mock): dark card with week, race and countdown. */}
         <View style={s.hero}>
           <Text style={s.heroEyebrow}>{RACE_LABEL[plan.race]} plan · week {current} of {plan.weeks.length}</Text>

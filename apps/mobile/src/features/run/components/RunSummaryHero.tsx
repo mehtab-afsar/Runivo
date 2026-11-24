@@ -13,6 +13,7 @@ import { useTheme, useIsDark, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import { MapStyleUrl } from '@theme/maps';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
+import { MapAttribution } from '@theme/MapAttribution';
 
 interface Props {
   topInset:   number;
@@ -170,6 +171,7 @@ export default function RunSummaryHero({
               </MapLibreGL.ShapeSource>
             )}
           </MapLibreGL.MapView>
+          <MapAttribution style={{ left: undefined, right: 6 }} />
           <View style={ss.mapChips} pointerEvents="box-none">
             <View style={ss.hiddenChip}><EyeSlash size={14} color="#17181A" weight="bold" /><Text style={ss.hiddenTxt}>Start and end hidden</Text></View>
             {zoneLabel ? <View style={ss.zoneChip}><Text style={ss.zoneChipTxt}>{zoneLabel}</Text></View> : null}

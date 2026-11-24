@@ -34,6 +34,8 @@ export interface ActivityItem {
   action: ActivityAction;
   detail: string;
   time: string;
+  /** Profile photo, when the runner set one. */
+  avatarUrl?: string | null;
 }
 
 /** Activity item plus which club it happened in — for the cross-club strip on the main Feed. */
@@ -51,11 +53,14 @@ export interface ClubMember {
   level: number;
   total_km: number;
   role: 'admin' | 'member';
+  /** Profile photo, when the runner set one. */
+  avatarUrl?: string | null;
 }
 
 export interface JoinRequest {
   id: string;
   userId: string;
   username: string;
+  avatarUrl?: string | null;
   requestedAt: string;
 }

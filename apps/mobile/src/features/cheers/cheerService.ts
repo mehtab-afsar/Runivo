@@ -5,6 +5,7 @@
  * runner's app also hears it over realtime and says it out loud.
  */
 import { supabase } from '@shared/services/supabase';
+import { loadPublicProfiles } from '@features/social/hooks/usePublicProfiles';
 
 import type { CheerKey } from './cheerMessages';
 export { CHEERS, cheerText, type CheerKey } from './cheerMessages';
@@ -30,10 +31,12 @@ export interface Cheer {
   createdAt: number;
 }
 
+// Other runners' names come from profiles_public: `profiles` is owner-only, so
+// reading it here always came back empty and every cheer was from "A friend".
 async function namesFor(ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
-  const { data } = await supabase.from('profiles').select('id, username').in('id', ids);
-  return new Map((data ?? []).map(r => [r.id as string, (r.username as string | null) ?? 'A friend']));
+  const profiles = await loadPublicProfiles(ids);
+  return new Map([...profiles].map(([id, p]) => [id, p.username ?? 'A friend']));
 }
 
 /** Cheers a runner received during one run, oldest first (for the activity page). */

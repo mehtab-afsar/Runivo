@@ -1,6 +1,7 @@
 // Register background GPS task at app startup — must be the first import
 import { ensureLocalDataBelongsTo } from '@mobile/shared/services/localOwner';
 import './src/features/run/services/locationTask';
+import { onOnboardingComplete } from '@mobile/shared/lib/onboardingEvents';
 
 // MapLibre requires an access token call even for non-Mapbox tile sources
 import { setAccessToken as maplibreSetAccessToken } from '@maplibre/maplibre-react-native';
@@ -185,10 +186,15 @@ function Root({ fontsReady }: { fontsReady: boolean }) {
   }, [user?.id]);
 
   // Home area for the "near you" lists; waits for onboarding, which sets it first.
+  // Finishing onboarding doesn't change needsOnboarding (that would reset the
+  // navigator), so it's signalled separately.
+  const [onboardedNow, setOnboardedNow] = useState(false);
+  useEffect(() => onOnboardingComplete(() => setOnboardedNow(true)), []);
+  useEffect(() => { setOnboardedNow(false); }, [user?.id]);
   useEffect(() => {
-    if (!user || checkingOnboarding || needsOnboarding) return;
+    if (!user || checkingOnboarding || (needsOnboarding && !onboardedNow)) return;
     return watchHomeArea();
-  }, [user?.id, checkingOnboarding, needsOnboarding]);
+  }, [user?.id, checkingOnboarding, needsOnboarding, onboardedNow]);
 
   // CRITICAL PATH (App.tsx auth): app_opened funnel event, fired once per mount after
   // auth/onboarding resolve — never blocks rendering, analytics wrapper never throws.

@@ -127,6 +127,29 @@ describe('buildTerritoryShape', () => {
     expect(findLoopStart(pts)).toBe(0);
   });
 
+  // Audit T4: the loop used to start at the earliest point near the end, so a
+  // multi-lap run stacked every lap into one ring and the even-odd fill
+  // emptied it on an even number of laps.
+  for (const laps of [1, 2, 3, 4]) {
+    it(`${laps} lap(s) of a block claim the block, not just the strip`, () => {
+      const lap = square(250);
+      const way: [number, number][] = [[0, 0]];
+      for (let k = 0; k < laps; k++) way.push(...lap.slice(1));
+      const shape = buildTerritoryShape(trace(51.507, -0.165, way), 'run')!;
+      expect(shape.kind).toBe('loop');
+      expect(shape.estimatedAreaM2).toBeGreaterThan(62_500 * 0.95);
+    });
+  }
+
+  it('a long lap course stays cheap (edge function CPU budget)', () => {
+    const way: [number, number][] = [[0, 0]];
+    for (let k = 0; k < 10; k++) way.push(...square(550).slice(1));
+    const pts = trace(51.507, -0.165, way, 3);
+    const t0 = performance.now();
+    expect(buildTerritoryShape(pts, 'run')?.kind).toBe('loop');
+    expect(performance.now() - t0).toBeLessThan(800);
+  });
+
   it('produces WKT the server can parse', () => {
     const shape = buildTerritoryShape(trace(51.507, -0.165, square(200)), 'run')!;
     expect(lineToWKT(shape.line)).toMatch(/^LINESTRING\(-?\d/);

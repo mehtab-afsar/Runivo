@@ -11,6 +11,7 @@ import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
 
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import { MapStyleUrl } from '@theme/maps';
+import { MapAttribution } from '@theme/MapAttribution';
 
 const DARK_STYLE = MapStyleUrl.darkMatter;
 
@@ -192,6 +193,7 @@ export default function RunReplayScreen() {
             />
           </MapLibreGL.ShapeSource>
       </MapLibreGL.MapView>
+      <MapAttribution style={{ left: undefined, right: 6, bottom: undefined, top: insets.top + 60 }} />
 
       {/* Controls */}
       <View style={[ss.controls, { paddingBottom: insets.bottom + 12 }]}>

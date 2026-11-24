@@ -15,7 +15,8 @@ import { useTheme, Fonts, type AppColors } from '@theme';
 import {
   sessionOn, nextSession, weekday, daysBetween, RACE_LABEL, missedKeySession, canDoMissedToday, doMissedToday, setStatus, type Session,
 } from '@shared/engine/training';
-import { fetchActivePlan, getCachedPlan, savePlan, localToday, type ActivePlan } from '../services/planService';
+import { fetchActivePlan, getCachedPlan, savePlan, localToday, catchUpPlan, type ActivePlan } from '../services/planService';
+import { WeekCheckIn } from './WeekCheckIn';
 import WeekStrip from './WeekStrip';
 import MissedSessionSheet, { missedAlreadySeen, markMissedSeen } from './MissedSessionSheet';
 import { PaceXOrb } from '@mobile/shared/components/PaceXOrb';
@@ -40,7 +41,8 @@ export default function TodayCard() {
     // The cache is written the moment a plan starts or changes, so show it at once;
     // the server copy replaces it when it lands (no "No plan yet" flash after setup).
     getCachedPlan().then(c => setAp(prev => (c ? c : prev === undefined ? null : prev)));
-    fetchActivePlan().then(setAp).catch(() => {});
+    // Watch and Health imports tick their sessions here (they skip the live run screen).
+    fetchActivePlan().then(a => (a ? catchUpPlan(a) : a)).then(setAp).catch(() => {});
   }, []));
 
   // A key session missed earlier this week: ask once what to do.
@@ -112,6 +114,7 @@ export default function TodayCard() {
       <View style={{ gap: 10 }}>
         {strip}
         {missedSheet}
+        <WeekCheckIn ap={ap} onChange={setAp} />
         <PaceXRow
           s={s} C={C} eyebrow={`PaceX · today · ${head}`} title={todays.title} sub={todays.summary}
           onOpen={() => navigation.navigate('PlanSession', { sessionId: todays.id })}
@@ -137,6 +140,7 @@ export default function TodayCard() {
     <View style={{ gap: 10 }}>
     {strip}
     {missedSheet}
+    <WeekCheckIn ap={ap} onChange={setAp} />
     <Pressable style={s.card} onPress={() => (next ? navigation.navigate('PlanSession', { sessionId: next.id }) : navigation.navigate('TrainingPlan'))} accessibilityRole="button">
       <View style={s.row}>
         <PaceXOrb size={44} />

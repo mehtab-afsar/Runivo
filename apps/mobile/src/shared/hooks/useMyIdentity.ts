@@ -22,8 +22,10 @@ async function load(): Promise<void> {
   const uid = session?.user.id ?? null;
   if (!uid || loadedFor === uid) return;
   loadedFor = uid;
-  const { data } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', uid).maybeSingle();
-  setMyIdentity({ name: (data?.display_name as string | null) ?? null, avatarUrl: (data?.avatar_url as string | null) ?? null });
+  const { data, error } = await supabase.from('profiles').select('display_name, avatar_url').eq('id', uid).maybeSingle();
+  // Offline launch: forget the attempt so the next screen that mounts tries again.
+  if (error || !data) { loadedFor = null; return; }
+  setMyIdentity({ name: (data.display_name as string | null) ?? null, avatarUrl: (data.avatar_url as string | null) ?? null });
 }
 
 // A different account must never show the last one's photo.

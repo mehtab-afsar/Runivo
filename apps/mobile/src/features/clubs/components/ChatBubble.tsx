@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { LobbyMessage } from '@features/clubs/services/lobbyChatService';
 import { Fonts, useTheme, type AppColors } from '@theme';
-import { RunnerFace } from '@mobile/shared/components/RunnerFace';
+import { Avatar } from '@mobile/shared/components/Avatar';
 
 interface Props {
   message: LobbyMessage;
@@ -19,7 +19,7 @@ export function ChatBubble({ message, isOwn, onLongPress }: Props) {
     <View style={[s.wrap, isOwn && s.wrapMe]}>
       {!isOwn && (
         <View style={[s.avatar, { overflow: 'hidden' }]}>
-          <RunnerFace seed={message.userName} size={30} />
+          <Avatar name={message.userName} uri={message.userAvatarUrl ?? null} size={30} />
         </View>
       )}
       <View style={[s.content, isOwn && s.contentMe]}>

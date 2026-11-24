@@ -83,7 +83,7 @@ export default function PrivacyPage() {
 
             <h3 style={h3Style}>Purchases</h3>
             <p style={prose}>
-              If you subscribe to Runivo Plus, Apple processes the payment. We receive confirmation of your subscription status; we never see your card or Apple ID details.
+              Runivo is free and has no in-app purchases at this time. If paid features are offered later, Apple will process the payment and we will receive only your subscription status, never your card or Apple ID details; this policy will be updated before that happens.
             </p>
 
             <h2 style={h2Style}>2. How We Use It</h2>
@@ -97,24 +97,23 @@ export default function PrivacyPage() {
             </p>
             <ul style={{ ...prose, paddingLeft: 22, marginTop: 8 }}>
               <li><strong>Supabase</strong>: hosts our database, sign-in and file storage (everything above).</li>
-              <li><strong>Anthropic</strong> (the PaceX AI coach): only if you agree. See section 4.</li>
+              <li><strong>Anthropic</strong> (the PaceX AI coach and Foot scan): only if you agree. See section 4.</li>
               <li><strong>PostHog</strong>: product analytics events tied to your account ID. You can turn this off in Settings.</li>
               <li><strong>Sentry</strong>: crash and performance reports, not linked to your account.</li>
-              <li><strong>RevenueCat and Apple</strong>: subscription management and payment.</li>
               <li><strong>Expo and Apple</strong>: delivering push notifications (your push token).</li>
               <li><strong>Resend</strong>: sending emails such as your optional weekly digest (your email address).</li>
               <li><strong>Twilio</strong>: sending sign-in codes by SMS, if you sign in with a phone number (your phone number).</li>
-              <li><strong>Apple and Google</strong>: if you sign in with them. <strong>Garmin, COROS and Polar</strong>: only if you connect them.</li>
-              <li><strong>Map, routing and weather services</strong>: to show maps and plan routes, the map area you view and, for routing and weather, approximate coordinates are sent to CARTO, OpenStreetMap-based routing (routing.openstreetmap.de and OpenRouteService), Open-Meteo, and, for the extra map styles, Esri and OpenTopoMap. These providers also see your IP address.</li>
+              <li><strong>Apple and Google</strong>: if you sign in with them. <strong>Garmin, COROS and Polar</strong>: only if you connect them, once those connections are available.</li>
+              <li><strong>Map, routing and weather services</strong>: to show maps and plan routes, the map area you view and, for routing and weather, approximate coordinates are sent to CARTO, OpenStreetMap-based routing (routing.openstreetmap.de and OpenRouteService), Open-Meteo. These providers also see your IP address.</li>
               <li><strong>Other Runivo users</strong>: what you choose to share (profile, posts, comments, zones on the map, run stats). Live location sharing is off unless you turn it on, and the safety link is shared only with the people you send it to.</li>
             </ul>
             <p style={{ ...prose, marginTop: 12 }}>
-              We may also disclose data if required by law or to protect people&apos;s safety.
+              Every service listed above processes your data only on our instructions and is bound to protect it at least as strictly as this policy. We may also disclose data if required by law or to protect people&apos;s safety.
             </p>
 
             <h2 style={h2Style}>4. The PaceX AI Coach</h2>
             <p style={prose}>
-              PaceX is optional and part of Runivo Plus. It is off until you read a screen that names Anthropic and agree. After you agree, PaceX sends Anthropic, the company that provides the AI model: your recent runs (distance, time, pace, heart rate and similar), your goal, experience, age range and weight if you added them, imported health data if you turned that on, and anything you type to PaceX. It does not send your GPS routes, your name or your email. Anthropic uses the data to produce your reply. You can turn PaceX off at any time in Settings under Privacy and data; after that nothing further is sent.
+              PaceX and Foot scan are optional. They are off until you read a screen that names Anthropic and agree. After you agree, PaceX sends Anthropic, the company that provides the AI model: your recent runs (distance, time, pace, heart rate and similar), your goal, experience, age range and weight if you added them, imported health data if you turned that on, and anything you type to PaceX. If you use Foot scan, the photo of your foot that you take is sent to work out your arch type. Neither sends your GPS routes, your name or your email. Anthropic uses the data only to produce your reply or read your photo. You can turn PaceX off at any time in Settings under Privacy and data; after that nothing further is sent.
             </p>
 
             <h2 style={h2Style}>5. Retention and Deletion</h2>
@@ -129,7 +128,7 @@ export default function PrivacyPage() {
             <p style={{ ...prose, marginTop: 12 }}>
               To exercise any of these rights, contact us at{' '}
               <a href="mailto:support@runivo.com" style={{ color: 'var(--accent)' }}>support@runivo.com</a>.
-              Account deletion can also be performed directly in the app under Settings → Legal → Delete Account.
+              You can delete your account directly in the app: Profile → Settings (gear icon) → Delete account, at the bottom of the screen.
             </p>
 
             <h2 style={h2Style}>7. Security</h2>

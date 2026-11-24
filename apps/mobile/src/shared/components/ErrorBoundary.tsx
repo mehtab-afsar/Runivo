@@ -3,7 +3,12 @@ import { View, Text, Pressable, StyleSheet, Appearance } from 'react-native';
 import { Colors, DarkColors, Fonts, type AppColors } from '@theme';
 import { captureException } from '../services/sentry';
 
-interface Props { children: React.ReactNode }
+interface Props {
+  children: React.ReactNode;
+  /** Screen-level boundary: offers Go back next to Try again, so one broken
+   *  screen doesn't take the whole app (or a run in progress) down with it. */
+  onBack?: () => void;
+}
 interface State { error: Error | null }
 
 export class ErrorBoundary extends React.Component<Props, State> {
@@ -28,9 +33,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <View style={s.container}>
           <Text style={s.title}>Something went wrong</Text>
           <Text style={s.message}>The app hit an unexpected error. Please try again.</Text>
-          <Pressable style={s.btn} onPress={() => this.setState({ error: null })}>
-            <Text style={s.btnText}>Retry</Text>
+          <Pressable style={s.btn} onPress={() => this.setState({ error: null })} accessibilityRole="button">
+            <Text style={s.btnText}>Try again</Text>
           </Pressable>
+          {this.props.onBack && (
+            <Pressable style={s.back} onPress={() => { this.setState({ error: null }); this.props.onBack?.(); }} accessibilityRole="button">
+              <Text style={s.backText}>Go back</Text>
+            </Pressable>
+          )}
         </View>
       );
     }
@@ -45,5 +55,7 @@ function mkStyles(C: AppColors) {
     message:   { fontFamily: Fonts.regular, fontSize: 15, color: C.t2, textAlign: 'center', marginBottom: 32 },
     btn:       { backgroundColor: C.red, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
     btnText:   { fontFamily: Fonts.semiBold, fontSize: 15, color: C.alwaysLight },
+    back:      { marginTop: 14, paddingVertical: 10, paddingHorizontal: 24 },
+    backText:  { fontFamily: Fonts.semiBold, fontSize: 15, color: C.t1 },
   });
 }

@@ -204,9 +204,25 @@ export async function savePlayer(player: StoredPlayer): Promise<void> {
   );
 }
 
-export async function initializePlayer(username: string): Promise<StoredPlayer> {
+/**
+ * The signed-in account's id, if there is one. The local player must carry it:
+ * a random id hid the runner's own zones (they're stored under the account
+ * id) and made the next launch treat the phone's data as another account's
+ * and wipe it, unsynced runs included (audit T20).
+ */
+async function signedInUserId(): Promise<string | null> {
+  try {
+    const { supabase } = await import('./supabase');
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function initializePlayer(username: string, id?: string): Promise<StoredPlayer> {
   const player: StoredPlayer = {
-    id: crypto.randomUUID(),
+    id: id ?? (await signedInUserId()) ?? crypto.randomUUID(),
     username,
     totalDistanceKm: 0,
     totalRuns: 0,

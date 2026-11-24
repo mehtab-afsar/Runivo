@@ -51,6 +51,8 @@ function navigate(navRef: NavRef, actionUrl: string): void {
 }
 
 let _cleanup: (() => void) | null = null;
+/** handleLaunchNotification has run (or sign-out happened) in this process. */
+let launchHandled = false;
 
 /**
  * Register notification tap listener. Safe to call multiple times —
@@ -74,10 +76,26 @@ export function registerNotificationHandler(navRef: NavRef): void {
 }
 
 /**
+ * Remove the push-tap listener (call on sign-out, B15). Safe to call when none
+ * is registered. The launch push is also forgotten, so signing in again in the
+ * same process does not replay it.
+ */
+export function unregisterNotificationHandler(): void {
+  if (_cleanup) {
+    _cleanup();
+    _cleanup = null;
+  }
+  launchHandled = true;
+}
+
+/**
  * Call once at startup to handle the notification that launched the app from
  * a killed state (last notification the user tapped before app was opened).
  */
 export async function handleLaunchNotification(navRef: NavRef): Promise<void> {
+  // Once per process: a later sign-in must not replay the push that launched the app.
+  if (launchHandled) return;
+  launchHandled = true;
   const response = await Notifications.getLastNotificationResponseAsync();
   if (!response) return;
 

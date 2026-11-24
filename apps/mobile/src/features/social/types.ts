@@ -50,6 +50,8 @@ export interface Comment {
   userId: string;
   username: string;
   avatarColor: string;
+  /** Profile photo, when the runner set one. */
+  avatarUrl: string | null;
   content: string;
   createdAt: string;
 }
@@ -60,3 +62,6 @@ export interface PostLiker {
   avatarUrl: string | null;
   avatarColor: string;
 }
+
+/** Where you stand with a runner: following, asked (their profile isn't public), or neither. */
+export type FollowState = 'following' | 'requested' | 'none';

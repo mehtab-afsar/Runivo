@@ -13,7 +13,7 @@ const faqs = [
   },
   {
     q: 'What is PACE and how do I earn it?',
-    a: 'PACE is Runivo\'s in-app token. You earn PACE by running (per kilometre), completing daily missions, and claiming new territory. There\'s a weekly earning cap to keep things fair. Spend PACE on partner discounts and rewards in the PACE Store.',
+    a: 'PACE is Runivo\'s reward points: free to earn, never sold or cashed out. You earn PACE by running (per kilometre), completing daily missions, and claiming new territory. There\'s a weekly earning cap to keep things fair. Spend PACE on partner discounts and rewards in the PACE Store.',
   },
   {
     q: 'Can I lose my territory?',
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: 'How do I delete my account?',
-    a: 'Go to Settings → Legal → Delete Account. This permanently deletes your profile, run history, territory claims, and PACE balance. This action cannot be undone. Your data is removed from our servers within 30 days.',
+    a: 'Go to Profile → Settings (gear icon) → Delete account, at the bottom. This permanently deletes your profile, run history, territory claims and PACE balance straight away. It cannot be undone. Copies in encrypted backups expire on their own schedule.',
   },
   {
     q: 'Is Runivo available on Android?',

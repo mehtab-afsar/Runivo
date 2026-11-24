@@ -18,6 +18,8 @@ import { supabase } from '@shared/services/supabase';
 import { useTheme, Type, Fonts, Spacing, type AppColors } from '@theme';
 import {
   readRecentWorkouts,
+  rememberHealthConnection,
+  setAppleHealthConnected,
 } from '../../../shared/services/healthService';
 import { getOAuthAuthUrl, completeOAuthCallback, disconnectOAuth } from '../services/deviceOAuthService';
 import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
@@ -68,6 +70,13 @@ const DEVICES: DeviceInfo[] = [
   },
 ];
 
+/**
+ * Only what can be connected on this phone today. Garmin, COROS and Polar need
+ * partner keys (FEATURES.WATCH_OAUTH): no "Coming soon" rows (App Review 2.1).
+ */
+const VISIBLE_DEVICES = DEVICES.filter(d =>
+  d.oauthProvider ? FEATURES.WATCH_OAUTH : (!d.iosOnly || Platform.OS === 'ios'));
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function formatSyncTime(iso: string | null): string {
@@ -113,16 +122,7 @@ async function getAppleHealthConnection(): Promise<{
   return { status: data.status as 'connected' | 'disconnected', lastSyncAt: data.last_sync_at ?? null };
 }
 
-async function saveAppleHealthConnection(connected: boolean): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  await supabase.from('device_connections').upsert({
-    user_id:     user.id,
-    device_type: 'apple_health',
-    status:      connected ? 'connected' : 'disconnected',
-    last_sync_at: connected ? new Date().toISOString() : null,
-  }, { onConflict: 'user_id,device_type' });
-}
+const saveAppleHealthConnection = setAppleHealthConnected;
 
 // ── DeviceCard component ───────────────────────────────────────────────────────
 
@@ -201,6 +201,8 @@ function DeviceCard({
                   style={ss.iconBtn}
                   onPress={onSync}
                   disabled={busy}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Sync ${device.name}`}
                 >
                   {busy
                     ? <ActivityIndicator size="small" color={C.muted} />
@@ -212,6 +214,8 @@ function DeviceCard({
                 style={ss.disconnectBtn}
                 onPress={onDisconnect}
                 disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={`Disconnect ${device.name}`}
               >
                 {busy
                   ? <ActivityIndicator size="small" color={C.red} />
@@ -269,6 +273,7 @@ export default function ConnectedDevicesScreen() {
       return;
     }
     const conn = await getAppleHealthConnection();
+    void rememberHealthConnection(conn.status === 'connected');
     setAhStatus(conn.status);
     setAhLastSync(conn.lastSyncAt);
   }, []);
@@ -434,12 +439,16 @@ export default function ConnectedDevicesScreen() {
         <View style={ss.banner}>
           <DeviceMobile size={15} color={C.purple} weight="light" style={{ marginTop: 1 }} />
           <Text style={ss.bannerText}>
-            Connect your fitness devices to automatically import runs, heart rate, cadence and HRV. Existing Runivo runs are never duplicated.
+            {VISIBLE_DEVICES.length === 0
+              ? 'There is nothing to connect on this phone yet. Your Runivo activities are kept in Runivo.'
+              : FEATURES.WATCH_OAUTH
+              ? 'Connect your fitness devices to automatically import runs, heart rate, cadence and HRV. Existing Runivo runs are never duplicated.'
+              : 'Connect Apple Health to save your Runivo activities there. Disconnect any time and Runivo stops saving them.'}
           </Text>
         </View>
 
         {/* Device cards */}
-        {DEVICES.map(device => {
+        {VISIBLE_DEVICES.map(device => {
           if (device.key === 'apple_health') {
             return (
               <DeviceCard
@@ -459,7 +468,7 @@ export default function ConnectedDevicesScreen() {
             <DeviceCard
               key={device.key}
               device={device}
-              status={FEATURES.WATCH_OAUTH ? (oauthStatus[device.key] ?? 'disconnected') : 'unavailable'}
+              status={oauthStatus[device.key] ?? 'disconnected'}
               lastSyncAt={oauthLastSync[device.key] ?? null}
               onConnect={() => handleOAuthConnect(device)}
               onDisconnect={() => handleOAuthDisconnect(device)}

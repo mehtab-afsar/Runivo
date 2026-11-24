@@ -147,6 +147,9 @@ export function useProfile() {
       avatarUrl = `${url}?v=${Date.now()}`;   // new URL so cached copies of the old photo don't show
     } else if (photo?.kind === 'remove') {
       avatarUrl = null;
+      // The avatars bucket is public: take the file down too, not just the link to it.
+      const uid = session.user.id;
+      supabase.storage.from('avatars').remove(['jpg', 'png', 'webp', 'gif'].map(ext => `${uid}/avatar.${ext}`)).catch(() => {});
     }
     const num = (v: string) => (v.trim() === '' ? null : Number(v.replace(',', '.')));
     const nextAge = num(form.age), nextHeight = num(form.heightCm), nextWeight = num(form.weightKg);

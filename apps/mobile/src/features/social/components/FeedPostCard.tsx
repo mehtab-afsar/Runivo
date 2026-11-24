@@ -189,6 +189,8 @@ interface Props {
   onDelete: () => void;
   /** Mute this post's author. */
   onMuteAuthor?: () => void;
+  /** Block this post's author (asks first). */
+  onBlockAuthor?: () => void;
   onDefend?: () => void;
 }
 
@@ -196,7 +198,7 @@ interface Props {
 // FeedScreen already uses a useCallback renderItem — without memo here that win
 // was cancelled, and every keystroke in the search box re-rendered every card.
 export const FeedPostCard = React.memo(function FeedPostCard({
-  post, currentUserId, onKudos, onComment, onUserPress, onDelete, onDefend, onMuteAuthor,
+  post, currentUserId, onKudos, onComment, onUserPress, onDelete, onDefend, onMuteAuthor, onBlockAuthor,
 }: Props) {
   const C = useTheme();
   const zone = territoryPalette(useIsDark());
@@ -270,7 +272,7 @@ export const FeedPostCard = React.memo(function FeedPostCard({
             </Pressable>
           )}
         </View>
-        <PostActionsSheet visible={sheetOpen} isOwnPost={isOwnPost} onClose={() => setSheetOpen(false)} onShare={handleShare} onDelete={onDelete} onReport={handleReport} onMute={onMuteAuthor} authorName={post.username} />
+        <PostActionsSheet visible={sheetOpen} isOwnPost={isOwnPost} onClose={() => setSheetOpen(false)} onShare={handleShare} onDelete={onDelete} onReport={handleReport} onMute={onMuteAuthor} onBlock={onBlockAuthor} authorName={post.username} />
       </View>
     );
   }
@@ -296,7 +298,7 @@ export const FeedPostCard = React.memo(function FeedPostCard({
         {(post.routePoints?.length ?? 0) >= 5 && (
           <RouteMapHero points={post.routePoints!} seed={post.id} kind="claim" />
         )}
-        <PostActionsSheet visible={sheetOpen} isOwnPost={isOwnPost} onClose={() => setSheetOpen(false)} onShare={handleShare} onDelete={onDelete} onReport={handleReport} onMute={onMuteAuthor} authorName={post.username} />
+        <PostActionsSheet visible={sheetOpen} isOwnPost={isOwnPost} onClose={() => setSheetOpen(false)} onShare={handleShare} onDelete={onDelete} onReport={handleReport} onMute={onMuteAuthor} onBlock={onBlockAuthor} authorName={post.username} />
       </View>
     );
   }
@@ -396,6 +398,7 @@ export const FeedPostCard = React.memo(function FeedPostCard({
         onDelete={onDelete}
         onReport={handleReport}
         onMute={onMuteAuthor}
+        onBlock={onBlockAuthor}
         authorName={post.username}
       />
     </View>

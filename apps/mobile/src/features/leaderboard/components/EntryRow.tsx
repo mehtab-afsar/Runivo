@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { RANK_COLORS } from '@shared/constants/territory';
 import type { LeaderboardEntry } from '../types';
 import { useTheme, Fonts, haptic, type AppColors } from '@theme';
-import { RunnerFace } from '@mobile/shared/components/RunnerFace';
+import { Avatar } from '@mobile/shared/components/Avatar';
 
 interface Props {
   entry: LeaderboardEntry;
@@ -52,7 +52,7 @@ export const EntryRow = React.memo(function EntryRow({ entry, unit, onPress, pos
       {/* Avatar — bordered in the runner's rank color, quietly encoding tier
           without a second loud chip competing with the score. */}
       <View style={[s.avatar, { borderColor: rankColor.fg, overflow: 'hidden' }, entry.isPlayer && s.avatarMe]}>
-        <RunnerFace seed={entry.name} size={34} />
+        <Avatar name={entry.name} uri={entry.avatarUrl ?? null} size={34} />
       </View>
 
       {/* Name · tier, one quiet line — You gets the only pill on the row */}

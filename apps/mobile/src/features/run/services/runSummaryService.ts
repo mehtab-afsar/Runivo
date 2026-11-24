@@ -3,9 +3,39 @@ import type { StoredRun, StoredShoe } from '@shared/services/store';
 import { writeRunToHealth } from '@mobile/shared/services/healthService';
 import { estimateRunCalories } from '@shared/services/nutrition';
 import { haversineM } from '@shared/services/claimEngine';
+import { supabase } from '@shared/services/supabase';
 
+/**
+ * The run from the phone, or from the server when it isn't on this phone (a
+ * reinstall, another device). Throws when the server can't be reached, so the
+ * screen can offer a retry instead of showing an empty "0.00 km" run (B16).
+ */
 export async function fetchRunById(runId: string): Promise<StoredRun | null> {
-  return (await getRunById(runId)) ?? null;
+  const local = await getRunById(runId);
+  if (local) return local;
+  const { data, error } = await supabase
+    .from('runs')
+    .select('id, activity_type, started_at, finished_at, distance_m, duration_sec, avg_pace, gps_points, territories_claimed, territories_fortified, xp_earned, coins_earned, enemy_captured, pre_run_level')
+    .eq('id', runId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return {
+    id:                   data.id,
+    activityType:         data.activity_type,
+    startTime:            new Date(data.started_at).getTime(),
+    endTime:              new Date(data.finished_at).getTime(),
+    distanceMeters:       Number(data.distance_m),
+    durationSec:          data.duration_sec,
+    avgPace:              data.avg_pace,
+    gpsPoints:            (data.gps_points as StoredRun['gpsPoints']) ?? [],
+    territoriesClaimed:   data.territories_claimed ?? [],
+    territoriesFortified: data.territories_fortified ?? [],
+    xpEarned:             data.xp_earned,
+    coinsEarned:          data.coins_earned,
+    enemyCaptured:        data.enemy_captured ?? 0,
+    preRunLevel:          data.pre_run_level ?? 1,
+    synced:               true,
+  };
 }
 
 interface GpsPoint { lat: number; lng: number; timestamp?: number }
@@ -82,7 +112,7 @@ export async function assignShoeToRun(runId: string, shoeId: string): Promise<vo
 
 export async function syncRunToHealth(run: {
   success?: boolean; duration: number; distance: number; startTime?: number;
-}): Promise<void> {
+}, activityType?: string): Promise<void> {
   if (!run.success || run.duration <= 0) return;
   const profile = await getNutritionProfile().catch(() => undefined);
   // No weight on file means no honest calorie figure: leave energy out rather than
@@ -94,6 +124,8 @@ export async function syncRunToHealth(run: {
     endTime:        run.startTime ? run.startTime + run.duration * 1000 : now,
     distanceMeters: run.distance * 1000,
     calories:       weightKg ? estimateRunCalories(run.distance * 1000, weightKg) : undefined,
+    // A ride is written to Health as a ride, not a run (B08).
+    activityType,
   }).catch(() => {});
 }
 

@@ -116,7 +116,9 @@ export async function saveOnboardingData(data: OnboardingData, variant: 'full' |
       usual_distance_km: data.usualKm,
       recent_5k_seconds: setup.fiveKSeconds,
       pacex_tone: setup.paceXTone,
-      age_range: data.ageRange,
+      // Only an answer is written: skipping "About you" used to send null over the
+      // age screen's 'under_18' (B04). The server also keeps 'under_18' once set.
+      ...(data.ageRange && { age_range: data.ageRange }),
       health_consent_at: data.healthConsent ? new Date().toISOString() : null,
       health_consent_version: data.healthConsent ? HEALTH_CONSENT_VERSION : null,
       health_baseline: data.healthConsent ? data.healthBaseline : null,

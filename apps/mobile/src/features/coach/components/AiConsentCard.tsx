@@ -41,9 +41,10 @@ export default function AiConsentCard({ onGranted, onDecline, compact = false }:
         <Text style={s.item}>• Your goal, experience, age range and weight, if you added them</Text>
         <Text style={s.item}>• Imported health data, only if you turned that on</Text>
         <Text style={s.item}>• Anything you type to PaceX</Text>
+        <Text style={s.item}>• A foot photo, only when you use Foot scan</Text>
       </View>
       <Text style={s.body}>
-        Your GPS routes, name and email are not part of it. Anthropic uses the data only to write your reply.
+        Your GPS routes, name and email are not part of it. Anthropic uses the data only to write your reply or read your photo.
         You can turn this off any time in Settings. PaceX gives general running guidance, not medical advice.
       </Text>
       <Pressable onPress={() => Linking.openURL('https://runivo.app/privacy').catch(() => {})} hitSlop={8} accessibilityRole="link">
@@ -53,7 +54,7 @@ export default function AiConsentCard({ onGranted, onDecline, compact = false }:
       {failed && (
         <Text style={s.error}>
           {lastAiConsentFailure() === 'server_not_updated'
-            ? "Runivo's server is missing the latest update, so this can't be saved yet. Run the database update (supabase db push) and try again."
+            ? "Couldn't turn PaceX on right now. Please try again later."
             : lastAiConsentFailure() === 'signed_out'
               ? 'Sign in again, then turn PaceX on.'
               : "Couldn't save that. Check your connection and try again."}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { appAlert } from '@mobile/shared/components/AppAlert';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { ageGateOutcome } from '@shared/engine/onboarding';
 import { clearAllLocalData } from '@shared/services/store';
 import { useTheme, Fonts, Type, type AppColors } from '@theme';
 import { PrimaryButton } from '@mobile/shared/components/PrimaryButton';
+import { isAgeBlocked, rememberUnder13 } from '../services/ageGateBlock';
 
 /**
  * Shown once to every signed-in account that has not passed it yet, whatever
@@ -25,17 +26,19 @@ export default function AgeGateScreen({ userId, onConfirmed }: { userId: string;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [blocked, setBlocked] = useState(false);
+  // An earlier under-13 answer on this phone keeps the block, even after a relaunch (B05).
+  useEffect(() => { isAgeBlocked().then(b => { if (b) setBlocked(true); }).catch(() => {}); }, []);
 
   const submit = async () => {
     const outcome = ageGateOutcome(Number(month), Number(year));
     if (outcome === 'invalid') { setError('Enter your birth month (1 to 12) and year.'); return; }
-    if (outcome === 'under13') { setBlocked(true); return; }
+    if (outcome === 'under13') { await rememberUnder13(); setBlocked(true); return; }
     setBusy(true);
     setError('');
     const patch: Record<string, unknown> = { age_confirmed_at: new Date().toISOString() };
     if (outcome === 'teen') {
       // A safer start for 13 to 17: not findable by strangers, not sharing a live position.
-      Object.assign(patch, { age_range: 'under_18', profile_visibility: 'private', live_run_sharing_enabled: false });
+      Object.assign(patch, { age_range: 'under_18', profile_visibility: 'followers', live_run_sharing_enabled: false });
     }
     const { error: err } = await supabase.from('profiles').update(patch).eq('id', userId);
     setBusy(false);

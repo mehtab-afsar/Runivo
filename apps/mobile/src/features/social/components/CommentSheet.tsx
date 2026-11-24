@@ -10,6 +10,7 @@ import { useAuth } from '@shared/hooks/useAuth';
 import { supabase } from '@shared/services/supabase';
 import type { Comment } from '../types';
 import { ModalSheet } from '@mobile/shared/components/ModalSheet';
+import { Avatar } from '@mobile/shared/components/Avatar';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -58,6 +59,7 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
       userId: '',
       username: 'You',
       avatarColor: '#888888',
+      avatarUrl: null,
       content: trimmed,
       createdAt: new Date().toISOString(),
     };
@@ -110,12 +112,9 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
   }, [user]);
 
   const renderItem = useCallback(({ item }: { item: Comment }) => {
-    const initial = (item.username?.[0] ?? '?').toUpperCase();
     return (
       <View style={s.commentRow}>
-        <View style={[s.avatar, { backgroundColor: item.avatarColor }]}>
-          <Text style={s.avatarInitial}>{initial}</Text>
-        </View>
+        <Avatar name={item.username} color={item.avatarColor} uri={item.avatarUrl} size={28} />
         <View style={s.commentBody}>
           <View style={s.commentTop}>
             <Text style={s.commentUser}>{item.username}</Text>
@@ -137,7 +136,7 @@ export default function CommentSheet({ postId, onClose, onCommentPosted }: Props
     <ModalSheet visible={postId !== null} onClose={onClose} keyboard padded={false} tone="page" style={{ maxHeight: '75%' }}>
       <View style={s.titleRow}>
         <Text style={s.title}>Comments{comments.length > 0 ? ` · ${comments.length}` : ''}</Text>
-        <Pressable onPress={onClose} hitSlop={12}>
+        <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close comments">
           <X size={18} color={C.t2} weight="light" />
         </Pressable>
       </View>
@@ -192,8 +191,6 @@ function mkStyles(C: AppColors) {
     empty:        { fontFamily: Fonts.regular, fontSize: 13, color: C.t3, textAlign: 'center', marginTop: 32 },
     more:         { marginLeft: 'auto', minWidth: 28, minHeight: 28, alignItems: 'center', justifyContent: 'center' },
     commentRow:   { flexDirection: 'row', gap: 10, paddingVertical: 8 },
-    avatar:       { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    avatarInitial:{ fontFamily: Fonts.semiBold, fontSize: 12, color: C.white },
     commentBody:  { flex: 1 },
     commentTop:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
     commentUser:  { fontFamily: Fonts.medium, fontSize: 13, color: C.black },

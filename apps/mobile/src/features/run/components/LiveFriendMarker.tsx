@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import MapLibreGL from '@maplibre/maplibre-react-native';
 import type { LiveFriendRunner } from '../hooks/useLiveFriendRuns';
-import { RunnerFace } from '@mobile/shared/components/RunnerFace';
+import { Avatar } from '@mobile/shared/components/Avatar';
 
 const TICK_MS = 200;
 
@@ -48,7 +48,7 @@ export function LiveFriendMarker({ runner, onPress }: { runner: LiveFriendRunner
         {/* Ring colour is per friend and never your trail red or rival blue. */}
         <View style={[ss.pulse, { borderColor: friendColor(runner.userId) }]} />
         <View style={[ss.dot, { backgroundColor: friendColor(runner.userId), overflow: 'hidden' }]}>
-          <RunnerFace seed={runner.username} size={20} />
+          <Avatar name={runner.username} uri={runner.avatarUrl} size={20} />
         </View>
       </View>
     </MapLibreGL.PointAnnotation>

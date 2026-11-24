@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { localDateString } from '../services/store';
 import {
   getPlayer,
   savePlayer,
@@ -19,7 +18,7 @@ import {
   polygonAreaM2,
 } from '../services/claimEngine';
 import { canClaimZone, effectiveTier } from '../engine/entitlements';
-import { corridorRing, updateStreak, paceWeekStartMs, isOnFoot, type LngLat } from '../engine/runEngine';
+import { corridorRing, updateStreak, paceWeekStartMs, isOnFoot, utcDay, type LngLat } from '../engine/runEngine';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
 import { updateMissionsAfterRun } from '../services/missionStore';
 import { ENGINE } from '../engine/runEngine';
@@ -193,15 +192,16 @@ export function useGameEngine() {
       // 1. Build territory polygon client-side
       // A free runner already holding 10 zones claims nothing (the server
       // refuses it too, territoryCapReached), so don't draw or pay for one.
-      const ownedBefore = (await getTerritoryPolygons(freshPlayer.id)).length;
+      // A zone is what one run claimed, however many pieces (same count as the server).
+      const ownedBefore = new Set((await getTerritoryPolygons(freshPlayer.id)).map(t => t.runId)).size;
       const buildResult = canClaimZone(ownedBefore, freshPlayer.subscriptionTier)
         ? buildTerritoryPolygon(runData.gpsPoints, runData.activityType)
         : null;
 
       // 2. Streak — the server's rule: only the day's first meaningful run
-      // moves it. The app uses the runner's local day for instant feedback;
-      // pullProfile() brings back the server's (UTC) value after sync.
-      const today = localDateString();
+      // moves it, counted in UTC days like the server (a local day showed a
+      // streak bonus near midnight that the server didn't pay).
+      const today = utcDay(Date.now());
       // Rides don't move the running streak (server rule, see isOnFoot).
       const meetsMinimumEffort = isOnFoot(runData.activityType)
         && runData.distanceMeters >= ENGINE.MIN_MEANINGFUL_RUN_DISTANCE_M;

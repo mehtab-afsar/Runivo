@@ -1,7 +1,9 @@
+import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 import { getSettings, saveSettings, clearAllLocalData, getRuns } from '@shared/services/store';
 import { pushUnsyncedRuns } from '@shared/services/sync';
 import type { StoredSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
+import { SERVER_SETTING_COLUMNS, profileColumnsFor, settingsFromProfileRow } from '@shared/services/accountSettings';
 import { resetAnalytics } from '@shared/services/analytics';
 import { unsubscribeFromPush } from '@shared/services/pushNotificationService';
 import { stopBackgroundTracking, wipeRunTrackingState } from '@features/run/services/locationTask';
@@ -13,36 +15,53 @@ export async function loadSettings(): Promise<StoredSettings> {
 }
 
 /** Settings that live on the server profile as well as on the phone. */
-export const SERVER_SYNCED_SETTINGS: ReadonlySet<keyof StoredSettings> = new Set([
-  'distanceUnit', 'notificationsEnabled', 'missionDifficulty', 'runReminders', 'territoryAlerts',
-  'announceAchievements', 'weeklySummary', 'offersEnabled', 'privacy', 'liveRunSharingEnabled',
-]);
+export const SERVER_SYNCED_SETTINGS: ReadonlySet<keyof StoredSettings> = new Set(
+  Object.keys(SERVER_SETTING_COLUMNS) as (keyof StoredSettings)[],
+);
 
 /**
- * Saves locally (always), then mirrors to the server profile. Resolves `{ synced: false }`
- * when the server rejected or couldn't be reached, so callers can tell the user instead of
- * showing a privacy toggle as saved when the server never got it. Signed-out = nothing to sync.
+ * Saves locally (always), then mirrors the CHANGED server-side keys to the profile.
+ * Only `changed` is sent: sending every column on every toggle wrote stale phone
+ * values over the server (B02). Resolves `{ synced: false }` when the server rejected
+ * or couldn't be reached. Signed-out, or nothing server-side changed = nothing to sync.
  */
-export async function persistSettings(settings: StoredSettings): Promise<{ synced: boolean }> {
+export async function persistSettings(
+  settings: StoredSettings,
+  changed: readonly (keyof StoredSettings)[],
+): Promise<{ synced: boolean }> {
   await saveSettings(settings);
+  const columns = profileColumnsFor(settings, changed);
+  if (Object.keys(columns).length === 0) return { synced: true };
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return { synced: true };
-    const { error } = await supabase.from('profiles').update({
-      distance_unit: settings.distanceUnit,
-      notifications_enabled: settings.notificationsEnabled,
-      mission_difficulty: settings.missionDifficulty,
-      run_reminders_enabled: settings.runReminders,
-      territory_alerts_enabled: settings.territoryAlerts,
-      announce_achievements_enabled: settings.announceAchievements,
-      weekly_summary_enabled: settings.weeklySummary,
-      offers_enabled: settings.offersEnabled ?? false,
-      profile_visibility: settings.privacy,
-      live_run_sharing_enabled: settings.liveRunSharingEnabled,
-    }).eq('id', session.user.id);
+    const { error } = await supabase.from('profiles').update(columns).eq('id', session.user.id);
     return { synced: !error };
   } catch {
     return { synced: false };
+  }
+}
+
+/**
+ * The server's copy of the account settings for the signed-in runner, merged into
+ * the phone's settings and saved. Returns null when signed out or unreachable
+ * (the phone keeps what it has).
+ */
+export async function pullServerSettings(): Promise<StoredSettings | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(Object.values(SERVER_SETTING_COLUMNS).join(', '))
+      .eq('id', session.user.id)
+      .maybeSingle();
+    if (error || !data) return null;
+    const next = { ...(await getSettings()), ...settingsFromProfileRow(data as unknown as Record<string, unknown>) };
+    await saveSettings(next);
+    return next;
+  } catch {
+    return null;
   }
 }
 
@@ -73,7 +92,13 @@ export async function signOut(): Promise<{ ok: boolean }> {
   // device's. A local-only sign-out leaves a stolen session usable — which is
   // exactly the situation someone is in when they reach for "sign out".
   const { error } = await supabase.auth.signOut({ scope: 'global' });
-  if (error) return { ok: false };
+  if (error) {
+    // Offline: the global revoke can't reach the server, which left the runner
+    // unable to sign out at all. End this phone's session instead (B18).
+    if (!isAuthRetryableFetchError(error)) return { ok: false };
+    const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
+    if (localError) return { ok: false };
+  }
 
   await wipeThisPhone();
   return { ok: true };

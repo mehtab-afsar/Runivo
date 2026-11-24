@@ -35,10 +35,19 @@ export async function upsertLivePosition(
     );
 }
 
-/** Removes the caller's row — call on pause/stop/unmount so friends see you vanish immediately
- *  instead of waiting for the 30s staleness window in the RLS policy to lapse. */
+/** Ends the caller's live share — call on pause/stop/unmount.
+ *  The row is expired (dated to 1970), not deleted: realtime sends DELETE events
+ *  to every subscriber without checking RLS, so a delete told every signed-in
+ *  runner who had just stopped running. An expired row fails the RLS freshness
+ *  rule, so nobody else can read it or receives the change; friends' screens drop
+ *  it within useLiveFriendRuns' staleness window. */
 export async function clearLivePosition(userId: string): Promise<void> {
-  await supabase.from('live_run_positions').delete().eq('user_id', userId);
+  await supabase.from('live_run_positions').update({ updated_at: new Date(0).toISOString() }).eq('user_id', userId);
+}
+
+async function myId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
 }
 
 function toLiveFriendPosition(row: Record<string, unknown>): LiveFriendPosition {
@@ -57,9 +66,13 @@ function toLiveFriendPosition(row: Record<string, unknown>): LiveFriendPosition 
 /** Whoever is currently visible to the caller right now — RLS (mutual connection +
  *  sharing enabled + fresh) already did the filtering, this just reads what's left. */
 export async function fetchLiveFriendPositions(): Promise<LiveFriendPosition[]> {
-  const { data, error } = await supabase.from('live_run_positions').select('*');
+  const me = await myId();
+  // The owner policy also returns your own row: you are not your own friend.
+  let q = supabase.from('live_run_positions').select('*');
+  if (me) q = q.neq('user_id', me);
+  const { data, error } = await q;
   if (error || !data) return [];
-  return data.map(toLiveFriendPosition);
+  return data.map(toLiveFriendPosition).filter(p => p.updatedAt > Date.now() - 60_000);
 }
 
 /**
@@ -70,22 +83,32 @@ export async function fetchLiveFriendPositions(): Promise<LiveFriendPosition[]> 
  * actual boundary, and a client can only ever receive rows it's already allowed
  * to SELECT (20260811000004_live_run_sharing.sql).
  */
+let liveChannelSeq = 0;
+
 export function subscribeLiveFriendPositions(
   onUpsert: (position: LiveFriendPosition) => void,
   onRemove: (userId: string) => void,
 ): () => void {
+  // One channel per subscriber (B06). realtime-js hands back the EXISTING channel
+  // for a topic it already has, so Home, Map, Record and the active run shared one,
+  // and the first screen to unmount (removeChannel) cut live updates for the rest.
   const channel = supabase
-    .channel('live-run-positions')
+    .channel(`live-run-positions:${++liveChannelSeq}`)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'live_run_positions' },
-      payload => {
+      async payload => {
+        const row = (payload.eventType === 'DELETE' ? payload.old : payload.new) as Record<string, unknown>;
+        if (row.user_id && row.user_id === await myId()) return;
         if (payload.eventType === 'DELETE') {
           const oldRow = payload.old as Record<string, unknown>;
           if (oldRow.user_id) onRemove(oldRow.user_id as string);
           return;
         }
-        onUpsert(toLiveFriendPosition(payload.new as Record<string, unknown>));
+        const pos = toLiveFriendPosition(payload.new as Record<string, unknown>);
+        // An expired row (a friend stopped) never reaches others; if it does, treat it as gone.
+        if (pos.updatedAt < Date.now() - 60_000) { onRemove(pos.userId); return; }
+        onUpsert(pos);
       },
     )
     .subscribe();

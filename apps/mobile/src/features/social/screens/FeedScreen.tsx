@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl, Platform, Animated, ScrollView, Modal, TextInput, useWindowDimensions } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
@@ -7,7 +7,7 @@ import type { RootStackParamList } from '@navigation/AppNavigator';
 import { Search, Check, Plus, UserPlus, X, ChevronLeft } from '@mobile/shared/icons/lucideCompat';
 import { useFeed } from '@features/social/hooks/useFeed';
 import { ErrorState } from '@mobile/shared/components/ErrorState';
-import { fetchStolenZone } from '@features/social/services/feedService';
+import { fetchStolenZone, searchRunners } from '@features/social/services/feedService';
 import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
 import { InviteRow } from '@features/social/components/InviteRow';
@@ -35,6 +35,8 @@ export default function FeedScreen() {
   const [commentPostId, setCommentPostId] = useState<string | null>(route.params?.post ?? null);
   const [searchVisible, setSearchVisible] = useState(!!route.params?.search);
   const [runnerQuery, setRunnerQuery]     = useState('');
+  // A comment or kudos push tapped while Feed is already open brings a new post id (B13).
+  useEffect(() => { if (route.params?.post) setCommentPostId(route.params.post); }, [route.params?.post]);
 
   const tabX = useRef(new Animated.Value(0)).current;
   // Three segments as in the mock: Following · Discover · Clubs (Clubs opens the Clubs screen).
@@ -60,6 +62,7 @@ export default function FeedScreen() {
     onCommentPosted,
     deletePost,
     muteAuthor,
+    blockAuthor,
   } = useFeed();
 
   const switchTab = useCallback((t: Tab) => {
@@ -75,15 +78,25 @@ export default function FeedScreen() {
   const posts = tab === 'following' ? followingPosts : discoverPosts;
   const hasMore = tab === 'following' ? followingHasMore : discoverHasMore;
 
-  // Same runner list Discover's "Runners near you" strip already fetched
-  // (useFeed loads it on mount, not gated behind switching tabs) — typed
-  // query just filters it client-side rather than a third implementation
-  // of the same search.
+  // Empty box: the suggestions. Typed (2+ letters): every runner by username on
+  // the server (search_runners), debounced. It used to filter only the 5-8
+  // suggestions on the phone, so friends could never be found.
+  const [searchHits, setSearchHits] = useState<SuggestedRunner[] | null>(null);
+  useEffect(() => {
+    const q = runnerQuery.trim();
+    if (q.length < 2) { setSearchHits(null); return; }
+    let alive = true;
+    const t = setTimeout(() => {
+      searchRunners(q).then(r => { if (alive) setSearchHits(r); }).catch(() => { if (alive) setSearchHits([]); });
+    }, 250);
+    return () => { alive = false; clearTimeout(t); };
+  }, [runnerQuery]);
   const runnerResults = useMemo(() => {
-    if (!runnerQuery.trim()) return suggestedRunners;
     const q = runnerQuery.trim().toLowerCase();
-    return suggestedRunners.filter(r => r.username.toLowerCase().includes(q));
-  }, [suggestedRunners, runnerQuery]);
+    if (!q) return suggestedRunners;
+    if (q.length < 2 || searchHits === null) return suggestedRunners.filter(r => r.username.toLowerCase().startsWith(q));
+    return searchHits;
+  }, [suggestedRunners, runnerQuery, searchHits]);
 
   // "Take it back": straight to a run.
   // Defend: run straight at the zone that was taken; fall back to the Run tab.
@@ -108,14 +121,16 @@ export default function FeedScreen() {
       onUserPress={() => navigation.navigate('UserProfile', { userId: item.userId, username: item.username })}
       onDelete={() => deletePost(item.id)}
       onMuteAuthor={() => muteAuthor(item.userId)}
+      onBlockAuthor={() => blockAuthor(item.userId)}
       onDefend={item.postType === 'attack' ? () => { void handleDefend(item); } : undefined}
     />
-  ), [toggleKudos, navigation, userId, deletePost, handleDefend, muteAuthor]);
+  ), [toggleKudos, navigation, userId, deletePost, handleDefend, muteAuthor, blockAuthor]);
 
   const keyExtractor = useCallback((item: FeedPost) => item.id, []);
 
   const goToDiscover = useCallback(() => switchTab('discover'), [switchTab]);
-  const goToRun = useCallback(() => navigation.navigate('Run' as never), [navigation]);
+  // Run is a tab inside Main: React Navigation 7 won't find it from this root-stack screen (B09).
+  const goToRun = useCallback(() => navigation.navigate('Main', { screen: 'Run' }), [navigation]);
 
   const goToClub = useCallback((item: ClubFeedActivityItem) => {
     navigation.navigate('ClubDetail', {
@@ -143,7 +158,10 @@ export default function FeedScreen() {
                 <View style={s.runnerAvatarWrap}>
                   <Avatar name={runner.username} color={runner.avatarColor} size={48} uri={runner.avatarUrl} />
                   {!isSelf && (
-                    <Pressable style={s.followDot} onPress={() => toggleFollow(runner.id)}>
+                    <Pressable
+                      style={s.followDot} onPress={() => toggleFollow(runner.id)} hitSlop={12}
+                      accessibilityRole="button" accessibilityLabel={isFollowing ? `Unfollow ${runner.username}` : `Follow ${runner.username}`}
+                    >
                       {isFollowing
                         ? <Check size={9} color={C.white} strokeWidth={2.5} />
                         : <Plus  size={9} color={C.white} strokeWidth={2.5} />}
@@ -248,7 +266,7 @@ export default function FeedScreen() {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <Pressable onPress={() => { setSearchVisible(false); setRunnerQuery(''); }} hitSlop={8}>
+            <Pressable onPress={() => { setSearchVisible(false); setRunnerQuery(''); }} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close search">
               <X size={18} color={C.t2} strokeWidth={1.75} />
             </Pressable>
           </View>
@@ -308,6 +326,7 @@ function RunnerRow({
         <Pressable hitSlop={8}
           style={[s.followBtn, isFollowing && s.followBtnActive]}
           onPress={onFollow}
+          accessibilityRole="button" accessibilityLabel={isFollowing ? `Unfollow ${runner.username}` : `Follow ${runner.username}`}
         >
           {isFollowing
             ? <Check size={13} color={C.t2} strokeWidth={2} />

@@ -8,20 +8,19 @@
  *   2. A provider swap or CDN outage meant editing ten files.
  *
  * ── ATTRIBUTION — do not disable it ──────────────────────────────────────────
- * All three tile providers below are used WITHOUT an API key on their free
- * tiers, and all three require visible attribution:
- *   • CARTO basemaps  — free tier requires the CARTO + OpenStreetMap credit
- *   • OpenTopoMap     — volunteer-run; has an explicit tile usage policy and
- *                       requires attribution (CC-BY-SA)
- *   • Esri World Imagery — keyless use is not supported for production
+ * The basemap is CARTO vector tiles built from OpenStreetMap data. Both credits
+ * are required wherever a map is shown. Every map renders <MapAttribution />
+ * (theme/MapAttribution.tsx), a visible "© OpenStreetMap contributors © CARTO"
+ * line, and also keeps MapLibre's own `attributionEnabled` control.
  *
- * MapLibre renders `attribution` from the style JSON automatically when the
- * MapView has `attributionEnabled` (the default). Do not disable it. If you
- * need the control repositioned rather than removed, use
- * `attributionPosition` instead of turning it off.
+ * ── Keys ─────────────────────────────────────────────────────────────────────
+ * CARTO's free tier for commercial apps needs a basemap key. It is read from
+ * EXPO_PUBLIC_MAP_TILE_KEY at build time (set it as an EAS env/secret for the
+ * production profile); without it the URLs are used keyless.
  *
- * Before public launch, move to keyed tiers (CARTO and MapTiler both offer
- * free keyed plans with real terms) and put the key in EXPO_PUBLIC_MAP_TILE_KEY.
+ * Terrain (OpenTopoMap) and Satellite (Esri World Imagery) were removed for
+ * v1: both were used without a key or an agreement, which their terms don't
+ * allow for a production app. Re-add them only with a keyed provider.
  */
 
 // ── Providers ────────────────────────────────────────────────────────────────
@@ -46,40 +45,6 @@ export const MapStyleUrl = {
   voyager:    carto('voyager-gl-style'),
 } as const;
 
-/** Raster tile sources must be wrapped in an inline GL style JSON. */
-function rasterStyle(opts: {
-  tiles: string[];
-  attribution: string;
-  maxzoom: number;
-}): string {
-  return JSON.stringify({
-    version: 8,
-    sources: {
-      'raster-tiles': {
-        type: 'raster',
-        tiles: opts.tiles,
-        tileSize: 256,
-        attribution: opts.attribution,
-      },
-    },
-    layers: [
-      { id: 'simple-tiles', type: 'raster', source: 'raster-tiles', minzoom: 0, maxzoom: opts.maxzoom },
-    ],
-  });
-}
-
-export const TERRAIN_STYLE = rasterStyle({
-  tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
-  attribution: '© OpenTopoMap (CC-BY-SA) © OpenStreetMap contributors',
-  maxzoom: 17,
-});
-
-export const SATELLITE_STYLE = rasterStyle({
-  tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-  attribution: '© Esri, Maxar, Earthstar Geographics',
-  maxzoom: 19,
-});
-
 // ── The user-facing picker ───────────────────────────────────────────────────
 
 /**
@@ -90,16 +55,18 @@ export const MAP_STYLES = [
   { id: 'Standard',  label: 'Standard',  swatch: '#E8F5E9', url: MapStyleUrl.positron   },
   { id: 'Dark',      label: 'Dark',      swatch: '#263238', url: MapStyleUrl.darkMatter },
   { id: 'Light',     label: 'Light',     swatch: '#FAFAFA', url: MapStyleUrl.voyager    },
-  { id: 'Terrain',   label: 'Terrain',   swatch: '#C8E6C9', url: TERRAIN_STYLE          },
-  { id: 'Satellite', label: 'Satellite', swatch: '#1B5E20', url: SATELLITE_STYLE        },
 ] as const;
+
+/** The credit every map must show (OpenStreetMap data, CARTO tiles). */
+export const MAP_ATTRIBUTION = '© OpenStreetMap contributors © CARTO';
+export const MAP_ATTRIBUTION_URL = 'https://www.openstreetmap.org/copyright';
 
 export type MapStyleId = typeof MAP_STYLES[number]['id'];
 
 const BY_ID: Record<string, string> = Object.fromEntries(MAP_STYLES.map(s => [s.id, s.url]));
 
-/** Extra map styles are part of Runivo Plus (PRD "Free vs Runivo Plus"). */
-export const PLUS_MAP_STYLE_IDS: ReadonlySet<MapStyleId> = new Set<MapStyleId>(['Terrain', 'Satellite']);
+/** Extra map styles are part of Runivo Plus (PRD "Free vs Runivo Plus"). None in v1 (see the header). */
+export const PLUS_MAP_STYLE_IDS: ReadonlySet<MapStyleId> = new Set<MapStyleId>();
 
 export function isPlusMapStyle(idOrUrl: string | null | undefined): boolean {
   if (!idOrUrl) return false;
@@ -109,7 +76,8 @@ export function isPlusMapStyle(idOrUrl: string | null | undefined): boolean {
 /**
  * Resolve a persisted `settings.mapStyle` value to a style URL/JSON.
  * `isDark` only matters when the user has never explicitly picked a style —
- * an explicit choice (including a light one, e.g. Satellite/Terrain) always wins.
+ * an explicit choice (including a light one) always wins. A saved style that no
+ * longer exists (Terrain, Satellite) falls back to the default.
  */
 export function mapStyleUrlFor(id: string | undefined | null, isDark = false, plus = true): string {
   // A saved Plus style falls back to the default once Plus has lapsed.

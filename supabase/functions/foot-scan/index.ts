@@ -1,4 +1,4 @@
-import Anthropic from 'npm:@anthropic-ai/sdk';
+import Anthropic from 'npm:@anthropic-ai/sdk@0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const CORS_HEADERS = {
@@ -83,6 +83,20 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
     if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
 
+    // The photo goes to Anthropic: same explicit AI consent as PaceX (App Store
+    // 5.1.2(i)), enforced here so a modified client can't skip it.
+    const { data: gate } = await supabase.from('profiles').select('ai_consent_at').eq('id', user.id).single();
+    if (!(gate as { ai_consent_at: string | null } | null)?.ai_consent_at) {
+      return new Response(JSON.stringify({ error: 'ai_consent_required' }), {
+        status: 403, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+    if (!Deno.env.get('ANTHROPIC_API_KEY')) {
+      return new Response(JSON.stringify({ error: 'ai_not_configured' }), {
+        status: 503, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Parse body — expects { imageBase64: string, mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }
     const { imageBase64, mimeType } = await req.json();
     if (typeof imageBase64 !== 'string' || typeof mimeType !== 'string' || !imageBase64 || !mimeType) {
@@ -102,7 +116,7 @@ Deno.serve(async (req) => {
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
 
     const response = await anthropic.messages.create({
-      model:      'claude-sonnet-4-6',
+      model:      Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-4-6',
       max_tokens: 256,
       messages: [{
         role:    'user',

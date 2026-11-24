@@ -2,11 +2,12 @@ import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, ScrollView, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  X, SunHorizon, Lightning, ChartBar, Fire, MapTrifold, CalendarDots, ChatCircle, BowlFood, FlagCheckered, ShieldCheck,
+  X, Lightning, ChartBar, Fire, MapTrifold, CalendarDots, ChatCircle, BowlFood, FlagCheckered, ShieldCheck,
   type Icon,
 } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
+import { FEATURES } from '../../../config/features';
 
 const SCREEN_H = Dimensions.get('window').height;
 const SHEET_H  = SCREEN_H * 0.88;
@@ -19,18 +20,20 @@ interface Capability {
   prompt: string;
 }
 
-const CAPABILITIES: Capability[] = [
-  { Icon: SunHorizon, name: 'Morning Brief',      desc: 'Daily readiness + territory alert',    free: true,  prompt: '' },
-  { Icon: Lightning, name: 'Post-Run Debrief',   desc: 'Auto after every run',                 free: true,  prompt: 'Analyse my last run' },
-  { Icon: ChartBar, name: 'Weekly Review',      desc: 'Auto every Sunday',                    free: true,  prompt: 'Give me my weekly review' },
+const ALL_CAPABILITIES: Capability[] = [
+  { Icon: Lightning, name: 'Post-Run Debrief',   desc: 'Your last run, looked at closely',     free: true,  prompt: 'Analyse my last run' },
+  { Icon: ChartBar, name: 'Weekly Review',      desc: 'How your week went, and your plan',    free: true,  prompt: 'Give me my weekly review' },
   { Icon: Fire, name: 'Habit Tracking',     desc: 'Consistency score + streak',           free: true,  prompt: 'habit_tracking' },
   { Icon: MapTrifold, name: 'Territory Strategy', desc: 'Which zones to defend or expand',      free: false, prompt: 'Plan my territory strategy for this week' },
-  { Icon: CalendarDots, name: 'Training Plan',      desc: 'Structured 4–8 week curriculum',       free: false, prompt: 'Create me a training plan' },
-  { Icon: ChatCircle, name: 'Ask Anything',       desc: 'Running coach on demand',              free: false, prompt: '' },
+  { Icon: CalendarDots, name: 'Training Plan',      desc: 'Build or adjust your plan',             free: false, prompt: 'open_plan' },
+  { Icon: ChatCircle, name: 'Ask Anything',       desc: 'Running coach on demand',              free: false, prompt: 'open_chat' },
   { Icon: BowlFood, name: 'Nutrition Coach',    desc: '14-day food + run pattern analysis',   free: false, prompt: 'nutrition_coach' },
   { Icon: FlagCheckered, name: 'Race Prep',          desc: 'Peak on race day',             free: false, prompt: 'Help me prepare for a race' },
   { Icon: ShieldCheck, name: 'Injury Prevention',  desc: 'Weekly load + decline monitoring',     free: true,  prompt: 'I have pain — what should I do?' },
 ];
+
+// Nutrition coaching reads food logs, which only exist once the nutrition tracker ships.
+const CAPABILITIES = ALL_CAPABILITIES.filter(c => c.prompt !== 'nutrition_coach' || FEATURES.NUTRITION_TRACKER);
 
 interface Props {
   visible:            boolean;

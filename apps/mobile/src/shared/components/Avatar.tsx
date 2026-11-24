@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import { Gear } from 'phosphor-react-native';
@@ -27,6 +27,10 @@ export function Avatar({
   uri, name, color, size = 56, onPress, showEditOverlay, style, initialsLength = 2, seed, initialsOnly,
 }: AvatarProps) {
   const C = useTheme();
+  // A photo that fails to load (deleted, offline, bad link) falls back to the face.
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [uri]);
+  const photo = uri && !broken ? uri : null;
   const initials = name.trim().slice(0, initialsLength).toUpperCase() || '?';
   const fontSize = Math.round(size * (initialsLength === 1 ? 0.4 : 0.35));
   const overlaySize = Math.round(size * 0.32);
@@ -34,10 +38,10 @@ export function Avatar({
   const inner = (
     <View style={[styles.circle, {
       width: size, height: size, borderRadius: size / 2,
-      backgroundColor: uri || !initialsOnly ? 'transparent' : (color ?? C.accent),
+      backgroundColor: photo || !initialsOnly ? 'transparent' : (color ?? C.accent),
     }, style]}>
-      {uri
-        ? <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />
+      {photo
+        ? <Image source={{ uri: photo }} onError={() => setBroken(true)} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityIgnoresInvertColors />
         : initialsOnly
           ? <Text style={[styles.initial, { fontSize, color: C.alwaysLight }]}>{initials}</Text>
           : <RunnerFace

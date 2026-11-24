@@ -4,7 +4,8 @@
  *
  *   /run                          Run tab (streak at risk, run reminder)
  *   /run/:id, /run/summary/:id    that activity's summary
- *   /feed, /feed?post=:id         Feed (kudos and comments)
+ *   /feed, /feed?post=:id         Feed; with post, that post's comments open
+ *   /club/:id                     that club
  *   /territory-map[?filter=…], /map, /territory/:id   Territory map
  *   /store                        PACE Store; /store/mine → My rewards
  *   /training                     Training plan
@@ -40,7 +41,17 @@ export function resolveNotificationRoute(actionUrl: string | null | undefined): 
   const path = rawPath.replace(/\/+$/, '') || '/';
   const params = new URLSearchParams(query);
 
+  // Kudos and comments send /feed?post=<id>: open that post's comments (B13).
+  if (path === '/feed') {
+    const post = params.get('post');
+    return post && UUIDISH.test(post) ? { screen: 'Feed', params: { post } } : { screen: 'Feed' };
+  }
+
   if (SIMPLE[path]) return SIMPLE[path];
+
+  // A club (join requests, invites): /club/<id>.
+  const club = path.match(/^\/club\/([0-9a-f-]{36})$/i);
+  if (club) return { screen: 'ClubDetail', params: { clubId: club[1] } };
 
   const ch = path.match(/^\/challenges\/([0-9a-f-]{36})$/i);
   if (ch) return { screen: 'ChallengeDetail', params: { id: ch[1] } };

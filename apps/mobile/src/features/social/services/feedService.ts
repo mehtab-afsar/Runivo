@@ -1,6 +1,7 @@
 import { supabase } from '@shared/services/supabase';
 import { signPhotoUrls } from '@features/run/services/activityEditService';
-import type { FeedPost, SuggestedRunner, Comment, PostLiker } from '../types';
+import { fetchPublicProfiles } from '@mobile/shared/services/publicProfiles';
+import type { FeedPost, SuggestedRunner, Comment, PostLiker, FollowState } from '../types';
 
 function mapRow(row: any): FeedPost {
   return {
@@ -140,19 +141,76 @@ export async function fetchSuggestedRunners(userId: string): Promise<SuggestedRu
   }));
 }
 
-export async function toggleFollowService(targetId: string): Promise<void> {
-  const { error } = await supabase.rpc('toggle_follow', { target_id: targetId });
+/**
+ * Follow or unfollow. A runner whose profile isn't public gets a request they
+ * accept or decline (set_follow, 20261123000004); the result says which.
+ */
+export async function setFollow(targetId: string, follow: boolean): Promise<FollowState> {
+  const { data, error } = await supabase.rpc('set_follow', { p_target: targetId, p_follow: follow });
   if (error) throw error;
+  return (data as FollowState | null) ?? 'none';
+}
+
+/** Kept for callers that only know "flip it": unfollows when following or asked, else follows. */
+export async function toggleFollowService(targetId: string, current: FollowState = 'none'): Promise<FollowState> {
+  return setFollow(targetId, current === 'none');
+}
+
+/** My relation to a runner: following, a pending request, or none. */
+export async function fetchFollowState(meId: string, targetId: string): Promise<FollowState> {
+  const [f, r] = await Promise.all([
+    supabase.from('followers').select('follower_id').eq('follower_id', meId).eq('following_id', targetId).maybeSingle(),
+    supabase.from('follow_requests').select('follower_id').eq('follower_id', meId).eq('following_id', targetId).maybeSingle(),
+  ]);
+  return f.data ? 'following' : r.data ? 'requested' : 'none';
+}
+
+/** Whether this runner has asked to follow me. */
+export async function hasFollowRequestFrom(meId: string, followerId: string): Promise<boolean> {
+  const { data } = await supabase.from('follow_requests').select('follower_id')
+    .eq('follower_id', followerId).eq('following_id', meId).maybeSingle();
+  return !!data;
+}
+
+export async function respondFollowRequest(followerId: string, accept: boolean): Promise<void> {
+  const { error } = await supabase.rpc('respond_follow_request', { p_follower: followerId, p_accept: accept });
+  if (error) throw error;
+}
+
+/** Stop someone following me (they are not told). */
+export async function removeFollower(followerId: string): Promise<void> {
+  const { error } = await supabase.rpc('remove_follower', { p_follower: followerId });
+  if (error) throw error;
+}
+
+/** Runners whose username starts with `query` (2+ characters), on the server. */
+export async function searchRunners(query: string): Promise<SuggestedRunner[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const { data, error } = await supabase.rpc('search_runners', { q, lim: 20 });
+  if (error) throw error;
+  return ((data ?? []) as any[]).map(r => ({
+    id:              r.id,
+    username:        r.username ?? 'Runner',
+    avatarUrl:       r.avatar_url ?? null,
+    avatarColor:     r.avatar_color ?? '#888888',
+    totalDistanceKm: Number(r.total_distance_km ?? 0),
+    territoryScore:  Math.round(Number(r.territory_score ?? 0)),
+  }));
 }
 
 export async function getComments(postId: string): Promise<Comment[]> {
   const { data, error } = await supabase.rpc('get_comments', { p_post_id: postId });
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
+  const rows = (data ?? []) as any[];
+  // get_comments has no photo column; the public profiles carry it.
+  const profiles = await fetchPublicProfiles(rows.map(r => r.user_id as string)).catch(() => new Map());
+  return rows.map((r: any) => ({
     id:          r.id,
     userId:      r.user_id,
     username:    r.username ?? 'Runner',
     avatarColor: r.avatar_color ?? '#888888',
+    avatarUrl:   r.avatar_url ?? profiles.get(r.user_id)?.avatar_url ?? null,
     content:     r.content,
     createdAt:   r.created_at,
   }));

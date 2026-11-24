@@ -1,3 +1,4 @@
+import { liveTerritory } from './claimEngine';
 /**
  * claimEngine.test.ts — the app-facing contract for territory and PACE.
  *
@@ -253,5 +254,17 @@ describe('activity types', () => {
     const pts = Array.from({ length: 21 }, (_, i) => ({ lat: 51.5, lng: -0.1 + (i * 100) / 69_400, timestamp: t0 + i * 6_000 }));
     expect(verifiedDistance(pts, 120, 'cycle').distanceM).toBeGreaterThan(1_900);
     expect(verifiedDistance(pts, 120, 'run').distanceM).toBeLessThan(1_000);
+  });
+});
+
+// Audit T10: the live "loop closed" reward must only fire for a loop the
+// finish will fill, never for an out-and-back.
+describe('liveTerritory', () => {
+  it('an out-and-back is near the start but claims only the strip', () => {
+    const pts: { lat: number; lng: number; timestamp: number; speed: number; accuracy: number }[] = [];
+    let t = 1_700_000_000_000;
+    for (let d = 0; d <= 600; d += 3) { pts.push({ lat: 51.5, lng: -0.1 + d / 69_400, timestamp: t, speed: 3, accuracy: 5 }); t += 1000; }
+    for (let d = 600; d >= 0; d -= 3) { pts.push({ lat: 51.50002, lng: -0.1 + d / 69_400, timestamp: t, speed: 3, accuracy: 5 }); t += 1000; }
+    expect(liveTerritory(pts, 'run').isLoop).toBe(false);
   });
 });

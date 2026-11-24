@@ -56,6 +56,9 @@ interface UseRunSummaryResult {
   showShoeDrawer: boolean;
   setShowShoeDrawer: (v: boolean) => void;
   selectShoe: (shoe: StoredShoe) => Promise<void>;
+  /** The run couldn't be loaded (not on the phone, server unreachable). */
+  loadError: boolean;
+  retryLoad: () => void;
   loading: boolean;
 }
 
@@ -72,6 +75,7 @@ function paceFromAvgPaceStr(avgPace: string): number {
 export function useRunSummary(
   runId: string,
   passedRunData?: PassedRunData,
+  activityType?: string,
 ): UseRunSummaryResult {
   // History/Dashboard/Profile navigate here with only { runId } (no runData) — the
   // run already finished and synced in a previous session, so there's nothing to
@@ -79,12 +83,16 @@ export function useRunSummary(
   // for every historical run; fetch the saved run instead when nothing was passed.
   const [fetchedRunData, setFetchedRunData] = useState<PassedRunData | null>(null);
   const [loading, setLoading] = useState(!passedRunData);
+  const [loadError, setLoadError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const retryLoad = useCallback(() => { setLoadError(false); setLoading(true); setAttempt(a => a + 1); }, []);
 
   useEffect(() => {
     if (passedRunData) { setLoading(false); return; }
     let cancelled = false;
     fetchRunById(runId).then(run => {
       if (cancelled) return;
+      if (!run) setLoadError(true);
       if (run) {
         setFetchedRunData({
           distance:           run.distanceMeters / 1000,
@@ -100,9 +108,13 @@ export function useRunSummary(
         });
       }
       setLoading(false);
+    }).catch(() => {
+      if (cancelled) return;
+      setLoadError(true);
+      setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [runId, passedRunData]);
+  }, [runId, passedRunData, attempt]);
 
   const runData = passedRunData ?? fetchedRunData ?? EMPTY_RUN;
 
@@ -112,7 +124,7 @@ export function useRunSummary(
   const [showShoeDrawer, setShowShoeDrawer] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || loadError) return;
     Haptics.notificationAsync(
       runData.success
         ? Haptics.NotificationFeedbackType.Success
@@ -135,9 +147,9 @@ export function useRunSummary(
           .reduce((s, r) => s + r.distanceMeters / 1000, 0);
         setShoeTotalKm(km);
       }
-    });
+    }).catch(() => {});
     // Don't re-sync a historical run to HealthKit — only for a run that just finished.
-    if (passedRunData) syncRunToHealth(runData);
+    if (passedRunData) syncRunToHealth(runData, activityType);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
@@ -163,5 +175,5 @@ export function useRunSummary(
     setShoeTotalKm(allRuns.filter(r => r.shoeId === shoe.id).reduce((s, r) => s + r.distanceMeters / 1000, 0));
   }, [runId]);
 
-  return { runData, splits, stats, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe, loading };
+  return { runData, splits, stats, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe, loading, loadError, retryLoad };
 }

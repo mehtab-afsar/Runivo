@@ -6,6 +6,8 @@ export interface LobbyMessage {
   userId: string;
   userName: string;
   userLevel: number;
+  /** Profile photo, when the runner set one. */
+  userAvatarUrl?: string | null;
   message: string;
   timestamp: string;
 }
@@ -33,6 +35,7 @@ export async function fetchMessages(lobbyId: string): Promise<LobbyMessage[]> {
       userId: row.user_id,
       userName: p?.username ?? 'Runner',
       userLevel: p?.level ?? 1,
+      userAvatarUrl: p?.avatar_url ?? null,
       message: row.content,
       timestamp: row.created_at,
     };
@@ -75,7 +78,7 @@ export function subscribeToMessages(
         };
         const { data: p } = await supabase
           .from('profiles_public')
-          .select('username, level')
+          .select('username, level, avatar_url')
           .eq('id', row.user_id)
           .single();
         onMessage({
@@ -83,6 +86,7 @@ export function subscribeToMessages(
           userId: row.user_id,
           userName: p?.username ?? 'Runner',
           userLevel: p?.level ?? 1,
+          userAvatarUrl: (p?.avatar_url as string | null | undefined) ?? null,
           message: row.content,
           timestamp: row.created_at,
         });

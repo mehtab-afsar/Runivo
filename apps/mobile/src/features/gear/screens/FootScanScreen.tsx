@@ -9,10 +9,16 @@ import { ArrowLeft, Camera, ArrowClockwise, CheckCircle } from 'phosphor-react-n
 import { analyseFootImage, ARCH_INFO, type FootScanResult } from '../services/footScanService';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { GlyphBadge } from '@mobile/shared/icons';
+import { AiConsentGate } from '@features/coach/components/AiConsentGate';
 
 type Step = 'instructions' | 'preview' | 'analysing' | 'result';
 
+/** The foot photo is sent to Anthropic, so the same AI consent as PaceX comes first (5.1.2(i)). */
 export default function FootScanScreen() {
+  return <AiConsentGate><FootScan /></AiConsentGate>;
+}
+
+function FootScan() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation();

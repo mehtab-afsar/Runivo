@@ -312,11 +312,7 @@ BEGIN
     (pg_temp.did(11, 3), pg_temp.did(10, 1), pg_temp.did(0, 2), 'Who''s defending Kensington tonight? It''s at 34%.', now() - interval '50 minutes'),
     (pg_temp.did(11, 4), pg_temp.did(10, 1), pg_temp.did(0, 5), 'I can do 7pm.', now() - interval '20 minutes');
 
-  -- Global lobby chatter.
-  INSERT INTO public.lobby_messages (lobby_id, user_id, content, created_at) VALUES
-    ('00000000-0000-0000-0000-000000000001', pg_temp.did(0, 6), 'Anyone else running in the rain today?', now() - interval '3 hours'),
-    ('00000000-0000-0000-0000-000000000001', pg_temp.did(0, 7), 'First zone claimed this morning!', now() - interval '2 hours'),
-    ('00000000-0000-0000-0000-000000000001', pg_temp.did(0, 1), 'Nice one Sara. Run it again tomorrow so it stays fresh.', now() - interval '90 minutes');
+  -- (No global lobby chatter: the global lobbies were removed in 20261123000004.)
 
   -- ── events: three hosted near the tester, two curated races ──
   INSERT INTO public.events (id, title, description, event_type, source, starts_at, ends_at, lat, lng, location_name,
@@ -337,11 +333,11 @@ BEGIN
     (pg_temp.did(4, 4), 'City 10K', 'Closed roads through the centre. Chip timed.',
      'race', 'curated', date_trunc('day', now()) + interval '18 days 7 hours', date_trunc('day', now()) + interval '18 days 11 hours',
      pg_temp.off_lat(ctx.home_lat, 900), pg_temp.off_lng(ctx.home_lat, ctx.home_lng, -700), 'City centre',
-     10000, 'City Races', NULL, '10k', true, 0, 'https://example.com/register', 'City Races'),
+     10000, 'City Races', NULL, '10k', true, 0, 'https://runivo.app', 'City Races'),
     (pg_temp.did(4, 5), 'Autumn Half Marathon', 'Flat and fast, two laps of the river.',
      'race', 'curated', date_trunc('day', now()) + interval '32 days 6 hours', date_trunc('day', now()) + interval '32 days 10 hours',
      pg_temp.off_lat(ctx.home_lat, -1200), pg_temp.off_lng(ctx.home_lat, ctx.home_lng, 900), 'Riverside start',
-     21100, 'City Races', NULL, 'half_marathon', true, 0, 'https://example.com/register', 'City Races');
+     21100, 'City Races', NULL, 'half_marathon', true, 0, 'https://runivo.app', 'City Races');
   INSERT INTO public.event_participants (event_id, user_id, joined_at)
   SELECT pg_temp.did(4, e), pg_temp.did(0, n), now() - make_interval(hours => n)
     FROM generate_series(1, 3) e, generate_series(1, 8) n WHERE (n + e) % 3 <> 0
@@ -349,16 +345,16 @@ BEGIN
 
   -- ── PACE Store: partners and rewards (global, so they show anywhere) ──
   INSERT INTO public.partners (id, name, category, status, billing_model, website, offer) VALUES
-    (pg_temp.did(5, 1), 'Brooks Running', 'shoes',     'active', 'free_listing', 'https://example.com', '20% off'),
-    (pg_temp.did(5, 2), 'Stride Lab',     'physio',    'active', 'free_listing', 'https://example.com', 'Gait analysis'),
-    (pg_temp.did(5, 3), 'Fuel Co.',       'nutrition', 'active', 'free_listing', 'https://example.com', 'Energy bars'),
-    (pg_temp.did(5, 4), 'City Races',     'races',     'active', 'free_listing', 'https://example.com', 'Race entry'),
-    (pg_temp.did(5, 5), 'Recover Studio', 'physio',    'active', 'free_listing', 'https://example.com', 'Sports massage');
+    (pg_temp.did(5, 1), 'Stridewell', 'shoes',     'active', 'free_listing', NULL, '20% off'),
+    (pg_temp.did(5, 2), 'Stride Lab',     'physio',    'active', 'free_listing', NULL, 'Gait analysis'),
+    (pg_temp.did(5, 3), 'Fuel Co.',       'nutrition', 'active', 'free_listing', NULL, 'Energy bars'),
+    (pg_temp.did(5, 4), 'City Races',     'races',     'active', 'free_listing', NULL, 'Race entry'),
+    (pg_temp.did(5, 5), 'Recover Studio', 'physio',    'active', 'free_listing', NULL, 'Sports massage');
   INSERT INTO public.pace_store_rewards (id, partner_id, brand, title, description, value_label, pace_cost, tier, brand_color,
                                          brand_initial, category, status, sort_order, code_mode, min_rank, plus_only, how_to_use)
   VALUES
-    (pg_temp.did(6, 1), pg_temp.did(5, 1), 'Brooks Running', 'Free running socks', 'A pair of Brooks run socks with any order. One per runner.',
-     'Free socks', 40, 'entry', '#0084D6', 'B', 'gear', 'available', 1, 'pool', NULL, false, 'Enter the code at checkout on the Brooks site.'),
+    (pg_temp.did(6, 1), pg_temp.did(5, 1), 'Stridewell', 'Free running socks', 'A pair of Stridewell run socks with any order. One per runner.',
+     'Free socks', 40, 'entry', '#0084D6', 'B', 'gear', 'available', 1, 'pool', NULL, false, 'Enter the code at checkout on the Stridewell site.'),
     (pg_temp.did(6, 2), pg_temp.did(5, 2), 'Stride Lab', 'Free gait analysis', 'A 30-minute gait analysis with a physio, video included.',
      'Free gait analysis', 150, 'mid', '#1D6B4A', 'S', 'gear', 'available', 2, 'pool', NULL, false, 'Show the code when you book.'),
     (pg_temp.did(6, 3), pg_temp.did(5, 3), 'Fuel Co.', 'Box of 12 energy bars', 'Twelve oat and date bars, delivered.',
@@ -367,8 +363,8 @@ BEGIN
      '£10 off a 10K', 300, 'mid', '#5B47C9', 'C', 'events', 'available', 4, 'pool', NULL, false, 'Enter the code on the entry form.'),
     (pg_temp.did(6, 5), pg_temp.did(5, 5), 'Recover Studio', 'Sports massage, 30 min', 'A 30-minute sports massage at any studio.',
      'Sports massage', 1500, 'premium', '#0C0C0D', 'R', 'gear', 'available', 5, 'pool', 'hunter', false, 'Book online and quote the code.'),
-    (pg_temp.did(6, 6), pg_temp.did(5, 3), 'Fuel Co.', 'Electrolyte tabs', 'A tube of 20 electrolyte tabs. Runivo Plus members only.',
-     'Electrolyte tabs', 60, 'entry', '#B0306A', 'F', 'nutrition', 'available', 6, 'pool', NULL, true, 'Use the code at checkout.');
+    (pg_temp.did(6, 6), pg_temp.did(5, 3), 'Fuel Co.', 'Electrolyte tabs', 'A tube of 20 electrolyte tabs.',
+     'Electrolyte tabs', 60, 'entry', '#B0306A', 'F', 'nutrition', 'available', 6, 'pool', NULL, false, 'Use the code at checkout.');
   INSERT INTO public.reward_codes (id, reward_id, code)
   SELECT pg_temp.did(7, r * 100 + n), pg_temp.did(6, r),
          format('RNV-%s-%s', upper(substr(md5(r::text || n::text), 1, 4)), upper(substr(md5(n::text || r::text), 1, 2)))

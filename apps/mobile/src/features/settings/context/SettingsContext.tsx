@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS, clearAllLocalData, saveSettings } from '@shared/servi
 import type { StoredSettings } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
 import { unsubscribeFromPush } from '@shared/services/pushNotificationService';
-import { loadSettings, persistSettings, signOut as signOutService, runsOnlyOnThisPhone, wipeThisPhone, SERVER_SYNCED_SETTINGS } from '../services/settingsService';
+import { loadSettings, persistSettings, pullServerSettings, signOut as signOutService, runsOnlyOnThisPhone, wipeThisPhone, SERVER_SYNCED_SETTINGS } from '../services/settingsService';
 import { useToast } from '@mobile/shared/hooks/useToast';
 import { nativeAppleCredential } from '@features/auth/services/socialAuth';
 interface SettingsContextValue {
@@ -29,14 +29,48 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  useEffect(() => { loadSettings().then(setSettings); }, []);
+  const replaceAll = useCallback((next: StoredSettings) => {
+    settingsRef.current = next;
+    setSettings(next);
+  }, []);
+
+  // B02: the in-memory copy follows the account. On sign-out (or another account
+  // signing in) it reloads what the wipe left on the phone, then takes the server's
+  // privacy, sharing, units and notification choices for whoever is signed in, so
+  // Settings never shows (or writes back) another account's or a default value.
+  useEffect(() => {
+    let lastUser: string | null | undefined;
+    let cancelled = false;
+    const sync = async (uid: string | null) => {
+      const local = await loadSettings().catch(() => null);
+      if (cancelled) return;
+      if (local) replaceAll(local);
+      if (!uid) return;
+      const server = await pullServerSettings();
+      if (!cancelled && server) replaceAll(server);
+    };
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        lastUser = session?.user.id ?? null;
+        return sync(lastUser);
+      })
+      .catch(() => { loadSettings().then(s => { if (!cancelled) replaceAll(s); }).catch(() => {}); });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const uid = session?.user.id ?? null;
+      if (lastUser !== undefined && uid === lastUser) return;
+      lastUser = uid;
+      // Outside the auth callback: supabase-js deadlocks if it is called from inside one.
+      setTimeout(() => { void sync(uid); }, 0);
+    });
+    return () => { cancelled = true; data.subscription.unsubscribe(); };
+  }, [replaceAll]);
 
   const updateSetting = useCallback(async (patch: Partial<StoredSettings>) => {
     const prev = settingsRef.current;
     const next = { ...prev, ...patch };
     settingsRef.current = next;
     setSettings(next);
-    const { synced } = await persistSettings(next);
+    const { synced } = await persistSettings(next, Object.keys(patch) as (keyof StoredSettings)[]);
     if (synced) return;
     // Only roll back what the server is supposed to know about (privacy, notifications,
     // units…). Phone-only settings stay as set. Without this, a rejected privacy change
@@ -59,7 +93,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           const { ok } = await signOutService();
           if (!ok) {
             appAlert('Couldn\'t sign out', 'Please check your connection and try again.');
+            return;
           }
+          // The wipe ran after the auth event: show what it left (device prefs, account defaults).
+          loadSettings().then(replaceAll).catch(() => {});
         };
         // Signing out clears this phone, so upload any runs that haven't reached
         // the server first, and warn before losing the ones that still can't.
@@ -75,7 +112,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         );
       }},
     ]);
-  }, []);
+  }, [replaceAll]);
 
   const clearHistory = useCallback(() => {
     appAlert('Clear Run History', 'This will remove all local run data. This cannot be undone.', [
@@ -133,9 +170,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut().catch(() => {});
     // Local data, GPS buffer, run checkpoint, cached plan, RevenueCat and analytics ids.
     await wipeThisPhone();
+    loadSettings().then(replaceAll).catch(() => {});
     // No explicit navigation — App.tsx's useAuth()-driven re-render already routes
     // to the auth stack once the session is null, same as normal sign-out.
-  }, []);
+  }, [replaceAll]);
 
   const deleteAccount = useCallback(() => {
     // RN's Alert has no text-input confirmation, so two sequential destructive

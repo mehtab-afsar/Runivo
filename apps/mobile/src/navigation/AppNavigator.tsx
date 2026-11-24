@@ -3,12 +3,15 @@ import FriendLiveScreen from '@features/cheers/FriendLiveScreen';
 import '@features/social/services/inviteLink';
 import { Linking } from 'react-native';
 import { CustomTabBar } from './CustomTabBar';
+import { ErrorBoundary } from '@mobile/shared/components/ErrorBoundary';
 import { CoachNavProvider } from './CoachNavContext';
+import { linkingConfig, linkingGate, LINKING_PREFIXES } from './linkingConfig';
 import { NavigationContainer, useNavigationContainerRef, type LinkingOptions, type NavigatorScreenParams } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import {
   registerNotificationHandler,
+  unregisterNotificationHandler,
   handleLaunchNotification,
 } from '@features/notifications/services/notificationHandler';
 import { syncPushSubscriptionOnLoad } from '@shared/services/pushNotificationService';
@@ -210,6 +213,8 @@ function TabNavigator() {
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{ headerShown: false }}
+      // A crash in one tab stays in that tab; the tab bar still works.
+      screenLayout={({ children }) => <ErrorBoundary>{children}</ErrorBoundary>}
     >
       {/* 2026 tab order: Home, Map, Record, Groups, You. The feed lives on Home;
           Groups holds Challenges, Clubs and Events. */}
@@ -227,8 +232,10 @@ function TabNavigator() {
 // Used for: Supabase magic-link auth callbacks, push notification URLs,
 // and any runivo:// links shared from other apps.
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ['runivo://', 'https://runivo.app'],
+  prefixes: LINKING_PREFIXES,
   async getInitialURL() {
+    // Mid-onboarding, a link must not open the tabs past it (initialRouteName is Main).
+    if (linkingGate.paused) return null;
     // Check if app was opened from a deep link
     const url = await Linking.getInitialURL();
     if (url) return url;
@@ -237,47 +244,17 @@ const linking: LinkingOptions<RootStackParamList> = {
       .then(n => n.getLastNotificationResponseAsync())
       .catch(() => null);
     const actionUrl = (response?.notification.request.content.data as { actionUrl?: string })?.actionUrl;
-    if (actionUrl) return `runivo:/${actionUrl}`;
+    if (actionUrl) return `runivo://${actionUrl.replace(/^\/+/, '')}`;
     return null;
   },
   subscribe(listener) {
-    const sub = Linking.addEventListener('url', ({ url }) => listener(url));
+    const sub = Linking.addEventListener('url', ({ url }) => { if (!linkingGate.paused) listener(url); });
     return () => sub.remove();
   },
-  config: {
-    screens: {
-      Main: '',
-      Landing:     'landing',
-      Login:       'login',
-      SignUp:      'signup',
-      Onboarding:  'onboarding',
-      History:     'history',
-      Missions:    'missions',
-      Leaderboard: 'leaderboard',
-      Events:      'events',
-      Club:        'clubs',
-      Challenges:  'challenges',
-      ChallengeDetail: 'challenges/:id',
-      Notifications: 'notifications',
-      Subscription:      'subscription',
-      ConnectedDevices:  'settings/devices',
-      MapVisibility:     'settings/map-visibility',
-      BlockedRunners:    'settings/blocked',
-      Privacy:           'settings/privacy',
-      MyRewards:         'store/mine',
-      YearInRunivo:      'year',
-      ProfileStats:      'profile/stats',
-      TrainingLog:       'profile/log',
-      Strength:          'training/strength',
-      UserProfile:       'runner/:userId',
-      TrainingPlan:      'training',
-      PlanBuilder:       'training/new',
-      PlanSession:       'training/session/:sessionId',
-      RunSummary:    'run/summary/:runId',
-      AwardDetail:   'award/:awardId',
-    },
-  },
+  config: linkingConfig,
 };
+
+let launchNotificationHandled = false;
 
 // ─── Root Stack Navigator ────────────────────────────────────────────────────
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -290,12 +267,25 @@ export function AppNavigator({
   needsOnboarding?: boolean;
 }) {
   const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  // Set during render (not in an effect): the container reads getInitialURL on its
+  // first render. Only on change, so onboarding's finish() can lift it for the session.
+  const gateKey = `${isAuthenticated}:${needsOnboarding}`;
+  const lastGateKey = React.useRef('');
+  if (lastGateKey.current !== gateKey) {
+    lastGateKey.current = gateKey;
+    linkingGate.paused = isAuthenticated && needsOnboarding;
+  }
   const C = useTheme();
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    // Signed out: no push taps routed into screens that need an account (B15).
+    if (!isAuthenticated) { unregisterNotificationHandler(); return; }
     registerNotificationHandler(navigationRef);
-    handleLaunchNotification(navigationRef).catch(() => {});
+    // Once per launch: signing out and back in used to replay the push that opened the app (B15).
+    if (!launchNotificationHandled) {
+      launchNotificationHandled = true;
+      handleLaunchNotification(navigationRef).catch(() => {});
+    }
     syncPushSubscriptionOnLoad().catch(() => {});
     // Configure RevenueCat with the current user's ID for receipt attribution
     (async () => {
@@ -311,7 +301,14 @@ export function AppNavigator({
           push transition — without it, a screen whose own root view doesn't yet
           fully cover the viewport lets the outgoing screen (tab bar included)
           show through underneath for the length of the animation. */}
-      <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}
+        // Each screen has its own crash boundary with Go back, so one broken
+        // screen doesn't replace the whole app.
+        screenLayout={({ children, navigation }) => (
+          <ErrorBoundary onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}>{children}</ErrorBoundary>
+        )}
+      >
         {!isAuthenticated ? (
           // Unauthenticated group
           <>

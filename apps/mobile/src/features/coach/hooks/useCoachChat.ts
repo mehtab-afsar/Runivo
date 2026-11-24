@@ -27,6 +27,8 @@ function friendlyCoachError(e: unknown, fallback: string): string {
     }
     if (e.kind === 'limit') return "You've reached today's PaceX limit. It resets tomorrow";
     if (e.kind === 'plus') return 'PaceX chat is part of Runivo Plus';
+    if (e.kind === 'auth') return 'Your session expired. Sign out and back in to use PaceX';
+    if (e.kind === 'unavailable') return "PaceX is offline on our side right now. We're on it, try again later";
     if (e.kind === 'server') return 'PaceX hit a problem on our side. Try again in a minute';
     return "Can't reach PaceX. Check your connection";
   }
@@ -154,6 +156,7 @@ export function useCoachChat() {
       if (!session) return;
       const result = await requestWeeklyBrief(session.access_token);
       setBrief(result);
+      return result;
     } finally {
       setBriefLoading(false);
     }
@@ -166,6 +169,11 @@ export function useCoachChat() {
       const prompts = await getQuickPrompts(session.access_token);
       setQuickPrompts(prompts);
     } catch { /* keep whatever's already loaded (or empty, falls back to static) */ }
+  }, []);
+
+  /** Show a failed coach call in the chat's error row (same wording as chat failures). */
+  const failWith = useCallback((e: unknown, fallback: string) => {
+    setError(friendlyCoachError(e, fallback));
   }, []);
 
   const togglePlanOpen = useCallback(() => setPlanOpen(o => !o), []);
@@ -190,6 +198,7 @@ export function useCoachChat() {
     requestHabitAnalysis,
     requestNutritionCoach,
     showCard,
+    failWith,
     loadBrief,
     loadQuickPrompts,
     setInputText,

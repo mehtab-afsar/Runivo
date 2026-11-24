@@ -25,7 +25,7 @@ import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 import ActivityModal from '../components/ActivityModal';
 import RouteModal    from '../components/RouteModal';
 import { findInterruptedRunCheckpoint, clearInterruptedRunCheckpoint, type GPSPoint } from '../hooks/useActiveRun';
-import { stopBackgroundTracking, clearBgGpsBuffer, drainBgGpsBuffer, cleanupOrphanedBackgroundTask } from '../services/locationTask';
+import { stopBackgroundTracking, clearBgGpsBuffer, drainBgGpsBuffer, countBgGpsBuffer, cleanupOrphanedBackgroundTask } from '../services/locationTask';
 import { freshScreenOffFixes } from '../services/screenOffMerge';
 import { haversineM } from '@shared/services/claimEngine';
 import { formatPace } from '@shared/lib/paceFormat';
@@ -42,6 +42,7 @@ async function recoverRunFromCheckpoint(
   startTime: number,
   points: GPSPoint[],
   activityType: string,
+  mocked = false,
 ): Promise<void> {
   // Stop the background task first so nothing new lands, then take what it
   // buffered. On Android the live watcher stops with the screen off, so the
@@ -49,9 +50,12 @@ async function recoverRunFromCheckpoint(
   // the buffer is the only copy. This used to clear it unread.
   await stopBackgroundTracking().catch(() => {});
   const lastTs = points.length ? points[points.length - 1].timestamp : 0;
-  const bgFixes = freshScreenOffFixes(lastTs, drainBgGpsBuffer(runId))
+  const buffered = freshScreenOffFixes(lastTs, drainBgGpsBuffer(runId));
+  if (buffered.some(p => p.mocked)) mocked = true;
+  const bgFixes = buffered
     .map(p => ({ lat: p.lat, lng: p.lng, timestamp: p.timestamp, speed: p.speed, accuracy: p.accuracy, altitude: 0 }));
   points = [...points, ...bgFixes];
+  if (points.length < 2) throw new Error('nothing to recover');
 
   let distanceM = 0;
   for (let i = 1; i < points.length; i++) {
@@ -76,6 +80,8 @@ async function recoverRunFromCheckpoint(
     enemyCaptured: 0,
     preRunLevel: 0,
     synced: false,
+    // A mock-location run stays flagged after recovery (the server pays nothing for it).
+    ...(mocked && { mockedLocation: true }),
   };
   await saveRun(run);
 
@@ -144,7 +150,10 @@ export default function RunScreen() {
 
   useEffect(() => {
     findInterruptedRunCheckpoint().then(cp => {
-      if (!cp || cp.points.length < 2) {
+      // The background buffer counts: on Android a screen-off run has no live
+      // points, and the buffer is the whole run. It used to be deleted here.
+      const buffered = cp ? countBgGpsBuffer(cp.runId) : 0;
+      if (!cp || cp.points.length + buffered < 2) {
         if (cp) clearInterruptedRunCheckpoint();
         // No recoverable run — if a background task is still registered (e.g. the
         // app was killed before a clean stop), it's orphaned; stop it so it doesn't
@@ -157,7 +166,9 @@ export default function RunScreen() {
       const km = (m / 1000).toFixed(1);
       appAlert(
         'Interrupted run found',
-        `A run was interrupted (~${km} km of GPS data). Recover it?`,
+        cp.points.length >= 2
+          ? `A run was interrupted (~${km} km of GPS data). Recover it?`
+          : 'A run was interrupted while the screen was off. Recover it?',
         [
           { text: 'Discard', style: 'destructive', onPress: () => {
             clearInterruptedRunCheckpoint();
@@ -165,7 +176,7 @@ export default function RunScreen() {
           } },
           { text: 'Recover', onPress: async () => {
             try {
-              await recoverRunFromCheckpoint(cp.runId, cp.startTime, cp.points, cp.activityType);
+              await recoverRunFromCheckpoint(cp.runId, cp.startTime, cp.points, cp.activityType, cp.mocked);
             } catch {
               // Keep the checkpoint: the GPS data is still on the phone and the
               // prompt will offer recovery again next time.

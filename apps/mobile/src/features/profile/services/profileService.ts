@@ -112,6 +112,9 @@ export async function uploadAvatar(userId: string, uri: string): Promise<string 
       .from('avatars')
       .upload(path, img.body, { upsert: true, contentType: img.contentType });
     if (error) return null;
+    // A photo in another format would stay public under the old name.
+    const stale = ['jpg', 'png', 'webp', 'gif'].filter(e => e !== img.ext).map(e => `${userId}/avatar.${e}`);
+    supabase.storage.from('avatars').remove(stale).catch(() => {});
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
     return data.publicUrl;
   } catch {

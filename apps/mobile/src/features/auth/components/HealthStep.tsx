@@ -3,7 +3,7 @@ import { View, Text, Switch, ScrollView, Platform, ActivityIndicator } from 'rea
 import { HeartPulse } from '@mobile/shared/icons/lucideCompat';
 import { healthBaseline, formatDuration, type HealthBaseline } from '@shared/engine/onboarding';
 import { track } from '@shared/services/analytics';
-import { readRecentWorkouts } from '@mobile/shared/services/healthService';
+import { readRecentWorkouts, setAppleHealthConnected } from '@mobile/shared/services/healthService';
 import { useTheme } from '@theme';
 import { mkStep } from './onboardingStyles';
 
@@ -32,15 +32,22 @@ export default function HealthStep({ consent, baseline, onChange }: Props) {
 
   async function toggle(on: boolean) {
     const req = ++requestRef.current;
-    if (!on) { onChange(false, null); setChecked(false); setLoading(false); return; }
+    if (!on) {
+      onChange(false, null); setChecked(false); setLoading(false);
+      setAppleHealthConnected(false).catch(() => {});
+      return;
+    }
     onChange(true, null);
     setLoading(true);
     try {
       const workouts = await readRecentWorkouts(90);
       if (req !== requestRef.current) return;
+      // Permission granted: finished runs are saved to Health from now on, as the
+      // step says (writes check this connection).
+      setAppleHealthConnected(true).catch(() => {});
       const b = healthBaseline(workouts, Date.now(), 90);
       onChange(true, b);
-      track('onboarding_health_import', { runs: b?.runs ?? 0 });
+      track('onboarding_health_import');
     } catch {
       if (req !== requestRef.current) return;
       onChange(true, null);
@@ -66,7 +73,7 @@ export default function HealthStep({ consent, baseline, onChange }: Props) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.cardTitle}>Share runs from {APP_NAME}</Text>
-          <Text style={s.cardSub}>Distance, time and pace only. Turn it off any time in Settings.</Text>
+          <Text style={s.cardSub}>Distance, time, pace and calories. Turn it off any time in Settings.</Text>
         </View>
         <Switch
           value={consent}

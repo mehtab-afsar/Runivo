@@ -1,4 +1,5 @@
-import { muteUser as muteUserService } from '@mobile/shared/services/safetyService';
+import { muteUser as muteUserService, blockUser as blockUserService } from '@mobile/shared/services/safetyService';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@shared/services/supabase';
 import {
@@ -6,7 +7,7 @@ import {
   toggleLike,
   fetchFollowingIds,
   fetchSuggestedRunners,
-  toggleFollowService,
+  setFollow,
   deletePost as deletePostService,
 } from '@features/social/services/feedService';
 import { fetchMyClubActivity } from '@features/clubs/services/clubService';
@@ -151,7 +152,12 @@ export function useFeed() {
     const wasFollowing = followingIds.includes(targetId);
     setFollowingIds(prev => wasFollowing ? prev.filter(id => id !== targetId) : [...prev, targetId]);
     try {
-      await toggleFollowService(targetId);
+      const state = await setFollow(targetId, !wasFollowing);
+      if (state === 'requested') {
+        // Their profile isn't public: they accept or decline first.
+        setFollowingIds(prev => prev.filter(id => id !== targetId));
+        appAlert('Request sent', "They'll see your request. You can see their activities once they accept.");
+      }
     } catch {
       // Revert — toggleFollowService now throws on failure instead of silently
       // no-oping, so a failed request no longer leaves the UI desynced from the
@@ -198,6 +204,22 @@ export function useFeed() {
     }
   }, [followingPosts, discoverPosts]);
 
+  // Block: their posts leave both lists now; the server hides everything both ways.
+  const blockAuthor = useCallback(async (authorId: string) => {
+    const prevFollowing = followingPosts;
+    const prevDiscover  = discoverPosts;
+    setFollowingPosts(prev => prev.filter(p => p.userId !== authorId));
+    setDiscoverPosts(prev => prev.filter(p => p.userId !== authorId));
+    setFollowingIds(prev => prev.filter(id => id !== authorId));
+    try {
+      await blockUserService(authorId);
+    } catch {
+      setFollowingPosts(prevFollowing);
+      setDiscoverPosts(prevDiscover);
+      appAlert("Couldn't block", 'Check your connection and try again.');
+    }
+  }, [followingPosts, discoverPosts]);
+
   const deletePost = useCallback(async (postId: string) => {
     const prevFollowing = followingPosts;
     const prevDiscover  = discoverPosts;
@@ -233,5 +255,6 @@ export function useFeed() {
     onCommentPosted,
     deletePost,
     muteAuthor,
+    blockAuthor,
   };
 }

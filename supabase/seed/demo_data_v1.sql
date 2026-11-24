@@ -69,19 +69,9 @@ BEGIN
    WHERE (p.id::text LIKE 'de30%' OR p.id = tester) AND COALESCE(p.pace_weekly_earned, 0) > 0
   ON CONFLICT (source, source_key) DO NOTHING;
 
-  -- ── sponsored challenges (prizes are demo store rewards) ──
-  INSERT INTO public.sponsored_challenges (id, partner_id, brand, brand_color, title, description, metric, target, starts_at, ends_at, reward_id, status)
-  VALUES
-    (pg_temp.did(12, 1), pg_temp.did(5, 1), 'Brooks Running', '#0084D6', 'Run 50 km in November',
-     'Log 50 km of runs before the month ends and Brooks sends you free running socks.', 'distance_km', 50,
-     date_trunc('month', now()), date_trunc('month', now()) + interval '1 month', pg_temp.did(6, 1), 'live'),
-    (pg_temp.did(12, 2), pg_temp.did(5, 3), 'Fuel Co.', '#E8A317', '12 active days',
-     'Run on 12 different days in the next four weeks. Finish for a box of energy bars.', 'active_days', 12,
-     now() - interval '5 days', now() + interval '23 days', pg_temp.did(6, 3), 'live');
-  INSERT INTO public.sponsored_challenge_entries (challenge_id, user_id, joined_at)
-  VALUES (pg_temp.did(12, 1), tester, now() - interval '6 days');
-  INSERT INTO public.sponsored_challenge_entries (challenge_id, user_id, joined_at)
-  SELECT pg_temp.did(12, 1 + g.i % 2), pg_temp.did(0, g.i), now() - make_interval(days => g.i) FROM generate_series(1, 8) g(i);
+  -- Sponsored challenges are not seeded: prize contests need official rules and
+  -- an "Apple is not a sponsor" notice (App Store 5.3) before they go to review.
+
 
   -- ── group challenges: one you started, one you're invited to ──
   INSERT INTO public.group_challenges (id, creator_id, title, metric, target, starts_at, ends_at)

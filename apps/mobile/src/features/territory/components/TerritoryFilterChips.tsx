@@ -8,13 +8,10 @@ interface Props {
   activeFilter: TerritoryFilter;
   counts:       { mine: number; rivals: number; stale: number };
   onSelect:     (filter: TerritoryFilter) => void;
-  /** M3: everywhere you've run, drawn under the zones. */
-  heatmapOn?:   boolean;
-  onHeatmap?:   () => void;
 }
 
 /** "All · Mine 9 · Rivals 48 · Fading 2", each with the map's colour dot. */
-export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn, onHeatmap }: Props) {
+export function TerritoryFilterChips({ activeFilter, counts, onSelect }: Props) {
   const C = useTheme();
   const ss = useMemo(() => mkStyles(C), [C]);
   const filters: { id: TerritoryFilter; label: string; dot?: string }[] = [
@@ -40,16 +37,6 @@ export function TerritoryFilterChips({ activeFilter, counts, onSelect, heatmapOn
           </Pressable>
         );
       })}
-      {onHeatmap && (
-        <Pressable hitSlop={8}
-          style={[ss.pill, heatmapOn && ss.pillActive]}
-          onPress={() => { onHeatmap(); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: !!heatmapOn }}
-        >
-          <Text style={[ss.label, heatmapOn && ss.labelActive]}>Heatmap</Text>
-        </Pressable>
-      )}
     </ScrollView>
   );
 }

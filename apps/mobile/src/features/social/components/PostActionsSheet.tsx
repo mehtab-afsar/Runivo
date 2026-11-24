@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { appAlert } from '@mobile/shared/components/AppAlert';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { ShareNetwork, Trash, Flag, Check, SpeakerSlash } from 'phosphor-react-native';
+import { ShareNetwork, Trash, Flag, Check, SpeakerSlash, Prohibit } from 'phosphor-react-native';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { ModalSheet } from '@mobile/shared/components/ModalSheet';
 
@@ -14,10 +14,12 @@ interface Props {
   onReport: () => Promise<void> | void;
   /** Mute the post's author: their activities leave your feed. */
   onMute?: () => void;
+  /** Block the post's author: two-way, removes follows, hides their content. */
+  onBlock?: () => void;
   authorName?: string;
 }
 
-export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare, onDelete, onReport, onMute, authorName }: Props) {
+export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare, onDelete, onReport, onMute, onBlock, authorName }: Props) {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const [reported, setReported] = useState(false);
@@ -35,6 +37,13 @@ export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare,
       { text: 'Delete', style: 'destructive', onPress: () => { onClose(); onDelete(); } },
     ]);
   }, [onClose, onDelete]);
+  const handleBlock = useCallback(() => {
+    const who = authorName ?? 'this runner';
+    appAlert(`Block ${who}?`, "You won't see their posts or comments, and they won't see yours. You stop following each other.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Block', style: 'destructive', onPress: () => { onClose(); onBlock?.(); } },
+    ]);
+  }, [authorName, onClose, onBlock]);
   const handleReport = useCallback(async () => {
     try {
       await onReport();
@@ -55,6 +64,13 @@ export default function PostActionsSheet({ visible, isOwnPost, onClose, onShare,
         <Pressable style={s.row} onPress={() => { onClose(); onMute(); }} accessibilityRole="button">
           <SpeakerSlash size={18} color={C.black} weight="light" />
           <Text style={s.rowText}>Mute {authorName ?? 'this runner'}</Text>
+        </Pressable>
+      )}
+
+      {!isOwnPost && onBlock && (
+        <Pressable style={s.row} onPress={handleBlock} accessibilityRole="button">
+          <Prohibit size={18} color={C.danger} weight="light" />
+          <Text style={[s.rowText, { color: C.danger }]}>Block {authorName ?? 'this runner'}</Text>
         </Pressable>
       )}
 

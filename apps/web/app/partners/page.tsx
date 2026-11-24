@@ -93,7 +93,7 @@ export default function PartnersPage() {
             <p style={eyebrow}>How rewards are priced</p>
             <h2 style={h2}>PACE means weeks of running.</h2>
             <p style={{ ...body, maxWidth: 620, marginBottom: 28 }}>
-              A runner earns at most 100 PACE a week (150 with Runivo Plus), so the price of your reward is how long
+              A runner earns at most 150 PACE a week, so the price of your reward is how long
               someone runs to get it.
             </p>
             <div style={{ ...card, padding: 0, overflow: 'hidden' }}>

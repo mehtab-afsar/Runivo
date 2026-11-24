@@ -1,10 +1,9 @@
 import { PlusOnlyCoach } from '../components/PaceXLocked';
-import AiConsentCard from '../components/AiConsentCard';
+import { AiConsentGate } from '../components/AiConsentGate';
 import { SafetyNote } from '@mobile/shared/components/SafetyNote';
-import { useAiConsent } from '../hooks/useAiConsent';
 import React, { useMemo, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, KeyboardAvoidingView,
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, KeyboardAvoidingView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -42,28 +41,6 @@ const START_OPTIONS: { label: string; message: string; plan?: boolean; icon: Ico
 
 export default function CoachScreen() {
   return <PlusOnlyCoach><AiConsentGate><CoachScreenInner /></AiConsentGate></PlusOnlyCoach>;
-}
-
-/**
- * Nothing below this point may run until the runner has agreed to send their data
- * to the third-party AI: CoachScreenInner's hooks call the coach as soon as they
- * mount (weekly brief, quick prompts), so the gate has to wrap it, not sit inside.
- */
-function AiConsentGate({ children }: { children: React.ReactNode }) {
-  const C = useTheme();
-  const navigation = useNavigation<Nav>();
-  const { consent, granted } = useAiConsent();
-
-  if (consent === true) return <>{children}</>;
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.bg }} edges={['top']}>
-      {consent === false && (
-        <ScrollView contentContainerStyle={{ paddingVertical: 12 }}>
-          <AiConsentCard onGranted={granted} onDecline={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main' as never))} />
-        </ScrollView>
-      )}
-    </SafeAreaView>
-  );
 }
 
 function CoachScreenInner() {
@@ -139,18 +116,36 @@ function CoachScreenInner() {
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!lastRun) return;
-    const payload = await requestPostRunAnalysis(lastRun.id, session.access_token);
-    if (payload) coach.showCard(payload);
+    if (!lastRun) {
+      coach.showCard({ praise: 'No synced run yet.', analysis: 'Finish a run and let it upload, then ask again.', suggestion: '' });
+      return;
+    }
+    try {
+      const payload = await requestPostRunAnalysis(lastRun.id, session.access_token);
+      if (payload) coach.showCard(payload);
+      else coach.showCard({ praise: 'That run was too short to look at.', analysis: 'Runs under 500 m are skipped.', suggestion: '' });
+    } catch (e) {
+      coach.failWith(e, 'Could not load your debrief');
+    }
   }, [coach]);
 
-  const requestWeeklyReview = useCallback(() => {
+  const requestWeeklyReview = useCallback(async () => {
     setChatVisible(true);
-    if (coach.brief) coach.showCard(coach.brief);
+    const brief = coach.brief ?? await coach.loadBrief();
+    if (brief) coach.showCard(brief);
+    else coach.failWith(null, "Couldn't load your weekly review. Try again in a minute");
   }, [coach]);
 
   const handleCapabilitySelect = useCallback((message: string) => {
+    if (message === 'open_plan') {
+      navigation.navigate(hasActivePlan ? 'TrainingPlan' : 'PlanBuilder');
+      return;
+    }
     setAtStart(false);
+    if (message === 'open_chat') {
+      setChatVisible(true);
+      return;
+    }
     if (message === 'habit_tracking') {
       setChatVisible(true);
       coach.requestHabitAnalysis();
@@ -170,7 +165,7 @@ function CoachScreenInner() {
       return;
     }
     openChatWithPrompt(message);
-  }, [openChatWithPrompt, coach, requestPostRunDebrief, requestWeeklyReview]);
+  }, [openChatWithPrompt, coach, requestPostRunDebrief, requestWeeklyReview, navigation, hasActivePlan]);
 
   const scrollRef = useRef<ScrollView>(null);
   const chips: { label: string; message: string }[] = coach.quickPrompts.length > 0

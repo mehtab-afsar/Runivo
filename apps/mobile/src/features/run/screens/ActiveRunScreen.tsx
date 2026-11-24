@@ -38,14 +38,14 @@ import { computeRouteProgress, type RouteProgress } from '../utils/routeNavigati
 import { useTheme, useIsDark, feedback, Type, Fonts, type AppColors } from '@theme';
 import { territoryPalette } from '@theme/territory';
 import {
-  estimateLiveArea,
+  liveTerritory,
   detectLoopClose,
   isNearRivalTerritory,
   haversineM,
 } from '@shared/services/claimEngine';
-import { ENGINE } from '@shared/engine/runEngine';
+import { clearInterruptedRunCheckpoint } from '../hooks/useActiveRun';
+import { ENGINE, tierForArea } from '@shared/engine/runEngine';
 import { sportFor } from '../constants/activities';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TerritoryPolygon } from '@shared/types/game';
 import { useWorkoutMode } from '@features/training/hooks/useWorkoutMode';
 import WorkoutPanel from '@features/training/components/WorkoutPanel';
@@ -118,6 +118,10 @@ export default function ActiveRunScreen() {
   const [liveAreaM2,    setLiveAreaM2]    = useState(0);
   const [speedWarning,  setSpeedWarning]  = useState(false);
   const [loopClosing,   setLoopClosing]   = useState(false);
+  // Back near the start, but this shape only claims the strip (an out-and-back,
+  // or a loop bigger than the engine fills): said plainly instead of "loop closed".
+  const [nearStartStripOnly, setNearStartStripOnly] = useState(false);
+  const lastShapeCheckRef = useRef(0);
   const [nearRival,     setNearRival]     = useState(false);
   const [routeProgress, setRouteProgress] = useState<RouteProgress | null>(null);
   // Live capture reward — a one-shot celebratory toast + haptic the moment a loop
@@ -173,7 +177,7 @@ export default function ActiveRunScreen() {
     if (!run.isRunning) return;
     const id = setInterval(() => {
       const pts = gpsPointsRef.current.map(p => ({ ...p }));
-      setLiveAreaM2(estimateLiveArea(pts, activityType));
+      setLiveAreaM2(liveTerritory(pts, activityType).areaM2);
     }, 15_000);
     return () => clearInterval(id);
   }, [run.isRunning, activityType]);
@@ -186,7 +190,18 @@ export default function ActiveRunScreen() {
     const first = run.gpsPoints[0];
     // Same test as the finished run: back near any earlier part of the route.
     if (sport.claims) {
-      setLoopClosing(detectLoopClose(last, first, run.distance * 1000, run.gpsPoints));
+      // Cheap test first; when it passes, check the shape the finish would
+      // claim (at most every 5 s), so "loop closed" is only said for a loop
+      // that will really be filled.
+      const near = detectLoopClose(last, first, run.distance * 1000, run.gpsPoints);
+      if (!near) { setLoopClosing(false); setNearStartStripOnly(false); }
+      else if (Date.now() - lastShapeCheckRef.current > 5_000) {
+        lastShapeCheckRef.current = Date.now();
+        const live = liveTerritory(run.gpsPoints.map(p => ({ ...p })), activityType);
+        setLiveAreaM2(live.areaM2);
+        setLoopClosing(live.isLoop);
+        setNearStartStripOnly(!live.isLoop);
+      }
       setNearRival(isNearRivalTerritory(last.lat, last.lng, rivalPolygonsRef.current));
     }
     // Ghost route progress
@@ -323,15 +338,21 @@ export default function ActiveRunScreen() {
         // Sync has finished by now, so the server's PACE is on the stored run
         // (cap and verified distance applied); the feed card shows that one.
         const stored = ok ? await getRunById(runId).catch(() => undefined) : undefined;
-        const feedPace = stored?.serverProcessed && typeof stored.xpEarned === 'number' ? stored.xpEarned : result.paceEarned;
+        const scored = stored?.serverProcessed === true;
+        const feedPace = scored && typeof stored.xpEarned === 'number' ? stored.xpEarned : result.paceEarned;
+        // The feed shows what the server decided, not the phone's preview: a
+        // run it rejected or that gained no new ground posts no zone.
+        const verdict = scored ? stored.serverResult : undefined;
+        const zones = verdict ? verdict.newZones + verdict.stolenZones : (result.territory ? 1 : 0);
+        const zoneArea = verdict ? (verdict.claimedAreaM2 ?? 0) : (result.territory?.areaM2 ?? 0);
         createFeedPost(
           runId,
           distanceMeters / 1000,
-          result.territory ? 1 : 0,
+          zones,
           {
             paceEarned:      feedPace,
-            territoryTier:   result.territory?.tier ?? null,
-            territoryAreaM2: result.territory?.areaM2 ?? null,
+            territoryTier:   zones > 0 && zoneArea > 0 ? tierForArea(zoneArea) : (verdict ? null : result.territory?.tier ?? null),
+            territoryAreaM2: zones > 0 && zoneArea > 0 ? zoneArea : (verdict ? null : result.territory?.areaM2 ?? null),
             runnerRank:      result.runnerRank,
             durationSec:     elapsedSec,
             avgPace:         avgPace,
@@ -379,13 +400,13 @@ export default function ActiveRunScreen() {
       { text: 'Discard', style: 'destructive', onPress: () => {
         // Remove the crash-recovery checkpoint so the user isn't prompted to
         // restore a cancelled run on next app launch.
-        const cpKey = `${run.gpsCheckpointPrefix}${run.activeRunId}`;
-        AsyncStorage.removeItem(cpKey).catch(() => {});
+        // All of it: the meta row and its point parts (only the meta used to go).
+        clearInterruptedRunCheckpoint().catch(() => {});
         allowLeaveRef.current = true;
         nav.goBack();
       }},
     ]);
-  }, [run.isRunning, run.activeRunId, run.gpsCheckpointPrefix, nav, sport.verb]);
+  }, [run.isRunning, nav, sport.verb]);
 
   useEffect(() => nav.addListener('beforeRemove', e => {
     if (allowLeaveRef.current || !runningRef.current) return;
@@ -423,6 +444,8 @@ export default function ActiveRunScreen() {
         }
       : loopClosing
         ? { label: 'Loop closed', detail: liveAreaM2 > 0 ? `${fmtArea(liveAreaM2)} on finish` : 'The ground inside is yours on finish', pct: 1 }
+        : nearStartStripOnly
+        ? { label: 'Strip only', detail: `This route claims the street you ran${liveAreaM2 > 0 ? ` · ${fmtArea(liveAreaM2)}` : ''}. Loops up to about 2.5 km round fill in.`, pct: 1 }
         : {
             label: 'Close the loop to claim',
             detail: `${toStartM >= 1000 ? `${(toStartM / 1000).toFixed(1)} km` : `${Math.round(toStartM)} m`} to go${liveAreaM2 > 0 ? ` · ${fmtArea(liveAreaM2)}` : ''}`,
@@ -586,6 +609,16 @@ export default function ActiveRunScreen() {
               accessibilityHint="Opens Settings"
             >
               <Text style={ss.bannerTxt}>{run.gpsError}{'\n'}Tap to open Settings</Text>
+            </Pressable>
+          )}
+          {run.isRunning && run.backgroundWarning && (
+            <Pressable
+              style={ss.banner}
+              onPress={() => { Linking.openSettings().catch(() => {}); }}
+              accessibilityRole="button"
+              accessibilityHint="Opens Settings"
+            >
+              <Text style={ss.bannerTxt}>{run.backgroundWarning}</Text>
             </Pressable>
           )}
           {banner && (

@@ -73,7 +73,7 @@ export const signInWithGoogle = (): Promise<void> => oauthFlow('google');
  * with the hashed claim in Apple's identityToken, binding the token to this
  * attempt (replay/CSRF defence). Null when the runner backed out.
  */
-export async function nativeAppleCredential(): Promise<{ token: string; nonce: string; authorizationCode: string | null } | null> {
+export async function nativeAppleCredential(): Promise<{ token: string; nonce: string; authorizationCode: string | null; fullName: string | null } | null> {
   const rawNonce = Crypto.randomUUID();
   const hashedNonce = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
 
@@ -92,7 +92,9 @@ export async function nativeAppleCredential(): Promise<{ token: string; nonce: s
   }
 
   if (!credential.identityToken) throw new Error('Apple sign-in returned no identity token');
-  return { token: credential.identityToken, nonce: rawNonce, authorizationCode: credential.authorizationCode ?? null };
+  // Apple sends the name only on the first authorization: keep it (B21).
+  const fullName = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(' ').trim() || null;
+  return { token: credential.identityToken, nonce: rawNonce, authorizationCode: credential.authorizationCode ?? null, fullName };
 }
 
 /**
@@ -111,4 +113,13 @@ export async function signInWithApple(): Promise<void> {
     nonce:    cred.nonce,
   });
   if (error) throw error;
+  if (cred.fullName) {
+    // Best effort, and never over a name the runner already set.
+    supabase.auth.updateUser({ data: { full_name: cred.fullName } }).catch(() => {});
+    const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+    if (user) {
+      await Promise.resolve(supabase.from('profiles').update({ display_name: cred.fullName })
+        .eq('id', user.id).is('display_name', null)).catch(() => {});
+    }
+  }
 }

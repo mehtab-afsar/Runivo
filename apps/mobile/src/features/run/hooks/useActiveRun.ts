@@ -4,7 +4,7 @@
  * Integrates with the background location task for screen-off tracking.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +20,7 @@ import {
   stopBackgroundTracking,
   drainBgGpsBuffer,
   clearBgGpsBuffer,
+  bufferedActiveRun,
   GPS_CHECKPOINT_PREFIX,
 } from '../services/locationTask';
 import { freshScreenOffFixes } from '../services/screenOffMerge';
@@ -51,17 +52,25 @@ function resolveGpsAccuracy(setting: 'standard' | 'high'): Location.Accuracy {
   return setting === 'standard' ? Location.Accuracy.High : Location.Accuracy.BestForNavigation;
 }
 
-/** Returns any checkpoint key written by an interrupted run (crash recovery). */
-export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[]; activityType: string } | null> {
+/**
+ * Returns the run an interrupted session left behind (crash recovery): its
+ * checkpoint, or, when there is none, the background buffer alone. On Android
+ * a run recorded with the screen off has no live points (so no checkpoint
+ * parts); the buffer is the whole run.
+ */
+export async function findInterruptedRunCheckpoint(): Promise<{ runId: string; startTime: number; points: GPSPoint[]; activityType: string; mocked: boolean } | null> {
   try {
     const keys = await AsyncStorage.getAllKeys();
     const checkpointKey = keys.find(k => k.startsWith(GPS_CHECKPOINT_PREFIX) && !isPartKey(k));
-    if (!checkpointKey) return null;
-    const raw = await AsyncStorage.getItem(checkpointKey);
-    if (!raw) return null;
-    const cp = await readCheckpoint(raw, n => AsyncStorage.getItem(partKey(checkpointKey, n)));
-    const runId = checkpointKey.slice(GPS_CHECKPOINT_PREFIX.length);
-    return { runId, ...cp };
+    const raw = checkpointKey ? await AsyncStorage.getItem(checkpointKey) : null;
+    if (checkpointKey && raw) {
+      const cp = await readCheckpoint(raw, n => AsyncStorage.getItem(partKey(checkpointKey, n)));
+      const runId = checkpointKey.slice(GPS_CHECKPOINT_PREFIX.length);
+      return { runId, ...cp };
+    }
+    const buffered = bufferedActiveRun();
+    if (!buffered) return null;
+    return { runId: buffered.runId, startTime: buffered.firstTs, points: [], activityType: 'run', mocked: false };
   } catch {
     return null;
   }
@@ -113,6 +122,9 @@ export function useActiveRun(activityType: string = 'run') {
     gpsError:     null,
   });
   const [gpsLocked, setGpsLocked] = useState(false);
+  // Screen-off tracking isn't running (background permission refused, or the
+  // task failed to start): the runner is told to keep the app open.
+  const [backgroundWarning, setBackgroundWarning] = useState<string | null>(null);
 
   const locationSubRef      = useRef<Location.LocationSubscription | null>(null);
   const appStateSubRef      = useRef<ReturnType<typeof AppState.addEventListener> | null>(null);
@@ -158,6 +170,12 @@ export function useActiveRun(activityType: string = 'run') {
   const manualPauseRef         = useRef<boolean>(false);
   const autoPausedRef          = useRef<boolean>(false);
   const stoppedSinceRef        = useRef<number | null>(null);
+  // Time of the last fix that showed movement. iOS sends no fixes at all while
+  // standing still (distanceInterval), so auto-pause is also checked from the
+  // 1 s timer, not only from fix callbacks.
+  const lastMovingFixAtRef     = useRef<number>(0);
+  // Only phones that report speed can auto-resume, so only they auto-pause from the timer.
+  const speedKnownRef          = useRef<boolean>(false);
   // Live Run Sharing — read once at run start (matches autoPauseEnabledRef's
   // pattern); playerIdRef stays fresh via the effect below so the GPS watcher
   // closure (created once per startRun call) never reads a stale id.
@@ -194,6 +212,7 @@ export function useActiveRun(activityType: string = 'run') {
   const mergeBgPoints = useCallback((bgPoints: ReturnType<typeof drainBgGpsBuffer>): boolean => {
     const pts = gpsPointsRef.current;
     const fresh = freshScreenOffFixes(pts.length ? pts[pts.length - 1].timestamp : 0, bgPoints);
+    if (fresh.some(p => p.mocked)) mockedLocationRef.current = true;
     const r = addFixes(filterRef.current, fresh, maxSpeedFor(activityType));
     filterRef.current = { base: r.base, outliers: r.outliers };
     totalDistanceRef.current += r.addedM / 1000;
@@ -220,8 +239,16 @@ export function useActiveRun(activityType: string = 'run') {
       return;
     }
 
-    // Request background permission (soft — if denied, foreground-only tracking still works)
-    await Location.requestBackgroundPermissionsAsync().catch(() => {});
+    // iOS tracks with the screen locked on "While Using" (background mode + the blue
+    // indicator), so it never asks for "Always". Android needs background location
+    // for that; if refused, foreground tracking still works and the runner is told.
+    if (Platform.OS === 'android') {
+      const bg = await Location.requestBackgroundPermissionsAsync().catch(() => null);
+      setBackgroundWarning(bg?.status === 'granted' ? null
+        : "Screen-off tracking is off. Keep Runivo open, or allow location 'All the time' in Settings.");
+    } else {
+      setBackgroundWarning(null);
+    }
 
     const settings = await getSettings().catch(() => null);
     const gpsAccuracy = resolveGpsAccuracy(settings?.gpsAccuracy ?? 'high');
@@ -231,6 +258,7 @@ export function useActiveRun(activityType: string = 'run') {
     manualPauseRef.current = false;
     autoPausedRef.current = false;
     stoppedSinceRef.current = null;
+    lastMovingFixAtRef.current = Date.now();
 
     // Keeping the screen awake is a nicety; failing to get it must not stop the run starting.
     await activateKeepAwakeAsync().catch(() => {});
@@ -287,9 +315,13 @@ export function useActiveRun(activityType: string = 'run') {
     if (checkpointIntervalRef.current) clearInterval(checkpointIntervalRef.current);
     // Compact parts, and only the parts that changed (runCheckpoint.ts, audit P1-14).
     let savedFullParts = 0;
+    // The meta row is written now, before any live point: with the screen off
+    // straight away (Android) there may never be one, and recovery must still
+    // find the run (its points are in the background buffer).
+    AsyncStorage.multiSet(checkpointWrites(cpKey, startTimeRef.current, activityType, [], 0).rows).catch(() => {});
     checkpointIntervalRef.current = setInterval(async () => {
       if (gpsPointsRef.current.length === 0) return;
-      const w = checkpointWrites(cpKey, startTimeRef.current, activityType, gpsPointsRef.current, savedFullParts);
+      const w = checkpointWrites(cpKey, startTimeRef.current, activityType, gpsPointsRef.current, savedFullParts, mockedLocationRef.current);
       try {
         await AsyncStorage.multiSet(w.rows);
         savedFullParts = w.fullParts;
@@ -319,6 +351,19 @@ export function useActiveRun(activityType: string = 'run') {
         gpsLockedRef.current = false;
         consecutiveGoodPointsRef.current = 0;
         setGpsLocked(false);
+      }
+      // Auto-pause when no fix has shown movement for the delay (no fixes
+      // arrive at all while standing still on iOS). The pause starts when the
+      // runner stopped, so the stopped seconds don't count as moving time.
+      if (
+        autoPauseEnabledRef.current && !manualPauseRef.current && !isPausedRef.current && gpsLockedRef.current && speedKnownRef.current &&
+        lastMovingFixAtRef.current > 0 && Date.now() - lastMovingFixAtRef.current >= AUTO_PAUSE_DELAY_MS
+      ) {
+        autoPausedRef.current = true;
+        isPausedRef.current = true;
+        pauseStartRef.current = stoppedSinceRef.current ?? lastMovingFixAtRef.current;
+        setState(prev => ({ ...prev, isPaused: true }));
+        feedback.runPause();
       }
       // Work out values outside the setState updater: React may run an updater
       // twice (Strict Mode), so updaters must not touch refs or play feedback (P1-13).
@@ -368,6 +413,7 @@ export function useActiveRun(activityType: string = 'run') {
         const speedKnown = typeof speed === 'number' && Number.isFinite(speed) && speed >= 0;
         const gpsSpeed = speedKnown ? (speed as number) : 0;
         if ((location as { mocked?: boolean }).mocked === true) mockedLocationRef.current = true;
+        speedKnownRef.current = speedKnown;
 
         // Auto-pause / auto-resume — evaluated even while already paused, so a
         // stop this hook triggered can detect movement resuming. Never engages
@@ -379,7 +425,7 @@ export function useActiveRun(activityType: string = 'run') {
             } else if (!isPausedRef.current && now - stoppedSinceRef.current >= AUTO_PAUSE_DELAY_MS) {
               autoPausedRef.current = true;
               isPausedRef.current = true;
-              pauseStartRef.current = now;
+              pauseStartRef.current = stoppedSinceRef.current;
               setState(prev => ({ ...prev, isPaused: true }));
               feedback.runPause();
               if (liveSharingEnabledRef.current && playerIdRef.current) {
@@ -388,6 +434,7 @@ export function useActiveRun(activityType: string = 'run') {
             }
           } else {
             stoppedSinceRef.current = null;
+            lastMovingFixAtRef.current = now;
             if (autoPausedRef.current) {
               autoPausedRef.current = false;
               totalPausedMsRef.current += now - pauseStartRef.current;
@@ -430,6 +477,7 @@ export function useActiveRun(activityType: string = 'run') {
         if (step.kept.length === 0) return;   // an outlier: not distance, not trace
         const deltaKm = step.addedM / 1000;
         if (deltaKm > 0) {
+          lastMovingFixAtRef.current = now;
           pendingDistanceRef.current += deltaKm;
           totalDistanceRef.current   += deltaKm;
         }
@@ -491,9 +539,10 @@ export function useActiveRun(activityType: string = 'run') {
     locationSubRef.current = watchSub;
 
     // Start background location task for screen-off tracking
-    startBackgroundTracking(runIdRef.current, gpsAccuracy).catch(err =>
-      console.warn('[useActiveRun] background tracking unavailable:', err)
-    );
+    startBackgroundTracking(runIdRef.current, gpsAccuracy).catch(err => {
+      console.warn('[useActiveRun] background tracking unavailable:', err);
+      setBackgroundWarning("Screen-off tracking couldn't start. Keep Runivo open until you finish.");
+    });
 
     lastKmRef.current = 0;
     isStartingRef.current = false;
@@ -518,6 +567,7 @@ export function useActiveRun(activityType: string = 'run') {
     filterRef.current = { base: null, outliers: 0 };
     manualPauseRef.current = false;
     stoppedSinceRef.current = null;
+    lastMovingFixAtRef.current = Date.now();
     isPausedRef.current = false;
     setState(prev => ({ ...prev, isPaused: false }));
     feedback.runStart();
@@ -618,6 +668,7 @@ export function useActiveRun(activityType: string = 'run') {
   return {
     ...state,
     gpsLocked,
+    backgroundWarning,
     startRun,
     pauseRun,
     resumeRun,

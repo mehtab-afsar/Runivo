@@ -41,6 +41,7 @@ vi.mock('./store', () => ({
   getAllTerritories:             vi.fn().mockResolvedValue([]),
   saveTerritories:              vi.fn().mockResolvedValue(undefined),
   getTerritoryPolygons:         vi.fn().mockResolvedValue([]),
+  getRunById:                   vi.fn().mockResolvedValue(undefined),
   saveTerritory:                vi.fn().mockResolvedValue(undefined),
   deleteTerritory:              vi.fn().mockResolvedValue(undefined),
   getSavedRoutes:               vi.fn().mockResolvedValue([]),
@@ -158,5 +159,69 @@ describe('uploadTrace', () => {
     expect(out[0]).toBe(pts[0]);
     expect(out[out.length - 1]).toBe(pts[pts.length - 1]);
     expect(out.length).toBeLessThan(40);
+  });
+});
+
+// Audit T6: a run that uploaded but wasn't scored yet must keep its local
+// record. pullRuns used to replace it with the server row, so the scoring
+// retry sent the simplified upload trace (less ground, less distance) and
+// lost the mock-location flag.
+describe('pullRuns — unscored local runs', () => {
+  const row = {
+    id: 'run-1', user_id: 'user-1', activity_type: 'run', started_at: '2026-11-20T07:00:00Z', finished_at: '2026-11-20T07:20:00Z',
+    distance_m: 3000, duration_sec: 1200, avg_pace: '6:40', xp_earned: 11, coins_earned: 0, territories_claimed: [], territories_fortified: [],
+    gps_points: [{ lat: 51.5, lng: -0.1, timestamp: 1 }, { lat: 51.51, lng: -0.1, timestamp: 2 }],
+  };
+  const mockRows = async () => {
+    const { supabase } = await import('./supabase');
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } } as never);
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'user-1' } } } as never);
+    vi.mocked(store.saveRun).mockResolvedValue(undefined);
+    const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), range: vi.fn().mockResolvedValue({ data: [row], error: null }) };
+    vi.mocked(supabase.from).mockReturnValueOnce(chain as never);
+  };
+
+  it('leaves an uploaded-but-unscored run (full trace, mock flag) untouched', async () => {
+    const { pullRuns } = await import('./sync');
+    const full = Array.from({ length: 500 }, (_, i) => ({ lat: 51.5 + i * 1e-5, lng: -0.1, timestamp: i * 1000, speed: 3, accuracy: 5, altitude: 0 }));
+    vi.mocked(store.getRunById).mockResolvedValueOnce({ id: 'run-1', synced: true, serverProcessed: false, gpsPoints: full, mockedLocation: true } as never);
+    vi.mocked(store.saveRun).mockClear();
+    await mockRows();
+    await pullRuns();
+    expect(store.saveRun).not.toHaveBeenCalled();
+  });
+
+  it('still refreshes a run the server has scored', async () => {
+    const { pullRuns } = await import('./sync');
+    vi.mocked(store.getRunById).mockResolvedValueOnce({ id: 'run-1', synced: true, serverProcessed: true, gpsPoints: [], xpEarned: 9 } as never);
+    vi.mocked(store.saveRun).mockClear();
+    await mockRows();
+    await pullRuns();
+    expect(store.saveRun).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('pullRuns — paging (B10)', () => {
+  it('keeps fetching pages until one comes back short', async () => {
+    const { supabase } = await import('./supabase');
+    const { pullRuns } = await import('./sync');
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } } as never);
+    vi.mocked(supabase.auth.getUser).mockResolvedValue({ data: { user: { id: 'user-1' } } } as never);
+    vi.mocked(store.getRunById).mockResolvedValue(undefined as never);
+    vi.mocked(store.saveRun).mockResolvedValue(undefined);
+    vi.mocked(store.saveRun).mockClear();
+    const mk = (n: number, off: number) => Array.from({ length: n }, (_, i) => ({
+      id: `r${off + i}`, activity_type: 'run', started_at: '2026-01-01T00:00:00Z', finished_at: '2026-01-01T00:30:00Z',
+      distance_m: 1000, duration_sec: 600, avg_pace: '6:00', gps_points: [],
+    }));
+    const range = vi.fn()
+      .mockResolvedValueOnce({ data: mk(3, 0), error: null })
+      .mockResolvedValueOnce({ data: mk(3, 3), error: null })
+      .mockResolvedValueOnce({ data: mk(1, 6), error: null });
+    const chain = { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), range };
+    vi.mocked(supabase.from).mockReturnValue(chain as never);
+    await pullRuns(3);
+    expect(range).toHaveBeenCalledTimes(3);
+    expect(store.saveRun).toHaveBeenCalledTimes(7);
   });
 });

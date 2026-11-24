@@ -1,7 +1,16 @@
 import { effectiveTier } from '../_shared/subscriptions.ts';
-import Anthropic from 'npm:@anthropic-ai/sdk';
+import Anthropic from 'npm:@anthropic-ai/sdk@0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
+
+// Model ids in one place; override per project with secrets instead of redeploying.
+const MODEL      = Deno.env.get('ANTHROPIC_MODEL')      ?? 'claude-sonnet-4-6';
+const FAST_MODEL = Deno.env.get('ANTHROPIC_FAST_MODEL') ?? 'claude-haiku-4-5-20251001';
+
+/** The first text block of a reply (newer models can put other blocks first). */
+function replyText(msg: { content: Array<{ type: string; text?: string }> }): string {
+  return msg.content.find(b => b.type === 'text')?.text ?? '';
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 /** Runivo Plus: 'premium' or the internal 'admin' tier (entitlements.isPlus). */
@@ -99,6 +108,8 @@ interface PlanCompliance {
   avgConsistencyLast8Weeks: number | null;
   /** Planned sessions from today through the next 7 days, one line each (v2 plans). */
   upcoming: string[];
+  /** Last week's sessions: planned vs done (non-race). Null in the plan's first week. */
+  lastWeek: { planned: number; done: number } | null;
   /** Race and target, e.g. "10K on 2027-01-18, target 52:30" (v2 plans). */
   race: string | null;
 }
@@ -250,8 +261,11 @@ async function contextHash(obj: unknown): Promise<string> {
 // Per-user daily spend caps (USD). Cached features (weekly_brief, post_run,
 // training_plan, nutrition_insights) cost fractions of a cent per day in
 // normal use. coach_chat is the only unbounded endpoint.
-const DAILY_CAP_USD         = 0.12;  // ~22 coach_chat messages / user / day
-const CHAT_DAILY_CAP_USD    = 0.08;  // ~15 messages for coach_chat alone
+// A chat turn is ~4-7k input tokens (system prompt + 12 turns of history) plus
+// ~300 output: about $0.02 at Sonnet prices, so the old $0.08 chat cap allowed
+// only 3-5 messages a day. Tunable per project with secrets.
+const DAILY_CAP_USD      = Number(Deno.env.get('AI_DAILY_CAP_USD') ?? '0.60');  // ~25-30 calls incl. brief/debrief
+const CHAT_DAILY_CAP_USD = Number(Deno.env.get('AI_CHAT_CAP_USD')  ?? '0.45');  // ~20 chat turns
 
 // Worst case for one request (a long context plus max output at Sonnet prices),
 // held while the request runs so parallel requests can't overrun the cap.
@@ -567,10 +581,10 @@ async function buildUserContext(
     // Nearest upcoming event the user is registered for
     supabase
       .from('event_participants')
-      .select('events!inner(date)')
+      .select('events!inner(starts_at)')
       .eq('user_id', userId)
-      .gte('events.date', todayStr)
-      .order('events.date', { ascending: true })
+      .gte('events.starts_at', todayStr)
+      .order('starts_at', { ascending: true, referencedTable: 'events' })
       .limit(1)
       .maybeSingle(),
     // Active shoes with computed km
@@ -752,9 +766,9 @@ async function buildUserContext(
     // Days until next registered event
     let daysUntilEvent: number | null = null;
     try {
-      const ev = eventsRes.data as { events: { date: string } } | null;
-      if (ev?.events?.date) {
-        const diff = (new Date(ev.events.date).getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+      const ev = eventsRes.data as { events: { starts_at: string } } | null;
+      if (ev?.events?.starts_at) {
+        const diff = (new Date(ev.events.starts_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000);
         daysUntilEvent = Math.max(0, Math.round(diff));
       }
     } catch { /* no event data — leave null */ }
@@ -812,6 +826,10 @@ async function buildUserContext(
         return `${x.date} (${day}${x.date === todayISO ? ', today' : ''}): ${x.title}, ${x.distanceKm} km${paced ? ` at ${fmtPaceSec(paced.fast)}–${fmtPaceSec(paced.slow)}/km` : ''}`;
       });
 
+    const lastWeekPlan = week ? plan.weeks.find(w => w.startDate === addDaysISO(week.startDate, -7)) : undefined;
+    const lastSessions = (lastWeekPlan?.sessions ?? []).filter(x => (x as { kind?: string }).kind !== 'race');
+    const lastWeek = lastWeekPlan ? { planned: lastSessions.length, done: lastSessions.filter(x => x.status === 'done').length } : null;
+
     const kmThisWeek = runs90d
       .filter(r => r.started_at >= (week?.startDate ?? mondayISO) + 'T00:00:00Z')
       .reduce((sum, r) => sum + (r.distance_m ?? 0) / 1000, 0);
@@ -831,6 +849,7 @@ async function buildUserContext(
       streakDays:                profileRow?.streak_days ?? 0,
       consistencyLast8Weeks:     scores.reverse(),
       avgConsistencyLast8Weeks:  avgScore,
+      lastWeek,
       upcoming,
       race: `${plan.raceRef ? `${plan.raceRef.name}${plan.raceRef.city ? ` (${plan.raceRef.city})` : ''}, ` : plan.goal && plan.goal !== 'race' ? `goal plan (${plan.goal}) ending in a time trial, ` : ''}${plan.race} on ${plan.raceDate}${plan.targetSec ? `, target ${fmtClock(plan.targetSec)}` : ''}${week?.focus ? ` · this week: ${week.focus}` : ''}`,
     };
@@ -926,6 +945,9 @@ async function handleWeeklyBrief(
     paceWeeklyEarned: ctx.paceWeeklyEarned,
     staleZoneCount:   ctx.staleZoneCount,
     territoryScore:   ctx.territoryScore,
+    planWeek:         ctx.planCompliance?.weekCurrent ?? null,
+    planDone:         ctx.planCompliance?.sessionsCompletedThisWeek ?? null,
+    planLastWeek:     ctx.planCompliance?.lastWeek ?? null,
   };
   const hash = await contextHash(hashInput);
 
@@ -969,13 +991,22 @@ Nutrition last 7 days:
 {"nutrition":{"summary":"one sentence on nutrition adherence this week ≤20 words","connection":"one sentence connecting nutrition data to run performance — if correlation exists reference specific days/paces; if no clear correlation say so briefly ≤25 words","priority":"one actionable nutrition priority for next week ≤15 words"}}`;
   }
 
+  const pc = ctx.planCompliance;
+  const planBlock = pc ? `
+Training plan: ${pc.goal}, week ${pc.weekCurrent} of ${pc.weeksTotal}.${pc.race ? ` ${pc.race}.` : ''}
+${pc.lastWeek ? `- Last week: ${pc.lastWeek.done} of ${pc.lastWeek.planned} sessions done` : '- First week of the plan'}
+- This week so far: ${pc.sessionsCompletedThisWeek} of ${pc.sessionsPlannedThisWeek} done, ${pc.sessionsMissedThisWeek} missed, ${pc.kmActualThisWeek} km run
+${pc.upcoming.length ? `- Coming up:\n  ${pc.upcoming.join('\n  ')}` : ''}
+One insight must be about the plan: how last week went and what matters most in the sessions coming up. The app may offer to ease this week if sessions were missed; never invent extra sessions.
+` : '';
+
   const prLine  = ctx.prs.fastestPace
     ? `Fastest pace (90 days): ${ctx.prs.fastestPace}/km. Longest run: ${ctx.prs.longestRun} km.` : '';
   const raceLine = ctx.racePredictions
     ? `Predicted race times: 5K ${ctx.racePredictions.fiveK} | 10K ${ctx.racePredictions.tenK} | Half ${ctx.racePredictions.half}.` : '';
 
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      MODEL,
     max_tokens: 384,
     system:     withGuardrails('You are Runivo Intelligence — a terse, motivating running coach. Return only valid JSON.'),
     messages: [{
@@ -987,7 +1018,7 @@ Avg pace: ${avgPace}/km. Trend: ${ctx.trend}.
 Pace zones: ${ctx.paceZones.easy}% easy / ${ctx.paceZones.moderate}% moderate / ${ctx.paceZones.tempo}% tempo / ${ctx.paceZones.hard}% hard.
 ${prLine}
 ${raceLine}
-${nutritionBlock}
+${planBlock}${nutritionBlock}
 Territory status:
 - PACE earned this week: ${ctx.paceWeeklyEarned} / ${ctx.paceWeeklyCapLimit}
 - Territory Score: ${ctx.territoryScore} TS
@@ -1006,7 +1037,7 @@ ${nutritionJsonInstruction}`,
 
   let payload: WeeklyBriefPayload;
   try {
-    const text = (response.content[0] as { type: 'text'; text: string }).text;
+    const text = replyText(response);
     payload = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
   } catch {
     payload = {
@@ -1044,7 +1075,12 @@ async function handlePostRun(
     .eq('user_id', userId)
     .single();
 
-  if (!run) throw new Error('Run not found');
+  // Usually the run is still uploading (the summary screen asks right after it ends).
+  if (!run) {
+    throw new Response(JSON.stringify({ error: 'run_not_synced' }), {
+      status: 404, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    });
+  }
   if ((run.distance_m ?? 0) < 500) return null;
 
   const input = { runId, distanceM: run.distance_m, durationSec: run.duration_sec };
@@ -1107,7 +1143,7 @@ Add a "recovery" field: a specific 2-sentence recovery prescription. Sentence 1:
   const pace   = run.avg_pace ?? fmtPaceSec(thisRunPace);
 
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      MODEL,
     max_tokens: 192,
     system:     withGuardrails('You are the Runivo AI Coach — a concise running coach. Return only valid JSON.'),
     messages: [{
@@ -1130,7 +1166,7 @@ ${isPR ? 'Acknowledge the PR in the praise.' : ''}`,
 
   let payload: PostRunPayload;
   try {
-    const text = (response.content[0] as { type: 'text'; text: string }).text;
+    const text = replyText(response);
     payload = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
   } catch {
     payload = {
@@ -1165,14 +1201,18 @@ async function handleCoachChat(
     .select('role, content')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(12);
 
-  const messages = (history ?? [])
-    .reverse()
-    .map((m: { role: string; content: string }) => ({
-      role:    m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
+  // Merge same-role neighbours (auto debriefs, failed sends), drop empties, and
+  // open with the runner: the Messages API wants alternating turns, user first.
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  for (const m of (history ?? []).reverse() as Array<{ role: 'user' | 'assistant'; content: string }>) {
+    if (!m.content?.trim()) continue;
+    const last = messages[messages.length - 1];
+    if (last && last.role === m.role) last.content += `\n\n${m.content}`;
+    else messages.push({ role: m.role, content: m.content });
+  }
+  while (messages.length && messages[0].role !== 'user') messages.shift();
 
   const recentRunLines = ctx.runs90d.slice(0, 20).map(r => {
     const d    = new Date(r.started_at);
@@ -1276,7 +1316,7 @@ COACHING PHILOSOPHY:
 3. Never give generic advice when you have real data.
 4. Off-topic: redirect warmly — "I'm your running and territory coach."
 
-TONE: Confident, warm, competitive. Like a coach who has run 50 marathons and also plays chess. Keep responses under 180 words unless generating a structured plan.
+TONE: Confident, warm, competitive. Like a coach who has run 50 marathons and also plays chess. Keep responses under 180 words. You do not write multi-week plans in chat: if asked, say the plan builder makes them (Your plan, then Build a plan) and offer the next single session as a card.
 
 THE PLAN: When the runner has a plan, it is the source of truth. "What should I run?" means their planned session for that day, adjusted for how they feel; say when you are changing it and why. A session card you send replaces the planned session on that date once they tap Add to my plan, so only send one when you are recommending a change or there is nothing planned.
 
@@ -1285,7 +1325,7 @@ SESSION CARDS: Today is ${todayISODate()} (UTC). When you recommend ONE specific
 Step kinds: warmup, run, recover, cooldown. Paces are seconds per km. At most 8 steps. Never add a card for general advice, rest days or when the runner has a pain or injury question.`;
 
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      MODEL,
     max_tokens: 800,
     // withGuardrails appends the shared SAFETY_GUARDRAILS block — this used to be
     // its own hand-written copy here, which meant this handler (the one with the
@@ -1297,7 +1337,7 @@ Step kinds: warmup, run, recover, cooldown. Paces are seconds per km. At most 8 
 
   await logUsage(supabase, userId, 'coach_chat', response.usage);
 
-  const assistantText = (response.content[0] as { type: 'text'; text: string }).text;
+  const assistantText = replyText(response);
 
   await supabase.from('coach_messages').insert({ user_id: userId, role: 'assistant', content: assistantText });
 
@@ -1339,7 +1379,7 @@ async function handleNutritionInsights(
   }).join('\n');
 
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      MODEL,
     max_tokens: 512,
     system:     withGuardrails('You are Runivo Intelligence — a data-driven running and nutrition coach. Return only valid JSON.'),
     messages: [{
@@ -1367,7 +1407,7 @@ Be specific: reference actual grams, days, and patterns you can see in the data.
 
   let payload: NutritionInsightsPayload;
   try {
-    const text = (response.content[0] as { type: 'text'; text: string }).text;
+    const text = replyText(response);
     const parsed = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
     payload = { cards: parsed.cards ?? [], generatedAt: new Date().toISOString() };
   } catch {
@@ -1433,7 +1473,7 @@ Return ONLY valid JSON:
 {"insights":[{"icon":"emoji","headline":"≤12 words specific claim","body":"2 sentences with actual numbers","recommendation":"≤15 words concrete action"}]}`;
 
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      MODEL,
     max_tokens: 400,
     system:     withGuardrails('You are Runivo Intelligence — a data-driven running coach. Return only valid JSON.'),
     messages: [{ role: 'user', content: prompt }],
@@ -1443,7 +1483,7 @@ Return ONLY valid JSON:
 
   let parsed: PaceIntelligencePayload;
   try {
-    const text = (response.content[0] as { type: 'text'; text: string }).text;
+    const text = replyText(response);
     const raw = JSON.parse(text.replace(/```json\n?|\n?```/g, '').trim());
     parsed = { insights: raw.insights ?? [], generatedAt: new Date().toISOString() };
   } catch {
@@ -1475,7 +1515,7 @@ async function handleTerritoryStrategy(
     .join('\n');
 
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      MODEL,
     max_tokens: 400,
     system:     withGuardrails('You are the Runivo AI Coach — a territory strategist. Be specific and competitive.'),
     messages: [{
@@ -1495,7 +1535,7 @@ Give a specific 3-run strategy: which zones to prioritize defending, optimal rou
     }],
   });
 
-  return (response.content[0] as { type: 'text'; text: string }).text;
+  return replyText(response);
 }
 
 // ─── Quick prompts ────────────────────────────────────────────────────────────
@@ -1509,7 +1549,7 @@ function handleQuickPrompts(ctx: UserContext): Array<{ label: string; message: s
     .map(s => ({ label: `${s.headline} →`, message: s.promptSeed }));
 
   const fallbacks: Array<{ label: string; message: string }> = [
-    { label: 'Build me a training plan',       message: 'Build me a personalised training plan based on my current fitness and weekly schedule.' },
+    { label: "What's my next session?",        message: 'What should my next run be, based on my plan and how my last runs went?' },
     { label: 'Analyse my last run',            message: 'Analyse my most recent run and tell me what it reveals about my current fitness.' },
     { label: 'How to improve my pace?',        message: 'Based on my recent runs, what is the most effective way for me to improve my pace?' },
     { label: 'What to eat before a long run?', message: 'What should I eat the day before and morning of a long run, based on my nutrition goals?' },
@@ -1581,7 +1621,7 @@ Write a habit analysis in EXACTLY these 4 sections. Label each section clearly.
 Be direct. Use real numbers. Under 220 words total. Conversational, not clinical.`;
 
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      MODEL,
     max_tokens: 400,
     system:     withGuardrails('You are Pace — a direct, data-driven running coach embedded in the Runivo app.'),
     messages:   [{ role: 'user', content }],
@@ -1591,7 +1631,7 @@ Be direct. Use real numbers. Under 220 words total. Conversational, not clinical
   // $0.08/day chat-specific cap instead of habit_tracking's own spend.
   await logUsage(supabase, userId, 'habit_tracking', response.usage);
 
-  const reply = (response.content[0] as { type: 'text'; text: string }).text;
+  const reply = replyText(response);
 
   await supabase.from('coach_messages').insert({
     user_id:    userId,
@@ -1614,6 +1654,11 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: CORS_HEADERS });
   }
 
+  const json = (status: number, body: unknown) => new Response(JSON.stringify(body), {
+    status, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+  });
+  const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
+
   // Set once this request has reserved spend; always run when it ends.
   let releaseSpend: (() => Promise<void>) | null = null;
   try {
@@ -1623,10 +1668,10 @@ Deno.serve(async (req) => {
     );
 
     const jwt = req.headers.get('Authorization')?.replace('Bearer ', '');
-    if (!jwt) return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
+    if (!jwt) return json(401, { error: 'unauthorized' });
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
-    if (authError || !user) return new Response('Unauthorized', { status: 401, headers: CORS_HEADERS });
+    if (authError || !user) return json(401, { error: 'unauthorized' });
 
     const body: RequestBody = await req.json();
     const { feature, runId, message, goal } = body;
@@ -1670,6 +1715,12 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Everything past here calls Anthropic: say so plainly instead of a 500 from the SDK.
+    if (!ANTHROPIC_KEY && feature !== 'quick_prompts') {
+      console.error('ai-coach: ANTHROPIC_API_KEY is not set');
+      return json(503, { error: 'ai_not_configured' });
+    }
+
     // food_scan is a vision call — handled before the shared context build, but it
     // MUST still be behind the per-user daily spend cap (it was previously returning
     // before the cap, so a user could spam uncapped vision requests) and its input
@@ -1682,9 +1733,9 @@ Deno.serve(async (req) => {
       const scanReservation = await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);
       releaseSpend = () => releaseReservation(supabase, scanReservation);
 
-      const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
+      const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY, timeout: 45_000, maxRetries: 1 });
       const msg = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        model: FAST_MODEL,
         max_tokens: 300,
         system: withGuardrails('You identify food from photos and estimate nutrition. Return only valid JSON.'),
         messages: [{
@@ -1703,7 +1754,7 @@ Deno.serve(async (req) => {
       });
 
       await logUsage(supabase, user.id, 'food_scan', msg.usage);
-      const raw = msg.content[0].type === 'text' ? msg.content[0].text.trim() : '';
+      const raw = replyText(msg).trim();
       const match = raw.match(/\{[\s\S]*\}/);
       if (!match) return new Response(JSON.stringify({ error: 'Could not identify food' }), { status: 422, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 
@@ -1717,7 +1768,7 @@ Deno.serve(async (req) => {
     const reservationId = await enforceDailyCap(supabase, user.id, feature, CORS_HEADERS);
     releaseSpend = () => releaseReservation(supabase, reservationId);
 
-    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
+    const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY, timeout: 45_000, maxRetries: 1 });
 
     // Build full user context once — shared across all handlers
     const ctx = await buildUserContext(supabase, user.id);
@@ -1780,10 +1831,17 @@ Deno.serve(async (req) => {
     // enforceDailyCap throws a pre-built Response for 429s — pass it through
     if (err instanceof Response) return err;
     console.error('ai-coach error:', err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-    });
+    // Anthropic SDK errors carry the provider's status: name the cause for the app and the logs.
+    if (err instanceof Anthropic.APIError) {
+      const st = err.status ?? 0;
+      const code = st === 401 || st === 403 ? 'ai_provider_auth'
+        : st === 404 ? 'ai_model_unavailable'
+        : st === 429 ? 'ai_provider_rate_limited'
+        : st >= 500 ? 'ai_provider_down'
+        : 'ai_provider_error';
+      return json(502, { error: code, detail: String(err.message).slice(0, 300) });
+    }
+    return json(500, { error: 'internal', detail: String(err).slice(0, 300) });
   } finally {
     await releaseSpend?.();
   }

@@ -146,18 +146,36 @@ export function enclosedAreaM2(ring: LngLat[], maxCells = 40_000): number {
   const w = maxX - minX, h = maxY - minY;
   if (w <= 0 || h <= 0) return 0;
   const cell = Math.max(2, Math.sqrt((w * h) / maxCells));
+  const cols = Math.max(0, Math.ceil((maxX - minX - cell / 2) / cell));
   let inside = 0;
   for (let y = minY + cell / 2; y < maxY; y += cell) {
-    for (let x = minX + cell / 2; x < maxX; x += cell) {
-      let odd = false;
-      for (let i = 0, j = xy.length - 1; i < xy.length; j = i++) {
-        const [xi, yi] = xy[i], [xj, yj] = xy[j];
-        if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) odd = !odd;
-      }
-      if (odd) inside++;
-    }
+    scanRow(xy, y, minX, cell, cols, () => { inside++; });
   }
   return inside * cell * cell;
+}
+
+/**
+ * Even-odd fill of one grid row: calls `hit(gx)` for every cell whose centre
+ * (minX + (gx + 0.5) * cell, y) is inside the ring. Same answer as testing
+ * each centre against every edge, but one pass over the edges per row instead
+ * of one per cell: a long lap course went from seconds to milliseconds
+ * (the edge function has a 2 s CPU budget).
+ */
+function scanRow(xy: XY[], y: number, minX: number, cell: number, cols: number, hit: (gx: number) => void): void {
+  const xs: number[] = [];
+  for (let i = 0, j = xy.length - 1; i < xy.length; j = i++) {
+    const [xi, yi] = xy[i], [xj, yj] = xy[j];
+    if ((yi > y) !== (yj > y)) xs.push(((xj - xi) * (y - yi)) / (yj - yi) + xi);
+  }
+  if (xs.length < 2) return;
+  xs.sort((a, b) => a - b);
+  // A centre x is inside when an odd number of crossings lie at or left of it:
+  // x in [xs[0], xs[1]), [xs[2], xs[3]), …
+  for (let k = 0; k + 1 < xs.length; k += 2) {
+    const from = Math.max(0, Math.ceil((xs[k] - minX) / cell - 0.5));
+    const to = Math.min(cols, Math.ceil((xs[k + 1] - minX) / cell - 0.5));
+    for (let gx = from; gx < to; gx++) hit(gx);
+  }
 }
 
 /**
@@ -203,22 +221,12 @@ export function coverageAreaM2(line: LngLat[], ring: LngLat[] | null, halfWidthM
     }
   }
 
-  // Loop interior: even-odd test for every cell centre.
+  // Loop interior: even-odd fill, one scan per row.
   if (ringXY && ringXY.length >= 4) {
     const rows = Math.ceil((maxY - minY) / cell) + 1;
     for (let gy = 0; gy < rows; gy++) {
       const y = minY + (gy + 0.5) * cell;
-      for (let gx = 0; gx < cols; gx++) {
-        const key = gy * cols + gx;
-        if (covered.has(key)) continue;
-        const x = minX + (gx + 0.5) * cell;
-        let odd = false;
-        for (let i = 0, j = ringXY.length - 1; i < ringXY.length; j = i++) {
-          const [xi, yi] = ringXY[i], [xj, yj] = ringXY[j];
-          if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) odd = !odd;
-        }
-        if (odd) covered.add(key);
-      }
+      scanRow(ringXY, y, minX, cell, cols, gx => { covered.add(gy * cols + gx); });
     }
   }
   return covered.size * cell * cell;
@@ -312,8 +320,9 @@ export function tierForArea(m2: number): Tier {
 }
 
 /**
- * Finds the loop: the earliest point that the run ends within
- * LOOP_CLOSE_DIST_M of, with at least LOOP_MIN_PERIMETER_M of route after it.
+ * Finds the loop: the latest point that the run ends within
+ * LOOP_CLOSE_DIST_M of, with at least LOOP_MIN_PERIMETER_M of route after it
+ * (so a multi-lap run uses its last lap).
  * Returns the index where the loop starts, or -1.
  */
 export function findLoopStart(points: { lat: number; lng: number }[]): number {
@@ -322,9 +331,16 @@ export function findLoopStart(points: { lat: number; lng: number }[]): number {
   const cum: number[] = [0];
   for (let i = 1; i < points.length; i++) cum.push(cum[i - 1] + haversineM(points[i - 1], points[i]));
   const total = cum[cum.length - 1];
-  for (let i = 0; i < points.length - 1; i++) {
-    if (total - cum[i] < ENGINE.LOOP_MIN_PERIMETER_M) break;
-    if (haversineM(points[i], end) <= ENGINE.LOOP_CLOSE_DIST_M) return i;
+  // The last lap: the latest point the run comes back to with at least
+  // LOOP_MIN_PERIMETER_M of route after it. Taking the earliest stacked every
+  // lap into one ring, and the even-odd fill emptied it on 2, 4, … laps.
+  // Within that lap, start at the earliest of the points still near the end,
+  // so the loop isn't cut short by up to LOOP_CLOSE_DIST_M.
+  for (let i = points.length - 2; i >= 0; i--) {
+    if (total - cum[i] < ENGINE.LOOP_MIN_PERIMETER_M) continue;
+    if (haversineM(points[i], end) > ENGINE.LOOP_CLOSE_DIST_M) continue;
+    while (i > 0 && haversineM(points[i - 1], end) <= ENGINE.LOOP_CLOSE_DIST_M) i--;
+    return i;
   }
   return -1;
 }

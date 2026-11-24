@@ -24,6 +24,7 @@ const REMINDER_OPTIONS: { label: string; hour: number | null }[] = [
 import { RowChevron } from '@mobile/shared/components/RowChevron';
 import { useTheme, Fonts, Spacing, type AppColors } from '@theme';
 import { useAuth } from '@shared/hooks/useAuth';
+import { subscribeToPush } from '@shared/services/pushNotificationService';
 import { resetPassword } from '@shared/services/auth';
 import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
 import { restorePurchases, manageSubscriptionUrl } from '@features/subscription/services/purchaseService';
@@ -31,6 +32,9 @@ import { useSubscription } from '@features/subscription/hooks/useSubscription';
 import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+export const SUPPORT_URL = 'https://runivo.app/support';
+export const SUPPORT_MAILTO = 'mailto:support@runivo.com';
 
 export default function SettingsScreen() {
   const C = useTheme();
@@ -45,6 +49,25 @@ export default function SettingsScreen() {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifOnCount = [settings.notificationsEnabled, settings.runReminders, settings.territoryAlerts, settings.announceAchievements, settings.weeklySummary, settings.offersEnabled, settings.planReminderHour !== null].filter(Boolean).length;
   const { isPremium } = useSubscription();
+
+  // B07: turning push on must ask iOS and register this phone, not only save the choice.
+  const setPushEnabled = async (on: boolean) => {
+    if (on) {
+      const result = await subscribeToPush().catch(() => 'error' as const);
+      if (result === 'denied') {
+        appAlert('Notifications are off for Runivo', 'Turn them on in your phone\'s Settings, then try again.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => { Linking.openSettings().catch(() => {}); } },
+        ]);
+        return;
+      }
+      if (result === 'error') {
+        appAlert('Couldn\'t turn on notifications', 'Check your connection and try again.');
+        return;
+      }
+    }
+    await updateSetting({ notificationsEnabled: on });
+  };
 
   return (
     <SafeAreaView style={s.root}>
@@ -162,7 +185,7 @@ export default function SettingsScreen() {
           </Pressable>
           {notifOpen && <>
           <SettingRow label="Push notifications" sub={settings.notificationsEnabled ? 'Master switch for every notification below' : 'Off: nothing below is sent until you turn this on'}>
-            <Switch value={settings.notificationsEnabled} onValueChange={v => updateSetting({ notificationsEnabled: v })} {...sw} />
+            <Switch value={settings.notificationsEnabled} onValueChange={v => { void setPushEnabled(v); }} {...sw} />
           </SettingRow>
           <SettingRow label="Run reminders" sub="Streak at risk, and a nudge after a few quiet days">
             <Switch value={settings.runReminders} onValueChange={v => updateSetting({ runReminders: v })} {...sw} />
@@ -211,11 +234,21 @@ export default function SettingsScreen() {
 
         {/* ── Data & Privacy ── */}
         <SettingSection title="Support">
-          <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/privacy')}>
+          <Pressable style={s.linkRow} onPress={() => { Linking.openURL(SUPPORT_URL).catch(() => {}); }} accessibilityRole="link">
+            <Text style={s.linkLabel}>Help and contact</Text>
+            <RowChevron />
+          </Pressable>
+          <Pressable style={s.linkRow} onPress={() => {
+            Linking.openURL(SUPPORT_MAILTO).catch(() => appAlert('No email app', 'Write to support@runivo.com from any email app.'));
+          }} accessibilityRole="link">
+            <Text style={s.linkLabel}>Email support</Text>
+            <RowChevron />
+          </Pressable>
+          <Pressable style={s.linkRow} onPress={() => { Linking.openURL('https://runivo.app/privacy').catch(() => {}); }} accessibilityRole="link">
             <Text style={s.linkLabel}>Privacy Policy</Text>
             <RowChevron />
           </Pressable>
-          <Pressable style={s.linkRow} onPress={() => Linking.openURL('https://runivo.app/terms')}>
+          <Pressable style={s.linkRow} onPress={() => { Linking.openURL('https://runivo.app/terms').catch(() => {}); }} accessibilityRole="link">
             <Text style={s.linkLabel}>Terms of Service</Text>
             <RowChevron />
           </Pressable>

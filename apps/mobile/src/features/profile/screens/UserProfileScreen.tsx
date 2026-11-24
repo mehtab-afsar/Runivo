@@ -11,7 +11,9 @@ import RunnerSafetySheet from '@features/social/components/RunnerSafetySheet';
 import { fetchRelation, unblockUser } from '@mobile/shared/services/safetyService';
 import { supabase } from '@shared/services/supabase';
 import { Avatar } from '@mobile/shared/components/Avatar';
-import { toggleFollowService } from '@features/social/services/feedService';
+import { setFollow, fetchFollowState, hasFollowRequestFrom, respondFollowRequest } from '@features/social/services/feedService';
+import type { FollowState } from '@features/social/types';
+import { appAlert } from '@mobile/shared/components/AppAlert';
 import { avatarColor } from '@shared/lib/avatarUtils';
 import { RunnerRankBadge } from '@mobile/shared/components/RunnerRankBadge';
 import { fetchAwards } from '../services/profileService';
@@ -65,6 +67,8 @@ export default function UserProfileScreen() {
   const [reloadKey, setReloadKey] = useState(0);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [requested, setRequested] = useState(false);
+  const [incomingRequest, setIncomingRequest] = useState(false);
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [awards, setAwards] = useState<{ awardId: string; unlockedAt: string }[]>([]);
   // Block / mute state and the "…" menu.
@@ -101,16 +105,13 @@ export default function UserProfileScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setIsOwnProfile(session.user.id === userId);
-        // followers has no `id` column (composite PK on follower_id/following_id) —
-        // selecting 'id' always errored, so this always resolved undefined and
-        // isFollowing was permanently stuck false regardless of real state.
-        const { data: follow } = await supabase
-          .from('followers')
-          .select('follower_id')
-          .eq('follower_id', session.user.id)
-          .eq('following_id', userId)
-          .maybeSingle();
-        setIsFollowing(!!follow);
+        // Following, asked (their profile isn't public), or neither; and whether
+        // they asked to follow me (answered here: the request push opens this screen).
+        const [state, asked] = await Promise.all([
+          fetchFollowState(session.user.id, userId),
+          session.user.id === userId ? Promise.resolve(false) : hasFollowRequestFrom(session.user.id, userId),
+        ]);
+        if (!cancelled) { setIsFollowing(state === 'following'); setRequested(state === 'requested'); setIncomingRequest(asked); }
       }
       } catch {
         // A failed RPC used to render an empty profile reading "0 runs".
@@ -128,15 +129,29 @@ export default function UserProfileScreen() {
     if (!session || session.user.id === userId || followLoading) return;
     setFollowLoading(true);
     try {
-      await toggleFollowService(userId);
-      const next = !isFollowing;
-      setIsFollowing(next); // don't flip UI on a failed write
+      const before: FollowState = isFollowing ? 'following' : requested ? 'requested' : 'none';
+      const state = await setFollow(userId, before === 'none');
+      setIsFollowing(state === 'following'); // don't flip UI on a failed write
+      setRequested(state === 'requested');
+      if (before === 'none' && state === 'none') {
+        appAlert('Profile is private', "This runner has set their profile to Only me, so they can't be followed right now.");
+      }
       // Keep the visible follower count in step with the button.
-      setUser(u => (u ? { ...u, follower_count: Math.max(0, (u.follower_count ?? 0) + (next ? 1 : -1)) } : u));
+      const delta = (state === 'following' ? 1 : 0) - (before === 'following' ? 1 : 0);
+      if (delta) setUser(u => (u ? { ...u, follower_count: Math.max(0, (u.follower_count ?? 0) + delta) } : u));
     } catch {
       // leave state as-is on failure
     }
     setFollowLoading(false);
+  };
+
+  const answerRequest = async (accept: boolean) => {
+    try {
+      await respondFollowRequest(userId, accept);
+      setIncomingRequest(false);
+    } catch {
+      appAlert("Couldn't answer the request", 'Check your connection and try again.');
+    }
   };
 
   // Deep links from push notifications (e.g. a new-follower push) only carry
@@ -179,14 +194,14 @@ export default function UserProfileScreen() {
 
                 {/* Follower / following counts */}
                 <View style={s.socialLine}>
-                  <Pressable onPress={() => navigation.navigate('Following', { userId })} hitSlop={8}>
+                  <Pressable onPress={() => { if (!user?.restricted) navigation.navigate('Following', { userId }); }} disabled={!!user?.restricted} hitSlop={8} accessibilityRole="button">
                     <Text style={s.socialText}>
                       <Text style={s.socialNum}>{user?.following_count ?? 0}</Text>
                       <Text style={s.socialLabel}> following</Text>
                     </Text>
                   </Pressable>
                   <Text style={s.socialDot}> · </Text>
-                  <Pressable onPress={() => navigation.navigate('Followers', { userId })} hitSlop={8}>
+                  <Pressable onPress={() => { if (!user?.restricted) navigation.navigate('Followers', { userId }); }} disabled={!!user?.restricted} hitSlop={8} accessibilityRole="button">
                     <Text style={s.socialText}>
                       <Text style={s.socialNum}>{user?.follower_count ?? 0}</Text>
                       <Text style={s.socialLabel}> followers</Text>
@@ -211,20 +226,33 @@ export default function UserProfileScreen() {
                 </Pressable>
               </View>
             )}
+            {!isOwnProfile && !relation.blocked && incomingRequest && (
+              <View style={s.blockedBox}>
+                <Text style={[s.blockedTxt, { flex: 1 }]}>{resolvedUsername} asked to follow you.</Text>
+                <Pressable onPress={() => { void answerRequest(true); }} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Accept ${resolvedUsername}'s follow request`}>
+                  <Text style={s.blockedAction}>Accept</Text>
+                </Pressable>
+                <Pressable onPress={() => { void answerRequest(false); }} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Decline ${resolvedUsername}'s follow request`}>
+                  <Text style={s.blockedAction}>Decline</Text>
+                </Pressable>
+              </View>
+            )}
             {!isOwnProfile && !relation.blocked && (
               <View style={s.actions}>
                 <Pressable
-                  style={[s.followBtn, isFollowing && s.followingBtn]}
+                  style={[s.followBtn, (isFollowing || requested) && s.followingBtn]}
                   onPress={handleFollow}
                   disabled={followLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={isFollowing ? `Unfollow ${resolvedUsername}` : requested ? `Cancel follow request to ${resolvedUsername}` : `Follow ${resolvedUsername}`}
                 >
-                  {isFollowing ? (
+                  {isFollowing || requested ? (
                     <Check size={14} color={C.black} weight="regular" />
                   ) : (
                     <UserPlus size={14} color={C.alwaysLight} weight="regular" />
                   )}
-                  <Text style={[s.followBtnLabel, isFollowing && s.followingBtnLabel]}>
-                    {isFollowing ? 'Following' : 'Follow'}
+                  <Text style={[s.followBtnLabel, (isFollowing || requested) && s.followingBtnLabel]}>
+                    {isFollowing ? 'Following' : requested ? 'Requested' : 'Follow'}
                   </Text>
                 </Pressable>
               </View>

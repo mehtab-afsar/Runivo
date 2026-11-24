@@ -22,7 +22,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search...' }: Props)
         placeholderTextColor={C.t3}
       />
       {value.length > 0 && (
-        <Pressable onPress={() => onChange('')} style={s.clear}>
+        <Pressable onPress={() => onChange('')} style={s.clear} hitSlop={8} accessibilityRole="button" accessibilityLabel="Clear search">
           <X size={14} color={C.t3} weight="regular" />
         </Pressable>
       )}

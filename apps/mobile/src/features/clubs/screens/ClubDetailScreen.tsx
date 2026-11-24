@@ -33,6 +33,12 @@ import {
   removeClubMember,
   fetchClubReports,
   fetchClubOwnerId,
+  fetchClubSummary,
+  fetchClubInviteCode,
+  clubLinks,
+  joinClubWithInvite,
+  joinClub,
+  requestToJoinClub,
   type ChatReport,
   type ChatReportReason,
 } from '@features/clubs/services/clubService';
@@ -41,7 +47,7 @@ import type { ClubMember, ActivityItem, JoinRequest } from '@features/clubs/type
 import { supabase } from '@shared/services/supabase';
 import { ScreenHeader, HeaderButton } from '@mobile/shared/components/ScreenHeader';
 import { useTheme, Fonts, Type, Spacing, type AppColors } from '@theme';
-import { RunnerFace } from '@mobile/shared/components/RunnerFace';
+import { Avatar } from '@mobile/shared/components/Avatar';
 import { ClubInitialsTile } from '../components/ClubHeroCard';
 import { FeedPostCard } from '@features/social/components/FeedPostCard';
 import CommentSheet from '@features/social/components/CommentSheet';
@@ -73,7 +79,7 @@ function MemberRow({ member, rank, onPress, onLongPress }: { member: ClubMember;
         <Text style={[mr.rank, rank < 3 && mr.rankTop]}>{rank + 1}</Text>
       )}
       <View style={[mr.avatar, { overflow: 'hidden' }]}>
-        <RunnerFace seed={member.username} size={38} />
+        <Avatar name={member.username} uri={member.avatarUrl ?? null} size={38} />
       </View>
       <View style={{ flex: 1 }}>
         <View style={mr.nameRow}>
@@ -122,7 +128,7 @@ function ActivityRow({ item }: { item: ActivityItem }) {
   return (
     <View style={ar.row}>
       <View style={[ar.avatar, { overflow: 'hidden' }]}>
-        <RunnerFace seed={item.username} size={32} />
+        <Avatar name={item.username} uri={item.avatarUrl ?? null} size={32} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={ar.text}>
@@ -150,7 +156,15 @@ export default function ClubDetailScreen() {
   const C = useTheme();
   const s = useMemo(() => mkStyles(C), [C]);
   const navigation = useNavigation<Nav>();
-  const { clubId, clubName, memberCount, totalKm, description: initialDesc, compose } = useRoute<Route>().params as any;
+  // A club link (runivo://club/<id>?invite=<code>) carries only the id (and maybe an invite).
+  const { clubId, clubName: paramName, memberCount: paramMembers, totalKm: paramKm, description: initialDesc, compose, invite } = useRoute<Route>().params as any;
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof fetchClubSummary>>>(null);
+  useEffect(() => { fetchClubSummary(clubId).then(setSummary).catch(() => {}); }, [clubId]);
+  const clubName: string = paramName ?? summary?.name ?? 'Club';
+  const memberCount: number = summary?.memberCount ?? paramMembers ?? 0;
+  const totalKm: number = summary?.totalKm ?? paramKm ?? 0;
+  const [memberChecked, setMemberChecked] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [media, setMedia] = useState<{ avatar: string | null; banner: string | null }>({ avatar: null, banner: null });
   const changeMedia = async (kind: 'avatar' | 'banner', uri: string) => {
     setMedia(m => ({ ...m, [kind]: uri }));
@@ -209,6 +223,7 @@ export default function ClubDetailScreen() {
         .eq('user_id', user.id)
         .maybeSingle();
       if (data) setCurrentUserRole(data.role as 'admin' | 'member');
+      setMemberChecked(true);
       fetchClubOwnerId(clubId).then(setOwnerId).catch(() => {});
       fetchClubMedia(clubId).then(setMedia).catch(() => {});
 
@@ -412,9 +427,39 @@ export default function ClubDetailScreen() {
     ...(currentUserRole === 'admin' ? [{ key: 'admin' as DetailTab, label: 'Admin' }] : []),
   ];
   const tabValue: DetailTab = tab === 'runs' || tab === 'ground' ? 'home' : tab;
-  const inviteToClub = () => {
-    Share.share({ message: `Join ${clubName} on Runivo: we run together and hold ground together. Get the app at https://runivo.app/invite and search for the club.` }).catch(() => {});
+  // Members share a link that opens this club and joins it (invite-only clubs too).
+  const inviteToClub = async () => {
+    const pitch = `Join ${clubName} on Runivo: we run together and hold ground together.`;
+    try {
+      const links = clubLinks(clubId, await fetchClubInviteCode(clubId));
+      await Share.share({ message: `${pitch}\n${links.web}\n\nAlready have the app? ${links.app}`, url: links.web });
+    } catch {
+      // Not a member (or offline): no code to hand out.
+      Share.share({ message: `${pitch} Get the app at https://runivo.app/invite and search for "${clubName}".` }).catch(() => {});
+    }
   };
+
+  // Opened from a link and not a member yet: join with the invite, or the usual way.
+  const isMember = !!currentUserRole || isOwner;
+  const joinFromHere = useCallback(async () => {
+    if (!currentUserId || joining) return;
+    setJoining(true);
+    try {
+      if (invite) {
+        const r = await joinClubWithInvite(clubId, String(invite));
+        if (r === 'joined' || r === 'already') setCurrentUserRole('member');
+        else appAlert(r === 'banned' ? "You can't join this club" : 'This invite no longer works', r === 'banned' ? 'An admin removed you from it.' : 'Ask for a new link.');
+      } else if (summary?.joinPolicy === 'invite_only') {
+        const { ok } = await requestToJoinClub(clubId, currentUserId);
+        appAlert(ok ? 'Request sent' : "Couldn't send the request", ok ? 'The club owner will review it.' : 'Try again.');
+      } else {
+        const { error } = await joinClub(clubId, currentUserId);
+        if (error) appAlert("Couldn't join", 'Check your connection and try again.');
+        else setCurrentUserRole('member');
+      }
+    } catch { appAlert("Couldn't join", 'Check your connection and try again.'); }
+    finally { setJoining(false); }
+  }, [clubId, currentUserId, invite, joining, summary?.joinPolicy]);
 
   return (
     <SafeAreaView style={s.root}>
@@ -427,7 +472,7 @@ export default function ClubDetailScreen() {
               <Flag size={16} color={C.t2} weight="regular" />
             </HeaderButton>
           )}
-          <Pressable style={s.invite} onPress={inviteToClub} accessibilityRole="button"><Text style={s.inviteTxt}>Invite</Text></Pressable>
+          <Pressable style={s.invite} onPress={() => { void inviteToClub(); }} accessibilityRole="button" accessibilityLabel={`Invite people to ${clubName}`}><Text style={s.inviteTxt}>Invite</Text></Pressable>
         </View>
       )} />
       {!!media.banner && <Image source={{ uri: media.banner }} style={s.banner} resizeMode="cover" accessibilityIgnoresInvertColors />}
@@ -441,6 +486,12 @@ export default function ClubDetailScreen() {
           </Text>
         </View>
       </View>
+
+      {memberChecked && !isMember && (
+        <Pressable style={[s.invite, { alignSelf: 'stretch', marginHorizontal: 18, marginBottom: 10, alignItems: 'center' }]} onPress={() => { void joinFromHere(); }} disabled={joining} accessibilityRole="button">
+          <Text style={s.inviteTxt}>{joining ? 'Joining…' : invite || summary?.joinPolicy !== 'invite_only' ? `Join ${clubName}` : 'Ask to join'}</Text>
+        </Pressable>
+      )}
 
       <Segmented style={{ marginHorizontal: 18, marginBottom: 10 }} options={tabs.map(t => ({ value: t.key, label: t.label }))} value={tabValue} onChange={setTab} />
 
@@ -686,7 +737,7 @@ export default function ClubDetailScreen() {
             joinRequests.map(req => (
               <View key={req.id} style={s.requestRow}>
                 <View style={[s.reqAvatar, { overflow: 'hidden' }]}>
-                  <RunnerFace seed={req.username} size={34} />
+                  <Avatar name={req.username} uri={req.avatarUrl ?? null} size={34} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.reqName}>{req.username}</Text>

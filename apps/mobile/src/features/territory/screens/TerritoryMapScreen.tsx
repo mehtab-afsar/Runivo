@@ -30,6 +30,7 @@ import { LiveFriendMarker } from '@features/run/components/LiveFriendMarker';
 import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 import { ENGINE } from '@shared/engine/runEngine';
 import { PositionArrow } from '@mobile/shared/components/PositionArrow';
+import { MapAttribution } from '@theme/MapAttribution';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -230,6 +231,7 @@ export default function TerritoryMapScreen() {
         {/* The runner's arrow last, above zones and routes. */}
         {locationGranted && <PositionArrow id="map" />}
       </ML.MapView>
+      <MapAttribution style={{ bottom: Math.max(insets.bottom, 12) + 80 }} />
 
       <View style={[ss.topOverlay, { top: Math.max(18, insets.top) }]}>
         {/* Opened on top of another screen (run summary, club, Home): it needs a way back.
@@ -325,7 +327,7 @@ export default function TerritoryMapScreen() {
           <Text style={ss.emptyTitle}>See the zones on your streets</Text>
           <Text style={ss.emptyBody}>
             Runivo uses your location to show the zones and rivals around you, and to claim ground when you run.
-            It's only used while the app is open.
+            During a run you start, it keeps tracking with the screen locked or the app in the background, until you finish.
           </Text>
           {locationStatus === 'denied' ? (
             <Pressable style={ss.emptyBtn} onPress={() => Linking.openSettings()}>
@@ -421,8 +423,6 @@ function mkStyles(C: AppColors) {
     friendsChip:  { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.alwaysDark },
     friendsDot:   { width: 8, height: 8, borderRadius: 4, backgroundColor: C.lime },
     friendsTxt:   { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
-    searchRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    styleBtn:     { width: 48, height: 48, borderRadius: 24, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
     emptyState:   { position: 'absolute', left: 18, right: 18, top: '30%', alignItems: 'center', backgroundColor: C.card, borderRadius: 20, gap: 8, paddingVertical: 24, paddingHorizontal: 22, shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
     emptyTitle:   { fontFamily: Fonts.semiBold, fontSize: 22, lineHeight: 24, letterSpacing: -0.5, color: C.t1, textAlign: 'center' },
     emptyBody:    { fontFamily: Fonts.regular, fontSize: 13.5, lineHeight: 19, color: C.t2, textAlign: 'center', marginBottom: 8 },

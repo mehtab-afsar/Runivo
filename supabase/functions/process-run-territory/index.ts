@@ -24,8 +24,11 @@ import {
 // writes, and pays.
 
 const STEAL_THRESHOLD    = 0.30;
-const FRESHNESS_STALE_AT = 40;
+const FRESHNESS_STALE_AT = ENGINE.FRESHNESS_STALE_AT;
+/** Raw fixes the request must carry at all (the engine wants 20 clean ones to claim). */
 const MIN_GPS_POINTS     = 10;
+/** A claim older than this with no result belongs to a worker that died. */
+const STALE_CLAIM_MS     = 3 * 60_000;
 
 // Mirrors packages/shared/src/constants/awards.ts's titles — only what's needed
 // for the "Achievement unlocked" push body, so this Deno function doesn't need
@@ -43,6 +46,25 @@ const MAX_TERRITORIES_FREE = 10; // mirrors GAME_CONFIG.MAX_TERRITORIES_FREE
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
+
+interface TerritoryStage {
+  stolen: { territory_id: string; owner_id: string; area_m2: number }[];
+  pieces: number;
+  claimed_area_m2: number;
+  defended_stale: number;
+  streak_advanced?: boolean;
+  streak_days?: number;
+}
+
+function validPoint(p: unknown): boolean {
+  const q = p as { lat?: unknown; lng?: unknown; timestamp?: unknown; accuracy?: unknown } | null;
+  if (!q || typeof q !== 'object') return false;
+  const { lat, lng, timestamp, accuracy } = q;
+  return typeof lat === 'number' && Math.abs(lat) <= 90
+    && typeof lng === 'number' && Math.abs(lng) <= 180
+    && typeof timestamp === 'number' && Number.isFinite(timestamp)
+    && (accuracy === undefined || accuracy === null || (typeof accuracy === 'number' && accuracy >= 0 && accuracy <= 10_000));
+}
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
@@ -87,6 +109,14 @@ Deno.serve(async (req) => {
 
   if (body.userId !== user.id) return new Response('Forbidden', { status: 403 });
   if (!body.runId) return json({ error: 'missing_run_id' }, 400);
+  // Shape checks before any query: out-of-range coordinates used to reach
+  // PostGIS, fail as a 500 and be retried by the app forever.
+  if (typeof body.activityType !== 'string' || body.activityType.length > 40) {
+    return json({ error: 'bad_request', reason: 'activity_type' }, 422);
+  }
+  if (Array.isArray(body.gpsPoints) && body.gpsPoints.some(p => !validPoint(p))) {
+    return json({ error: 'bad_request', reason: 'gps_point' }, 422);
+  }
   // Bound the work one request can demand before any query runs.
   if (Array.isArray(body.gpsPoints) && body.gpsPoints.length > MAX_GPS_POINTS) {
     return json({ error: 'trace_too_large' }, 413);
@@ -109,7 +139,11 @@ Deno.serve(async (req) => {
   }
 
   // Claim the run. A replay (retry, double sync, crafted request) gets the
-  // stored result back and changes nothing.
+  // stored result back and changes nothing. A claim with no result is either
+  // in progress, or was left by a worker that died (timeout, CPU limit,
+  // deploy) or by release() below: those are taken over, keeping the stage a
+  // failed attempt already committed.
+  let stage: TerritoryStage | null = null;
   const { error: claimErr } = await supabase
     .from('run_processing').insert({ run_id: body.runId, user_id: user.id });
   if (claimErr) {
@@ -117,12 +151,21 @@ Deno.serve(async (req) => {
       .from('run_processing').select('result').eq('run_id', body.runId).maybeSingle();
     const stored = (prior as { result: unknown } | null)?.result;
     if (stored) return json({ ...(stored as object), replayed: true });
-    return json({ error: 'run_in_progress' }, 409);
+    const { data: taken } = await supabase
+      .from('run_processing')
+      .update({ created_at: new Date().toISOString() })
+      .eq('run_id', body.runId).is('result', null)
+      .lt('created_at', new Date(Date.now() - STALE_CLAIM_MS).toISOString())
+      .select('stage');
+    const rows = (taken ?? []) as { stage: TerritoryStage | null }[];
+    if (rows.length === 0) return json({ error: 'run_in_progress' }, 409);
+    stage = rows[0].stage ?? null;
   }
 
-  // From here on, a failure releases the claim so the app can retry.
+  // From here on, a failure releases the claim so the app can retry at once.
+  // The row is kept (dated in the past) so a committed stage survives.
   const release = async (error: string, status = 500) => {
-    await supabase.from('run_processing').delete().eq('run_id', body.runId);
+    await supabase.from('run_processing').update({ created_at: new Date(0).toISOString() }).eq('run_id', body.runId);
     return json({ error }, status);
   };
 
@@ -190,19 +233,17 @@ Deno.serve(async (req) => {
     // Rides are recorded but don't move the running streak.
     meaningful: onFoot && distanceM >= ENGINE.MIN_MEANINGFUL_RUN_DISTANCE_M,
   });
-  if (streak.advanced) {
-    const { error } = await supabase.from('profiles')
-      .update({ streak_days: streak.streakDays, last_run_date: streak.lastRunDay }).eq('id', user.id);
-    if (error) return release('streak_update_failed');
-  }
+  // The streak is written with the territory, in one transaction (below).
 
   // (Profile km / run counts are bumped at the very end, once nothing below can
   // release the claim: doing it here counted a run again on every retry.)
 
   // Free accounts at the zone limit can still run and defend, not expand.
-  const { count: ownedTerritoryCount } = await supabase
-    .from('territory_polygons').select('id', { count: 'exact', head: true }).eq('owner_id', user.id);
-  const atTerritoryCap = !isPremium && (ownedTerritoryCount ?? 0) >= MAX_TERRITORIES_FREE;
+  // A zone is what one run claimed, however many pieces it came in.
+  const { data: ownedRows } = await supabase
+    .from('territory_polygons').select('run_id').eq('owner_id', user.id).limit(5000);
+  const ownedZones = new Set(((ownedRows ?? []) as { run_id: string | null }[]).map(r => r.run_id ?? '')).size;
+  const atTerritoryCap = !isPremium && ownedZones >= MAX_TERRITORIES_FREE;
 
   // Territory: the engine picks loop or strip; PostGIS builds the real shape.
   const shape = buildTerritoryShape(body.gpsPoints, body.activityType);
@@ -233,82 +274,60 @@ Deno.serve(async (req) => {
     rivalOwnerId: string; rivalOwnerName: string; stolenAreaM2: number; tier: string; territoryId: string;
   }
   const stealRecords: StealRecord[] = [];
-  const contestLogRows: {
-    run_id: string; user_id: string; rival_owner_id: string; overlap_pct: number; qualified: boolean;
-  }[] = [];
 
-  if (territoryWkt) {
-    const wkt = territoryWkt;
-
-    if (!atTerritoryCap) {
+  if (!stage) {
+    // Which rival zones this run takes (the rule), worked out first; every
+    // write then happens in one transaction in apply_run_territory.
+    const rivalIds: string[] = [];
+    if (territoryWkt && !atTerritoryCap) {
       const { data: rivals, error: findErr } = await supabase.rpc('find_intersecting_territories', {
-        p_wkt: wkt, p_owner_id: user.id,
+        p_wkt: territoryWkt, p_owner_id: user.id,
       });
       if (findErr) return release('territory_lookup_failed');
-
-      const rivalRows = (rivals ?? []) as {
-        id: string; owner_id: string; freshness: number; area_m2: number; intersection_area: number;
-      }[];
-
-      const rivalOwnerIds = [...new Set(rivalRows.map(r => r.owner_id))];
-      const { data: rivalProfiles } = rivalOwnerIds.length > 0
-        ? await supabase.from('profiles').select('id, username').in('id', rivalOwnerIds)
-        : { data: [] };
-      const rivalUsernameMap = new Map<string, string>(
-        ((rivalProfiles ?? []) as { id: string; username: string | null }[]).map(p => [p.id, p.username ?? 'Runner']),
-      );
-
-      for (const rival of rivalRows) {
+      const contestLogRows: {
+        run_id: string; user_id: string; rival_owner_id: string; overlap_pct: number; qualified: boolean;
+      }[] = [];
+      for (const rival of (rivals ?? []) as { id: string; owner_id: string; freshness: number; area_m2: number; intersection_area: number }[]) {
         const overlapPct = rival.area_m2 > 0 ? rival.intersection_area / rival.area_m2 : 0;
         const isFresh    = rival.freshness >= FRESHNESS_STALE_AT;
         const qualifies  = isFresh ? overlapPct > STEAL_THRESHOLD : overlapPct > 0;
-        contestLogRows.push({
-          run_id: body.runId, user_id: user.id, rival_owner_id: rival.owner_id,
-          overlap_pct: overlapPct, qualified: qualifies,
-        });
-        if (!qualifies) continue;
-
-        const { data: moved, error: stealErr } = await supabase.rpc('steal_territory_portion', {
-          p_rival_id: rival.id, p_new_wkt: wkt, p_new_owner: user.id, p_run_id: body.runId,
-        });
-        if (stealErr) return release('steal_failed');
-        const stolenAreaM2 = Number(moved) || 0;
-        // Only ground that actually changed hands counts (and pays).
-        if (stolenAreaM2 <= 0) continue;
-
-        stealRecords.push({
-          rivalOwnerId:   rival.owner_id,
-          rivalOwnerName: rivalUsernameMap.get(rival.owner_id) ?? 'Runner',
-          stolenAreaM2,
-          tier:           tierForArea(stolenAreaM2),
-          territoryId:    rival.id,
-        });
-        stolenZones++;
-        if (!stolenFromUserIds.includes(rival.owner_id)) stolenFromUserIds.push(rival.owner_id);
+        contestLogRows.push({ run_id: body.runId, user_id: user.id, rival_owner_id: rival.owner_id, overlap_pct: overlapPct, qualified: qualifies });
+        if (qualifies) rivalIds.push(rival.id);
       }
-
       if (contestLogRows.length > 0) {
         try { await supabase.from('run_territory_contests').insert(contestLogRows); } catch { /* instrumentation only */ }
       }
-
-      const { data: claimed, error: claimAreaErr } = await supabase.rpc('claim_unclaimed_area', {
-        p_wkt: wkt, p_owner_id: user.id, p_run_id: body.runId, p_is_loop: isLoop,
-      });
-      if (claimAreaErr) return release('claim_failed');
-      const c = (Array.isArray(claimed) ? claimed[0] : claimed) as { pieces: number; area_m2: number } | null;
-      // One run claims one zone, however many pieces the free land came in.
-      if (c && c.pieces > 0) { newZonesClaimed = 1; claimedAreaM2 = c.area_m2; }
     }
 
-    // Counted before defending, so it reflects zones that were stale when the run passed.
-    const { data: staleDefended } = await supabase.rpc('count_defendable_stale_zones', {
-      p_wkt: wkt, p_owner_id: user.id, p_stale_at: FRESHNESS_STALE_AT,
+    const { data: applied, error: applyErr } = await supabase.rpc('apply_run_territory', {
+      p_run_id: body.runId, p_owner_id: user.id, p_wkt: territoryWkt, p_is_loop: isLoop,
+      p_can_expand: !atTerritoryCap, p_rival_ids: rivalIds, p_stale_at: FRESHNESS_STALE_AT,
+      p_streak_days: streak.streakDays, p_last_run_date: streak.advanced ? streak.lastRunDay : null,
     });
-    defendedStaleZones = (staleDefended as number | null) ?? 0;
-
-    const { error: defendErr } = await supabase.rpc('defend_own_territories', { p_wkt: wkt, p_owner_id: user.id });
-    if (defendErr) return release('defend_failed');
+    if (applyErr || !applied) return release('territory_failed');
+    stage = applied as TerritoryStage;
   }
+
+  // The stage is the committed outcome: from this attempt or an earlier one.
+  // Steals only count (and pay) when ground actually changed hands.
+  const rivalOwnerIds = [...new Set(stage.stolen.map(s => s.owner_id))];
+  const { data: rivalProfiles } = rivalOwnerIds.length > 0
+    ? await supabase.from('profiles').select('id, username').in('id', rivalOwnerIds)
+    : { data: [] };
+  const rivalUsernameMap = new Map<string, string>(
+    ((rivalProfiles ?? []) as { id: string; username: string | null }[]).map(p => [p.id, p.username ?? 'Runner']),
+  );
+  for (const st of stage.stolen) {
+    stealRecords.push({
+      rivalOwnerId: st.owner_id, rivalOwnerName: rivalUsernameMap.get(st.owner_id) ?? 'Runner',
+      stolenAreaM2: st.area_m2, tier: tierForArea(st.area_m2), territoryId: st.territory_id,
+    });
+    stolenZones++;
+    if (!stolenFromUserIds.includes(st.owner_id)) stolenFromUserIds.push(st.owner_id);
+  }
+  // One run claims one zone, however many pieces the free land came in.
+  if (stage.pieces > 0) { newZonesClaimed = 1; claimedAreaM2 = stage.claimed_area_m2; }
+  defendedStaleZones = stage.defended_stale;
 
   // PACE: the engine's rules; the ledger applies the weekly cap atomically
   // and pays each run once.
@@ -316,8 +335,8 @@ Deno.serve(async (req) => {
     distanceM,
     newZones:       newZonesClaimed,
     stolenZones,
-    streakAdvanced: streak.advanced,
-    streakDays:     streak.streakDays,
+    streakAdvanced: stage.streak_advanced ?? streak.advanced,
+    streakDays:     stage.streak_days ?? streak.streakDays,
     weeklyEarned:   0, // the ledger knows the live weekly total; it caps
     tier:           subscriptionTier,
     activityType:   body.activityType,
@@ -473,7 +492,7 @@ Deno.serve(async (req) => {
     paceAdjustment: serverPaceEarned,
     paceBreakdown: pace.breakdown,
     paceCapped: serverPaceEarned < pace.raw,
-    streakDays: streak.streakDays,
+    streakDays: stage.streak_days ?? streak.streakDays,
     stolenFromUserIds,
     territoryCapReached: atTerritoryCap,
     newAwards,

@@ -104,6 +104,11 @@ Deno.serve(async (req) => {
   // ON DELETE CASCADE from profiles(id)/auth.users(id)). The legacy H3 `territories`
   // table has ON DELETE SET NULL instead and is left orphaned — acceptable, it's
   // dead/superseded data.
+  // A club owner can't be removed from their club (prevent_orphaned_club): hand
+  // each club to another member first, or delete it if nobody else is in it.
+  const { error: clubErr } = await supabase.rpc('release_owned_clubs', { p_user: user.id });
+  if (clubErr) console.warn('[delete-account] release_owned_clubs failed', clubErr.message);
+
   const { error: deleteErr } = await supabase.auth.admin.deleteUser(user.id);
   if (deleteErr) {
     return new Response(JSON.stringify({ error: deleteErr.message }), {

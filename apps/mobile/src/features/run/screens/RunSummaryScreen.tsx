@@ -36,6 +36,7 @@ import { isPlus } from '@shared/engine/entitlements';
 import { usePaywallMoment } from '@features/subscription/hooks/usePaywallMoment';
 import { computeRunnerRank } from '@shared/services/claimEngine';
 import { TIER_CONFIG, formatArea } from '@shared/constants/territory';
+import { ErrorState } from '@mobile/shared/components/ErrorState';
 import { useDistanceUnit } from '@mobile/shared/hooks/useDistanceUnit';
 import { convertKm, convertPaceMinPerKm } from '@mobile/shared/lib/formatters';
 import { useTheme, feedback, Type, Fonts, Spacing, type AppColors, useIsDark } from '@theme';
@@ -49,7 +50,7 @@ import { fetchActivityMapHidden, setActivityMapHidden } from '@features/settings
 import { RunCheers } from '@features/cheers/RunCheers';
 import CommentSheet from '@features/social/components/CommentSheet';
 import { supabase } from '@shared/services/supabase';
-import { ENGINE } from '@shared/engine/runEngine';
+import { ENGINE, tierForArea } from '@shared/engine/runEngine';
 
 
 type Nav   = NativeStackNavigationProp<RootStackParamList>;
@@ -127,8 +128,8 @@ export default function RunSummaryScreen() {
   const sport = sportFor(activityType);
   const ride = !sport.claims;
 
-  const { runData, splits, loading, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe } =
-    useRunSummary(runId, passedData);
+  const { runData, splits, loading, loadError, retryLoad, runShoe, allShoes, shoeTotalKm, showShoeDrawer, setShowShoeDrawer, selectShoe } =
+    useRunSummary(runId, passedData, activityType);
   const distanceUnit = useDistanceUnit();
 
   const [showSaveRoute, setShowSaveRoute]             = useState(false);
@@ -306,13 +307,24 @@ export default function RunSummaryScreen() {
 
   const stolen = serverResult?.stolenZones ?? (runData.rivalZonesStolen ?? 0);
   const newZones = serverResult?.newZones ?? (runData.territory ? 1 : 0);
+  // The server's verdict wins over the phone's preview: when it gave this run
+  // no new or stolen ground, say so and why, and don't show a zone (T9).
+  const noGain = !!serverResult && newZones + stolen === 0;
+  const noGainReason = !serverResult || !noGain ? null
+    : serverResult.rejectedReason ? rejectionText(serverResult.rejectedReason)
+    : serverResult.territoryCapReached ? 'You hold the most zones a free account can. This run defended your ground but claimed nothing new.'
+    : runData.territory ? 'All of this ground was already yours or a fresh rival zone, so nothing new was claimed. Your own zones were refreshed.'
+    : null;
+  const claimedArea = serverResult ? (serverResult.claimedAreaM2 ?? serverAreaM2 ?? 0) : (serverAreaM2 ?? runData.territory?.areaM2 ?? 0);
   // Hero line says what the run actually did, plainest outcome last.
   const headline = ride ? 'Ride done.'
+    : serverResult?.rejectedReason ? 'Not scored.'
+    : noGain && runData.territory ? 'No new ground.'
     : !runData.success && runData.actionType ? 'Loop not claimed.'
     : stolen > 0 ? `Stole ${stolen} zone${stolen === 1 ? '' : 's'}.`
     : runData.actionType === 'defend' ? 'Defended.'
     : runData.actionType === 'fortify' ? 'Fortified.'
-    : runData.territory ? `Claimed ${formatArea(serverAreaM2 ?? runData.territory.areaM2)}.`
+    : runData.territory && claimedArea > 0 ? `Claimed ${formatArea(claimedArea)}.`
     : newZones > 0 ? 'New zone.'
     : ride ? 'Ride done.'
     : `${sport.verb.charAt(0).toUpperCase()}${sport.verb.slice(1)} done.`;
@@ -349,6 +361,13 @@ export default function RunSummaryScreen() {
     return (
       <View style={[ss.root, ss.loadingRoot, { paddingTop: insets.top }]}>
         <ActivityIndicator size="large" color={C.t2} />
+      </View>
+    );
+  }
+  if (loadError) {
+    return (
+      <View style={[ss.root, ss.loadingRoot, { paddingTop: insets.top }]}>
+        <ErrorState title="Couldn't load this run" body="It isn't on this phone and Runivo can't be reached. Check your connection and try again." onRetry={retryLoad} />
       </View>
     );
   }
@@ -422,12 +441,18 @@ export default function RunSummaryScreen() {
     return svgToPngFile(svg, { w: RUN_CARD_W, h: RUN_CARD_H, outW: 1080 }, name);
   };
 
-  const terr = runData.territory ?? null;
-  const zoneLabel = terr
-    ? `${TIER_CONFIG[terr.tier].label.charAt(0)}${TIER_CONFIG[terr.tier].label.slice(1).toLowerCase()} · ${formatArea(serverAreaM2 ?? terr.areaM2)}`
+  const terr = noGain ? null : (runData.territory ?? null);
+  const terrTier = terr ? (serverResult && claimedArea > 0 ? tierForArea(claimedArea) : terr.tier) : null;
+  const zoneLabel = terr && terrTier
+    ? `${TIER_CONFIG[terrTier].label.charAt(0)}${TIER_CONFIG[terrTier].label.slice(1).toLowerCase()} · ${formatArea(claimedArea || terr.areaM2)}`
     : null;
 
-  const bd = runData.paceBreakdown;
+  // What the server paid, when it has answered; the phone's estimate until then.
+  const sb = serverResult?.paceBreakdown;
+  const bd = sb
+    ? { fromDistance: sb.distance, fromNewZones: sb.newZones, fromStolenZones: sb.stolenZones, fromStreak: sb.streak }
+    : serverResult?.rejectedReason ? { fromDistance: 0, fromNewZones: 0, fromStolenZones: 0, fromStreak: 0 }
+    : runData.paceBreakdown;
   const paceParts = [
     { key: 'distance', label: `${Math.floor(runData.distance)} km`, value: bd?.fromDistance ?? 0, color: C.t1 },
     { key: 'stolen',   label: 'Zones stolen', value: bd?.fromStolenZones ?? 0, color: zone.rival },
@@ -494,6 +519,13 @@ export default function RunSummaryScreen() {
             <Text style={{ flex: 1, fontFamily: Fonts.medium, fontSize: 12.5, color: C.t2 }}>
               {confirm === 'checking' ? 'Confirming your ground…' : "Can't reach Runivo right now. Your ground is confirmed as soon as you're back online."}
             </Text>
+          </View>
+        )}
+
+        {!ride && noGainReason && (
+          <View style={[ss.card, ss.surface]} accessibilityRole="text">
+            <Text style={ss.cardTitle}>{serverResult?.rejectedReason ? 'Why this run earned nothing' : 'No new ground this time'}</Text>
+            <Text style={ss.rideNote}>{noGainReason}</Text>
           </View>
         )}
 
@@ -834,4 +866,23 @@ function mkStyles(C: AppColors) {
     fuelBtn:     { paddingHorizontal: 14, height: 32, justifyContent: 'center', borderRadius: 999, backgroundColor: C.t1 },
     fuelBtnText: { fontFamily: Fonts.semiBold, fontSize: 13, color: C.bg },
   });
+}
+
+/** Plain words for why the server scored a run at zero. */
+function rejectionText(reason: string): string {
+  switch (reason) {
+    case 'run_too_short':     return 'Runs shorter than a minute aren\'t scored.';
+    case 'insufficient_gps':  return 'The phone recorded too few GPS points to check this run.';
+    case 'mock_location':     return 'This phone reported a simulated location during the run, so it earns no PACE or ground.';
+    case 'trace_too_large':   return 'This run\'s GPS trace was too large to check.';
+    case 'activity_type':
+    case 'duration':
+    case 'trace_before_start':
+    case 'trace_after_end':
+    case 'trace_in_future':
+    case 'run_mismatch':      return 'The GPS trace didn\'t match the saved run (its time or sport), so it couldn\'t be scored.';
+    case 'gps_point':
+    case 'bad_request':       return 'Some GPS points were invalid, so the run couldn\'t be scored.';
+    default:                  return 'The run couldn\'t be verified, so it earned no PACE or ground.';
+  }
 }

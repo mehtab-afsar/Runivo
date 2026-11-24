@@ -408,3 +408,34 @@ verify_jwt = false
 
 [functions.device-webhook]
 verify_jwt = false
+
+# ai-coach checks the caller itself (auth.getUser → 401) before any read or model
+# call. The gateway check adds nothing and rejects tokens once the project moves to
+# JWT signing keys, which leaves PaceX dead with nothing in the function logs.
+[functions.ai-coach]
+verify_jwt = false
+
+# Same for every function the app or the database calls: each one checks the caller
+# itself (auth.getUser for a runner's token, or an exact service-role match), so the
+# gateway check is redundant, and on a project using JWT signing keys it can refuse
+# valid runners before the function runs (runs not scored, deletion failing).
+[functions.process-run-territory]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
+[functions.redeem-reward]
+verify_jwt = false
+
+[functions.foot-scan]
+verify_jwt = false
+
+[functions.export-workout]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.weekly-digest]
+verify_jwt = false

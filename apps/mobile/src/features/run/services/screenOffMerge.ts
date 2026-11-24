@@ -1,4 +1,4 @@
-export interface BufferedFix { lat: number; lng: number; speed: number; accuracy: number; timestamp: number }
+export interface BufferedFix { lat: number; lng: number; speed: number; accuracy: number; timestamp: number; mocked?: boolean }
 
 /**
  * Which screen-off fixes are new. On iOS the live watcher keeps receiving

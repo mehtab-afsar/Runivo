@@ -17,6 +17,7 @@ import { mapStyleUrlFor } from '@theme/maps';
 import { useIsDark, useTheme } from '@theme';
 import { useLocationGranted } from '@mobile/shared/hooks/useLocationGranted';
 import { useRunivoMapStyle } from '@theme/runivoMapStyle';
+import { MapAttribution } from '@theme/MapAttribution';
 
 const styles = StyleSheet.create({
   map: { flex: 1 },
@@ -105,6 +106,7 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
   }, [ghostRoutePoints, closestIdx]);
 
   return (
+    <>
     <MapLibreGL.MapView
       style={styles.map}
       mapStyle={baseStyle}
@@ -180,5 +182,7 @@ export default function ActiveRunMapView({ gpsPoints, ghostRoutePoints, closestI
       {/* The runner's arrow last, so zones and the trail never cover it. */}
       {locationGranted && latest && <PositionArrow lat={latest.lat} lng={latest.lng} track={gpsPoints} id="run" />}
     </MapLibreGL.MapView>
+    <MapAttribution style={{ bottom: 30 }} />
+    </>
   );
 }

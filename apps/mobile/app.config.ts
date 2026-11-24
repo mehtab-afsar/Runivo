@@ -49,9 +49,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSLocationAlwaysUsageDescription:
         'Runivo uses your location in the background to continue tracking after you lock your screen.',
       NSCameraUsageDescription:
-        'Runivo uses the camera to take your profile photo and photos of your shoes.',
+        'Runivo uses the camera to take your profile photo, photos of your shoes and feet for the gear log and foot scan, and to scan runner QR codes.',
       NSPhotoLibraryUsageDescription:
-        'Runivo needs access to your photos so you can set your profile picture, add photos to your runs and posts, and attach photos to your shoe log.',
+        'Runivo needs access to your photos so you can set your profile picture, add photos to your runs and posts, attach photos to your shoe log and add club images.',
       // "Save Image" in the share sheet (run, zone and profile cards). Without
       // this string iOS ends the app the moment someone taps it.
       NSPhotoLibraryAddUsageDescription:
@@ -116,7 +116,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                 ['NSPrivacyCollectedDataTypePhotosorVideos', true],
                 ['NSPrivacyCollectedDataTypeOtherUserContent', true],
                 ['NSPrivacyCollectedDataTypeDeviceID', true],
-                ['NSPrivacyCollectedDataTypePurchaseHistory', true],
               ].map(([type, linked]) => ({
                 NSPrivacyCollectedDataType: type as string,
                 NSPrivacyCollectedDataTypeLinked: linked as boolean,
@@ -200,7 +199,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-camera',
       {
-        cameraPermission: 'Runivo uses the camera to take your profile photo and photos of your shoes.',
+        cameraPermission: 'Runivo uses the camera to take your profile photo, photos of your shoes and feet for the gear log and foot scan, and to scan runner QR codes.',
         microphonePermission: false,
         recordAudioAndroid: false,
       },
@@ -213,7 +212,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         // Runivo never asks for Reminders access. The key must still exist: expo-calendar
         // 55 fatals at startup (MissingCalendarPListValueException) if it is absent, so
         // `false` (which omits it) crashes the app on launch.
-        remindersPermission: 'Runivo does not use your reminders.',
+        remindersPermission: 'Runivo never asks for your reminders; iOS requires this text for the calendar component.',
       },
     ],
     // Live Activity on the lock screen and Dynamic Island during a run (L2).
@@ -228,8 +227,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-image-picker',
       {
-        photosPermission: 'Runivo needs access to your photos so you can set your profile picture, add photos to your runs and posts, and attach photos to your shoe log.',
-        cameraPermission: 'Runivo uses the camera to take your profile photo and photos of your shoes.',
+        photosPermission: 'Runivo needs access to your photos so you can set your profile picture, add photos to your runs and posts, attach photos to your shoe log and add club images.',
+        cameraPermission: 'Runivo uses the camera to take your profile photo, photos of your shoes and feet for the gear log and foot scan, and to scan runner QR codes.',
       },
     ],
     // Must be passed as [plugin, props] — the plugin dereferences

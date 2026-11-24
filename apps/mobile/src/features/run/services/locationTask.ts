@@ -54,6 +54,9 @@ function getBgDb(): SQLite.SQLiteDatabase {
       );
       CREATE INDEX IF NOT EXISTS idx_bg_gps_run ON bg_gps_buffer(run_id, ts);
     `);
+    // Added after launch builds: whether the fix came from a mock provider
+    // (Android). Older installs have the table without it.
+    try { _bgDb.execSync('ALTER TABLE bg_gps_buffer ADD COLUMN mocked INTEGER NOT NULL DEFAULT 0'); } catch { /* already there */ }
   }
   return _bgDb;
 }
@@ -66,12 +69,13 @@ export function appendBgGpsPoint(
   speed: number,
   accuracy: number,
   ts: number,
+  mocked = false,
 ): void {
   try {
     const db = getBgDb();
     db.runSync(
-      `INSERT INTO bg_gps_buffer (run_id, lat, lng, speed, accuracy, ts) VALUES (?, ?, ?, ?, ?, ?)`,
-      [runId, lat, lng, speed, accuracy, Math.round(ts)],
+      `INSERT INTO bg_gps_buffer (run_id, lat, lng, speed, accuracy, ts, mocked) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [runId, lat, lng, speed, accuracy, Math.round(ts), mocked ? 1 : 0],
     );
   } catch (err) {
     console.warn('[locationTask] Failed to write bg GPS point:', err);
@@ -80,24 +84,50 @@ export function appendBgGpsPoint(
 
 /** Read all buffered points for a run, then clear them. */
 export function drainBgGpsBuffer(runId: string): {
-  lat: number; lng: number; speed: number; accuracy: number; timestamp: number;
+  lat: number; lng: number; speed: number; accuracy: number; timestamp: number; mocked: boolean;
 }[] {
   try {
     const db = getBgDb();
     const rows = db.getAllSync<{
-      lat: number; lng: number; speed: number; accuracy: number; ts: number;
+      lat: number; lng: number; speed: number; accuracy: number; ts: number; mocked: number | null;
     }>(
-      `SELECT lat, lng, speed, accuracy, ts FROM bg_gps_buffer WHERE run_id = ? ORDER BY ts ASC`,
+      `SELECT lat, lng, speed, accuracy, ts, mocked FROM bg_gps_buffer WHERE run_id = ? ORDER BY ts ASC`,
       [runId],
     );
     db.runSync(`DELETE FROM bg_gps_buffer WHERE run_id = ?`, [runId]);
     return rows.map(r => ({
       lat: r.lat, lng: r.lng,
-      speed: r.speed, accuracy: r.accuracy, timestamp: r.ts,
+      // iOS reports -1 for an unknown speed.
+      speed: r.speed >= 0 ? r.speed : 0, accuracy: r.accuracy, timestamp: r.ts, mocked: r.mocked === 1,
     }));
   } catch (err) {
     console.warn('[locationTask] Failed to drain bg GPS buffer:', err);
     return [];
+  }
+}
+
+/** How many fixes are buffered for a run (crash recovery: on Android they can be the whole run). */
+export function countBgGpsBuffer(runId: string): number {
+  try {
+    return getBgDb().getFirstSync<{ n: number }>(`SELECT COUNT(*) AS n FROM bg_gps_buffer WHERE run_id = ?`, [runId])?.n ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** The run the background task was recording, with its first buffered fix time, if any fixes are buffered. */
+export function bufferedActiveRun(): { runId: string; firstTs: number; count: number } | null {
+  try {
+    const db = getBgDb();
+    const row = db.getFirstSync<{ value: string }>(`SELECT value FROM bg_gps_meta WHERE key = 'active_run_id'`);
+    if (!row?.value) return null;
+    const agg = db.getFirstSync<{ n: number; t: number | null }>(
+      `SELECT COUNT(*) AS n, MIN(ts) AS t FROM bg_gps_buffer WHERE run_id = ?`, [row.value],
+    );
+    if (!agg || agg.n === 0 || agg.t == null) return null;
+    return { runId: row.value, firstTs: agg.t, count: agg.n };
+  } catch {
+    return null;
   }
 }
 
@@ -175,6 +205,9 @@ TaskManager.defineTask(
         loc.coords.speed ?? 0,
         loc.coords.accuracy ?? 10,
         loc.timestamp,
+        // Android flags fixes from a mock provider. With the screen off these
+        // are the only fixes, so the flag has to travel with them.
+        (loc as { mocked?: boolean }).mocked === true,
       );
     }
   },

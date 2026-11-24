@@ -26,7 +26,7 @@ export default function AwardDetailScreen() {
   if (!def) {
     return (
       <SafeAreaView style={s.root}>
-        <Pressable hitSlop={8} style={s.closeBtn} onPress={() => navigation.goBack()}><X size={18} color={C.t2} /></Pressable>
+        <Pressable hitSlop={8} style={s.closeBtn} onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel="Close"><X size={18} color={C.t2} /></Pressable>
         <Text style={s.errorText}>Unknown award</Text>
       </SafeAreaView>
     );
@@ -34,7 +34,7 @@ export default function AwardDetailScreen() {
 
   return (
     <SafeAreaView style={s.root}>
-      <Pressable style={s.closeBtn} onPress={() => navigation.goBack()} hitSlop={8}>
+      <Pressable style={s.closeBtn} onPress={() => navigation.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
         <X size={18} color={C.t2} weight="regular" />
       </Pressable>
 

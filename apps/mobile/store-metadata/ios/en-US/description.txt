@@ -7,7 +7,7 @@ TERRITORY MAP
 See your zones and nearby rivals on a live map. Zones are real shapes from your GPS route, sized by how far you ran.
 
 RUN TRACKING
-GPS route, pace, splits and elevation, with tracking that continues while your screen is locked. Optional auto-pause. Completed runs can be saved to Apple Health if you allow it.
+GPS route, pace, splits and elevation, with tracking that continues while your screen is locked. Optional auto-pause. Completed runs can be saved to Apple Health, and past workouts imported, if you allow it.
 
 PACE REWARDS AND MISSIONS
 Earn PACE by running and completing daily missions. PACE is free to earn and cannot be bought. In selected cities, PACE unlocks partner offers in the Store.
@@ -24,12 +24,13 @@ Track mileage on each pair of running shoes.
 PRIVACY AND SAFETY
 Keep your home out of the game with private places and hide-my-zones. Live location sharing is off by default. Share a live safety link with someone you trust during a run. Report or block anyone, any time.
 
-FREE AND RUNIVO PLUS
-Tracking, territory, clubs, the feed, missions and the Store are free. Free accounts can hold up to 10 zones at a time.
+PACEX, YOUR AI RUNNING COACH
+Post-run debriefs, a weekly review and a coach you can ask anything about your running, built on your own runs and plan. Plus training plans for 5K to marathon that fit the days you can run.
 
-Runivo Plus is an optional auto-renewing subscription that adds unlimited zones, the PaceX AI running coach (post-run debriefs, weekly briefs and chat), training plans, hosting events, extra map styles and a higher weekly PACE cap. The price and billing period are shown in the app before you subscribe. Payment is charged to your Apple ID at confirmation of purchase. The subscription renews automatically unless you turn off auto-renew at least 24 hours before the end of the current period. Manage or cancel any time in your Apple ID account settings.
+FREE
+Everything in Runivo is free: tracking, territory, PaceX, training plans, clubs, the feed and missions. There are no subscriptions or in-app purchases.
 
-PaceX sends your run and fitness data to a third-party AI provider, only after you give permission.
+PaceX and Foot scan send your run and fitness data, or the photo you take, to a third-party AI provider (Anthropic), only after you give permission. PaceX gives general running guidance, not medical advice.
 
 Terms of Use: https://runivo.app/terms
 Privacy Policy: https://runivo.app/privacy

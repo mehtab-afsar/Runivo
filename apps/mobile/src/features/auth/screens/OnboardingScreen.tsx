@@ -6,12 +6,14 @@
  * Goal: out on a first run within 24 hours, with PaceX knowing enough to coach.
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { notifyOnboardingComplete } from '@mobile/shared/lib/onboardingEvents';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, Platform, BackHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from '@theme/hapticsGated';
 import type { RootStackParamList } from '@navigation/AppNavigator';
+import { linkingGate } from '@navigation/linkingConfig';
 import { subscribeToPush } from '@shared/services/pushNotificationService';
 import { track } from '@shared/services/analytics';
 import { useTheme, Fonts, type AppColors } from '@theme';
@@ -67,6 +69,8 @@ export default function OnboardingScreen() {
   async function finish() {
     const ok = await ob.submit();
     if (!ok) return;
+    linkingGate.paused = false;
+    notifyOnboardingComplete();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     // Training for a race: plan setup opens on race search, with the answers
     // from onboarding (days, long run, 5K time, weekly distance) filled in.

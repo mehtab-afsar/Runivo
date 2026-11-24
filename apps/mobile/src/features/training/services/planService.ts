@@ -6,6 +6,7 @@ import {
   RACE_LABEL, matchRun, weekOf, type TrainingPlanV2, type Session, updatePacesFromRun, addDays, estimateFiveK,
 } from '@shared/engine/training';
 import { sessionFromCoach, type CoachSession } from '@shared/engine/coachSession';
+import { matchUnseenRuns } from '@shared/engine/planReview';
 import { leaveRace } from './raceService';
 
 /**
@@ -180,4 +181,32 @@ export async function addCoachSessionToPlan(cs: CoachSession): Promise<{ status:
   await savePlan({ id: ap.id, plan });
   await rescheduleSessionReminders(plan).catch(() => {});
   return { status: 'added', session: added };
+}
+
+/**
+ * Tick sessions for runs the plan hasn't seen yet: watch and Apple Health imports
+ * arrive through sync, not the live run screen, so they were left as "missed".
+ * Saves and returns the updated plan, or the same one when nothing matched.
+ */
+export async function catchUpPlan(ap: ActivePlan): Promise<ActivePlan> {
+  const since = Date.parse(`${ap.plan.weeks[0]?.startDate ?? ap.plan.raceDate}T00:00:00`) - 86_400_000;
+  const runs = (await getRuns(200).catch(() => []))
+    .filter(r => r.startTime >= since && (!r.activityType || r.activityType === 'run'))
+    .map(r => ({ runId: r.id, date: localToday(new Date(r.startTime)), km: r.distanceMeters / 1000 }));
+  const { plan, matched } = matchUnseenRuns(ap.plan, runs);
+  if (!matched) return ap;
+  const next = { ...ap, plan };
+  await savePlan(next).catch(() => cache(next));
+  return next;
+}
+
+const CHECKIN_SEEN = 'runivo.weekCheckIn.';
+
+/** Has the runner already answered this week's PaceX check-in for this plan? */
+export async function checkInAnswered(planId: string, weekStart: string): Promise<boolean> {
+  try { return (await AsyncStorage.getItem(`${CHECKIN_SEEN}${planId}.${weekStart}`)) != null; } catch { return false; }
+}
+
+export async function markCheckInAnswered(planId: string, weekStart: string): Promise<void> {
+  try { await AsyncStorage.setItem(`${CHECKIN_SEEN}${planId}.${weekStart}`, '1'); } catch { /* best effort */ }
 }

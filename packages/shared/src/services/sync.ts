@@ -140,9 +140,9 @@ export async function pushProfile(): Promise<void> {
     // the protect_profile_columns trigger, but not pushing at all matches the
     // pace_* precedent below and avoids the client ever reconstructing a stale value.
     // CRITICAL PATH: pace_balance / pace_total_earned / pace_weekly_earned are NEVER
-    // pushed from the client. apply_pace_adjustment (20260515000059_territory_engine_rpcs.sql,
-    // called from process-run-territory after every run) is the only thing allowed to
-    // modify them server-side — it does an atomic increment. A client upsert of an
+    // pushed from the client. credit_pace_capped (called from process-run-territory
+    // after every run) is the only thing allowed to modify them server-side — it does
+    // an atomic, capped increment. A client upsert of an
     // absolute value here would silently overwrite that atomic increment with a
     // client-reconstructed number — this was the actual mechanism behind the PACE
     // balance corruption a prior session's pullProfile() fix and diagnose_pace_ledger()
@@ -205,10 +205,13 @@ export async function pullProfile(): Promise<void> {
   await savePlayer({
     id: existing?.id ?? user.id,
     username: data.username,
-    level: data.level,
-    xp: data.xp,
-    coins: data.coins,
-    energy: data.energy,
+    // level / xp / coins / energy are legacy game stats the server no longer lets
+    // clients write (20261123000004) and never computes, so its copy stays at the
+    // defaults: keep this phone's values instead of resetting them after every run.
+    level: existing?.level ?? data.level,
+    xp: existing?.xp ?? data.xp,
+    coins: existing?.coins ?? data.coins,
+    energy: existing?.energy ?? data.energy,
     lastEnergyRegen: (() => {
       const ms = new Date(data.last_energy_regen).getTime();
       // Guard against epoch-seconds values (would resolve to ~1970)
@@ -378,7 +381,9 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
     }, { onConflict: 'id', ignoreDuplicates: true });
 
     if (!error) {
-      await saveRun({ ...run, synced: true, serverProcessed: run.serverProcessed === true ? true : false });
+      // Treadmill runs are logged by hand and never scored: nothing to retry.
+      const scored = run.serverProcessed === true || run.activityType === 'treadmill';
+      await saveRun({ ...run, synced: true, serverProcessed: scored });
       // Invoke territory processing on the server (PostGIS steal/claim logic).
       // Runs fire-and-forget: failure here doesn't block the sync — PACE adjustment
       // from stolen zones will be credited on the next successful sync.
@@ -405,8 +410,13 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
           // Anything else (network, 401/403, 404, 409 in progress, 5xx) is retried.
           let result = data;
           if (scoreError) {
-            const status = (scoreError as { context?: { status?: number } }).context?.status;
-            if (status === 400 || status === 413 || status === 422) result = { paceAdjustment: 0, rejected: true };
+            const ctx = (scoreError as { context?: { status?: number; json?: () => Promise<unknown> } }).context;
+            const status = ctx?.status;
+            if (status === 400 || status === 413 || status === 422) {
+              // Keep the server's reason so the run summary can say why.
+              const body = await ctx?.json?.().catch(() => null) as { error?: string; reason?: string } | null;
+              result = { paceAdjustment: 0, rejected: true, rejectedReason: body?.reason ?? body?.error ?? 'rejected' };
+            }
           }
           if (result && typeof result.paceAdjustment === 'number') {
             const serverPace = result.paceAdjustment as number;
@@ -438,6 +448,10 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
                   paceCapped:          result.paceCapped === true,
                   territoryCapReached: result.territoryCapReached === true,
                   streakDays:          Number(result.streakDays) || 0,
+                  claimedAreaM2:       Number(result.claimedAreaM2) || 0,
+                  ...(result.paceBreakdown && typeof result.paceBreakdown === 'object' && { paceBreakdown: result.paceBreakdown }),
+                  ...(result.rejected === true && { rejectedReason: String(result.rejectedReason ?? 'rejected') }),
+                  ...(typeof result.flagged === 'string' && { rejectedReason: result.flagged }),
                 },
               });
             }
@@ -517,25 +531,39 @@ async function pushUnsyncedRunsImpl(): Promise<void> {
   if (firstUploadError) throw firstUploadError;
 }
 
-/** Pull runs for the current user and cache locally (for history page). */
-export async function pullRuns(limit = 50): Promise<void> {
+/**
+ * Pull every run of the current user and cache it locally (history, totals).
+ * Pages through all of them, newest first: stopping at the first 50 left a
+ * reinstalled phone with only part of the runner's history (B10).
+ */
+export async function pullRuns(pageSize = 200): Promise<void> {
   const user = await getAuthenticatedUser();
   if (!user) return;
 
-  const { data, error } = await supabase
-    .from('runs')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('started_at', { ascending: false })
-    .limit(limit);
+  const rows: Record<string, any>[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from('runs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('started_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error || !data) break;
+    rows.push(...data);
+    if (data.length < pageSize) break;
+  }
 
-  if (error || !data) return;
-
-  for (const row of data) {
+  for (const row of rows) {
     // Guard: never overwrite a locally-stored GPS trace with empty remote GPS.
     // This prevents a race condition where the Supabase row exists (default gps_points=[])
     // but the background push hasn't completed yet, causing the local trace to be lost.
     const local = await getRunById(row.id);
+    // Not scored yet: the local record (full GPS trace, mock flag, shoe,
+    // elevation) is what the scoring retry sends. Replacing it with the server
+    // row sent the simplified upload trace instead, which claims less ground,
+    // pays less distance and dropped the mock-location flag.
+    if (local && (local.synced === false || local.serverProcessed === false)) continue;
     const remoteGps = (row.gps_points as StoredRun['gpsPoints']) ?? [];
     const localGps = local?.gpsPoints ?? [];
     const gpsPoints = remoteGps.length >= 2 ? remoteGps : (localGps.length >= 2 ? localGps : remoteGps);

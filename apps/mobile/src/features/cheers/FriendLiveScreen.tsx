@@ -23,6 +23,9 @@ import { CheerChips } from './CheerChips';
 import { UI, IconText } from '@mobile/shared/icons';
 import { CHEERS, sendCheer, type CheerKey } from './cheerService';
 import { RESULT_TEXT } from './CheerSheet';
+import { usePublicProfiles } from '@features/social/hooks/usePublicProfiles';
+import { Avatar } from '@mobile/shared/components/Avatar';
+import { MapAttribution } from '@theme/MapAttribution';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -60,7 +63,9 @@ export default function FriendLiveScreen() {
   };
 
   const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main', { screen: 'Map' } as never));
-  const name = f?.username ?? params.username ?? 'Your friend';
+  // The live hook's name is "Runner" (it can't read other profiles); the public profile has the real one.
+  const profile = usePublicProfiles([params.userId]).get(params.userId);
+  const name = profile?.username ?? params.username ?? f?.username ?? 'Your friend';
   const ago = f ? Math.max(0, Math.round((now - f.updatedAt) / 1000)) : 0;
   const km = f?.distanceM != null ? f.distanceM / 1000 : null;
   const pace = km && km > 0.05 && f?.elapsedSec ? fmtPace(f.elapsedSec / km) : null;
@@ -69,10 +74,13 @@ export default function FriendLiveScreen() {
   return (
     <View style={s.root}>
       {f ? (
-        <ML.MapView style={StyleSheet.absoluteFill} mapStyle={baseStyle} logoEnabled={false} attributionEnabled={false}>
-          <ML.Camera centerCoordinate={[f.lng, f.lat]} zoomLevel={15} animationDuration={800} />
-          <LiveFriendMarker runner={f} />
-        </ML.MapView>
+        <>
+          <ML.MapView style={StyleSheet.absoluteFill} mapStyle={baseStyle} logoEnabled={false} attributionEnabled>
+            <ML.Camera centerCoordinate={[f.lng, f.lat]} zoomLevel={15} animationDuration={800} />
+            <LiveFriendMarker runner={f} />
+          </ML.MapView>
+          <MapAttribution style={{ left: undefined, right: 6, bottom: undefined, top: insets.top + 56 }} />
+        </>
       ) : (
         <View style={[StyleSheet.absoluteFill, s.loading]}><ActivityIndicator color={C.t2} /></View>
       )}
@@ -88,7 +96,10 @@ export default function FriendLiveScreen() {
       </View>
 
       <View style={[s.sheet, { paddingBottom: insets.bottom + 14 }]}>
-        <Text style={s.title}>{name} is running</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Avatar name={name} uri={profile?.avatar_url ?? null} color={profile?.avatar_color ?? undefined} size={44} />
+          <Text style={[s.title, { flex: 1 }]} numberOfLines={1}>{name} is running</Text>
+        </View>
         {!!started && <Text style={s.sub}>Started {started}</Text>}
 
         <View style={s.stats}>

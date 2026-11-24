@@ -12,4 +12,6 @@ export interface LeaderboardEntry {
   runnerRank: string;
   value: number;
   isPlayer: boolean;
+  /** Profile photo, when the runner set one. */
+  avatarUrl?: string | null;
 }

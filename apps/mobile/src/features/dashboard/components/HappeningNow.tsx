@@ -10,6 +10,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { useTheme, Fonts, type AppColors } from '@theme';
 import { UI, IconText } from '@mobile/shared/icons';
+import { Avatar } from '@mobile/shared/components/Avatar';
+import { usePublicProfiles } from '@features/social/hooks/usePublicProfiles';
 import type { LiveFriendRunner } from '@features/run/hooks/useLiveFriendRuns';
 import { fetchMyChallenges, METRIC_LABEL, type Challenge } from '@features/challenges/services/challengeService';
 import { fetchEvents } from '@features/events/services/eventService';
@@ -46,6 +48,9 @@ export function HappeningNow({ friends, onCheer }: {
     }
   }, []);
 
+  // Real names and photos (the live hook only has "Runner").
+  const profiles = usePublicProfiles(friends.map(f => f.userId));
+
   if (friends.length === 0 && challenges.length === 0 && events.length === 0) return null;
 
   return (
@@ -60,11 +65,14 @@ export function HappeningNow({ friends, onCheer }: {
         horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + 12} decelerationRate="fast"
         contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }} style={{ marginHorizontal: -20 }}
       >
-        {friends.map(f => (
+        {friends.map(live => {
+          const p = profiles.get(live.userId);
+          const f = { ...live, username: p?.username ?? live.username };
+          return (
           <View key={f.userId} style={[s.card, { width: cardW, backgroundColor: C.mint }]}>
             <View style={s.row}>
               <View>
-                <View style={s.liveAv}><Text style={s.liveAvTxt}>{f.username.replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase()}</Text></View>
+                <Avatar name={f.username} uri={p?.avatar_url ?? null} size={44} />
                 <View style={s.liveDot} />
               </View>
               <View style={{ flex: 1 }}>
@@ -81,7 +89,8 @@ export function HappeningNow({ friends, onCheer }: {
               </Pressable>
             </View>
           </View>
-        ))}
+          );
+        })}
 
         {challenges.map(c => (
           <Pressable
@@ -120,8 +129,6 @@ function mk(C: AppColors) {
     row:       { flexDirection: 'row', alignItems: 'center', gap: 10 },
     liveDot:   { position: 'absolute', right: -1, bottom: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: C.brandGreen, borderWidth: 2, borderColor: C.mint },
     kicker:    { fontFamily: Fonts.bold, fontSize: 12 },
-    liveAv:    { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-    liveAvTxt: { fontFamily: Fonts.semiBold, fontSize: 13, color: '#17181A' },
     goingPill: { alignSelf: 'flex-start', height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: C.alwaysDark, justifyContent: 'center' },
     goingTxt:  { fontFamily: Fonts.medium, fontSize: 13, color: C.alwaysLight },
     cardTitle: { fontFamily: Fonts.medium, fontSize: 18, color: C.t1 },

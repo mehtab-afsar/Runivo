@@ -63,9 +63,9 @@ function parseReply(raw: unknown): { content: string; type?: string } {
 }
 
 /** Why the coach call failed, from the function's status and error body. */
-export type CoachFailure = 'consent' | 'plus' | 'limit' | 'server' | 'offline';
+export type CoachFailure = 'consent' | 'plus' | 'limit' | 'unavailable' | 'auth' | 'server' | 'offline';
 export class CoachError extends Error {
-  constructor(public readonly kind: CoachFailure, message: string) { super(message); }
+  constructor(public readonly kind: CoachFailure, message: string, public readonly status?: number) { super(message); }
 }
 
 /** supabase-js hides the status inside error.context (a Response); read it. */
@@ -74,10 +74,16 @@ async function coachError(error: unknown): Promise<CoachError> {
   if (ctx && typeof ctx.status === 'number') {
     let code = '';
     try { code = String((await ctx.clone().json())?.error ?? ''); } catch { /* not JSON */ }
-    if (ctx.status === 403 || code === 'ai_consent_required') return new CoachError('consent', code || 'ai_consent_required');
-    if (ctx.status === 402) return new CoachError('plus', code || 'plus_required');
-    if (ctx.status === 429) return new CoachError('limit', code || 'daily_cap');
-    return new CoachError('server', `${ctx.status} ${code}`.trim());
+    if (__DEV__) console.warn('[pacex] ai-coach failed', ctx.status, code);
+    if (code === 'ai_consent_required' || (ctx.status === 403 && !code)) return new CoachError('consent', code || 'ai_consent_required', ctx.status);
+    if (ctx.status === 402) return new CoachError('plus', code || 'plus_required', ctx.status);
+    if (ctx.status === 429) return new CoachError('limit', code || 'daily_cap', ctx.status);
+    if (ctx.status === 401) return new CoachError('auth', code || 'unauthorized', ctx.status);
+    if (ctx.status === 404 && !code) return new CoachError('unavailable', 'function_not_deployed', ctx.status);
+    if (/^ai_(not_configured|provider_|model_)/.test(code) || code === 'limit_check_failed') {
+      return new CoachError('unavailable', code, ctx.status);
+    }
+    return new CoachError('server', `${ctx.status} ${code}`.trim(), ctx.status);
   }
   return new CoachError('offline', (error as Error)?.message ?? 'network');
 }
@@ -110,7 +116,8 @@ export async function requestWeeklyBrief(sessionToken: string): Promise<WeeklyBr
       body:    { feature: 'weekly_brief' },
       headers: { Authorization: `Bearer ${sessionToken}` },
     });
-    if (error || !data) return null;
+    if (error) { await coachError(error); return null; }
+    if (!data) return null;
     const inner = (data as Record<string, unknown>).data ?? data;
     return inner as WeeklyBriefPayload;
   } catch {
@@ -119,17 +126,13 @@ export async function requestWeeklyBrief(sessionToken: string): Promise<WeeklyBr
 }
 
 export async function requestPostRunAnalysis(runId: string, sessionToken: string): Promise<PostRunPayload | null> {
-  try {
-    const { data, error } = await supabase.functions.invoke('ai-coach', {
-      body:    { feature: 'post_run', runId },
-      headers: { Authorization: `Bearer ${sessionToken}` },
-    });
-    if (error || !data) return null;
-    const inner = (data as Record<string, unknown>).data ?? data;
-    return inner as PostRunPayload | null;
-  } catch {
-    return null;
-  }
+  const { data, error } = await supabase.functions.invoke('ai-coach', {
+    body:    { feature: 'post_run', runId },
+    headers: { Authorization: `Bearer ${sessionToken}` },
+  });
+  if (error) throw await coachError(error);
+  const inner = (data as Record<string, unknown> | null)?.data ?? null;
+  return inner as PostRunPayload | null;
 }
 
 export async function requestNutritionAnalysis(sessionToken: string): Promise<{ content: string }> {
@@ -162,7 +165,7 @@ export async function getQuickPrompts(sessionToken: string): Promise<QuickPrompt
   } catch { /* silently fall back to static prompts */ }
   return [
     { label: 'How can I improve my pace?',            message: 'How can I improve my pace?' },
-    { label: 'Build me a 5K training plan',           message: 'Build me a 5K training plan' },
+    { label: 'What should I run next?',               message: 'What should my next run be, based on my plan and my last runs?' },
     { label: 'Analyse my last run',                   message: 'Analyse my most recent run' },
     { label: 'What to eat before a long run?',        message: 'What should I eat before a long run?' },
   ];
