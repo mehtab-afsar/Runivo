@@ -53,7 +53,7 @@ export default function ClubRunsTab({ clubId, canSchedule }: { clubId: string; c
 
   const rsvp = async (r: ClubRun) => {
     setRuns(prev => prev?.map(x => x.id === r.id ? { ...x, isGoing: !x.isGoing, going: x.going + (x.isGoing ? -1 : 1) } : x) ?? prev);
-    try { await toggleEventJoin(r.id, r.isGoing); } catch { load(); }
+    try { await toggleEventJoin(r.id, r.isGoing); } catch { /* RSVP failed (offline): reload so the screen shows the server state. */ load(); }
   };
 
   const schedule = async () => {

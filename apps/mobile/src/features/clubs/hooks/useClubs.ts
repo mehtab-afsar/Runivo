@@ -112,6 +112,7 @@ export function useClubs() {
       setClubs(prev => [newClub, ...prev]);
       return true;
     } catch (e) {
+      // The message is returned to the caller, which shows it to the user.
       return e instanceof Error ? e.message : 'Could not create the club. Please try again.';
     }
   }, [userId]);

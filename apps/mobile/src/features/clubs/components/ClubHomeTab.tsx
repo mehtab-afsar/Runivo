@@ -51,7 +51,7 @@ export default function ClubHomeTab({ clubId, chat, onOpenChat, onOpenRuns, onOp
   const going = async () => {
     if (!next) return;
     setRuns(rs => (rs ?? []).map(r => r.id === next.id ? { ...r, isGoing: !r.isGoing, going: r.going + (r.isGoing ? -1 : 1) } : r));
-    try { await toggleEventJoin(next.id, next.isGoing); } catch { load(); }
+    try { await toggleEventJoin(next.id, next.isGoing); } catch { /* RSVP failed (offline): reload so the screen shows the server state. */ load(); }
   };
 
   return (
