@@ -86,7 +86,7 @@ export function useTerritoryMap(initialFilter?: TerritoryFilter) {
       try {
         const rivals = await fetchRivalPolygons(newBbox, currentUserId);
         if (req === rivalReqRef.current) setRivalPolygons(rivals);
-      } catch { /* silent */ } finally {
+      } catch { /* Rival zones are a map overlay; keep what is drawn and refresh on the next pan. */ } finally {
         if (req === rivalReqRef.current) setIsLoadingRivals(false);
       }
     }, 400);

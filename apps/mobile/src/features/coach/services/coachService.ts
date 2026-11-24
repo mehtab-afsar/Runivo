@@ -121,6 +121,7 @@ export async function requestWeeklyBrief(sessionToken: string): Promise<WeeklyBr
     const inner = (data as Record<string, unknown>).data ?? data;
     return inner as WeeklyBriefPayload;
   } catch {
+    // The weekly brief is optional; null makes the screen hide it (offline or the function failed).
     return null;
   }
 }

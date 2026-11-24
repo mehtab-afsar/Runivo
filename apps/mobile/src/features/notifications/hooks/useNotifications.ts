@@ -38,7 +38,7 @@ export function useNotifications(): NotificationsState {
     // Optimistic: the row reads as read immediately; put it back if the server refused.
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     try { await markNotificationRead(id); }
-    catch { setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: false } : n)); }
+    catch { /* Mark-read failed: restore the unread state (optimistic rollback). */ setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: false } : n)); }
   }, []);
 
   const markAllRead = useCallback(async () => {

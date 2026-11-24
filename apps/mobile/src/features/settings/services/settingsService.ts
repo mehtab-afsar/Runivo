@@ -38,6 +38,7 @@ export async function persistSettings(
     const { error } = await supabase.from('profiles').update(columns).eq('id', session.user.id);
     return { synced: !error };
   } catch {
+    // Unreachable: reported to the caller as not synced; retried on the next change.
     return { synced: false };
   }
 }
@@ -61,6 +62,7 @@ export async function pullServerSettings(): Promise<StoredSettings | null> {
     await saveSettings(next);
     return next;
   } catch {
+    // Unreachable or signed out: null means "nothing from the server", so local settings stay as they are.
     return null;
   }
 }
@@ -128,6 +130,7 @@ export async function hasHealthConsent(): Promise<boolean> {
     const { data } = await supabase.from('profiles').select('health_consent_at').eq('id', session.user.id).maybeSingle();
     return !!(data as { health_consent_at: string | null } | null)?.health_consent_at;
   } catch {
+    // Cannot confirm consent: report none, so nothing health-related is sent (fails closed).
     return false;
   }
 }
@@ -148,6 +151,7 @@ export async function withdrawHealthConsent(): Promise<boolean> {
       .eq('id', session.user.id);
     return !error;
   } catch {
+    // Unreachable: return false so the caller tells the user the withdrawal did not go through.
     return false;
   }
 }

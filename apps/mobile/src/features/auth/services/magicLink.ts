@@ -30,7 +30,7 @@ function emit(result: Parameters<Listener>[0]) {
 export async function handleMagicLinkUrl(url: string | null): Promise<boolean> {
   if (!url) return false;
   let parsed: URL;
-  try { parsed = new URL(url); } catch { return false; }
+  try { parsed = new URL(url); } catch { /* Not a parseable URL, so it is not a magic link. */ return false; }
   const isMagic = parsed.protocol === 'runivo:' && `${parsed.host}${parsed.pathname}`.replace(/\/+$/, '') === 'auth/magic';
   if (!isMagic) return false;
 

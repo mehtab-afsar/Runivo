@@ -49,6 +49,7 @@ export default function HealthStep({ consent, baseline, onChange }: Props) {
       onChange(true, b);
       track('onboarding_health_import');
     } catch {
+      // Importing past workouts is optional; onboarding continues with nothing imported.
       if (req !== requestRef.current) return;
       onChange(true, null);
     } finally {

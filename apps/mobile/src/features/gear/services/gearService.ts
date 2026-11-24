@@ -7,6 +7,7 @@ import {
   type StoredShoe,
 } from '@shared/services/store';
 import { supabase } from '@shared/services/supabase';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 export async function fetchShoes(): Promise<StoredShoe[]> {
   return getShoes();
@@ -57,7 +58,7 @@ export async function uploadShoePhoto(localUri: string, shoeId: string): Promise
     const { data: { publicUrl } } = supabase.storage.from('user-media').getPublicUrl(path);
     return publicUrl;
   } catch (err) {
-    console.warn('[gear] photo upload error:', err);
+    captureHandledError(err, { domain: 'sync', operation: 'upload-shoe-photo' });
     return null;
   }
 }

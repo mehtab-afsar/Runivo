@@ -20,6 +20,7 @@
 
 import { SUBSCRIPTIONS_ENABLED } from '@shared/engine/entitlements';
 import { Platform } from 'react-native';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 // Product IDs must match what's configured in App Store Connect / Google Play
 // and in the RevenueCat dashboard.
@@ -63,6 +64,7 @@ async function getRC() {
     const { default: Purchases } = await import('react-native-purchases' as any);
     return Purchases;
   } catch {
+    // react-native-purchases is not in this build (e.g. Expo Go); purchases are simply unavailable.
     return null;
   }
 }
@@ -77,7 +79,7 @@ export async function configureRevenueCat(userId?: string): Promise<void> {
     // different account signs in).
     if (userId && userId !== _rcUserId) {
       const Purchases = await getRC();
-      try { await Purchases?.logIn(userId); _rcUserId = userId; } catch { /* retried on next call */ }
+      try { await Purchases?.logIn(userId); _rcUserId = userId; } catch (err) { captureHandledError(err, { domain: 'purchase', operation: 'revenuecat-login' }); /* retried on next call */ }
     }
     return;
   }
@@ -104,7 +106,7 @@ export async function configureRevenueCat(userId?: string): Promise<void> {
     }
     _rcReady = true;
   } catch (err) {
-    console.warn('[purchase] RevenueCat configure failed:', err);
+    captureHandledError(err, { domain: 'purchase', operation: 'configure-revenue-cat' });
   }
 }
 
@@ -121,7 +123,7 @@ export async function getAvailablePackages(): Promise<RCPackage[]> {
     const offering  = offerings.current ?? offerings.all[RC_OFFERING];
     return offering?.availablePackages ?? [];
   } catch (err) {
-    console.warn('[purchase] getOfferings failed:', err);
+    captureHandledError(err, { domain: 'purchase', operation: 'get-available-packages' });
     return [];
   }
 }
@@ -159,7 +161,7 @@ export async function purchaseProduct(productId: string): Promise<PurchaseResult
     return { success: isActive, productId };
   } catch (err: any) {
     if (err?.userCancelled) return { success: false, cancelled: true };
-    console.warn('[purchase] purchasePackage failed:', err);
+    captureHandledError(err, { domain: 'purchase', operation: 'purchase-product' });
     return { success: false, error: err?.message ?? 'Purchase failed' };
   }
 }
@@ -181,7 +183,7 @@ export async function restorePurchases(): Promise<RestoreResult> {
     const customerInfo = await Purchases.restorePurchases();
     return customerInfo.entitlements.active['runivo_plus'] ? 'restored' : 'none';
   } catch (err) {
-    console.warn('[purchase] restorePurchases failed:', err);
+    captureHandledError(err, { domain: 'purchase', operation: 'restore-purchases' });
     return 'error';
   }
 }

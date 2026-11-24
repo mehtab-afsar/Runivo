@@ -15,7 +15,7 @@ const CODE_RE = /^[A-Z0-9]{6,12}$/;
 export function inviteCodeFromUrl(url: string | null): string | null {
   if (!url) return null;
   let u: URL;
-  try { u = new URL(url); } catch { return null; }
+  try { u = new URL(url); } catch { /* Not a parseable URL, so it carries no invite code. */ return null; }
   const path = `${u.host}${u.pathname}`.replace(/\/+$/, '');
   const isInvite = (u.protocol === 'runivo:' && path === 'invite')
     || (u.protocol === 'https:' && path === 'runivo.app/invite');

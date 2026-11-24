@@ -4,7 +4,7 @@ November 2026. This covers what was wrong, what changed, and how each fix is tes
 
 ## The rules
 
-All rules live in one file, `packages/shared/src/engine/runEngine.ts` (`ENGINE`). `packages/shared/src/services/config.ts` holds only app-only settings (live GPS gate, legacy coins) and must never copy a rule. The server runs a byte-for-byte copy at `supabase/functions/_shared/runEngine.ts`; `runEngine.sync.test.ts` fails if the two differ. After editing the engine, run `npm run engine:sync`.
+All rules live in one file, `packages/shared/src/engine/runEngine.ts` (`ENGINE`). `packages/shared/src/services/config.ts` holds only app-only settings (live GPS gate, legacy coins) and must never copy a rule. The server runs a generated copy at `supabase/functions/_shared/runEngine.ts` (git-ignored; made by `npm run engine:sync`, which `npm install` and `npm run functions:deploy` also run); `runEngine.sync.test.ts` fails if it is stale. After editing the engine, run `npm run engine:sync`.
 
 | Rule | Value |
 |---|---|
@@ -102,7 +102,7 @@ Now, from `apps/mobile/src/theme/territory.ts` (colours updated in the November 
 
 ```
 supabase db push
-supabase functions deploy process-run-territory
+npm run functions:deploy -- process-run-territory
 ```
 
-The rules are in `supabase/migrations/20261118000005_territory.sql` (`build_territory_geom`) and `20261118000006_pace.sql` (`credit_pace_capped`); the original change is `supabase/archive/migrations_2026/20261106000001_v1_pace_and_territory_integrity.sql`. Deploy the function after the migrations.
+The rules are in `supabase/migrations/20261118000005_territory.sql` (`build_territory_geom`) and `20261118000006_pace.sql` (`credit_pace_capped`); the original change is `docs/archive/supabase-migrations/migrations_2026/20261106000001_v1_pace_and_territory_integrity.sql`. Deploy the function after the migrations.

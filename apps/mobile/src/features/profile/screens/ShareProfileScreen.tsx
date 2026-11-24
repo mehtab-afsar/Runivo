@@ -38,6 +38,7 @@ async function photoDataUri(uri: string | null | undefined): Promise<string | nu
     const mime = /\.png(\?|$)/i.test(uri) ? 'image/png' : 'image/jpeg';
     return `data:${mime};base64,${b64}`;
   } catch {
+    // The photo could not be prepared; the card renders without it.
     return null;
   }
 }

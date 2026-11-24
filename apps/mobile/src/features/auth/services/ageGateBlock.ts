@@ -7,6 +7,7 @@
  * enough that a family phone a child once used isn't locked for its owner forever.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 export const AGE_BLOCK_KEY = 'runivo.ageGate.under13At';
 
@@ -25,7 +26,8 @@ export async function isAgeBlocked(now: number = Date.now()): Promise<boolean> {
     if (!Number.isFinite(at) || now - at < AGE_BLOCK_MS) return true;
     await AsyncStorage.removeItem(AGE_BLOCK_KEY).catch(() => {});
     return false;
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'storage', operation: 'read-age-gate-block' });
     return false;
   }
 }

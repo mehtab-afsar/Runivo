@@ -71,6 +71,7 @@ export function useGearAdd() {
       await saveShoe(shoe);
       return true;
     } catch {
+      // The caller treats false as "could not save" and tells the user.
       return false;
     } finally {
       setSubmitting(false);

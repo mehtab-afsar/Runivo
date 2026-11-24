@@ -49,7 +49,7 @@ export function parseOrs(json: unknown): RoutedLine | null {
 async function withTimeout<T>(run: (signal: AbortSignal) => Promise<T>): Promise<T | null> {
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-  try { return await run(ctl.signal); } catch { return null; } finally { clearTimeout(t); }
+  try { return await run(ctl.signal); } catch { /* Timed out, aborted or offline: the caller treats null as "no route". */ return null; } finally { clearTimeout(t); }
 }
 
 async function osrmThrough(waypoints: LatLng[], fetchImpl: FetchLike): Promise<RoutedLine | null> {

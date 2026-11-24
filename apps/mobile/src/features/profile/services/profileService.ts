@@ -118,6 +118,7 @@ export async function uploadAvatar(userId: string, uri: string): Promise<string 
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
     return data.publicUrl;
   } catch {
+    // The caller treats null as "upload failed" and keeps the current avatar.
     return null;
   }
 }
@@ -133,6 +134,7 @@ export async function fetchAwards(userId: string): Promise<{ awardId: string; un
       unlockedAt: r.unlocked_at,
     }));
   } catch {
+    // Awards are decorative; an empty list when the fetch fails.
     return [];
   }
 }
@@ -144,6 +146,7 @@ export async function fetchProfileStats(userId: string, period: string): Promise
     const { data } = await supabase.rpc('get_profile_stats', { p_user_id: userId, p_period: period });
     return data as { totalKm: number; totalRuns: number; avgPaceSec: number; totalCalories: number; totalZones: number };
   } catch {
+    // Offline fallback to zero stats; the next load replaces them.
     return { totalKm: 0, totalRuns: 0, avgPaceSec: 0, totalCalories: 0, totalZones: 0 };
   }
 }

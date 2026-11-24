@@ -13,13 +13,13 @@ const DAY = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
 const SEEN = 'runivo.missedSeen.v1';
 
 export async function missedAlreadySeen(id: string): Promise<boolean> {
-  try { return ((JSON.parse((await AsyncStorage.getItem(SEEN)) ?? '[]')) as string[]).includes(id); } catch { return false; }
+  try { return ((JSON.parse((await AsyncStorage.getItem(SEEN)) ?? '[]')) as string[]).includes(id); } catch { /* An unreadable seen-list just shows the sheet again. */ return false; }
 }
 export async function markMissedSeen(id: string): Promise<void> {
   try {
     const seen = JSON.parse((await AsyncStorage.getItem(SEEN)) ?? '[]') as string[];
     await AsyncStorage.setItem(SEEN, JSON.stringify([...seen.filter(x => x !== id), id].slice(-40)));
-  } catch { /* best effort */ }
+  } catch { /* Worst case the sheet is offered again. */ }
 }
 
 type Choice = 'today' | 'skip' | 'pacex';

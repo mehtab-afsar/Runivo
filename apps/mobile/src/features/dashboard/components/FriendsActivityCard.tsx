@@ -43,6 +43,7 @@ export default function FriendsActivityCard({ discover = false }: { discover?: b
       const r = await toggleLike(p.id);
       setPosts(prev => prev.map(x => (x.id === p.id ? { ...x, hasKudos: r.liked, kudosCount: r.count } : x)));
     } catch {
+      // Kudos failed: put the previous state back (optimistic rollback).
       setPosts(prev => prev.map(x => (x.id === p.id ? p : x)));
     }
   };

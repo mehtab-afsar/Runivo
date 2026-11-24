@@ -69,6 +69,7 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
         const [address] = await Location.reverseGeocodeAsync({ latitude, longitude });
         onLocationCaptured({ lat: latitude, lng: longitude }, address?.isoCountryCode ?? address?.country ?? null);
       } catch {
+        // Reverse-geocoding only names the city; onboarding continues without a name.
         onLocationCaptured({ lat: latitude, lng: longitude }, null);
       }
       // The real zones around them. Best effort: an empty map still makes the point.
@@ -90,7 +91,7 @@ export default function CityMapPreviewStep({ phase, onPhase, onLocationCaptured 
             }] : [];
           }),
         });
-      } catch { setZones({ type: 'FeatureCollection', features: [] }); }
+      } catch { /* The rival-zone preview is decorative; an empty map is a fine fallback. */ setZones({ type: 'FeatureCollection', features: [] }); }
     })().catch(() => onPhase('denied'));
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -10,6 +10,7 @@ export function safeHttpUrl(raw: string | null | undefined): string | null {
     const u = new URL(raw.trim());
     return u.protocol === 'https:' || u.protocol === 'http:' ? u.toString() : null;
   } catch {
+    // Not a parseable URL, so it is not safe to open.
     return null;
   }
 }

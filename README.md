@@ -9,8 +9,8 @@ Run to claim territory. Expo / React Native app (`apps/mobile`), a marketing and
 | `apps/mobile` | The app. Feature folders under `src/features`, shared UI and helpers under `src/shared`, design tokens under `src/theme`. |
 | `packages/shared` | Game engine, local store (SQLite), sync, and types used by the app. Imported as `@shared/...`. |
 | `apps/web` | Next.js site: marketing, legal, support, password reset, partner admin. Deployed from `vercel.json`. |
-| `supabase/migrations` | The database, one file per feature (base, accounts, moderation, runs, territory, PACE, store, social, notifications, clubs, events, training, races). RLS and `SECURITY DEFINER` functions are the security boundary. New changes go in a new file named for its feature, e.g. `20261201000001_clubs_invites.sql`. The 178 files before the switch are in `supabase/archive`. Tests: `supabase/tests/run.sh`. |
-| `supabase/functions` | Edge functions (run scoring, rewards, push, webhooks). `_shared/runEngine.ts` is a generated copy of the engine. |
+| `supabase/migrations` | The database, one file per feature (base, accounts, moderation, runs, territory, PACE, store, social, notifications, clubs, events, training, races). RLS and `SECURITY DEFINER` functions are the security boundary. New changes go in a new file named for its feature, e.g. `20261201000001_clubs_invites.sql`. The 178 files before the switch are in `docs/archive/supabase-migrations`. Tests: `supabase/tests/run.sh`. |
+| `supabase/functions` | Edge functions (run scoring, rewards, push, webhooks). `_shared/runEngine.ts` is a generated, git-ignored copy of the engine. |
 | `supabase/tests` | SQL tests. See `supabase/tests/README.md`. |
 | `docs/` | Current docs. `docs/archive/` holds older audits that are partly out of date. |
 
@@ -33,7 +33,7 @@ npm test               # vitest: shared logic, mobile helpers, pure edge-functio
 
 ## Things that bite
 
-- **Engine copy.** After editing `packages/shared/src/engine/runEngine.ts`, run `npm run engine:sync`. A test fails if the edge function's copy has drifted.
+- **Engine copy.** `packages/shared/src/engine/runEngine.ts` is the only copy to edit. `supabase/functions/_shared/runEngine.ts` is generated from it (git-ignored; Supabase only bundles files under `supabase/functions`). `npm install` generates it; after editing the engine run `npm run engine:sync`. Deploy functions with `npm run functions:deploy -- <name>`, not a bare `supabase functions deploy`, which would ship a stale copy. A test and CI fail if the copy is stale.
 - **New privileged SQL functions.** Postgres grants `EXECUTE` on new functions to everyone. End the migration with `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated` (and grant it back only to the roles that need it), and add the name to `supabase/tests/function_privileges.test.sql`.
 - **Supabase calls are lazy.** A query builder sends nothing until it is awaited or `.then` is called. A bare `supabase.rpc(...)` statement does nothing.
 - **Subscriptions are switched off for testing** in three places that must agree: `packages/shared/src/engine/entitlements.ts`, the `app_settings.subscriptions_enabled` row (`supabase/migrations/20261118000001_base.sql`), and `supabase/functions/_shared/subscriptions.ts`.

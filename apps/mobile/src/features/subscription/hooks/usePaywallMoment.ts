@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getSettings, saveSettings } from '@shared/services/store';
 import { paywallMoment, paywallWeekKey, type PaywallTrigger, type Tier } from '@shared/engine/entitlements';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,7 +31,8 @@ export function usePaywallMoment() {
       await saveSettings({ ...settings, paywallShown: { ...settings.paywallShown, [trigger]: week } });
       navigation.navigate('Subscription', { reason: trigger });
       return true;
-    } catch {
+    } catch (err) {
+      captureHandledError(err, { domain: 'storage', operation: 'read-paywall-gate' });
       return false;
     }
   }, [navigation]);

@@ -46,7 +46,7 @@ export default function MyFeedScreen() {
     try {
       const r = await toggleLike(id);
       setPosts(prev => prev.map(p => (p.id === id ? { ...p, hasKudos: r.liked, kudosCount: r.count } : p)));
-    } catch { refresh(); }
+    } catch { /* Kudos failed: refresh to show the server state. */ refresh(); }
   }, [refresh]);
 
   const remove = useCallback((id: string) => {

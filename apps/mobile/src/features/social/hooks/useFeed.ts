@@ -138,6 +138,7 @@ export function useFeed() {
       const { liked, count } = await toggleLike(postId);
       updateBothLists(postId, p => ({ ...p, hasKudos: liked, kudosCount: count }));
     } catch {
+      // Kudos failed: restore the post as it was (optimistic rollback).
       updateBothLists(postId, () => post);
     } finally {
       kudosInFlightRef.current.delete(postId);
@@ -199,6 +200,7 @@ export function useFeed() {
     try {
       await muteUserService(authorId);
     } catch {
+      // Mute failed: restore both feeds (optimistic rollback).
       setFollowingPosts(prevFollowing);
       setDiscoverPosts(prevDiscover);
     }

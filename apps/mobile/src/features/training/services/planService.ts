@@ -28,7 +28,7 @@ async function cache(ap: ActivePlan | null): Promise<void> {
   try {
     if (ap) await AsyncStorage.setItem(CACHE, JSON.stringify(ap));
     else await AsyncStorage.removeItem(CACHE);
-  } catch { /* best effort */ }
+  } catch { /* The offline plan cache is best-effort; the server copy is the source of truth. */ }
   // Every plan change passes through here, so reminders follow moves and skips.
   void rescheduleSessionReminders(ap?.plan ?? null);
 }
@@ -42,7 +42,7 @@ export async function getCachedPlan(): Promise<ActivePlan | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHE);
     return raw ? (JSON.parse(raw) as ActivePlan) : null;
-  } catch { return null; }
+  } catch { /* A missing or corrupt cache means there is no cached plan. */ return null; }
 }
 
 export async function fetchActivePlan(): Promise<ActivePlan | null> {
@@ -204,9 +204,9 @@ const CHECKIN_SEEN = 'runivo.weekCheckIn.';
 
 /** Has the runner already answered this week's PaceX check-in for this plan? */
 export async function checkInAnswered(planId: string, weekStart: string): Promise<boolean> {
-  try { return (await AsyncStorage.getItem(`${CHECKIN_SEEN}${planId}.${weekStart}`)) != null; } catch { return false; }
+  try { return (await AsyncStorage.getItem(`${CHECKIN_SEEN}${planId}.${weekStart}`)) != null; } catch { /* An unreadable flag just asks the check-in again. */ return false; }
 }
 
 export async function markCheckInAnswered(planId: string, weekStart: string): Promise<void> {
-  try { await AsyncStorage.setItem(`${CHECKIN_SEEN}${planId}.${weekStart}`, '1'); } catch { /* best effort */ }
+  try { await AsyncStorage.setItem(`${CHECKIN_SEEN}${planId}.${weekStart}`, '1'); } catch { /* Worst case the check-in is asked once more. */ }
 }

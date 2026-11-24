@@ -71,7 +71,7 @@ export async function fetchDashboardData(_userId: string): Promise<DashboardData
     );
     calorieGoal = nutProf?.dailyGoalKcal ?? 2000;
     weightKg = nutProf?.weightKg ?? 70;
-  } catch { /* ignore */ }
+  } catch { /* The nutrition card is optional; the dashboard renders without it. */ }
 
   const recentRuns = [...allRuns]
     .filter(r => r.distanceMeters >= 50)
