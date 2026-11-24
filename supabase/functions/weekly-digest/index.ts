@@ -7,13 +7,15 @@
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { digestHtml, digestSubject, type DigestRow } from './email.ts';
+import { isServiceRoleRequest } from '../_shared/auth.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
 Deno.serve(async (req) => {
   // Only the scheduler (service role) may trigger a send.
-  const auth = req.headers.get('Authorization') ?? '';
-  if (auth !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) return new Response('Forbidden', { status: 403 });
+  // Constant-time, and 401 (not 403) for a missing or wrong credential.
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
+  if (!isServiceRoleRequest(req)) return new Response('Unauthorized', { status: 401 });
   const key = Deno.env.get('RESEND_API_KEY');
   const from = Deno.env.get('DIGEST_FROM');
   if (!key || !from) return new Response(JSON.stringify({ error: 'email_not_configured' }), { status: 500 });

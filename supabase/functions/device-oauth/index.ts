@@ -370,9 +370,10 @@ Deno.serve(async (req) => {
     return new Response('Method not allowed', { status: 405, headers: CORS });
 
   } catch (err) {
+    // Provider error bodies stay in the logs; they can echo tokens and request details.
     console.error('device-oauth error:', err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }),
+      JSON.stringify({ error: 'oauth_failed' }),
       { status: 500, headers: { ...CORS, 'Content-Type': 'application/json' } },
     );
   }

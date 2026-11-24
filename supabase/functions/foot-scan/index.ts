@@ -15,29 +15,49 @@ const DAILY_CAP_USD  = 0.12;
 const MAX_IMAGE_B64  = 7 * 1024 * 1024;   // same ceiling as ai-coach:1545
 const ALLOWED_MIME   = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-/** Reject the request if this user has already spent the daily AI budget. */
-async function enforceDailyCap(
+// Worst case for one scan (image + 256 output tokens at Sonnet prices), held while the
+// request runs so parallel requests can't each pass a read-then-check and overrun the cap.
+const RESERVE_USD = 0.02;
+
+/**
+ * Reserve this request's spend in one locked step (ai_reserve_spend, shared with
+ * ai-coach). Returns the reservation id, or a ready 429/503 Response to send.
+ * The old version summed ai_usage_log and then called Anthropic, so N parallel
+ * requests all saw the same total and all went through.
+ */
+async function reserveSpend(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   userId: string,
-): Promise<Response | null> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabase
-    .from('ai_usage_log')
-    .select('cost_usd')
-    .eq('user_id', userId)
-    .gte('created_at', since);
-
-  const totalUsd = (data ?? []).reduce(
-    (s: number, r: { cost_usd: number }) => s + (r.cost_usd ?? 0), 0,
-  );
-  if (totalUsd >= DAILY_CAP_USD) {
+): Promise<{ id: string | null } | Response> {
+  const { data, error } = await supabase.rpc('ai_reserve_spend', {
+    p_user: userId, p_feature: 'foot_scan', p_estimate_usd: RESERVE_USD,
+    p_daily_cap_usd: DAILY_CAP_USD, p_chat_cap_usd: DAILY_CAP_USD,
+  });
+  // Fail closed: if the cap can't be checked, don't spend.
+  if (error) {
+    return new Response(JSON.stringify({ error: 'limit_check_failed' }), {
+      status: 503, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
+    });
+  }
+  const row = (Array.isArray(data) ? data[0] : data ?? null) as { reservation_id: string | null; refused: string | null } | null;
+  if (row?.refused) {
     return new Response(
       JSON.stringify({ error: 'daily_limit_reached', detail: 'Daily AI usage limit reached. Try again tomorrow.' }),
       { status: 429, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
     );
   }
-  return null;
+  return { id: row?.reservation_id ?? null };
+}
+
+/** Drop the held reservation once the real cost is logged (or the call failed). */
+async function releaseReservation(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  id: string | null,
+): Promise<void> {
+  if (!id) return;
+  await supabase.from('ai_usage_log').delete().eq('id', id).eq('reservation', true).then(() => {}, () => {});
 }
 
 /** Record spend so this endpoint counts against the same budget as ai-coach. */
@@ -70,6 +90,10 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: CORS_HEADERS });
   }
 
+  // Set once this request has reserved spend; released when it ends, whatever happens.
+  let reservationId: string | null = null;
+  // deno-lint-ignore no-explicit-any
+  let db: any = null;
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -98,7 +122,11 @@ Deno.serve(async (req) => {
     }
 
     // Parse body — expects { imageBase64: string, mimeType: 'image/jpeg' | 'image/png' | 'image/webp' }
-    const { imageBase64, mimeType } = await req.json();
+    const parsed = await req.json().catch(() => null) as { imageBase64?: unknown; mimeType?: unknown } | null;
+    if (!parsed || typeof parsed !== 'object') {
+      return new Response('Invalid JSON', { status: 400, headers: CORS_HEADERS });
+    }
+    const { imageBase64, mimeType } = parsed;
     if (typeof imageBase64 !== 'string' || typeof mimeType !== 'string' || !imageBase64 || !mimeType) {
       return new Response('Missing or invalid imageBase64/mimeType', { status: 400, headers: CORS_HEADERS });
     }
@@ -110,8 +138,10 @@ Deno.serve(async (req) => {
       return new Response('Image too large', { status: 413, headers: CORS_HEADERS });
     }
 
-    const capped = await enforceDailyCap(supabase, user.id);
-    if (capped) return capped;
+    const reserved = await reserveSpend(supabase, user.id);
+    if (reserved instanceof Response) return reserved;
+    reservationId = reserved.id;
+    db = supabase;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
 
@@ -182,10 +212,13 @@ Respond with ONLY valid JSON, no markdown:
     });
 
   } catch (err) {
+    // Detail stays in the logs: provider and SDK messages can echo request content.
     console.error('foot-scan error:', err);
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }),
+      JSON.stringify({ error: 'scan_failed' }),
       { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
     );
+  } finally {
+    if (db) await releaseReservation(db, reservationId);
   }
 });

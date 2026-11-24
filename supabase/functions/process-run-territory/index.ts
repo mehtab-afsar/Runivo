@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { effectiveTier } from '../_shared/subscriptions.ts';
+import { isServiceRoleRequest } from '../_shared/auth.ts';
 import { MAX_GPS_POINTS, runMismatch, type StoredRunFacts } from './consistency.ts';
 import {
   ENGINE,
@@ -18,8 +19,8 @@ import {
 } from '../_shared/runEngine.ts';
 
 // Every game rule (distance, loop detection, PACE per km, caps, streak) lives
-// in _shared/runEngine.ts, a byte-for-byte copy of the app's
-// packages/shared/src/engine/runEngine.ts (enforced by runEngine.sync.test.ts).
+// in _shared/runEngine.ts, generated from the app's
+// packages/shared/src/engine/runEngine.ts (`npm run engine:sync`; git-ignored).
 // This function only adds what the app can't be trusted with: it verifies,
 // writes, and pays.
 
@@ -84,7 +85,8 @@ Deno.serve(async (req) => {
   // Watch runs (X3): the device webhook calls in with the service key for the
   // runner it already matched; everyone else must be the runner.
   const bearer = authHeader.replace('Bearer ', '');
-  const internal = bearer === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') && req.headers.get('x-runivo-internal') === 'device-webhook';
+  // Constant-time match: this branch trusts the userId in the body, so the key check must not leak.
+  const internal = isServiceRoleRequest(req) && req.headers.get('x-runivo-internal') === 'device-webhook';
   let user: { id: string } | null = null;
   const peek = await req.clone().json().catch(() => ({})) as { userId?: string };
   if (internal) {
@@ -95,7 +97,7 @@ Deno.serve(async (req) => {
   }
   if (!user) return new Response('Unauthorized', { status: 401 });
 
-  const body = await req.json() as {
+  const body = await req.json().catch(() => null) as {
     runId:             string;
     userId:            string;
     gpsPoints:         EnginePoint[];
@@ -107,6 +109,7 @@ Deno.serve(async (req) => {
     mockedLocation?:   boolean;
   };
 
+  if (!body || typeof body !== 'object') return json({ error: 'bad_request', reason: 'body' }, 400);
   if (body.userId !== user.id) return new Response('Forbidden', { status: 403 });
   if (!body.runId) return json({ error: 'missing_run_id' }, 400);
   // Shape checks before any query: out-of-range coordinates used to reach

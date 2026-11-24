@@ -6,7 +6,7 @@
 -- One file per feature: this file creates everything this feature owns
 -- (tables, functions, triggers, row-level security, grants, scheduled jobs).
 -- It needs only the files before it. Built from the 178 migrations up to
--- 20261117000012 (kept in supabase/archive/migrations_2026); a fresh
+-- 20261117000012 (kept in docs/archive/supabase-migrations/migrations_2026); a fresh
 -- database built from these files matches one built from those exactly.
 --
 -- Tables: pace_redemptions, pace_store_rewards, partners, promotions, redemption_holds, reward_codes, reward_events, reward_view_keys, sponsored_challenge_entries, sponsored_challenges, store_cities

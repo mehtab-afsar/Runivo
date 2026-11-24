@@ -23,6 +23,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hasBearer } from '../_shared/auth.ts';
 import { decideTierUpdates, usersInEvent, isStaleEvent, expiryFor, type RCEvent } from '../_shared/rcTier.ts';
 
 const supabase = createClient(
@@ -42,22 +43,19 @@ serve(async (req) => {
   if (!secret) {
     return new Response('Webhook secret not configured', { status: 500 });
   }
-  const auth = req.headers.get('Authorization') ?? '';
-  const expected = `Bearer ${secret}`;
-  const authorized = auth.length === expected.length &&
-    Array.from(auth).reduce((diff, c, i) => diff | (c.charCodeAt(0) ^ expected.charCodeAt(i)), 0) === 0;
-  if (!authorized) {
+  // Constant-time on a digest, so the secret's length doesn't leak either.
+  if (!hasBearer(req, secret)) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  let payload: { event: RCEvent };
+  let payload: { event: RCEvent } | null;
   try {
     payload = await req.json();
   } catch {
     return new Response('Invalid JSON', { status: 400 });
   }
 
-  const event = payload.event;
+  const event = payload?.event;
   const userIds = usersInEvent(event ?? {});
   if (!event || userIds.length === 0) {
     return new Response('Missing app_user_id', { status: 400 });

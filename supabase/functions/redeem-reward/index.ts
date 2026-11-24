@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isUuid } from '../_shared/auth.ts';
 
 // Proxies to redeem_reward(), a service_role-only RPC: verify the caller's
 // own JWT here, then act with the service-role client. Every rule (live
@@ -45,8 +46,8 @@ Deno.serve(async (req) => {
   if (authErr || !user) return new Response('Unauthorized', { status: 401 });
 
   const body = await req.json().catch(() => null) as { rewardId?: string; lat?: unknown; lng?: unknown } | null;
-  if (!body?.rewardId) {
-    return json({ success: false, reason: 'not_found', message: 'Missing rewardId' }, 400);
+  if (!isUuid(body?.rewardId)) {
+    return json({ success: false, reason: 'not_found', message: 'Missing or invalid rewardId' }, 400);
   }
 
   // The device's last known position, for city-limited rewards when the

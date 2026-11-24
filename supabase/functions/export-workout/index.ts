@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     body: JSON.stringify(toGarminWorkout(session)),
   });
   if (res.status === 403 || res.status === 401) return json({ error: 'garmin_permission', detail: 'Reconnect Garmin and allow workout import.' }, 403);
-  if (!res.ok) return json({ error: 'garmin_failed', detail: await res.text() }, 502);
+  if (!res.ok) { console.error('[export-workout] Garmin', res.status, await res.text()); return json({ error: 'garmin_failed' }, 502); }
   const { workoutId } = await res.json() as { workoutId: number };
 
   const sUrl = 'https://apis.garmin.com/training-api/schedule';

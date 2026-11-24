@@ -439,3 +439,9 @@ verify_jwt = false
 
 [functions.weekly-digest]
 verify_jwt = false
+
+# device-oauth checks the caller itself (auth.getUser → 401) and is called with a
+# runner's token. It was the only function missing here, so it kept the gateway
+# default (verify_jwt = true) and would fail for valid runners on JWT signing keys.
+[functions.device-oauth]
+verify_jwt = false
