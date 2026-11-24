@@ -29,14 +29,14 @@
     "functions:deploy": "npm run engine:sync && supabase functions deploy"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/eslintrc": "^3.3.7",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "husky": "^9.1.0",
     "lint-staged": "^15.2.0",
     "patch-package": "^8.0.1",
-    "typescript-eslint": "^8.63.0"
+    "typescript-eslint": "^8.73.0"
   },
   "lint-staged": {
     "apps/web/{app,components,lib}/**/*.{ts,tsx}": [
@@ -69,7 +69,7 @@
     "buffer": "^6.0.3",
     "expo": "~55.0.8",
     "expo-speech": "~55.0.18",
-    "react": "19.2.0",
+    "react": "19.3.1",
     "react-native": "0.83.2",
     "react-native-worklets": "^0.7.4"
   }
