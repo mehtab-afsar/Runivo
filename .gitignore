@@ -55,3 +55,7 @@ supabase/pull_snapshots/
 # Stray root app.json; the real config is apps/mobile/app.config.ts
 /app.json
 mock-pictures/
+
+# Generated from packages/shared/src/engine/runEngine.ts by scripts/sync-engine.mjs
+# (npm run engine:sync; runs on postinstall and before deploy). Never edit or commit.
+supabase/functions/_shared/runEngine.ts

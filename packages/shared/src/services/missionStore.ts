@@ -30,6 +30,7 @@ async function fetchTodayPlanSession(): Promise<PlanSession | null> {
     if (!week) return null;
     return week.sessions.find(s => s.day === DAY_ABBREVS[new Date().getDay()]) ?? null;
   } catch {
+    // Offline, signed out or no plan: fall back to the plain random mission set.
     return null;
   }
 }

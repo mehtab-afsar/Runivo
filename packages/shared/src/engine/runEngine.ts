@@ -1,10 +1,10 @@
 /**
  * runEngine — the single source of truth for Runivo's game maths.
  *
- * Used by BOTH the app (packages/shared) and the server
- * (supabase/functions/_shared/runEngine.ts is a byte-for-byte copy, enforced by
- * runEngine.sync.test.ts). Change the rules here, then run
- * `npm run engine:sync` to refresh the server copy.
+ * Used by BOTH the app (packages/shared) and the server. This is the only file to
+ * edit: supabase/functions/_shared/runEngine.ts is generated from it (git-ignored;
+ * `npm run engine:sync`, which also runs on postinstall and in `npm run
+ * functions:deploy`). runEngine.sync.test.ts fails if that copy is stale.
  *
  * Pure TypeScript: no imports, no platform APIs, so it runs in React Native,
  * Node (tests) and Deno (edge functions) unchanged.

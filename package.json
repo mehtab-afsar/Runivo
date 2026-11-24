@@ -21,9 +21,12 @@
     "clean:mobile": "npm run clean --workspace=apps/mobile",
     "clean:web": "npm run clean --workspace=apps/web",
     "clean": "npm run clean:mobile && npm run clean:web",
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && node scripts/sync-engine.mjs --if-present",
     "prepare": "husky",
-    "engine:sync": "cp packages/shared/src/engine/runEngine.ts supabase/functions/_shared/runEngine.ts"
+    "engine:sync": "node scripts/sync-engine.mjs",
+    "engine:check": "node scripts/sync-engine.mjs --check",
+    "functions:serve": "npm run engine:sync && supabase functions serve",
+    "functions:deploy": "npm run engine:sync && supabase functions deploy"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
@@ -50,18 +53,16 @@
     ]
   },
   "comment:overrides": [
-    "H-10 (security audit). next@15.5.22 cleared its own SSRF/DoS advisories, and the",
-    "direct postcss/sharp deps in apps/web are on patched versions. Still outstanding:",
-    "next bundles postcss@8.4.31 and resolves the hoisted sharp@0.34.5 (it pins an",
-    "optional ^0.34.3), and @expo/metro-config carries postcss@8.4.49 — all build-chain",
-    "or image-pipeline, none of them the SSRF/DoS that mattered.",
-    "NOTE: npm did not apply these overrides against the existing lockfile (no",
-    "'overrides' key was written to package-lock.json). They take effect on the next",
-    "full lockfile regeneration — do that deliberately, with a build + smoke test,",
-    "rather than as a side effect. Re-check on the next Next.js upgrade."
+    "H-10 (security audit). postcss: @expo/metro-config pins postcss 8.4.x, so without this",
+    "override npm nests a second, older copy (8.4.49) next to the hoisted 8.5.x. With it the",
+    "tree has one postcss. package-lock.json already reflects it (npm records no 'overrides'",
+    "key in the lockfile; checked 2026-11-24: regenerating the lock with and without this",
+    "override differs only by that nested copy).",
+    "sharp: override removed on the same date. apps/web depends on ^0.35.3 directly and",
+    "next@15.5.x accepts ^0.35.5, so it changed nothing. Re-check postcss on the next",
+    "Expo SDK upgrade and drop the override if @expo/metro-config moves to 8.5."
   ],
   "overrides": {
-    "sharp": "^0.35.3",
     "postcss": "^8.5.25"
   },
   "dependencies": {

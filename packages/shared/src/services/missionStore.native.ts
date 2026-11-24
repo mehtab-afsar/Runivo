@@ -6,6 +6,7 @@ import * as SQLite from 'expo-sqlite';
 import { Mission, generateDailyMissions, updateMissionProgress, MISSION_TEMPLATES, missionFromPlanSession, type PlanSession } from './missions';
 import { getPlayer, savePlayer, getSettings } from './store';
 import { computeRunnerRank } from './claimEngine';
+import { migrateDatabase } from './localDbMigrations';
 
 const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -31,6 +32,7 @@ async function fetchTodayPlanSession(): Promise<PlanSession | null> {
     if (!week) return null;
     return week.sessions.find(s => s.day === DAY_ABBREVS[new Date().getDay()]) ?? null;
   } catch {
+    // Offline, signed out or no plan: fall back to the plain random mission set.
     return null;
   }
 }
@@ -38,15 +40,8 @@ async function fetchTodayPlanSession(): Promise<PlanSession | null> {
 const _db = SQLite.openDatabaseSync('runivo.db');
 
 async function ensureTable(): Promise<void> {
-  await _db.execAsync(`
-    CREATE TABLE IF NOT EXISTS missions (
-      id TEXT PRIMARY KEY, data TEXT NOT NULL, expires_at INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_missions_expires ON missions(expires_at);
-    CREATE TABLE IF NOT EXISTS mission_runs (
-      run_id TEXT PRIMARY KEY, applied_at INTEGER NOT NULL
-    );
-  `);
+  // Schema is owned by ./localDbMigrations.ts; this only makes sure it has run on this connection.
+  migrateDatabase(_db);
 }
 
 export async function getTodaysMissions(): Promise<Mission[]> {

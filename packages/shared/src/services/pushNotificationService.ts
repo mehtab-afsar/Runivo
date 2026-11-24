@@ -15,6 +15,7 @@
  */
 
 import { supabase } from './supabase';
+import { captureHandledError } from './errorReporting';
 
 // ── Capability check ───────────────────────────────────────────────────────────
 
@@ -57,7 +58,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     await navigator.serviceWorker.ready;
     return _swRegistration;
   } catch (err) {
-    console.warn('[push] SW registration failed:', err);
+    captureHandledError(err, { domain: 'push', operation: 'register-service-worker' });
     return null;
   }
 }
@@ -99,7 +100,7 @@ export async function subscribeToPush(): Promise<'granted' | 'denied' | 'unsuppo
       });
     }
   } catch (err) {
-    console.warn('[push] PushManager.subscribe failed:', err);
+    captureHandledError(err, { domain: 'push', operation: 'subscribe-to-push' });
     return 'error';
   }
 
@@ -118,7 +119,7 @@ export async function subscribeToPush(): Promise<'granted' | 'denied' | 'unsuppo
       auth:     keys.auth,
     }, { onConflict: 'user_id,endpoint' });
   } catch (err) {
-    console.warn('[push] Failed to save subscription to Supabase:', err);
+    captureHandledError(err, { domain: 'push', operation: 'subscribe-to-push' });
     // Don't fail here — user has granted permission and SW is registered
   }
 
@@ -146,7 +147,7 @@ export async function unsubscribeFromPush(): Promise<void> {
 
   try {
     await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
-  } catch { /* non-critical */ }
+  } catch (err) { captureHandledError(err, { domain: 'push', operation: 'unsubscribe-from-push' }); /* non-critical */ }
 }
 
 // ── Sync on app open ───────────────────────────────────────────────────────────
@@ -187,5 +188,5 @@ export async function syncPushSubscriptionOnLoad(): Promise<void> {
         }, { onConflict: 'user_id,endpoint' });
       }
     }
-  } catch { /* silent — don't disrupt app load */ }
+  } catch (err) { captureHandledError(err, { domain: 'push', operation: 'sync-push-subscription-on-load' }); /* silent — don't disrupt app load */ }
 }

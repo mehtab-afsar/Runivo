@@ -1,6 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 import type { TerritoryPolygon, RunnerRank, TerritoryTier } from '../types/game';
 import { withoutAccountSettings } from './accountSettings';
+import { captureHandledError } from './errorReporting';
 
 const DB_NAME = 'runivo';
 const DB_VERSION = 11;
@@ -37,7 +38,7 @@ async function idbSafe<T>(
         if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('runivo:storage-full'));
       } else if (err.name === 'AbortError') {
         console.warn(`[IDB] Transaction aborted during ${context} — retrying`);
-        try { return await operation(); } catch { /* give up */ }
+        try { return await operation(); } catch { /* The retry also failed; the original error is logged just below and the fallback returned. */ }
       }
     }
     console.error(`[IDB] ${context} failed:`, err);
@@ -453,7 +454,8 @@ async function signedInUserId(): Promise<string | null> {
     const { supabase } = await import('./supabase');
     const { data } = await supabase.auth.getSession();
     return data.session?.user?.id ?? null;
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'auth', operation: 'signed-in-user-id' });
     return null;
   }
 }
@@ -644,6 +646,7 @@ export async function getNutritionEntries(date: string): Promise<NutritionEntry[
     try {
       return (await db.getAllFromIndex('nutritionLog', 'byDate', date)) as NutritionEntry[];
     } catch {
+      // The byDate index is missing on an un-upgraded database: fall back to a full scan.
       const all = await db.getAll('nutritionLog') as NutritionEntry[];
       return all.filter(e => e.date === date);
     }

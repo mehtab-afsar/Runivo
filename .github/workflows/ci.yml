@@ -37,11 +37,15 @@ jobs:
       - name: Unit tests
         run: npm test
 
-      # supabase/functions/_shared/runEngine.ts is a byte copy of the shared engine.
-      - name: Engine copy is in sync
+      # supabase/functions/_shared/runEngine.ts is generated from the shared engine
+      # (postinstall runs the generator) and must never be committed.
+      - name: Engine copy is generated, not committed
         run: |
-          npm run engine:sync
-          git diff --exit-code -- supabase/functions/_shared/runEngine.ts
+          if [ -n "$(git ls-files supabase/functions/_shared/runEngine.ts)" ]; then
+            echo "::error::supabase/functions/_shared/runEngine.ts is tracked. It is generated: git rm --cached it."
+            exit 1
+          fi
+          npm run engine:check
 
       - name: Migration lint
         run: node scripts/lint-migrations.mjs
@@ -60,6 +64,9 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      # The functions import _shared/runEngine.ts, which is generated and not in git.
+      - name: Generate engine copy
+        run: node scripts/sync-engine.mjs
       - name: Check
         run: |
           for f in supabase/functions/*/index.ts; do

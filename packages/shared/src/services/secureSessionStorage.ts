@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { getRandomBytes } from 'expo-crypto';
 import { decryptSession, encryptSession, isEncrypted } from './sessionCrypto';
+import { captureHandledError } from './errorReporting';
 
 const KEY_NAME = 'runivo-session-key-v1';
 const KEY_OPTIONS: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY };
@@ -42,7 +43,7 @@ function getKey(): Promise<Uint8Array | null> {
       await SecureStore.setItemAsync(KEY_NAME, toHex(fresh), KEY_OPTIONS);
       return fresh;
     } catch (err) {
-      console.warn('[session] could not use the secure key store:', err);
+      captureHandledError(err, { domain: 'auth', operation: 'secure-key-store' });
       keyPromise = null; // try again next call instead of staying broken
       return null;
     }

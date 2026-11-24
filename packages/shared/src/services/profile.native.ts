@@ -8,6 +8,7 @@
  * Hermes's call stack. All shared types/functions are inlined below.
  */
 import * as SQLite from 'expo-sqlite';
+import { migrateDatabase } from './localDbMigrations';
 
 // ── Inlined from profile.ts (cannot import to avoid self-cycle) ──────────────
 export interface PlayerProfile {
@@ -47,12 +48,8 @@ export function computeWeeklyGoal(
 const _db = SQLite.openDatabaseSync('runivo.db');
 
 async function ensureTable(): Promise<void> {
-  await _db.execAsync(`
-    CREATE TABLE IF NOT EXISTS settings (
-      key   TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-  `);
+  // Schema is owned by ./localDbMigrations.ts; this only makes sure it has run on this connection.
+  migrateDatabase(_db);
 }
 
 export async function saveProfile(profile: PlayerProfile): Promise<void> {

@@ -2,7 +2,7 @@
  * claimEngine — the app's entry points for territory and PACE.
  *
  * Every rule lives in ../engine/runEngine.ts, which the server runs too
- * (supabase/functions/_shared/runEngine.ts is a byte-for-byte copy). This file
+ * (supabase/functions/_shared/runEngine.ts is generated from it). This file
  * only adapts it to the shapes the app already uses, so a number the app shows
  * after a run is the number the server pays.
  */

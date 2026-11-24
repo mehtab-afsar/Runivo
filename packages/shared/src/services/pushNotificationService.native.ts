@@ -18,6 +18,7 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
+import { captureHandledError } from './errorReporting';
 
 // Show banners + play sound when app is in foreground
 Notifications.setNotificationHandler({
@@ -54,7 +55,7 @@ async function getExpoPushToken(): Promise<string | null> {
     );
     return data;
   } catch (err) {
-    console.warn('[push] getExpoPushTokenAsync failed:', err);
+    captureHandledError(err, { domain: 'push', operation: 'get-expo-push-token' });
     return null;
   }
 }
@@ -109,7 +110,7 @@ export async function subscribeToPush(): Promise<'granted' | 'denied' | 'unsuppo
       { onConflict: 'user_id,token' }
     );
   } catch (err) {
-    console.warn('[push] Failed to save Expo push token:', err);
+    captureHandledError(err, { domain: 'push', operation: 'subscribe-to-push' });
     // Permission granted even if DB write fails
   }
 
@@ -126,7 +127,7 @@ export async function unsubscribeFromPush(): Promise<void> {
 
   try {
     await supabase.from('expo_push_tokens').delete().eq('token', token);
-  } catch { /* non-critical */ }
+  } catch (err) { captureHandledError(err, { domain: 'push', operation: 'unsubscribe-from-push' }); /* non-critical */ }
 }
 
 // ── Sync on app open ───────────────────────────────────────────────────────────
@@ -154,5 +155,5 @@ export async function syncPushSubscriptionOnLoad(): Promise<void> {
       { user_id: user.id, token, platform: Platform.OS },
       { onConflict: 'user_id,token' }
     );
-  } catch { /* silent — don't disrupt app load */ }
+  } catch (err) { captureHandledError(err, { domain: 'push', operation: 'sync-push-subscription-on-load' }); /* silent — don't disrupt app load */ }
 }

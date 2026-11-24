@@ -7,7 +7,7 @@ import react from 'eslint-plugin-react';
 // One entry per folder in apps/mobile/src/features. Add a new feature here too.
 const FEATURES = [
   'auth', 'challenges', 'clubs', 'coach', 'dashboard', 'events', 'gear', 'goals', 'history', 'leaderboard',
-  'missions', 'notifications', 'nutrition', 'profile', 'run', 'settings', 'social', 'store', 'subscription',
+  'missions', 'notifications', 'profile', 'run', 'settings', 'social', 'store', 'subscription',
   'territory', 'training',
 ];
 
@@ -26,6 +26,8 @@ export default tseslint.config(
       '**/*.config.mjs',
       '**/*.config.cjs',
       'apps/mobile/patches/**',
+      // Parked features: not imported, not bundled, not checked. See their README.
+      'apps/mobile/src/features/_archived/**',
       '.claude/**',
     ],
   },

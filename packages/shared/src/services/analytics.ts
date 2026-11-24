@@ -26,7 +26,7 @@ export function track(eventName: string, properties?: Record<string, unknown>): 
   try {
     posthog.capture(eventName, properties);
   } catch {
-    // non-critical
+    // Analytics must never break or block the app; a dropped event is harmless.
   }
 }
 
@@ -35,7 +35,7 @@ export function identify(userId: string): void {
   try {
     posthog.identify(userId);
   } catch {
-    // non-critical
+    // Analytics must never break or block the app; a dropped event is harmless.
   }
 }
 
@@ -44,7 +44,7 @@ export function resetAnalytics(): void {
   try {
     posthog.reset();
   } catch {
-    // non-critical
+    // Analytics must never break or block the app; a dropped event is harmless.
   }
 }
 
@@ -52,13 +52,13 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
   try {
     const st = await getSettings();
     await saveSettings({ ...st, analyticsEnabled: enabled });
-  } catch { /* non-critical */ }
+  } catch { /* Analytics must never break or block the app; a dropped event is harmless. */ }
   if (!initialized) return;
   try {
     if (enabled) posthog.opt_in_capturing(); else posthog.opt_out_capturing();
-  } catch { /* non-critical */ }
+  } catch { /* Analytics must never break or block the app; a dropped event is harmless. */ }
 }
 
 export async function isAnalyticsEnabled(): Promise<boolean> {
-  try { return (await getSettings()).analyticsEnabled !== false; } catch { return true; }
+  try { return (await getSettings()).analyticsEnabled !== false; } catch { /* Analytics must never break or block the app; a dropped event is harmless. */ return true; }
 }

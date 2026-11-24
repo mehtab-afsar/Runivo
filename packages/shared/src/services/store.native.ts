@@ -20,6 +20,8 @@ import type {
 } from './store';
 import type { TerritoryPolygon, RunnerRank } from '../types/game';
 import { withoutAccountSettings } from './accountSettings';
+import { migrateDatabase } from './localDbMigrations';
+import { captureHandledError } from './errorReporting';
 
 // Re-export types so callers can import from either file without caring which.
 export type {
@@ -89,82 +91,14 @@ export async function getDB(): Promise<never> {
 const _db = SQLite.openDatabaseSync('runivo.db');
 let _initialized = false;
 
+/**
+ * Opens the schema at the latest version. Tables, indexes and legacy column fixes
+ * are versioned migrations in ./localDbMigrations.ts (PRAGMA user_version), not
+ * statements run here. Add schema changes there.
+ */
 export async function initDatabase(): Promise<void> {
   if (_initialized) return;
-  await _db.execAsync(`
-    PRAGMA journal_mode = WAL;
-    PRAGMA foreign_keys = ON;
-
-    CREATE TABLE IF NOT EXISTS runs (
-      id         TEXT PRIMARY KEY,
-      data       TEXT NOT NULL,
-      start_time INTEGER NOT NULL,
-      synced     INTEGER NOT NULL DEFAULT 0
-    );
-    CREATE INDEX IF NOT EXISTS idx_runs_start_time ON runs(start_time);
-    CREATE INDEX IF NOT EXISTS idx_runs_synced     ON runs(synced);
-
-    CREATE TABLE IF NOT EXISTS player (
-      id   TEXT PRIMARY KEY,
-      data TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS territories (
-      id   TEXT PRIMARY KEY,
-      data TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS pending_actions (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      type         TEXT NOT NULL,
-      territory_id TEXT NOT NULL,
-      timestamp    INTEGER NOT NULL,
-      gps_proof    TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS settings (
-      key   TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS saved_routes (
-      id         TEXT PRIMARY KEY,
-      data       TEXT NOT NULL,
-      created_at INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS nutrition_profile (
-      id   TEXT PRIMARY KEY,
-      data TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS nutrition_log (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      date      TEXT NOT NULL,
-      data      TEXT NOT NULL,
-      logged_at INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_nutrition_date ON nutrition_log(date);
-
-    CREATE TABLE IF NOT EXISTS shoes (
-      id   TEXT PRIMARY KEY,
-      data TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS weight_logs (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      data      TEXT NOT NULL,
-      logged_at INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_weight_logs_logged_at ON weight_logs(logged_at);
-
-    CREATE TABLE IF NOT EXISTS missions (
-      id         TEXT PRIMARY KEY,
-      data       TEXT NOT NULL,
-      expires_at INTEGER NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_missions_expires ON missions(expires_at);
-  `);
+  migrateDatabase(_db);
   _initialized = true;
 }
 
@@ -215,7 +149,8 @@ async function signedInUserId(): Promise<string | null> {
     const { supabase } = await import('./supabase');
     const { data } = await supabase.auth.getSession();
     return data.session?.user?.id ?? null;
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'auth', operation: 'signed-in-user-id' });
     return null;
   }
 }

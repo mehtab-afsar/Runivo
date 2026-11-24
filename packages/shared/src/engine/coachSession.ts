@@ -53,7 +53,7 @@ export function parseCoachReply(reply: string): { text: string; session: CoachSe
   if (!m) return { text: reply, session: null };
   const text = reply.replace(BLOCK, '').trim();
   let raw: Record<string, unknown>;
-  try { raw = JSON.parse(m[1]!) as Record<string, unknown>; } catch { return { text, session: null }; }
+  try { raw = JSON.parse(m[1]!) as Record<string, unknown>; } catch { /* The model reply is not valid JSON; treat it as plain text. */ return { text, session: null }; }
   if (!raw || typeof raw !== 'object') return { text, session: null };
 
   const date = typeof raw.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.date) && !Number.isNaN(Date.parse(raw.date)) ? raw.date : null;

@@ -27,7 +27,7 @@ export function track(eventName: string, properties?: Record<string, unknown>): 
   try {
     client.capture(eventName, properties as PostHogEventProperties | undefined);
   } catch {
-    // non-critical
+    // Analytics must never break or block the app; a dropped event is harmless.
   }
 }
 
@@ -36,7 +36,7 @@ export function identify(userId: string): void {
   try {
     client.identify(userId);
   } catch {
-    // non-critical
+    // Analytics must never break or block the app; a dropped event is harmless.
   }
 }
 
@@ -45,7 +45,7 @@ export function resetAnalytics(): void {
   try {
     client.reset();
   } catch {
-    // non-critical
+    // Analytics must never break or block the app; a dropped event is harmless.
   }
 }
 
@@ -57,9 +57,9 @@ export async function setAnalyticsEnabled(enabled: boolean): Promise<void> {
   } catch { /* the in-memory switch below still applies for this session */ }
   try {
     if (enabled) void client?.optIn(); else void client?.optOut();
-  } catch { /* non-critical */ }
+  } catch { /* Analytics must never break or block the app; a dropped event is harmless. */ }
 }
 
 export async function isAnalyticsEnabled(): Promise<boolean> {
-  try { return (await getSettings()).analyticsEnabled !== false; } catch { return true; }
+  try { return (await getSettings()).analyticsEnabled !== false; } catch { /* Analytics must never break or block the app; a dropped event is harmless. */ return true; }
 }

@@ -46,6 +46,7 @@ export async function verifyAiConsentWithServer(): Promise<boolean | null> {
     if (!ok) await forgetLocalAiConsent();
     return ok;
   } catch {
+    // Offline: no server verdict, so callers fall back to the local record.
     return null;
   }
 }
@@ -87,6 +88,7 @@ export async function setAiConsent(granted: boolean): Promise<boolean> {
     await saveSettings({ ...settings, aiConsentAt: granted ? Date.now() : null });
     return true;
   } catch {
+    // When in doubt, report no consent so no personal data is sent.
     lastFailure = 'network';
     return false;
   }
