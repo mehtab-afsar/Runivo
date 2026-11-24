@@ -32,7 +32,10 @@ export const FEATURES = {
   // gated behind this flag via setAiCoachEnabled() (App.tsx → sync.ts), so
   // flipping this is now what actually turns the feature on end-to-end.
   AI_COACH:          true,
-  // v2 per the PRD; built, but off for launch.
+  // v2 per the PRD; off for launch. The screens are parked in
+  // src/features/_archived/nutrition (not bundled); turning this on does nothing
+  // until they are restored, see the README there. It still gates the coach's
+  // "nutrition_coach" capability chip.
   NUTRITION_TRACKER: false,
   // Garmin, COROS and Polar sign-in need each company's partner keys in the
   // device-oauth secrets. Off until those exist: the rows say "Coming soon".
@@ -46,5 +49,4 @@ export const FEATURE_LABELS: Partial<Record<keyof typeof FEATURES, string>> = {
   EVENTS:            'Events',
   DAILY_MISSIONS:    'Daily Missions',
   GEAR_TRACKING:     'Shoe Tracker',
-  NUTRITION_TRACKER: 'Nutrition Tracker',
 };

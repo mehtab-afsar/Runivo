@@ -54,8 +54,6 @@ import ClubDetailScreen      from '@features/clubs/screens/ClubDetailScreen';
 import ChallengesScreen      from '@features/challenges/screens/ChallengesScreen';
 import ChallengeDetailScreen from '@features/challenges/screens/ChallengeDetailScreen';
 import LeaderboardScreen     from '@features/leaderboard/screens/LeaderboardScreen';
-import CalorieTrackerScreen  from '@features/nutrition/screens/CalorieTrackerScreen';
-import NutritionSetupScreen  from '@features/nutrition/screens/NutritionSetupScreen';
 import GearScreen            from '@features/gear/screens/GearScreen';
 import GearAddScreen         from '@features/gear/screens/GearAddScreen';
 import FootScanScreen        from '@features/gear/screens/FootScanScreen';
@@ -138,8 +136,6 @@ export type RootStackParamList = {
   Challenges: undefined;
   ChallengeDetail: { id: string };
   Leaderboard: undefined;
-  CalorieTracker: { burnKcal?: number } | undefined;
-  NutritionSetup: undefined;
   History:   undefined;
   Settings:          undefined;
   ConnectedDevices:  undefined;
@@ -347,8 +343,6 @@ export function AppNavigator({
             <Stack.Screen name="Challenges"      component={ChallengesScreen} />
             <Stack.Screen name="ChallengeDetail" component={ChallengeDetailScreen} />
             <Stack.Screen name="Leaderboard"     component={LeaderboardScreen} />
-            <Stack.Screen name="CalorieTracker"  component={FEATURES.NUTRITION_TRACKER ? CalorieTrackerScreen : comingSoon(FEATURE_LABELS.NUTRITION_TRACKER!)} />
-            <Stack.Screen name="NutritionSetup"  component={FEATURES.NUTRITION_TRACKER ? NutritionSetupScreen : comingSoon(FEATURE_LABELS.NUTRITION_TRACKER!)} />
             <Stack.Screen name="History"         component={HistoryScreen} />
             <Stack.Screen name="Settings"          component={SettingsScreen} />
             <Stack.Screen name="ConnectedDevices"  component={ConnectedDevicesScreen} />

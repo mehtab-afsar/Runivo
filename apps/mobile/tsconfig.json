@@ -20,6 +20,7 @@
   ],
   "exclude": [
     "node_modules",
+    "src/features/_archived",
     "../../apps/web",
     "../../packages/shared/src/**/*.test.ts",
     "../../packages/shared/src/**/*.test.tsx"
