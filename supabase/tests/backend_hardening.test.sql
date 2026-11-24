@@ -10,7 +10,9 @@ SELECT pg_temp.check(NOT has_function_privilege('authenticated', 'public.hidden_
 SELECT pg_temp.check(has_function_privilege('service_role', 'public.hidden_user_ids(uuid)', 'EXECUTE'), 'service_role can call hidden_user_ids');
 SELECT pg_temp.check(NOT has_function_privilege('anon', 'public.leaderboard_circle(uuid, text)', 'EXECUTE'), 'anon cannot call leaderboard_circle');
 SELECT pg_temp.check(NOT has_function_privilege('anon', 'public.is_blocked_between(uuid, uuid)', 'EXECUTE'), 'anon cannot probe blocks');
-SELECT pg_temp.check(has_function_privilege('authenticated', 'public.is_blocked_between(uuid, uuid)', 'EXECUTE'), 'policies can still call is_blocked_between');
+-- 20261124000002: runners can no longer pass any two ids; policies use the caller-bound wrapper.
+SELECT pg_temp.check(NOT has_function_privilege('authenticated', 'public.is_blocked_between(uuid, uuid)', 'EXECUTE'), 'signed-in runners cannot probe other pairs');
+SELECT pg_temp.check(has_function_privilege('authenticated', 'public.blocked_with_me(uuid)', 'EXECUTE'), 'policies use blocked_with_me');
 
 -- 2. The caller-bound wrapper, and the event_participants policy that uses it.
 SELECT pg_temp.check(has_function_privilege('authenticated', 'public.is_hidden_from_me(uuid)', 'EXECUTE')

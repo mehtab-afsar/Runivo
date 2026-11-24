@@ -28,7 +28,8 @@
         "EXPO_PUBLIC_SENTRY_DSN": "https://d1250c453f00db5b72dcc6b420bafd5e@o4511989240037376.ingest.us.sentry.io/4511989246722048",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "",
         "EXPO_PUBLIC_RC_API_KEY_IOS": "",
-        "EXPO_PUBLIC_RC_API_KEY_ANDROID": ""
+        "EXPO_PUBLIC_RC_API_KEY_ANDROID": "",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
@@ -47,7 +48,8 @@
         "EXPO_PUBLIC_SENTRY_DSN": "https://d1250c453f00db5b72dcc6b420bafd5e@o4511989240037376.ingest.us.sentry.io/4511989246722048",
         "EXPO_PUBLIC_POSTHOG_API_KEY": "",
         "EXPO_PUBLIC_RC_API_KEY_IOS": "",
-        "EXPO_PUBLIC_RC_API_KEY_ANDROID": ""
+        "EXPO_PUBLIC_RC_API_KEY_ANDROID": "",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },

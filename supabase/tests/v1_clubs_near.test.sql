@@ -35,8 +35,8 @@ INSERT INTO club_members (club_id, user_id) VALUES ('d2000000-0000-0000-0000-000
 
 SELECT pg_temp.check((SELECT count(*) FROM club_locations) = 3, 'new clubs get a point from their creator; no location, no point');
 SELECT pg_temp.check(
-  ST_X(home_location::geometry) = 77.592 AND ST_Y(home_location::geometry) = 12.977,
-  'the creator''s location is snapped to a ~100 m grid before it is stored')
+  ST_X(home_location::geometry) = 77.59 AND ST_Y(home_location::geometry) = 12.98,
+  'the creator''s location is stored as a ~1 km cell (20261124000002), never the exact point')
 FROM club_locations WHERE club_id = 'd2000000-0000-0000-0000-000000000001';
 
 -- A runner at Cubbon Park.

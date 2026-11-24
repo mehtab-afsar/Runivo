@@ -4,6 +4,7 @@ import '@features/social/services/inviteLink';
 import { Linking } from 'react-native';
 import { CustomTabBar } from './CustomTabBar';
 import { ErrorBoundary } from '@mobile/shared/components/ErrorBoundary';
+import { useInterruptedRunRecovery } from '@features/run/hooks/useInterruptedRunRecovery';
 import { CoachNavProvider } from './CoachNavContext';
 import { linkingConfig, linkingGate, LINKING_PREFIXES } from './linkingConfig';
 import { NavigationContainer, useNavigationContainerRef, type LinkingOptions, type NavigatorScreenParams } from '@react-navigation/native';
@@ -205,6 +206,8 @@ const Tab = createBottomTabNavigator<TabParamList>();
 const TerritoryMapTab = TerritoryMapScreen as unknown as React.ComponentType;
 
 function TabNavigator() {
+  // An interrupted run is offered for recovery as soon as the app opens.
+  useInterruptedRunRecovery();
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
