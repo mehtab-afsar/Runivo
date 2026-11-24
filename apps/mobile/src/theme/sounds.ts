@@ -4,7 +4,8 @@
  * Free sources: Mixkit.co (no attribution), Freesound.org (CC0 filter).
  * All playback is wrapped in try/catch — a missing or corrupt file never crashes the app.
  */
-import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { configureIdleAudioSession } from '@mobile/shared/services/audioSession';
 
 const SOUND_FILES = {
   gps_locked:   require('../../assets/sounds/gps_locked.mp3'),
@@ -43,7 +44,9 @@ export async function playSound(name: SoundName): Promise<void> {
 
 export async function preloadSounds(): Promise<void> {
   try {
-    await setAudioModeAsync({ playsInSilentMode: false, shouldPlayInBackground: false });
+    // The session is configured in one place (shared/services/audioSession.ts): idle
+    // here, switched to the run mode by the run screen. Never call setAudioModeAsync here.
+    await configureIdleAudioSession();
     (Object.keys(SOUND_FILES) as SoundName[]).forEach(name => {
       try { getSound(name); } catch { /* skip a bad file */ }
     });

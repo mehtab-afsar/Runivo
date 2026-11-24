@@ -5,7 +5,7 @@ import { useZonesAround } from '../hooks/useZonesAround';
 import { sportFor } from '../constants/activities';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '@navigation/AppNavigator';
 import { getSettings, getPlayer, saveRun, type StoredRun } from '@shared/services/store';
@@ -29,6 +29,7 @@ import { stopBackgroundTracking, clearBgGpsBuffer, drainBgGpsBuffer, countBgGpsB
 import { freshScreenOffFixes } from '../services/screenOffMerge';
 import { haversineM } from '@shared/services/claimEngine';
 import { formatPace } from '@shared/lib/paceFormat';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 /**
  * Reconstructs a full run from a crash checkpoint's raw GPS points and saves it
@@ -48,7 +49,7 @@ async function recoverRunFromCheckpoint(
   // buffered. On Android the live watcher stops with the screen off, so the
   // checkpoint (written from that watcher) is missing every screen-off stretch;
   // the buffer is the only copy. This used to clear it unread.
-  await stopBackgroundTracking().catch(() => {});
+  await stopBackgroundTracking().catch(err => captureHandledError(err, { domain: 'gps', operation: 'stop-background-tracking-before-recovery' }));
   const lastTs = points.length ? points[points.length - 1].timestamp : 0;
   const buffered = freshScreenOffFixes(lastTs, drainBgGpsBuffer(runId));
   if (buffered.some(p => p.mocked)) mocked = true;
@@ -146,7 +147,9 @@ export default function RunScreen() {
   const zonesAround = useZonesAround(gps.status === 'ready' && gps.lat != null && gps.lng != null ? { lat: gps.lat, lng: gps.lng } : null, sportFor(activityType).claims);
   const nearbyLine = useNearbyZones(gps.status === 'ready' && gps.lat != null && gps.lng != null ? { lat: gps.lat, lng: gps.lng } : null, sportFor(activityType).claims);
 
-  const pacer = useBeatPacer();
+  // This is the setup screen's preview. It stays mounted under the live run screen,
+  // which has its own pacer, so it must go quiet there or every beat would click twice.
+  const pacer = useBeatPacer({ running: useIsFocused() });
 
   useEffect(() => {
     findInterruptedRunCheckpoint().then(cp => {
@@ -158,7 +161,7 @@ export default function RunScreen() {
         // No recoverable run — if a background task is still registered (e.g. the
         // app was killed before a clean stop), it's orphaned; stop it so it doesn't
         // keep tracking under a dead run id forever.
-        cleanupOrphanedBackgroundTask(false).catch(() => {});
+        cleanupOrphanedBackgroundTask(false).catch(err => captureHandledError(err, { domain: 'gps', operation: 'cleanup-orphaned-background-task' }));
         return;
       }
       let m = 0;
@@ -172,12 +175,13 @@ export default function RunScreen() {
         [
           { text: 'Discard', style: 'destructive', onPress: () => {
             clearInterruptedRunCheckpoint();
-            cleanupOrphanedBackgroundTask(false).catch(() => {});
+            cleanupOrphanedBackgroundTask(false).catch(err => captureHandledError(err, { domain: 'gps', operation: 'cleanup-orphaned-background-task' }));
           } },
           { text: 'Recover', onPress: async () => {
             try {
               await recoverRunFromCheckpoint(cp.runId, cp.startTime, cp.points, cp.activityType, cp.mocked);
-            } catch {
+            } catch (err) {
+              captureHandledError(err, { domain: 'run', operation: 'recover-run-from-checkpoint' });
               // Keep the checkpoint: the GPS data is still on the phone and the
               // prompt will offer recovery again next time.
               appAlert("Couldn't recover the run", 'Your GPS data is still on this phone. Try again from the Run screen.');
@@ -185,7 +189,7 @@ export default function RunScreen() {
             }
             clearInterruptedRunCheckpoint();
             // The run is saved locally; a failed upload retries on the next sync.
-            postRunSync().catch(() => {});
+            postRunSync().catch(err => captureHandledError(err, { domain: 'sync', operation: 'post-run-sync-after-recovery' }));
             // Show the result. Recovering used to end silently, so nobody could tell it worked.
             navigation.navigate('RunSummary', { runId: cp.runId, activityType: cp.activityType });
           } },

@@ -10,6 +10,7 @@ export async function getLastSport(): Promise<ActivityType> {
     const v = await AsyncStorage.getItem(KEY);
     return SPORTS.some(s => s.id === v) ? (v as ActivityType) : 'run';
   } catch {
+    // The remembered sport is a convenience; default to running.
     return 'run';
   }
 }

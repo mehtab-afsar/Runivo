@@ -4,6 +4,7 @@ import { writeRunToHealth } from '@mobile/shared/services/healthService';
 import { estimateRunCalories } from '@shared/services/nutrition';
 import { haversineM } from '@shared/services/claimEngine';
 import { supabase } from '@shared/services/supabase';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 /**
  * The run from the phone, or from the server when it isn't on this phone (a
@@ -126,7 +127,7 @@ export async function syncRunToHealth(run: {
     calories:       weightKg ? estimateRunCalories(run.distance * 1000, weightKg) : undefined,
     // A ride is written to Health as a ride, not a run (B08).
     activityType,
-  }).catch(() => {});
+  }).catch(err => captureHandledError(err, { domain: 'health', operation: 'write-run-to-health' }));
 }
 
 export interface RunStats {

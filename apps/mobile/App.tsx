@@ -24,7 +24,7 @@ import AgeGateScreen from './src/features/auth/screens/AgeGateScreen';
 import { useAuth } from '@shared/hooks/useAuth';
 import { getPlayer } from '@shared/services/store';
 import { getProfile } from '@shared/services/profile';
-import { pushProfile, initialSync, pushUnsyncedRuns, setAiCoachEnabled } from '@shared/services/sync';
+import { pushProfile, initialSync, pushUnsyncedRuns, setAiCoachEnabled, forwardSyncErrorsToErrorReporting } from '@shared/services/sync';
 import { FEATURES } from './src/config/features';
 import { supabase } from '@shared/services/supabase';
 import { ToastProvider } from './src/shared/components/ToastProvider';
@@ -42,6 +42,10 @@ import { setHapticEnabled } from './src/theme/haptics';
 import { watchHomeArea } from './src/shared/location/homeArea';
 
 initSentry();
+// Sync steps that recover (retry next sync, non-critical follow-ups) report through reportSyncError;
+// route them to the same sink as every other handled error (errorReporting → Sentry, sanitised,
+// throttled) so they are not console-only in production.
+forwardSyncErrorsToErrorReporting();
 initAnalytics(
   process.env.EXPO_PUBLIC_POSTHOG_API_KEY ?? '',
   process.env.EXPO_PUBLIC_POSTHOG_HOST

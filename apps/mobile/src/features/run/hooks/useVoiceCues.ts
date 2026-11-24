@@ -7,17 +7,16 @@
 import { useEffect, useRef } from 'react';
 import { getSettings } from '@shared/services/store';
 import { kmCue, loopCue, stepCue } from '@shared/engine/voiceCues';
-import { getSpeech } from '@mobile/shared/lib/optionalNative';
+import { speakRunCue, type RunCueOptions } from '@mobile/shared/services/speakRunCue';
 import type { WorkoutView } from '@features/training/hooks/useWorkoutMode';
 
 let enabledCache: boolean | null = null;
 /** Settings → Voice cues changed: forget the cached value. */
 export const resetVoiceCuesSetting = () => { enabledCache = null; };
 
-export function say(text: string): void {
-  const speech = getSpeech();
-  if (!speech) return;
-  const go = () => { try { speech.speak(text, { language: 'en', rate: 1.0 }); } catch { /* ignore */ } };
+/** Speaks through speakRunCue: ducks the user's music, queues, never overlaps. */
+export function say(text: string, options?: RunCueOptions): void {
+  const go = () => speakRunCue(text, options);
   if (enabledCache != null) { if (enabledCache) go(); return; }
   getSettings().then(s => { enabledCache = s.voiceCues !== false; if (enabledCache) go(); }).catch(() => {});
 }
@@ -84,7 +83,8 @@ export function useVoiceCues(a: Args): void {
     if (lastStep.current === w.progress.index) return;
     lastStep.current = w.progress.index;
     const st = w.progress.step;
-    say(stepCue(st.label, st.distanceM, st.durationSec, st.pace));
+    // A step change is time-critical: it may cut off a km split mid-sentence (the split is said after).
+    say(stepCue(st.label, st.distanceM, st.durationSec, st.pace), { priority: 'high' });
   }, [a.running, a.workout]);
 
   // Target zone reached.

@@ -1,12 +1,22 @@
 /**
  * useBeatPacer — metronome hook for the Beat Pacer feature.
  * Plays a click sound at a BPM derived from the target pace.
- * Uses a 25ms scheduler loop with 100ms lookahead (Web Audio style).
- * expo-audio handles sound playback; AppState pauses/resumes on background.
+ *
+ * The beat comes from a 25 ms JS setInterval, and iOS does not promise to run JS
+ * timers for a backgrounded app (the audio background mode keeps the process alive
+ * only while audio is actually playing, and a click every 350 ms is not that). So
+ * the pacer is a foreground feature: it stops when the app leaves the foreground
+ * and, when the app returns, restarts from "now" at the current BPM, with no
+ * catch-up burst (see beatClock.ts). Spoken km cues, which do not need a timer,
+ * are what keeps working with the screen locked.
+ *
+ * It does not touch the audio session: shared/services/audioSession.ts owns that
+ * (the run screen switches it to the run mode, which plays on silent).
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { getSettings, saveSettings } from '@shared/services/store';
+import { advanceBeat, shouldTick } from './beatClock';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let Audio: any = null;
@@ -75,7 +85,15 @@ interface BeatPacerState {
  * that's a second, independent instance from the one on RunScreen, so that
  * gap is a real, audible silence/restart right as the run begins.
  */
-export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
+export function useBeatPacer(initial?: {
+  enabled?: boolean;
+  pace?: string;
+  /**
+   * Whether clicks may play right now. The active run screen passes "the run is going
+   * and not paused"; omit it (the setup screen's preview) to click whenever enabled.
+   */
+  running?: boolean;
+}) {
   const initialPace = initial?.pace ?? '5:00';
   const initialBpm  = paceToBpm(initialPace);
   const [state, setState] = useState<BeatPacerState>({
@@ -90,6 +108,8 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
   const nextBeatRef   = useRef<number>(0);
   const enabledRef    = useRef(initial?.enabled ?? false);
   const bpmRef        = useRef(initialBpm);
+  const runningRef    = useRef(initial?.running ?? true);
+  const foregroundRef = useRef(AppState.currentState === 'active');
 
   // Load persisted settings on mount — confirms/reconciles the seeded initial
   // state above (harmless no-op if they already agree) and is still the only
@@ -110,13 +130,6 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
     (async () => {
       try {
         if (!Audio) return;
-        // Without this, whichever OTHER sound feature last touched the shared
-        // audio session wins — and theme/sounds.ts sets playsInSilentModeIOS:
-        // false for feedback.runStart(), which fires right as a run (and this
-        // pacer) starts. On a muted phone that leaves the click scheduling
-        // correctly and the HUD dot pulsing, but no sound ever actually plays.
-        await Audio.setAudioModeAsync({ playsInSilentMode: true });
-         
         const s = Audio.createAudioPlayer(require('../../../shared/audio/files/click.wav'));
         sound = s;
         soundRef.current = s;
@@ -125,19 +138,6 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
       }
     })();
     return () => { try { sound?.remove(); } catch { /* ignore */ } };
-  }, []);
-
-  // AppState: stop ticks when backgrounded
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
-      if (next === 'active') {
-        if (enabledRef.current) startTicker();
-      } else {
-        stopTicker();
-      }
-    });
-    return () => sub.remove();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const playClick = useCallback(async () => {
@@ -149,23 +149,6 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
     } catch { /* ignore */ }
   }, []);
 
-  const startTicker = useCallback(() => {
-    if (timerRef.current) return;
-    nextBeatRef.current = Date.now();
-    timerRef.current = setInterval(() => {
-      if (!enabledRef.current) return;
-      const now = Date.now();
-      const intervalMs = 60_000 / bpmRef.current;
-      // Lookahead: schedule any beats that fall within next 100ms
-      while (nextBeatRef.current <= now + 100) {
-        if (nextBeatRef.current <= now) {
-          playClick();
-        }
-        nextBeatRef.current += intervalMs;
-      }
-    }, 25);
-  }, [playClick]);
-
   const stopTicker = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -173,25 +156,52 @@ export function useBeatPacer(initial?: { enabled?: boolean; pace?: string }) {
     }
   }, []);
 
+  const startTicker = useCallback(() => {
+    if (timerRef.current) return; // already ticking: never run two intervals
+    nextBeatRef.current = Date.now(); // fresh phase; the BPM is read live on every tick
+    timerRef.current = setInterval(() => {
+      const ok = shouldTick({ enabled: enabledRef.current, running: runningRef.current, foreground: foregroundRef.current });
+      if (!ok) return;
+      const step = advanceBeat(nextBeatRef.current, Date.now(), 60_000 / bpmRef.current);
+      nextBeatRef.current = step.next;
+      if (step.fire) playClick();
+    }, 25);
+  }, [playClick]);
+
+  // One place decides whether the ticker should exist.
+  const syncTicker = useCallback(() => {
+    if (shouldTick({ enabled: enabledRef.current, running: runningRef.current, foreground: foregroundRef.current })) startTicker();
+    else stopTicker();
+  }, [startTicker, stopTicker]);
+
+  // AppState: no ticks unless foregrounded. Anything but 'active' (inactive,
+  // background) stops it, 'active' restarts it from now.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      foregroundRef.current = next === 'active';
+      syncTicker();
+    });
+    return () => sub.remove();
+  }, [syncTicker]);
+
+  // The run pausing/resuming or ending.
+  const runningProp = initial?.running;
+  useEffect(() => {
+    if (runningProp === undefined) return;
+    runningRef.current = runningProp;
+    syncTicker();
+  }, [runningProp, syncTicker]);
+
   // Start/stop ticker based on enabled
   useEffect(() => {
-    if (state.enabled) {
-      startTicker();
-    } else {
-      stopTicker();
-    }
+    enabledRef.current = state.enabled;
+    syncTicker();
     return stopTicker;
-  }, [state.enabled, startTicker, stopTicker]);
+  }, [state.enabled, syncTicker, stopTicker]);
 
   const setEnabled = useCallback(async (enabled: boolean) => {
     enabledRef.current = enabled;
     setState(prev => ({ ...prev, enabled }));
-    if (enabled && Audio) {
-      // Re-assert silent-mode playback right as ticking starts — feedback.runStart()
-      // (theme/sounds.ts) sets playsInSilentModeIOS: false around the same moment a
-      // run begins, and whichever call lands last wins for the whole audio session.
-      Audio.setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
-    }
     const s = await getSettings();
     await saveSettings({ ...s, beatPacerEnabled: enabled });
   }, []);

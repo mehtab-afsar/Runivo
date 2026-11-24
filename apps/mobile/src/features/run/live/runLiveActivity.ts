@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { hasWidgets } from '@mobile/shared/lib/optionalNative';
 import type { RunActivityProps } from './RunActivityWidget';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 const ANDROID_ID = 'runivo-live-run';
 const MIN_GAP_MS = 5000;
@@ -65,7 +66,8 @@ export async function startRunActivity(p: RunActivityProps): Promise<void> {
   try {
     current = Platform.OS === 'ios' ? await startIos(p) : Platform.OS === 'android' ? await startAndroid(p) : null;
     lastAt = Date.now();
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'native', operation: 'start-live-activity' });
     current = null;
   }
 }

@@ -18,6 +18,8 @@ import * as SQLite from 'expo-sqlite';
 import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GAME_CONFIG } from '@shared/services/config';
+import { migrateDatabase } from '@shared/services/localDbMigrations';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 /** AsyncStorage key prefix of the in-run crash checkpoint (useActiveRun writes `<prefix><runId>`). */
 export const GPS_CHECKPOINT_PREFIX = 'run_checkpoint_';
@@ -28,7 +30,7 @@ export async function wipeRunTrackingState(): Promise<void> {
   try {
     const keys = (await AsyncStorage.getAllKeys()).filter(k => k.startsWith(GPS_CHECKPOINT_PREFIX));
     if (keys.length > 0) await AsyncStorage.multiRemove(keys);
-  } catch { /* nothing to remove */ }
+  } catch (err) { captureHandledError(err, { domain: 'checkpoint', operation: 'wipe-run-checkpoints' }); }
 }
 
 // ─── Task name ────────────────────────────────────────────────────────────────
@@ -40,23 +42,13 @@ let _bgDb: SQLite.SQLiteDatabase | null = null;
 
 function getBgDb(): SQLite.SQLiteDatabase {
   if (!_bgDb) {
-    _bgDb = SQLite.openDatabaseSync('runivo.db');
-    // Ensure bg buffer table exists (idempotent)
-    _bgDb.execSync(`
-      CREATE TABLE IF NOT EXISTS bg_gps_buffer (
-        id        INTEGER PRIMARY KEY AUTOINCREMENT,
-        run_id    TEXT NOT NULL,
-        lat       REAL NOT NULL,
-        lng       REAL NOT NULL,
-        speed     REAL NOT NULL DEFAULT 0,
-        accuracy  REAL NOT NULL DEFAULT 10,
-        ts        INTEGER NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_bg_gps_run ON bg_gps_buffer(run_id, ts);
-    `);
-    // Added after launch builds: whether the fix came from a mock provider
-    // (Android). Older installs have the table without it.
-    try { _bgDb.execSync('ALTER TABLE bg_gps_buffer ADD COLUMN mocked INTEGER NOT NULL DEFAULT 0'); } catch { /* already there */ }
+    const db = SQLite.openDatabaseSync('runivo.db');
+    // Schema (bg_gps_buffer incl. the legacy `mocked` column, bg_gps_meta) is versioned in
+    // localDbMigrations.ts. This task can wake the app before any screen has opened the
+    // database, so it migrates on its own connection too. Assigned only on success so a
+    // failed migration is retried on the next call instead of leaving a half-set-up handle.
+    migrateDatabase(db);
+    _bgDb = db;
   }
   return _bgDb;
 }
@@ -78,7 +70,7 @@ export function appendBgGpsPoint(
       [runId, lat, lng, speed, accuracy, Math.round(ts), mocked ? 1 : 0],
     );
   } catch (err) {
-    console.warn('[locationTask] Failed to write bg GPS point:', err);
+    captureHandledError(err, { domain: 'gps', operation: 'append-bg-gps-point' });
   }
 }
 
@@ -101,7 +93,7 @@ export function drainBgGpsBuffer(runId: string): {
       speed: r.speed >= 0 ? r.speed : 0, accuracy: r.accuracy, timestamp: r.ts, mocked: r.mocked === 1,
     }));
   } catch (err) {
-    console.warn('[locationTask] Failed to drain bg GPS buffer:', err);
+    captureHandledError(err, { domain: 'gps', operation: 'drain-bg-gps-buffer' });
     return [];
   }
 }
@@ -110,7 +102,8 @@ export function drainBgGpsBuffer(runId: string): {
 export function countBgGpsBuffer(runId: string): number {
   try {
     return getBgDb().getFirstSync<{ n: number }>(`SELECT COUNT(*) AS n FROM bg_gps_buffer WHERE run_id = ?`, [runId])?.n ?? 0;
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'gps', operation: 'count-bg-gps-buffer' });
     return 0;
   }
 }
@@ -126,7 +119,8 @@ export function bufferedActiveRun(): { runId: string; firstTs: number; count: nu
     );
     if (!agg || agg.n === 0 || agg.t == null) return null;
     return { runId: row.value, firstTs: agg.t, count: agg.n };
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'gps', operation: 'read-active-run-id' });
     return null;
   }
 }
@@ -140,16 +134,15 @@ export function wipeBgGpsState(): void {
   try {
     const db = getBgDb();
     db.runSync('DELETE FROM bg_gps_buffer');
-    // Created lazily by setActiveRunId, so it may not exist yet.
-    try { db.runSync('DELETE FROM bg_gps_meta'); } catch { /* no such table */ }
-  } catch { /* nothing buffered */ }
+    db.runSync('DELETE FROM bg_gps_meta');
+  } catch (err) { captureHandledError(err, { domain: 'gps', operation: 'wipe-bg-gps-state' }); }
 }
 
 /** Clear the buffer for a run (called on run cancel). */
 export function clearBgGpsBuffer(runId: string): void {
   try {
     getBgDb().runSync(`DELETE FROM bg_gps_buffer WHERE run_id = ?`, [runId]);
-  } catch { /* silent */ }
+  } catch (err) { captureHandledError(err, { domain: 'gps', operation: 'clear-bg-gps-buffer' }); }
 }
 
 // ─── Task definition ─────────────────────────────────────────────────────────
@@ -189,7 +182,7 @@ TaskManager.defineTask(
         `SELECT value FROM bg_gps_meta WHERE key = 'active_run_id'`,
       );
       activeRunId = row?.value ?? null;
-    } catch { /* table may not exist yet */ }
+    } catch (err) { captureHandledError(err, { domain: 'gps', operation: 'read-active-run-id' }); /* no run id: the check below skips buffering */ }
 
     if (!activeRunId) return;
 
@@ -219,15 +212,12 @@ TaskManager.defineTask(
 export function setActiveRunId(runId: string): void {
   try {
     const db = getBgDb();
-    db.execSync(`
-      CREATE TABLE IF NOT EXISTS bg_gps_meta (key TEXT PRIMARY KEY, value TEXT);
-    `);
     db.runSync(
       `INSERT OR REPLACE INTO bg_gps_meta (key, value) VALUES ('active_run_id', ?)`,
       [runId],
     );
   } catch (err) {
-    console.warn('[locationTask] setActiveRunId failed:', err);
+    captureHandledError(err, { domain: 'gps', operation: 'set-active-run-id' });
   }
 }
 
@@ -264,7 +254,7 @@ export async function stopBackgroundTracking(): Promise<void> {
       await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
     }
   } catch (err) {
-    console.warn('[locationTask] stopBackgroundTracking error:', err);
+    captureHandledError(err, { domain: 'gps', operation: 'stop-background-tracking' });
   }
 }
 
@@ -288,6 +278,6 @@ export async function cleanupOrphanedBackgroundTask(hasActiveOrRecoverableRun: b
     const db = getBgDb();
     db.execSync('DELETE FROM bg_gps_buffer; DELETE FROM bg_gps_meta;');
   } catch (err) {
-    console.warn('[locationTask] cleanupOrphanedBackgroundTask error:', err);
+    captureHandledError(err, { domain: 'gps', operation: 'cleanup-orphaned-background-task' });
   }
 }

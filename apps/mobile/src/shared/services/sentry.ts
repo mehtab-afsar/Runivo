@@ -8,6 +8,7 @@
 
 import * as Sentry from '@sentry/react-native';
 import { scrubPII } from './sentryScrub';
+import { setErrorReporter, type HandledErrorReport } from '@shared/services/errorReporting';
 
 const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
@@ -22,6 +23,18 @@ export function initSentry() {
     // since Sentry.init also auto-captures native crashes and unhandled rejections.
     beforeSend: event => scrubPII(event),
     beforeBreadcrumb: breadcrumb => scrubPII(breadcrumb),
+  });
+  // Production sink for captureHandledError (packages/shared/src/services/errorReporting.ts).
+  // That helper already flattens `extra` to primitives; scrubPII here is the second layer.
+  setErrorReporter(reportHandledErrorToSentry);
+}
+
+/** Exported for tests. Sends a handled (recovered-from) error, tagged by domain/operation. */
+export function reportHandledErrorToSentry(error: unknown, report: HandledErrorReport) {
+  Sentry.captureException(error, {
+    level: 'warning',
+    tags: report.tags,
+    extra: scrubPII(report.extra) as Record<string, unknown>,
   });
 }
 

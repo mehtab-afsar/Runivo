@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 export interface DevicePosition { lat: number; lng: number }
 
@@ -25,7 +26,8 @@ export async function positionIfAllowed(opts: { maxAgeMs?: number; timeoutMs?: n
     const { latitude: lat, longitude: lng } = pos.coords;
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
     return { lat, lng };
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'native', operation: 'position-if-allowed' });
     return null;
   }
 }
@@ -34,7 +36,8 @@ export async function positionIfAllowed(opts: { maxAgeMs?: number; timeoutMs?: n
 export async function locationGranted(): Promise<boolean> {
   try {
     return (await Location.getForegroundPermissionsAsync()).status === 'granted';
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'native', operation: 'location-granted' });
     return false;
   }
 }

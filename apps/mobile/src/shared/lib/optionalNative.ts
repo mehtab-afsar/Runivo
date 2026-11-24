@@ -11,6 +11,7 @@ function load<T>(nativeName: string, get: () => T): T | null {
     if (!requireOptionalNativeModule(nativeName)) return null;
     return get();
   } catch {
+    // Module absent in this build (Expo Go / web): the feature is off.
     return null;
   }
 }

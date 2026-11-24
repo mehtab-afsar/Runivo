@@ -23,6 +23,7 @@ import { supabase } from '@shared/services/supabase';
 import * as HealthKit from '@kingstinct/react-native-healthkit';
 import { WorkoutActivityType, WorkoutTypeIdentifier } from '@kingstinct/react-native-healthkit';
 import type { ObjectTypeIdentifier, SampleTypeIdentifierWriteable } from '@kingstinct/react-native-healthkit';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 export interface HealthRun {
   startTime:      number;  // unix ms
@@ -102,6 +103,7 @@ async function healthWriteAllowed(): Promise<boolean> {
     }
     return (await AsyncStorage.getItem(connKey(uid))) === '1';
   } catch {
+    // Cannot confirm consent offline, so no Health write is attempted (fails closed).
     return false;
   }
 }
@@ -145,7 +147,8 @@ async function initAppleHealth(): Promise<boolean> {
     });
     _appleHealthReady = granted;
     return granted;
-  } catch {
+  } catch (err) {
+    captureHandledError(err, { domain: 'health', operation: 'init-apple-health' });
     return false;
   }
 }
@@ -169,7 +172,7 @@ async function writeRunToAppleHealth(run: HealthRun): Promise<void> {
       { distance: run.distanceMeters, ...(run.calories != null && { energyBurned: run.calories }) },
     );
   } catch (err) {
-    console.warn('[health] saveWorkoutSample error:', err);
+    captureHandledError(err, { domain: 'health', operation: 'write-run-to-apple-health' });
   }
 }
 
@@ -195,7 +198,7 @@ async function readAppleHealthWorkouts(days: number): Promise<HealthWorkout[]> {
       source:         w.sourceRevision?.source?.name ?? 'Apple Health',
     }));
   } catch (err) {
-    console.warn('[health] queryWorkoutSamples error:', err);
+    captureHandledError(err, { domain: 'health', operation: 'read-apple-health-workouts' });
     return [];
   }
 }
@@ -234,7 +237,7 @@ async function writeRunToHealthConnect(run: HealthRun): Promise<void> {
       },
     ]);
   } catch (err) {
-    console.warn('[health] Health Connect write error:', err);
+    captureHandledError(err, { domain: 'health', operation: 'write-run-to-health-connect' });
   }
 }
 
@@ -269,7 +272,7 @@ async function readHealthConnectWorkouts(days: number): Promise<HealthWorkout[]>
         source:         r.metadata?.dataOrigin ?? 'Health Connect',
       }));
   } catch (err) {
-    console.warn('[health] Health Connect read error:', err);
+    captureHandledError(err, { domain: 'health', operation: 'read-health-connect-workouts' });
     return [];
   }
 }

@@ -51,6 +51,8 @@ import { useWorkoutMode } from '@features/training/hooks/useWorkoutMode';
 import WorkoutPanel from '@features/training/components/WorkoutPanel';
 import TargetZoneChip from '../components/TargetZoneChip';
 import { useVoiceCues } from '../hooks/useVoiceCues';
+import { useRunAudioSession } from '../hooks/useRunAudioSession';
+import { enterRunAudioSession } from '@mobile/shared/services/audioSession';
 import { startRunActivity, updateRunActivity, endRunActivity } from '../live/runLiveActivity';
 import { startAndSendSafetyShare, pushSafetyPosition, endSafetyShare, isSharing } from '../services/safetyShare';
 import type { RunActivityProps } from '../live/RunActivityWidget';
@@ -62,6 +64,7 @@ import { useIncomingCheers } from '../hooks/useIncomingCheers';
 import { CheerToast } from '@features/cheers/CheerToast';
 import { CheerSheet, type CheerTarget } from '@features/cheers/CheerSheet';
 import { UI } from '@mobile/shared/icons';
+import { captureHandledError } from '@shared/services/errorReporting';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'ActiveRun'>;
@@ -145,6 +148,8 @@ export default function ActiveRunScreen() {
     if (seconds > 0) {
       setCountdown(seconds);
     } else {
+      // The start sound must already play on silent / in the background.
+      await enterRunAudioSession();
       feedback.runStart();
       run.startRun();
     }
@@ -250,7 +255,10 @@ export default function ActiveRunScreen() {
   // Seeded from the setup screen's already-resolved choice (see useRunSetup.startRun)
   // so this screen's own pacer instance ticks from its first render instead of
   // waiting on an async settings read — closes the audible gap at run start.
-  const pacer = useBeatPacer({ enabled: route.params?.pacerEnabled, pace: route.params?.pacerPace });
+  // `running`: the pacer clicks only while the run is going (not on the start screen,
+  // the countdown or a pause).
+  const pacer = useBeatPacer({ enabled: route.params?.pacerEnabled, pace: route.params?.pacerPace, running: run.isRunning && !run.isPaused });
+  useRunAudioSession(run.isRunning || countdown !== null);
 
   // Leaving mid-run (Android back button) used to drop the run without asking.
   // Finish and Discard set this before they navigate away.
@@ -317,7 +325,7 @@ export default function ActiveRunScreen() {
               if (fasterFiveK) showToast({ message: `You're getting faster: plan paces updated (5K ${fmtDuration(fasterFiveK)})`, type: 'success', duration: 6000 });
               else if (session) showToast({ message: `Plan: ${session.title} done`, type: 'success' });
             })
-            .catch(() => {});
+            .catch(err => captureHandledError(err, { domain: 'run', operation: 'record-run-against-plan' }));
         }
         // CRITICAL PATH (adjacent to finishRun/postRunSync): funnel events, fired after
         // sync so they can't add latency to it. No GPS/lat-lng in properties — ever.
@@ -401,7 +409,7 @@ export default function ActiveRunScreen() {
         // Remove the crash-recovery checkpoint so the user isn't prompted to
         // restore a cancelled run on next app launch.
         // All of it: the meta row and its point parts (only the meta used to go).
-        clearInterruptedRunCheckpoint().catch(() => {});
+        clearInterruptedRunCheckpoint().catch(err => captureHandledError(err, { domain: 'checkpoint', operation: 'clear-checkpoint-on-discard' }));
         allowLeaveRef.current = true;
         nav.goBack();
       }},
