@@ -15,7 +15,7 @@ const TITLE = 'Runivo — Run smarter';
 const DESCRIPTION = 'AI coaching, live crews and your city. Every run you record can claim real ground on the map.';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://runivo.app'),
+  metadataBase: new URL('https://runivo.in'),
   title: TITLE,
   description: DESCRIPTION,
   openGraph: {

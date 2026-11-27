@@ -68,8 +68,8 @@ export function SignUpSheet({ visible, onClose, onEmail, onSignIn }: {
 
       <Text style={s.legal}>
         By continuing you agree to the{' '}
-        <Text style={s.link} onPress={() => Linking.openURL('https://runivo.app/terms')}>Terms</Text> and{' '}
-        <Text style={s.link} onPress={() => Linking.openURL('https://runivo.app/privacy')}>Privacy Policy</Text>.
+        <Text style={s.link} onPress={() => Linking.openURL('https://runivo.in/terms')}>Terms</Text> and{' '}
+        <Text style={s.link} onPress={() => Linking.openURL('https://runivo.in/privacy')}>Privacy Policy</Text>.
       </Text>
       <Pressable onPress={onSignIn} accessibilityRole="button" hitSlop={8}>
         <Text style={s.signIn}>Have an account? <Text style={{ fontFamily: Fonts.semiBold }}>Sign in</Text></Text>

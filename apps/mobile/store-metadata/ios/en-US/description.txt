@@ -50,5 +50,5 @@ Tracking, territory, PaceX, training plans, clubs, the feed and missions are all
 
 PaceX and Foot scan send your run and fitness data, or the photo you take, to a third-party AI provider (Anthropic), only after you give permission. PaceX gives general running guidance, not medical advice.
 
-Terms of Use: https://runivo.app/terms
-Privacy Policy: https://runivo.app/privacy
+Terms of Use: https://runivo.in/terms
+Privacy Policy: https://runivo.in/privacy

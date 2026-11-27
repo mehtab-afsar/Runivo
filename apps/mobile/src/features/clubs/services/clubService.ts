@@ -499,7 +499,7 @@ export async function fetchClubSummary(clubId: string): Promise<{
 /** Links that open this club in the app; with the invite code, opening one joins (invite-only clubs too). */
 export function clubLinks(clubId: string, code: string): { app: string; web: string } {
   const q = `invite=${encodeURIComponent(code)}`;
-  return { app: `runivo://club/${clubId}?${q}`, web: `https://runivo.app/club/${clubId}?${q}` };
+  return { app: `runivo://club/${clubId}?${q}`, web: `https://runivo.in/club/${clubId}?${q}` };
 }
 
 /** The club's invite code (members only; made on first ask). */

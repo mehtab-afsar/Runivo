@@ -9,7 +9,7 @@ Fill the two `[ ]` fields last. Keep this file in step with the build you submit
 - [ ] Secrets set (`npx supabase secrets list`): `ANTHROPIC_API_KEY`; the four `APPLE_*` keys (Sign in with Apple revoke on deletion); `SUBSCRIPTIONS_ENABLED` absent or `false`.
 - [ ] Create the demo account in Supabase Auth (email + password, **email confirmed**), then run `supabase/seed/demo_data.sql` and `demo_data_v1.sql` with that email in `demo_cfg`. It seeds runs, 6 zones, a PACE balance, a club with chat, events and sample store rewards.
 - [ ] Test account deletion three ways: a fresh email account, a Sign in with Apple account that created a club, and a copy of the demo account. Each must end on the sign-in screen with no error.
-- [ ] `support@runivo.com` receives mail; `https://runivo.app/privacy`, `/terms` and `/support` open on a phone.
+- [ ] `support@runivo.com` receives mail; `https://runivo.in/privacy`, `/terms` and `/support` open on a phone.
 - [ ] No in-app purchase products attached to this version.
 - [ ] After approval, run `supabase/seed/demo_cleanup.sql` so real runners do not see seeded runners and sample partners.
 

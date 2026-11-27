@@ -158,7 +158,7 @@ Deno.serve(async (req) => {
   const { data: { user }, error: authErr } = await supabase.auth.getUser(jwt);
   if (authErr || !user) return new Response('Unauthorized', { status: 401, headers: CORS });
 
-  const appUrl    = Deno.env.get('APP_URL') ?? 'https://runivo.app';
+  const appUrl    = Deno.env.get('APP_URL') ?? 'https://runivo.in';
   const callbackBase = `${appUrl}/settings/devices/callback`;
 
   try {

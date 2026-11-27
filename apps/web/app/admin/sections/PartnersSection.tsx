@@ -216,7 +216,7 @@ export default function PartnersSection() {
       {loading ? <Spinner /> : others.length === 0 && applications.length === 0 ? (
         <div className="text-center py-16">
           <Handshake className="w-8 h-8 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">No partners yet. Applications from runivo.app/partners show up here.</p>
+          <p className="text-sm text-gray-400">No partners yet. Applications from runivo.in/partners show up here.</p>
         </div>
       ) : others.length === 0 ? null : (
         <div className="rounded-2xl border border-gray-100 overflow-hidden">

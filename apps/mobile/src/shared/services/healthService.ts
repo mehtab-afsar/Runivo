@@ -58,7 +58,7 @@ export function healthConnectExerciseType(activityType: string | undefined): num
 // "Disconnect" in Connected devices used to change a database row only; every
 // finished activity was still written to Health. The answer is cached per
 // account so a run that ends offline still follows the runner's last choice.
-const connKey = (uid: string) => `runivo.appleHealthConnected.${uid}`;
+const connKey = (uid: string) => `runivo.inleHealthConnected.${uid}`;
 
 /** Called by Connected devices whenever the Apple Health connection changes or loads. */
 export async function rememberHealthConnection(connected: boolean): Promise<void> {

@@ -303,7 +303,7 @@ export default function ConnectedDevicesScreen() {
       const url = event.url;
       if (!url.includes('settings/devices')) return;
 
-      const parsed = new URL(url.replace('runivo://', 'https://runivo.app/'));
+      const parsed = new URL(url.replace('runivo://', 'https://runivo.in/'));
       const provider      = parsed.searchParams.get('provider');
       const code          = parsed.searchParams.get('code') ?? undefined;
       const state         = parsed.searchParams.get('state') ?? undefined;

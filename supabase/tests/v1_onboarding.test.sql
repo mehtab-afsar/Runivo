@@ -18,7 +18,7 @@ EXCEPTION WHEN check_violation THEN
 END $$;
 
 -- Sign-ups: email, phone (no email), and two phones (unique usernames).
-INSERT INTO auth.users (id, email) VALUES ('c1000000-0000-0000-0000-000000000001', 'asha.k@runivo.app');
+INSERT INTO auth.users (id, email) VALUES ('c1000000-0000-0000-0000-000000000001', 'asha.k@runivo.in');
 INSERT INTO auth.users (id, phone) VALUES ('c1000000-0000-0000-0000-000000000002', '+919876543210');
 INSERT INTO auth.users (id, phone) VALUES ('c1000000-0000-0000-0000-000000000003', '+919876543211');
 INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES ('c1000000-0000-0000-0000-000000000004', 'x@y.com', '{"username":"Leo Runs!"}');

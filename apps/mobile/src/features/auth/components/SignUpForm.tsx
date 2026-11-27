@@ -259,8 +259,8 @@ export default function SignUpForm({
               ban objectionable content before someone can post. */}
           <Text style={s.legal}>
             By creating an account you agree to our{' '}
-            <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.app/terms')}>Terms</Text> and{' '}
-            <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.app/privacy')}>Privacy Policy</Text>.
+            <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.in/terms')}>Terms</Text> and{' '}
+            <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.in/privacy')}>Privacy Policy</Text>.
             There is no tolerance for abusive or objectionable content.
           </Text>
 

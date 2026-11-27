@@ -15,7 +15,7 @@ import { inviteCodeFromUrl } from './inviteLink';
 describe('inviteCodeFromUrl', () => {
   it('reads the app link and the web link', () => {
     expect(inviteCodeFromUrl('runivo://invite?code=abcd2345')).toBe('ABCD2345');
-    expect(inviteCodeFromUrl('https://runivo.app/invite/?code=ABCD2345')).toBe('ABCD2345');
+    expect(inviteCodeFromUrl('https://runivo.in/invite/?code=ABCD2345')).toBe('ABCD2345');
   });
   it('ignores other links and junk codes', () => {
     expect(inviteCodeFromUrl('runivo://auth/magic?code=ABCD2345')).toBeNull();

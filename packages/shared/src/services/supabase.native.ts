@@ -42,7 +42,7 @@ export const supabase = createClient<any>(supabaseUrl, supabaseAnon, {
 /**
  * Client used ONLY to send password-recovery emails. Not for anything else.
  *
- * Password reset is completed on the web page (https://runivo.app/reset-password —
+ * Password reset is completed on the web page (https://runivo.in/reset-password —
  * there is no native reset screen; see resetPassword() in auth.ts). Under PKCE the
  * recovery link carries a ?code= that can only be redeemed with the code_verifier
  * stored on the device that requested it — which the browser on the web page cannot

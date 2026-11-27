@@ -1,5 +1,5 @@
 /**
- * runivo.app/live?t=<token> — the public safety-share page (PRD R2).
+ * runivo.in/live?t=<token> — the public safety-share page (PRD R2).
  *
  * The page itself is rendered by the safety-share edge function, but Supabase
  * serves text/html from *.supabase.co as text/plain (HTML needs a custom

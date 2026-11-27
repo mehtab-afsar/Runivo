@@ -78,7 +78,7 @@ eas submit --platform android --profile production
 4. Fill in pricing (free), primary language (English), age rating
 5. Upload screenshots (5 per device size)
 6. Paste description, keywords, subtitle from `store-metadata/ios/en-US/` (see `app-store-listing.md` for the other fields)
-7. Set privacy policy URL: https://runivo.app/privacy
+7. Set privacy policy URL: https://runivo.in/privacy
 8. Submit for review
 
 ## TestFlight before production

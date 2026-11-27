@@ -5,9 +5,9 @@ const ID = '8e2f1c3a-4b5d-4e6f-9a0b-1c2d3e4f5a6b';
 
 describe('profile card', () => {
   it('builds the link with a safe username only', () => {
-    expect(profileLink(ID, 'mehtab')).toBe(`https://runivo.app/r/${ID}?u=mehtab`);
-    expect(profileLink(ID, 'a b<')).toBe(`https://runivo.app/r/${ID}`);
-    expect(profileLink(ID)).toBe(`https://runivo.app/r/${ID}`);
+    expect(profileLink(ID, 'mehtab')).toBe(`https://runivo.in/r/${ID}?u=mehtab`);
+    expect(profileLink(ID, 'a b<')).toBe(`https://runivo.in/r/${ID}`);
+    expect(profileLink(ID)).toBe(`https://runivo.in/r/${ID}`);
   });
 
   it('reads a runner id back from scanned codes', () => {

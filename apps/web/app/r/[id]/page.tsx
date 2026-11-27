@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 /**
  * Where a profile QR code or "Send link" lands (apps/mobile profileCard.ts
- * builds https://runivo.app/r/<user id>?u=<username>). Offers to open the
+ * builds https://runivo.in/r/<user id>?u=<username>). Offers to open the
  * runner in the app (runivo://runner/<id>), or to get the app first.
  */
 export default async function RunnerLinkPage({ params, searchParams }: {

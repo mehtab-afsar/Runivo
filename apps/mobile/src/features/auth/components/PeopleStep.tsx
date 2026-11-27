@@ -49,7 +49,7 @@ export default function PeopleStep({ username }: { username: string }) {
   }
 
   async function invite() {
-    const link = `https://runivo.app/invite${username ? `?from=${encodeURIComponent(username)}` : ''}`;
+    const link = `https://runivo.in/invite${username ? `?from=${encodeURIComponent(username)}` : ''}`;
     track('onboarding_invite_shared');
     await Share.share({ message: `Run with me on Runivo. Close a loop and the streets inside are yours. ${link}` }).catch(() => {});
   }

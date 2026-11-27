@@ -5,7 +5,7 @@
  */
 import { qrMatrix, qrPath } from '@shared/lib/qrCode';
 
-export const PROFILE_LINK_BASE = 'https://runivo.app/r/';
+export const PROFILE_LINK_BASE = 'https://runivo.in/r/';
 
 /** The link inside the QR and the shared text. Opens the app's runner/:id when installed. */
 export function profileLink(userId: string, username?: string | null): string {
@@ -15,7 +15,7 @@ export function profileLink(userId: string, username?: string | null): string {
 
 /** The runner id from a scanned code: our https link or the runivo:// deep link. */
 export function runnerIdFromLink(text: string): string | null {
-  const m = text.trim().match(/^(?:https:\/\/(?:www\.)?runivo\.app\/r\/|runivo:\/\/runner\/)([0-9a-f-]{36})(?:[/?#].*)?$/i);
+  const m = text.trim().match(/^(?:https:\/\/(?:www\.)?runivo\.(?:in|app)\/r\/|runivo:\/\/runner\/)([0-9a-f-]{36})(?:[/?#].*)?$/i);
   return m ? m[1].toLowerCase() : null;
 }
 

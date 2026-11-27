@@ -99,7 +99,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     supportsTablet: false,
     // Must match the identity actually registered with EAS (projectId below) —
-    // this used to be 'com.runivo.app' while the real EAS project was
+    // this used to be 'com.runivo.in' while the real EAS project was
     // registered under 'com.mehtabafsar.runivo' via a stray root-level
     // app.json, so `eas build` from this directory (the real Expo project
     // root) would fail projectId validation, or building from the repo root

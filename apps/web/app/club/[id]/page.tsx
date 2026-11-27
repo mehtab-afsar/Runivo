@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 /**
  * Where a club invite lands (apps/mobile clubService clubInviteLinks builds
- * https://runivo.app/club/<club id>?invite=<code>). Offers to open the club in
+ * https://runivo.in/club/<club id>?invite=<code>). Offers to open the club in
  * the app (runivo://club/<id>?invite=<code>, which joins), or to get the app first.
  */
 export default async function ClubLinkPage({ params, searchParams }: {

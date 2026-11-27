@@ -5,7 +5,7 @@ import { qrMatrix, qrPath } from './qrCode';
 describe('qrMatrix', () => {
   it('picks the smallest version: 21 modules for short text, 37 for a profile link', () => {
     expect(qrMatrix('hi').length).toBe(21);
-    expect(qrMatrix('https://runivo.app/r/8e2f1c3a-4b5d-4e6f-9a0b-1c2d3e4f5a6b?u=mehtab').length).toBe(37);
+    expect(qrMatrix('https://runivo.in/r/8e2f1c3a-4b5d-4e6f-9a0b-1c2d3e4f5a6b?u=mehtab').length).toBe(37);
   });
 
   it('draws the three finder patterns', () => {

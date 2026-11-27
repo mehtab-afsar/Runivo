@@ -33,7 +33,7 @@ import { ScreenHeader } from '@mobile/shared/components/ScreenHeader';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-export const SUPPORT_URL = 'https://runivo.app/support';
+export const SUPPORT_URL = 'https://runivo.in/support';
 export const SUPPORT_MAILTO = 'mailto:support@runivo.com';
 
 export default function SettingsScreen() {
@@ -244,11 +244,11 @@ export default function SettingsScreen() {
             <Text style={s.linkLabel}>Email support</Text>
             <RowChevron />
           </Pressable>
-          <Pressable style={s.linkRow} onPress={() => { Linking.openURL('https://runivo.app/privacy').catch(() => {}); }} accessibilityRole="link">
+          <Pressable style={s.linkRow} onPress={() => { Linking.openURL('https://runivo.in/privacy').catch(() => {}); }} accessibilityRole="link">
             <Text style={s.linkLabel}>Privacy Policy</Text>
             <RowChevron />
           </Pressable>
-          <Pressable style={s.linkRow} onPress={() => { Linking.openURL('https://runivo.app/terms').catch(() => {}); }} accessibilityRole="link">
+          <Pressable style={s.linkRow} onPress={() => { Linking.openURL('https://runivo.in/terms').catch(() => {}); }} accessibilityRole="link">
             <Text style={s.linkLabel}>Terms of Service</Text>
             <RowChevron />
           </Pressable>

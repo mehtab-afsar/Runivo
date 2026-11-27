@@ -6,12 +6,12 @@ import {
 
 const google: IdentityLike = { identity_id: 'g1', provider: 'google', identity_data: { email: 'asha.k@gmail.com' } };
 const apple: IdentityLike = { identity_id: 'a1', provider: 'apple', identity_data: { email: 'xyz@privaterelay.appleid.com' } };
-const email: IdentityLike = { identity_id: 'e1', provider: 'email', identity_data: { email: 'asha@runivo.app' } };
+const email: IdentityLike = { identity_id: 'e1', provider: 'email', identity_data: { email: 'asha@runivo.in' } };
 const phone: IdentityLike = { identity_id: 'p1', provider: 'phone', identity_data: { phone: '919876543210' } };
 
 describe('masking', () => {
   it('masks emails', () => {
-    expect(maskEmail('asha@runivo.app')).toBe('as•••@runivo.app');
+    expect(maskEmail('asha@runivo.in')).toBe('as•••@runivo.in');
     expect(maskEmail('a@b.co')).toBe('a•••@b.co');
     expect(maskEmail('nope')).toBeNull();
     expect(maskEmail(null)).toBeNull();
@@ -33,7 +33,7 @@ describe('masking', () => {
 
 describe('linkedMethods', () => {
   it('lists each method once, in a stable order, with masked details', () => {
-    const rows = linkedMethods([email, google, apple], { email: 'asha@runivo.app' });
+    const rows = linkedMethods([email, google, apple], { email: 'asha@runivo.in' });
     expect(rows.map(r => r.method)).toEqual(['apple', 'google', 'email']);
     expect(rows[1].detail).toBe('as•••@gmail.com');
   });
@@ -68,7 +68,7 @@ describe('linkedMethods', () => {
   });
 
   it('an email-only legacy account with no identities still shows its email', () => {
-    const rows = linkedMethods([], { email: 'old@runivo.app' });
+    const rows = linkedMethods([], { email: 'old@runivo.in' });
     expect(rows.map(r => r.method)).toEqual(['email']);
     expect(rows[0].canUnlink).toBe(false);
   });
@@ -76,7 +76,7 @@ describe('linkedMethods', () => {
 
 describe('linkableMethods', () => {
   it('offers what is missing; Apple only on iOS', () => {
-    const rows = linkedMethods([email], { email: 'asha@runivo.app' });
+    const rows = linkedMethods([email], { email: 'asha@runivo.in' });
     expect(linkableMethods(rows, 'ios')).toEqual(['apple', 'google', 'phone']);
     expect(linkableMethods(rows, 'android')).toEqual(['google', 'phone']);
   });

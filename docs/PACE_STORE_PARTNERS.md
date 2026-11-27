@@ -8,7 +8,7 @@ Everything below is run from the web admin at `/admin` (admin accounts only). Th
 
 | Step | What happens | Where |
 |---|---|---|
-| 1. Apply | Brand fills in the form at **runivo.app/partners** (company, category, contact, website, countries and cities, offer, estimated stock). Limits: 5 per 10 minutes per IP, 3 per email per day, plus a hidden bot trap | Appears at the top of **Partners** under *Applications to review*, with **Approve** (→ active) and **Reject**. Email applications: **Add partner**, status *Applied* |
+| 1. Apply | Brand fills in the form at **runivo.in/partners** (company, category, contact, website, countries and cities, offer, estimated stock). Limits: 5 per 10 minutes per IP, 3 per email per day, plus a hidden bot trap | Appears at the top of **Partners** under *Applications to review*, with **Approve** (→ active) and **Reject**. Email applications: **Add partner**, status *Applied* |
 | 2. Review (within 5 working days) | Fits runners? (shoes, apparel, nutrition, cafés near parks, physio, races, gyms, health insurers). At least 15% off or a free item? Can they honour codes? | Partner notes; set status *Active* or *Rejected* |
 | 3. Agree | One page: offer, stock, dates, cities, payment model, how codes work | Partner: billing model, fee, billing start, notes |
 | 4. Set up | Reward details, PACE cost, rank gate, Plus-only, cities, dates, code mode; upload single-use codes as CSV | **PACE Store → Add reward**, then **Codes** |

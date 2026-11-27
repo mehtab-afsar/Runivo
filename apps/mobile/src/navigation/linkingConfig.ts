@@ -1,5 +1,5 @@
 /**
- * Deep-link paths (runivo://… and https://runivo.app/…). Pure data, so tests can
+ * Deep-link paths (runivo://… and https://runivo.in/…). Pure data, so tests can
  * resolve paths against it without loading the screens.
  *
  * initialRouteName 'Main': a link that cold-starts the app (or a tapped push,
@@ -12,7 +12,7 @@
 import type { PathConfigMap } from '@react-navigation/native';
 import type { RootStackParamList } from './AppNavigator';
 
-export const LINKING_PREFIXES = ['runivo://', 'https://runivo.app'];
+export const LINKING_PREFIXES = ['runivo://', 'https://runivo.in'];
 
 export const linkingConfig: { initialRouteName: 'Main'; screens: PathConfigMap<RootStackParamList> } = {
   initialRouteName: 'Main',

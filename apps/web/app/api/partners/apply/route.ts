@@ -4,7 +4,7 @@ import { PARTNER_CATEGORIES } from '@/app/api/admin/partners/fields';
 export const dynamic = 'force-dynamic';
 
 /**
- * Public partner application (runivo.app/partners). No sign-in: it writes
+ * Public partner application (runivo.in/partners). No sign-in: it writes
  * one partners row with status 'applied' through submit_partner_application,
  * which validates again and caps applications per email per day. The team
  * reviews it in the admin. Errors are never returned verbatim.
@@ -96,11 +96,11 @@ export async function POST(req: Request): Promise<Response> {
         return json({ ok: false, error: 'Some details look wrong. Check the form and try again.' }, 400);
       }
       console.error('[partners/apply]', error.message);
-      return json({ ok: false, error: 'Something went wrong. Please try again, or email partners@runivo.app.' }, 500);
+      return json({ ok: false, error: 'Something went wrong. Please try again, or email partners@runivo.in.' }, 500);
     }
   } catch (e) {
     console.error('[partners/apply]', e);
-    return json({ ok: false, error: 'Something went wrong. Please try again, or email partners@runivo.app.' }, 500);
+    return json({ ok: false, error: 'Something went wrong. Please try again, or email partners@runivo.in.' }, 500);
   }
 
   return json({ ok: true }, 201);

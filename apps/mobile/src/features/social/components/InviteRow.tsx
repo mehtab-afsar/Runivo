@@ -35,7 +35,7 @@ export function InviteRow() {
       return;
     }
     await Share.share({
-      message: `Run with me on Runivo and claim the streets around you. Use my code ${data} when you join and we both get 50 PACE. https://runivo.app/invite?code=${data}`,
+      message: `Run with me on Runivo and claim the streets around you. Use my code ${data} when you join and we both get 50 PACE. https://runivo.in/invite?code=${data}`,
     }).catch(() => {});
   };
 

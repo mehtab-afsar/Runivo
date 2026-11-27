@@ -31,7 +31,7 @@ export function useClubJoin({ clubId, clubName, invite, currentUserId, joinPolic
       await Share.share({ message: `${pitch}\n${links.web}\n\nAlready have the app? ${links.app}`, url: links.web });
     } catch {
       // Not a member (or offline): no code to hand out.
-      Share.share({ message: `${pitch} Get the app at https://runivo.app/invite and search for "${clubName}".` }).catch(() => {});
+      Share.share({ message: `${pitch} Get the app at https://runivo.in/invite and search for "${clubName}".` }).catch(() => {});
     }
   };
 

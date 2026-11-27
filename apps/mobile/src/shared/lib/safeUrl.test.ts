@@ -3,7 +3,7 @@ import { safeHttpUrl } from './safeUrl';
 
 describe('safeHttpUrl', () => {
   it('passes http and https links', () => {
-    expect(safeHttpUrl('https://runivo.app/e/1')).toBe('https://runivo.app/e/1');
+    expect(safeHttpUrl('https://runivo.in/e/1')).toBe('https://runivo.in/e/1');
     expect(safeHttpUrl('  http://example.org  ')).toBe('http://example.org/');
   });
 

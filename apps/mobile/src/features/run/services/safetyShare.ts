@@ -15,7 +15,7 @@ export const isSharing = () => token != null;
 export function shareUrl(t: string): string {
   // Our own domain: Supabase shows HTML from *.supabase.co as plain text, so the
   // function URL rendered as raw markup for whoever opened it (apps/web/app/live).
-  return `https://runivo.app/live?t=${t}`;
+  return `https://runivo.in/live?t=${t}`;
 }
 
 /** Starts (or reuses) the share for this run and opens the share sheet. */

@@ -333,11 +333,11 @@ BEGIN
     (pg_temp.did(4, 4), 'City 10K', 'Closed roads through the centre. Chip timed.',
      'race', 'curated', date_trunc('day', now()) + interval '18 days 7 hours', date_trunc('day', now()) + interval '18 days 11 hours',
      pg_temp.off_lat(ctx.home_lat, 900), pg_temp.off_lng(ctx.home_lat, ctx.home_lng, -700), 'City centre',
-     10000, 'City Races', NULL, '10k', true, 0, 'https://runivo.app', 'City Races'),
+     10000, 'City Races', NULL, '10k', true, 0, 'https://runivo.in', 'City Races'),
     (pg_temp.did(4, 5), 'Autumn Half Marathon', 'Flat and fast, two laps of the river.',
      'race', 'curated', date_trunc('day', now()) + interval '32 days 6 hours', date_trunc('day', now()) + interval '32 days 10 hours',
      pg_temp.off_lat(ctx.home_lat, -1200), pg_temp.off_lng(ctx.home_lat, ctx.home_lng, 900), 'Riverside start',
-     21100, 'City Races', NULL, 'half_marathon', true, 0, 'https://runivo.app', 'City Races');
+     21100, 'City Races', NULL, 'half_marathon', true, 0, 'https://runivo.in', 'City Races');
   INSERT INTO public.event_participants (event_id, user_id, joined_at)
   SELECT pg_temp.did(4, e), pg_temp.did(0, n), now() - make_interval(hours => n)
     FROM generate_series(1, 3) e, generate_series(1, 8) n WHERE (n + e) % 3 <> 0

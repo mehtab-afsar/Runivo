@@ -47,7 +47,7 @@ export default function AiConsentCard({ onGranted, onDecline, compact = false }:
         Your GPS routes, name and email are not part of it. Anthropic uses the data only to write your reply or read your photo.
         You can turn this off any time in Settings. PaceX gives general running guidance, not medical advice.
       </Text>
-      <Pressable onPress={() => Linking.openURL('https://runivo.app/privacy').catch(() => {})} hitSlop={8} accessibilityRole="link">
+      <Pressable onPress={() => Linking.openURL('https://runivo.in/privacy').catch(() => {})} hitSlop={8} accessibilityRole="link">
         <Text style={s.link}>Read the privacy policy</Text>
       </Pressable>
 

@@ -3,7 +3,7 @@
  * off but kept the weekly summary. Run once a week (Monday morning) from a
  * Supabase scheduled job:
  *   select net.http_post(url := '<project>/functions/v1/weekly-digest', headers := '{"Authorization":"Bearer <service key>"}');
- * Needs RESEND_API_KEY and DIGEST_FROM (e.g. "Runivo <hello@runivo.app>").
+ * Needs RESEND_API_KEY and DIGEST_FROM (e.g. "Runivo <hello@runivo.in>").
  */
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { digestHtml, digestSubject, type DigestRow } from './email.ts';

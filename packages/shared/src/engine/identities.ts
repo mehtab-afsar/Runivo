@@ -47,7 +47,7 @@ function toMethod(provider: string): SignInMethod | null {
   return provider === 'email' || provider === 'google' || provider === 'apple' || provider === 'phone' ? provider : null;
 }
 
-/** "as•••@runivo.app": enough to recognise, not enough to copy. */
+/** "as•••@runivo.in": enough to recognise, not enough to copy. */
 export function maskEmail(email: string | null | undefined): string | null {
   if (!email || !email.includes('@')) return null;
   const [local, domain] = email.split('@');

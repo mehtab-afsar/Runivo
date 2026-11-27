@@ -131,9 +131,9 @@ describe('phone and email', () => {
     expect(normalizePhone('call me')).toMatchObject({ ok: false });
   });
   it('checks email shape', () => {
-    expect(validateEmail('asha@runivo.app')).toBe(true);
+    expect(validateEmail('asha@runivo.in')).toBe(true);
     expect(validateEmail('asha@runivo')).toBe(false);
-    expect(validateEmail('asha runivo.app')).toBe(false);
+    expect(validateEmail('asha runivo.in')).toBe(false);
   });
   it('checks one-time codes', () => {
     expect(isOtpCode('123456')).toBe(true);

@@ -11,11 +11,11 @@ Keep the text true to the shipped build. A feature behind a flag in `apps/mobile
 | Name | Runivo (30 characters max; add a short suffix only if the plain name is taken) |
 | Bundle ID | `com.mehtabafsar.runivo` (from `app.config.ts`) |
 | Primary / secondary category | Health & Fitness / Sports |
-| Support URL | https://runivo.app/support |
-| Marketing URL | https://runivo.app |
-| Privacy Policy URL | https://runivo.app/privacy |
-| Terms of Use (EULA) | https://runivo.app/terms (also put it in the description, as the text already does) |
-| Support email | one address on one domain, used on the support page, the Terms and in-app (it is currently runivo.com on the web pages and runivo.app elsewhere; confirm the mailbox exists) |
+| Support URL | https://runivo.in/support |
+| Marketing URL | https://runivo.in |
+| Privacy Policy URL | https://runivo.in/privacy |
+| Terms of Use (EULA) | https://runivo.in/terms (also put it in the description, as the text already does) |
+| Support email | one address on one domain, used on the support page, the Terms and in-app (it is currently runivo.com on the web pages and runivo.in elsewhere; confirm the mailbox exists) |
 | Price | Free, with in-app purchases (Runivo Plus) |
 | Copyright | the legal entity name |
 

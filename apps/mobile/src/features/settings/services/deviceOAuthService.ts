@@ -59,7 +59,7 @@ export async function connectProvider(provider: string): Promise<'connected' | '
   const authUrl = await getOAuthAuthUrl(provider);
   const res = await WebBrowser.openAuthSessionAsync(authUrl, OAUTH_REDIRECT);
   if (res.type !== 'success' || !res.url) return 'cancelled';
-  const parsed = new URL(res.url.replace('runivo://', 'https://runivo.app/'));
+  const parsed = new URL(res.url.replace('runivo://', 'https://runivo.in/'));
   const q = (k: string) => parsed.searchParams.get(k) ?? undefined;
   if (q('error')) throw new Error(`Couldn't connect ${provider}`);
   await completeOAuthCallback(provider, { code: q('code'), state: q('state'), oauth_token: q('oauth_token'), oauth_verifier: q('oauth_verifier') });

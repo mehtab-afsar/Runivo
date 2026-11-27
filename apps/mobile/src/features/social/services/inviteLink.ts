@@ -1,5 +1,5 @@
 /**
- * Invite links: runivo://invite?code=ABCD2345 (and https://runivo.app/invite?code=…).
+ * Invite links: runivo://invite?code=ABCD2345 (and https://runivo.in/invite?code=…).
  * The code is kept on the phone until someone is signed in, then used once
  * (redeem_referral). The server decides whether it counts (new accounts only,
  * not your own, once), so a stray link can do no more than a typed code.
@@ -18,7 +18,7 @@ export function inviteCodeFromUrl(url: string | null): string | null {
   try { u = new URL(url); } catch { /* Not a parseable URL, so it carries no invite code. */ return null; }
   const path = `${u.host}${u.pathname}`.replace(/\/+$/, '');
   const isInvite = (u.protocol === 'runivo:' && path === 'invite')
-    || (u.protocol === 'https:' && path === 'runivo.app/invite');
+    || (u.protocol === 'https:' && path === 'runivo.in/invite');
   if (!isInvite) return null;
   const code = (u.searchParams.get('code') ?? '').trim().toUpperCase();
   return CODE_RE.test(code) ? code : null;

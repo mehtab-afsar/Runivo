@@ -227,7 +227,7 @@ function TabNavigator() {
 }
 
 // ─── Deep link config ────────────────────────────────────────────────────────
-// Handles runivo:// URLs and https://runivo.app universal links.
+// Handles runivo:// URLs and https://runivo.in universal links.
 // Used for: Supabase magic-link auth callbacks, push notification URLs,
 // and any runivo:// links shared from other apps.
 const linking: LinkingOptions<RootStackParamList> = {

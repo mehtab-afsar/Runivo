@@ -138,8 +138,8 @@ export default function AuthScreen({ mode }: Props) {
             </Pressable>
             <Text style={s.legal}>
               By continuing you agree to our{' '}
-              <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.app/terms')}>Terms</Text> and{' '}
-              <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.app/privacy')}>Privacy Policy</Text>.
+              <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.in/terms')}>Terms</Text> and{' '}
+              <Text style={s.legalLink} onPress={() => Linking.openURL('https://runivo.in/privacy')}>Privacy Policy</Text>.
             </Text>
           </>
         )}

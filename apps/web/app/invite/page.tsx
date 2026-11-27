@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 /**
  * Where the app's "Invite a friend" link lands (apps/mobile PeopleStep builds
- * https://runivo.app/invite?from=<username>). The app link did not exist on
+ * https://runivo.in/invite?from=<username>). The app link did not exist on
  * the site, so every shared invite was a 404.
  */
 export default async function InvitePage({ searchParams }: { searchParams: Promise<{ from?: string | string[]; code?: string | string[] }> }) {

@@ -132,11 +132,11 @@ export default function SubscriptionScreen() {
           </Text>
           {/* Apple requires Terms and Privacy on the same screen as the purchase button. */}
           <View style={s.links}>
-            <Pressable onPress={() => { Linking.openURL('https://runivo.app/terms').catch(() => {}); }} hitSlop={8} accessibilityRole="link">
+            <Pressable onPress={() => { Linking.openURL('https://runivo.in/terms').catch(() => {}); }} hitSlop={8} accessibilityRole="link">
               <Text style={s.link}>Terms of Use (EULA)</Text>
             </Pressable>
             <Text style={s.linkSep}>·</Text>
-            <Pressable onPress={() => { Linking.openURL('https://runivo.app/privacy').catch(() => {}); }} hitSlop={8} accessibilityRole="link">
+            <Pressable onPress={() => { Linking.openURL('https://runivo.in/privacy').catch(() => {}); }} hitSlop={8} accessibilityRole="link">
               <Text style={s.link}>Privacy Policy</Text>
             </Pressable>
             {!isPremium && (

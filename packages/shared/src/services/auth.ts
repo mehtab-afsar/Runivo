@@ -98,7 +98,7 @@ export function onAuthStateChange(callback: (state: AuthState) => void) {
 // produces a bare relative path '/reset-password' — a link the recovery
 // email can't resolve to anything. Always target the real page unless a
 // caller explicitly overrides it.
-const RESET_PASSWORD_URL = 'https://runivo.app/reset-password';
+const RESET_PASSWORD_URL = 'https://runivo.in/reset-password';
 
 // Sent via authEmailClient, not `supabase`: the native client is on the PKCE flow,
 // which would produce a ?code= link redeemable only with a code_verifier stored on
