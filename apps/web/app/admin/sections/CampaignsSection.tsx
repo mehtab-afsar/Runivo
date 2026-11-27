@@ -148,7 +148,7 @@ export default function CampaignsSection() {
           <ErrorNote message={error} />
           <div className="flex gap-2 mt-4">
             <button onClick={close} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-500 bg-white">Cancel</button>
-            <button onClick={save} disabled={!canSave || saving} className="flex-1 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-bold disabled:opacity-40">
+            <button onClick={save} disabled={!canSave || saving} className="flex-1 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-bold disabled:opacity-40">
               {saving ? 'Saving…' : editId ? 'Update campaign' : 'Schedule campaign'}
             </button>
           </div>

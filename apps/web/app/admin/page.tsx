@@ -38,7 +38,7 @@ import {
   Calendar, Megaphone, Plus, Trash2, ToggleLeft, ToggleRight,
   ArrowLeft, Pencil, X, AlertCircle, ShieldAlert, ShoppingBag,
   Handshake, BarChart3, BellRing, Flag,
-  Trophy,
+  Trophy, LogOut,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import StoreSection from './sections/StoreSection';
@@ -101,7 +101,7 @@ const NAV: { id: AdminTab; label: string; Icon: typeof Calendar }[] = [
 
 const inputClass = `w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200
   text-gray-900 text-[15px] font-medium placeholder:text-gray-300 placeholder:font-normal
-  focus:outline-none focus:border-[#C8391A] focus:bg-white transition-all`;
+  focus:outline-none focus:border-[#4E7F1F] focus:bg-white transition-all`;
 
 const labelClass = 'text-[10px] font-semibold text-gray-400 uppercase tracking-widest pl-0.5 mb-1 block';
 
@@ -264,7 +264,7 @@ function EventsSection() {
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-semibold shadow-sm active:scale-95 transition-transform"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-semibold shadow-sm active:scale-95 transition-transform"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           New Event
@@ -277,7 +277,7 @@ function EventsSection() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="mb-6 p-5 rounded-2xl border border-[#C8391A]/20 bg-[#FFF8F6]"
+            className="mb-6 p-5 rounded-2xl border border-[#4E7F1F]/20 bg-[#EEF5E4]"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-gray-900">{editId ? 'Edit Event' : 'New Event'}</h3>
@@ -389,7 +389,7 @@ function EventsSection() {
               <button
                 onClick={save}
                 disabled={!canSave || saving}
-                className="flex-1 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-transform"
+                className="flex-1 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-transform"
               >
                 {saving ? 'Saving…' : editId ? 'Update Event' : 'Create Event'}
               </button>
@@ -400,7 +400,7 @@ function EventsSection() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(200,57,26,0.15)', borderTopColor: '#C8391A' }} />
+          <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(78,127,31,0.15)', borderTopColor: '#4E7F1F' }} />
         </div>
       ) : events.length === 0 ? (
         <div className="text-center py-16">
@@ -448,9 +448,9 @@ function EventsSection() {
                   <td className="px-4 py-3 text-center">
                     <button onClick={() => toggleActive(e)} className="inline-flex items-center gap-1.5">
                       {e.is_active
-                        ? <ToggleRight className="w-5 h-5 text-[#C8391A]" />
+                        ? <ToggleRight className="w-5 h-5 text-[#4E7F1F]" />
                         : <ToggleLeft className="w-5 h-5 text-gray-300" />}
-                      <span className={`text-[10px] font-semibold ${e.is_active ? 'text-[#C8391A]' : 'text-gray-300'}`}>
+                      <span className={`text-[10px] font-semibold ${e.is_active ? 'text-[#4E7F1F]' : 'text-gray-300'}`}>
                         {e.is_active ? 'Live' : 'Off'}
                       </span>
                     </button>
@@ -620,7 +620,7 @@ create policy "Admin full access" on promotions
         </div>
         <button
           onClick={openNew}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-semibold shadow-sm active:scale-95 transition-transform"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-semibold shadow-sm active:scale-95 transition-transform"
         >
           <Plus className="w-4 h-4" strokeWidth={2.5} />
           New Banner
@@ -641,7 +641,7 @@ create policy "Admin full access" on promotions
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="mb-6 p-5 rounded-2xl border border-[#C8391A]/20 bg-[#FFF8F6]"
+            className="mb-6 p-5 rounded-2xl border border-[#4E7F1F]/20 bg-[#EEF5E4]"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-gray-900">{editId ? 'Edit Promotion' : 'New Promotion'}</h3>
@@ -709,7 +709,7 @@ create policy "Admin full access" on promotions
               <button
                 onClick={save}
                 disabled={!form.title.trim() || saving}
-                className="flex-1 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-transform"
+                className="flex-1 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-transform"
               >
                 {saving ? 'Saving…' : editId ? 'Update Banner' : 'Create Banner'}
               </button>
@@ -720,7 +720,7 @@ create policy "Admin full access" on promotions
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(200,57,26,0.15)', borderTopColor: '#C8391A' }} />
+          <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(78,127,31,0.15)', borderTopColor: '#4E7F1F' }} />
         </div>
       ) : promos.length === 0 ? (
         <div className="text-center py-16">
@@ -753,8 +753,8 @@ create policy "Admin full access" on promotions
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       <button onClick={() => toggleActive(p)} className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-50 transition-colors">
-                        {p.is_active ? <ToggleRight className="w-5 h-5 text-[#C8391A]" /> : <ToggleLeft className="w-5 h-5 text-gray-300" />}
-                        <span className={`text-[10px] font-semibold ${p.is_active ? 'text-[#C8391A]' : 'text-gray-300'}`}>{p.is_active ? 'Live' : 'Off'}</span>
+                        {p.is_active ? <ToggleRight className="w-5 h-5 text-[#4E7F1F]" /> : <ToggleLeft className="w-5 h-5 text-gray-300" />}
+                        <span className={`text-[10px] font-semibold ${p.is_active ? 'text-[#4E7F1F]' : 'text-gray-300'}`}>{p.is_active ? 'Live' : 'Off'}</span>
                       </button>
                       <button onClick={() => openEdit(p)} className="w-7 h-7 rounded-lg border border-gray-100 flex items-center justify-center hover:border-gray-300 transition-colors">
                         <Pencil className="w-3 h-3 text-gray-400" />
@@ -800,6 +800,12 @@ export default function AdminPage() {
 
   useEffect(() => { checkAccess(); }, []);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setEmail(''); setPassword('');
+    setAccess('signed_out');
+  };
+
   const handleSignIn = async () => {
     setSigningIn(true);
     setSignInError(null);
@@ -816,14 +822,14 @@ export default function AdminPage() {
   if (access === 'loading') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-7 h-7 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(200,57,26,0.15)', borderTopColor: '#C8391A' }} />
+        <div className="w-7 h-7 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(78,127,31,0.15)', borderTopColor: '#4E7F1F' }} />
       </div>
     );
   }
 
   if (access === 'signed_out') {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center px-6 text-center gap-4">
+      <div className="min-h-screen bg-[#F4F5F1] flex flex-col items-center justify-center px-6 text-center gap-4">
         <div className="w-14 h-14 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center">
           <ShieldAlert className="w-7 h-7 text-gray-500" />
         </div>
@@ -862,9 +868,9 @@ export default function AdminPage() {
 
   if (access === 'denied') {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center px-6 text-center gap-4">
+      <div className="min-h-screen bg-[#F4F5F1] flex flex-col items-center justify-center px-6 text-center gap-4">
         <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
-          <ShieldAlert className="w-7 h-7 text-[#C8391A]" />
+          <ShieldAlert className="w-7 h-7 text-[#4E7F1F]" />
         </div>
         <div>
           <h1 className="text-lg font-bold text-gray-900 mb-1">Access Denied</h1>
@@ -876,15 +882,20 @@ export default function AdminPage() {
             <code className="text-gray-500">update profiles set subscription_tier = &apos;admin&apos; where id = &apos;&lt;your-user-id&gt;&apos;;</code>
           </p>
         </div>
-        <button onClick={() => router.push('/')} className="mt-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold">
+        <div className="flex gap-2 mt-2">
+          <button onClick={() => router.push('/')} className="mt-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold">
           Back to home
         </button>
+          <button onClick={handleSignOut} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold">
+            Sign out
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
+    <div className="min-h-screen bg-[#F4F5F1]">
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-4">
         <button onClick={() => router.push('/')} className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
@@ -892,7 +903,7 @@ export default function AdminPage() {
         </button>
         <div className="flex-1">
           <h1 className="text-base font-bold text-gray-900 leading-tight">
-            run<span style={{ color: '#C8391A' }}>ivo</span> Admin
+            run<span style={{ color: '#4E7F1F' }}>ivo</span> Admin
           </h1>
           <p className="text-[10px] text-gray-400 uppercase tracking-wider">Content Management</p>
         </div>
@@ -900,6 +911,13 @@ export default function AdminPage() {
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           <span className="text-[10px] font-semibold text-green-600">Live</span>
         </div>
+        <button
+          onClick={handleSignOut}
+          className="ml-1 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 border border-gray-100 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+          aria-label="Sign out"
+        >
+          <LogOut className="w-3.5 h-3.5" strokeWidth={2} /> Sign out
+        </button>
       </div>
 
       <div className="flex min-h-[calc(100vh-65px)]">
@@ -911,7 +929,7 @@ export default function AdminPage() {
               onClick={() => setTab(item.id)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1 transition-colors ${
                 tab === item.id
-                  ? 'bg-[#C8391A]/10 text-[#C8391A] font-semibold'
+                  ? 'bg-[#4E7F1F]/10 text-[#4E7F1F] font-semibold'
                   : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
               }`}
             >
@@ -922,13 +940,13 @@ export default function AdminPage() {
         </aside>
 
         {/* Mobile tab bar */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-100 flex">
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-100 flex overflow-x-auto">
           {NAV.map(item => (
             <button
               key={item.id}
               onClick={() => setTab(item.id)}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-semibold transition-colors ${
-                tab === item.id ? 'text-[#C8391A]' : 'text-gray-400'
+              className={`flex-1 min-w-[76px] flex flex-col items-center gap-1 py-3 text-[10px] font-semibold transition-colors ${
+                tab === item.id ? 'text-[#4E7F1F]' : 'text-gray-400'
               }`}
             >
               <item.Icon className="w-5 h-5" strokeWidth={1.8} />

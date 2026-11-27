@@ -1,76 +1,39 @@
 import Link from 'next/link';
-import { HexagonLogo } from './HexagonLogo';
+import { Logo } from './Logo';
+import { APP_STORE_URL, SUPPORT_EMAIL } from '@/lib/site';
 
 export function Footer() {
   return (
-    <footer style={{
-      borderTop: '1px solid var(--border)',
-      padding: '56px 24px 40px',
-    }}>
-      <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto' }}>
-        <div style={{
-          display: 'flex', flexWrap: 'wrap',
-          alignItems: 'flex-start', justifyContent: 'space-between', gap: 40,
-          marginBottom: 48,
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <HexagonLogo size={24} />
-              <span style={{
-                fontFamily: 'var(--font-display)', fontStyle: 'italic',
-                fontSize: 16, color: 'var(--t2)',
-              }}>
-                runivo
-              </span>
-            </div>
-            <p style={{
-              fontSize: 13, color: 'var(--t3)', fontFamily: 'var(--font-body)',
-              lineHeight: 1.6, maxWidth: 280,
-            }}>
-              Claim territory. Earn PACE. Own your city.
+    <footer className="footer">
+      <div className="container">
+        <div className="footer-grid">
+          <div style={{ maxWidth: 300 }}>
+            <Logo size={24} />
+            <p className="muted" style={{ fontSize: 15, marginTop: 14 }}>
+              Run smarter. AI coaching, live crews and your city.
             </p>
           </div>
-
           <div style={{ display: 'flex', gap: 64, flexWrap: 'wrap' }}>
             <div>
-              <p style={{ fontSize: 10, letterSpacing: '0.12em', color: 'var(--t3)', fontFamily: 'var(--font-body)', fontWeight: 600, marginBottom: 16, textTransform: 'uppercase' }}>
-                Product
-              </p>
-              {[['Download', 'https://apps.apple.com']].map(([label, href]) => (
-                <a key={href} href={href} style={{ display: 'block', fontSize: 13, color: 'var(--t2)', fontFamily: 'var(--font-body)', marginBottom: 10 }}>{label}</a>
-              ))}
+              <h4>Product</h4>
+              <a className="fl" href={APP_STORE_URL}>Download</a>
+              <Link className="fl" href="/#how">How it works</Link>
             </div>
             <div>
-              <p style={{ fontSize: 10, letterSpacing: '0.12em', color: 'var(--t3)', fontFamily: 'var(--font-body)', fontWeight: 600, marginBottom: 16, textTransform: 'uppercase' }}>
-                Legal
-              </p>
-              {([['Privacy', '/privacy'], ['Terms', '/terms']] as [string, string][]).map(([label, href]) => (
-                <Link key={href} href={href} style={{ display: 'block', fontSize: 13, color: 'var(--t2)', fontFamily: 'var(--font-body)', marginBottom: 10 }}>{label}</Link>
-              ))}
+              <h4>Legal</h4>
+              <Link className="fl" href="/privacy">Privacy</Link>
+              <Link className="fl" href="/terms">Terms</Link>
             </div>
             <div>
-              <p style={{ fontSize: 10, letterSpacing: '0.12em', color: 'var(--t3)', fontFamily: 'var(--font-body)', fontWeight: 600, marginBottom: 16, textTransform: 'uppercase' }}>
-                Company
-              </p>
-              {([['Partners', '/partners'], ['Support', '/support']] as [string, string][]).map(([label, href]) => (
-                <Link key={href} href={href} style={{ display: 'block', fontSize: 13, color: 'var(--t2)', fontFamily: 'var(--font-body)', marginBottom: 10 }}>{label}</Link>
-              ))}
+              <h4>Company</h4>
+              <Link className="fl" href="/partners">Partners</Link>
+              <Link className="fl" href="/support">Support</Link>
             </div>
           </div>
         </div>
-
-        <div style={{
-          borderTop: '1px solid var(--border)',
-          paddingTop: 24,
-          display: 'flex', flexWrap: 'wrap',
-          alignItems: 'center', justifyContent: 'space-between', gap: 12,
-        }}>
-          <p style={{ fontSize: 12, color: 'var(--t3)', fontFamily: 'var(--font-body)' }}>
-            © {new Date().getFullYear()} Runivo. All rights reserved.
-          </p>
-          <p style={{ fontSize: 12, color: 'var(--t3)', fontFamily: 'var(--font-body)' }}>
-            support@runivo.com
-          </p>
+        <div className="footer-bottom">
+          <span>© {new Date().getFullYear()} Runivo. All rights reserved.</span>
+          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
         </div>
       </div>
     </footer>

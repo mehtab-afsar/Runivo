@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
+import { APP_STORE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Follow on Runivo',
@@ -27,7 +28,7 @@ export default async function RunnerLinkPage({ params, searchParams }: {
   return (
     <>
       <Nav />
-      <div style={{ padding: '140px 24px 100px' }}>
+      <main id="main" style={{ padding: '140px 24px 100px' }}>
         <article style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
           <h1 style={{
             fontFamily: 'var(--font-display)', fontSize: 'clamp(34px, 5vw, 52px)', color: 'var(--t1)',
@@ -39,18 +40,15 @@ export default async function RunnerLinkPage({ params, searchParams }: {
             Runivo is a running game: every run you record can claim a zone on the map, and other runners can take it back.
           </p>
           {id && (
-            <a href={`runivo://runner/${id}`} style={{
-              display: 'inline-block', marginTop: 28, padding: '16px 28px', borderRadius: 999,
-              background: '#17181A', color: '#FFFFFF', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 16, textDecoration: 'none',
-            }}>
+            <a href={`runivo://runner/${id}`} className="btn btn-dark" style={{ marginTop: 28 }}>
               Open in Runivo
             </a>
           )}
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 14, color: 'var(--t2)', lineHeight: 1.7, marginTop: 20 }}>
-            No app yet? Open the App Store on your iPhone, search for <strong>Runivo</strong>, then scan the code again.
+            No app yet? <a href={APP_STORE_URL} style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Get Runivo on the App Store</a>, then scan the code again.
           </p>
         </article>
-      </div>
+      </main>
       <Footer />
     </>
   );

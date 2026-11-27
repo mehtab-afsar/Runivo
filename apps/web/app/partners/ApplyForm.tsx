@@ -14,9 +14,9 @@ const label: CSSProperties = {
   fontFamily: 'var(--font-body)', marginBottom: 8,
 };
 const input: CSSProperties = {
-  width: '100%', padding: '13px 16px', borderRadius: 12, fontSize: 15,
-  background: 'var(--surface2)', border: '1px solid var(--border)', color: 'var(--t1)',
-  fontFamily: 'var(--font-body)', outline: 'none',
+  width: '100%', padding: '13px 16px', borderRadius: 12, fontSize: 16,
+  background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--t1)',
+  fontFamily: 'var(--font-body)',
 };
 const hint: CSSProperties = { fontSize: 12, color: 'var(--t3)', fontFamily: 'var(--font-body)', marginTop: 6 };
 
@@ -47,8 +47,8 @@ export function ApplyForm() {
 
   if (state.status === 'sent') {
     return (
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 32 }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 28, color: 'var(--t1)', marginBottom: 10 }}>
+      <div role="status" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 22, padding: 32 }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--t1)', marginBottom: 10 }}>
           Thanks, we’ve got it.
         </h3>
         <p style={{ fontSize: 15, color: 'var(--t2)', fontFamily: 'var(--font-body)', lineHeight: 1.7 }}>
@@ -61,7 +61,7 @@ export function ApplyForm() {
   return (
     <form onSubmit={submit} noValidate style={{
       position: 'relative',
-      background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 28,
+      background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 22, padding: 28,
       display: 'grid', gap: 18, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
     }}>
       {/* Honeypot: hidden from people, tempting to bots. */}
@@ -126,7 +126,7 @@ export function ApplyForm() {
       </div>
 
       {state.status === 'error' && (
-        <p role="alert" style={{ gridColumn: '1 / -1', fontSize: 14, color: '#FF8A66', fontFamily: 'var(--font-body)' }}>
+        <p role="alert" style={{ gridColumn: '1 / -1', fontSize: 14, color: 'var(--danger)', fontFamily: 'var(--font-body)' }}>
           {state.message}
         </p>
       )}

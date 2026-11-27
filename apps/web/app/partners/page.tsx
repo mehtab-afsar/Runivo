@@ -9,16 +9,14 @@ export const metadata: Metadata = {
 };
 
 const eyebrow = {
-  fontSize: 11, letterSpacing: '0.16em', color: 'var(--accent)',
-  fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase' as const, marginBottom: 16,
+  fontSize: 14, color: 'var(--accent)', fontFamily: 'var(--font-body)', fontWeight: 500, marginBottom: 14,
 };
 const h2 = {
-  fontFamily: 'var(--font-display)', fontStyle: 'italic' as const,
-  fontSize: 'clamp(28px, 3.6vw, 40px)', color: 'var(--t1)', letterSpacing: '-0.02em', marginBottom: 16,
+  fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 3.6vw, 40px)', color: 'var(--t1)', letterSpacing: '-0.02em', marginBottom: 16,
 };
 const body = { fontSize: 15, color: 'var(--t2)', fontFamily: 'var(--font-body)', lineHeight: 1.7 };
 const card = {
-  background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 28,
+  background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 22, padding: 28,
 };
 
 const WHY = [
@@ -46,18 +44,17 @@ export default function PartnersPage() {
   return (
     <>
       <Nav />
-      <main>
+      <main id="main">
         {/* Hero */}
         <section style={{ padding: '140px 24px 72px', position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute', top: 40, right: '-10%', width: 520, height: 520, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(200,57,26,0.14) 0%, transparent 70%)', pointerEvents: 'none',
+            background: 'radial-gradient(circle, rgba(125,186,60,0.16) 0%, transparent 70%)', pointerEvents: 'none',
           }} />
           <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto', position: 'relative' }}>
             <p style={eyebrow}>PACE Store partners</p>
             <h1 style={{
-              fontFamily: 'var(--font-display)', fontStyle: 'italic',
-              fontSize: 'clamp(40px, 6vw, 72px)', color: 'var(--t1)', letterSpacing: '-0.03em', lineHeight: 1.02,
+              fontFamily: 'var(--font-display)', fontSize: 'clamp(40px, 6vw, 72px)', color: 'var(--t1)', letterSpacing: '-0.03em', lineHeight: 1.02,
               maxWidth: 760, marginBottom: 24,
             }}>
               Be the reward runners work for.
@@ -96,12 +93,12 @@ export default function PartnersPage() {
               A runner earns at most 150 PACE a week, so the price of your reward is how long
               someone runs to get it.
             </p>
-            <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-body)' }}>
+            <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontFamily: 'var(--font-body)' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
                     {['Level', 'PACE', 'Roughly', 'Example'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '16px 20px', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--t3)', fontWeight: 600 }}>{h}</th>
+                      <th key={h} style={{ textAlign: 'left', padding: '16px 20px', fontSize: 13, color: 'var(--t3)', fontWeight: 500 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -133,7 +130,7 @@ export default function PartnersPage() {
             </div>
             <div style={card}>
               <p style={eyebrow}>What we look for</p>
-              <ul style={{ ...body, fontSize: 14, paddingLeft: 18, display: 'grid', gap: 8 }}>
+              <ul style={{ ...body, fontSize: 14, paddingLeft: 18, display: 'grid', gap: 8, listStyle: 'disc' }}>
                 <li>A fit for runners: shoes, apparel, nutrition, cafés near parks, physio, races, gyms, health cover.</li>
                 <li>An offer worth running for: at least 15% off, or a free item.</li>
                 <li>You can honour single-use codes, online or in store.</li>
@@ -149,7 +146,7 @@ export default function PartnersPage() {
             <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
               {STEPS.map(([t, b], i) => (
                 <div key={t} style={{ borderTop: '1px solid var(--border)', paddingTop: 18 }}>
-                  <p style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 28, color: 'var(--accent)', marginBottom: 8 }}>
+                  <p style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--accent)', marginBottom: 8 }}>
                     {String(i + 1).padStart(2, '0')}
                   </p>
                   <h3 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 16, color: 'var(--t1)', marginBottom: 6 }}>{t}</h3>

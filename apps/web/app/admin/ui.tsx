@@ -4,11 +4,11 @@ import type { ReactNode } from 'react';
 
 export const inputClass = `w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200
   text-gray-900 text-[15px] font-medium placeholder:text-gray-300 placeholder:font-normal
-  focus:outline-none focus:border-[#C8391A] focus:bg-white transition-all`;
+  focus:outline-none focus:border-[#4E7F1F] focus:bg-white transition-all`;
 
 export const labelClass = 'text-[10px] font-semibold text-gray-400 uppercase tracking-widest pl-0.5 mb-1 block';
 
-export const primaryBtn = 'flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-semibold shadow-sm active:scale-95 transition-transform disabled:opacity-40';
+export const primaryBtn = 'flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-semibold shadow-sm active:scale-95 transition-transform disabled:opacity-40';
 export const ghostBtn = 'px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:border-gray-300 transition-colors disabled:opacity-40';
 export const thClass = 'text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-4 py-3';
 
@@ -35,7 +35,7 @@ export function ErrorNote({ message }: { message: string }) {
 
 export function FormCard({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="mb-6 p-5 rounded-2xl border border-[#C8391A]/20 bg-[#FFF8F6]">
+    <div className="mb-6 p-5 rounded-2xl border border-[#4E7F1F]/20 bg-[#EEF5E4]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-gray-900">{title}</h3>
         <button onClick={onClose} className="w-7 h-7 rounded-lg bg-white border border-gray-100 flex items-center justify-center" aria-label="Close">
@@ -50,7 +50,7 @@ export function FormCard({ title, onClose, children }: { title: string; onClose:
 export function Spinner() {
   return (
     <div className="flex items-center justify-center py-16">
-      <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(200,57,26,0.15)', borderTopColor: '#C8391A' }} />
+      <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: 'rgba(78,127,31,0.15)', borderTopColor: '#4E7F1F' }} />
     </div>
   );
 }

@@ -50,17 +50,15 @@ export default function ResetPasswordPage() {
   return (
     <>
       <Nav />
-      <div style={{ padding: '120px 24px 80px', minHeight: '60vh' }}>
+      <main id="main" style={{ padding: '120px 24px 80px', minHeight: '60vh' }}>
         <div style={{ maxWidth: 420, margin: '0 auto' }}>
           <p style={{
-            fontSize: 11, letterSpacing: '0.16em', color: 'var(--accent)',
-            fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 16,
+            fontSize: 14, color: 'var(--accent)', fontFamily: 'var(--font-body)', fontWeight: 500, marginBottom: 14,
           }}>
             Account
           </p>
           <h1 style={{
-            fontFamily: 'var(--font-display)', fontStyle: 'italic',
-            fontSize: 'clamp(28px, 4vw, 40px)', color: 'var(--t1)',
+            fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 40px)', color: 'var(--t1)',
             marginBottom: 32, letterSpacing: '-0.02em',
           }}>
             Reset your password
@@ -85,45 +83,35 @@ export default function ResetPasswordPage() {
           )}
 
           {status === 'ready' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <input
-                type="password"
-                placeholder="New password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)',
-                  fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none',
-                }}
-              />
-              <input
-                type="password"
-                placeholder="Confirm new password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-                style={{
-                  padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)',
-                  fontFamily: 'var(--font-body)', fontSize: 14, outline: 'none',
-                }}
-              />
-              {error && <p style={{ color: '#C8391A', fontSize: 13, fontFamily: 'var(--font-body)' }}>{error}</p>}
+            <form
+              onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+            >
+              <div>
+                <label className="field-label" htmlFor="new-password">New password</label>
+                <input
+                  id="new-password" className="field" type="password" autoComplete="new-password" required
+                  value={password} onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="field-label" htmlFor="confirm-password">Confirm new password</label>
+                <input
+                  id="confirm-password" className="field" type="password" autoComplete="new-password" required
+                  value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              {error && <p role="alert" className="form-error">{error}</p>}
               <button
-                onClick={handleSubmit}
+                type="submit" className="btn btn-dark"
                 disabled={saving || !password || !confirmPassword}
-                style={{
-                  marginTop: 4, padding: '12px 16px', borderRadius: 12, border: 'none',
-                  backgroundColor: 'var(--t1)', color: 'var(--bg)', fontFamily: 'var(--font-body)',
-                  fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                  opacity: saving || !password || !confirmPassword ? 0.4 : 1,
-                }}
               >
                 {saving ? 'Saving…' : 'Set new password'}
               </button>
-            </div>
+            </form>
           )}
         </div>
-      </div>
+      </main>
       <Footer />
     </>
   );

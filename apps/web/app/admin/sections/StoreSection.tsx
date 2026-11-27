@@ -200,7 +200,7 @@ export default function StoreSection() {
       {showForm && (
         <FormCard title={editId ? 'Edit reward' : 'New reward'} onClose={close}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Partner" hint="Funds the reward and gets its report" wide>
+            <Field label="Partner" hint="Funds the reward and gets its report. Runners only see it while the partner is active." wide>
               <select className={inputClass} value={form.partner_id} onChange={e => pickPartner(e.target.value)}>
                 <option value="">No partner (Runivo reward)</option>
                 {partners.filter(p => p.status !== 'rejected').map(p => <option key={p.id} value={p.id}>{p.name} · {p.status}</option>)}
@@ -270,7 +270,7 @@ export default function StoreSection() {
           <ErrorNote message={error} />
           <div className="flex gap-2 mt-4">
             <button onClick={close} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-500 bg-white">Cancel</button>
-            <button onClick={save} disabled={!canSave || saving} className="flex-1 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-bold disabled:opacity-40">
+            <button onClick={save} disabled={!canSave || saving} className="flex-1 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-bold disabled:opacity-40">
               {saving ? 'Saving…' : editId ? 'Update reward' : 'Create reward'}
             </button>
           </div>

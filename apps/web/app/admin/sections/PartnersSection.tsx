@@ -165,7 +165,7 @@ export default function PartnersSection() {
           <ErrorNote message={error} />
           <div className="flex gap-2 mt-4">
             <button onClick={close} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-500 bg-white">Cancel</button>
-            <button onClick={save} disabled={saving || form.name.trim().length < 2} className="flex-1 py-2.5 rounded-xl bg-[#C8391A] text-white text-sm font-bold disabled:opacity-40">
+            <button onClick={save} disabled={saving || form.name.trim().length < 2} className="flex-1 py-2.5 rounded-xl bg-[#4E7F1F] text-white text-sm font-bold disabled:opacity-40">
               {saving ? 'Saving…' : editId ? 'Update partner' : 'Create partner'}
             </button>
           </div>
@@ -202,7 +202,7 @@ export default function PartnersSection() {
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => openEdit(r)} className={ghostBtn}>Edit</button>
                     <button onClick={() => decide(r, 'rejected')} disabled={deciding === r.id} className={ghostBtn}>Reject</button>
-                    <button onClick={() => decide(r, 'active')} disabled={deciding === r.id} className="px-3 py-2 rounded-xl bg-[#C8391A] text-white text-xs font-semibold disabled:opacity-40">
+                    <button onClick={() => decide(r, 'active')} disabled={deciding === r.id} className="px-3 py-2 rounded-xl bg-[#4E7F1F] text-white text-xs font-semibold disabled:opacity-40">
                       Approve
                     </button>
                   </div>

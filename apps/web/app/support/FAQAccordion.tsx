@@ -29,7 +29,7 @@ const faqs = [
   },
   {
     q: 'How does the AI Coach work?',
-    a: 'The AI Coach analyses your run history, pace trends, and weekly mileage to generate personalised training recommendations. It adjusts based on your goals (speed, endurance, territory domination) and flags signs of overtraining.',
+    a: 'The AI Coach analyses your run history, pace trends, and weekly mileage to generate personalised training recommendations. It adjusts based on your goals (speed, endurance, territory domination) and flags signs of overtraining. It only sees your data after you agree to share it, and you can turn it off in Settings.',
   },
   {
     q: 'How do I report a bug or problem?',
@@ -43,8 +43,7 @@ export function FAQAccordion() {
   return (
     <div>
       <h2 style={{
-        fontFamily: 'var(--font-display)', fontStyle: 'italic',
-        fontSize: 28, color: 'var(--t1)', marginBottom: 32,
+        fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--t1)', marginBottom: 32,
       }}>
         Frequently asked questions
       </h2>
@@ -55,13 +54,17 @@ export function FAQAccordion() {
             style={{
               borderRadius: 12,
               border: '1px solid',
-              borderColor: open === i ? 'rgba(200,57,26,0.25)' : 'var(--border)',
-              background: open === i ? 'rgba(200,57,26,0.05)' : 'var(--surface)',
+              borderColor: open === i ? 'var(--mint2)' : 'var(--border)',
+              background: open === i ? 'var(--accent-muted)' : 'var(--card)',
               overflow: 'hidden',
               transition: 'border-color 0.2s, background 0.2s',
             }}
           >
             <button
+              type="button"
+              id={`faq-q-${i}`}
+              aria-expanded={open === i}
+              aria-controls={`faq-a-${i}`}
               onClick={() => setOpen(open === i ? null : i)}
               style={{
                 width: '100%', textAlign: 'left',
@@ -79,8 +82,9 @@ export function FAQAccordion() {
                 {faq.q}
               </span>
               <svg
+                aria-hidden="true"
                 width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke={open === i ? '#C8391A' : 'rgba(255,255,255,0.35)'} strokeWidth="2"
+                stroke={open === i ? 'var(--accent)' : 'var(--t3)'} strokeWidth="2"
                 style={{
                   flexShrink: 0,
                   transform: open === i ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -91,9 +95,9 @@ export function FAQAccordion() {
               </svg>
             </button>
             {open === i && (
-              <div style={{ padding: '0 20px 20px' }}>
+              <div id={`faq-a-${i}`} role="region" aria-labelledby={`faq-q-${i}`} style={{ padding: '0 20px 20px' }}>
                 <p style={{
-                  fontSize: 14, color: 'var(--t3)',
+                  fontSize: 15, color: 'var(--t2)',
                   fontFamily: 'var(--font-body)', lineHeight: 1.7,
                 }}>
                   {faq.a}

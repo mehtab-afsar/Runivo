@@ -11,29 +11,27 @@ const prose: React.CSSProperties = {
   fontFamily: 'var(--font-body)', fontSize: 15, color: 'var(--t2)', lineHeight: 1.75,
 };
 const h2Style: React.CSSProperties = {
-  fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 24,
+  fontFamily: 'var(--font-display)', fontSize: 24,
   color: 'var(--t1)', marginTop: 48, marginBottom: 16,
 };
 const h3Style: React.CSSProperties = {
-  fontSize: 14, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase',
-  color: 'var(--t3)', fontFamily: 'var(--font-body)', marginTop: 28, marginBottom: 8,
+  fontSize: 18, fontWeight: 600, letterSpacing: '-0.02em',
+  color: 'var(--t1)', fontFamily: 'var(--font-body)', marginTop: 28, marginBottom: 8,
 };
 
 export default function TermsPage() {
   return (
     <>
       <Nav />
-      <div style={{ padding: '120px 24px 80px' }}>
+      <main id="main" style={{ padding: '120px 24px 80px' }}>
         <article style={{ maxWidth: 680, margin: '0 auto' }}>
           <p style={{
-            fontSize: 11, letterSpacing: '0.16em', color: 'var(--accent)',
-            fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 16,
+            fontSize: 14, color: 'var(--accent)', fontFamily: 'var(--font-body)', fontWeight: 500, marginBottom: 14,
           }}>
             Legal
           </p>
           <h1 style={{
-            fontFamily: 'var(--font-display)', fontStyle: 'italic',
-            fontSize: 'clamp(36px, 5vw, 56px)', color: 'var(--t1)',
+            fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 56px)', color: 'var(--t1)',
             marginBottom: 12, letterSpacing: '-0.02em',
           }}>
             Terms of Service
@@ -130,7 +128,7 @@ export default function TermsPage() {
             </p>
           </div>
         </article>
-      </div>
+      </main>
       <Footer />
     </>
   );

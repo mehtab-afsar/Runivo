@@ -12,42 +12,27 @@ export default function SupportPage() {
   return (
     <>
       <Nav />
-      <div style={{ padding: '120px 24px 80px' }}>
+      <main id="main" style={{ padding: '120px var(--gutter) 80px' }}>
         <div style={{ maxWidth: 'var(--max-w)', margin: '0 auto' }}>
           <p style={{
-            fontSize: 11, letterSpacing: '0.16em', color: 'var(--accent)',
-            fontFamily: 'var(--font-body)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 16,
+            fontSize: 14, color: 'var(--accent)', fontFamily: 'var(--font-body)', fontWeight: 500, marginBottom: 14,
           }}>
             Help Center
           </p>
           <h1 style={{
-            fontFamily: 'var(--font-display)', fontStyle: 'italic',
-            fontSize: 'clamp(36px, 5vw, 56px)', color: 'var(--t1)',
+            fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 56px)', color: 'var(--t1)',
             marginBottom: 60, letterSpacing: '-0.02em',
           }}>
             How can we help?
           </h1>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) 320px',
-            gap: 64,
-            alignItems: 'start',
-          }}>
+          <div className="support-grid">
             <FAQAccordion />
 
             {/* Contact card */}
-            <div style={{
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: 20,
-              padding: 32,
-              position: 'sticky',
-              top: 88,
-            }}>
+            <div className="card support-card">
               <h2 style={{
-                fontFamily: 'var(--font-display)', fontStyle: 'italic',
-                fontSize: 22, color: 'var(--t1)', marginBottom: 12,
+                fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--t1)', marginBottom: 12,
               }}>
                 Still stuck?
               </h2>
@@ -78,11 +63,10 @@ export default function SupportPage() {
                 borderTop: '1px solid var(--border)',
               }}>
                 <p style={{
-                  fontSize: 11, letterSpacing: '0.1em', color: 'var(--t3)',
-                  fontFamily: 'var(--font-body)', fontWeight: 600,
-                  textTransform: 'uppercase', marginBottom: 12,
+                  fontSize: 14, color: 'var(--t3)',
+                  fontFamily: 'var(--font-body)', fontWeight: 500, marginBottom: 12,
                 }}>
-                  Quick Links
+                  Quick links
                 </p>
                 {[
                   ['Privacy Policy', '/privacy'],
@@ -103,7 +87,7 @@ export default function SupportPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Nav } from '@/components/Nav';
 import { Footer } from '@/components/Footer';
+import { APP_STORE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Join Runivo',
@@ -24,17 +25,16 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
   return (
     <>
       <Nav />
-      <div style={{ padding: '140px 24px 100px' }}>
+      <main id="main" style={{ padding: '140px 24px 100px' }}>
         <article style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
           <h1 style={{
-            fontFamily: 'var(--font-display)', fontStyle: 'italic',
-            fontSize: 'clamp(34px, 5vw, 52px)', color: 'var(--t1)', marginBottom: 16, letterSpacing: '-0.02em',
+            fontFamily: 'var(--font-display)', fontSize: 'clamp(34px, 5vw, 52px)', color: 'var(--t1)', marginBottom: 16, letterSpacing: '-0.02em',
           }}>
             {inviter ? `${inviter} invited you to Runivo` : 'You are invited to Runivo'}
           </h1>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--t2)', lineHeight: 1.7 }}>
             Runivo is a running game: every run you record can claim a zone on the map, and other runners can take it back.
-            Open the App Store on your iPhone, search for <strong>Runivo</strong>, and follow {inviter ?? 'your friend'} once you are in.
+            Get the app from the App Store, then follow {inviter ?? 'your friend'} once you are in.
           </p>
           {code && (
             <p style={{ fontFamily: 'var(--font-body)', fontSize: 16, color: 'var(--t1)', lineHeight: 1.7, marginTop: 20 }}>
@@ -42,8 +42,11 @@ export default async function InvitePage({ searchParams }: { searchParams: Promi
               <strong style={{ letterSpacing: '0.12em' }}>{code}</strong>. You both get 50 PACE after your first 1 km run.
             </p>
           )}
+          <div className="actions" style={{ justifyContent: 'center' }}>
+            <a href={APP_STORE_URL} className="btn btn-dark">Get Runivo on iPhone</a>
+          </div>
         </article>
-      </div>
+      </main>
       <Footer />
     </>
   );
