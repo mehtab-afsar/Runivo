@@ -87,7 +87,7 @@ export function useInterruptedRunRecovery(): void {
     const check = () => {
       if (done) return;
       done = true;
-    findInterruptedRunCheckpoint().then(cp => {
+      findInterruptedRunCheckpoint().then(cp => {
         // The background buffer counts: on Android a screen-off run has no live
         // points, and the buffer is the whole run. It used to be deleted here.
         const buffered = cp ? countBgGpsBuffer(cp.runId) : 0;
@@ -119,10 +119,10 @@ export function useInterruptedRunRecovery(): void {
                 captureHandledError(err, { domain: 'run', operation: 'recover-run-from-checkpoint' });
                 // Keep the checkpoint: the GPS data is still on the phone and the
                 // prompt will offer recovery again next time.
-                appAlert("Couldn't recover the run", 'Your GPS data is still on this phone. Try again from the Run screen.');
+                appAlert("Couldn't recover the run", 'Your GPS data is still on this phone. Runivo will offer to recover it again next time you open the app.');
                 return;
               }
-              clearInterruptedRunCheckpoint();
+              await clearInterruptedRunCheckpoint();
               // The run is saved locally; a failed upload retries on the next sync.
               postRunSync().catch(err => captureHandledError(err, { domain: 'sync', operation: 'post-run-sync-after-recovery' }));
               // Show the result. Recovering used to end silently, so nobody could tell it worked.
@@ -131,8 +131,6 @@ export function useInterruptedRunRecovery(): void {
           ],
         );
       });
-   
-
     };
     if (AppState.currentState === 'active') { check(); return; }
     const sub = AppState.addEventListener('change', st => { if (st === 'active') { sub.remove(); check(); } });
