@@ -105,4 +105,4 @@ supabase db push
 npm run functions:deploy -- process-run-territory
 ```
 
-The rules are in `supabase/migrations/20261118000005_territory.sql` (`build_territory_geom`) and `20261118000006_pace.sql` (`credit_pace_capped`); the original change is `docs/archive/supabase-migrations/migrations_2026/20261106000001_v1_pace_and_territory_integrity.sql`. Deploy the function after the migrations.
+The rules are in `supabase/migrations/20261118000005_territory.sql` (`build_territory_geom`) and `20261118000006_pace.sql` (`credit_pace_capped`); the original change was `20261106000001_v1_pace_and_territory_integrity.sql` (in git history before commit 9e5cf19). Deploy the function after the migrations.

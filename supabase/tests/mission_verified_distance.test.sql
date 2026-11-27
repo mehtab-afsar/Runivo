@@ -11,7 +11,7 @@ CREATE TABLE runs (id uuid PRIMARY KEY, user_id uuid, started_at timestamptz, di
 CREATE TABLE run_processing (run_id uuid PRIMARY KEY, result jsonb);
 CREATE TABLE territory_polygons (owner_id uuid, claimed_at timestamptz);
 CREATE FUNCTION nutrition_streak_days(uuid) RETURNS int LANGUAGE sql AS 'select 0';
-\i docs/archive/supabase-migrations/migrations_2026/20261115000018_mission_verified_distance.sql
+\i supabase/tests/legacy/20261115000018_mission_verified_distance.sql
 
 -- A client-written run claiming 9 km, never processed by the server.
 INSERT INTO runs VALUES ('00000000-0000-0000-0000-0000000000b1', (SELECT id FROM _u), now(), 9000);

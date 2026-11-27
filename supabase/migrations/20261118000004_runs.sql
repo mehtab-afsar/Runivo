@@ -6,7 +6,7 @@
 -- One file per feature: this file creates everything this feature owns
 -- (tables, functions, triggers, row-level security, grants, scheduled jobs).
 -- It needs only the files before it. Built from the 178 migrations up to
--- 20261117000012 (kept in docs/archive/supabase-migrations/migrations_2026); a fresh
+-- 20261117000012 (the 178 old files were removed after commit 9e5cf19; see git history); a fresh
 -- database built from these files matches one built from those exactly.
 --
 -- Tables: device_activities, live_run_positions, personal_records, run_cheers, run_photos, run_processing, runs, safety_shares, saved_routes, shoe_stats, shoes, weekly_consistency
